@@ -50,7 +50,8 @@
         "lint": "eslint \"packages/**/*.ts\" \"test/**/*.ts\"",
         "lint:fix": "eslint \"packages/**/*.ts\" \"test/**/*.ts\" --fix",
         "format": "biome format --write .",
-        "format:check": "biome format ."
+        "format:check": "biome format .",
+        "prepare": "husky"
     },
     "devDependencies": {
         "@apify/eslint-config-ts": "^0.4.1",

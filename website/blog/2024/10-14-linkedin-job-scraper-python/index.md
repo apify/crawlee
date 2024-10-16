@@ -76,7 +76,7 @@ You should have something like this:
 
 We're going to focus on the search parameters, which is the part that goes after '?'. The keyword and location parameters are the most important ones for us. 
 
-The job title the user supplies will be input to the keyword parameter, while the location the user supplies will go into the location parameter. Lastly, the geoId parameter will be removed while we keep the other parameters constant.
+The job title the user supplies will be input to the keyword parameter, while the location the user supplies will go into the location parameter. Lastly, the `geoId` parameter will be removed while we keep the other parameters constant.
 
 We are going to be making changes to our `main.py` file. Copy and paste the code below in your `main.py` file.
 
