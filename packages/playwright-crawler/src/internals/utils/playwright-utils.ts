@@ -624,7 +624,7 @@ export async function parseWithCheerio(
                         }, contents);
                     }
                 } catch(error) {
-                    console.warn('Failed to extract iframe content:', error);
+                    log.warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
         );
