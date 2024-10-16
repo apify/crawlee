@@ -609,7 +609,7 @@ export async function parseWithCheerio(
 
         await Promise.all(
             frames.map(async (frame) => {
-                try{
+                try {
                     const iframe = await frame.contentFrame();
 
                     if (iframe) {
@@ -623,7 +623,7 @@ export async function parseWithCheerio(
                             f.replaceWith(replacementNode);
                         }, contents);
                     }
-                } catch(error) {
+                } catch (error) {
                     log.warning(`Failed to extract iframe content: ${error}`);
                 }
             }),

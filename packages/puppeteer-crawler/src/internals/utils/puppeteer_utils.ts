@@ -212,8 +212,8 @@ export async function parseWithCheerio(
 
                             f.replaceWith(replacementNode);
                         }, contents);
-                    } 
-                } catch(error) {
+                    }
+                } catch (error) {
                     log.warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
