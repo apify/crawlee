@@ -1,0 +1,23 @@
+---
+id: custom-http-client
+title: Using a custom HTTP client (Experimental)
+description: Use a custom HTTP client for `sendRequest` and plain-HTTP crawling
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import ImplementationSource from '!!raw-loader!./implementation.ts';
+import UsageSource from '!!raw-loader!./usage.ts';
+
+The <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink> class allows you to configure the HTTP client implementation using the `httpClient` constructor option. This might be useful for testing or if you need to swap out the default implementation based on `got-scraping` for something else, such as `curl-impersonate` or `axios`.
+
+The HTTP client implementation needs to conform to the <ApiLink to="core/interface/BaseHttpClient">`BaseHttpClient`</ApiLink> interface. For a rough idea on how it might look, see a skeleton implementation that uses the standard `fetch` interface:
+
+<CodeBlock language="ts">{ImplementationSource}</CodeBlock>
+
+You may then instantiate it and pass to a crawler constructor:
+
+<CodeBlock language="ts">{UsageSource}</CodeBlock>
+
+Please note that the interface is experimental and it will likely change with Crawlee version 4.
