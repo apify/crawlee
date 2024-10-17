@@ -24,7 +24,7 @@ One of our community members wrote this blog as a contribution to Crawlee Blog. 
 
 :::
 
-By the end of this tutorial, you’ll have had a fully functional web application that you can use to scrape job postings from LinkedIn.
+By the end of this tutorial, you’ll have a fully functional web application that you can use to scrape job postings from LinkedIn.
 
 ![Linkedin Job Scraper](./img/linkedin-job-scraper.webp)
 
@@ -42,7 +42,7 @@ pipx run crawlee create linkedin-scraper
 
 Select `PlaywrightCrawler` in the terminal when Crawlee asks for it.
 
-After installation, Crawlee for Python will create boilerplate code for you. You can redirect it to the project folder and run this command to install dependencies.
+After installation, Crawlee for Python will create boilerplate code for you. You can change the directory(`cd`) to the project folder and run this command to install dependencies.
 
 ```bash
 poetry install
