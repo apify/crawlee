@@ -9,9 +9,10 @@ RUN npm --quiet set progress=false \
     && npm update \
     && npm run build
 
-FROM apify/actor-node-playwright-chrome:20-beta
+FROM lwthiker/curl-impersonate
 
-RUN rm -r node_modules
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 COPY --from=builder /node_modules ./node_modules
 COPY --from=builder /packages ./packages
 COPY --from=builder /package*.json ./
