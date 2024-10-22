@@ -1,23 +1,24 @@
-# using multistage build, as we need dev deps to build the TS source code
-FROM apify/actor-node:20-beta AS builder
+FROM node:20 AS builder
 
-# copy all files, install all dependencies (including dev deps) and build the project
-COPY . ./
-RUN npm install --include=dev \
-    && npm run build
-
-# create final image
-FROM apify/actor-node:20-beta
-# copy only necessary files
-COPY --from=builder /usr/src/app/packages ./packages
-COPY --from=builder /usr/src/app/package.json ./
-COPY --from=builder /usr/src/app/main.js ./
-
-# install only prod deps
+COPY /packages ./packages
+COPY /package*.json ./
+COPY /tsconfig.json ./
+COPY /main.ts ./
 RUN npm --quiet set progress=false \
     && npm install --only=prod --no-optional --no-audit \
-    && npm update --no-audit \
-    && echo "Installed NPM packages:" \
+    && npm update \
+    && npm run build
+
+FROM apify/actor-node-playwright-chrome:20-beta
+
+RUN rm -r node_modules
+COPY --from=builder /node_modules ./node_modules
+COPY --from=builder /packages ./packages
+COPY --from=builder /package*.json ./
+COPY --from=builder /main.js ./
+COPY /.actor ./.actor
+
+RUN echo "Installed NPM packages:" \
     && (npm list --only=prod --no-optional --all || true) \
     && echo "Node.js version:" \
     && node --version \
