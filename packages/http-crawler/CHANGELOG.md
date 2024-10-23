@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+
+### Bug Fixes
+
+* **http-crawler:** avoid crashing when gotOptions.cache is on ([#2686](https://github.com/apify/crawlee/issues/2686)) ([1106d3a](https://github.com/apify/crawlee/commit/1106d3aeccd9d1aca8b2630d720d3ea6a1c955f6))
+
+
+
+
+
 ## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
 
 **Note:** Version bump only for package @crawlee/http

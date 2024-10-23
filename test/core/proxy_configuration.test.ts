@@ -24,6 +24,21 @@ describe('ProxyConfiguration', () => {
         expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
     });
 
+    test('newProxyInfo() works with special characters', async () => {
+        const url = 'http://user%40name:pass%40word@proxy.com:1111';
+        const proxyConfiguration = new ProxyConfiguration({ proxyUrls: [url] });
+
+        const proxyInfo = {
+            sessionId: `${sessionId}`,
+            url,
+            hostname: 'proxy.com',
+            username: 'user@name',
+            password: 'pass@word',
+            port: '1111',
+        };
+        expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
+    });
+
     test('should throw on invalid newUrlFunction', async () => {
         const newUrlFunction = () => {
             return 'http://proxy.com:1111*invalid_url';

@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+
+### Bug Fixes
+
+* `forefront` request fetching in RQv2 ([#2689](https://github.com/apify/crawlee/issues/2689)) ([03951bd](https://github.com/apify/crawlee/commit/03951bdba8fb34f6bed00d1b68240ff7cd0bacbf)), closes [#2669](https://github.com/apify/crawlee/issues/2669)
+* `prolong-` and `deleteRequestLock` `forefront` option ([#2690](https://github.com/apify/crawlee/issues/2690)) ([cba8da3](https://github.com/apify/crawlee/commit/cba8da31312bcc4228662c79c4472e35278627c1)), closes [#2681](https://github.com/apify/crawlee/issues/2681) [#2689](https://github.com/apify/crawlee/issues/2689) [#2669](https://github.com/apify/crawlee/issues/2669)
+* check `.isFinished()` before `RequestList` reads ([#2695](https://github.com/apify/crawlee/issues/2695)) ([6fa170f](https://github.com/apify/crawlee/commit/6fa170fbe16c326307b8a58c09c07f64afb64bb2))
+* **core:** accept `UInt8Array` in `KVS.setValue()` ([#2682](https://github.com/apify/crawlee/issues/2682)) ([8ef0e60](https://github.com/apify/crawlee/commit/8ef0e60ca6fb2f4ec1b0d1aec6dcd53fcfb398b3))
+* **core:** trigger `errorHandler` for session errors ([#2683](https://github.com/apify/crawlee/issues/2683)) ([7d72bcb](https://github.com/apify/crawlee/commit/7d72bcb36f32933c6251382e5efd28a284e9267d)), closes [#2678](https://github.com/apify/crawlee/issues/2678)
+* decode special characters in proxy `username` and `password` ([#2696](https://github.com/apify/crawlee/issues/2696)) ([0f0fcc5](https://github.com/apify/crawlee/commit/0f0fcc594685a29472b407a7c39d48b21f24375a))
+* **http-crawler:** avoid crashing when gotOptions.cache is on ([#2686](https://github.com/apify/crawlee/issues/2686)) ([1106d3a](https://github.com/apify/crawlee/commit/1106d3aeccd9d1aca8b2630d720d3ea6a1c955f6))
+* **puppeteer:** rename `ignoreHTTPSErrors` to `acceptInsecureCerts` to support v23 ([#2684](https://github.com/apify/crawlee/issues/2684)) ([f3927e6](https://github.com/apify/crawlee/commit/f3927e6c3487deef4a2a6b0face04d3742ecd5dd))
+* respect `forefront` option in `MemoryStorage`'s `RequestQueue` ([#2681](https://github.com/apify/crawlee/issues/2681)) ([b0527f9](https://github.com/apify/crawlee/commit/b0527f948b73e3b74ac77e58f9184b34c1adab3a)), closes [#2669](https://github.com/apify/crawlee/issues/2669)
+
+
+
+
+
 ## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
 
 

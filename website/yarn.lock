@@ -6649,6 +6649,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eslint-plugin-react-hooks@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "eslint-plugin-react-hooks@npm:5.0.0"
+  peerDependencies:
+    eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0
+  checksum: 10c0/bcb74b421f32e4203a7100405b57aab85526be4461e5a1da01bc537969a30012d2ee209a2c2a6cac543833a27188ce1e6ad71e4628d0bb4a2e5365cad86c5002
+  languageName: node
+  linkType: hard
+
 "eslint-plugin-react@npm:^7.27.0, eslint-plugin-react@npm:^7.32.2, eslint-plugin-react@npm:^7.33.2":
   version: 7.35.1
   resolution: "eslint-plugin-react@npm:7.35.1"
@@ -12762,7 +12771,7 @@ __metadata:
     docusaurus-plugin-typedoc-api: "npm:^4.2.0"
     eslint: "npm:^8.35.0"
     eslint-plugin-react: "npm:^7.32.2"
-    eslint-plugin-react-hooks: "npm:^4.6.0"
+    eslint-plugin-react-hooks: "npm:^5.0.0"
     fs-extra: "npm:^11.1.0"
     patch-package: "npm:^8.0.0"
     path-browserify: "npm:^1.0.1"
