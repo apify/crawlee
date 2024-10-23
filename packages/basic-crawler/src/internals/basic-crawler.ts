@@ -26,6 +26,7 @@ import type {
     StatisticState,
     StatisticsOptions,
     LoadedContext,
+    BaseHttpClient,
     RestrictedCrawlingContext,
 } from '@crawlee/core';
 import {
@@ -50,16 +51,19 @@ import {
     SessionPool,
     Statistics,
     validators,
+    GotScrapingHttpClient,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
+import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { OptionsInit, Method } from 'got-scraping';
+import type { OptionsInit, Method, GotResponse } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+
+import { createSendRequest } from './send-request';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
     extends CrawlingContext<BasicCrawler, UserData> {
@@ -351,6 +355,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * whether to output them to the Key-Value store.
      */
     statisticsOptions?: StatisticsOptions;
+
+    /**
+     * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
+     * Defaults to a new instance of {@apilink GotScrapingHttpClient}
+     */
+    httpClient?: BaseHttpClient;
 }
 
 /**
@@ -496,6 +506,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected crawlingContexts = new Map<string, Context>();
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
+    protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
@@ -530,6 +541,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         statusMessageCallback: ow.optional.function,
 
         retryOnBlocked: ow.optional.boolean,
+        httpClient: ow.optional.object,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -592,10 +604,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             statusMessageCallback,
 
             statisticsOptions,
+            httpClient,
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
+        this.httpClient = httpClient ?? new GotScrapingHttpClient();
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -1273,31 +1287,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             addRequests: this.addRequests.bind(this),
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: async (overrideOptions?: OptionsInit) => {
-                const cookieJar = session
-                    ? {
-                          getCookieString: async (url: string) => session!.getCookieString(url),
-                          setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
-                          ...overrideOptions?.cookieJar,
-                      }
-                    : overrideOptions?.cookieJar;
-
-                return gotScraping({
-                    url: request!.url,
-                    method: request!.method as Method, // Narrow type to omit CONNECT
-                    body: request!.payload,
-                    headers: request!.headers,
-                    proxyUrl: crawlingContext.proxyInfo?.url,
-                    sessionToken: session,
-                    responseType: 'text',
-                    ...overrideOptions,
-                    retry: {
-                        limit: 0,
-                        ...overrideOptions?.retry,
-                    },
-                    cookieJar,
-                });
-            },
+            sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 

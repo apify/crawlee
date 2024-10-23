@@ -1,14 +1,14 @@
 import { EventEmitter } from 'node:events';
-import type { IncomingMessage } from 'node:http';
 
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
-import type { BrowserLikeResponse, Cookie as CookieObject, Dictionary } from '@crawlee/types';
+import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { Cookie, SerializedCookieJar } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
 import { EVENT_SESSION_RETIRED } from './events';
+import type { ResponseLike } from '../cookie_utils';
 import {
     browserPoolCookieToToughCookie,
     getCookiesFromResponse,
@@ -305,9 +305,7 @@ export class Session {
      *
      * It then parses and saves the cookies from the `set-cookie` header, if available.
      */
-    setCookiesFromResponse(
-        response: IncomingMessage | BrowserLikeResponse | { headers: Dictionary<string | string[]>; url: string },
-    ) {
+    setCookiesFromResponse(response: ResponseLike) {
         try {
             const cookies = getCookiesFromResponse(response).filter((c) => c);
             this._setCookies(cookies, typeof response.url === 'function' ? response.url() : response.url!);
