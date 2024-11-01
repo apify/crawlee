@@ -263,10 +263,10 @@ If you see `graphql` in front of you and don't know where to start, then my advi
 
 I know how easy it is to master a few tools and just use them because it works. I've fallen into this trap more than once myself.
 
-But modern sites use modern technologies that have a significant impact on web scraping, and in response, new tools for web scraping are emerging. Learning these may greatly simplify your next project, and may even solve some problems that were insurmountable for you. I wrote about some tools [`earlier`](https://crawlee.dev/blog/common-problems-in-web-scraping).
+But modern sites use modern technologies that have a significant impact on web scraping, and in response, new tools for web scraping are emerging. Learning these may greatly simplify your next project, and may even solve some problems that were insurmountable for you. I wrote about some tools [`earlier`](https://www.crawlee.dev/blog/common-problems-in-web-scraping).
 
 I especially recommend paying attention to [`curl_cffi`](https://curl-cffi.readthedocs.io/en/latest/) and frameworks
-[`botasaurus`](https://www.omkar.cloud/botasaurus/) and [`Crawlee for Python`](https://crawlee.dev/python/).
+[`botasaurus`](https://www.omkar.cloud/botasaurus/) and [`Crawlee for Python`](https://www.crawlee.dev/python/).
 
 ## 12. Help open-source libraries
 
@@ -274,7 +274,7 @@ Personally, I only recently came to realize the importance of this. All the tool
 
 And it seems to me that the least we could do is invest a little of our knowledge and skills in supporting open-source.
 
-I chose to support [`Crawlee for Python`](https://crawlee.dev/python/), and no, not because they allowed me to write in their blog, but because it shows excellent development dynamics and is aimed at making life easier for web crawler developers. It allows for faster crawler development by taking care of and hiding under the hood such critical aspects as session management, session rotation when blocked, managing concurrency of asynchronous tasks (if you write asynchronous code, you know what a pain this can be), and much more.
+I chose to support [`Crawlee for Python`](https://www.crawlee.dev/python/), and no, not because they allowed me to write in their blog, but because it shows excellent development dynamics and is aimed at making life easier for web crawler developers. It allows for faster crawler development by taking care of and hiding under the hood such critical aspects as session management, session rotation when blocked, managing concurrency of asynchronous tasks (if you write asynchronous code, you know what a pain this can be), and much more.
 
 :::tip
 If you like the blog so far, please consider [giving Crawlee a star on GitHub](https://github.com/apify/crawlee), it helps us to reach and help more developers.
