@@ -36,7 +36,7 @@ When you start working on a project, you likely have a target site from which yo
 
 If one data source fails, try accessing another available source.
 
-For example, for `Yelp`, all three options are available, and if the `Official AP`I doesn't suit you for some reason, you can try the other two.
+For example, for `Yelp`, all three options are available, and if the `Official API` doesn't suit you for some reason, you can try the other two.
 
 ## 2. Check [`robots.txt`](https://developers.google.com/search/docs/crawling-indexing/robots/intro) and [`sitemap`](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
 
@@ -48,7 +48,7 @@ I think everyone knows about `robots.txt` and `sitemap` one way or another, but 
 
 Since you're not [`Google`](http://google.com/) or any other popular search engine, the robot rules in `robots.txt` will likely be against you. But combined with the `sitemap`, this is a good place to study the site structure, expected interaction with robots, and non-browser user-agents. In some situations, it simplifies data extraction from the site.
 
-For example, using the [`sitemap`](https://www.coolbrnoblog.cz/wp-sitemap.xml) for [the blog](http://www.coolbrnoblog.cz), you can easily get direct links to posts both for the entire lifespan of the blog and for a specific period. One simple check, and you don't need to implement pagination logic.
+For example, using the [`sitemap`](https://www.crawlee.dev/sitemap.xml) for [Crawlee website](http://www.crawlee.dev/), you can easily get direct links to posts both for the entire lifespan of the blog and for a specific period. One simple check, and you don't need to implement pagination logic.
 
 ## 3. Don't neglect site analysis
 
@@ -145,7 +145,7 @@ If you analyze the site, you'll see a request that can be reproduced with the fo
 ```python
 import requests
 
-url = "<https://restoran.ua/graphql>"
+url = "https://restoran.ua/graphql"
 
 data = {
     "operationName": "Posts_PostsForView",
@@ -156,7 +156,7 @@ data = {
     $pagination: PaginationInput,
     $search: String,
     $token: String,
-    $coordinates_slice: SliceInput,
+    $coordinates_slice: SliceInput)
     {
         PostsForView(
                 where: $where
@@ -199,7 +199,7 @@ Now I'll update it to get results in 2 languages at once, and most importantly, 
 ```python
 import requests
 
-url = "<https://restoran.ua/graphql>"
+url = "https://restoran.ua/graphql"
 
 data = {
     "operationName": "Posts_PostsForView",
@@ -218,10 +218,12 @@ data = {
                 pagination: $pagination
                 search: $search
                 token: $token
-                ) {
+                ) {  
                         id
+                        # highlight-start
                         uk_title: ukTitle
                         en_title: enTitle
+                        # highlight-end
                         summary: ukSummary
                         slug
                         startAt
@@ -234,12 +236,14 @@ data = {
                             address: mobile
                             __typename
                             }
+                        # highlight-start
                         mixedBlocks {
                             index
                             en_text: enText
                             uk_text: ukText
                             __typename
                             }
+                        # highlight-end
                         coordinates(slice: $coordinates_slice) {
                             lng
                             lat
@@ -251,8 +255,9 @@ data = {
 }
 
 response = requests.post(url, json=data)
-
+# highlight-start
 print(response.text)
+# highlight-end
 ```
 
 As you can see, a small update of the request parameters allows me not to worry about visiting the internal page of each publication. You have no idea how many times this trick has saved me.
