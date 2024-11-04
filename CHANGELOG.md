@@ -9,9 +9,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Bug Fixes
 
 * `.trim()` urls from pretty-printed sitemap.xml files ([#2709](https://github.com/apify/crawlee/issues/2709)) ([802a6fe](https://github.com/apify/crawlee/commit/802a6fea7b2125e2b36d740fc2d5d131de5d53ed)), closes [#2698](https://github.com/apify/crawlee/issues/2698)
-* **core:** ensure correct column order in CSV export ([#2734](https://github.com/apify/crawlee/issues/2734)) ([b66784f](https://github.com/apify/crawlee/commit/b66784f89f011c2f972d73ec9cd47235a0411d1c)), closes [#2718](https://github.com/apify/crawlee/issues/2718)
+* ensure correct column order in CSV export ([#2734](https://github.com/apify/crawlee/issues/2734)) ([b66784f](https://github.com/apify/crawlee/commit/b66784f89f011c2f972d73ec9cd47235a0411d1c)), closes [#2718](https://github.com/apify/crawlee/issues/2718)
 * ignore errors from iframe content extraction ([#2714](https://github.com/apify/crawlee/issues/2714)) ([627e5c2](https://github.com/apify/crawlee/commit/627e5c2fbadce63c7e631217cd0e735597c0ce08)), closes [#2708](https://github.com/apify/crawlee/issues/2708)
-* update `fingerprintGeneratorOptions` types ([#2705](https://github.com/apify/crawlee/issues/2705)) ([fcb098d](https://github.com/apify/crawlee/commit/fcb098d6357b69e6d1790765076e4fe4146c8143)), closes [/github.com/apify/fingerprint-suite/blob/c61814e6ba8822543deb0ce6c03e0a0249933629/packages/fingerprint-generator/src/fingerprint-generator.ts#L73](https://github.com//github.com/apify/fingerprint-suite/blob/c61814e6ba8822543deb0ce6c03e0a0249933629/packages/fingerprint-generator/src/fingerprint-generator.ts/issues/L73) [/github.com/apify/fingerprint-suite/blob/c61814e6ba8822543deb0ce6c03e0a0249933629/packages/header-generator/src/header-generator.ts#L87](https://github.com//github.com/apify/fingerprint-suite/blob/c61814e6ba8822543deb0ce6c03e0a0249933629/packages/header-generator/src/header-generator.ts/issues/L87) [#2703](https://github.com/apify/crawlee/issues/2703)
+* update `fingerprintGeneratorOptions` types ([#2705](https://github.com/apify/crawlee/issues/2705)) ([fcb098d](https://github.com/apify/crawlee/commit/fcb098d6357b69e6d1790765076e4fe4146c8143)), closes [#2703](https://github.com/apify/crawlee/issues/2703)
 
 
 ### Features
