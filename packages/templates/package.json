@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/templates",
-    "version": "3.11.5",
+    "version": "3.12.0",
     "description": "Templates for the crawlee projects",
     "engines": {
         "node": ">=16.0.0"
