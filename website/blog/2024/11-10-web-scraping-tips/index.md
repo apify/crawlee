@@ -255,9 +255,7 @@ data = {
 }
 
 response = requests.post(url, json=data)
-# highlight-start
-print(response.text)
-# highlight-end
+print(response.json())
 ```
 
 As you can see, a small update of the request parameters allows me not to worry about visiting the internal page of each publication. You have no idea how many times this trick has saved me.
