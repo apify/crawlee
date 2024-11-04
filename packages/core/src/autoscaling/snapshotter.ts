@@ -39,7 +39,7 @@ export interface SnapshotterOptions {
     /**
      * Defines the maximum ratio of total memory that can be used.
      * Exceeding this limit overloads the memory.
-     * @default 0.7
+     * @default 0.9
      */
     maxUsedMemoryRatio?: number;
 
