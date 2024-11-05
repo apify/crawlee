@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { useBlogPost } from '@docusaurus/theme-common/internal';
+import { useBlogPost } from '@docusaurus/plugin-content-blog/client';
 import BlogPostItemContainer from '@theme/BlogPostItem/Container';
 import BlogPostItemHeader from '@theme/BlogPostItem/Header';
 import BlogPostItemContent from '@theme/BlogPostItem/Content';
@@ -12,7 +12,11 @@ function useContainerClassName() {
     return !isBlogPostPage ? 'margin-bottom--xl' : undefined;
 }
 
-export default function BlogPostItem({ children, className, list }) {
+export default function BlogPostItem({
+    children,
+    className,
+    list
+}) {
     const containerClassName = useContainerClassName();
     return (
         <BlogPostItemContainer className={clsx(containerClassName, className)} list={list}>

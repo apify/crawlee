@@ -17,8 +17,8 @@
     "devDependencies": {
         "@apify/eslint-config-ts": "^0.4.0",
         "@apify/tsconfig": "^0.1.0",
-        "@docusaurus/module-type-aliases": "3.4.0",
-        "@docusaurus/types": "3.4.0",
+        "@docusaurus/module-type-aliases": "3.6.0",
+        "@docusaurus/types": "3.6.0",
         "@types/react": "^18.0.28",
         "@typescript-eslint/eslint-plugin": "^7.0.0",
         "@typescript-eslint/parser": "^7.0.0",
@@ -30,14 +30,15 @@
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^6.0.0",
-        "typescript": "^5.6.2"
+        "typescript": "^5.6.3"
     },
     "dependencies": {
         "@apify/utilities": "^2.8.0",
-        "@docusaurus/core": "3.4.0",
-        "@docusaurus/mdx-loader": "3.4.0",
-        "@docusaurus/plugin-client-redirects": "3.4.0",
-        "@docusaurus/preset-classic": "3.4.0",
+        "@docusaurus/core": "3.6.0",
+        "@docusaurus/faster": "3.6.0",
+        "@docusaurus/mdx-loader": "3.6.0",
+        "@docusaurus/plugin-client-redirects": "3.6.0",
+        "@docusaurus/preset-classic": "3.6.0",
         "@giscus/react": "^3.0.0",
         "@mdx-js/react": "^3.0.1",
         "axios": "^1.5.0",
@@ -56,5 +57,8 @@
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
-    "packageManager": "yarn@4.5.0"
+    "resolutions": {
+        "typedoc": "^0.26.11"
+    },
+    "packageManager": "yarn@4.5.1"
 }

@@ -1,0 +1,42 @@
+SauravJ:
+    name: Saurav Jain
+    title: Developer Community Manager
+    url: https://github.com/souravjain540
+    image_url: https://avatars.githubusercontent.com/u/53312820?v=4
+    socials:
+        x: sauain
+        github: souravjain540
+
+ArindamM:
+    name: Arindam Majumder
+    title: Community Member of Crawlee
+    url: https://github.com/Arindam200
+    image_url: https://avatars.githubusercontent.com/u/109217591?v=4
+    socials:
+        x: Arindam_1729
+        github: Arindam200
+
+AyushT:
+    name: Ayush Thakur
+    title: Community Member of Crawlee
+    url: https://github.com/ayush2390
+    image_url: https://avatars.githubusercontent.com/u/43995654?v=4
+    socials:
+        x: JSAyushThakur
+        github: ayush2390
+
+MaxB:
+    name: Max
+    title: Community Member of Crawlee and web scraping expert
+    url: https://github.com/Mantisus
+    image_url: https://avatars.githubusercontent.com/u/34358312?v=4
+    socials:
+        github: Mantisus
+
+LukasP:
+    name: Lukáš Průša
+    title: Junior Web Automation Engineer
+    url: https://github.com/Patai5
+    image_url: ./img/lukasp.webp
+    socials:
+        github: Patai5

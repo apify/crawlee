@@ -3,11 +3,7 @@ slug: scrape-using-jsdom
 title: 'Optimizing web scraping: Scraping auth data using JSDOM'
 description: 'Learn how to scrape using JSDOM, alternative to Cheerio and browser based scraping.'
 image: ./img/jsdom.webp
-author: Saurav Jain
-authorTitle: Developer Community Manager
-authorURL: https://github.com/souravjain540
-authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4&s=48
-authorTwitter: sauain
+authors: [SauravJ]
 ---
 
 # Optimizing web scraping: Transitioning from browser-based to JSDOM

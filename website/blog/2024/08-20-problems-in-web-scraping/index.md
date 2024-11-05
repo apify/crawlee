@@ -4,10 +4,7 @@ title: 'Current problems and mistakes of web scraping in Python and tricks to so
 tags: [community]
 description: 'Current problems and mistakes that developers encounters while scraping and crawling the internet with the advises and solution from an web scraping expert.'
 image: ./img/problems-in-scraping.webp
-author: Max
-authorTitle: Community Member of Crawlee and web scraping expert
-authorURL: https://github.com/Mantisus
-authorImageURL: https://avatars.githubusercontent.com/u/34358312?v=4
+authors: [MaxB]
 ---
 
 ## Introduction

@@ -4,10 +4,7 @@ title: '12 tips on how to think like a web scraping expert'
 tags: [community]
 description: 'Learn how to think and scrape like a web scraping expert.'
 image: ./img/scraping-tips.webp
-author: Max
-authorTitle: Community Member of Crawlee and web scraping expert
-authorURL: https://github.com/Mantisus
-authorImageURL: https://avatars.githubusercontent.com/u/34358312?v=4
+authors: [MaxB]
 ---
 
 Typically, tutorials focus on the technical aspects, on what you can replicate: "Start here, follow this path, and you'll end up here." This is great for learning a particular technology, but it's sometimes difficult to understand why the author decided to do things a certain way or what guides their development process.
@@ -52,7 +49,7 @@ For example, using the [`sitemap`](https://www.crawlee.dev/sitemap.xml) for [Cra
 
 ## 3. Don't neglect site analysis
 
-Thorough site analysis is an important prerequisite for creating an effective web scraper, especially if you're not planning to use browser automation. However, such analysis takes time, sometimes a lot of it. 
+Thorough site analysis is an important prerequisite for creating an effective web scraper, especially if you're not planning to use browser automation. However, such analysis takes time, sometimes a lot of it.
 
 It's also worth noting that the time spent on analysis and searching for a more optimal crawling solution doesn't always pay off - you might spend hours only to discover that the most obvious approach was the best all along.
 
@@ -218,7 +215,7 @@ data = {
                 pagination: $pagination
                 search: $search
                 token: $token
-                ) {  
+                ) {
                         id
                         # highlight-start
                         uk_title: ukTitle
