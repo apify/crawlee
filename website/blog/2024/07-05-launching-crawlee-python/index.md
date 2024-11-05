@@ -3,11 +3,7 @@ slug: launching-crawlee-python
 title: 'Announcing Crawlee for Python: Now you can use Python to build reliable web crawlers'
 description: 'Launching Crawlee for Python, a web scraping and automation library to build reliable scrapers in Python fastly.'
 image: ./img/crawlee-python.webp
-author: Saurav Jain
-authorTitle: Developer Community Manager
-authorURL: https://github.com/souravjain540
-authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4&s=48
-authorTwitter: sauain
+authors: [SauravJ]
 ---
 
 > Testimonial from early adopters

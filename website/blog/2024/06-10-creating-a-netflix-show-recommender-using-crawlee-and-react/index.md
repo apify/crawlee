@@ -4,11 +4,7 @@ title: 'Building a Netflix show recommender using Crawlee and React'
 tags: [community]
 description: 'Create a Netflix show recommendation system using Crawlee to scrape the data, JavaScript to code, and React to build the front end.'
 image: ./img/create-netflix-show-recommender.webp
-author: Ayush Thakur
-authorTitle: Community Member of Crawlee
-authorURL: https://github.com/ayush2390
-authorImageURL: https://avatars.githubusercontent.com/u/43995654?v=4&s=48
-authorTwitter: JSAyushThakur
+authors: [AyushT]
 ---
 
 # Building a Netflix web show recommender with Crawlee and React
@@ -33,7 +29,7 @@ To use Crawlee, you need to have Node.js 16 or newer.
 If you like the posts on the Crawlee blog so far, please consider [giving Crawlee a star on GitHub](https://github.com/apify/crawlee), it helps us to reach and help more developers.
 :::
 
-You can install the latest version of Node.js from the [official website](https://nodejs.org/en/). This great [Node.js installation guide](https://blog.apify.com/how-to-install-nodejs/) gives you tips to avoid issues later on. 
+You can install the latest version of Node.js from the [official website](https://nodejs.org/en/). This great [Node.js installation guide](https://blog.apify.com/how-to-install-nodejs/) gives you tips to avoid issues later on.
 
 ## Creating a React app
 
@@ -130,7 +126,7 @@ await pushData({
       genres: genres,
       shows: shows,
     });
-```  
+```
 
 This will save the `genres` and `shows` arrays as values in the `genres` and `shows` keys.
 

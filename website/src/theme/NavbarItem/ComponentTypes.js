@@ -6,8 +6,7 @@ import HtmlNavbarItem from '@theme/NavbarItem/HtmlNavbarItem';
 import DocSidebarNavbarItem from '@theme/NavbarItem/DocSidebarNavbarItem';
 import DocsVersionNavbarItem from '@theme/NavbarItem/DocsVersionNavbarItem';
 import DocsVersionDropdownNavbarItem from '@theme/NavbarItem/DocsVersionDropdownNavbarItem';
-import { useActiveDocContext } from '@docusaurus/plugin-content-docs/client';
-import { useDocsVersion, useLayoutDoc } from '@docusaurus/theme-common/internal';
+import { useActiveDocContext, useDocsVersion, useLayoutDoc } from '@docusaurus/plugin-content-docs/client';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import React from 'react';
 

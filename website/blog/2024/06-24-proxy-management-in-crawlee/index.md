@@ -4,11 +4,7 @@ title: 'How Crawlee uses tiered proxies to avoid getting blocked'
 tags: [proxy]
 description: 'Find out how Crawlee’s tiered proxy system rotates between different types of proxies to control web scraping costs and avoid getting blocked.'
 image: ./img/tiered-proxies.webp
-author: Saurav Jain
-authorTitle: Developer Community Manager @ Crawlee
-authorURL: https://github.com/souravjain540
-authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4
-authorTwitter: sauain
+authors: [SauravJ]
 ---
 
 Hello Crawlee community,
@@ -18,6 +14,8 @@ We are back with another blog, this time explaining how Crawlee rotates proxies 
 Proxies vary in quality, speed, reliability, and cost. There are a [few types of proxies](https://blog.apify.com/types-of-proxies/), such as datacenter and residential proxies. Datacenter proxies are cheaper but, on the other hand, more prone to getting blocked, and vice versa with residential proxies.
 
 It is hard for developers to decide which proxy to use while scraping data. We might get blocked if we use [datacenter proxies](https://blog.apify.com/datacenter-proxies-when-to-use-them-and-how-to-make-the-most-of-them/) for low-cost scraping, but residential proxies are sometimes too expensive for bigger projects. Developers need a system that can manage both costs and avoid getting blocked. To manage this, we recently introduced tiered proxies in Crawlee. Let’s take a look at it.
+
+<!--truncate-->
 
 :::note
 

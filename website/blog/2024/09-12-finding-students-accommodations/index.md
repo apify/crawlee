@@ -4,10 +4,7 @@ title: 'Web scraping of a dynamic website using Python with HTTP Client'
 tags: [community]
 description: 'Learn how to scrape dynamic websites using Crawlee for Python with HTTP client.'
 image: ./img/dynamic-websites.webp
-author: Max
-authorTitle: Community Member of Crawlee and web scraping expert
-authorURL: https://github.com/Mantisus
-authorImageURL: https://avatars.githubusercontent.com/u/34358312?v=4
+authors: [MaxB]
 ---
 
 # Web scraping of a dynamic website using Crawlee for Python with HTTP client
@@ -77,7 +74,7 @@ Great, let's also look at the parameters used in the search API request and make
 - `sortBy: price` - the field by which sorting is performed
 - `order: asc` - type of sorting
 
-But there's another important point to pay attention to. Let's look at our link in the browser bar, which looks like this: 
+But there's another important point to pay attention to. Let's look at our link in the browser bar, which looks like this:
 
 ```plaintext
 https://www.accommodationforstudents.com/search-results?location=London&beds=0&occupancy=min&minPrice=0&maxPrice=500&latitude=51.509865&longitude=-0.118092&geo=false&page=1

@@ -3,10 +3,7 @@ slug: how-to-scrape-amazon
 title: 'How to scrape Amazon products'
 description: 'A detailed step-by-step guide to scraping products on Amazon using TypeScript, Cheerio, and Crawlee.'
 image: ./img/how-to-scrape-amazon.webp
-author: Lukáš Průša
-authorTitle: Junior Web Automation Engineer
-authorURL: https://github.com/Patai5
-authorImageURL: ./img/lukasp.webp
+authors: [LukasP]
 ---
 
 ## Introduction

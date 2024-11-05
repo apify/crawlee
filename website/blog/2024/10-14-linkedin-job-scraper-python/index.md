@@ -3,11 +3,7 @@ slug: linkedin-job-scraper-python
 title: 'How to create a LinkedIn job scraper in Python with Crawlee'
 description: 'Learn how to scrape LinkedIn jobs and save it into a CSV file using Python.'
 image: ./img/linkedin-job-scraper.webp
-author: Arindam Majumder
-authorTitle: Community Member @ Crawlee
-authorURL: https://github.com/Arindam200/
-authorImageURL: https://avatars.githubusercontent.com/u/109217591?v=4
-authorTwitter: Arindam_1729
+authors: [ArindamM]
 ---
 
 # How to create a LinkedIn job scraper in Python with Crawlee
@@ -72,9 +68,9 @@ Navigate to the jobs section, search for a job and location of your choice, and 
 
 You should have something like this:
 
-`https://www.linkedin.com/jobs/search?keywords=Backend%20Developer&location=Canada&geoId=101174742&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0` 
+`https://www.linkedin.com/jobs/search?keywords=Backend%20Developer&location=Canada&geoId=101174742&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0`
 
-We're going to focus on the search parameters, which is the part that goes after '?'. The keyword and location parameters are the most important ones for us. 
+We're going to focus on the search parameters, which is the part that goes after '?'. The keyword and location parameters are the most important ones for us.
 
 The job title the user supplies will be input to the keyword parameter, while the location the user supplies will go into the location parameter. Lastly, the `geoId` parameter will be removed while we keep the other parameters constant.
 
@@ -82,7 +78,7 @@ We are going to be making changes to our `main.py` file. Copy and paste the code
 
 ```py
 from crawlee.playwright_crawler import PlaywrightCrawler
-from .routes import router                                     
+from .routes import router
 import urllib.parse
 
 async def main(title: str, location: str, data_name: str) -> None:
@@ -98,7 +94,7 @@ async def main(title: str, location: str, data_name: str) -> None:
     }
 
     encoded_params = urlencode(params)
-    
+
     # Encode parameters into a query string
     query_string = '?' + encoded_params
 
@@ -118,13 +114,13 @@ async def main(title: str, location: str, data_name: str) -> None:
     await crawler.export_data(output_file)
 ```
 
-Now that we have encoded the URL, the next step for us is to adjust the generated router to handle LinkedIn job postings. 
+Now that we have encoded the URL, the next step for us is to adjust the generated router to handle LinkedIn job postings.
 
 ### 2. Routing your crawler
 
 We will be making use of two handlers for your application:
 
-* **Default handler** 
+* **Default handler**
 
 The `default_handler` handles the start URL
 
@@ -156,7 +152,7 @@ async def default_handler(context: PlaywrightCrawlingContext) -> None:
 
 Now that we have the job listings, the next step is to scrape their details.
 
-We'll extract each job’s title, company's name, time of posting, and the link to the job post. Open your dev tools to extract each element using its CSS selector. 
+We'll extract each job’s title, company's name, time of posting, and the link to the job post. Open your dev tools to extract each element using its CSS selector.
 
 ![Inspecting elements](./img/inspect.webp)
 
@@ -170,8 +166,8 @@ async def listing_handler(context: PlaywrightCrawlingContext) -> None:
     await context.page.wait_for_load_state('load')
 
     job_title = await context.page.locator('div.top-card-layout__entity-info h1.top-card-layout__title').text_content()
-   
-    company_name  = await context.page.locator('span.topcard__flavor a').text_content()   
+
+    company_name  = await context.page.locator('span.topcard__flavor a').text_content()
 
     time_of_posting= await context.page.locator('div.topcard__flavor-row span.posted-time-ago__text').text_content()
 
@@ -196,7 +192,7 @@ For this project, we will be using Streamlit for the web application. Before we 
 import streamlit as st
 import subprocess
 
-# Streamlit form for inputs 
+# Streamlit form for inputs
 st.title("LinkedIn Job Scraper")
 
 with st.form("scraper_form"):
@@ -229,7 +225,7 @@ The Streamlit web application takes in the user's input and uses the Python Subp
 
 ## 4. Testing your app
 
-Before we test the application, we need to make a little modification to the `__main__` file in order for it to accommodate the command line arguments. 
+Before we test the application, we need to make a little modification to the `__main__` file in order for it to accommodate the command line arguments.
 
 ```py
 import asyncio

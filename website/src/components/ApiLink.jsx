@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from '@docusaurus/Link';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { useDocsVersion } from '@docusaurus/theme-common/internal';
+import { useDocsVersion } from '@docusaurus/plugin-content-docs/client';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 const pkg = require('../../../packages/crawlee/package.json');

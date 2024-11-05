@@ -1,5 +1,4 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
-const webpack = require('webpack');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -55,6 +54,9 @@ module.exports = {
     /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
     onBrokenMarkdownLinks:
     /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
+    future: {
+        experimental_faster: true,
+    },
     presets: /** @type {import('@docusaurus/types').PresetConfig[]} */ ([
         [
             '@docusaurus/preset-classic',
