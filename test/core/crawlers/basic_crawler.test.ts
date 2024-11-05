@@ -1019,9 +1019,7 @@ describe('BasicCrawler', () => {
             requestHandler: async () => sleep(1e3),
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1059,9 +1057,7 @@ describe('BasicCrawler', () => {
             },
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1100,9 +1096,7 @@ describe('BasicCrawler', () => {
             requestHandler: async () => sleep(1e3),
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1145,9 +1139,7 @@ describe('BasicCrawler', () => {
             },
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1397,7 +1389,7 @@ describe('BasicCrawler', () => {
         });
     });
 
-    describe('Dataset helpers, crawler paralellism', () => {
+    describe('Dataset helpers, crawler parallelism', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 

@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders, Server } from 'http';
 import { Readable } from 'stream';
 
-import log, { Log, LogLevel } from '@apify/log';
+import log, { Log } from '@apify/log';
 import type { CheerioRequestHandler, CheerioCrawlingContext, ProxyInfo, Source } from '@crawlee/cheerio';
 import {
     AutoscaledPool,
@@ -146,7 +146,7 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    test('should work with explcit router', async () => {
+    test('should work with explicit router', async () => {
         const requestList = await getRequestListForMirror();
         const processed: Request[] = [];
         const failed: Request[] = [];
@@ -252,23 +252,26 @@ describe('CheerioCrawler', () => {
     });
 
     test('should serialize body and html', async () => {
-        expect.assertions(3);
         const sources = [`${serverAddress}/special/html-type`];
         const requestList = await RequestList.open(null, sources);
+        const tmp: any[] = [];
 
         const cheerioCrawler = new CheerioCrawler({
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: ({ $, body, request }) => {
-                expect(body).toBe(responseSamples.html);
-                // test that `request.loadedUrl` is no longer optional
-                expect(request.loadedUrl.length).toBe(sources[0].length);
-                expect($.html()).toBe(body);
+                tmp.push(body, $.html(), request.loadedUrl);
             },
         });
 
         await cheerioCrawler.run();
+
+        expect(tmp).toHaveLength(3);
+        expect(tmp[0]).toBe(responseSamples.html);
+        expect(tmp[1]).toBe(tmp[0]);
+        // test that `request.loadedUrl` is no longer optional
+        expect(tmp[2].length).toBe(sources[0].length);
     });
 
     describe('should timeout', () => {
@@ -463,7 +466,7 @@ describe('CheerioCrawler', () => {
                         headers: {
                             'content-type': 'text/html',
                         },
-                        body: 'DATABASE ERRROR',
+                        body: 'DATABASE ERROR',
                     }),
                     maxRequestRetries: 1,
                     requestHandler: () => {

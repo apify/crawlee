@@ -3,6 +3,62 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
+## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
+## [3.11.3](https://github.com/apify/crawlee/compare/v3.11.2...v3.11.3) (2024-09-03)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
+## [3.11.2](https://github.com/apify/crawlee/compare/v3.11.1...v3.11.2) (2024-08-28)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
+## [3.11.1](https://github.com/apify/crawlee/compare/v3.11.0...v3.11.1) (2024-07-24)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
+# [3.11.0](https://github.com/apify/crawlee/compare/v3.10.5...v3.11.0) (2024-07-09)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
 ## [3.10.5](https://github.com/apify/crawlee/compare/v3.10.4...v3.10.5) (2024-06-12)
 
 

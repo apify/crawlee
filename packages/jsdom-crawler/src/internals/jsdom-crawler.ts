@@ -42,7 +42,7 @@ export interface JSDOMCrawlerOptions<
      */
     runScripts?: boolean;
     /**
-     * Supress the logs from JSDOM internal console.
+     * Suppress the logs from JSDOM internal console.
      */
     hideInternalConsole?: boolean;
 }

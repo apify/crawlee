@@ -73,7 +73,7 @@ describe('PuppeteerCrawler', () => {
         log.setLevel(logLevel);
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
 
-        await Promise.all(servers.map(async (server) => promisify(server.close.bind(server))(true)));
+        await Promise.all(servers.map(async (server) => server.close(true)));
         await promisify(target.close.bind(target))();
     });
 
@@ -235,11 +235,9 @@ describe('PuppeteerCrawler', () => {
             requestHandler,
         });
 
-        // @ts-expect-error Overriding protected method
         const logWarningSpy = vitest.spyOn(crawler.log, 'warning');
         logWarningSpy.mockImplementation(() => {});
 
-        // @ts-expect-error Overriding protected method
         const logErrorSpy = vitest.spyOn(crawler.log, 'error');
         logErrorSpy.mockImplementation(() => {});
 
@@ -280,11 +278,9 @@ describe('PuppeteerCrawler', () => {
             requestHandler,
         });
 
-        // @ts-expect-error Overriding protected method
         const logWarningSpy = vitest.spyOn(crawler.log, 'warning');
         logWarningSpy.mockImplementation(() => {});
 
-        // @ts-expect-error Overriding protected method
         const logErrorSpy = vitest.spyOn(crawler.log, 'error');
         logErrorSpy.mockImplementation(() => {});
 

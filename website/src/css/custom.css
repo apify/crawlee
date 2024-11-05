@@ -14,7 +14,6 @@ html[data-theme='dark'] {
     --ifm-heading-color: #f2f3fb;
     --ifm-navbar-link-color: #f2f3fb;
 
-    --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
     --docsearch-text-color: #8d92af;
 }
 
@@ -54,7 +53,7 @@ html[data-theme='dark'] {
     --ifm-footer-link-color: #f2f3fb;
     --max-layout-width: 1680px;
 
-    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+    --docusaurus-highlighted-code-line-bg: rgba(0, 255, 77, 0.1);
 
     --ifm-heading-color: #242736;
 }
@@ -227,6 +226,7 @@ article .card h2 {
 
 nav.navbar .dropdown__menu {
     min-width: 6rem;
+    margin-left: 20px;
 }
 
 .navbar__logo {
@@ -364,6 +364,19 @@ html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-cont
     }
 }
 
+@media (max-width: 1480px) {
+    .navbar__item {
+        padding: 4px 24px;
+    }
+}
+
+@media (max-width: 1380px) {
+    .navbar__item {
+        padding: 4px 15px;
+        font-size: 16px;
+    }
+}
+
 @media (min-width: 997px) and (max-width: 1439px) {
     footer .col--offset-9 {
         --ifm-col-width: calc(4 / 12 * 100%);
@@ -473,6 +486,44 @@ html[data-theme='dark'] .runnable-code-block svg .apify-logo {
     min-width: 1.5rem;
     display: inline-block;
     opacity: .3;
-    position: sticky;
     left: var(--ifm-pre-padding);
+}
+
+.crawlee-python {
+    border-radius: 100px;
+    background: #272c3d;
+    color: #f2f3fb;
+    padding: 5px 15px;
+    margin: 0 0 30px 0;
+    display: inline-block;
+    border: 1px solid #b3b8d2;
+}
+
+div[class^=announcementBar_] {
+    background: #d05c29;
+    color: #fff;
+}
+
+div[class^=announcementBar_] button {
+    color: #fff;
+}
+
+.markdown blockquote {
+    --ifm-alert-background-color: var(--ifm-color-info-contrast-background);
+    --ifm-alert-background-color-highlight: rgba(84,199,236,.15);
+    --ifm-alert-foreground-color: var(--ifm-color-info-contrast-foreground);
+    --ifm-alert-border-color: var(--ifm-color-info-dark);
+    --ifm-code-background: var(--ifm-alert-background-color-highlight);
+    --ifm-link-color: var(--ifm-alert-foreground-color);
+    --ifm-link-hover-color: var(--ifm-alert-foreground-color);
+    --ifm-link-decoration: underline;
+    --ifm-tabs-color: var(--ifm-alert-foreground-color);
+    --ifm-tabs-color-active: var(--ifm-alert-foreground-color);
+    --ifm-tabs-color-active-border: var(--ifm-alert-border-color);
+    background-color: var(--ifm-alert-background-color);
+    border: var(--ifm-alert-border-width) solid var(--ifm-alert-border-color);
+    border-left-width: var(--ifm-alert-border-left-width);
+    border-radius: var(--ifm-alert-border-radius);
+    box-shadow: var(--ifm-alert-shadow);
+    padding: var(--ifm-alert-padding-vertical) var(--ifm-alert-padding-horizontal);
 }

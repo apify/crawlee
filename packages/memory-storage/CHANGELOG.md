@@ -3,6 +3,70 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
+
+**Note:** Version bump only for package @crawlee/memory-storage
+
+
+
+
+
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+
+### Bug Fixes
+
+* `prolong-` and `deleteRequestLock` `forefront` option ([#2690](https://github.com/apify/crawlee/issues/2690)) ([cba8da3](https://github.com/apify/crawlee/commit/cba8da31312bcc4228662c79c4472e35278627c1)), closes [#2681](https://github.com/apify/crawlee/issues/2681) [#2689](https://github.com/apify/crawlee/issues/2689) [#2669](https://github.com/apify/crawlee/issues/2669)
+* respect `forefront` option in `MemoryStorage`'s `RequestQueue` ([#2681](https://github.com/apify/crawlee/issues/2681)) ([b0527f9](https://github.com/apify/crawlee/commit/b0527f948b73e3b74ac77e58f9184b34c1adab3a)), closes [#2669](https://github.com/apify/crawlee/issues/2669)
+
+
+
+
+
+## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
+
+**Note:** Version bump only for package @crawlee/memory-storage
+
+
+
+
+
+## [3.11.3](https://github.com/apify/crawlee/compare/v3.11.2...v3.11.3) (2024-09-03)
+
+**Note:** Version bump only for package @crawlee/memory-storage
+
+
+
+
+
+## [3.11.2](https://github.com/apify/crawlee/compare/v3.11.1...v3.11.2) (2024-08-28)
+
+
+### Bug Fixes
+
+* **RequestQueueV2:** remove `inProgress` cache, rely solely on locked states ([#2601](https://github.com/apify/crawlee/issues/2601)) ([57fcb08](https://github.com/apify/crawlee/commit/57fcb0804a9f1268039d1e2b246c515ceca7e405))
+* Use the correct mutex in memory storage RequestQueueClient ([#2623](https://github.com/apify/crawlee/issues/2623)) ([2fa8a29](https://github.com/apify/crawlee/commit/2fa8a29b815689f041f3d06cc0563e77e02e05f4))
+
+
+
+
+
+## [3.11.1](https://github.com/apify/crawlee/compare/v3.11.0...v3.11.1) (2024-07-24)
+
+**Note:** Version bump only for package @crawlee/memory-storage
+
+
+
+
+
+# [3.11.0](https://github.com/apify/crawlee/compare/v3.10.5...v3.11.0) (2024-07-09)
+
+**Note:** Version bump only for package @crawlee/memory-storage
+
+
+
+
+
 ## [3.10.5](https://github.com/apify/crawlee/compare/v3.10.4...v3.10.5) (2024-06-12)
 
 **Note:** Version bump only for package @crawlee/memory-storage

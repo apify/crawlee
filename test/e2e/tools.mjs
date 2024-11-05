@@ -281,16 +281,11 @@ async function copyPackages(dirName) {
         Object.assign(dependencies, overrides.apify);
     }
 
-    // We don't need to copy the following packages
-    delete dependencies['@apify/storage-local'];
-    delete dependencies['apify-client'];
-    delete dependencies['deep-equal'];
-    delete dependencies['playwright-core'];
-    delete dependencies.apify;
-    delete dependencies.puppeteer;
-    delete dependencies.playwright;
-
     for (const dependency of Object.values(dependencies)) {
+        if (!dependency.startsWith('file:')) {
+            continue;
+        }
+
         const packageDirName = dependency.split('/').pop();
         const srcDir = join(srcPackagesDir, packageDirName, 'dist');
         const destDir = join(destPackagesDir, packageDirName, 'dist');

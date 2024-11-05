@@ -336,7 +336,7 @@ export class KeyValueStore {
         if (
             options.contentType &&
             !(
-                ow.isValid(value, ow.any(ow.string, ow.buffer)) ||
+                ow.isValid(value, ow.any(ow.string, ow.uint8Array)) ||
                 (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')
             )
         ) {

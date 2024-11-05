@@ -162,7 +162,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
         }
     });
 
-    describe('internal handleRequest function should return correctly formated headers', () => {
+    describe('internal handleRequest function should return correctly formatted headers', () => {
         test('should correctly capitalize headers', async () => {
             const browser = await launchPuppeteer({ launchOptions: { headless: true } });
 

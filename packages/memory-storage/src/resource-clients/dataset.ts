@@ -8,13 +8,13 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
 
-import { BaseClient } from './common/base-client';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
 import { StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createDatasetStorageImplementation } from '../fs/dataset';
 import type { MemoryStorage } from '../index';
+import { BaseClient } from './common/base-client';
 
 /**
  * This is what API returns in the x-apify-pagination-limit

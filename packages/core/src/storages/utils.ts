@@ -53,7 +53,7 @@ export async function purgeDefaultStorages(
                   client,
                   config: configOrOptions,
               }
-            : configOrOptions ?? {};
+            : (configOrOptions ?? {});
     const { config = Configuration.getGlobalConfig(), onlyPurgeOnce = false } = options;
     ({ client = config.getStorageClient() } = options);
 

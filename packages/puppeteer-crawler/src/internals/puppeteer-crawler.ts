@@ -4,6 +4,7 @@ import type {
     BrowserHook,
     BrowserRequestHandler,
     GetUserDataFromRequest,
+    LoadedContext,
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
@@ -21,7 +22,7 @@ export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictiona
     extends BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>,
         PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
-export interface PuppeteerRequestHandler extends BrowserRequestHandler<PuppeteerCrawlingContext> {}
+export interface PuppeteerRequestHandler extends BrowserRequestHandler<LoadedContext<PuppeteerCrawlingContext>> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
 export interface PuppeteerCrawlerOptions

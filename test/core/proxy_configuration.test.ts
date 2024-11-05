@@ -24,6 +24,21 @@ describe('ProxyConfiguration', () => {
         expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
     });
 
+    test('newProxyInfo() works with special characters', async () => {
+        const url = 'http://user%40name:pass%40word@proxy.com:1111';
+        const proxyConfiguration = new ProxyConfiguration({ proxyUrls: [url] });
+
+        const proxyInfo = {
+            sessionId: `${sessionId}`,
+            url,
+            hostname: 'proxy.com',
+            username: 'user@name',
+            password: 'pass@word',
+            port: '1111',
+        };
+        expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
+    });
+
     test('should throw on invalid newUrlFunction', async () => {
         const newUrlFunction = () => {
             return 'http://proxy.com:1111*invalid_url';
@@ -126,7 +141,7 @@ describe('ProxyConfiguration', () => {
         });
 
         test('should rotate custom URLs with sessions correctly', async () => {
-            const sessions = ['sesssion_01', 'sesssion_02', 'sesssion_03', 'sesssion_04', 'sesssion_05', 'sesssion_06'];
+            const sessions = ['session_01', 'session_02', 'session_03', 'session_04', 'session_05', 'session_06'];
             const proxyConfiguration = new ProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });

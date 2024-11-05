@@ -779,6 +779,8 @@ describe('utils.social', () => {
 
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/someusername')).toBe(true);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/someusername/')).toBe(true);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/some-username-1234')).toBe(true);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/some-username-1234/')).toBe(true);
             expect(FACEBOOK_REGEX.test('http://www.facebook.com/some.username123')).toBe(true);
             expect(FACEBOOK_REGEX.test('www.facebook.com/someusername')).toBe(true);
             expect(FACEBOOK_REGEX.test('facebook.com/someusername')).toBe(true);

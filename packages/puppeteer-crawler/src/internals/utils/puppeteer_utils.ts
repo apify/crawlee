@@ -200,18 +200,21 @@ export async function parseWithCheerio(
 
         await Promise.all(
             frames.map(async (frame) => {
-                const iframe = await frame.contentFrame();
+                try {
+                    const iframe = await frame.contentFrame();
+                    if (iframe) {
+                        const contents = await iframe.content();
 
-                if (iframe) {
-                    const contents = await iframe.content();
+                        await frame.evaluate((f, c) => {
+                            const replacementNode = document.createElement('div');
+                            replacementNode.innerHTML = c;
+                            replacementNode.className = 'crawlee-iframe-replacement';
 
-                    await frame.evaluate((f, c) => {
-                        const replacementNode = document.createElement('div');
-                        replacementNode.innerHTML = c;
-                        replacementNode.className = 'crawlee-iframe-replacement';
-
-                        f.replaceWith(replacementNode);
-                    }, contents);
+                            f.replaceWith(replacementNode);
+                        }, contents);
+                    }
+                } catch (error) {
+                    log.warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
         );
@@ -394,7 +397,7 @@ export async function cacheResponses(
                 };
             }
         } catch (e) {
-            // ignore errors, usualy means that buffer is empty or broken connection
+            // ignore errors, usually means that buffer is empty or broken connection
         }
     });
 }
@@ -465,7 +468,7 @@ export async function gotoExtended(
             url: ow.string.url,
             method: ow.optional.string,
             headers: ow.optional.object,
-            payload: ow.optional.any(ow.string, ow.buffer),
+            payload: ow.optional.any(ow.string, ow.uint8Array),
         }),
     );
     ow(gotoOptions, ow.object);

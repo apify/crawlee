@@ -18,7 +18,6 @@ import type {
     ProxyInfo,
     Request,
     RequestOptions,
-    RequestProvider,
     RouterHandler,
     RouterRoutes,
     Session,
@@ -27,6 +26,8 @@ import type {
     StatisticState,
     StatisticsOptions,
     LoadedContext,
+    BaseHttpClient,
+    RestrictedCrawlingContext,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -40,6 +41,7 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestProvider,
     RequestQueueV1,
     RequestQueue,
     RequestState,
@@ -49,16 +51,19 @@ import {
     SessionPool,
     Statistics,
     validators,
+    GotScrapingHttpClient,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
+import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { OptionsInit, Method } from 'got-scraping';
+import type { OptionsInit, Method, GotResponse } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+
+import { createSendRequest } from './send-request';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
     extends CrawlingContext<BasicCrawler, UserData> {
@@ -99,14 +104,13 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
  */
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
-export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (
-    inputs: LoadedContext<Context>,
-) => Awaitable<void>;
+export type RequestHandler<
+    Context extends CrawlingContext = LoadedContext<BasicCrawlingContext & RestrictedCrawlingContext>,
+> = (inputs: LoadedContext<Context>) => Awaitable<void>;
 
-export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (
-    inputs: LoadedContext<Context>,
-    error: Error,
-) => Awaitable<void>;
+export type ErrorHandler<
+    Context extends CrawlingContext = LoadedContext<BasicCrawlingContext & RestrictedCrawlingContext>,
+> = (inputs: LoadedContext<Context>, error: Error) => Awaitable<void>;
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
@@ -351,6 +355,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * whether to output them to the Key-Value store.
      */
     statisticsOptions?: StatisticsOptions;
+
+    /**
+     * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
+     * Defaults to a new instance of {@apilink GotScrapingHttpClient}
+     */
+    httpClient?: BaseHttpClient;
 }
 
 /**
@@ -496,6 +506,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected crawlingContexts = new Map<string, Context>();
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
+    protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
@@ -530,6 +541,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         statusMessageCallback: ow.optional.function,
 
         retryOnBlocked: ow.optional.boolean,
+        httpClient: ow.optional.object,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -592,10 +604,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             statusMessageCallback,
 
             statisticsOptions,
+            httpClient,
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
+        this.httpClient = httpClient ?? new GotScrapingHttpClient();
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -1138,7 +1152,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * and RequestQueue is present then enqueues it to the queue first.
      */
     protected async _fetchNextRequest() {
-        if (!this.requestList) return this.requestQueue!.fetchNextRequest();
+        if (!this.requestList || (await this.requestList.isFinished())) {
+            return this.requestQueue?.fetchNextRequest();
+        }
+
         const request = await this.requestList.fetchNextRequest();
         if (!this.requestQueue) return request;
         if (!request) return this.requestQueue.fetchNextRequest();
@@ -1185,16 +1202,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return false;
         }
 
-        // eslint-disable-next-line dot-notation
-        source['inProgress'].delete(request.id!);
+        if (source instanceof RequestQueueV1) {
+            // eslint-disable-next-line dot-notation
+            source['inProgress']?.delete(request.id!);
+        }
+
         const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(
             `Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`,
         );
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
-            // eslint-disable-next-line dot-notation
-            source['inProgress'].add(request.id!);
+
+            if (source instanceof RequestQueueV1) {
+                // eslint-disable-next-line dot-notation
+                source['inProgress'].add(request.id!);
+            }
+
             await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
         }, delay);
 
@@ -1263,31 +1287,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             addRequests: this.addRequests.bind(this),
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: async (overrideOptions?: OptionsInit) => {
-                const cookieJar = session
-                    ? {
-                          getCookieString: async (url: string) => session!.getCookieString(url),
-                          setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
-                          ...overrideOptions?.cookieJar,
-                      }
-                    : overrideOptions?.cookieJar;
-
-                return gotScraping({
-                    url: request!.url,
-                    method: request!.method as Method, // Narrow type to omit CONNECT
-                    body: request!.payload,
-                    headers: request!.headers,
-                    proxyUrl: crawlingContext.proxyInfo?.url,
-                    sessionToken: session,
-                    responseType: 'text',
-                    ...overrideOptions,
-                    retry: {
-                        limit: 0,
-                        ...overrideOptions?.retry,
-                    },
-                    cookieJar,
-                });
-            },
+            sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 
@@ -1350,6 +1350,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this._cleanupContext(crawlingContext);
 
             this.crawlingContexts.delete(crawlingContext.id);
+
+            if (source instanceof RequestProvider) {
+                // Always release a lock on a request at the end of the cycle
+                try {
+                    await source.client.deleteRequestLock(request.id!);
+                } catch {
+                    // We don't have the lock, or the request was never locked. Either way it's fine
+                }
+            }
         }
     }
 
@@ -1428,13 +1437,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (shouldRetryRequest) {
             await this.stats.errorTrackerRetry.addAsync(error, crawlingContext);
+            await this._tagUserHandlerError(() =>
+                this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
+            );
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
-            } else {
-                await this._tagUserHandlerError(() =>
-                    this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
-                );
             }
 
             if (!request.noRetry) {
@@ -1519,7 +1527,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         return process.env.CRAWLEE_VERBOSE_LOG || forceStack
-            ? error.stack ?? [error.message || error, ...stackLines].join('\n')
+            ? (error.stack ?? [error.message || error, ...stackLines].join('\n'))
             : [error.message || error, userLine].join('\n');
     }
 

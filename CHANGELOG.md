@@ -3,6 +3,110 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
+
+
+### Bug Fixes
+
+* `.trim()` urls from pretty-printed sitemap.xml files ([#2709](https://github.com/apify/crawlee/issues/2709)) ([802a6fe](https://github.com/apify/crawlee/commit/802a6fea7b2125e2b36d740fc2d5d131de5d53ed)), closes [#2698](https://github.com/apify/crawlee/issues/2698)
+* ensure correct column order in CSV export ([#2734](https://github.com/apify/crawlee/issues/2734)) ([b66784f](https://github.com/apify/crawlee/commit/b66784f89f011c2f972d73ec9cd47235a0411d1c)), closes [#2718](https://github.com/apify/crawlee/issues/2718)
+* ignore errors from iframe content extraction ([#2714](https://github.com/apify/crawlee/issues/2714)) ([627e5c2](https://github.com/apify/crawlee/commit/627e5c2fbadce63c7e631217cd0e735597c0ce08)), closes [#2708](https://github.com/apify/crawlee/issues/2708)
+* update `fingerprintGeneratorOptions` types ([#2705](https://github.com/apify/crawlee/issues/2705)) ([fcb098d](https://github.com/apify/crawlee/commit/fcb098d6357b69e6d1790765076e4fe4146c8143)), closes [#2703](https://github.com/apify/crawlee/issues/2703)
+
+
+### Features
+
+* allow using other HTTP clients ([#2661](https://github.com/apify/crawlee/issues/2661)) ([568c655](https://github.com/apify/crawlee/commit/568c6556d79ce91654c8a715d1d1729d7d6ed8ef)), closes [#2659](https://github.com/apify/crawlee/issues/2659)
+
+
+
+
+
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+
+### Bug Fixes
+
+* `forefront` request fetching in RQv2 ([#2689](https://github.com/apify/crawlee/issues/2689)) ([03951bd](https://github.com/apify/crawlee/commit/03951bdba8fb34f6bed00d1b68240ff7cd0bacbf)), closes [#2669](https://github.com/apify/crawlee/issues/2669)
+* `prolong-` and `deleteRequestLock` `forefront` option ([#2690](https://github.com/apify/crawlee/issues/2690)) ([cba8da3](https://github.com/apify/crawlee/commit/cba8da31312bcc4228662c79c4472e35278627c1)), closes [#2681](https://github.com/apify/crawlee/issues/2681) [#2689](https://github.com/apify/crawlee/issues/2689) [#2669](https://github.com/apify/crawlee/issues/2669)
+* check `.isFinished()` before `RequestList` reads ([#2695](https://github.com/apify/crawlee/issues/2695)) ([6fa170f](https://github.com/apify/crawlee/commit/6fa170fbe16c326307b8a58c09c07f64afb64bb2))
+* **core:** accept `UInt8Array` in `KVS.setValue()` ([#2682](https://github.com/apify/crawlee/issues/2682)) ([8ef0e60](https://github.com/apify/crawlee/commit/8ef0e60ca6fb2f4ec1b0d1aec6dcd53fcfb398b3))
+* **core:** trigger `errorHandler` for session errors ([#2683](https://github.com/apify/crawlee/issues/2683)) ([7d72bcb](https://github.com/apify/crawlee/commit/7d72bcb36f32933c6251382e5efd28a284e9267d)), closes [#2678](https://github.com/apify/crawlee/issues/2678)
+* decode special characters in proxy `username` and `password` ([#2696](https://github.com/apify/crawlee/issues/2696)) ([0f0fcc5](https://github.com/apify/crawlee/commit/0f0fcc594685a29472b407a7c39d48b21f24375a))
+* **http-crawler:** avoid crashing when gotOptions.cache is on ([#2686](https://github.com/apify/crawlee/issues/2686)) ([1106d3a](https://github.com/apify/crawlee/commit/1106d3aeccd9d1aca8b2630d720d3ea6a1c955f6))
+* **puppeteer:** rename `ignoreHTTPSErrors` to `acceptInsecureCerts` to support v23 ([#2684](https://github.com/apify/crawlee/issues/2684)) ([f3927e6](https://github.com/apify/crawlee/commit/f3927e6c3487deef4a2a6b0face04d3742ecd5dd))
+* respect `forefront` option in `MemoryStorage`'s `RequestQueue` ([#2681](https://github.com/apify/crawlee/issues/2681)) ([b0527f9](https://github.com/apify/crawlee/commit/b0527f948b73e3b74ac77e58f9184b34c1adab3a)), closes [#2669](https://github.com/apify/crawlee/issues/2669)
+
+
+
+
+
+## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
+
+
+### Bug Fixes
+
+* `SitemapRequestList.teardown()` doesn't break `persistState` calls ([#2673](https://github.com/apify/crawlee/issues/2673)) ([fb2c5cd](https://github.com/apify/crawlee/commit/fb2c5cdaa47e2d3a91ade726cfba3091917a0137)), closes [/github.com/apify/crawlee/blob/f3eb99d9fa9a7aa0ec1dcb9773e666a9ac14fb76/packages/core/src/storages/sitemap_request_list.ts#L446](https://github.com//github.com/apify/crawlee/blob/f3eb99d9fa9a7aa0ec1dcb9773e666a9ac14fb76/packages/core/src/storages/sitemap_request_list.ts/issues/L446) [#2672](https://github.com/apify/crawlee/issues/2672)
+
+
+
+
+
+## [3.11.3](https://github.com/apify/crawlee/compare/v3.11.2...v3.11.3) (2024-09-03)
+
+
+### Bug Fixes
+
+* improve `FACEBOOK_REGEX` to match older style page URLs ([#2650](https://github.com/apify/crawlee/issues/2650)) ([a005e69](https://github.com/apify/crawlee/commit/a005e699682cbf4bb2e48ff92cf2bbf3e0d2be26)), closes [#2216](https://github.com/apify/crawlee/issues/2216)
+* **RequestQueueV2:** reset recently handled cache too if the queue is pending for too long ([#2656](https://github.com/apify/crawlee/issues/2656)) ([51a69bc](https://github.com/apify/crawlee/commit/51a69bc1f2084c4d7ef3b7bdab3695b77af29540))
+
+
+
+
+
+## [3.11.2](https://github.com/apify/crawlee/compare/v3.11.1...v3.11.2) (2024-08-28)
+
+
+### Bug Fixes
+
+* **RequestQueueV2:** remove `inProgress` cache, rely solely on locked states ([#2601](https://github.com/apify/crawlee/issues/2601)) ([57fcb08](https://github.com/apify/crawlee/commit/57fcb0804a9f1268039d1e2b246c515ceca7e405))
+* use namespace imports for cheerio to be compatible with v1 ([#2641](https://github.com/apify/crawlee/issues/2641)) ([f48296f](https://github.com/apify/crawlee/commit/f48296f6cba7b81fe102d4b874505c27f93d9fc1))
+* Use the correct mutex in memory storage RequestQueueClient ([#2623](https://github.com/apify/crawlee/issues/2623)) ([2fa8a29](https://github.com/apify/crawlee/commit/2fa8a29b815689f041f3d06cc0563e77e02e05f4))
+
+
+### Features
+
+* `globs` & `regexps` for `SitemapRequestList` ([#2631](https://github.com/apify/crawlee/issues/2631)) ([b5fd3a9](https://github.com/apify/crawlee/commit/b5fd3a9e3f6b189b86c0fb89a37b66c08ff3fe5d))
+* resilient sitemap loading ([#2619](https://github.com/apify/crawlee/issues/2619)) ([1dd7660](https://github.com/apify/crawlee/commit/1dd76601e03de4541964116b3a77376e233ea22b))
+
+
+
+
+
+## [3.11.1](https://github.com/apify/crawlee/compare/v3.11.0...v3.11.1) (2024-07-24)
+
+
+### Bug Fixes
+
+* use `getHTML` in the shadow root expansion ([#2587](https://github.com/apify/crawlee/issues/2587)) ([a244d62](https://github.com/apify/crawlee/commit/a244d62cca03d628677eca8a5adcf41e33c51dee)), closes [#2583](https://github.com/apify/crawlee/issues/2583)
+
+
+
+
+
+# [3.11.0](https://github.com/apify/crawlee/compare/v3.10.5...v3.11.0) (2024-07-09)
+
+
+### Features
+
+* add `iframe` expansion to `parseWithCheerio` in browsers ([#2542](https://github.com/apify/crawlee/issues/2542)) ([328d085](https://github.com/apify/crawlee/commit/328d08598807782b3712bd543e394fe9a000a85d)), closes [#2507](https://github.com/apify/crawlee/issues/2507)
+* add `ignoreIframes` opt-out from the Cheerio iframe expansion ([#2562](https://github.com/apify/crawlee/issues/2562)) ([474a8dc](https://github.com/apify/crawlee/commit/474a8dc06a567cde0651d385fdac9c350ddf4508))
+* Sitemap-based request list implementation ([#2498](https://github.com/apify/crawlee/issues/2498)) ([7bf8f0b](https://github.com/apify/crawlee/commit/7bf8f0bcd4cc81e02c7cc60e82dfe7a0cdd80938))
+
+
+
+
+
 ## [3.10.5](https://github.com/apify/crawlee/compare/v3.10.4...v3.10.5) (2024-06-12)
 
 
@@ -263,7 +367,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Bug Fixes
 
 * `retryOnBlocked` doesn't override the blocked HTTP codes ([#2243](https://github.com/apify/crawlee/issues/2243)) ([81672c3](https://github.com/apify/crawlee/commit/81672c3d1db1dcdcffb868de5740addff82cf112))
-* **browser-pool:** respect user options before assigning fingerpints ([#2190](https://github.com/apify/crawlee/issues/2190)) ([f050776](https://github.com/apify/crawlee/commit/f050776a916a0530aca6727a447a49252e643417)), closes [#2164](https://github.com/apify/crawlee/issues/2164)
+* **browser-pool:** respect user options before assigning fingerprints ([#2190](https://github.com/apify/crawlee/issues/2190)) ([f050776](https://github.com/apify/crawlee/commit/f050776a916a0530aca6727a447a49252e643417)), closes [#2164](https://github.com/apify/crawlee/issues/2164)
 * filter out empty globs ([#2205](https://github.com/apify/crawlee/issues/2205)) ([41322ab](https://github.com/apify/crawlee/commit/41322ab32d7db7baf61638d00fd7eaec9e5330f1)), closes [#2200](https://github.com/apify/crawlee/issues/2200)
 * make CLI work on Windows too with `--no-purge` ([#2244](https://github.com/apify/crawlee/issues/2244)) ([83f3179](https://github.com/apify/crawlee/commit/83f3179d6963dbaca4232d866356cc766db11dd8))
 * make SessionPool queue up getSession calls to prevent overruns ([#2239](https://github.com/apify/crawlee/issues/2239)) ([0f5665c](https://github.com/apify/crawlee/commit/0f5665c473371bff5a5d3abee3c3a9d23f2aeb23)), closes [#1667](https://github.com/apify/crawlee/issues/1667)

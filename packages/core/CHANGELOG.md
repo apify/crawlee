@@ -3,6 +3,93 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
+
+
+### Bug Fixes
+
+* **core:** ensure correct column order in CSV export ([#2734](https://github.com/apify/crawlee/issues/2734)) ([b66784f](https://github.com/apify/crawlee/commit/b66784f89f011c2f972d73ec9cd47235a0411d1c)), closes [#2718](https://github.com/apify/crawlee/issues/2718)
+
+
+### Features
+
+* allow using other HTTP clients ([#2661](https://github.com/apify/crawlee/issues/2661)) ([568c655](https://github.com/apify/crawlee/commit/568c6556d79ce91654c8a715d1d1729d7d6ed8ef)), closes [#2659](https://github.com/apify/crawlee/issues/2659)
+
+
+
+
+
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+
+### Bug Fixes
+
+* `forefront` request fetching in RQv2 ([#2689](https://github.com/apify/crawlee/issues/2689)) ([03951bd](https://github.com/apify/crawlee/commit/03951bdba8fb34f6bed00d1b68240ff7cd0bacbf)), closes [#2669](https://github.com/apify/crawlee/issues/2669)
+* **core:** accept `UInt8Array` in `KVS.setValue()` ([#2682](https://github.com/apify/crawlee/issues/2682)) ([8ef0e60](https://github.com/apify/crawlee/commit/8ef0e60ca6fb2f4ec1b0d1aec6dcd53fcfb398b3))
+* decode special characters in proxy `username` and `password` ([#2696](https://github.com/apify/crawlee/issues/2696)) ([0f0fcc5](https://github.com/apify/crawlee/commit/0f0fcc594685a29472b407a7c39d48b21f24375a))
+
+
+
+
+
+## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
+
+
+### Bug Fixes
+
+* `SitemapRequestList.teardown()` doesn't break `persistState` calls ([#2673](https://github.com/apify/crawlee/issues/2673)) ([fb2c5cd](https://github.com/apify/crawlee/commit/fb2c5cdaa47e2d3a91ade726cfba3091917a0137)), closes [/github.com/apify/crawlee/blob/f3eb99d9fa9a7aa0ec1dcb9773e666a9ac14fb76/packages/core/src/storages/sitemap_request_list.ts#L446](https://github.com//github.com/apify/crawlee/blob/f3eb99d9fa9a7aa0ec1dcb9773e666a9ac14fb76/packages/core/src/storages/sitemap_request_list.ts/issues/L446) [#2672](https://github.com/apify/crawlee/issues/2672)
+
+
+
+
+
+## [3.11.3](https://github.com/apify/crawlee/compare/v3.11.2...v3.11.3) (2024-09-03)
+
+
+### Bug Fixes
+
+* **RequestQueueV2:** reset recently handled cache too if the queue is pending for too long ([#2656](https://github.com/apify/crawlee/issues/2656)) ([51a69bc](https://github.com/apify/crawlee/commit/51a69bc1f2084c4d7ef3b7bdab3695b77af29540))
+
+
+
+
+
+## [3.11.2](https://github.com/apify/crawlee/compare/v3.11.1...v3.11.2) (2024-08-28)
+
+
+### Bug Fixes
+
+* **RequestQueueV2:** remove `inProgress` cache, rely solely on locked states ([#2601](https://github.com/apify/crawlee/issues/2601)) ([57fcb08](https://github.com/apify/crawlee/commit/57fcb0804a9f1268039d1e2b246c515ceca7e405))
+
+
+### Features
+
+* `globs` & `regexps` for `SitemapRequestList` ([#2631](https://github.com/apify/crawlee/issues/2631)) ([b5fd3a9](https://github.com/apify/crawlee/commit/b5fd3a9e3f6b189b86c0fb89a37b66c08ff3fe5d))
+* resilient sitemap loading ([#2619](https://github.com/apify/crawlee/issues/2619)) ([1dd7660](https://github.com/apify/crawlee/commit/1dd76601e03de4541964116b3a77376e233ea22b))
+
+
+
+
+
+## [3.11.1](https://github.com/apify/crawlee/compare/v3.11.0...v3.11.1) (2024-07-24)
+
+**Note:** Version bump only for package @crawlee/core
+
+
+
+
+
+# [3.11.0](https://github.com/apify/crawlee/compare/v3.10.5...v3.11.0) (2024-07-09)
+
+
+### Features
+
+* Sitemap-based request list implementation ([#2498](https://github.com/apify/crawlee/issues/2498)) ([7bf8f0b](https://github.com/apify/crawlee/commit/7bf8f0bcd4cc81e02c7cc60e82dfe7a0cdd80938))
+
+
+
+
+
 ## [3.10.5](https://github.com/apify/crawlee/compare/v3.10.4...v3.10.5) (2024-06-12)
 
 

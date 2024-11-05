@@ -3,6 +3,68 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
+
+
+### Features
+
+* allow using other HTTP clients ([#2661](https://github.com/apify/crawlee/issues/2661)) ([568c655](https://github.com/apify/crawlee/commit/568c6556d79ce91654c8a715d1d1729d7d6ed8ef)), closes [#2659](https://github.com/apify/crawlee/issues/2659)
+
+
+
+
+
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+
+### Bug Fixes
+
+* **http-crawler:** avoid crashing when gotOptions.cache is on ([#2686](https://github.com/apify/crawlee/issues/2686)) ([1106d3a](https://github.com/apify/crawlee/commit/1106d3aeccd9d1aca8b2630d720d3ea6a1c955f6))
+
+
+
+
+
+## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.11.3](https://github.com/apify/crawlee/compare/v3.11.2...v3.11.3) (2024-09-03)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.11.2](https://github.com/apify/crawlee/compare/v3.11.1...v3.11.2) (2024-08-28)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.11.1](https://github.com/apify/crawlee/compare/v3.11.0...v3.11.1) (2024-07-24)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+# [3.11.0](https://github.com/apify/crawlee/compare/v3.10.5...v3.11.0) (2024-07-09)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
 ## [3.10.5](https://github.com/apify/crawlee/compare/v3.10.4...v3.10.5) (2024-06-12)
 
 

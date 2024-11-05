@@ -25,7 +25,7 @@ export type StreamHandlerContext = Omit<
     FileDownloadCrawlingContext,
     'body' | 'response' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
 > & {
-    stream: Request;
+    stream: Request; // TODO BC - remove in v4
 };
 
 type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
@@ -61,7 +61,7 @@ export type FileDownloadRequestHandler<
 /**
  * Provides a framework for downloading files in parallel using plain HTTP requests. The URLs to download are fed either from a static list of URLs or they can be added on the fly from another crawler.
  *
- * Since `FileDownload` uses raw HTTP requests to download the files, it is very fast and bandwith-efficient.
+ * Since `FileDownload` uses raw HTTP requests to download the files, it is very fast and bandwidth-efficient.
  * However, it doesn't parse the content - if you need to e.g. extract data from the downloaded files,
  * you might need to use {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead.
  *
@@ -139,32 +139,29 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             request: { url },
         } = context;
 
-        const { gotScraping } = await import('got-scraping');
-
-        const stream = gotScraping.stream({
+        const response = await this.httpClient.stream({
             url,
             timeout: { request: undefined },
             proxyUrl: context.proxyInfo?.url,
-            isStream: true,
         });
 
         let pollingInterval: NodeJS.Timeout | undefined;
 
         const cleanUp = () => {
             clearInterval(pollingInterval!);
-            stream.destroy();
+            response.stream.destroy();
         };
 
         const downloadPromise = new Promise<void>((resolve, reject) => {
             pollingInterval = setInterval(() => {
-                const { total, transferred } = stream.downloadProgress;
+                const { total, transferred } = response.downloadProgress;
 
                 if (transferred > 0) {
                     log.debug(`Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`);
                 }
             }, 5000);
 
-            stream.on('error', async (error: Error) => {
+            response.stream.on('error', async (error: Error) => {
                 cleanUp();
                 reject(error);
             });
@@ -172,7 +169,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             let streamHandlerResult;
 
             try {
-                context.stream = stream;
+                context.stream = response.stream;
                 streamHandlerResult = this.streamHandler!(context as any);
             } catch (e) {
                 cleanUp();
@@ -193,7 +190,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }
         });
 
-        await Promise.all([downloadPromise, finished(stream)]);
+        await Promise.all([downloadPromise, finished(response.stream)]);
 
         cleanUp();
     }

@@ -77,7 +77,7 @@ export function weightedAvg(arrValues: number[], arrWeights: number[]): number {
  * @param millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  */
 export async function sleep(millis?: number): Promise<void> {
-    return setTimeout(millis);
+    return setTimeout(millis ?? undefined);
 }
 
 /**
@@ -115,7 +115,12 @@ export function expandShadowRoots(document: Document): string {
         for (const el of rootElement.querySelectorAll('*')) {
             if (el.shadowRoot) {
                 replaceShadowDomsWithHtml(el.shadowRoot);
-                el.innerHTML += getShadowDomHtml(el.shadowRoot) ?? '';
+                let content = el.getHTML?.({ serializableShadowRoots: true }).trim();
+
+                if (!(content?.length > 0)) {
+                    content = getShadowDomHtml(el.shadowRoot) ?? '';
+                }
+                el.innerHTML += content;
             }
         }
     }

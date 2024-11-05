@@ -299,6 +299,7 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
     let pendingRequestCount = 0;
     let handledRequestCount = 0;
     const entries = new Set<string>();
+    let forefrontRequestIds: string[] = [];
 
     for await (const entry of directoryEntries) {
         if (entry.isFile()) {
@@ -317,6 +318,7 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
                     modifiedAt = new Date(metadata.modifiedAt);
                     pendingRequestCount = metadata.pendingRequestCount;
                     handledRequestCount = metadata.handledRequestCount;
+                    forefrontRequestIds = (metadata as any)?.forefrontRequestIds ?? [];
 
                     break;
                 }
@@ -367,6 +369,8 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
     newClient.modifiedAt = modifiedAt;
     newClient.pendingRequestCount = pendingRequestCount;
     newClient.handledRequestCount = handledRequestCount;
+    // @ts-expect-error - Assigning to private property
+    newClient.forefrontRequestIds = forefrontRequestIds;
 
     for (const requestId of entries) {
         const entry = new RequestQueueFileSystemEntry({

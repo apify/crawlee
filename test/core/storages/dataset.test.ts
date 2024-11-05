@@ -486,10 +486,16 @@ describe('dataset', () => {
         describe('exportToJSON', () => {
             const dataToPush = [
                 {
-                    hello: 'world',
+                    hello: 'world 1',
+                    foo: 'bar 1',
                 },
                 {
-                    foo: 'bar',
+                    foo: 'bar 2',
+                    hello: 'world 2',
+                },
+                {
+                    hello: 'world 3',
+                    foo: 'bar 3',
                 },
             ];
 
@@ -518,8 +524,12 @@ describe('dataset', () => {
                     foo: 'bar 1',
                 },
                 {
-                    hello: 'world 2',
                     foo: 'bar 2',
+                    hello: 'world 2',
+                },
+                {
+                    hello: 'world 3',
+                    foo: 'bar 3',
                 },
             ];
 
@@ -529,7 +539,7 @@ describe('dataset', () => {
                 await dataset.exportToCSV('HELLO-csv');
 
                 const kvData = await KeyValueStore.getValue('HELLO-csv');
-                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\n');
+                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\nworld 3,bar 3\n');
             });
 
             it('Should work as a static method for the default dataset', async () => {
@@ -537,7 +547,7 @@ describe('dataset', () => {
                 await Dataset.exportToCSV('TEST-123-123-csv');
 
                 const kvData = await KeyValueStore.getValue('TEST-123-123-csv');
-                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\n');
+                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\nworld 3,bar 3\n');
             });
         });
     });

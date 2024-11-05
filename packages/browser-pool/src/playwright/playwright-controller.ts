@@ -94,13 +94,13 @@ export class PlaywrightController extends BrowserController<
                     const session = await page.context().newCDPSession(page);
                     await session.send('Network.enable');
 
-                    session.on('Network.responseReceived', (responseRecevied) => {
+                    session.on('Network.responseReceived', (responseReceived) => {
                         const logOnly = ['Document', 'XHR', 'Fetch', 'EventSource', 'WebSocket', 'Other'];
-                        if (!logOnly.includes(responseRecevied.type)) {
+                        if (!logOnly.includes(responseReceived.type)) {
                             return;
                         }
 
-                        const { response } = responseRecevied;
+                        const { response } = responseReceived;
                         if (response.fromDiskCache || response.fromPrefetchCache || response.fromServiceWorker) {
                             return;
                         }

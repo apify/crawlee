@@ -75,6 +75,8 @@ module.exports = {
                     blogTitle: 'Crawlee Blog - learn how to build better scrapers',
                     // eslint-disable-next-line max-len
                     blogDescription: 'Guides and tutorials on using Crawlee, the most reliable open-source web scraping and browser automation library for JavaScript and Node.js developers.',
+                    blogSidebarTitle: 'All posts',
+                    blogSidebarCount: 'ALL',
                 },
                 theme: {
                     customCss: '/src/css/custom.css',
@@ -82,6 +84,20 @@ module.exports = {
             }),
         ],
     ]),
+    headTags: [
+        // Intercom messenger
+        {
+            tagName: 'script',
+            innerHTML: `window.intercomSettings={api_base:"https://api-iam.intercom.io",app_id:"kod1r788"};`,
+            attributes: {},
+        },
+        // Intercom messenger
+        {
+            tagName: 'script',
+            innerHTML: `(function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/kod1r788';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})()`,
+            attributes: {},
+        },
+    ],
     plugins: [
         [
             'docusaurus-plugin-typedoc-api',
@@ -161,6 +177,10 @@ module.exports = {
                 hideable: true,
             },
         },
+        announcementBar: {
+            id: `crawlee-for-python-webinar`,
+            content: `🎉️ <b><a href="https://crawlee.dev/python/">Crawlee for Python is open to early adopters!</a></b> 🥳️`,
+        },
         navbar: {
             hideOnScroll: true,
             title: 'Crawlee',
@@ -200,6 +220,25 @@ module.exports = {
                     to: 'blog',
                     label: 'Blog',
                     position: 'left',
+                },
+                {
+                    type: 'dropdown',
+                    label: 'Node.js',
+                    position: 'left',
+                    items: [
+                        {
+                            label: 'Node.js',
+                            href: '#',
+                            target: '_self',
+                            rel: 'dofollow',
+                        },
+                        {
+                            label: 'Python',
+                            href: 'https://crawlee.dev/python',
+                            target: '_self',
+                            rel: 'dofollow',
+                        },
+                    ],
                 },
                 {
                     type: 'docsVersionDropdown',

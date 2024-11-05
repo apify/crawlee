@@ -1,15 +1,59 @@
 import { Transform } from 'node:stream';
 
 import defaultLog from '@apify/log';
-import { parseSitemap } from '@crawlee/utils';
+import { type ParseSitemapOptions, parseSitemap } from '@crawlee/utils';
+import { minimatch } from 'minimatch';
 import ow from 'ow';
 
 import { KeyValueStore } from './key_value_store';
 import type { IRequestList } from './request_list';
 import { purgeDefaultStorages } from './utils';
+import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
+import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
 import { Request } from '../request';
 
-export interface SitemapRequestListOptions {
+/** @internal */
+const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
+
+interface UrlConstraints {
+    /**
+     * An array of glob pattern strings or plain objects
+     * containing glob pattern strings matching the URLs to be enqueued.
+     *
+     * The plain objects must include at least the `glob` property, which holds the glob pattern string.
+     *
+     * The matching is always case-insensitive.
+     * If you need case-sensitive matching, use `regexps` property directly.
+     *
+     * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the `SitemapRequestList`
+     * includes all the URLs from the sitemap.
+     */
+    globs?: readonly GlobInput[];
+
+    /**
+     * An array of glob pattern strings, regexp patterns or plain objects
+     * containing patterns matching URLs that will **never** be included.
+     *
+     * The plain objects must include either the `glob` property or the `regexp` property.
+     *
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, provide a regexp.
+     */
+    exclude?: readonly (GlobInput | RegExp)[];
+
+    /**
+     * An array of regular expressions or plain objects
+     * containing regular expressions matching the URLs to be enqueued.
+     *
+     * The plain objects must include at least the `regexp` property, which holds the regular expression.
+     *
+     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the `SitemapRequestList`
+     * includes all the URLs from the sitemap.
+     */
+    regexps?: readonly RegExpInput[];
+}
+
+export interface SitemapRequestListOptions extends UrlConstraints {
     /**
      * List of sitemap URLs to parse.
      */
@@ -37,6 +81,10 @@ export interface SitemapRequestListOptions {
      * @default 200
      */
     maxBufferSize?: number;
+    /**
+     * Advanced options for the underlying `parseSitemap` call.
+     */
+    parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
 }
 
 interface SitemapParsingProgress {
@@ -50,6 +98,7 @@ interface SitemapRequestListState {
     reclaimed: string[];
     sitemapParsingProgress: Record<keyof SitemapParsingProgress, any>;
     abortLoading: boolean;
+    closed: boolean;
     requestData: [string, Request][];
 }
 
@@ -88,7 +137,7 @@ export class SitemapRequestList implements IRequestList {
          */
         inProgressEntries: new Set<string>(),
         /**
-         * Set of sitemap URLs that have not been fully parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
+         * Set of sitemap URLs that have not been parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
          */
         pendingSitemapUrls: new Set<string>(),
     };
@@ -118,6 +167,8 @@ export class SitemapRequestList implements IRequestList {
 
     private store?: KeyValueStore;
 
+    private closed: boolean = false;
+
     /**
      * Proxy URL to be used for sitemap loading.
      */
@@ -127,6 +178,9 @@ export class SitemapRequestList implements IRequestList {
      * Logger instance.
      */
     private log = defaultLog.child({ prefix: 'SitemapRequestList' });
+
+    private urlExcludePatternObjects: UrlPatternObject[] = [];
+    private urlPatternObjects: UrlPatternObject[] = [];
 
     /** @internal */
     private constructor(options: SitemapRequestListOptions) {
@@ -139,19 +193,81 @@ export class SitemapRequestList implements IRequestList {
                 signal: ow.optional.any(),
                 timeoutMillis: ow.optional.number,
                 maxBufferSize: ow.optional.number,
+                parseSitemapOptions: ow.optional.object,
+                globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
+                exclude: ow.optional.array.ofType(
+                    ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
+                ),
+                regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
             }),
         );
+
+        const { globs, exclude, regexps } = options;
+
+        if (exclude?.length) {
+            for (const excl of exclude) {
+                if (typeof excl === 'string' || 'glob' in excl) {
+                    this.urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
+                } else if (excl instanceof RegExp || 'regexp' in excl) {
+                    this.urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
+                }
+            }
+        }
+
+        if (globs?.length) {
+            this.urlPatternObjects.push(...constructGlobObjectsFromGlobs(globs));
+        }
+
+        if (regexps?.length) {
+            this.urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
+        }
 
         this.persistStateKey = options.persistStateKey;
         this.proxyUrl = options.proxyUrl;
 
-        this.urlQueueStream = new Transform({
-            objectMode: true,
-            highWaterMark: options.maxBufferSize ?? 200,
-        });
-        this.urlQueueStream.pause();
+        this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
 
         this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
+    }
+
+    /**
+     * Creates a new object stream with the specified highWaterMark.
+     * @param highWaterMark High water mark for the stream (the maximum number of objects the stream will buffer).
+     * @returns A new object stream.
+     */
+    private createNewStream(highWaterMark: number): Transform {
+        return new Transform({
+            objectMode: true,
+            highWaterMark,
+        }).pause();
+    }
+
+    /**
+     * Returns a function that checks whether the provided pattern matches the closure URL.
+     * @param url URL to be checked.
+     * @returns A matcher function that checks whether the pattern matches the closure URL.
+     */
+    private matchesUrl(url: string): (patternObject: UrlPatternObject) => boolean {
+        return (patternObject) => {
+            const { regexp, glob } = patternObject;
+
+            const matchesRegex = (regexp && url.match(regexp)) || false;
+            const matchesGlob = (glob && minimatch(url, glob, { nocase: true })) || false;
+
+            return Boolean(matchesRegex || matchesGlob);
+        };
+    }
+
+    /**
+     * Checks whether the URL matches the `globs` / `regexps` / `exclude` provided in the `options`.
+     * @param url URL to be checked.
+     * @returns `true` if the URL matches the patterns, `false` otherwise.
+     */
+    private isUrlMatchingPatterns(url: string): boolean {
+        return (
+            !this.urlExcludePatternObjects.some(this.matchesUrl(url)) &&
+            (this.urlPatternObjects.length === 0 || this.urlPatternObjects.some(this.matchesUrl(url)))
+        );
     }
 
     /**
@@ -161,6 +277,10 @@ export class SitemapRequestList implements IRequestList {
      */
     private async pushNextUrl(url: string | null) {
         return new Promise<void>((resolve) => {
+            if (this.closed || (url && !this.isUrlMatchingPatterns(url))) {
+                return resolve();
+            }
+
             if (!this.urlQueueStream.push(url)) {
                 // This doesn't work with the 'drain' event (it's not emitted for some reason).
                 this.urlQueueStream.once('readdata', () => {
@@ -180,6 +300,10 @@ export class SitemapRequestList implements IRequestList {
      */
     private async readNextUrl(): Promise<string | null> {
         return new Promise((resolve) => {
+            if (this.closed) {
+                return resolve(null);
+            }
+
             const result = this.urlQueueStream.read();
 
             if (!result && !this.isSitemapFullyLoaded()) {
@@ -211,14 +335,17 @@ export class SitemapRequestList implements IRequestList {
      *
      * Resolves once all the sitemaps URLs have been fully loaded (sets `isSitemapFullyLoaded` to `true`).
      */
-    private async load(): Promise<void> {
+    private async load({
+        parseSitemapOptions,
+    }: { parseSitemapOptions?: SitemapRequestListOptions['parseSitemapOptions'] }): Promise<void> {
         while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
                 this.sitemapParsingProgress.inProgressSitemapUrl ??
-                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value;
+                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value!;
 
             try {
                 for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.proxyUrl, {
+                    ...parseSitemapOptions,
                     maxDepth: 0,
                     emitNestedSitemaps: true,
                 })) {
@@ -242,7 +369,7 @@ export class SitemapRequestList implements IRequestList {
             this.sitemapParsingProgress.inProgressSitemapUrl = null;
         }
 
-        await this.pushNextUrl(null);
+        this.urlQueueStream.end();
     }
 
     /**
@@ -253,9 +380,12 @@ export class SitemapRequestList implements IRequestList {
      * Track the loading progress using the `isSitemapFullyLoaded` property.
      */
     static async open(options: SitemapRequestListOptions): Promise<SitemapRequestList> {
-        const requestList = new SitemapRequestList(options);
+        const requestList = new SitemapRequestList({
+            ...options,
+            persistStateKey: options.persistStateKey ?? STATE_PERSISTENCE_KEY,
+        });
         await requestList.restoreState();
-        void requestList.load();
+        void requestList.load({ parseSitemapOptions: options.parseSitemapOptions });
 
         options?.signal?.addEventListener('abort', () => {
             requestList.abortLoading = true;
@@ -320,9 +450,19 @@ export class SitemapRequestList implements IRequestList {
             urlQueue.push(url);
         }
 
+        // Create a new stream, as we have read all the URLs from the current one.
+        // Pushing the urls back to the original stream might not be possible if it has been ended.
+        const newStream = this.createNewStream(this.urlQueueStream.readableHighWaterMark);
+
         for (const url of urlQueue) {
-            this.urlQueueStream.push(url);
+            newStream.push(url);
         }
+
+        if (this.urlQueueStream.writableEnded) {
+            newStream.end();
+        }
+
+        this.urlQueueStream = newStream;
 
         await this.store.setValue(this.persistStateKey, {
             sitemapParsingProgress: {
@@ -334,6 +474,7 @@ export class SitemapRequestList implements IRequestList {
             reclaimed: [...this.inProgress, ...this.reclaimed], // In-progress and reclaimed requests will be both retried if state is restored
             requestData: Array.from(this.requestData.entries()),
             abortLoading: this.abortLoading,
+            closed: this.closed,
         } satisfies SitemapRequestListState);
     }
 
@@ -365,6 +506,7 @@ export class SitemapRequestList implements IRequestList {
         }
 
         this.abortLoading = state.abortLoading;
+        this.closed = state.closed;
     }
 
     /**
@@ -372,7 +514,7 @@ export class SitemapRequestList implements IRequestList {
      */
     async fetchNextRequest(): Promise<Request | null> {
         // Try to return a reclaimed request first
-        let nextUrl: string | null = this.reclaimed.values().next().value;
+        let nextUrl: string | undefined | null = this.reclaimed.values().next().value;
         if (nextUrl) {
             this.reclaimed.delete(nextUrl);
         } else {
@@ -392,7 +534,7 @@ export class SitemapRequestList implements IRequestList {
      * @inheritDoc
      */
     async *[Symbol.asyncIterator]() {
-        while ((!this.isSitemapFullyLoaded() && !this.abortLoading) || !(await this.isEmpty())) {
+        while (!(await this.isFinished())) {
             const request = await this.fetchNextRequest();
             if (!request) break;
 
@@ -407,6 +549,19 @@ export class SitemapRequestList implements IRequestList {
         this.ensureInProgressAndNotReclaimed(request.url);
         this.reclaimed.add(request.url);
         this.inProgress.delete(request.url);
+    }
+
+    /**
+     * Aborts the internal sitemap loading, stops the processing of the sitemap contents and drops all the pending URLs.
+     *
+     * Calling `fetchNextRequest()` after this method will always return `null`.
+     */
+    async teardown(): Promise<void> {
+        this.closed = true;
+        this.abortLoading = true;
+        await this.persistState();
+
+        this.urlQueueStream.emit('readdata'); // unblocks the potentially waiting `pushNextUrl` call
     }
 
     /**

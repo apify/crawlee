@@ -4,7 +4,7 @@ import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import type { Dictionary } from '@crawlee/types';
 
 import { checkStorageAccess } from './access_checking';
-import type { RequestProviderOptions } from './request_provider';
+import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
@@ -83,6 +83,8 @@ class RequestQueue extends RequestProvider {
         hadMultipleClients?: boolean;
     }> | null = null;
 
+    private inProgress = new Set<string>();
+
     /**
      * @internal
      */
@@ -96,6 +98,13 @@ class RequestQueue extends RequestProvider {
             },
             config,
         );
+    }
+
+    /**
+     * @internal
+     */
+    public inProgressCount(): number {
+        return this.inProgress.size;
     }
 
     /**
@@ -344,6 +353,23 @@ class RequestQueue extends RequestProvider {
         }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
         return result;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    override async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
+        const res = await super.markRequestHandled(request);
+
+        this.inProgress.delete(request.id!);
+
+        return res;
+    }
+
+    protected override _reset(): void {
+        super._reset();
+
+        this.inProgress.clear();
     }
 
     /**

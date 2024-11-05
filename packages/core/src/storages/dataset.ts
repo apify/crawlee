@@ -347,7 +347,13 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const items = await this.export(options);
 
         if (contentType === 'text/csv') {
-            const value = stringify([Object.keys(items[0]), ...items.map((item) => Object.values(item))]);
+            const keys = Object.keys(items[0]);
+            const value = stringify([
+                keys,
+                ...items.map((item) => {
+                    return keys.map((k) => item[k]);
+                }),
+            ]);
             await kvStore.setValue(key, value, { contentType });
             return items;
         }
