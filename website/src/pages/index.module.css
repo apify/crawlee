@@ -17,10 +17,10 @@
     letter-spacing: 0;
     text-align: left;
     transition: all var(--ifm-transition-fast);
-}
 
-.tagline span {
-    color: transparent !important;
+    span {
+        color: transparent !important;
+    }
 }
 
 .relative {
