@@ -365,6 +365,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@apify/docusaurus-plugin-typedoc-api@npm:^4.2.9":
+  version: 4.2.9
+  resolution: "@apify/docusaurus-plugin-typedoc-api@npm:4.2.9"
+  dependencies:
+    "@docusaurus/plugin-content-docs": "npm:^3.5.2"
+    "@docusaurus/types": "npm:^3.5.2"
+    "@docusaurus/utils": "npm:^3.5.2"
+    "@types/react": "npm:^18.3.11"
+    "@vscode/codicons": "npm:^0.0.35"
+    html-entities: "npm:2.3.2"
+    marked: "npm:^9.1.6"
+    marked-smartypants: "npm:^1.1.5"
+    typedoc: "npm:^0.25.7"
+    zx: "npm:^8.1.4"
+  peerDependencies:
+    "@docusaurus/core": ^3.5.2
+    "@docusaurus/mdx-loader": ^3.5.2
+    react: ">=18.0.0"
+    typescript: ^5.0.0
+  checksum: 10c0/6e04d56d5902dba3d32dbabf3da216657d0ffae91ac55f77b9cbbc5a441c69d322a6277a617ebdf8eb0b4006ca2c540a70ee06058dba65c848c69d867ca98f6e
+  languageName: node
+  linkType: hard
+
 "@apify/eslint-config-ts@npm:^0.4.0":
   version: 0.4.1
   resolution: "@apify/eslint-config-ts@npm:0.4.1"
@@ -2008,7 +2031,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/plugin-content-docs@npm:3.6.0, @docusaurus/plugin-content-docs@npm:^3.5.0":
+"@docusaurus/plugin-content-docs@npm:3.6.0, @docusaurus/plugin-content-docs@npm:^3.5.2":
   version: 3.6.0
   resolution: "@docusaurus/plugin-content-docs@npm:3.6.0"
   dependencies:
@@ -2260,7 +2283,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/types@npm:3.6.0, @docusaurus/types@npm:^3.5.0":
+"@docusaurus/types@npm:3.6.0, @docusaurus/types@npm:^3.5.2":
   version: 3.6.0
   resolution: "@docusaurus/types@npm:3.6.0"
   dependencies:
@@ -2310,7 +2333,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/utils@npm:3.6.0, @docusaurus/utils@npm:^3.5.0":
+"@docusaurus/utils@npm:3.6.0, @docusaurus/utils@npm:^3.5.2":
   version: 3.6.0
   resolution: "@docusaurus/utils@npm:3.6.0"
   dependencies:
@@ -3518,6 +3541,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/fs-extra@npm:>=11":
+  version: 11.0.4
+  resolution: "@types/fs-extra@npm:11.0.4"
+  dependencies:
+    "@types/jsonfile": "npm:*"
+    "@types/node": "npm:*"
+  checksum: 10c0/9e34f9b24ea464f3c0b18c3f8a82aefc36dc524cc720fc2b886e5465abc66486ff4e439ea3fb2c0acebf91f6d3f74e514f9983b1f02d4243706bdbb7511796ad
+  languageName: node
+  linkType: hard
+
 "@types/gtag.js@npm:^0.0.12":
   version: 0.0.12
   resolution: "@types/gtag.js@npm:0.0.12"
@@ -3610,6 +3643,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/jsonfile@npm:*":
+  version: 6.1.4
+  resolution: "@types/jsonfile@npm:6.1.4"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/b12d068b021e4078f6ac4441353965769be87acf15326173e2aea9f3bf8ead41bd0ad29421df5bbeb0123ec3fc02eb0a734481d52903704a1454a1845896b9eb
+  languageName: node
+  linkType: hard
+
 "@types/mdast@npm:^4.0.0, @types/mdast@npm:^4.0.2":
   version: 4.0.4
   resolution: "@types/mdast@npm:4.0.4"
@@ -3649,7 +3691,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*":
+"@types/node@npm:*, @types/node@npm:>=20":
   version: 22.9.0
   resolution: "@types/node@npm:22.9.0"
   dependencies:
@@ -3732,7 +3774,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:*, @types/react@npm:^18.0.28":
+"@types/react@npm:*, @types/react@npm:^18.0.28, @types/react@npm:^18.3.11":
   version: 18.3.12
   resolution: "@types/react@npm:18.3.12"
   dependencies:
@@ -3968,10 +4010,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vscode/codicons@npm:^0.0.36":
-  version: 0.0.36
-  resolution: "@vscode/codicons@npm:0.0.36"
-  checksum: 10c0/6bf944e87adc375cbad1bc939c05855d9430b53ad0132a00d539c3395c5877ac0a21865ae87c14bf903a667eb8dd1f846557015835c3d8c65c4972fafa5faaaa
+"@vscode/codicons@npm:^0.0.35":
+  version: 0.0.35
+  resolution: "@vscode/codicons@npm:0.0.35"
+  checksum: 10c0/203a9b250be69a8943fdea5652c9f2f9cfb002b0f8a45156e5edf8af83297dd0ea33fa2cad33ab910f51d4f08ca671b7630143ae87639ae32526c4eadbd040df
   languageName: node
   linkType: hard
 
@@ -6205,26 +6247,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"docusaurus-plugin-typedoc-api@npm:^4.2.0":
-  version: 4.4.0
-  resolution: "docusaurus-plugin-typedoc-api@npm:4.4.0"
-  dependencies:
-    "@docusaurus/plugin-content-docs": "npm:^3.5.0"
-    "@docusaurus/types": "npm:^3.5.0"
-    "@docusaurus/utils": "npm:^3.5.0"
-    "@vscode/codicons": "npm:^0.0.36"
-    marked: "npm:^9.1.6"
-    marked-smartypants: "npm:^1.1.5"
-    typedoc: "npm:^0.25.7"
-  peerDependencies:
-    "@docusaurus/core": ^3.5.0
-    "@docusaurus/mdx-loader": ^3.5.0
-    react: ">=18.0.0"
-    typescript: ^5.0.0
-  checksum: 10c0/adb9d39c7e124da1d629191e90de8d32909ef84aed7bdf568e37aec8e6f21f57bbb0a7cd32e80db3b04f01b4b84c82a528a1fe9a7349978af042f75eaedff402
-  languageName: node
-  linkType: hard
-
 "dom-converter@npm:^0.2.0":
   version: 0.2.0
   resolution: "dom-converter@npm:0.2.0"
@@ -8225,6 +8247,13 @@ __metadata:
     readable-stream: "npm:^2.0.1"
     wbuf: "npm:^1.1.0"
   checksum: 10c0/55b9e824430bab82a19d079cb6e33042d7d0640325678c9917fcc020c61d8a08ca671b6c942c7f0aae9bb6e4b67ffb50734a72f9e21d66407c3138c1983b70f0
+  languageName: node
+  linkType: hard
+
+"html-entities@npm:2.3.2":
+  version: 2.3.2
+  resolution: "html-entities@npm:2.3.2"
+  checksum: 10c0/69b50d032435e02765175d40ac3d94ceeb19b3ee32b869f79804f24f8efadf7928a1c3c4eddb85273809f95f7cffa416d05ca43e88d219575e8c5f6dd75bfc8d
   languageName: node
   linkType: hard
 
@@ -13132,6 +13161,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
+    "@apify/docusaurus-plugin-typedoc-api": "npm:^4.2.9"
     "@apify/eslint-config-ts": "npm:^0.4.0"
     "@apify/tsconfig": "npm:^0.1.0"
     "@apify/utilities": "npm:^2.8.0"
@@ -13152,7 +13182,6 @@ __metadata:
     clsx: "npm:^2.0.0"
     crypto-browserify: "npm:^3.12.0"
     docusaurus-gtm-plugin: "npm:^0.0.2"
-    docusaurus-plugin-typedoc-api: "npm:^4.2.0"
     eslint: "npm:^8.35.0"
     eslint-plugin-react: "npm:^7.32.2"
     eslint-plugin-react-hooks: "npm:^5.0.0"
@@ -15195,5 +15224,22 @@ __metadata:
   version: 2.0.4
   resolution: "zwitch@npm:2.0.4"
   checksum: 10c0/3c7830cdd3378667e058ffdb4cf2bb78ac5711214e2725900873accb23f3dfe5f9e7e5a06dcdc5f29605da976fc45c26d9a13ca334d6eea2245a15e77b8fc06e
+  languageName: node
+  linkType: hard
+
+"zx@npm:^8.1.4":
+  version: 8.2.0
+  resolution: "zx@npm:8.2.0"
+  dependencies:
+    "@types/fs-extra": "npm:>=11"
+    "@types/node": "npm:>=20"
+  dependenciesMeta:
+    "@types/fs-extra":
+      optional: true
+    "@types/node":
+      optional: true
+  bin:
+    zx: build/cli.js
+  checksum: 10c0/67baf00280343259f04b2bf58b2dc7c90abc7b42f3b4ca2794ea59bf988c53707c08c8427dbf22e88606c321a08254bec0b27400840029f4086ba3c43b8056a8
   languageName: node
   linkType: hard
