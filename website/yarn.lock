@@ -365,9 +365,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/docusaurus-plugin-typedoc-api@npm:^4.2.9":
-  version: 4.2.9
-  resolution: "@apify/docusaurus-plugin-typedoc-api@npm:4.2.9"
+"@apify/docusaurus-plugin-typedoc-api@npm:^4.2.10":
+  version: 4.2.10
+  resolution: "@apify/docusaurus-plugin-typedoc-api@npm:4.2.10"
   dependencies:
     "@docusaurus/plugin-content-docs": "npm:^3.5.2"
     "@docusaurus/types": "npm:^3.5.2"
@@ -377,14 +377,14 @@ __metadata:
     html-entities: "npm:2.3.2"
     marked: "npm:^9.1.6"
     marked-smartypants: "npm:^1.1.5"
-    typedoc: "npm:^0.25.7"
+    typedoc: "npm:^0.26.11"
     zx: "npm:^8.1.4"
   peerDependencies:
     "@docusaurus/core": ^3.5.2
     "@docusaurus/mdx-loader": ^3.5.2
     react: ">=18.0.0"
     typescript: ^5.0.0
-  checksum: 10c0/6e04d56d5902dba3d32dbabf3da216657d0ffae91ac55f77b9cbbc5a441c69d322a6277a617ebdf8eb0b4006ca2c540a70ee06058dba65c848c69d867ca98f6e
+  checksum: 10c0/8c56799ba4311405a00d63024dee58f0bde8eb6d5101e9ef7586ccb4650549c28960c4578a3d3bc855e33a290e38f0a807341840581ee1f611c5d8fa23c83b2c
   languageName: node
   linkType: hard
 
@@ -13161,7 +13161,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@apify/docusaurus-plugin-typedoc-api": "npm:^4.2.9"
+    "@apify/docusaurus-plugin-typedoc-api": "npm:^4.2.10"
     "@apify/eslint-config-ts": "npm:^0.4.0"
     "@apify/tsconfig": "npm:^0.1.0"
     "@apify/utilities": "npm:^2.8.0"
