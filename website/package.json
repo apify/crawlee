@@ -33,6 +33,7 @@
         "typescript": "^5.6.3"
     },
     "dependencies": {
+        "@apify/docusaurus-plugin-typedoc-api": "^4.2.10",
         "@apify/utilities": "^2.8.0",
         "@docusaurus/core": "3.6.0",
         "@docusaurus/faster": "3.6.0",
@@ -46,7 +47,6 @@
         "clsx": "^2.0.0",
         "crypto-browserify": "^3.12.0",
         "docusaurus-gtm-plugin": "^0.0.2",
-        "docusaurus-plugin-typedoc-api": "^4.2.0",
         "prism-react-renderer": "^2.1.0",
         "process": "^0.11.10",
         "prop-types": "^15.8.1",
@@ -56,9 +56,6 @@
         "react-lite-youtube-embed": "^2.3.52",
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
-    },
-    "resolutions": {
-        "typedoc": "^0.26.11"
     },
     "packageManager": "yarn@4.5.1"
 }

@@ -27,7 +27,6 @@
 	"ignoreDeps": [
 		"crawlee",
 		"cheerio",
-		"docusaurus-plugin-typedoc-api",
 		"@docusaurus/core",
 		"@docusaurus/mdx-loader",
 		"@docusaurus/module-type-aliases",

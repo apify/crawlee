@@ -213,6 +213,7 @@ article .card h2 {
 
 .tsd-flag {
     user-select: none;
+    margin-right: 8px;
 }
 
 .menu__caret:before,
