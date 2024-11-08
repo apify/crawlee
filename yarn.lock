@@ -1669,8 +1669,8 @@ __metadata:
   linkType: hard
 
 "@nx/devkit@npm:>=17.1.2 < 21":
-  version: 20.0.10
-  resolution: "@nx/devkit@npm:20.0.10"
+  version: 20.0.11
+  resolution: "@nx/devkit@npm:20.0.11"
   dependencies:
     ejs: "npm:^3.1.7"
     enquirer: "npm:~2.3.6"
@@ -1682,76 +1682,76 @@ __metadata:
     yargs-parser: "npm:21.1.1"
   peerDependencies:
     nx: ">= 19 <= 21"
-  checksum: 10c0/bab4c7ce90013ae8ed6a2d4edc8162afdcf249dd72e0540402f1e3c3f3d9540f7b60eb546b6151c11238202b78106e568130f7e308023e526663e3b5187a7794
+  checksum: 10c0/9d027572780a37e912b87bed4de77e1e9df604d9f88843dd43772d0535b69565fbb73e39feef8a2d5f2d9b75eaf99ad3eef390b2c6bdd4daef4c15bc893e1f8a
   languageName: node
   linkType: hard
 
-"@nx/nx-darwin-arm64@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-darwin-arm64@npm:20.0.10"
+"@nx/nx-darwin-arm64@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-darwin-arm64@npm:20.0.11"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@nx/nx-darwin-x64@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-darwin-x64@npm:20.0.10"
+"@nx/nx-darwin-x64@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-darwin-x64@npm:20.0.11"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@nx/nx-freebsd-x64@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-freebsd-x64@npm:20.0.10"
+"@nx/nx-freebsd-x64@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-freebsd-x64@npm:20.0.11"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm-gnueabihf@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-linux-arm-gnueabihf@npm:20.0.10"
+"@nx/nx-linux-arm-gnueabihf@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-linux-arm-gnueabihf@npm:20.0.11"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm64-gnu@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-linux-arm64-gnu@npm:20.0.10"
+"@nx/nx-linux-arm64-gnu@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-linux-arm64-gnu@npm:20.0.11"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm64-musl@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-linux-arm64-musl@npm:20.0.10"
+"@nx/nx-linux-arm64-musl@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-linux-arm64-musl@npm:20.0.11"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-x64-gnu@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-linux-x64-gnu@npm:20.0.10"
+"@nx/nx-linux-x64-gnu@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-linux-x64-gnu@npm:20.0.11"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-x64-musl@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-linux-x64-musl@npm:20.0.10"
+"@nx/nx-linux-x64-musl@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-linux-x64-musl@npm:20.0.11"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@nx/nx-win32-arm64-msvc@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-win32-arm64-msvc@npm:20.0.10"
+"@nx/nx-win32-arm64-msvc@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-win32-arm64-msvc@npm:20.0.11"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@nx/nx-win32-x64-msvc@npm:20.0.10":
-  version: 20.0.10
-  resolution: "@nx/nx-win32-x64-msvc@npm:20.0.10"
+"@nx/nx-win32-x64-msvc@npm:20.0.11":
+  version: 20.0.11
+  resolution: "@nx/nx-win32-x64-msvc@npm:20.0.11"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -3779,9 +3779,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001669":
-  version: 1.0.30001677
-  resolution: "caniuse-lite@npm:1.0.30001677"
-  checksum: 10c0/22b4aa738b213b5d0bc820c26ba23fa265ca90a5c59776e1a686b9ab6fff9120d0825fd920c0a601a4b65056ef40d01548405feb95c8dd6083255f50c71a0864
+  version: 1.0.30001678
+  resolution: "caniuse-lite@npm:1.0.30001678"
+  checksum: 10c0/3209cc0f0b9683514916bed676d8f7965cae7faccaccb90f97c11fbdee32cd3f2f3b9cfec388ef400476299c3dd496fb1f8734c31c6199c4799b42813391517f
   languageName: node
   linkType: hard
 
@@ -4406,13 +4406,13 @@ __metadata:
   linkType: hard
 
 "cross-spawn@npm:^7.0.0, cross-spawn@npm:^7.0.1, cross-spawn@npm:^7.0.2, cross-spawn@npm:^7.0.3":
-  version: 7.0.3
-  resolution: "cross-spawn@npm:7.0.3"
+  version: 7.0.5
+  resolution: "cross-spawn@npm:7.0.5"
   dependencies:
     path-key: "npm:^3.1.0"
     shebang-command: "npm:^2.0.0"
     which: "npm:^2.0.1"
-  checksum: 10c0/5738c312387081c98d69c98e105b6327b069197f864a60593245d64c8089c8a0a744e16349281210d56835bb9274130d825a78b2ad6853ca13cfbeffc0c31750
+  checksum: 10c0/aa82ce7ac0814a27e6f2b738c5a7cf1fa21a3558a1e42df449fc96541ba3ba731e4d3ecffa4435348808a86212f287c6f20a1ee551ef1ff95d01cfec5f434944
   languageName: node
   linkType: hard
 
@@ -4753,9 +4753,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1378738
-  resolution: "devtools-protocol@npm:0.0.1378738"
-  checksum: 10c0/d6c3039ac81235275775bea7e8bc361d1fd5a985dfdb762723734da1aab79f88deebe3f044c22602c6907db81500610dccb7565ac83a42566f3408256ebb6b08
+  version: 0.0.1379457
+  resolution: "devtools-protocol@npm:0.0.1379457"
+  checksum: 10c0/b64483422783128aadb65f8d92a08598470c6ff27e9d96ea3f1acf87a98f5bb2a53afa0e7155605f22149bc7836c3eefd57f778c73ff4793686504808933fbf1
   languageName: node
   linkType: hard
 
@@ -4930,9 +4930,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.41":
-  version: 1.5.52
-  resolution: "electron-to-chromium@npm:1.5.52"
-  checksum: 10c0/1c85a5710ad21758780b8e067d5f63ed00416dbe93f64bd8937dbfb4ed98cf93d80c471a30daed439cb91a00ff4942ea2628e00a69d56639cc7070e9e8ab2694
+  version: 1.5.54
+  resolution: "electron-to-chromium@npm:1.5.54"
+  checksum: 10c0/e37ebadc832de1548045ca8b415f96539f4a2fad74a81c25d81ef3c161793443bf2ebbc0c5abd9a7fa4f42ba50cb2af4912c77177806b7dc904a5050409048ac
   languageName: node
   linkType: hard
 
@@ -9300,20 +9300,20 @@ __metadata:
   linkType: hard
 
 "nx@npm:>=17.1.2 < 21":
-  version: 20.0.10
-  resolution: "nx@npm:20.0.10"
+  version: 20.0.11
+  resolution: "nx@npm:20.0.11"
   dependencies:
     "@napi-rs/wasm-runtime": "npm:0.2.4"
-    "@nx/nx-darwin-arm64": "npm:20.0.10"
-    "@nx/nx-darwin-x64": "npm:20.0.10"
-    "@nx/nx-freebsd-x64": "npm:20.0.10"
-    "@nx/nx-linux-arm-gnueabihf": "npm:20.0.10"
-    "@nx/nx-linux-arm64-gnu": "npm:20.0.10"
-    "@nx/nx-linux-arm64-musl": "npm:20.0.10"
-    "@nx/nx-linux-x64-gnu": "npm:20.0.10"
-    "@nx/nx-linux-x64-musl": "npm:20.0.10"
-    "@nx/nx-win32-arm64-msvc": "npm:20.0.10"
-    "@nx/nx-win32-x64-msvc": "npm:20.0.10"
+    "@nx/nx-darwin-arm64": "npm:20.0.11"
+    "@nx/nx-darwin-x64": "npm:20.0.11"
+    "@nx/nx-freebsd-x64": "npm:20.0.11"
+    "@nx/nx-linux-arm-gnueabihf": "npm:20.0.11"
+    "@nx/nx-linux-arm64-gnu": "npm:20.0.11"
+    "@nx/nx-linux-arm64-musl": "npm:20.0.11"
+    "@nx/nx-linux-x64-gnu": "npm:20.0.11"
+    "@nx/nx-linux-x64-musl": "npm:20.0.11"
+    "@nx/nx-win32-arm64-msvc": "npm:20.0.11"
+    "@nx/nx-win32-x64-msvc": "npm:20.0.11"
     "@yarnpkg/lockfile": "npm:^1.1.0"
     "@yarnpkg/parsers": "npm:3.0.2"
     "@zkochan/js-yaml": "npm:0.0.7"
@@ -9377,7 +9377,7 @@ __metadata:
   bin:
     nx: bin/nx.js
     nx-cloud: bin/nx-cloud.js
-  checksum: 10c0/289ba9c077ca89fe6a331f9a6bbcaa0f150a00d382a183f13f6d7a836e4ea84dd3b4d9a8a576854cf975d347fc196669186d9b1cbe0770dca9bbf80d872a355f
+  checksum: 10c0/718cf7eae074f4ab5a810963d4c6e7fb52cd7cf63253c7ebf5f7fd8f9419387d6e2add2354709de9ccc60907ea9e47d6861a4d972cf5eabeddaa95196a5c45ab
   languageName: node
   linkType: hard
 
@@ -11847,21 +11847,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.58":
-  version: 6.1.58
-  resolution: "tldts-core@npm:6.1.58"
-  checksum: 10c0/aadb37cad88c8ab59042471f6de7c269f9e4db4fc0b644787176ddc7ed1c95ebd486071836a3fc6e09c59421040a7002cc61b36c983eb66938630536aa042299
+"tldts-core@npm:^6.1.59":
+  version: 6.1.59
+  resolution: "tldts-core@npm:6.1.59"
+  checksum: 10c0/fa182200fe69e35ae8fbdf96bf327831f25a6c10d85d038b80cef11a2ac9a6fa68c145f92f1d06da768fa0805619c93cee471d7c70acb7f8329d3fb735022fb1
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0, tldts@npm:^6.1.32":
-  version: 6.1.58
-  resolution: "tldts@npm:6.1.58"
+  version: 6.1.59
+  resolution: "tldts@npm:6.1.59"
   dependencies:
-    tldts-core: "npm:^6.1.58"
+    tldts-core: "npm:^6.1.59"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/dc2c95cf84e9bde5a86b37d3fd0e2d37cd3c1a9057cb122663899368ee45fa2b12a9d4848cb67785bf3a9a2bf9323bfac4c2ffadb815e1a6948b3e053c06f848
+  checksum: 10c0/2e8eaf6ff5dc25ac59df27908a2eab609b86c26e1b0a63639ac2dd58e38230e9113be4e33ac7607c04dc1e6fc2c33b6b6e025919c8780ad53374e9d2ae867d1d
   languageName: node
   linkType: hard
 
