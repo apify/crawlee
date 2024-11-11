@@ -1900,10 +1900,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/faster@npm:3.6.0":
-  version: 3.6.0
-  resolution: "@docusaurus/faster@npm:3.6.0"
+"@docusaurus/faster@npm:3.6.1":
+  version: 3.6.1
+  resolution: "@docusaurus/faster@npm:3.6.1"
   dependencies:
+    "@docusaurus/types": "npm:3.6.1"
     "@rspack/core": "npm:^1.0.14"
     "@swc/core": "npm:^1.7.39"
     "@swc/html": "npm:^1.7.39"
@@ -1912,9 +1913,7 @@ __metadata:
     swc-loader: "npm:^0.2.6"
     tslib: "npm:^2.6.0"
     webpack: "npm:^5.95.0"
-  peerDependencies:
-    "@docusaurus/types": "*"
-  checksum: 10c0/7b327e1a0dcfa8a01f65f5ec641e186b9925903dd015222412466a9c13868af458792b742e4314a3c77d6bf5bde1463a05d4910b232e6f8680a58fdab28bfa4e
+  checksum: 10c0/57982aaaa8d9d0c2d6c6339fa62c0167f3e4d2ab4d0786eb68e3144634971d6f1697641ed44f688ca6c434892976b54b88ef4344c0151eec8747fe2e6226a556
   languageName: node
   linkType: hard
 
@@ -2300,6 +2299,26 @@ __metadata:
     react: ^18.0.0
     react-dom: ^18.0.0
   checksum: 10c0/1b2efe8d13ae29c6af141f15858cbe8e6a5a4c2243f1e48bc7c2dc53162056da9eb8ca5c5b496d73471bce9768dec0ecd39c99e10a3a87c4ab8edb8f0c5fa1bf
+  languageName: node
+  linkType: hard
+
+"@docusaurus/types@npm:3.6.1":
+  version: 3.6.1
+  resolution: "@docusaurus/types@npm:3.6.1"
+  dependencies:
+    "@mdx-js/mdx": "npm:^3.0.0"
+    "@types/history": "npm:^4.7.11"
+    "@types/react": "npm:*"
+    commander: "npm:^5.1.0"
+    joi: "npm:^17.9.2"
+    react-helmet-async: "npm:^1.3.0"
+    utility-types: "npm:^3.10.0"
+    webpack: "npm:^5.95.0"
+    webpack-merge: "npm:^5.9.0"
+  peerDependencies:
+    react: ^18.0.0
+    react-dom: ^18.0.0
+  checksum: 10c0/d73e118e0fbcbb15fcb908dddaf81c977c5ded53dacce181f7736a234b1b0b930b9dae8847e7951245754b3c5f5b9c0d8002f020a56ad8ba32587f8723209776
   languageName: node
   linkType: hard
 
@@ -13166,7 +13185,7 @@ __metadata:
     "@apify/tsconfig": "npm:^0.1.0"
     "@apify/utilities": "npm:^2.8.0"
     "@docusaurus/core": "npm:3.6.0"
-    "@docusaurus/faster": "npm:3.6.0"
+    "@docusaurus/faster": "npm:3.6.1"
     "@docusaurus/mdx-loader": "npm:3.6.0"
     "@docusaurus/module-type-aliases": "npm:3.6.0"
     "@docusaurus/plugin-client-redirects": "npm:3.6.0"
