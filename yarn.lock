@@ -726,9 +726,9 @@ __metadata:
     "@apify/tsconfig": "npm:^0.1.0"
     "@biomejs/biome": "npm:^1.7.3"
     "@commitlint/config-conventional": "npm:^19.0.0"
-    "@playwright/browser-chromium": "npm:1.48.2"
-    "@playwright/browser-firefox": "npm:1.48.2"
-    "@playwright/browser-webkit": "npm:1.48.2"
+    "@playwright/browser-chromium": "npm:1.49.0"
+    "@playwright/browser-firefox": "npm:1.49.0"
+    "@playwright/browser-webkit": "npm:1.49.0"
     "@types/content-type": "npm:^1.1.5"
     "@types/deep-equal": "npm:^1.0.1"
     "@types/domhandler": "npm:^2.4.2"
@@ -770,10 +770,10 @@ __metadata:
     lerna: "npm:^8.0.0"
     lint-staged: "npm:^15.0.0"
     nock: "npm:^13.4.0"
-    playwright: "npm:1.48.2"
+    playwright: "npm:1.49.0"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
-    puppeteer: "npm:23.7.1"
+    puppeteer: "npm:23.8.0"
     rimraf: "npm:^6.0.0"
     tsx: "npm:^4.4.0"
     turbo: "npm:^2.1.0"
@@ -1915,30 +1915,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/browser-chromium@npm:1.48.2":
-  version: 1.48.2
-  resolution: "@playwright/browser-chromium@npm:1.48.2"
+"@playwright/browser-chromium@npm:1.49.0":
+  version: 1.49.0
+  resolution: "@playwright/browser-chromium@npm:1.49.0"
   dependencies:
-    playwright-core: "npm:1.48.2"
-  checksum: 10c0/b65f763b6862883ee177ff859e267ca60f5f3b88f97177cdc799254045c2d55b498fc3074e34d51414d01d04bd2fbbfb4205095d6f33644c22692400c587c755
+    playwright-core: "npm:1.49.0"
+  checksum: 10c0/f2eb270124b505e98118293d98474c39fe7a628d83288613a5c2d2683a7c2893993852fbfbb94e0b26a911573a23125778e7d46fcfad5d958b5340c3a2e67eaf
   languageName: node
   linkType: hard
 
-"@playwright/browser-firefox@npm:1.48.2":
-  version: 1.48.2
-  resolution: "@playwright/browser-firefox@npm:1.48.2"
+"@playwright/browser-firefox@npm:1.49.0":
+  version: 1.49.0
+  resolution: "@playwright/browser-firefox@npm:1.49.0"
   dependencies:
-    playwright-core: "npm:1.48.2"
-  checksum: 10c0/a6df172b1d74918b11399398a8f444f10df5431818eadb25fd248c6cda708bac121d487e18f8541f9a0c43c6a427c223c0a2b62cf954c2dbce6c343ca2949555
+    playwright-core: "npm:1.49.0"
+  checksum: 10c0/c3d6a370763bfe6c1be1defec3f00601e4c594e2925eb6a34c5d205a261c846ff4390f1d8875a8df6b06b7ee1951e9f4449ce2e5b0be7f48675edd92ed8ffc50
   languageName: node
   linkType: hard
 
-"@playwright/browser-webkit@npm:1.48.2":
-  version: 1.48.2
-  resolution: "@playwright/browser-webkit@npm:1.48.2"
+"@playwright/browser-webkit@npm:1.49.0":
+  version: 1.49.0
+  resolution: "@playwright/browser-webkit@npm:1.49.0"
   dependencies:
-    playwright-core: "npm:1.48.2"
-  checksum: 10c0/bf46c1f0b6a759aa9bb1b24392ce735803b1467952f9d029713698c48739cdf1a892623e95f88000a36e3b4f8170b0dfe40fed146b0acc4366dab24836cc5fcd
+    playwright-core: "npm:1.49.0"
+  checksum: 10c0/0938001ba96f7df5d162926cbd32691645b3eb0406cd7769bb7373450e1ec781ff957081173894096f7c87d30ae3e4f05b200ccbc22442a220f737c238efb2ba
   languageName: node
   linkType: hard
 
@@ -4759,10 +4759,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"devtools-protocol@npm:0.0.1354347":
-  version: 0.0.1354347
-  resolution: "devtools-protocol@npm:0.0.1354347"
-  checksum: 10c0/c3b6106eca257d870aca6f56ec6520b25c970051c5dcf847091201f4a635d12ba3821171de966f65beaa9b06c9dc1a77b43b6e4c5533eb1a5a7ef0b8b2972491
+"devtools-protocol@npm:0.0.1367902":
+  version: 0.0.1367902
+  resolution: "devtools-protocol@npm:0.0.1367902"
+  checksum: 10c0/be4017f2bfd04474d718daca0e88e062f4afceb2f311662d717f4eae5bda3473da748a68ff1bf2326a67ce35c37af33932190fe8ef1d36c8ef22576befdc57c4
   languageName: node
   linkType: hard
 
@@ -10119,27 +10119,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.48.2":
-  version: 1.48.2
-  resolution: "playwright-core@npm:1.48.2"
+"playwright-core@npm:1.49.0":
+  version: 1.49.0
+  resolution: "playwright-core@npm:1.49.0"
   bin:
     playwright-core: cli.js
-  checksum: 10c0/511da53d9df01fec5e5798915c68e7d1574890a504d1aae05430bf538d0080efa8db86e3dafdcd450f084ce7622f6bbede23ca52e798bfc4c3b3ea8da52a51f5
+  checksum: 10c0/22c1a72fabdcc87bd1cd4d40a032d2c5b94cf94ba7484dc182048c3fa1c8ec26180b559d8cac4ca9870e8fd6bdf5ef9d9f54e7a31fd60d67d098fcffc5e4253b
   languageName: node
   linkType: hard
 
-"playwright@npm:1.48.2":
-  version: 1.48.2
-  resolution: "playwright@npm:1.48.2"
+"playwright@npm:1.49.0":
+  version: 1.49.0
+  resolution: "playwright@npm:1.49.0"
   dependencies:
     fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.48.2"
+    playwright-core: "npm:1.49.0"
   dependenciesMeta:
     fsevents:
       optional: true
   bin:
     playwright: cli.js
-  checksum: 10c0/ecde4ee4767556868b24d7700f3502692a3cb14c8ef127052b51b48833ffcce80942954fb188a9b72505122b48b1b625d1bb486721e1c4f2e980215328ba1ad5
+  checksum: 10c0/e94d662747cd147d0573570fec90dadc013c1097595714036fc8934a075c5a82ab04a49111b03b1f762ea86429bdb7c94460901896901e20970b30ce817cc93f
   languageName: node
   linkType: hard
 
@@ -10380,33 +10380,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:23.7.1":
-  version: 23.7.1
-  resolution: "puppeteer-core@npm:23.7.1"
+"puppeteer-core@npm:23.8.0":
+  version: 23.8.0
+  resolution: "puppeteer-core@npm:23.8.0"
   dependencies:
     "@puppeteer/browsers": "npm:2.4.1"
     chromium-bidi: "npm:0.8.0"
     debug: "npm:^4.3.7"
-    devtools-protocol: "npm:0.0.1354347"
+    devtools-protocol: "npm:0.0.1367902"
     typed-query-selector: "npm:^2.12.0"
     ws: "npm:^8.18.0"
-  checksum: 10c0/018e3c7d508238f4aaa2075ab1db84f77ecbb65487c57dc876caf598d0e5f3d12fa8404a7511e9864aa51c64139d166552aa0450c82ff05c119aee32d2e7a672
+  checksum: 10c0/6282881e6be1535082f879ccf585e02cb22fde5ce45072d71a8a1fcad5e9be3d27157e8be4728bec2344b300aa96437c4c820a00e01f1577f27b971980e1bced
   languageName: node
   linkType: hard
 
-"puppeteer@npm:23.7.1":
-  version: 23.7.1
-  resolution: "puppeteer@npm:23.7.1"
+"puppeteer@npm:23.8.0":
+  version: 23.8.0
+  resolution: "puppeteer@npm:23.8.0"
   dependencies:
     "@puppeteer/browsers": "npm:2.4.1"
     chromium-bidi: "npm:0.8.0"
     cosmiconfig: "npm:^9.0.0"
-    devtools-protocol: "npm:0.0.1354347"
-    puppeteer-core: "npm:23.7.1"
+    devtools-protocol: "npm:0.0.1367902"
+    puppeteer-core: "npm:23.8.0"
     typed-query-selector: "npm:^2.12.0"
   bin:
     puppeteer: lib/cjs/puppeteer/node/cli.js
-  checksum: 10c0/4b99e6b55444d327221095440b97565d7eac54a628c12d0556d999ae59cf29277916e62872535f14e6fabb6affaec90157fafad68d45016560d3eaa36c7e696e
+  checksum: 10c0/e113118aeb9dc500f363b3e4c00db3ae8db85ef8624913b38bd631128cec2d6b203774c074bf5d07c64ba912dd6b4d39de41c2b30ffaf562843092f9ef105838
   languageName: node
   linkType: hard
 
