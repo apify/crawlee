@@ -2,7 +2,7 @@
 slug: graphql-persisted-query
 title: 'Reverse engineering GraphQL persistedQuery extension'
 description: 'Learn how to do reverse engineering on persistedQuery extension by GraphQL and reveal the query hash needed for scraping.'
-image: https://raw.githubusercontent.com/souravjain540/crawlee-first-blog/main/og-image.webp
+image: ./img/graphql.webp
 authors: [SauravJ, MatejV]
 ---
 
