@@ -36,7 +36,7 @@
         "@apify/docusaurus-plugin-typedoc-api": "^4.2.10",
         "@apify/utilities": "^2.8.0",
         "@docusaurus/core": "3.6.0",
-        "@docusaurus/faster": "3.6.1",
+        "@docusaurus/faster": "3.6.2",
         "@docusaurus/mdx-loader": "3.6.0",
         "@docusaurus/plugin-client-redirects": "3.6.0",
         "@docusaurus/preset-classic": "3.6.0",
