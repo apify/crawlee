@@ -12,7 +12,10 @@ The request is usually a POST to some general `/graphql` endpoint with a body li
 
 ![GraphQL Query](./img/graphql.webp)
 
-However, with large data structures, this becomes inefficient - you are sending a large query in a POST request body, which is (almost always) the same and only changes on website updates; POST requests can’t be cached, etc. Therefore, an extension called “persisted queries” was developed. This isn’t an anti-scraping secret; you can read the public documentation about it [here](https://www.apollographql.com/docs/apollo-server/performance/apq/).
+When scraping data from websites using GraphQL, it’s common to inspect the network requests in developer tools to find the exact queries being used. However, on some websites, you might notice that the GraphQL query itself isn’t visible in the request. Instead, you only see a cryptic hash value. This can be confusing and makes it harder to understand how data is being requested from the server.
+
+This is because some websites use a feature called ["persisted queries.](https://www.apollographql.com/docs/apollo-server/performance/apq/) It's a performance optimization that reduces the amount of data sent with each request by replacing the full query text with a precomputed hash. While this improves website speed and efficiency, it introduces challenges for scraping because the query text isn’t readily available.
+
 
 ![Persisted Query Reverse Engineering](./img/graphql-persisted-query.webp)
 
@@ -32,9 +35,9 @@ This primarily optimizes website performance, but it creates several challenges 
 - Hidden Query Parameters: We don’t know the full query, so if the website responds with a “Persisted query not found” error (asking us to send the query in full, not just the hash), we can’t send it.
 - Once the website changes even a little bit and the clients start asking for a new query - even though the old one might still work, the server will very soon forget its ID/hash, and your request with this hash will never work again, since you can’t “remind” the server of the full query text.
 
-Therefore, for different reasons, you might find yourself in the need to extract the whole query text. You could dig through the website JavaScript, and if you’re lucky, you might find the query text there in full, but often, it is somehow dynamically constructed from multiple fragments, etc. 
+For various reasons, you might need to extract the entire GraphQL query text, but this can be tricky. While you could inspect the website’s JavaScript to find the query text, it’s often dynamically constructed from multiple fragments, making it hard to piece together.
 
-Therefore, we figured out a better way: we will not touch the client-side JavaScript at all. Instead, we will try to simulate the situation where the client tries to use a hash that the server does not know. Therefore, we need to intercept the (valid) request sent by the browser in-flight and modify the hash to a bogus one before passing it to the server.
+Instead, we’ll take a more direct approach: tricking the client application (e.g., the browser) into revealing the full query. When the client uses a hash that the server doesn't recognize, the server typically responds with an error message like `PersistedQueryNotFound`. This prompts the client to resend the full query in a subsequent request. By intercepting and modifying the original request to include an invalid hash, we can trigger this behavior and capture the complete query text. This method avoids digging through JavaScript and relies on the natural error-handling flow of the client-server interaction.
 
 For exactly this use case, a perfect tool exists: [mitmproxy](https://mitmproxy.org/), an open-source Python library that intercepts requests made by your own devices, websites, or apps and allows you to modify them with simple Python scripts.
 
