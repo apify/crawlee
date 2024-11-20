@@ -24,7 +24,7 @@ Let's verify whether we can extract the necessary data from the page's HTML code
 
 ![Check Html](./img/check_html.webp)
 
-Based on the data obtained from the page, all necessary information is present in the HTML code. Therefore, we can use [`beautifulsoup_crawler`](https://crawlee.dev/python/docs/examples/beautifulsoup-crawler).
+Based on the data obtained from the page, all necessary information is present in the HTML code. Therefore, we can use [`beautifulsoup_crawler`](https://www.crawlee.dev/python/docs/examples/beautifulsoup-crawler).
 
 Let's analyze the HTML code of the elements we need to extract:
 
