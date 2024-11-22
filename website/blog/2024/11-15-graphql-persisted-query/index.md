@@ -29,6 +29,9 @@ As you can see, it’s just some metadata about the persistedQuery extension, th
 
 Here’s another request from expedia.com, sent as a POST, but with the same extension:
 
+![Expedia Query](./img/expedia.webp)
+
+
 This primarily optimizes website performance, but it creates several challenges for web scraping:
 
 - GET requests are usually more prone to being blocked.
