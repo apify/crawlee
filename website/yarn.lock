@@ -1900,11 +1900,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/faster@npm:3.6.2":
-  version: 3.6.2
-  resolution: "@docusaurus/faster@npm:3.6.2"
+"@docusaurus/faster@npm:3.6.3":
+  version: 3.6.3
+  resolution: "@docusaurus/faster@npm:3.6.3"
   dependencies:
-    "@docusaurus/types": "npm:3.6.2"
+    "@docusaurus/types": "npm:3.6.3"
     "@rspack/core": "npm:^1.1.1"
     "@swc/core": "npm:^1.7.39"
     "@swc/html": "npm:^1.7.39"
@@ -1915,7 +1915,7 @@ __metadata:
     webpack: "npm:^5.95.0"
   peerDependencies:
     "@docusaurus/types": "*"
-  checksum: 10c0/f580f8bf9b69820860178510cac8faf22e8398b4df753eb7a8b8090a9c99f1e47d8a6514fbf5d16b844a0553881b3de86ce466706b6ca6d7182101668698ce3b
+  checksum: 10c0/44893932937494ac9f151c0f7f182c4f112809867c330c3e3ab5eef3744432e8806dbaec729db19bc63fc4ee25827454ccc3c4c31344c8215dc0f7e0a1cebb7b
   languageName: node
   linkType: hard
 
@@ -2304,9 +2304,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/types@npm:3.6.2":
-  version: 3.6.2
-  resolution: "@docusaurus/types@npm:3.6.2"
+"@docusaurus/types@npm:3.6.3":
+  version: 3.6.3
+  resolution: "@docusaurus/types@npm:3.6.3"
   dependencies:
     "@mdx-js/mdx": "npm:^3.0.0"
     "@types/history": "npm:^4.7.11"
@@ -2320,7 +2320,7 @@ __metadata:
   peerDependencies:
     react: ^18.0.0
     react-dom: ^18.0.0
-  checksum: 10c0/24fbd201305e97d2d2374bc7e15da2d5000c5f7662a72a5cf37530d443cdbec66f8c121388347fa4d7cefddcbfb49740e6cec4568d1041366eb9476138881d1f
+  checksum: 10c0/fb4fca87c7e25482ee08d0e70da28cd795cd29a54bae3e95868e7e670a37154e4751712663674d03ff0a060c8b84787f296f397eb36027caf91c1633ac22789d
   languageName: node
   linkType: hard
 
@@ -13187,7 +13187,7 @@ __metadata:
     "@apify/tsconfig": "npm:^0.1.0"
     "@apify/utilities": "npm:^2.8.0"
     "@docusaurus/core": "npm:3.6.0"
-    "@docusaurus/faster": "npm:3.6.2"
+    "@docusaurus/faster": "npm:3.6.3"
     "@docusaurus/mdx-loader": "npm:3.6.0"
     "@docusaurus/module-type-aliases": "npm:3.6.0"
     "@docusaurus/plugin-client-redirects": "npm:3.6.0"
