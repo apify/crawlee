@@ -71,7 +71,7 @@ If this were just another website to scrape data from, the analysis would be com
 
 ## 2. Implementing the Crawler
 
-Implemented for [`Crawlee for Python`](https://www.crawlee.dev/python) v0.4.2
+Implemented for [`Crawlee for Python`](https://github.com/apify/crawlee-python) v0.4.2
 
 All necessary data can be obtained without browser emulation. We can use `beautifulsoup_crawler` for implementation.
 
