@@ -1,13 +1,25 @@
-const { inspect } = require('util');
+const { createHash } = require('node:crypto');
+const { inspect } = require('node:util');
 
 const { urlToRequest } = require('loader-utils');
 
 const signingUrl = new URL('https://api.apify.com/v2/tools/encode-and-sign');
 signingUrl.searchParams.set('token', process.env.APIFY_SIGNING_TOKEN);
 const queue = [];
+const cache = {};
 let working = false;
 
+function hash(source) {
+    return createHash('sha1').update(source).digest('hex');
+}
+
 async function getHash(source) {
+    const cacheKey = hash(source);
+
+    if (cache[cacheKey]) {
+        return cache[cacheKey];
+    }
+
     const memory = source.match(/playwright|puppeteer/i) ? 4096 : 1024;
     const res = await (await fetch(signingUrl, {
         method: 'POST',
@@ -32,12 +44,13 @@ async function getHash(source) {
 
     const body = await res.json();
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
     if (!body.data || !body.data.encoded) {
         console.error(`Signing failed:' ${inspect(body.error) || 'Unknown error'}`, body);
         return 'invalid-token';
     }
+
+    cache[cacheKey] = body.data.encoded;
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     return body.data.encoded;
 }
