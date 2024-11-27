@@ -7,10 +7,10 @@ image:
 authors: [MaxB]
 ---
 
-Scraping [`Google Search`](https://www.google.com/) results is essential for [`SERP analysis`](https://www.semrush.com/blog/serp-analysis/), SEO optimization, and data collection projects. As years go by and technologies evolve, this remains crucial for businesses. Along with this evolution, web scraping technologies are advancing too, creating new possibilities for data extraction.
+Scraping `Google Search` delivers essential `SERP analysis`, SEO optimization, and data collection capabilities. Modern scraping tools make this process faster and more reliable.
 
 :::note
-One of our community members wrote this blog as a contribution to Crawlee Blog. If you want to contribute blogs like these to Crawlee Blog, please reach out to us on our [discord channel](https://apify.com/discord).
+One of our community members wrote this blog as a contribution to the Crawlee Blog. If you would like to contribute blogs like these to Crawlee Blog, please reach out to us on our [discord channel](https://apify.com/discord).
 :::
 
 In this guide, we'll create a Google Search scraper using [`Crawlee for Python`](https://github.com/apify/crawlee-python) that can handle result ranking and pagination.
@@ -30,7 +30,7 @@ We'll create a scraper that:
 - Familiarity with web scraping concepts
 - Crawlee for Python v0.4.2 or higher
 
-### Project Setup
+### Project setup
 
 1. Install Crawlee with required dependencies:
 
@@ -52,17 +52,17 @@ We'll create a scraper that:
     poetry install
     ```
 
-## Crawler Development
+## Development of the Google Search scraper in Python
 
-### 1. Defining Data for Extraction
+### 1. Defining data for extraction
 
-First, let's define the scope of what we want to extract. Google's search results are quite heterogeneous now, featuring map widgets, notable people, company information, video blocks, popular questions, and much more. Let's limit ourselves to analyzing classic search results with rankings.
+First, let's define our extraction scope. Google's search results now include maps, notable people, company details, videos, common questions, and many other elements. We'll focus on analyzing standard search results with rankings.
 
 Here's what we'll be extracting:
 
 ![Search Example](./img/search_example.webp)
 
-Let's verify whether we can extract the necessary data from the page's HTML code or if we need deeper analysis or `JS` rendering. Note that this verification is sensitive to HTML tags:
+Let's verify whether we can extract the necessary data from the page's HTML code, or if we need deeper analysis or `JS` rendering. Note that this verification is sensitive to HTML tags:
 
 ![Check Html](./img/check_html.webp)
 
@@ -75,7 +75,7 @@ The fields we'll extract:
 - Description text
 - Ranking positions
 
-### 2. Configure the Crawler
+### 2. Configure the crawler
 
 First, let's create the crawler configuration.
 
@@ -111,13 +111,13 @@ async def main() -> None:
     await crawler.run(['https://www.google.com/search?q=Apify'])
 ```
 
-### 3. Implement Data Extraction
+### 3. Implementing data extraction
 
 First, let's analyze the HTML code of the elements we need to extract:
 
 ![Check Html](./img/html_example.webp)
 
-There's an obvious distinction between *readable* id attributes and *generated* class names and other attributes. When creating selectors for data extraction, you should ignore any generated attributes. Even if you've read that Google has been using a particular generated tag for N years, you shouldn't rely on it - this is your experience in writing robust code.
+There's an obvious distinction between *readable* ID attributes and *generated* class names and other attributes. When creating selectors for data extraction, you should ignore any generated attributes. Even if you've read that Google has been using a particular generated tag for N years, you shouldn't rely on it - this reflects your experience in writing robust code.
 
 Now that we understand the HTML structure, let's implement the extraction. As our crawler deals with only one type of page, we can use `router.default_handler` for processing it. Within the handler, we'll use `BeautifulSoup` to iterate through each search result, extracting data such as `title`, `url`, and `text_widget` while saving the results.
 
@@ -136,7 +136,7 @@ async def default_handler(context: BeautifulSoupCrawlingContext) -> None:
         await context.push_data(data)
 ```
 
-### 4. Handling Pagination
+### 4. Handling pagination
 
 Since Google results depend on the IP geolocation of the search request, we can't rely on link text for pagination. We need to create a more sophisticated CSS selector that works regardless of geolocation and language settings.
 
@@ -148,7 +148,7 @@ To write more efficient selectors, learn the basics of [CSS](https://www.w3schoo
     await context.enqueue_links(selector="div[role='navigation'] td[role='heading']:last-of-type > a")
 ```
 
-### 5. Exporting Data to CSV Format
+### 5. Exporting data to CSV format
 
 Since we want to save all search result data in a convenient tabular format like CSV, we can simply add the export_data method call right after running the crawler:
 
@@ -156,11 +156,11 @@ Since we want to save all search result data in a convenient tabular format like
 await crawler.export_data_csv("google_search.csv")
 ```
 
-### 6. Finalizing the Crawler
+### 6. Finalizing the Google Search scraper
 
 While our core crawler logic works, you might have noticed that our results currently lack ranking position information. To complete our scraper, we need to implement proper ranking position tracking by passing data between requests using `user_data` in [`Request`](https://www.crawlee.dev/python/api/class/Request).
 
-Let's modify the script to handle multiple queries and track ranking positions for search results analysis. We'll also set the crawling depth in a top-level variable. Let's move the router.default_handler to routes.py to match the project structure:
+Let's modify the script to handle multiple queries and track ranking positions for search results analysis. We'll also set the crawling depth as a top-level variable. Let's move the `router.default_handler` to `routes.py` to match the project structure:
 
 ```python
 # crawlee-google-search.main
@@ -243,15 +243,15 @@ async def default_handler(context: BeautifulSoupCrawlingContext) -> None:
 
 And we're done!
 
-Our Google search crawler is ready. Let's look at the results in the `google_ranked.csv` file:
+Our Google Search crawler is ready. Let's look at the results in the `google_ranked.csv` file:
 
 ![Results CSV](./img/results.webp)
 
 The code repository is available on [`GitHub`](https://github.com/Mantisus/crawlee-google-search)
 
-## Scrape Google Search Results with Apify
+## Scrape Google Search results with Apify
 
-If you're working on a large-scale project requiring millions of data points, similar to this [article about Google ranking analysis](https://backlinko.com/search-engine-ranking), you might need a ready-made solution.
+If you're working on a large-scale project requiring millions of data points, like the project featured in this [article about Google ranking analysis](https://backlinko.com/search-engine-ranking) - you might need a ready-made solution.
 
 Consider using [`Google Search Results Scraper`](https://www.apify.com/apify/google-search-scraper) by the Apify team.
 
@@ -260,16 +260,14 @@ It offers important features such as:
 - Proxy support
 - Scalability for large-scale data extraction
 - Geolocation control
-- Integration with external services like [`Zapier`](https://zapier.com/), [`Make`](https://www.make.com), [`Airbyte`](https://airbyte.com/), [`LangChain`](https://www.langchain.com/) and others
+- Integration with external services like [`Zapier`](https://zapier.com/), [`Make`](https://www.make.com/), [`Airbyte`](https://airbyte.com/), [`LangChain`](https://www.langchain.com/) and others
 
 You can learn more in the Apify [blog](https://blog.apify.com/unofficial-google-search-api-from-apify-22a20537a951/)
 
-## Conclusion
+## What will you scrape?
 
-In this blog, we've explored step-by-step how to create a Google search crawler that collects ranking data. How you analyze this dataset is up to you!
+In this blog, we've explored step-by-step how to create a Google Search crawler that collects ranking data. How you analyze this dataset is up to you!
 
 As a reminder, you can find the full project code on [`GitHub`](https://github.com/Mantisus/crawlee-google-search).
 
 I'd like to think that in 5 years I'll need to write an article on "How to extract data from the best search engine for LLMs", but I suspect that in 5 years this article will still be relevant.
-
-Thanks for your attention!
