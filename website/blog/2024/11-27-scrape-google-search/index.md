@@ -3,7 +3,7 @@ slug: scrape-google-search
 title: 'How to scrape Google search results with Python'
 tags: [community]
 description: 'Learn how to scrape google search results using Crawlee for Python'
-image: 
+image: ./img/google-search.webp
 authors: [MaxB]
 ---
 
