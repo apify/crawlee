@@ -18,9 +18,10 @@
     text-align: left;
     transition: all var(--ifm-transition-fast);
 
-    span {
-        color: transparent !important;
-    }
+}
+
+.taglineGap {
+    color: transparent !important;
 }
 
 .relative {
