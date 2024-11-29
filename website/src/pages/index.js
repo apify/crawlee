@@ -24,7 +24,7 @@ function Hero() {
                                 Crawlee is a web<br /> scraping and browser<br /> automation library
                             </h1>
                             <h1 className={styles.tagline}>
-                                Crawlee is a <span>web<br /> scraping</span> and <span>browser<br /> automation</span> library
+                                Crawlee is a <span className={styles.taglineGap}>web<br /> scraping</span> and <span className={styles.taglineGap}>browser<br /> automation</span> library
                             </h1>
                         </div>
                     </div>
