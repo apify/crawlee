@@ -173,17 +173,19 @@ const INSTAGRAM_REGEX_STRING =
     '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
 const TWITTER_RESERVED_PATHS =
-    'oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct';
+    'oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct|messages|explore|notifications|jobs|compose\\/post';
 
-const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
+const X_SUBDOMAINS = 'business|help|about|blog|careers|developer|ads';
+
+const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?<!(?:${X_SUBDOMAINS})\\.)(?:x|twitter)(?:.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(?:@)?([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
 
 const FACEBOOK_RESERVED_PATHS =
-    'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
+    'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages\\/(?:create|merge|search)|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
 
-const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9-\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
+const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|pages\\/[a-z0-9-_][a-z0-9-_\\.\\/]{0,150}|(?!pages|profile\\.php)[a-z0-9-\\.]{5,51}(?![a-z0-9\\.]))(?:\\/)?`;
 
 const YOUTUBE_REGEX_STRING =
-    '(?<!\\w)(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(?:\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]{2,100})';
+    '(?<!\\w)(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(?:(?:(?:\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))|(?:(?:\\/c)?\\/@)))([a-zA-Z0-9\\-_]{2,100})';
 
 const TIKTOK_REGEX_STRING =
     '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m)\\.)?(?:tiktok\\.com)\\/(((?:(?:v|embed|trending)(?:\\?shareId=|\\/))[0-9]{2,50}(?![0-9]))|(?:@)[a-z0-9\\-_\\.]+((?:\\/video\\/)[0-9]{2,50}(?![0-9]))?)(?:\\/)?';
