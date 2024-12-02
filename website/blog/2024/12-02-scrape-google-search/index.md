@@ -25,6 +25,10 @@ We'll create a scraper that:
 - Processes multiple result pages
 - Saves data in a structured format
 
+![How to scrape Google search results with Python](./img/google-search.webp)
+
+<!-- truncate -->
+
 ## Prerequisites
 
 - Python 3.7 or higher
