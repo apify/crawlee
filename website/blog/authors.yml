@@ -40,3 +40,10 @@ LukasP:
     image_url: ./img/lukasp.webp
     socials:
         github: Patai5
+MatejV:
+    name: Matěj Volf
+    title: Web Automation Engineer
+    url: https://github.com/mvolfik
+    image_url: https://avatars.githubusercontent.com/u/31281386?v=4
+    socials:
+        github: mvolfik

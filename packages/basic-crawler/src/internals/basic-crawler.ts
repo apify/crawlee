@@ -809,7 +809,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             async () => client.setStatusMessage!(message, options),
             1000,
             'Setting status message timed out after 1s',
-        ).catch((e) => this.log.warning(e.message));
+        ).catch((e) => this.log.debug(e.message));
     }
 
     private getPeriodicLogger() {
