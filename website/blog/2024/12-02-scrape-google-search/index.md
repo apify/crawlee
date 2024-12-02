@@ -10,7 +10,9 @@ authors: [MaxB]
 Scraping `Google Search` delivers essential `SERP analysis`, SEO optimization, and data collection capabilities. Modern scraping tools make this process faster and more reliable.
 
 :::note
+
 One of our community members wrote this blog as a contribution to the Crawlee Blog. If you would like to contribute blogs like these to Crawlee Blog, please reach out to us on our [discord channel](https://apify.com/discord).
+
 :::
 
 In this guide, we'll create a Google Search scraper using [`Crawlee for Python`](https://github.com/apify/crawlee-python) that can handle result ranking and pagination.
