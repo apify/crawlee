@@ -17,6 +17,10 @@ One of our community members wrote this blog as a contribution to the Crawlee Bl
 
 When discussing Crunchbase web scraping, it's important to note that this is an excellent example of how crucial it is to [choose the right data source](https://www.crawlee.dev/blog/web-scraping-tips#1-choosing-a-data-source-for-the-project) for your project. In this article, we'll explore different approaches to data extraction and how to implement them using [`Crawlee for Python`](https://github.com/apify/crawlee-python).
 
+![How to Scrape Crunchbase Using Python](soon main image)
+
+<!-- truncate -->
+
 ## Prerequisites
 
 - Python 3.7 or higher
