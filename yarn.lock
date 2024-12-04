@@ -4853,9 +4853,9 @@ __metadata:
   linkType: hard
 
 "dotenv@npm:^16.4.5, dotenv@npm:~16.4.5":
-  version: 16.4.6
-  resolution: "dotenv@npm:16.4.6"
-  checksum: 10c0/6c0c0c82eaa0ca6cc7193b2550920ec6d2eabfe32498bf454c0a1187c0680c79daa199ba873d33692f055755e5068f862689aca03bc8ff57e7d70302f3152012
+  version: 16.4.7
+  resolution: "dotenv@npm:16.4.7"
+  checksum: 10c0/be9f597e36a8daf834452daa1f4cc30e5375a5968f98f46d89b16b983c567398a330580c88395069a77473943c06b877d1ca25b4afafcdd6d4adb549e8293462
   languageName: node
   linkType: hard
 
@@ -6413,14 +6413,13 @@ __metadata:
   linkType: hard
 
 "get-uri@npm:^6.0.1":
-  version: 6.0.3
-  resolution: "get-uri@npm:6.0.3"
+  version: 6.0.4
+  resolution: "get-uri@npm:6.0.4"
   dependencies:
     basic-ftp: "npm:^5.0.2"
     data-uri-to-buffer: "npm:^6.0.2"
     debug: "npm:^4.3.4"
-    fs-extra: "npm:^11.2.0"
-  checksum: 10c0/8d801c462cd5b9c171d4d9e5f17afce3d9ebfbbfb006a88e3e768ce0071a8e2e59ee1ce822915fc43b9d6b83fde7b8d1c9648330ae89778fa41ad774df8ee0ac
+  checksum: 10c0/07c87abe1f97a4545fae329a37a45e276ec57e6ad48dad2a97780f87c96b00a82c2043ab49e1a991f99bb5cff8f8ed975e44e4f8b3c9600f35493a97f123499f
   languageName: node
   linkType: hard
 
