@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.12.1](https://github.com/apify/crawlee/compare/v3.12.0...v3.12.1) (2024-12-04)
+
+
+### Features
+
+* `tieredProxyUrls` accept `null` for switching the proxy off ([#2743](https://github.com/apify/crawlee/issues/2743)) ([82f4ea9](https://github.com/apify/crawlee/commit/82f4ea99f632526649ad73e3246b9bdf63a6788a)), closes [#2740](https://github.com/apify/crawlee/issues/2740)
+
+
+
+
+
 # [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
 
 

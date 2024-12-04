@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.12.1](https://github.com/apify/crawlee/compare/v3.12.0...v3.12.1) (2024-12-04)
+
+
+### Bug Fixes
+
+* log status message timeouts to debug level ([55ee44a](https://github.com/apify/crawlee/commit/55ee44aaf5e73c2a9d96d973a4aae111ab2e0025))
+* **social:** support new URL formats for Facebook, YouTube and X ([#2758](https://github.com/apify/crawlee/issues/2758)) ([4c95847](https://github.com/apify/crawlee/commit/4c95847d5cedd6514620ccab31d5b242ba76de80)), closes [#525](https://github.com/apify/crawlee/issues/525)
+
+
+### Features
+
+* `tieredProxyUrls` accept `null` for switching the proxy off ([#2743](https://github.com/apify/crawlee/issues/2743)) ([82f4ea9](https://github.com/apify/crawlee/commit/82f4ea99f632526649ad73e3246b9bdf63a6788a)), closes [#2740](https://github.com/apify/crawlee/issues/2740)
+
+
+
+
+
 # [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
 
 

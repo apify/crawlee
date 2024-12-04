@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.12.1](https://github.com/apify/crawlee/compare/v3.12.0...v3.12.1) (2024-12-04)
+
+
+### Bug Fixes
+
+* log status message timeouts to debug level ([55ee44a](https://github.com/apify/crawlee/commit/55ee44aaf5e73c2a9d96d973a4aae111ab2e0025))
+
+
+
+
+
 # [3.12.0](https://github.com/apify/crawlee/compare/v3.11.5...v3.12.0) (2024-11-04)
 
 
