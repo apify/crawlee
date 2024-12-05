@@ -347,7 +347,9 @@ export class Configuration {
         }
 
         if (Configuration.COMMA_SEPARATED_LIST_VARS.includes(key)) {
-            return String(value).split(',').map((v) => v.trim());
+            return String(value)
+                .split(',')
+                .map((v) => v.trim());
         }
 
         return value;
