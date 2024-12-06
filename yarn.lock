@@ -15,10 +15,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.34.0":
-  version: 2.34.0
-  resolution: "@apify/consts@npm:2.34.0"
-  checksum: 10c0/25994af943ce6992f903d302168ddbdb26ed7c911d827a95804f3a5c8a263504dbc4339ccb060229facb9ff9d6455cae37a30d55979e4cdaac358f0997f15063
+"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.35.0":
+  version: 2.35.0
+  resolution: "@apify/consts@npm:2.35.0"
+  checksum: 10c0/b4e8a0655bb33e183d2ac4cffb47c758e432d10ea067ff9f8c2bc4ed0efe5e2b5131c98d899f60563b1d0afe2e9d0d50d066ec0124a966a234f4be37d37ec35d
   languageName: node
   linkType: hard
 
@@ -66,23 +66,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.59
-  resolution: "@apify/input_secrets@npm:1.1.59"
+  version: 1.1.60
+  resolution: "@apify/input_secrets@npm:1.1.60"
   dependencies:
-    "@apify/log": "npm:^2.5.10"
-    "@apify/utilities": "npm:^2.11.0"
+    "@apify/log": "npm:^2.5.11"
+    "@apify/utilities": "npm:^2.11.1"
     ow: "npm:^0.28.2"
-  checksum: 10c0/8a03914679de1dca17fb57951790f96e04968ac1dc1a51666b3e4d46d48eb6226d0f30d1a57ae739e9e1c27131209bac5bd3f8d931ff91df29fd42cce749a18f
+  checksum: 10c0/c4dc8aebd01b185802b88fc7cb2be5166dc9037e1604a54da3091176880a4d86fb4ffe84a066f854aad015117253392947e595018b87e9bcfd59a8e25e9b26ad
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.10":
-  version: 2.5.10
-  resolution: "@apify/log@npm:2.5.10"
+"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.11":
+  version: 2.5.11
+  resolution: "@apify/log@npm:2.5.11"
   dependencies:
-    "@apify/consts": "npm:^2.34.0"
+    "@apify/consts": "npm:^2.35.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 10c0/fd70f2de6ac4786c9828de4e8c5428581b4df244665197140bf7a93e2ef65fd95718d459f6f57a8d5e30bfdf593c903483cc2dbaa1bce0a4c652d48bcd2d899c
+  checksum: 10c0/af27b710bb6ad9248bcfff4657b7a0cfca7773ff2be2c410b7e7e0f88670e5ed6915755fb2c8d6412657b463268bbcaa266d9fc0eae27a2b3a0af11b7c7734b5
   languageName: node
   linkType: hard
 
@@ -98,11 +98,11 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.30":
-  version: 2.0.51
-  resolution: "@apify/pseudo_url@npm:2.0.51"
+  version: 2.0.52
+  resolution: "@apify/pseudo_url@npm:2.0.52"
   dependencies:
-    "@apify/log": "npm:^2.5.10"
-  checksum: 10c0/7e053304e0f5b976eeed498e6b2637003696b6ea049a3e36bccc5c0a4ecc640f75e0621828db1d3dca7cb17fbffa036352fb1a1ceb0d7d3ca99bc80e3497288a
+    "@apify/log": "npm:^2.5.11"
+  checksum: 10c0/3a52d76bdc85a7f6218ae4b3cdcd01182f191f18c6476c7e83ac653fcb2965005057cf74437f31df5c51b63e21bb17154729220e1fc29245f0dfca45feba040d
   languageName: node
   linkType: hard
 
@@ -120,13 +120,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.11.0, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
-  version: 2.11.0
-  resolution: "@apify/utilities@npm:2.11.0"
+"@apify/utilities@npm:^2.11.1, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
+  version: 2.11.1
+  resolution: "@apify/utilities@npm:2.11.1"
   dependencies:
-    "@apify/consts": "npm:^2.34.0"
-    "@apify/log": "npm:^2.5.10"
-  checksum: 10c0/c79a79216a0ba0d5725e238e512fe309cb5e7629e50b65c1ab49c7e26080a9b21c50a0674375006a9a9a76bfdcaf6ecd7958ef185c6bb91f1acb6b34ae12cd61
+    "@apify/consts": "npm:^2.35.0"
+    "@apify/log": "npm:^2.5.11"
+  checksum: 10c0/319d1b222a64fa704370763adc37b2151e60b997dd8f8b345d0c5f4c397cd5e7893d8e89eeb6ff974875ff9fda760c4b2626a95efabf65b644894e1435a5c5f4
   languageName: node
   linkType: hard
 
@@ -1699,8 +1699,8 @@ __metadata:
   linkType: hard
 
 "@nx/devkit@npm:>=17.1.2 < 21":
-  version: 20.1.4
-  resolution: "@nx/devkit@npm:20.1.4"
+  version: 20.2.0
+  resolution: "@nx/devkit@npm:20.2.0"
   dependencies:
     ejs: "npm:^3.1.7"
     enquirer: "npm:~2.3.6"
@@ -1712,76 +1712,76 @@ __metadata:
     yargs-parser: "npm:21.1.1"
   peerDependencies:
     nx: ">= 19 <= 21"
-  checksum: 10c0/e8ae35e9b421cf558b35b792fcff1f769438be45808c2d4e1317e6c56779b773d2d05c3234e2431c258670b1880b5b4fbe22ac472ff639320df0b5bcf3b2ee95
+  checksum: 10c0/7b3cd51fd135c78824e2326810cb18591a4e77ce9b47dbb2fea4bc8e36cec385815c5282358090a5377af3741f06d404ab3acb038c5796084b4780d2bbd3771a
   languageName: node
   linkType: hard
 
-"@nx/nx-darwin-arm64@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-darwin-arm64@npm:20.1.4"
+"@nx/nx-darwin-arm64@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-darwin-arm64@npm:20.2.0"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@nx/nx-darwin-x64@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-darwin-x64@npm:20.1.4"
+"@nx/nx-darwin-x64@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-darwin-x64@npm:20.2.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@nx/nx-freebsd-x64@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-freebsd-x64@npm:20.1.4"
+"@nx/nx-freebsd-x64@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-freebsd-x64@npm:20.2.0"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm-gnueabihf@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-linux-arm-gnueabihf@npm:20.1.4"
+"@nx/nx-linux-arm-gnueabihf@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-linux-arm-gnueabihf@npm:20.2.0"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm64-gnu@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-linux-arm64-gnu@npm:20.1.4"
+"@nx/nx-linux-arm64-gnu@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-linux-arm64-gnu@npm:20.2.0"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm64-musl@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-linux-arm64-musl@npm:20.1.4"
+"@nx/nx-linux-arm64-musl@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-linux-arm64-musl@npm:20.2.0"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-x64-gnu@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-linux-x64-gnu@npm:20.1.4"
+"@nx/nx-linux-x64-gnu@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-linux-x64-gnu@npm:20.2.0"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-x64-musl@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-linux-x64-musl@npm:20.1.4"
+"@nx/nx-linux-x64-musl@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-linux-x64-musl@npm:20.2.0"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@nx/nx-win32-arm64-msvc@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-win32-arm64-msvc@npm:20.1.4"
+"@nx/nx-win32-arm64-msvc@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-win32-arm64-msvc@npm:20.2.0"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@nx/nx-win32-x64-msvc@npm:20.1.4":
-  version: 20.1.4
-  resolution: "@nx/nx-win32-x64-msvc@npm:20.1.4"
+"@nx/nx-win32-x64-msvc@npm:20.2.0":
+  version: 20.2.0
+  resolution: "@nx/nx-win32-x64-msvc@npm:20.2.0"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -4789,9 +4789,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1391447
-  resolution: "devtools-protocol@npm:0.0.1391447"
-  checksum: 10c0/e582d88960b2ffabb73ced78054c1fed67c75b2f518788f5066c9865115d50537dd2fd4573acebc2d7515cdad2f1885b9ad58d6676d4afe9c85def3d7ea0f69d
+  version: 0.0.1392070
+  resolution: "devtools-protocol@npm:0.0.1392070"
+  checksum: 10c0/413a8ba5be00cd04630523ac44b552f1093bd1a0dbf929b8b2372239d558eb9ac1f75e9f46950d5f8dc6654670dec99a3ebcefa21406f081a6f42c02aeaa8bca
   languageName: node
   linkType: hard
 
@@ -4950,9 +4950,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.41":
-  version: 1.5.68
-  resolution: "electron-to-chromium@npm:1.5.68"
-  checksum: 10c0/02cfa3043280e4f8e003724fadee30fa8cdb5f6df1be51627b1ad34f66a8d4fb51b3d3863647620075c02b21c8ff99bc2afe55142a2b4742b1f9d523c11b25a3
+  version: 1.5.71
+  resolution: "electron-to-chromium@npm:1.5.71"
+  checksum: 10c0/f6fdeec0e1d68634cf92c267bdce3e50af947ce2c8fb1034df3e738c536b3033e311ad0fb9a6c4c35f678f10a299e4f78fdfcedbaa78d8992fedc443a7363d6d
   languageName: node
   linkType: hard
 
@@ -5850,8 +5850,8 @@ __metadata:
   linkType: hard
 
 "express@npm:^4.18.1":
-  version: 4.21.1
-  resolution: "express@npm:4.21.1"
+  version: 4.21.2
+  resolution: "express@npm:4.21.2"
   dependencies:
     accepts: "npm:~1.3.8"
     array-flatten: "npm:1.1.1"
@@ -5872,7 +5872,7 @@ __metadata:
     methods: "npm:~1.1.2"
     on-finished: "npm:2.4.1"
     parseurl: "npm:~1.3.3"
-    path-to-regexp: "npm:0.1.10"
+    path-to-regexp: "npm:0.1.12"
     proxy-addr: "npm:~2.0.7"
     qs: "npm:6.13.0"
     range-parser: "npm:~1.2.1"
@@ -5884,7 +5884,7 @@ __metadata:
     type-is: "npm:~1.6.18"
     utils-merge: "npm:1.0.1"
     vary: "npm:~1.1.2"
-  checksum: 10c0/0c287867e5f6129d3def1edd9b63103a53c40d4dc8628839d4b6827e35eb8f0de5a4656f9d85f4457eba584f9871ebb2ad26c750b36bd75d9bbb8bcebdc4892c
+  checksum: 10c0/38168fd0a32756600b56e6214afecf4fc79ec28eca7f7a91c2ab8d50df4f47562ca3f9dee412da7f5cea6b1a1544b33b40f9f8586dbacfbdada0fe90dbb10a1f
   languageName: node
   linkType: hard
 
@@ -9423,20 +9423,20 @@ __metadata:
   linkType: hard
 
 "nx@npm:>=17.1.2 < 21":
-  version: 20.1.4
-  resolution: "nx@npm:20.1.4"
+  version: 20.2.0
+  resolution: "nx@npm:20.2.0"
   dependencies:
     "@napi-rs/wasm-runtime": "npm:0.2.4"
-    "@nx/nx-darwin-arm64": "npm:20.1.4"
-    "@nx/nx-darwin-x64": "npm:20.1.4"
-    "@nx/nx-freebsd-x64": "npm:20.1.4"
-    "@nx/nx-linux-arm-gnueabihf": "npm:20.1.4"
-    "@nx/nx-linux-arm64-gnu": "npm:20.1.4"
-    "@nx/nx-linux-arm64-musl": "npm:20.1.4"
-    "@nx/nx-linux-x64-gnu": "npm:20.1.4"
-    "@nx/nx-linux-x64-musl": "npm:20.1.4"
-    "@nx/nx-win32-arm64-msvc": "npm:20.1.4"
-    "@nx/nx-win32-x64-msvc": "npm:20.1.4"
+    "@nx/nx-darwin-arm64": "npm:20.2.0"
+    "@nx/nx-darwin-x64": "npm:20.2.0"
+    "@nx/nx-freebsd-x64": "npm:20.2.0"
+    "@nx/nx-linux-arm-gnueabihf": "npm:20.2.0"
+    "@nx/nx-linux-arm64-gnu": "npm:20.2.0"
+    "@nx/nx-linux-arm64-musl": "npm:20.2.0"
+    "@nx/nx-linux-x64-gnu": "npm:20.2.0"
+    "@nx/nx-linux-x64-musl": "npm:20.2.0"
+    "@nx/nx-win32-arm64-msvc": "npm:20.2.0"
+    "@nx/nx-win32-x64-msvc": "npm:20.2.0"
     "@yarnpkg/lockfile": "npm:^1.1.0"
     "@yarnpkg/parsers": "npm:3.0.2"
     "@zkochan/js-yaml": "npm:0.0.7"
@@ -9500,7 +9500,7 @@ __metadata:
   bin:
     nx: bin/nx.js
     nx-cloud: bin/nx-cloud.js
-  checksum: 10c0/a9407ea70ecf9b2f465c94552124ef01d90828025540fa5733e1d3d35e6adab41adfe0c0545ebed37b0e7059e4dfee972351949fd9b643adb13e6daba4dd0214
+  checksum: 10c0/6c03afc6a3edffff7d737d7a668d8ea83dcba52e77a7fa591aca377dde4a45851971823fa453772c8a610235aa8c2e70d040bf1390ee96cb234cd1a4f40680ff
   languageName: node
   linkType: hard
 
@@ -9838,9 +9838,9 @@ __metadata:
   linkType: hard
 
 "p-map@npm:^7.0.2":
-  version: 7.0.2
-  resolution: "p-map@npm:7.0.2"
-  checksum: 10c0/e10548036648d1c043153f9997112fe5a7de54a319210238628f8ea22ee36587fd6ee740811f88b60bbf29d932e23ae35df7fced40df477116c84c18e797047e
+  version: 7.0.3
+  resolution: "p-map@npm:7.0.3"
+  checksum: 10c0/46091610da2b38ce47bcd1d8b4835a6fa4e832848a6682cf1652bc93915770f4617afc844c10a77d1b3e56d2472bb2d5622353fa3ead01a7f42b04fc8e744a5c
   languageName: node
   linkType: hard
 
@@ -10122,10 +10122,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"path-to-regexp@npm:0.1.10":
-  version: 0.1.10
-  resolution: "path-to-regexp@npm:0.1.10"
-  checksum: 10c0/34196775b9113ca6df88e94c8d83ba82c0e1a2063dd33bfe2803a980da8d49b91db8104f49d5191b44ea780d46b8670ce2b7f4a5e349b0c48c6779b653f1afe4
+"path-to-regexp@npm:0.1.12":
+  version: 0.1.12
+  resolution: "path-to-regexp@npm:0.1.12"
+  checksum: 10c0/1c6ff10ca169b773f3bba943bbc6a07182e332464704572962d277b900aeee81ac6aa5d060ff9e01149636c30b1f63af6e69dd7786ba6e0ddb39d4dee1f0645b
   languageName: node
   linkType: hard
 
