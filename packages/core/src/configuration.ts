@@ -253,6 +253,8 @@ export class Configuration {
 
     protected static INTEGER_VARS = ['memoryMbytes', 'persistStateIntervalMillis', 'systemInfoIntervalMillis'];
 
+    protected static COMMA_SEPARATED_LIST_VARS: string[] = [];
+
     protected static DEFAULTS: Dictionary = {
         defaultKeyValueStoreId: 'default',
         defaultDatasetId: 'default',
@@ -342,6 +344,13 @@ export class Configuration {
         if (Configuration.BOOLEAN_VARS.includes(key)) {
             // 0, false and empty string are considered falsy values
             return !['0', 'false', ''].includes(String(value).toLowerCase());
+        }
+
+        if (Configuration.COMMA_SEPARATED_LIST_VARS.includes(key)) {
+            if (!value) return [];
+            return String(value)
+                .split(',')
+                .map((v) => v.trim());
         }
 
         return value;
