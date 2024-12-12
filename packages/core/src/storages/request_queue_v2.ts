@@ -164,6 +164,13 @@ export class RequestQueue extends RequestProvider {
     /**
      * @inheritDoc
      */
+    override async isFinished(): Promise<boolean> {
+        return false; // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
     override async reclaimRequest(
         ...args: Parameters<RequestProvider['reclaimRequest']>
     ): ReturnType<RequestProvider['reclaimRequest']> {
