@@ -122,15 +122,6 @@ export class RequestQueue extends RequestProvider {
             return null;
         }
 
-        // This should never happen, but...
-        if (this.recentlyHandledRequestsCache.get(nextRequestId)) {
-            this.log.warning('Queue head returned a request that was recently marked as handled?!', {
-                nextRequestId,
-                recentlyHandled: !!this.recentlyHandledRequestsCache.get(nextRequestId),
-            });
-            return null;
-        }
-
         const request: Request | null = await this.getOrHydrateRequest(nextRequestId);
 
         // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can occur in two situations:
@@ -154,7 +145,6 @@ export class RequestQueue extends RequestProvider {
         //    will not put the request again to queueHeadDict.
         if (request.handledAt) {
             this.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
-            this.recentlyHandledRequestsCache.add(nextRequestId, true);
             return null;
         }
 
@@ -225,15 +215,13 @@ export class RequestQueue extends RequestProvider {
             if (
                 !id ||
                 !uniqueKey ||
-                this.recentlyHandledRequestsCache.get(id) ||
                 // If we tried to read new forefront requests, but another client appeared in the meantime, we can't be sure we'll only read our requests.
                 // To retain the correct queue ordering, we rollback this head read.
                 (forefront && headData.hadMultipleClients)
             ) {
-                this.log.debug(`Skipping request from queue head as it's potentially invalid or recently handled`, {
+                this.log.debug(`Skipping request from queue head as it's potentially invalid`, {
                     id,
                     uniqueKey,
-                    recentlyHandled: !!this.recentlyHandledRequestsCache.get(id),
                     inconsistentForefrontRead: forefront && headData.hadMultipleClients,
                 });
 
