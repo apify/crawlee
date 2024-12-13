@@ -69,7 +69,7 @@ pip install crawlee "crawlee[playwright]"
 playwright install
 ```
 
-*If you're new to **Crawlee**, check out its easy-to-follow documentation. It’s available for both [Node.js](https://crawlee.dev/docs/quick-start) and [Python](https://crawlee.dev/python/docs/quick-start).*
+*If you're new to **Crawlee**, check out its easy-to-follow documentation. It’s available for both [Node.js](https://www.crawlee.dev/docs/quick-start) and [Python](https://www.crawlee.dev/python/docs/quick-start).*
 
 ::: note
 
@@ -83,7 +83,7 @@ Let's see the steps to connect to Google Maps.
 
 **Step 1: Setting up the crawler**
 
-The first step is to configure the crawler. We're using [`PlaywrightCrawler`](https://crawlee.dev/python/api/class/PlaywrightCrawler) from Crawlee, which gives us powerful tools for automated browsing. We set `headless=False` to make the browser visible during scraping and allow 5 minutes for the pages to load.
+The first step is to configure the crawler. We're using [`PlaywrightCrawler`](https://www.crawlee.dev/python/api/class/PlaywrightCrawler) from Crawlee, which gives us powerful tools for automated browsing. We set `headless=False` to make the browser visible during scraping and allow 5 minutes for the pages to load.
 
 ```python
 from crawlee.playwright_crawler import PlaywrightCrawler
@@ -475,7 +475,7 @@ You've successfully built a comprehensive Google Maps scraper that collects and 
 
 We’ve handpicked some great resources to help you further explore web scraping:
 
-- [Scrapy vs. Crawlee: Choosing the right tool](https://crawlee.dev/blog/scrapy-vs-crawlee)
-- [Mastering proxy management with Crawlee](https://crawlee.dev/blog/proxy-management-in-crawlee)
-- [Think like a web scraping expert: 12 pro tips](https://crawlee.dev/blog/web-scraping-tips)
-- [Building a LinkedIn job scraper](https://crawlee.dev/blog/linkedin-job-scraper-python)
+- [Scrapy vs. Crawlee: Choosing the right tool](https://www.crawlee.dev/blog/scrapy-vs-crawlee)
+- [Mastering proxy management with Crawlee](https://wwww.crawlee.dev/blog/proxy-management-in-crawlee)
+- [Think like a web scraping expert: 12 pro tips](https://www.crawlee.dev/blog/web-scraping-tips)
+- [Building a LinkedIn job scraper](https://www.crawlee.dev/blog/linkedin-job-scraper-python)
