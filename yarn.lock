@@ -4813,9 +4813,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1395251
-  resolution: "devtools-protocol@npm:0.0.1395251"
-  checksum: 10c0/454bb8fa6b9c59a03a3dafc7068ae9b98e04b6fd7237fd6bd97aa2d5cfeb1fe8062ae7dc33a994019d9c16566e1a2f98edc656084bacbd3f33e367d9d99ba0a7
+  version: 0.0.1396320
+  resolution: "devtools-protocol@npm:0.0.1396320"
+  checksum: 10c0/1519b4bb46279b6dc3866975a6a95308918308a710cbccbb954a94a991c62f8cda2c06e4f63485e55335cabd7e2d0a28e4080349a27782762c588af6beb6b02b
   languageName: node
   linkType: hard
 
@@ -12046,11 +12046,11 @@ __metadata:
   linkType: hard
 
 "text-decoder@npm:^1.1.0":
-  version: 1.2.2
-  resolution: "text-decoder@npm:1.2.2"
+  version: 1.2.3
+  resolution: "text-decoder@npm:1.2.3"
   dependencies:
     b4a: "npm:^1.6.4"
-  checksum: 10c0/20612b87d282ee07d8fba28f4b411c556a2487948de4c77610191e263e4e80fec5af1ffd9a00b58b7598c153e58127e36110be642721a197f222b58ff2aab5c2
+  checksum: 10c0/569d776b9250158681c83656ef2c3e0a5d5c660c27ca69f87eedef921749a4fbf02095e5f9a0f862a25cf35258379b06e31dee9c125c9f72e273b7ca1a6d1977
   languageName: node
   linkType: hard
 
@@ -12134,21 +12134,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.67":
-  version: 6.1.67
-  resolution: "tldts-core@npm:6.1.67"
-  checksum: 10c0/7841c8d53250bdadfdd049f5f7cde4a71f08b4a33a3f024dd62a2d68512e9eca44141395abad3841aa5024a48b47a6e11a4ef23715baab3be8986d2ed2513431
+"tldts-core@npm:^6.1.68":
+  version: 6.1.68
+  resolution: "tldts-core@npm:6.1.68"
+  checksum: 10c0/7ce2d0526aaf80656e746e322f9632b92afd07702c5aa61f92f908d325d4878fe6654d94039f30f625b32e7ff934e36cb83722b2e62c752ae34beed40fa1d123
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0, tldts@npm:^6.1.32":
-  version: 6.1.67
-  resolution: "tldts@npm:6.1.67"
+  version: 6.1.68
+  resolution: "tldts@npm:6.1.68"
   dependencies:
-    tldts-core: "npm:^6.1.67"
+    tldts-core: "npm:^6.1.68"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/074edcd718ede006ff0e189701a4fda472686998aa6155ef4920e3ca17f4b54afb7f1afc9668ce33a3de523dd562eb9266e0610efd05cb2d9e9f19d9fa7510d4
+  checksum: 10c0/adbc9b23fa18a150e5124daec853ec1a2c7b656e2e294855b52ef2f7f7d5266660392ae222840862b6360165f7adbc3ae731f78f0a0f96ee1b4558328e428a55
   languageName: node
   linkType: hard
 
