@@ -536,7 +536,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         iteratee: DatasetReducer<T, Data>,
         memo?: T,
         options: DatasetIteratorOptions = {}
-    ): Promise<T> {
+    ): Promise<T | undefined> {
         checkStorageAccess();
 
         let currentMemo: T | undefined = memo;
