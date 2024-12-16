@@ -511,7 +511,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.
      * The `iteratee()` is passed three arguments: the `memo`, then the `value` and `index` of the iteration.
      *
-     * If no `memo` is passed to the initial invocation of reduce, the `iteratee()` is not invoked on the first element of the list.
+     * If no `memo` is passed to the initial invocation of reduce (or `memo` is set as `undefined`),
+     * the `iteratee()` is not invoked on the first element of the list.
      * The first element is instead passed as the memo in the invocation of the `iteratee()` on the next element in the list.
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
@@ -520,19 +521,34 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param memo Initial state of the reduction.
      * @param [options] All `reduce()` parameters.
      */
-    async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options: DatasetIteratorOptions = {}): Promise<T> {
+    async reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
+    async reduce(
+        iteratee: DatasetReducer<Data, Data>,
+        memo: undefined,
+        options: DatasetIteratorOptions
+    ): Promise<Data | undefined>;
+    async reduce<T>(
+        iteratee: DatasetReducer<T, Data>,
+        memo: T,
+        options: DatasetIteratorOptions
+    ): Promise<T>;
+    async reduce<T = Data>(
+        iteratee: DatasetReducer<T, Data>,
+        memo?: T,
+        options: DatasetIteratorOptions = {}
+    ): Promise<T> {
         checkStorageAccess();
 
-        let currentMemo: T = memo;
+        let currentMemo: T | undefined = memo;
 
         const wrappedFunc: DatasetConsumer<Data> = async (item, index) => {
-            return Promise.resolve()
-                .then(() => {
-                    return !index && currentMemo === undefined ? item : iteratee(currentMemo, item, index);
-                })
-                .then((newMemo) => {
-                    currentMemo = newMemo as T;
-                });
+            if (index === 0 && currentMemo === undefined) {
+                currentMemo = item;
+            } else {
+                // We are guaranteed that currentMemo is instanciated, since we are either not on
+                // the first iteration, or memo was already set by the user.
+                currentMemo = await iteratee(currentMemo as T, item, index);
+            }
         };
 
         await this.forEach(wrappedFunc, options);
