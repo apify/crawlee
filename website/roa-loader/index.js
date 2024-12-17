@@ -90,6 +90,6 @@ module.exports = async function (code) {
     }
 
     console.log(`Signing ${urlToRequest(this.resourcePath)}...`, { working, queue: queue.length });
-    const hash = await encodeAndSign(code);
-    return { code, hash };
+    const codeHash = await encodeAndSign(code);
+    return { code, hash: codeHash };
 };

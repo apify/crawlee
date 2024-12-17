@@ -110,7 +110,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
         });
 
         test('accepts forefront option', async () => {
-            const addedRequests: { request: Source; options: RequestQueueOperationOptions }[] = [];
+            const addedRequests: { request: Source; options?: RequestQueueOperationOptions }[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
             requestQueue.addRequests = async (requests, options) => {
                 addedRequests.push(...requests.map((request) => ({ request, options })));
@@ -136,8 +136,8 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
                 forefront: true,
             });
             expect(addedRequests).toHaveLength(2);
-            expect(addedRequests[0].options.forefront).toBe(true);
-            expect(addedRequests[1].options.forefront).toBe(true);
+            expect(addedRequests[0].options!.forefront).toBe(true);
+            expect(addedRequests[1].options!.forefront).toBe(true);
         });
 
         describe('clickElements()', () => {
@@ -331,7 +331,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
                 await clickElements.clickElements(page, 'textarea', { clickCount: 3, delay: 100 });
                 expect(
                     await page.evaluate(() => {
-                        const textarea = document.querySelector('textarea');
+                        const textarea = document.querySelector('textarea')!;
                         return textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
                     }),
                 ).toBe(text);

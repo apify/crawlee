@@ -213,7 +213,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
-    override readonly stats: AdaptivePlaywrightCrawlerStatistics;
+    declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
 
     /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink AdaptivePlaywrightCrawlerOptions.requestHandler|`requestHandler`}.

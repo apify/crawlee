@@ -193,7 +193,7 @@ describe('launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin!.launchOptions.executablePath).toEqual(target);
+            expect(plugin!.launchOptions!.executablePath).toEqual(target);
         });
 
         test('does not use default when using chrome', () => {
@@ -218,7 +218,7 @@ describe('launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin.launchOptions.executablePath).toEqual(newPath);
+            expect(plugin.launchOptions!.executablePath).toEqual(newPath);
         });
 
         test('works without default path', async () => {

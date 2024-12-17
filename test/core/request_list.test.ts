@@ -9,7 +9,9 @@ import {
     RequestList,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
+import type { gotScraping } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { beforeAll, type MockedFunction } from 'vitest';
 
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)
@@ -29,9 +31,13 @@ vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
     };
 });
 
-const { gotScraping } = await import('@crawlee/utils/src/internals/gotScraping');
+let gotScrapingSpy: MockedFunction<typeof gotScraping>;
 
-const gotScrapingSpy = vitest.mocked(gotScraping);
+beforeAll(async () => {
+    // @ts-ignore for some reason, this fails when the project is not built :/
+    const { gotScraping } = await import('@crawlee/utils');
+    gotScrapingSpy = vitest.mocked(gotScraping);
+});
 
 describe('RequestList', () => {
     let ll: number;
@@ -63,12 +69,12 @@ describe('RequestList', () => {
 
         const req = await requestList.fetchNextRequest();
 
-        expect(req.url).toBe('https://example.com/1');
+        expect(req!.url).toBe('https://example.com/1');
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(false);
         expect(await requestList.fetchNextRequest()).toBe(null);
 
-        await requestList.markRequestHandled(req);
+        await requestList.markRequestHandled(req!);
 
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(true);
@@ -119,10 +125,10 @@ describe('RequestList', () => {
         const r5 = await originalList.fetchNextRequest(); // 5
         await originalList.fetchNextRequest(); // 6
 
-        await originalList.markRequestHandled(r1);
-        await originalList.markRequestHandled(r2);
-        await originalList.markRequestHandled(r4);
-        await originalList.reclaimRequest(r5);
+        await originalList.markRequestHandled(r1!);
+        await originalList.markRequestHandled(r2!);
+        await originalList.markRequestHandled(r4!);
+        await originalList.reclaimRequest(r5!);
 
         const newList = await RequestList.open({
             sources: sourcesCopy,
@@ -130,11 +136,11 @@ describe('RequestList', () => {
         });
 
         expect(await newList.isEmpty()).toBe(false);
-        expect((await newList.fetchNextRequest()).url).toBe('https://example.com/3');
-        expect((await newList.fetchNextRequest()).url).toBe('https://example.com/5');
-        expect((await newList.fetchNextRequest()).url).toBe('https://example.com/6');
-        expect((await newList.fetchNextRequest()).url).toBe('https://example.com/7');
-        expect((await newList.fetchNextRequest()).url).toBe('https://example.com/8');
+        expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/3');
+        expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/5');
+        expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/6');
+        expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/7');
+        expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/8');
         expect(await newList.isEmpty()).toBe(true);
     });
 
@@ -292,11 +298,11 @@ describe('RequestList', () => {
         const request4 = await requestList.fetchNextRequest();
         const request5 = await requestList.fetchNextRequest();
 
-        expect(request1.url).toBe('https://example.com/1');
-        expect(request2.url).toBe('https://example.com/2');
-        expect(request3.url).toBe('https://example.com/3');
-        expect(request4.url).toBe('https://example.com/4');
-        expect(request5.url).toBe('https://example.com/5');
+        expect(request1!.url).toBe('https://example.com/1');
+        expect(request2!.url).toBe('https://example.com/2');
+        expect(request3!.url).toBe('https://example.com/3');
+        expect(request4!.url).toBe('https://example.com/4');
+        expect(request5!.url).toBe('https://example.com/5');
         expect(requestList.getState()).toEqual({
             inProgress: [
                 'https://example.com/1',
@@ -318,10 +324,10 @@ describe('RequestList', () => {
         // Reclaim 3rd 4th
         //
 
-        await requestList.markRequestHandled(request1);
-        await requestList.markRequestHandled(request2);
-        await requestList.reclaimRequest(request3);
-        await requestList.reclaimRequest(request4);
+        await requestList.markRequestHandled(request1!);
+        await requestList.markRequestHandled(request2!);
+        await requestList.reclaimRequest(request3!);
+        await requestList.reclaimRequest(request4!);
 
         expect(requestList.getState()).toEqual({
             inProgress: ['https://example.com/3', 'https://example.com/4', 'https://example.com/5'],
@@ -336,7 +342,7 @@ describe('RequestList', () => {
         // Mark 5th handled
         //
 
-        await requestList.markRequestHandled(request5);
+        await requestList.markRequestHandled(request5!);
 
         expect(requestList.getState()).toEqual({
             inProgress: ['https://example.com/3', 'https://example.com/4'],
@@ -353,10 +359,10 @@ describe('RequestList', () => {
         //
 
         const reclaimed3 = await requestList.fetchNextRequest();
-        expect(reclaimed3.url).toBe('https://example.com/3');
+        expect(reclaimed3!.url).toBe('https://example.com/3');
         const reclaimed4 = await requestList.fetchNextRequest();
-        expect(reclaimed4.url).toBe('https://example.com/4');
-        await requestList.markRequestHandled(request4);
+        expect(reclaimed4!.url).toBe('https://example.com/4');
+        await requestList.markRequestHandled(request4!);
 
         expect(requestList.getState()).toEqual({
             inProgress: ['https://example.com/3'],
@@ -371,7 +377,7 @@ describe('RequestList', () => {
         // Mark 3rd handled
         //
 
-        await requestList.markRequestHandled(request3);
+        await requestList.markRequestHandled(request3!);
 
         expect(requestList.getState()).toEqual({
             inProgress: [],
@@ -388,7 +394,7 @@ describe('RequestList', () => {
 
         const request6 = await requestList.fetchNextRequest();
 
-        expect(request6.url).toBe('https://example.com/6');
+        expect(request6!.url).toBe('https://example.com/6');
         expect(await requestList.fetchNextRequest()).toBe(null);
         expect(requestList.getState()).toEqual({
             inProgress: ['https://example.com/6'],
@@ -403,7 +409,7 @@ describe('RequestList', () => {
         // Reclaim 6th
         //
 
-        await requestList.reclaimRequest(request6);
+        await requestList.reclaimRequest(request6!);
 
         expect(requestList.getState()).toEqual({
             inProgress: ['https://example.com/6'],
@@ -420,7 +426,7 @@ describe('RequestList', () => {
 
         const reclaimed6 = await requestList.fetchNextRequest();
 
-        expect(reclaimed6.url).toBe('https://example.com/6');
+        expect(reclaimed6!.url).toBe('https://example.com/6');
         expect(requestList.getState()).toEqual({
             inProgress: ['https://example.com/6'],
             nextIndex: 6,
@@ -434,7 +440,7 @@ describe('RequestList', () => {
         // Mark 6th handled
         //
 
-        await requestList.markRequestHandled(reclaimed6);
+        await requestList.markRequestHandled(reclaimed6!);
 
         expect(requestList.getState()).toEqual({
             inProgress: [],
@@ -479,7 +485,7 @@ describe('RequestList', () => {
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
         expect(requestList.isStatePersisted).toBe(false);
-        await requestList.markRequestHandled(request2);
+        await requestList.markRequestHandled(request2!);
         expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
         events.emit(EventType.PERSIST_STATE);
@@ -487,7 +493,7 @@ describe('RequestList', () => {
         expect(requestList.isStatePersisted).toBe(true);
 
         // Reclaim event doesn't change the state.
-        await requestList.reclaimRequest(request1);
+        await requestList.reclaimRequest(request1!);
         expect(requestList.isStatePersisted).toBe(true);
 
         // Now initiate new request list from saved state and check that it's same as state
@@ -541,7 +547,7 @@ describe('RequestList', () => {
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
         const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
         const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
-        let persistedRequests;
+        let persistedRequests: any;
 
         const opts = {
             sources: [
@@ -641,13 +647,13 @@ describe('RequestList', () => {
         const req3 = await requestList.fetchNextRequest();
         expect(requestList.handledCount()).toBe(0);
 
-        await requestList.markRequestHandled(req2);
+        await requestList.markRequestHandled(req2!);
         expect(requestList.handledCount()).toBe(1);
 
-        await requestList.markRequestHandled(req3);
+        await requestList.markRequestHandled(req3!);
         expect(requestList.handledCount()).toBe(2);
 
-        await requestList.reclaimRequest(req1);
+        await requestList.reclaimRequest(req1!);
         expect(requestList.handledCount()).toBe(2);
     });
 
@@ -768,7 +774,7 @@ describe('RequestList', () => {
             const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
-            const name: string = null;
+            const name: string | null = null;
             const sources = [{ url: 'https://example.com' }];
             const requests = sources.map(({ url }) => ({ url, uniqueKey: url }));
 

@@ -31,14 +31,14 @@ describe('dataset', () => {
 
             const pushItemSpy = vitest.spyOn(dataset.client, 'pushItems');
 
-            const mockPushItems = pushItemSpy.mockResolvedValueOnce(null);
+            const mockPushItems = pushItemSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData({ foo: 'bar' });
 
             expect(mockPushItems).toBeCalledTimes(1);
             expect(mockPushItems).toBeCalledWith(JSON.stringify({ foo: 'bar' }));
 
-            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(null);
+            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
@@ -62,8 +62,8 @@ describe('dataset', () => {
             });
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(null);
-            mockPushItems.mockResolvedValueOnce(null);
+            mockPushItems.mockResolvedValueOnce(undefined);
+            mockPushItems.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: half }, { bar: half }]);
 
@@ -86,8 +86,8 @@ describe('dataset', () => {
             });
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(null);
-            mockPushItems.mockResolvedValueOnce(null);
+            mockPushItems.mockResolvedValueOnce(undefined);
+            mockPushItems.mockResolvedValueOnce(undefined);
 
             await dataset.pushData(data);
 
@@ -296,6 +296,7 @@ describe('dataset', () => {
                     item.index = index;
                     item.bar = 'xxx';
 
+                    // @ts-expect-error FIXME the inference is broken for `reduce()` method
                     return memo.concat(item);
                 },
                 [],
@@ -322,6 +323,7 @@ describe('dataset', () => {
                     item.index = index;
                     item.bar = 'xxx';
 
+                    // @ts-expect-error FIXME the inference is broken for `reduce()` method
                     return Promise.resolve(memo.concat(item));
                 },
                 [],
@@ -367,8 +369,10 @@ describe('dataset', () => {
             const calledForIndexes: number[] = [];
 
             const result = await dataset.reduce(
+                // @ts-expect-error FIXME the inference is broken for `reduce()` method
                 async (memo, item, index) => {
                     calledForIndexes.push(index);
+                    // @ts-expect-error FIXME the inference is broken for `reduce()` method
                     return Promise.resolve(memo.foo > item.foo ? memo : item);
                 },
                 undefined,
@@ -387,6 +391,7 @@ describe('dataset', () => {
                 offset: 2,
             });
 
+            // @ts-expect-error FIXME the inference is broken for `reduce()` method
             expect(result.foo).toBe(5);
             expect(calledForIndexes).toEqual([1, 2, 3]);
         });

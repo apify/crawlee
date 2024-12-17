@@ -166,12 +166,12 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.persistState();
 
         const kvStore = await KeyValueStore.open();
-        // @ts-expect-error private symbol
         const sessionPoolSaved = await kvStore.getValue<ReturnType<SessionPool['getState']>>(
+            // @ts-expect-error private symbol
             sessionPool.persistStateKey,
         );
 
-        entries(sessionPoolSaved).forEach(([key, value]) => {
+        entries(sessionPoolSaved!).forEach(([key, value]) => {
             if (key !== 'sessions') {
                 expect(value).toEqual(sessionPool[key]);
             }
@@ -180,7 +180,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         expect(sessionPoolSaved.sessions.length).toEqual(sessionPool.sessions.length);
 
-        sessionPoolSaved.sessions.forEach((session, index) => {
+        sessionPoolSaved!.sessions.forEach((session, index) => {
             entries(session).forEach(([key, value]) => {
                 // @ts-expect-error private symbol
                 if (sessionPool.sessions[index][key] instanceof Date) {
