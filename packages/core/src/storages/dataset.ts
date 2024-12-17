@@ -140,7 +140,7 @@ export interface DatasetDataOptions {
     skipEmpty?: boolean;
 }
 
-export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {}
+export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> { }
 
 export interface DatasetIteratorOptions
     extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
@@ -562,7 +562,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param memo Initial state of the reduction.
      * @param [options] An object containing extra options for `reduce()`
      */
-    async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options: DatasetIteratorOptions): Promise<T>;
+    async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options?: DatasetIteratorOptions): Promise<T>;
 
     async reduce<T = Data>(
         iteratee: DatasetReducer<T, Data>,
