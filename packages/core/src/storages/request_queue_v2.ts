@@ -53,7 +53,8 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * @category Sources
  */
 export class RequestQueue extends RequestProvider {
-    private _listHeadAndLockPromise: Promise<void> | null = null;
+    private listHeadAndLockPromise: Promise<void> | null = null;
+    private queueHasLockedRequests: boolean | undefined = undefined;
 
     /**
      * Returns `true` if there are any requests in the queue that were enqueued to the forefront.
@@ -155,7 +156,64 @@ export class RequestQueue extends RequestProvider {
      * @inheritDoc
      */
     override async isFinished(): Promise<boolean> {
-        return false; // TODO
+        if (this.queueHeadIds.length() > 0) {
+            return false;
+        }
+
+        await this.ensureHeadIsNonEmpty();
+
+        if (this.queueHeadIds.length() > 0) {
+            return false;
+        }
+
+        if (this.queueHasLockedRequests !== undefined) {
+            return !this.queueHasLockedRequests;
+        }
+
+        // The following is a legacy algorithm for checking if the queue is finished
+
+        const currentHead = await this.client.listHead({ limit: 2 });
+
+        if (currentHead.items.length === 0) {
+            return true;
+        }
+
+        // Give users some more concrete info as to why their crawlers seem to be "hanging" doing nothing while we're waiting because the queue is technically
+        // not empty. We decided that a queue with elements in its head but that are also locked shouldn't return true in this function.
+        // If that ever changes, this function might need a rewrite
+        // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much. This is also a very specific path that most crawlers shouldn't hit
+        if (++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
+            const requests = await Promise.all(currentHead.items.map(async (item) => this.client.getRequest(item.id)));
+
+            this.log.info(
+                `Queue head still returned requests that need to be processed (or that are locked by other clients)`,
+                {
+                    requests: requests
+                        .map((r) => {
+                            if (!r) {
+                                return null;
+                            }
+
+                            return {
+                                id: r.id,
+                                lockExpiresAt: r.lockExpiresAt,
+                                lockedBy: r.lockByClient,
+                            };
+                        })
+                        .filter(Boolean),
+                    clientKey: this.clientKey,
+                },
+            );
+        } else {
+            this.log.debug(
+                'Queue head still returned requests that need to be processed (or that are locked by other clients)',
+                {
+                    requestIds: currentHead.items.map((item) => item.id),
+                },
+            );
+        }
+
+        return false;
     }
 
     /**
@@ -193,11 +251,11 @@ export class RequestQueue extends RequestProvider {
             return;
         }
 
-        this._listHeadAndLockPromise ??= this._listHeadAndLock().finally(() => {
-            this._listHeadAndLockPromise = null;
+        this.listHeadAndLockPromise ??= this._listHeadAndLock().finally(() => {
+            this.listHeadAndLockPromise = null;
         });
 
-        await this._listHeadAndLockPromise;
+        await this.listHeadAndLockPromise;
     }
 
     private async _listHeadAndLock(): Promise<void> {
@@ -207,6 +265,8 @@ export class RequestQueue extends RequestProvider {
             limit: Math.min(forefront ? this.assumedForefrontCount : 25, 25),
             lockSecs: this.requestLockSecs,
         });
+
+        this.queueHasLockedRequests = headData.queueHasLockedRequests;
 
         const headIdBuffer = [];
 
@@ -356,7 +416,8 @@ export class RequestQueue extends RequestProvider {
 
     protected override _reset() {
         super._reset();
-        this._listHeadAndLockPromise = null;
+        this.listHeadAndLockPromise = null;
+        this.queueHasLockedRequests = undefined;
     }
 
     protected override _maybeAddRequestToQueueHead() {
