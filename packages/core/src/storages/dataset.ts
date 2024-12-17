@@ -140,7 +140,7 @@ export interface DatasetDataOptions {
     skipEmpty?: boolean;
 }
 
-export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> { }
+export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {}
 
 export interface DatasetIteratorOptions
     extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
@@ -507,7 +507,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
     /**
      * Reduces a list of values down to a single value.
-     * 
+     *
      * The first element of the dataset is the initial value, with each successive reductions should
      * be returned by `iteratee()`. The `iteratee()` is passed three arguments: the `memo`, `value`
      * and `index` of the current element being folded into the reduction.
@@ -515,9 +515,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * The `iteratee` is first invoked on the second element of the list (`index = 1`), with the
      * first element given as the memo parameter. After that, the rest of the elements in the
      * dataset is passed to `iteratee`, with the result of the previous invocation as the memo.
-     * 
-     * If `iteratee()` returns a `Promise` it's awaited before a next call. 
-     * 
+     *
+     * If `iteratee()` returns a `Promise` it's awaited before a next call.
+     *
      * If the dataset is empty, reduce will return undefined.
      *
      * @param iteratee
@@ -526,7 +526,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
     /**
      * Reduces a list of values down to a single value.
-     * 
+     *
      * The first element of the dataset is the initial value, with each successive reductions should
      * be returned by `iteratee()`. The `iteratee()` is passed three arguments: the `memo`, `value`
      * and `index` of the current element being folded into the reduction.
@@ -534,9 +534,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * The `iteratee` is first invoked on the second element of the list (`index = 1`), with the
      * first element given as the memo parameter. After that, the rest of the elements in the
      * dataset is passed to `iteratee`, with the result of the previous invocation as the memo.
-     * 
-     * If `iteratee()` returns a `Promise` it's awaited before a next call. 
-     * 
+     *
+     * If `iteratee()` returns a `Promise` it's awaited before a next call.
+     *
      * If the dataset is empty, reduce will return undefined.
      *
      * @param iteratee
@@ -562,11 +562,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param memo Initial state of the reduction.
      * @param [options] An object containing extra options for `reduce()`
      */
-    async reduce<T>(
-        iteratee: DatasetReducer<T, Data>,
-        memo: T,
-        options: DatasetIteratorOptions,
-    ): Promise<T>;
+    async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options: DatasetIteratorOptions): Promise<T>;
 
     async reduce<T = Data>(
         iteratee: DatasetReducer<T, Data>,
