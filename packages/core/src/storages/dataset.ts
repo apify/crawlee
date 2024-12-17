@@ -522,20 +522,23 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] All `reduce()` parameters.
      */
     async reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
+
     async reduce(
         iteratee: DatasetReducer<Data, Data>,
         memo: undefined,
-        options: DatasetIteratorOptions
+        options: DatasetIteratorOptions,
     ): Promise<Data | undefined>;
+
     async reduce<T>(
         iteratee: DatasetReducer<T, Data>,
         memo: T,
-        options: DatasetIteratorOptions
+        options: DatasetIteratorOptions,
     ): Promise<T>;
+
     async reduce<T = Data>(
         iteratee: DatasetReducer<T, Data>,
         memo?: T,
-        options: DatasetIteratorOptions = {}
+        options: DatasetIteratorOptions = {},
     ): Promise<T | undefined> {
         checkStorageAccess();
 
