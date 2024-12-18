@@ -156,6 +156,10 @@ export class RequestQueue extends RequestProvider {
      * @inheritDoc
      */
     override async isFinished(): Promise<boolean> {
+        if (this.inProgressRequestBatches.length > 0) {
+            return false;
+        }
+
         if (this.queueHeadIds.length() > 0) {
             return false;
         }
