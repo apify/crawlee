@@ -772,7 +772,7 @@ __metadata:
     playwright: "npm:1.49.1"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
-    puppeteer: "npm:23.10.4"
+    puppeteer: "npm:23.11.0"
     rimraf: "npm:^6.0.0"
     tsx: "npm:^4.4.0"
     turbo: "npm:^2.1.0"
@@ -3958,16 +3958,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chromium-bidi@npm:0.8.0":
-  version: 0.8.0
-  resolution: "chromium-bidi@npm:0.8.0"
+"chromium-bidi@npm:0.11.0":
+  version: 0.11.0
+  resolution: "chromium-bidi@npm:0.11.0"
   dependencies:
     mitt: "npm:3.0.1"
-    urlpattern-polyfill: "npm:10.0.0"
     zod: "npm:3.23.8"
   peerDependencies:
     devtools-protocol: "*"
-  checksum: 10c0/d69bcf6eebe8026aae19ef383a7ba35e84bed38be00c5f4cd9700542653e628c528b21b68da10c4de76fc46ee18d186765843b0eb428428eb7e360ff3a6641c8
+  checksum: 10c0/7155b1b78bc07371cc750f5a431fb7120fb96e412d24895e5107efe21056a2406f4d051c26be89d2a7355258d6322d203e6d1c4e82f4b30f9b02923de50ba6c9
   languageName: node
   linkType: hard
 
@@ -10581,33 +10580,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:23.10.4":
-  version: 23.10.4
-  resolution: "puppeteer-core@npm:23.10.4"
+"puppeteer-core@npm:23.11.0":
+  version: 23.11.0
+  resolution: "puppeteer-core@npm:23.11.0"
   dependencies:
     "@puppeteer/browsers": "npm:2.6.1"
-    chromium-bidi: "npm:0.8.0"
+    chromium-bidi: "npm:0.11.0"
     debug: "npm:^4.4.0"
     devtools-protocol: "npm:0.0.1367902"
     typed-query-selector: "npm:^2.12.0"
     ws: "npm:^8.18.0"
-  checksum: 10c0/eb94b0760e9d7aadde11f0fb66c21202698773df6063bef2295271b409d3cf7650c5d4652cc7b39b95c309740edd34a8828fe520eba69272f43f3b011212ea7d
+  checksum: 10c0/d7b2195f3d2ebd9610bf27c4f56e1f9c74781f0d6443217bd3e6bcb94d98901312e7eaeffcabe2c569e1dc40e558845df058349e9293e16feb05b10d2ac76847
   languageName: node
   linkType: hard
 
-"puppeteer@npm:23.10.4":
-  version: 23.10.4
-  resolution: "puppeteer@npm:23.10.4"
+"puppeteer@npm:23.11.0":
+  version: 23.11.0
+  resolution: "puppeteer@npm:23.11.0"
   dependencies:
     "@puppeteer/browsers": "npm:2.6.1"
-    chromium-bidi: "npm:0.8.0"
+    chromium-bidi: "npm:0.11.0"
     cosmiconfig: "npm:^9.0.0"
     devtools-protocol: "npm:0.0.1367902"
-    puppeteer-core: "npm:23.10.4"
+    puppeteer-core: "npm:23.11.0"
     typed-query-selector: "npm:^2.12.0"
   bin:
     puppeteer: lib/cjs/puppeteer/node/cli.js
-  checksum: 10c0/7c4fb6495d32cb0f5e43c6b105dbfa245a6bc4a029cde3d22a79e3e9d6b4984f1e8ad01075eeecfb1f5df2edf81020b0429a5c77f1120ad069072145b2d1fa7a
+  checksum: 10c0/449e0d7c042f86e5e48814b3122fac0000eda837086bb138622cb1add84dd7573e4a296e548839c6c3e05b970e77734a6ac8a59635ec3d5a86873036cf465535
   languageName: node
   linkType: hard
 
@@ -12692,13 +12691,6 @@ __metadata:
   dependencies:
     punycode: "npm:^2.1.0"
   checksum: 10c0/4ef57b45aa820d7ac6496e9208559986c665e49447cb072744c13b66925a362d96dd5a46c4530a6b8e203e5db5fe849369444440cb22ecfc26c679359e5dfa3c
-  languageName: node
-  linkType: hard
-
-"urlpattern-polyfill@npm:10.0.0":
-  version: 10.0.0
-  resolution: "urlpattern-polyfill@npm:10.0.0"
-  checksum: 10c0/43593f2a89bd54f2d5b5105ef4896ac5c5db66aef723759fbd15cd5eb1ea6cdae9d112e257eda9bbc3fb0cd90be6ac6e9689abe4ca69caa33114f42a27363531
   languageName: node
   linkType: hard
 
