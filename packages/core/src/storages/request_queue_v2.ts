@@ -267,10 +267,10 @@ export class RequestQueue extends RequestProvider {
     }
 
     private async _listHeadAndLock(): Promise<void> {
-        const forefront = await this.hasPendingForefrontRequests();
+        const hasPendingForefrontRequests = await this.hasPendingForefrontRequests();
 
         const headData = await this.client.listAndLockHead({
-            limit: Math.min(forefront ? this.assumedForefrontCount : 25, 25),
+            limit: Math.min(hasPendingForefrontRequests ? this.assumedForefrontCount : 25, 25),
             lockSecs: this.requestLockSecs,
         });
 
@@ -278,29 +278,35 @@ export class RequestQueue extends RequestProvider {
 
         const headIdBuffer = [];
 
+        const giveUpLock = async (id?: string, uniqueKey?: string) => {
+            if (id === undefined) {
+                return;
+            }
+
+            try {
+                await this.client.deleteRequestLock(id);
+            } catch {
+                this.log.debug('Failed to delete request lock', { id, uniqueKey });
+            }
+        };
+
+        // If we tried to read new forefront requests, but another client appeared in the meantime, we can't be sure we'll only read our requests.
+        // To retain the correct queue ordering, we rollback this head read.
+        if (hasPendingForefrontRequests && headData.hadMultipleClients) {
+            this.log.debug(`Skipping this read - forefront requests may not be fully consistent`);
+            await Promise.all(headData.items.map(({ id, uniqueKey }) => giveUpLock(id, uniqueKey)));
+        }
+
         for (const { id, uniqueKey } of headData.items) {
-            // Queue head index might be behind the main table, so ensure we don't recycle requests
-            if (
-                !id ||
-                !uniqueKey ||
-                // If we tried to read new forefront requests, but another client appeared in the meantime, we can't be sure we'll only read our requests.
-                // To retain the correct queue ordering, we rollback this head read.
-                (forefront && headData.hadMultipleClients)
-            ) {
-                this.log.debug(`Skipping request from queue head as it's potentially invalid`, {
+            if (!id || !uniqueKey) {
+                this.log.warning(`Skipping request from queue head as it's evidently invalid`, {
                     id,
                     uniqueKey,
-                    inconsistentForefrontRead: forefront && headData.hadMultipleClients,
                 });
 
                 // Remove the lock from the request for now, so that it can be picked up later
                 // This may/may not succeed, but that's fine
-                try {
-                    await this.client.deleteRequestLock(id);
-                } catch {
-                    // Ignore
-                }
-
+                await giveUpLock(id, uniqueKey);
                 continue;
             }
 
@@ -314,8 +320,8 @@ export class RequestQueue extends RequestProvider {
             });
         }
 
-        for (const id of forefront ? headIdBuffer.reverse() : headIdBuffer) {
-            this.queueHeadIds.add(id, id, forefront);
+        for (const id of hasPendingForefrontRequests ? headIdBuffer.reverse() : headIdBuffer) {
+            this.queueHeadIds.add(id, id, hasPendingForefrontRequests);
         }
     }
 
