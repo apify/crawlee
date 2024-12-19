@@ -1,6 +1,6 @@
 import { Readable } from 'stream';
 
-import { CheerioCrawler } from '@crawlee/cheerio';
+import { CheerioCrawler, Dictionary } from '@crawlee/cheerio';
 import {
     BaseHttpClient,
     BaseHttpResponseData,
@@ -173,7 +173,7 @@ const crawler = new CheerioCrawler({
             responseType: 'json',
         });
 
-        const { body: ua } = await context.sendRequest({
+        const { body: ua } = await context.sendRequest<Dictionary>({
             url: 'https://httpbin.org/user-agent',
             responseType: 'json',
         });

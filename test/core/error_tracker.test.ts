@@ -371,7 +371,7 @@ test('can shorten the message to the first line', () => {
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {
             // source
-            [e.code]: {
+            [e.code!]: {
                 // code
                 [e.name]: {
                     // name
@@ -404,7 +404,7 @@ test('supports error.cause', () => {
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {
             // source
-            [e.code]: {
+            [e.code!]: {
                 // code
                 [e.name]: {
                     // name

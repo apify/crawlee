@@ -32,10 +32,12 @@ const checkHtmlToText = (html: string | CheerioRoot, expectedText: string, hasBo
 
 describe('htmlToText()', () => {
     test('handles invalid args', () => {
+        // @ts-expect-error invalid input type
         checkHtmlToText(null, '');
         checkHtmlToText('', '');
-        // @ts-expect-error
+        // @ts-expect-error invalid input type
         checkHtmlToText(0, '');
+        // @ts-expect-error invalid input type
         checkHtmlToText(undefined, '');
     });
 

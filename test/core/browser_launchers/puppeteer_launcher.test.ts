@@ -17,7 +17,7 @@ import type { Browser, Page } from 'puppeteer';
 
 import { runExampleComServer } from '../../shared/_helper';
 
-let prevEnvHeadless: string;
+let prevEnvHeadless: string | undefined;
 let proxyServer: Server;
 let proxyPort: number;
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };

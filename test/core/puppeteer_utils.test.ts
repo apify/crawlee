@@ -209,7 +209,7 @@ describe('puppeteerUtils', () => {
         });
 
         describe('blockRequests()', () => {
-            let browser: Browser = null;
+            let browser: Browser = null as any;
             beforeAll(async () => {
                 browser = await launchPuppeteer(launchContext);
             });
@@ -325,6 +325,7 @@ describe('puppeteerUtils', () => {
             await testRuleType(0);
             // @ts-expect-error
             await testRuleType(1);
+            // @ts-expect-error
             await testRuleType(null);
             // @ts-expect-error
             await testRuleType([]);
@@ -377,7 +378,7 @@ describe('puppeteerUtils', () => {
 
                 const response = await puppeteerUtils.gotoExtended(page, request, { waitUntil: 'networkidle' });
 
-                const { method, headers, bodyLength } = JSON.parse(await response.text());
+                const { method, headers, bodyLength } = JSON.parse(await response!.text());
                 expect(method).toBe('POST');
                 expect(bodyLength).toBe(16);
                 expect(headers['content-type']).toBe('application/json; charset=utf-8');

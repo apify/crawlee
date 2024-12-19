@@ -5,7 +5,7 @@ import { isDocker, weightedAvg, sleep, snakeCaseToCamelCase } from '@crawlee/uti
 
 describe('isDocker()', () => {
     test('works for dockerenv && cgroup', async () => {
-        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => Promise.resolve(null));
+        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => null as any);
         const readMock = vitest
             .spyOn(asyncFs, 'readFile')
             .mockImplementationOnce(async () => Promise.resolve('something ... docker ... something'));
@@ -16,7 +16,7 @@ describe('isDocker()', () => {
     });
 
     test('works for dockerenv', async () => {
-        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => Promise.resolve(null));
+        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => null as any);
         const readMock = vitest
             .spyOn(asyncFs, 'readFile')
             .mockImplementationOnce(async () => Promise.resolve('something ... ... something'));
@@ -70,6 +70,7 @@ describe('sleep()', () => {
         await Promise.resolve();
         await sleep(0);
         await sleep();
+        // @ts-expect-error invalid input type
         await sleep(null);
         await sleep(-1);
 

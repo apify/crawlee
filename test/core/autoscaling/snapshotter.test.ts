@@ -22,8 +22,8 @@ describe('Snapshotter', () => {
         // mock client data
         const apifyClient = Configuration.getStorageClient();
         const oldStats = apifyClient.stats;
-        apifyClient.stats = {} as never;
-        apifyClient.stats.rateLimitErrors = [0, 0, 0];
+        apifyClient.stats = {} as any;
+        apifyClient.stats!.rateLimitErrors = [0, 0, 0];
 
         const config = new Configuration({ systemInfoIntervalMillis: 100 });
         const snapshotter = new Snapshotter({ config });
@@ -32,7 +32,7 @@ describe('Snapshotter', () => {
         await snapshotter.start();
 
         await sleep(625);
-        apifyClient.stats.rateLimitErrors = [0, 0, 2];
+        apifyClient.stats!.rateLimitErrors = [0, 0, 2];
         await sleep(625);
 
         await snapshotter.stop();
@@ -277,19 +277,19 @@ describe('Snapshotter', () => {
         // mock client data
         const apifyClient = Configuration.getStorageClient();
         const oldStats = apifyClient.stats;
-        apifyClient.stats = {} as never;
-        apifyClient.stats.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        apifyClient.stats = {} as any;
+        apifyClient.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
         const snapshotter = new Snapshotter({ maxClientErrors: 1 });
         // @ts-expect-error Calling protected method
         snapshotter._snapshotClient(noop);
-        apifyClient.stats.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
+        apifyClient.stats!.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
         // @ts-expect-error Calling protected method
         snapshotter._snapshotClient(noop);
-        apifyClient.stats.rateLimitErrors = [10, 5, 2, 0, 0, 0, 0, 0, 0, 0];
+        apifyClient.stats!.rateLimitErrors = [10, 5, 2, 0, 0, 0, 0, 0, 0, 0];
         // @ts-expect-error Calling protected method
         snapshotter._snapshotClient(noop);
-        apifyClient.stats.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
+        apifyClient.stats!.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
         // @ts-expect-error Calling protected method
         snapshotter._snapshotClient(noop);
 

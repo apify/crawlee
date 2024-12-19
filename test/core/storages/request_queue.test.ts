@@ -11,6 +11,8 @@ import {
     ProxyConfiguration,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
+import type { gotScraping } from '@crawlee/utils';
+import type { MockedFunction } from 'vitest';
 
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
@@ -20,9 +22,13 @@ vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
     };
 });
 
-const { gotScraping } = await import('@crawlee/utils/src/internals/gotScraping');
+let gotScrapingSpy: MockedFunction<typeof gotScraping>;
 
-const gotScrapingSpy = vitest.mocked(gotScraping);
+beforeAll(async () => {
+    // @ts-ignore for some reason, this fails when the project is not built :/
+    const { gotScraping } = await import('@crawlee/utils');
+    gotScrapingSpy = vitest.mocked(gotScraping);
+});
 
 describe('RequestQueue remote', () => {
     const storageClient = Configuration.getStorageClient();
@@ -97,8 +103,8 @@ describe('RequestQueue remote', () => {
                 ),
             );
 
-        // getRequest() returns null if object was not found.
-        mockGetRequest.mockResolvedValueOnce(null);
+        // getRequest() returns undefined if object was not found.
+        mockGetRequest.mockResolvedValueOnce(undefined);
 
         const requestXFromQueue = await queue.getRequest('non-existent');
         expect(mockGetRequest).toBeCalledTimes(2);
@@ -116,7 +122,7 @@ describe('RequestQueue remote', () => {
             request: requestBFromQueue,
         });
 
-        await queue.reclaimRequest(requestBFromQueue, { forefront: true });
+        await queue.reclaimRequest(requestBFromQueue!, { forefront: true });
         expect(mockUpdateRequest).toBeCalledTimes(1);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue, { forefront: true });
 
@@ -148,7 +154,7 @@ describe('RequestQueue remote', () => {
             request: requestBFromQueue,
         });
 
-        await queue.markRequestHandled(requestBFromQueue);
+        await queue.markRequestHandled(requestBFromQueue!);
         expect(mockUpdateRequest).toBeCalledTimes(2);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue);
 
@@ -637,7 +643,7 @@ describe('RequestQueue remote', () => {
             { url: 'http://example.com/6' },
         ]);
 
-        retrievedUrls.push((await queue.fetchNextRequest()).url);
+        retrievedUrls.push((await queue.fetchNextRequest())!.url);
 
         await queue.addRequest({ url: 'http://example.com/4' }, { forefront: true });
         await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
@@ -646,12 +652,12 @@ describe('RequestQueue remote', () => {
 
         let req = await queue.fetchNextRequest();
 
-        expect(req.url).toBe('http://example.com/2');
+        expect(req!.url).toBe('http://example.com/2');
 
-        await queue.reclaimRequest(req, { forefront: true });
+        await queue.reclaimRequest(req!, { forefront: true });
 
         while (req) {
-            retrievedUrls.push(req.url);
+            retrievedUrls.push(req!.url);
             req = await queue.fetchNextRequest();
         }
 
@@ -711,17 +717,17 @@ describe('RequestQueue remote', () => {
             method,
         });
         const desc1 = Object.getOwnPropertyDescriptor(r1.userData, '__crawlee');
-        expect(desc1.enumerable).toBe(false);
+        expect(desc1!.enumerable).toBe(false);
         expect(r1.skipNavigation).toBe(true);
         expect(r1.maxRetries).toBe(10);
         r1.maxRetries = 5;
         expect(r1.userData.__crawlee).toMatchObject({ skipNavigation: true, maxRetries: 5, foo: 123, bar: true });
         const desc2 = Object.getOwnPropertyDescriptor(r2.userData, '__crawlee');
-        expect(desc2.enumerable).toBe(false);
+        expect(desc2!.enumerable).toBe(false);
         expect(r2.maxRetries).toBeUndefined();
         expect(r2.userData.__crawlee).toEqual({});
         const desc3 = Object.getOwnPropertyDescriptor(r3.userData, '__crawlee');
-        expect(desc3.enumerable).toBe(false);
+        expect(desc3!.enumerable).toBe(false);
         expect(r3.maxRetries).toBeUndefined();
         expect(r3.userData.__crawlee).toEqual({});
         r3.maxRetries = 2;
@@ -951,7 +957,7 @@ describe('RequestQueue v2', () => {
             ...Array.from({ length: 25 }, (_, i) => ({ url: `http://example.com/${i + 4}` })),
         ]);
 
-        retrievedUrls.push((await queue.fetchNextRequest()).url);
+        retrievedUrls.push((await queue.fetchNextRequest())!.url);
 
         await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
         await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
@@ -959,7 +965,7 @@ describe('RequestQueue v2', () => {
         let req = await queue.fetchNextRequest();
 
         while (req) {
-            retrievedUrls.push(req.url);
+            retrievedUrls.push(req!.url);
             req = await queue.fetchNextRequest();
         }
 
@@ -980,21 +986,21 @@ describe('RequestQueue v2', () => {
             { url: 'http://example.com/5' },
         ]);
 
-        retrievedUrls.push((await queue.fetchNextRequest()).url);
+        retrievedUrls.push((await queue.fetchNextRequest())!.url);
 
         await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
         await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
 
         let req = await queue.fetchNextRequest();
 
-        expect(req.url).toBe('http://example.com/2');
+        expect(req!.url).toBe('http://example.com/2');
 
-        await queue.reclaimRequest(req, { forefront: true });
+        await queue.reclaimRequest(req!, { forefront: true });
 
         req = await queue.fetchNextRequest();
 
         while (req) {
-            retrievedUrls.push(req.url);
+            retrievedUrls.push(req!.url);
             req = await queue.fetchNextRequest();
         }
 

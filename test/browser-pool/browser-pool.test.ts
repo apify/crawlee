@@ -637,11 +637,11 @@ describe.each([
                         ...commonOptions,
                         useFingerprints: true,
                     });
-                    const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
+                    const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
                     const mock = vitest.fn((options) => {
                         return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
                     });
-                    browserPoolConfig.fingerprintGenerator.getFingerprint = mock;
+                    browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
 
                     const page: Page = await browserPoolConfig.newPage();
                     await page.close();
@@ -674,11 +674,11 @@ describe.each([
                             },
                         },
                     });
-                    const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
+                    const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
                     const mock = vitest.fn((options) => {
                         return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
                     });
-                    browserPoolConfig.fingerprintGenerator.getFingerprint = mock;
+                    browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
                     const page: Page = await browserPoolConfig.newPageInNewBrowser();
                     await page.close();
                     const [options] = mock.mock.calls[0];

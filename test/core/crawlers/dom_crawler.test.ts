@@ -16,8 +16,8 @@ let url: string;
 beforeAll(async () => {
     server = http.createServer((request, response) => {
         try {
-            const requestUrl = new URL(request.url, 'http://localhost');
-            router.get(requestUrl.pathname)(request, response);
+            const requestUrl = new URL(request.url!, 'http://localhost');
+            router.get(requestUrl.pathname)!(request, response);
         } catch (error) {
             response.destroy();
         }
@@ -51,7 +51,7 @@ test('works', async () => {
     const crawler = new JSDOMCrawler({
         maxRequestRetries: 0,
         requestHandler: ({ window }) => {
-            results.push(window.document.title, window.document.querySelector('p').textContent);
+            results.push(window.document.title, window.document.querySelector('p')!.textContent!);
         },
     });
 

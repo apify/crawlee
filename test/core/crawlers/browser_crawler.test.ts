@@ -33,7 +33,7 @@ describe('BrowserCrawler', () => {
     let server: Server;
 
     beforeAll(async () => {
-        prevEnvHeadless = process.env.CRAWLEE_HEADLESS;
+        prevEnvHeadless = process.env.CRAWLEE_HEADLESS!;
         process.env.CRAWLEE_HEADLESS = '1';
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
@@ -48,7 +48,7 @@ describe('BrowserCrawler', () => {
     });
 
     afterEach(async () => {
-        puppeteerPlugin = null;
+        puppeteerPlugin = null as any;
     });
 
     afterAll(async () => {
@@ -74,7 +74,7 @@ describe('BrowserCrawler', () => {
         const requestHandler: PuppeteerRequestHandler = async ({ page, request, response }) => {
             await page.waitForSelector('title');
 
-            expect(response.status()).toBe(200);
+            expect(response!.status()).toBe(200);
             request.userData.title = await page.title();
             processed.push(request);
         };
@@ -94,7 +94,7 @@ describe('BrowserCrawler', () => {
 
         await browserCrawler.run();
 
-        expect(browserCrawler.autoscaledPool.minConcurrency).toBe(1);
+        expect(browserCrawler.autoscaledPool!.minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 
@@ -128,13 +128,13 @@ describe('BrowserCrawler', () => {
             sources: [{ url: 'http://example.com/?q=1' }],
         });
         class TimeoutError extends Error {}
-        let sessionGoto: Session;
+        let sessionGoto!: Session;
         const browserCrawler = new (class extends BrowserCrawlerTest {
             protected override async _navigationHandler(
                 ctx: PuppeteerCrawlingContext,
             ): Promise<HTTPResponse | null | undefined> {
-                vitest.spyOn(ctx.session, 'markBad');
-                sessionGoto = ctx.session;
+                vitest.spyOn(ctx.session!, 'markBad');
+                sessionGoto = ctx.session!;
                 throw new TimeoutError();
             }
         })({
@@ -308,14 +308,14 @@ describe('BrowserCrawler', () => {
             maxRequestRetries: 0,
             preNavigationHooks: [
                 async (_crawlingContext, gotoOptions) => {
-                    gotoOptions.timeout = 60000;
+                    gotoOptions!.timeout = 60000;
                 },
             ],
         });
 
         await browserCrawler.run();
 
-        expect(optionsGoto.timeout).toEqual(60000);
+        expect(optionsGoto!.timeout).toEqual(60000);
     });
 
     test('should ignore errors in Page.close()', async () => {
@@ -440,7 +440,7 @@ describe('BrowserCrawler', () => {
             useSessionPool: true,
             persistCookiesPerSession: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session.getCookieString(request.url));
+                loadedCookies.push(session!.getCookieString(request.url));
                 return Promise.resolve();
             },
             preNavigationHooks: [
@@ -645,7 +645,7 @@ describe('BrowserCrawler', () => {
                     resolve();
                     called = true;
                 });
-                ctx.session.retire();
+                ctx.session!.retire();
                 return ctx.page.goto(ctx.request.url);
             }
         })({
@@ -691,7 +691,7 @@ describe('BrowserCrawler', () => {
     });
 
     describe('proxy', () => {
-        let requestList: RequestList;
+        let requestList: RequestList | undefined;
         beforeEach(async () => {
             requestList = await RequestList.open({
                 sources: [
@@ -704,7 +704,7 @@ describe('BrowserCrawler', () => {
         });
 
         afterEach(() => {
-            requestList = null;
+            requestList = undefined;
         });
 
         // TODO move to actor sdk tests before splitting the repos
@@ -812,13 +812,13 @@ describe('BrowserCrawler', () => {
             });
 
             browserCrawler.browserPool.postLaunchHooks.push((_pageId, browserController) => {
-                browserProxies.push(browserController.launchContext.proxyUrl);
+                browserProxies.push(browserController.launchContext.proxyUrl!);
             });
 
             await browserCrawler.run();
 
             // @ts-expect-error Accessing private property
-            const proxiesToUse = proxyConfiguration.proxyUrls;
+            const proxiesToUse = proxyConfiguration.proxyUrls!;
             for (const proxyUrl of proxiesToUse) {
                 expect(browserProxies.includes(new URL(proxyUrl).href.slice(0, -1))).toBeTruthy();
             }
@@ -838,9 +838,9 @@ describe('BrowserCrawler', () => {
                     ctx: PuppeteerCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const { session } = ctx;
-                    const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+                    const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
 
-                    if (proxyInfo.url !== goodProxyUrl) {
+                    if (proxyInfo!.url !== goodProxyUrl) {
                         throw new Error('ERR_PROXY_CONNECTION_FAILED');
                     }
 
@@ -859,7 +859,7 @@ describe('BrowserCrawler', () => {
             });
 
             await expect(browserCrawler.run()).resolves.not.toThrow();
-            expect(requestHandler).toHaveBeenCalledTimes(requestList.length());
+            expect(requestHandler).toHaveBeenCalledTimes(requestList!.length());
         });
 
         test('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
@@ -871,17 +871,17 @@ describe('BrowserCrawler', () => {
             /**
              * The first increment is the base case when the proxy is retrieved for the first time.
              */
-            let numberOfRotations = -requestList.length();
+            let numberOfRotations = -requestList!.length();
             const browserCrawler = new (class extends BrowserCrawlerTest {
                 protected override async _navigationHandler(
                     ctx: PuppeteerCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const { session } = ctx;
-                    const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+                    const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
 
                     numberOfRotations++;
 
-                    if (proxyInfo.url.includes('localhost')) {
+                    if (proxyInfo!.url.includes('localhost')) {
                         throw new Error('ERR_PROXY_CONNECTION_FAILED');
                     }
 
@@ -900,8 +900,8 @@ describe('BrowserCrawler', () => {
             });
 
             await browserCrawler.run();
-            expect(failedRequestHandler).toBeCalledTimes(requestList.length());
-            expect(numberOfRotations).toBe(requestList.length() * 5);
+            expect(failedRequestHandler).toBeCalledTimes(requestList!.length());
+            expect(numberOfRotations).toBe(requestList!.length() * 5);
         });
 
         test('proxy rotation logs the original proxy error', async () => {
@@ -915,9 +915,9 @@ describe('BrowserCrawler', () => {
                     ctx: PuppeteerCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const { session } = ctx;
-                    const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+                    const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
 
-                    if (proxyInfo.url.includes('localhost')) {
+                    if (proxyInfo!.url.includes('localhost')) {
                         throw new Error(proxyError);
                     }
 

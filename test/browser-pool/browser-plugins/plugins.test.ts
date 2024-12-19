@@ -219,7 +219,7 @@ describe('Plugins', () => {
             const page = await browser.newPage();
             const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
 
-            const text = await response.text();
+            const text = await response!.text();
 
             expect(text).toBe('127.0.0.2');
 
@@ -247,7 +247,7 @@ describe('Plugins', () => {
             const page = await browser.newPage();
             const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
 
-            const text = await response.text();
+            const text = await response!.text();
 
             expect(text).toBe('127.0.0.3');
 

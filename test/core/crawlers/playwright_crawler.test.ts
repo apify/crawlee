@@ -14,7 +14,7 @@ import { startExpressAppPromise } from '../../shared/_helper';
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 
 describe('PlaywrightCrawler', () => {
-    let prevEnvHeadless: string;
+    let prevEnvHeadless: string | undefined;
     let logLevel: number;
     const localStorageEmulator = new MemoryStorageEmulator();
     let requestList: RequestList;
@@ -82,10 +82,10 @@ describe('PlaywrightCrawler', () => {
                 useState,
             }: Parameters<PlaywrightRequestHandler>[0]) => {
                 const state = await useState([]);
-                expect(response.status()).toBe(200);
+                expect(response!.status()).toBe(200);
                 request.userData.title = await page.title();
                 processed.push(request);
-                expect(response.request().headers()['user-agent']).not.toMatch(/headless/i);
+                expect(response!.request().headers()['user-agent']).not.toMatch(/headless/i);
 
                 // firefox now also returns `webdriver: true` since playwright 1.45, we are masking this via fingerprints,
                 // but this test has them disabled, so we can check the default handling (= there is non-default UA even without them)
@@ -110,7 +110,7 @@ describe('PlaywrightCrawler', () => {
 
             await playwrightCrawler.run();
 
-            expect(playwrightCrawler.autoscaledPool.minConcurrency).toBe(1);
+            expect(playwrightCrawler.autoscaledPool!.minConcurrency).toBe(1);
             expect(processed).toHaveLength(6);
             expect(failed).toHaveLength(0);
 
@@ -138,7 +138,7 @@ describe('PlaywrightCrawler', () => {
         });
 
         await playwrightCrawler.run();
-        expect(options.timeout).toEqual(timeoutSecs * 1000);
+        expect(options!.timeout).toEqual(timeoutSecs * 1000);
     });
 
     test('shallow clones browserPoolOptions before normalization', () => {
