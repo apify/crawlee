@@ -421,9 +421,9 @@ export abstract class RequestProvider implements IStorage {
         });
 
         this.inProgressRequestBatches.push(promise);
-        promise.finally(
-            () => (this.inProgressRequestBatches = this.inProgressRequestBatches.filter((it) => it !== promise)),
-        );
+        void promise.finally(() => {
+            this.inProgressRequestBatches = this.inProgressRequestBatches.filter((it) => it !== promise);
+        });
 
         // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
         if (options.waitForAllRequestsToBeAdded) {

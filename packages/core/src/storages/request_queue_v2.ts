@@ -294,7 +294,7 @@ export class RequestQueue extends RequestProvider {
         // To retain the correct queue ordering, we rollback this head read.
         if (hasPendingForefrontRequests && headData.hadMultipleClients) {
             this.log.debug(`Skipping this read - forefront requests may not be fully consistent`);
-            await Promise.all(headData.items.map(({ id, uniqueKey }) => giveUpLock(id, uniqueKey)));
+            await Promise.all(headData.items.map(async ({ id, uniqueKey }) => giveUpLock(id, uniqueKey)));
         }
 
         for (const { id, uniqueKey } of headData.items) {
