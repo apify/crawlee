@@ -112,6 +112,10 @@ export class RequestQueue extends RequestProvider {
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
 
+        if (this.queuePausedForMigration) {
+            return null;
+        }
+
         this.lastActivity = new Date();
 
         await this.ensureHeadIsNonEmpty();
