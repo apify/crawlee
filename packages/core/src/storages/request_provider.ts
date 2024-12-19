@@ -567,6 +567,30 @@ export abstract class RequestProvider implements IStorage {
      * the function might occasionally return a false negative,
      * but it will never return a false positive.
      */
+    /**
+     * TODO Kuba:
+     * I would move this to request_queue_v2.ts file as it is related to the new API.
+     * Let's clean it up. We would probably need some new API endpoints to make this work.
+     * But for now, we can use the listHead and getRequest as hacky solution.
+     * Because the listHead list all requests that are not handled, event the locked ones. And we can use getRequest to check if the request is locked.
+     *
+     * There are basically two paths here:
+     * 1. There are no other clients touching the queue(hadMultipleClient === false), so we can trust the to queueHeadIds cache.
+     * - If the queueHeadIds is not empty -> happy path we have some requests to process. -> false
+     * - If the queueHeadIds is empty
+     *     -> we need to ensure that the queue is really empty(ensureHeadIsNonEmpty).
+     *        -> Check again if the queueHeadIds is not empty -> false
+     *
+     * 2. There are other clients touching the queue(hadMultipleClient === true), so we need to count that other client can change the head.
+     * - If the queueHeadIds is not empty -> happy path we have some requests to process. -> false
+     * - If the queueHeadIds is empty
+     *     -> we need to ensure that the queue is really empty(ensureHeadIsNonEmpty).
+     *     -> we need to check if other clients still processing the requests (using listHead and getRequest on the first request)
+     *       -> If there are some requests that are not handled(maybe locked), we can return false - some other client is still processing the requests. (let's notify about this in log using info log)
+     *       -> If there are no requests -> we cannot still be sure that the queue is empty, because the other client can still adding requests to the queue.
+     *         -> We need to use some timeout here and compare it with queue modifiedAt(it is in response of listHead), if there is no modification of queue for some time,
+     *            we can be sure that the queue is empty. The timeout should be in the order of seconds.
+     */
     async isFinished(): Promise<boolean> {
         // TODO: once/if we figure out why sometimes request queues get stuck (if it's even request queues), remove this once and for all :)
         if (Date.now() - this.lastActivity.getTime() > this.internalTimeoutMillis) {
@@ -586,6 +610,7 @@ export abstract class RequestProvider implements IStorage {
 
             this.queueHeadIds.clear();
             // This cache may be the bane of our existence, but it's still required for v1...
+            // TODO Kuba: Let's remove this cache, it's not needed anymore, the head and lock is atomic operation.
             this.recentlyHandledRequestsCache.clear();
         }
 
