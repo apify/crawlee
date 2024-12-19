@@ -66,6 +66,8 @@ export abstract class RequestProvider implements IStorage {
 
     protected isFinishedCalledWhileHeadWasNotEmpty = 0;
 
+    protected inProgressRequestBatches: Promise<unknown>[] = [];
+
     constructor(
         options: InternalRequestProviderOptions,
         readonly config = Configuration.getGlobalConfig(),
@@ -418,6 +420,11 @@ export abstract class RequestProvider implements IStorage {
             resolve(finalAddedRequests);
         });
 
+        this.inProgressRequestBatches.push(promise);
+        promise.finally(
+            () => (this.inProgressRequestBatches = this.inProgressRequestBatches.filter((it) => it !== promise)),
+        );
+
         // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
         if (options.waitForAllRequestsToBeAdded) {
             addedRequests.push(...(await promise));
@@ -568,6 +575,10 @@ export abstract class RequestProvider implements IStorage {
      * but it will never return a false positive.
      */
     async isFinished(): Promise<boolean> {
+        if (this.inProgressRequestBatches.length > 0) {
+            return false;
+        }
+
         // TODO: once/if we figure out why sometimes request queues get stuck (if it's even request queues), remove this once and for all :)
         if (Date.now() - this.lastActivity.getTime() > this.internalTimeoutMillis) {
             const maybeHead = await this.client.listHead({ limit: 1 });
