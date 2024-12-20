@@ -3831,9 +3831,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001688":
-  version: 1.0.30001689
-  resolution: "caniuse-lite@npm:1.0.30001689"
-  checksum: 10c0/51cf99751dddfba24e13556ae0e0f38c062f76d49f2e24cce3d28e71a0325ca6fe04fe51b4a0e8467d601d94e72fea84f160bf577e7cbb5677f14ac673b6da20
+  version: 1.0.30001690
+  resolution: "caniuse-lite@npm:1.0.30001690"
+  checksum: 10c0/646bd469032afa90400a84dec30a2b00a6eda62c03ead358117e3f884cda8aacec02ec058a6dbee5eaf9714f83e483b9b0eb4fb42febb8076569f5ca40f1d347
   languageName: node
   linkType: hard
 
@@ -4594,13 +4594,13 @@ __metadata:
   linkType: hard
 
 "data-view-byte-offset@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "data-view-byte-offset@npm:1.0.0"
+  version: 1.0.1
+  resolution: "data-view-byte-offset@npm:1.0.1"
   dependencies:
-    call-bind: "npm:^1.0.6"
+    call-bound: "npm:^1.0.2"
     es-errors: "npm:^1.3.0"
     is-data-view: "npm:^1.0.1"
-  checksum: 10c0/21b0d2e53fd6e20cc4257c873bf6d36d77bd6185624b84076c0a1ddaa757b49aaf076254006341d35568e89f52eecd1ccb1a502cfb620f2beca04f48a6a62a8f
+  checksum: 10c0/fa7aa40078025b7810dcffc16df02c480573b7b53ef1205aa6a61533011005c1890e5ba17018c692ce7c900212b547262d33279fde801ad9843edc0863bf78c4
   languageName: node
   linkType: hard
 
@@ -4990,9 +4990,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.73":
-  version: 1.5.74
-  resolution: "electron-to-chromium@npm:1.5.74"
-  checksum: 10c0/1a93119adbdeb0bba4c29e3bad5a48e6a4626ae50fbff2bc5c207f32e67ed64a5d8db6500befb44080359be3b18be7bf830fb920d5199d935be95bb9f97deb10
+  version: 1.5.75
+  resolution: "electron-to-chromium@npm:1.5.75"
+  checksum: 10c0/df769b7a5e9895a8ba8eb7f31b9525a0e00b8aef6e3ecab3faebe90756fc9ac008dddb8d9a2a78d2079cbaebd27da6e1379f77e910163f405bb1a3d622ec4276
   languageName: node
   linkType: hard
 
@@ -7711,7 +7711,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"is-typed-array@npm:^1.1.13, is-typed-array@npm:^1.1.14":
+"is-typed-array@npm:^1.1.13, is-typed-array@npm:^1.1.14, is-typed-array@npm:^1.1.15":
   version: 1.1.15
   resolution: "is-typed-array@npm:1.1.15"
   dependencies:
@@ -8694,9 +8694,9 @@ __metadata:
   linkType: hard
 
 "math-intrinsics@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "math-intrinsics@npm:1.0.0"
-  checksum: 10c0/470ee2f267b4b3698eb9faa7f0bcf88696d87e2eeab25bba867dc676c09ddbae9b6f2e8ac7a2c1f0c9c2c5299c2a89f4f1f6d0e70d682725e2e7fca7507eef9f
+  version: 1.1.0
+  resolution: "math-intrinsics@npm:1.1.0"
+  checksum: 10c0/7579ff94e899e2f76ab64491d76cf606274c874d8f2af4a442c016bd85688927fcfca157ba6bf74b08e9439dc010b248ce05b96cc7c126a354c3bae7fcb48b7f
   languageName: node
   linkType: hard
 
@@ -9654,13 +9654,14 @@ __metadata:
   linkType: hard
 
 "object.values@npm:^1.1.6, object.values@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "object.values@npm:1.2.0"
+  version: 1.2.1
+  resolution: "object.values@npm:1.2.1"
   dependencies:
-    call-bind: "npm:^1.0.7"
+    call-bind: "npm:^1.0.8"
+    call-bound: "npm:^1.0.3"
     define-properties: "npm:^1.2.1"
     es-object-atoms: "npm:^1.0.0"
-  checksum: 10c0/15809dc40fd6c5529501324fec5ff08570b7d70fb5ebbe8e2b3901afec35cf2b3dc484d1210c6c642cd3e7e0a5e18dd1d6850115337fef46bdae14ab0cb18ac3
+  checksum: 10c0/3c47814fdc64842ae3d5a74bc9d06bdd8d21563c04d9939bf6716a9c00596a4ebc342552f8934013d1ec991c74e3671b26710a0c51815f0b603795605ab6b2c9
   languageName: node
   linkType: hard
 
@@ -10802,7 +10803,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"reflect.getprototypeof@npm:^1.0.6, reflect.getprototypeof@npm:^1.0.8":
+"reflect.getprototypeof@npm:^1.0.6, reflect.getprototypeof@npm:^1.0.8, reflect.getprototypeof@npm:^1.0.9":
   version: 1.0.9
   resolution: "reflect.getprototypeof@npm:1.0.9"
   dependencies:
@@ -10882,15 +10883,15 @@ __metadata:
   linkType: hard
 
 "resolve@npm:^1.10.0, resolve@npm:^1.22.0, resolve@npm:^1.22.4":
-  version: 1.22.9
-  resolution: "resolve@npm:1.22.9"
+  version: 1.22.10
+  resolution: "resolve@npm:1.22.10"
   dependencies:
     is-core-module: "npm:^2.16.0"
     path-parse: "npm:^1.0.7"
     supports-preserve-symlinks-flag: "npm:^1.0.0"
   bin:
     resolve: bin/resolve
-  checksum: 10c0/314cea2c47f956743f106256854203bd43a60a3ec6fb85ee6894e75cf4b16004952e4280319bfeb4c6fb1246e3ecd27f2699abb2e2b316b7c5727ec6491505c9
+  checksum: 10c0/8967e1f4e2cc40f79b7e080b4582b9a8c5ee36ffb46041dccb20e6461161adf69f843b43067b4a375de926a2cd669157e29a29578191def399dd5ef89a1b5203
   languageName: node
   linkType: hard
 
@@ -10908,15 +10909,15 @@ __metadata:
   linkType: hard
 
 "resolve@patch:resolve@npm%3A^1.10.0#optional!builtin<compat/resolve>, resolve@patch:resolve@npm%3A^1.22.0#optional!builtin<compat/resolve>, resolve@patch:resolve@npm%3A^1.22.4#optional!builtin<compat/resolve>":
-  version: 1.22.9
-  resolution: "resolve@patch:resolve@npm%3A1.22.9#optional!builtin<compat/resolve>::version=1.22.9&hash=c3c19d"
+  version: 1.22.10
+  resolution: "resolve@patch:resolve@npm%3A1.22.10#optional!builtin<compat/resolve>::version=1.22.10&hash=c3c19d"
   dependencies:
     is-core-module: "npm:^2.16.0"
     path-parse: "npm:^1.0.7"
     supports-preserve-symlinks-flag: "npm:^1.0.0"
   bin:
     resolve: bin/resolve
-  checksum: 10c0/dadd8c85040784fdc18d6edc0cc27f7f35776c5d904b030ea67485ab9a5607568187afcfaf157e6fa9db9274481d155356bc42ca578c5578be25965b880d1e80
+  checksum: 10c0/52a4e505bbfc7925ac8f4cd91fd8c4e096b6a89728b9f46861d3b405ac9a1ccf4dcbf8befb4e89a2e11370dacd0160918163885cbc669369590f2f31f4c58939
   languageName: node
   linkType: hard
 
@@ -12145,21 +12146,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.68":
-  version: 6.1.68
-  resolution: "tldts-core@npm:6.1.68"
-  checksum: 10c0/7ce2d0526aaf80656e746e322f9632b92afd07702c5aa61f92f908d325d4878fe6654d94039f30f625b32e7ff934e36cb83722b2e62c752ae34beed40fa1d123
+"tldts-core@npm:^6.1.69":
+  version: 6.1.69
+  resolution: "tldts-core@npm:6.1.69"
+  checksum: 10c0/654b7ca5e349c89613b99179c5a3f55870be0b77d4ce062eaf6cdda7b160dc454a79a48e825e711f89e93588e62cbb6b166171a044a7427f5987ae9602d68328
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0, tldts@npm:^6.1.32":
-  version: 6.1.68
-  resolution: "tldts@npm:6.1.68"
+  version: 6.1.69
+  resolution: "tldts@npm:6.1.69"
   dependencies:
-    tldts-core: "npm:^6.1.68"
+    tldts-core: "npm:^6.1.69"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/adbc9b23fa18a150e5124daec853ec1a2c7b656e2e294855b52ef2f7f7d5266660392ae222840862b6360165f7adbc3ae731f78f0a0f96ee1b4558328e428a55
+  checksum: 10c0/47ca3c435f3fbe325a263e07417079551911afce45be0cc8b4a1c9ba14b8e9e6c493c6260dc5f34d3c4b396671fe641b2ebea9646e34c4a4d03223da848c7658
   languageName: node
   linkType: hard
 
@@ -12495,17 +12496,17 @@ __metadata:
   linkType: hard
 
 "typed-array-byte-offset@npm:^1.0.3":
-  version: 1.0.3
-  resolution: "typed-array-byte-offset@npm:1.0.3"
+  version: 1.0.4
+  resolution: "typed-array-byte-offset@npm:1.0.4"
   dependencies:
     available-typed-arrays: "npm:^1.0.7"
-    call-bind: "npm:^1.0.7"
+    call-bind: "npm:^1.0.8"
     for-each: "npm:^0.3.3"
-    gopd: "npm:^1.0.1"
-    has-proto: "npm:^1.0.3"
-    is-typed-array: "npm:^1.1.13"
-    reflect.getprototypeof: "npm:^1.0.6"
-  checksum: 10c0/5da29585f96671c0521475226d3227000b3e01d1e99208b66bb05b75c7c8f4d0e9cc2e79920f3bfbc792a00102df1daa2608a2753e3f291b671d5a80245bde5b
+    gopd: "npm:^1.2.0"
+    has-proto: "npm:^1.2.0"
+    is-typed-array: "npm:^1.1.15"
+    reflect.getprototypeof: "npm:^1.0.9"
+  checksum: 10c0/3d805b050c0c33b51719ee52de17c1cd8e6a571abdf0fffb110e45e8dd87a657e8b56eee94b776b13006d3d347a0c18a730b903cf05293ab6d92e99ff8f77e53
   languageName: node
   linkType: hard
 
