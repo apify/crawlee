@@ -296,10 +296,9 @@ describe('dataset', () => {
                     item.index = index;
                     item.bar = 'xxx';
 
-                    // @ts-expect-error FIXME the inference is broken for `reduce()` method
                     return memo.concat(item);
                 },
-                [],
+                [] as unknown[],
                 {
                     limit: 2,
                 },
@@ -323,10 +322,9 @@ describe('dataset', () => {
                     item.index = index;
                     item.bar = 'xxx';
 
-                    // @ts-expect-error FIXME the inference is broken for `reduce()` method
                     return Promise.resolve(memo.concat(item));
                 },
-                [],
+                [] as unknown[],
                 {
                     limit: 2,
                 },
@@ -369,10 +367,8 @@ describe('dataset', () => {
             const calledForIndexes: number[] = [];
 
             const result = await dataset.reduce(
-                // @ts-expect-error FIXME the inference is broken for `reduce()` method
                 async (memo, item, index) => {
                     calledForIndexes.push(index);
-                    // @ts-expect-error FIXME the inference is broken for `reduce()` method
                     return Promise.resolve(memo.foo > item.foo ? memo : item);
                 },
                 undefined,
@@ -391,8 +387,7 @@ describe('dataset', () => {
                 offset: 2,
             });
 
-            // @ts-expect-error FIXME the inference is broken for `reduce()` method
-            expect(result.foo).toBe(5);
+            expect(result!.foo).toBe(5);
             expect(calledForIndexes).toEqual([1, 2, 3]);
         });
     });
