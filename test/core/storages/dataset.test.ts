@@ -298,7 +298,7 @@ describe('dataset', () => {
 
                     return memo.concat(item);
                 },
-                new Array(),
+                [] as unknown[],
                 {
                     limit: 2,
                 },
@@ -324,7 +324,7 @@ describe('dataset', () => {
 
                     return Promise.resolve(memo.concat(item));
                 },
-                new Array(),
+                [] as unknown[],
                 {
                     limit: 2,
                 },
