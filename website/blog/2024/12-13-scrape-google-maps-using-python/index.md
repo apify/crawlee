@@ -125,9 +125,7 @@ async def main():
     start_url = f"https://www.google.com/maps/search/{search_query.replace(' ', '+')}"
 
     # Tell the crawler how to handle each page it visits
-    @crawler.router.default_handler
-    async def default_handler(context):
-        await scrape_google_maps(context)
+    crawler.router.default_handler(scrape_google_maps)
 
     # Start the scraping process
     await crawler.run([start_url])
