@@ -109,7 +109,7 @@ async def scrape_google_maps(context):
     """
     page = context.page
     await page.goto(context.request.url)
-    print("Connected to:", context.request.url)
+    print("Processing:", context.request.url)
 ```
 
 **Step 3: Launching the crawler**
@@ -149,7 +149,7 @@ async def scrape_google_maps(context):
     """
     page = context.page
     await page.goto(context.request.url)
-    print("Connected to:", context.request.url)
+    print("Processing:", context.request.url)
 
 async def main():
     """
@@ -164,9 +164,7 @@ async def main():
     )
 
     # Tell the crawler how to handle each page it visits
-    @crawler.router.default_handler
-    async def default_handler(context):
-        await scrape_google_maps(context)
+    crawler.router.default_handler(scrape_google_maps)
 
     # Prepare the search URL
     search_query = "hotels in bengaluru"
@@ -189,7 +187,41 @@ When everything works correctly, you'll see the output like this:
 
 ![Connect to page](./img/scrape-google-maps-with-crawlee-screenshot-connect-to-page.png)
 
-### 3. Understanding Google Maps internal code structure
+### 3. Import dependencies and defining Scraper Class
+
+Let's start with the basic structure and necessary imports:
+
+```python
+import asyncio
+from datetime import timedelta
+from typing import Dict, Optional, Set
+from crawlee.playwright_crawler import PlaywrightCrawler
+from playwright.async_api import Page, ElementHandle
+```
+
+The `GoogleMapsScraper` class serves as the main scraper engine:
+
+```python
+class GoogleMapsScraper:
+    def __init__(self, headless: bool = True, timeout_minutes: int = 5):
+        self.crawler = PlaywrightCrawler(
+            headless=headless,
+            request_handler_timeout=timedelta(minutes=timeout_minutes),
+        )
+        self.processed_names: Set[str] = set()
+
+    async def setup_crawler(self) -> None:
+        self.crawler.router.default_handler(self._scrape_listings)
+```
+
+This initialization code sets up two crucial components:
+
+1. A `PlaywrightCrawler` instance configured to run either headlessly (without a visible browser window) or with a visible browser
+2. A set to track processed business names, preventing duplicate entries
+
+The `setup_crawler` method configures the crawler to use our main scraping function as the default handler for all requests.
+
+### 4. Understanding Google Maps internal code structure
 
 Before we dive into scraping, let's understand exactly what elements we need to target. When you search for hotels in Bengaluru, Google Maps organizes hotel information in a specific structure. Here's a detailed breakdown of how to locate each piece of information.
 
@@ -225,66 +257,55 @@ This returns multiple elements as each hotel has several amenities. We'll need t
 - Use Chrome DevTools (F12) to inspect elements and confirm selectors.
 - Some elements might not be present for all hotels (like prices during the off-season).
 
-### 4. Scraping Google Maps data using identified selectors
+### 5. Scraping Google Maps data using identified selectors
 
 Let's build a scraper to extract detailed hotel information from Google Maps. First, create the core scraping function to handle data extraction.
 
 *gmap_scraper.py:*
 
 ```python
-async def scrape_google_maps(context) -> None:
-    page = context.page
-    print(f"\nProcessing URL: {context.request.url}\n")
+async def _extract_listing_data(self, listing: ElementHandle) -> Optional[Dict]:
+    """Extract structured data from a single listing element."""
+    try:
+        name_el = await listing.query_selector(".qBF1Pd")
+        if not name_el:
+            return None
+        name = await name_el.inner_text()
+        if name in self.processed_names:
+            return None
 
-    # Wait for content to load
-    await page.wait_for_selector(".Nv2PK", timeout=30000)
-    await page.wait_for_timeout(2000)
-
-    # Get all hotel listings
-    listings = await page.query_selector_all(".Nv2PK")
-    print(f"Found {len(listings)} hotels\n")
-
-    # Process each hotel listing
-    for listing in listings:
-        # Extract details for each listing
-        data = {
-            "name": (
-                await (await listing.query_selector(".qBF1Pd")).inner_text()
-                if await listing.query_selector(".qBF1Pd")
-                else None
-            ),
-            "rating": (
-                await (await listing.query_selector(".MW4etd")).inner_text()
-                if await listing.query_selector(".MW4etd")
-                else "N/A"
-            ),
-            "reviews": (
-                (await (await listing.query_selector(".UY7F9")).inner_text())
-                .replace("(", "")
-                .replace(")", "")
-                if await listing.query_selector(".UY7F9")
-                else "N/A"
-            ),
-            "price": (
-                await (await listing.query_selector(".wcldff")).inner_text()
-                if await listing.query_selector(".wcldff")
-                else "N/A"
-            ),
-            "link": (
-                await (await listing.query_selector("a.hfpxzc")).get_attribute("href")
-                if await listing.query_selector("a.hfpxzc")
-                else "N/A"
-            ),
-            "amenities": [
-                await amenity.get_attribute("aria-label")
-                for amenity in await listing.query_selector_all(".dc6iWb")
-                if await amenity.get_attribute("aria-label")
-            ],
+        elements = {
+            "rating": await listing.query_selector(".MW4etd"),
+            "reviews": await listing.query_selector(".UY7F9"),
+            "price": await listing.query_selector(".wcldff"),
+            "link": await listing.query_selector("a.hfpxzc"),
+            "address": await listing.query_selector(".W4Efsd:nth-child(2)"),
+            "category": await listing.query_selector(".W4Efsd:nth-child(1)"),
         }
 
-        # Pretty-print the data
-        print(json.dumps(data, indent=4))
-        print("\n")
+        amenities = []
+        amenities_els = await listing.query_selector_all(".dc6iWb")
+        for amenity in amenities_els:
+            amenity_text = await amenity.get_attribute("aria-label")
+            if amenity_text:
+                amenities.append(amenity_text)
+
+        place_data = {
+            "name": name,
+            "rating": await elements["rating"].inner_text() if elements["rating"] else None,
+            "reviews": (await elements["reviews"].inner_text()).strip("()") if elements["reviews"] else None,
+            "price": await elements["price"].inner_text() if elements["price"] else None,
+            "address": await elements["address"].inner_text() if elements["address"] else None,
+            "category": await elements["category"].inner_text() if elements["category"] else None,
+            "amenities": amenities if amenities else None,
+            "link": await elements["link"].get_attribute("href") if elements["link"] else None,
+        }
+
+        self.processed_names.add(name)
+        return place_data
+    except Exception as e:
+        print(f"Error extracting listing data: {str(e)}")
+        return None
 ```
 
 In the code:
@@ -312,34 +333,31 @@ When you run this script, you'll see output similar to this:
 }
 ```
 
-### 5. Scroll to load more
+### 6. Managing Infinite Scrolling
 
-When scraping Google Maps, you'll notice that not all results load at once. Let's handle this infinite scroll pagination!
+Google Maps uses infinite scrolling to load more results as users scroll down. We handle this with a dedicated method:
 
 First, we need a function that can handle the scrolling and detect when we've hit the bottom. Copy-paste this new function in the `gmap_scraper.py` file:
 
 ```python
-async def load_more_items(page) -> bool:
-    # Locate the scrollable feed container
-    feed = await page.query_selector('div[role="feed"]')
-    if not feed:
-        return False
-    
-    # Get the current scroll position
-    prev_scroll = await feed.evaluate("(element) => element.scrollTop")
+async def _load_more_items(self, page: Page) -> bool:
+        """Scroll down to load more items."""
+        try:
+            feed = await page.query_selector('div[role="feed"]')
+            if not feed:
+                return False
+            prev_scroll = await feed.evaluate("(element) => element.scrollTop")
+            await feed.evaluate("(element) => element.scrollTop += 800")
+            await page.wait_for_timeout(2000)
 
-    # Scroll down to load more items
-    await feed.evaluate("(element) => element.scrollTop += 800")
-    await page.wait_for_timeout(2000)  # Allow content to load
-
-    # Check if the page actually scrolled
-    new_scroll = await feed.evaluate("(element) => element.scrollTop")
-    if new_scroll <= prev_scroll:  # No further scroll means end of listings
-        return False
-    
-    # Extra wait for dynamic content to appear
-    await page.wait_for_timeout(1000)
-    return True
+            new_scroll = await feed.evaluate("(element) => element.scrollTop")
+            if new_scroll <= prev_scroll:
+                return False
+            await page.wait_for_timeout(1000)
+            return True
+        except Exception as e:
+            print(f"Error during scroll: {str(e)}")
+            return False
 ```
 
 Run this code using:
@@ -350,25 +368,82 @@ $ python3 gmap_scraper.py
 
 You should see an output like this:
 
-![scrape-google-maps-with-crawlee-screenshot-handle-pagination.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/63b6fe41-a503-4e50-9b1e-caa1e011ae25/cba448f3-f260-4cb4-b068-93ca4a9d54de/d905f2ab-d448-460d-b8eb-f68d2b2f842d.png)
+![scrape-google-maps-with-crawlee-screenshot-handle-pagination](./img/scrape-google-maps-with-crawlee-screenshot-handle-pagination.webp)
 
-### 6. Exporting Google Maps data to JSON
+### 7. Scrape Listings
 
-Once you've successfully scraped data from Google Maps, it's important to save that data in a format that is both accessible and easy to work with. JSON is an excellent choice for this purpose.
-
-Here's a simple code that saves your scraped data to a JSON file:
+The main scraping function ties everything together. It scrapes listings from the page by repeatedly extracting data and scrolling.
 
 ```python
-import json
+async def _scrape_listings(self, context) -> None:
+    """Main scraping function to process all listings"""
+    try:
+        page = context.page
+        print(f"\nProcessing URL: {context.request.url}\n")
 
-# Your scraped data will be stored in this list
-all_data = [
-    ...
-]
+        await page.wait_for_selector(".Nv2PK", timeout=30000)
+        await page.wait_for_timeout(2000)
 
-# Save data to JSON file
-with open('google_maps_data.json', 'w', encoding='utf-8') as f:
-    json.dump(all_data, f, ensure_ascii=False, indent=2)
+        while True:
+            listings = await page.query_selector_all(".Nv2PK")
+            new_items = 0
+
+            for listing in listings:
+                place_data = await self._extract_listing_data(listing)
+                if place_data:
+                    await context.push_data(place_data)
+                    new_items += 1
+                    print(f"Processed: {place_data['name']}")
+
+            if new_items == 0 and not await self._load_more_items(page):
+                break
+            if new_items > 0:
+                await self._load_more_items(page)
+                
+        print(f"\nFinished processing! Total items: {len(self.processed_names)}")
+    except Exception as e:
+        print(f"Error in scraping: {str(e)}")
+```
+
+The scraper uses Crawlee's built-in storage system to manage scraped data. When you run the scraper, it creates a `storage` directory in your project with several key components:
+
+- `datasets/`: Contains the scraped results in JSON format
+- `key_value_stores/`: Stores crawler state and metadata
+- `request_queues/`: Manages URLs to be processed
+
+The `push_data()` method we use in our scraper sends the data to Crawlee's dataset storage as you can see below:
+
+![Crawlee push_data](./img/How-to-scrape-Google-Maps-data-using-Python-and-Crawlee-metadata.webp)
+
+### 8. Running the Scraper
+
+Finally, we need functions to execute our scraper:
+
+```python
+async def run(self, search_query: str) -> None:
+    """Execute the scraper with a search query"""
+    try:
+        await self.setup_crawler()
+        start_url = f"https://www.google.com/maps/search/{search_query.replace(' ', '+')}"
+        await self.crawler.run([start_url])
+        await self.crawler.export_data_json('gmap_data.json')
+    except Exception as e:
+        print(f"Error running scraper: {str(e)}")
+
+async def main():
+    """Entry point of the script"""
+    scraper = GoogleMapsScraper(headless=True)
+    search_query = "hotels in bengaluru"
+    await scraper.run(search_query)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+This data is automatically stored and can later be exported to a JSON file using:
+
+```python
+await self.crawler.export_data_json('gmap_data.json')
 ```
 
 Here's what your exported JSON file will look like:
@@ -391,7 +466,7 @@ Here's what your exported JSON file will look like:
 ]
 ```
 
-### 7. Using proxies for Google Maps scraping
+### 9. Using proxies for Google Maps scraping
 
 When scraping Google Maps at scale, using proxies is very helpful. Here are a few key reasons why:
 
@@ -443,7 +518,7 @@ Here's an example of data scraped from New York City hotels using proxies:
 }
 ```
 
-### 8. Project: Interactive hotel analysis dashboard
+### 10. Project: Interactive hotel analysis dashboard
 
 After scraping hotel data from Google Maps, you can build an interactive dashboard that helps analyze hotel trends. Here’s a preview of how the dashboard works:
 
@@ -451,7 +526,7 @@ After scraping hotel data from Google Maps, you can build an interactive dashboa
 
 Find the complete info for this dashboard on GitHub: [Hotel Analysis Dashboard](https://github.com/triposat/Hotel-Analytics-Dashboard).
 
-### 9. Now you’re ready to put everything into action!
+### 11. Now you’re ready to put everything into action!
 
 Take a look at the complete scripts in my GitHub Gist:
 
