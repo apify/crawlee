@@ -109,7 +109,7 @@ async def scrape_google_maps(context):
     """
     page = context.page
     await page.goto(context.request.url)
-    print("Processing:", context.request.url)
+    context.log.info(f"Processing: {context.request.url}")
 ```
 
 **Step 3: Launching the crawler**
@@ -149,7 +149,7 @@ async def scrape_google_maps(context):
     """
     page = context.page
     await page.goto(context.request.url)
-    print("Processing:", context.request.url)
+    context.log.info(f"Processing: {context.request.url}")
 
 async def main():
     """
@@ -304,7 +304,7 @@ async def _extract_listing_data(self, listing: ElementHandle) -> Optional[Dict]:
         self.processed_names.add(name)
         return place_data
     except Exception as e:
-        print(f"Error extracting listing data: {str(e)}")
+        context.log.exception("Error extracting listing data")
         return None
 ```
 
@@ -356,7 +356,7 @@ async def _load_more_items(self, page: Page) -> bool:
             await page.wait_for_timeout(1000)
             return True
         except Exception as e:
-            print(f"Error during scroll: {str(e)}")
+            context.log.exception("Error during scroll")
             return False
 ```
 
