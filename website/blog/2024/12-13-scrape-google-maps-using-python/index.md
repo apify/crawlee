@@ -520,7 +520,7 @@ Here's an example of data scraped from New York City hotels using proxies:
 
 After scraping hotel data from Google Maps, you can build an interactive dashboard that helps analyze hotel trends. Here’s a preview of how the dashboard works:
 
-![Final dashboard](./img/scrape-google-maps-with-crawlee-screenshot-hotel-analysis-dashboard.gif)
+![Final dashboard](./img/scrape-google-maps-with-crawlee-screenshot-hotel-analysis-dashboard.webp)
 
 Find the complete info for this dashboard on GitHub: [Hotel Analysis Dashboard](https://github.com/triposat/Hotel-Analytics-Dashboard).
 
