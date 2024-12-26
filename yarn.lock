@@ -12149,21 +12149,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.69":
-  version: 6.1.69
-  resolution: "tldts-core@npm:6.1.69"
-  checksum: 10c0/654b7ca5e349c89613b99179c5a3f55870be0b77d4ce062eaf6cdda7b160dc454a79a48e825e711f89e93588e62cbb6b166171a044a7427f5987ae9602d68328
+"tldts-core@npm:^6.1.70":
+  version: 6.1.70
+  resolution: "tldts-core@npm:6.1.70"
+  checksum: 10c0/befad5eb9888e7b05db6cbe22d43750ec01615a9a26253b76400c367614429f860d0a49e752e257e9b2583f647413ac0599c27923f5b8d4d91af78bba0d6f984
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0, tldts@npm:^6.1.32":
-  version: 6.1.69
-  resolution: "tldts@npm:6.1.69"
+  version: 6.1.70
+  resolution: "tldts@npm:6.1.70"
   dependencies:
-    tldts-core: "npm:^6.1.69"
+    tldts-core: "npm:^6.1.70"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/47ca3c435f3fbe325a263e07417079551911afce45be0cc8b4a1c9ba14b8e9e6c493c6260dc5f34d3c4b396671fe641b2ebea9646e34c4a4d03223da848c7658
+  checksum: 10c0/acfa49cab55242fe55ccb995e0a31d6bbed3cc1d52b0acd18c5ea0520fd44b3e85b850455dea566fbfca65cd9bce667f4922e827fbc216e4cd53585bcf633665
   languageName: node
   linkType: hard
 
@@ -12458,9 +12458,9 @@ __metadata:
   linkType: hard
 
 "type-fest@npm:^4.0.0, type-fest@npm:^4.26.1":
-  version: 4.30.2
-  resolution: "type-fest@npm:4.30.2"
-  checksum: 10c0/c28db60ff57223fb23180e66bd9652fb3197fb533e9360f9ee76e66c3ccb6849b292df5e8fa5897f215f6685357dd31c946511da56be549cb5de9d42ac9ea67d
+  version: 4.31.0
+  resolution: "type-fest@npm:4.31.0"
+  checksum: 10c0/a5bb69e3b0f82e068af8c645ac3d50b1fa5c588ebc83735a6add4ef6dacf277bb3605801f66c72c069af20120ee7387a3ae6dd84e12c152f5982784c710b4051
   languageName: node
   linkType: hard
 
