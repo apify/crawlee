@@ -49,7 +49,7 @@ Before we start scraping, we need to set up our project. In this guide, we won't
     poetry init
     ```
 
-4. Add and install Crawlee with necessary dependencies to your project using `Poetry`
+4. Add and install Crawlee with necessary dependencies to your project using `Poetry.`
 
     ```bash
     poetry add crawlee[parsel,curl-impersonate]
