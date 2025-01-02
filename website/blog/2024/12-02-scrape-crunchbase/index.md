@@ -55,7 +55,7 @@ Before we start scraping, we need to set up our project. In this guide, we won't
     poetry add crawlee[parsel,curl-impersonate]
     ```
 
-5. Complete the project setup by creating the standard file structure for `Crawlee for Python` projects
+5. Complete the project setup by creating the standard file structure for `Crawlee for Python` projects.
 
     ```bash
     mkdir crunchbase-crawlee && touch crunchbase-crawlee/{__init__.py,__main__.py,main.py,routes.py}
