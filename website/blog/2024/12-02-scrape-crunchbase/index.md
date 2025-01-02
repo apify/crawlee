@@ -43,7 +43,7 @@ Before we start scraping, we need to set up our project. In this guide, we won't
     mkdir crunchbase-crawlee && cd crunchbase-crawlee
     ```
 
-3. Initialize the project using Poetry, leaving all fields empty
+3. Initialize the project using Poetry, leaving all fields empty.
 
     ```bash
     poetry init
