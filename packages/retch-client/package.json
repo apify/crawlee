@@ -1,0 +1,10 @@
+{
+  "name": "@crawlee/retch-client",
+  "packageManager": "yarn@4.6.0",
+  "peerDependencies": {
+    "@crawlee/core": "workspace:^"
+  },
+  "dependencies": {
+    "retch-http": "^0.2.1"
+  }
+}
