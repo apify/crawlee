@@ -37,7 +37,7 @@ Before we start scraping, we need to set up our project. In this guide, we won't
     pipx install poetry
     ```
 
-2. Create and navigate to the project folder
+2. Create and navigate to the project folder.
 
     ```bash
     mkdir crunchbase-crawlee && cd crunchbase-crawlee
