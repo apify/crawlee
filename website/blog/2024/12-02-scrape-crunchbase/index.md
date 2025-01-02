@@ -25,7 +25,7 @@ When discussing Crunchbase web scraping, it's important to note that this is an 
 
 - Python 3.7 or higher
 - Familiarity with web scraping concepts
-- Crawlee for Python v0.4.4
+- Crawlee for Python `v0.4.4`
 
 ### Project Setup
 
