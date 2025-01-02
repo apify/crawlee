@@ -69,9 +69,9 @@ While we can extract target data directly from the [company page](https://www.cr
 
 A careful examination of Crunchbase's structure shows that we have three main options for obtaining data:
 
-1. [`Sitemap`](https://www.crunchbase.com/www-sitemaps/sitemap-index.xml) - for complete site traversal
-2. [`Search`](https://www.crunchbase.com/discover/organization.companies) - for targeted data collection
-3. [Official API](https://data.crunchbase.com/v4-legacy/docs/crunchbase-basic-getting-started) - recommended method
+1. [`Sitemap`](https://www.crunchbase.com/www-sitemaps/sitemap-index.xml) - for complete site traversal.
+2. [`Search`](https://www.crunchbase.com/discover/organization.companies) - for targeted data collection.
+3. [Official API](https://data.crunchbase.com/v4-legacy/docs/crunchbase-basic-getting-started) - recommended method.
 
 Let's examine each of these approaches in detail.
 
