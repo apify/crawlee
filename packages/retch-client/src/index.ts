@@ -10,18 +10,15 @@ export { Browser } from 'retch-http';
  * A HTTP client implementation based on the `retch-http` library.
  */
 export class RetchHttpClient implements BaseHttpClient {
-    private retcher: Retcher;
+    private retcherOptions: RetcherOptions;
     private maxRedirects: number;
     private followRedirects: boolean;
 
-    constructor(options?: RetcherOptions & { maxRedirects?: number }) {
-        this.retcher = new Retcher({
-            ...(options ?? {}),
-            followRedirects: false, // Disable the redirection handling from `retch-http`
-        });
+    constructor(options?: Omit<RetcherOptions, 'proxyUrl'> & { maxRedirects?: number }) {
+        this.retcherOptions = options ?? {};
 
-        this.followRedirects = options?.followRedirects ?? true;
         this.maxRedirects = options?.maxRedirects ?? 10;
+        this.followRedirects = options?.followRedirects ?? true;
     }
 
     /**
@@ -96,11 +93,16 @@ export class RetchHttpClient implements BaseHttpClient {
         const headers = request.headers !== undefined ? this.flattenHeaders(request.headers) : undefined;
         const body = request.body !== undefined ? await this.intoRetcherBody(request.body) : undefined;
 
-        const response = await this.retcher.fetch(url, {
+        const retcher = new Retcher({
+            ...this.retcherOptions,
+            proxyUrl: request.proxyUrl,
+            followRedirects: false,
+        });
+
+        const response = await retcher.fetch(url, {
             method: request.method as HttpMethod,
             headers,
             body: body as string,
-            // fix - respect the proxy url!
         });
 
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
