@@ -55,6 +55,9 @@
   "peerDependencies": {
     "@crawlee/core": "^3.12.1"
   },
+  "devDependencies": {
+    "@crawlee/core": "^3.12.1"
+  },
   "dependencies": {
     "retch-http": "^0.2.3"
   },
