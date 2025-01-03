@@ -10,49 +10,43 @@ import { type RetcherOptions, type HttpMethod, Retcher } from 'retch-http';
 export class RetchHttpClient implements BaseHttpClient {
     private retcher: Retcher;
 
-    constructor(options: RetcherOptions) {
-        this.retcher = new Retcher(options);
+    constructor(options?: RetcherOptions) {
+        this.retcher = new Retcher({
+            ...(options ?? {}),
+            followRedirects: false,
+        });
     }
 
     /**
      * Converts the body of a `HttpRequest` to a format that can be passed to `retch-http`.
      *
-     * `retch-http` currently expects the request body to be an array of numbers representing the bytes of the body (or undefined).
      * @param body
      * @returns
      */
     private async intoRetcherBody<TResponseType extends keyof ResponseTypes>(
         body: Exclude<HttpRequest<TResponseType>['body'], undefined>,
-    ): Promise<number[]> {
-        if (isTypedArray(body) || body instanceof ArrayBuffer) {
-            return Array.from(new Uint8Array(body));
-        }
-
-        if (typeof body === 'string') {
-            return Array.from(new TextEncoder().encode(body));
+    ): Promise<string | Uint8Array> {
+        if (typeof body === 'string' || isTypedArray(body)) {
+            return body;
         }
 
         if (body instanceof ReadableStream) {
             const reader = body.getReader();
-            const chunks = [];
+            const buffer = new Uint8Array();
 
             while (true) {
                 const { done, value } = await reader.read();
 
-                if (done) {
-                    break;
-                }
+                if (done) return buffer;
 
-                chunks.push(...Array.from(new Uint8Array(value)));
+                buffer.set(value, buffer.length);
             }
-
-            return chunks;
         }
 
-        throw new Error('Unsupported request body type.');
+        throw new Error('Unsupported body type.');
     }
 
-    private intoRecord<TResponseType extends keyof ResponseTypes>(
+    private flattenHeaders<TResponseType extends keyof ResponseTypes>(
         headers: Exclude<HttpRequest<TResponseType>['headers'], undefined>,
     ): Record<string, string> {
         const result: Record<string, string> = {};
@@ -77,13 +71,13 @@ export class RetchHttpClient implements BaseHttpClient {
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>> {
         const url = typeof request.url === 'string' ? request.url : request.url.href;
-        const headers = request.headers !== undefined ? this.intoRecord(request.headers) : undefined;
+        const headers = request.headers !== undefined ? this.flattenHeaders(request.headers) : undefined;
         const body = request.body !== undefined ? await this.intoRetcherBody(request.body) : undefined;
 
         const response = await this.retcher.fetch(url, {
             method: request.method as HttpMethod,
             headers,
-            body,
+            body: body as string,
             // fix - respect the proxy url!
         });
 
@@ -108,7 +102,7 @@ export class RetchHttpClient implements BaseHttpClient {
             statusCode: response.status,
             url,
             request,
-            redirectUrls: [], // todo - https://github.com/retch-http/retch/issues/6
+            redirectUrls: [],
             trailers: {},
             body: responseBody,
             complete: true,
@@ -131,7 +125,7 @@ export class RetchHttpClient implements BaseHttpClient {
         const response = await this.performRequest(request);
 
         const stream = new Readable();
-        stream.push(response.response);
+        stream.push(response.body);
         stream.push(null);
 
         return {
@@ -141,10 +135,10 @@ export class RetchHttpClient implements BaseHttpClient {
             statusCode: response.statusCode,
             stream,
             complete: true,
-            downloadProgress: { percent: 100, transferred: response.response.length },
+            downloadProgress: { percent: 100, transferred: response.body.length },
             uploadProgress: { percent: 100, transferred: 0 },
             redirectUrls: response.redirectUrls,
-            headers: response.responseHeaders,
+            headers: response.headers,
             trailers: {},
         };
     }

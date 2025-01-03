@@ -721,9 +721,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/retch-client@workspace:packages/retch-client"
   dependencies:
-    retch-http: "npm:^0.2.1"
+    retch-http: "npm:^0.2.3"
   peerDependencies:
-    "@crawlee/core": "workspace:^"
+    "@crawlee/core": ^3.12.1
   languageName: unknown
   linkType: soft
 
@@ -10981,58 +10981,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"retch-http-darwin-arm64@npm:0.2.1":
-  version: 0.2.1
-  resolution: "retch-http-darwin-arm64@npm:0.2.1"
+"retch-http-darwin-arm64@npm:0.2.3":
+  version: 0.2.3
+  resolution: "retch-http-darwin-arm64@npm:0.2.3"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"retch-http-darwin-x64@npm:0.2.1":
-  version: 0.2.1
-  resolution: "retch-http-darwin-x64@npm:0.2.1"
+"retch-http-darwin-x64@npm:0.2.3":
+  version: 0.2.3
+  resolution: "retch-http-darwin-x64@npm:0.2.3"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"retch-http-linux-x64-gnu@npm:0.2.1":
-  version: 0.2.1
-  resolution: "retch-http-linux-x64-gnu@npm:0.2.1"
+"retch-http-linux-x64-gnu@npm:0.2.3":
+  version: 0.2.3
+  resolution: "retch-http-linux-x64-gnu@npm:0.2.3"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"retch-http-linux-x64-musl@npm:0.2.1":
-  version: 0.2.1
-  resolution: "retch-http-linux-x64-musl@npm:0.2.1"
+"retch-http-linux-x64-musl@npm:0.2.3":
+  version: 0.2.3
+  resolution: "retch-http-linux-x64-musl@npm:0.2.3"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"retch-http-win32-arm64-msvc@npm:0.2.1":
-  version: 0.2.1
-  resolution: "retch-http-win32-arm64-msvc@npm:0.2.1"
+"retch-http-win32-arm64-msvc@npm:0.2.3":
+  version: 0.2.3
+  resolution: "retch-http-win32-arm64-msvc@npm:0.2.3"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"retch-http-win32-x64-msvc@npm:0.2.1":
-  version: 0.2.1
-  resolution: "retch-http-win32-x64-msvc@npm:0.2.1"
+"retch-http-win32-x64-msvc@npm:0.2.3":
+  version: 0.2.3
+  resolution: "retch-http-win32-x64-msvc@npm:0.2.3"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"retch-http@npm:^0.2.1":
-  version: 0.2.1
-  resolution: "retch-http@npm:0.2.1"
+"retch-http@npm:^0.2.3":
+  version: 0.2.3
+  resolution: "retch-http@npm:0.2.3"
   dependencies:
-    retch-http-darwin-arm64: "npm:0.2.1"
-    retch-http-darwin-x64: "npm:0.2.1"
-    retch-http-linux-x64-gnu: "npm:0.2.1"
-    retch-http-linux-x64-musl: "npm:0.2.1"
-    retch-http-win32-arm64-msvc: "npm:0.2.1"
-    retch-http-win32-x64-msvc: "npm:0.2.1"
+    retch-http-darwin-arm64: "npm:0.2.3"
+    retch-http-darwin-x64: "npm:0.2.3"
+    retch-http-linux-x64-gnu: "npm:0.2.3"
+    retch-http-linux-x64-musl: "npm:0.2.3"
+    retch-http-win32-arm64-msvc: "npm:0.2.3"
+    retch-http-win32-x64-msvc: "npm:0.2.3"
   dependenciesMeta:
     retch-http-darwin-arm64:
       optional: true
@@ -11046,7 +11046,7 @@ __metadata:
       optional: true
     retch-http-win32-x64-msvc:
       optional: true
-  checksum: 10c0/a3fd5262a68d7ec92cb5915a038b1a4f8dada8db35033bd16dc8768cdee9cb77a29e70948bf4656044ea6c2beda374102ded0e076a5e4623a8307d784905070c
+  checksum: 10c0/7e8bd518ac9cc547a7acf11d3bea59d50ce2783fb62063277d4efe9d2789936eadd634cebe8fc2c4b6ce899d34c5d29ee950825de88f5c6dbd475238a84a217e
   languageName: node
   linkType: hard
 
