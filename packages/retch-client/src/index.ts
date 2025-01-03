@@ -4,6 +4,8 @@ import { isTypedArray } from 'util/types';
 import type { HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse, BaseHttpClient } from '@crawlee/core';
 import { type RetcherOptions, type HttpMethod, Retcher } from 'retch-http';
 
+export { Browser } from 'retch-http';
+
 /**
  * A HTTP client implementation based on the `retch-http` library.
  */
@@ -20,8 +22,6 @@ export class RetchHttpClient implements BaseHttpClient {
     /**
      * Converts the body of a `HttpRequest` to a format that can be passed to `retch-http`.
      *
-     * @param body
-     * @returns
      */
     private async intoRetcherBody<TResponseType extends keyof ResponseTypes>(
         body: Exclude<HttpRequest<TResponseType>['body'], undefined>,
@@ -46,6 +46,11 @@ export class RetchHttpClient implements BaseHttpClient {
         throw new Error('Unsupported body type.');
     }
 
+    /**
+     * Flattens the headers of a `HttpRequest` to a format that can be passed to `retch-http`.
+     * @param headers `SimpleHeaders` object
+     * @returns `Record<string, string>` object
+     */
     private flattenHeaders<TResponseType extends keyof ResponseTypes>(
         headers: Exclude<HttpRequest<TResponseType>['headers'], undefined>,
     ): Record<string, string> {
@@ -67,6 +72,11 @@ export class RetchHttpClient implements BaseHttpClient {
         return result;
     }
 
+    /**
+     * Common implementation for `sendRequest` and `stream` methods.
+     * @param request `HttpRequest` object
+     * @returns `HttpResponse` object
+     */
     private async performRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>> {
