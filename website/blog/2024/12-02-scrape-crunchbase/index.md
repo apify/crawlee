@@ -9,15 +9,24 @@ authors: [MaxB]
 
 If you're working on a project that requires data about various companies and you know Python, you're in the right place to learn how to effectively scrape [Crunchbase](https://www.crunchbase.com/). It's hard to imagine a better source for gathering essential company data such as location, main business areas, founders, investment round participation, and much more. However, like any site dealing with massive amounts of information, we need an effective tool to automate data extraction and transform it into a format suitable for further analysis.
 
+By the end of this blog, we'll explore 3 different ways to extract data from Crunchbase using [`Crawlee for Python`](https://github.com/apify/crawlee-python). We'll fully implement 2 of them and discuss the specifics and challenges of the 3rd. This will help us better understand how important it is to properly [choose the right data source](https://www.crawlee.dev/blog/web-scraping-tips#1-choosing-a-data-source-for-the-project).
+
 :::note
 
 One of our community members wrote this blog as a contribution to the Crawlee Blog. If you would like to contribute blogs like these to Crawlee Blog, please reach out to us on our [discord channel](https://apify.com/discord).
 
 :::
 
-When discussing Crunchbase web scraping, it's important to note that this is an excellent example of how crucial it is to [choose the right data source](https://www.crawlee.dev/blog/web-scraping-tips#1-choosing-a-data-source-for-the-project) for your project. In this article, we'll explore different approaches to data extraction and how to implement them using [`Crawlee for Python`](https://github.com/apify/crawlee-python).
-
 ![How to Scrape Crunchbase Using Python](soon main image)
+
+Key steps we'll cover:
+
+1. Project Setup
+2. Choosing the Data Source
+3. Implementing Sitemap-based Crawler
+4. Analysis of Search-based Approach and its Limitations
+5. Implementing Official API Crawler
+6. Conclusion and Repository Access
 
 <!-- truncate -->
 
@@ -25,7 +34,7 @@ When discussing Crunchbase web scraping, it's important to note that this is an 
 
 - Python 3.7 or higher
 - Familiarity with web scraping concepts
-- Crawlee for Python `v0.4.4`
+- Crawlee for Python `v0.5.0`
 
 ### Project Setup
 
@@ -112,6 +121,10 @@ We'll save our scraping results in `JSON` format. Here's how the basic crawler c
 ```python
 # main.py
 
+from crawlee.crawlers import ParselCrawler
+from crawlee.http_clients import CurlImpersonateHttpClient
+from crawlee import ConcurrencySettings, HttpHeaders
+
 async def main() -> None:
     """The crawler entry point."""
 
@@ -142,7 +155,7 @@ Sitemap navigation happens in two stages. In the first stage, we need to get a l
 ```python
 # routes.py
 
-from crawlee.parsel_crawler import ParselCrawlingContext
+from crawlee.crawlers import ParselCrawlingContext
 from crawlee.router import Router
 from crawlee import Request
 
@@ -170,7 +183,7 @@ from parsel import Selector
 @router.handler('sitemap')
 async def sitemap_handler(context: ParselCrawlingContext) -> None:
     """Sitemap gzip request handler."""
-    context.log.info(f'sitemap_handler processing {context.request} ...')
+    context.log.info(f'sitemap_handler processing {context.request.url} ...')
 
     data = context.http_response.read()
     data = decompress(data)
@@ -198,7 +211,7 @@ This significantly simplifies data extraction - we only need to use one `Xpath` 
 @router.handler('company')
 async def company_handler(context: ParselCrawlingContext) -> None:
     """Company request handler."""
-    context.log.info(f'company_handler processing {context.request} ...')
+    context.log.info(f'company_handler processing {context.request.url} ...')
 
     json_selector = context.selector.xpath('//*[@id="ng-state"]/text()')
 
@@ -254,7 +267,9 @@ The sequence of events here is:
 2. Then the `challenges.cloudflare` check is performed
 3. Only after successfully passing the check do we receive data with code `200`
 
-Automating this process would require a `headless` browser capable of bypassing [`Cloudflare Turnstile`](https://www.cloudflare.com/application-services/products/turnstile/). The current version of `Crawlee for Python` (v0.4.4) doesn't provide this functionality, although it's planned for future development.
+Automating this process would require a `headless` browser capable of bypassing [`Cloudflare Turnstile`](https://www.cloudflare.com/application-services/products/turnstile/). The current version of `Crawlee for Python` (v0.5.0) doesn't provide this functionality, although it's planned for future development.
+
+You can extend the capabilities of Crawlee for Python by integrating [`Camoufox`](https://camoufox.com/) following this [example.](https://www.crawlee.dev/python/docs/examples/playwright-crawler-with-camoufox)
 
 ## Working with the Official Crunchbase API
 
@@ -265,7 +280,7 @@ Crunchbase provides a [free API](https://data.crunchbase.com/v4-legacy/docs/crun
 To start working with the API, follow these steps:
 
 1. [Create a Crunchbase account](https://www.crunchbase.com/register)
-2. Go to the [Integrations](https://www.crunchbase.com/integrations/crunchbase-api) section
+2. Go to the Integrations section
 3. Create a Crunchbase Basic API key
 
 Although the documentation states that key activation may take up to an hour, it usually starts working immediately after creation.
@@ -287,7 +302,7 @@ Here's how the crawler configuration for working with the API looks:
 
 import os
 
-from crawlee.http_crawler import HttpCrawler
+from crawlee.crawlers import HttpCrawler
 from crawlee.http_clients import HttpxHttpClient
 from crawlee import ConcurrencySettings, HttpHeaders
 
@@ -328,7 +343,7 @@ First, let's implement search results processing:
 ```python
 import json
 
-from crawlee.http_crawler import HttpCrawlingContext
+from crawlee.crawlers import HttpCrawler
 from crawlee.router import Router
 from crawlee import Request
 
@@ -337,7 +352,7 @@ router = Router[HttpCrawlingContext]()
 @router.default_handler
 async def default_handler(context: HttpCrawlingContext) -> None:
     """Default request handler."""
-    context.log.info(f'default_handler processing {context.request} ...')
+    context.log.info(f'default_handler processing {context.request.url} ...')
 
     data = json.loads(context.http_response.read())
 
@@ -363,7 +378,7 @@ After getting the list of companies, we extract detailed information about each 
 @router.handler('company')
 async def company_handler(context: HttpCrawlingContext) -> None:
     """Company request handler."""
-    context.log.info(f'company_handler processing {context.request} ...')
+    context.log.info(f'company_handler processing {context.request.url} ...')
 
     data = json.loads(context.http_response.read())
 
@@ -405,12 +420,12 @@ payload = {
     ]
 }
 
-payload = json.dumps(payload)
+serialiazed_payload = json.dumps(payload)
 await crawler.run([
     Request.from_url(
         url="https://api.crunchbase.com/api/v4/searches/organizations",
         method="POST",
-        payload=payload,
+        payload=serialiazed_payload,
         use_extended_unique_key=True,
         headers=HttpHeaders({'Content-Type': 'application/json'}),
         label="search"
@@ -424,7 +439,7 @@ For processing search results and pagination, we use the following handler:
 @router.handler('search')
 async def search_handler(context: HttpCrawlingContext) -> None:
     """Search results handler with pagination support."""
-    context.log.info(f'search_handler processing {context.request} ...')
+    context.log.info(f'search_handler processing {context.request.url} ...')
 
     data = json.loads(context.http_response.read())
 
