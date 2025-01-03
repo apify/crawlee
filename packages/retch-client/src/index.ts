@@ -11,17 +11,21 @@ export { Browser } from 'retch-http';
  */
 export class RetchHttpClient implements BaseHttpClient {
     private retcher: Retcher;
+    private maxRedirects: number;
+    private followRedirects: boolean;
 
-    constructor(options?: RetcherOptions) {
+    constructor(options?: RetcherOptions & { maxRedirects?: number }) {
         this.retcher = new Retcher({
             ...(options ?? {}),
-            followRedirects: false,
+            followRedirects: false, // Disable the redirection handling from `retch-http`
         });
+
+        this.followRedirects = options?.followRedirects ?? true;
+        this.maxRedirects = options?.maxRedirects ?? 10;
     }
 
     /**
      * Converts the body of a `HttpRequest` to a format that can be passed to `retch-http`.
-     *
      */
     private async intoRetcherBody<TResponseType extends keyof ResponseTypes>(
         body: Exclude<HttpRequest<TResponseType>['body'], undefined>,
@@ -79,7 +83,15 @@ export class RetchHttpClient implements BaseHttpClient {
      */
     private async performRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
+        redirects?: {
+            redirectCount?: number;
+            redirectUrls?: URL[];
+        },
     ): Promise<HttpResponse<TResponseType>> {
+        if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
+            throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
+        }
+
         const url = typeof request.url === 'string' ? request.url : request.url.href;
         const headers = request.headers !== undefined ? this.flattenHeaders(request.headers) : undefined;
         const body = request.body !== undefined ? await this.intoRetcherBody(request.body) : undefined;
@@ -90,6 +102,25 @@ export class RetchHttpClient implements BaseHttpClient {
             body: body as string,
             // fix - respect the proxy url!
         });
+
+        if (this.followRedirects && response.status >= 300 && response.status < 400) {
+            const location = response.headers.location;
+
+            if (!location) {
+                throw new Error('Redirect response missing location header.');
+            }
+
+            return this.performRequest(
+                {
+                    ...request,
+                    url: location,
+                },
+                {
+                    redirectCount: (redirects?.redirectCount ?? 0) + 1,
+                    redirectUrls: [...(redirects?.redirectUrls ?? []), new URL(location)],
+                },
+            );
+        }
 
         let responseBody;
 
@@ -112,7 +143,7 @@ export class RetchHttpClient implements BaseHttpClient {
             statusCode: response.status,
             url,
             request,
-            redirectUrls: [],
+            redirectUrls: redirects?.redirectUrls ?? [],
             trailers: {},
             body: responseBody,
             complete: true,
