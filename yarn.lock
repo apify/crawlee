@@ -566,7 +566,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/core@npm:3.12.1, @crawlee/core@npm:^3.9.0, @crawlee/core@workspace:packages/core":
+"@crawlee/core@npm:3.12.1, @crawlee/core@npm:^3.12.1, @crawlee/core@npm:^3.9.0, @crawlee/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@crawlee/core@workspace:packages/core"
   dependencies:
@@ -721,6 +721,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/retch-client@workspace:packages/retch-client"
   dependencies:
+    "@crawlee/core": "npm:^3.12.1"
     retch-http: "npm:^0.2.3"
   peerDependencies:
     "@crawlee/core": ^3.12.1
