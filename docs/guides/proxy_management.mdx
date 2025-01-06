@@ -61,7 +61,66 @@ Examples of how to use our proxy URLs with crawlers are shown below in [Crawler 
 
 All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> class. We create an instance using the `ProxyConfiguration` <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided options. See the <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink> for all the possible constructor options.
 
-### Crawler integration
+### Static proxy list
+
+We can provide a list of proxy URLs to the `proxyUrls` option. The `ProxyConfiguration` will then rotate through the provided proxies.
+
+```javascript
+const proxyConfiguration = new ProxyConfiguration({
+    proxyUrls: [
+        'http://proxy-1.com',
+        'http://proxy-2.com',
+        null // null means no proxy is used
+    ]
+});
+```
+
+This is a simple way to use a list of proxies. Crawlee will rotate through the list of proxies in a round-robin fashion.
+
+### Custom proxy function
+
+The `ProxyConfiguration` class allows us to provide a custom function to pick a proxy URL. This is useful when we want to implement our own logic for selecting a proxy.
+
+```javascript
+const proxyConfiguration = new ProxyConfiguration({
+    newUrlFunction: (sessionId, { request }) => {
+        if (request?.url.includes('crawlee.dev')) {
+            return null; // for crawlee.dev, we don't use a proxy
+        }
+
+        return 'http://proxy-1.com'; // for all other URLs, we use this proxy
+    }
+});
+```
+
+The `newUrlFunction` receives two parameters - `sessionId` and `options` - and returns a string containing the proxy URL.
+
+The `sessionId` parameter is always provided and allows us to differentiate between different sessions - e.g. when Crawlee recognizes your crawlers are being blocked, it will automatically create a new session with a different id.
+
+The `options` parameter is an object containing the `request` object, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly.
+Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
+
+### Tiered proxies
+
+We can also provide a list of proxy tiers to the `ProxyConfiguration` class. This is useful when we want switch between different proxies automatically based on the blocking behavior of the website.
+
+```javascript
+const proxyConfiguration = new ProxyConfiguration({
+    tieredProxyUrls: [
+        [null],
+        ['http://okay-proxy.com'],
+        ['http://slightly-better-proxy.com', 'http://slightly-better-proxy-2.com'],
+        ['http://very-good-and-expensive-proxy.com'],
+    ]
+});
+```
+
+This configuration will start with no proxy, then switch to `http://okay-proxy.com` if Crawlee recognized we're getting blocked by the target website. 
+If that proxy is also blocked, we will switch to one of the `slightly-better-proxy` URLs. If those are blocked, we will switch to the `very-good-and-expensive-proxy.com` URL.
+
+Crawlee also periodically probes lower tier proxies to see if they are unblocked, and if they are, it will switch back to them.
+
+## Crawler integration
 
 `ProxyConfiguration` integrates seamlessly into <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink>, <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
 
@@ -95,7 +154,7 @@ All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguratio
 
 Our crawlers will now use the selected proxies for all connections.
 
-### IP Rotation and session management
+## IP Rotation and session management
 
 &#8203;<ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> allows us to pass a `sessionId` parameter. It will then be used to create a `sessionId`-`proxyUrl` pair, and subsequent `newUrl()` calls with the same `sessionId` will always return the same `proxyUrl`. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
 
