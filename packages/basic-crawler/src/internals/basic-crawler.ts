@@ -980,9 +980,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * All the tasks active at the time of calling this method will be allowed to finish.
      */
     stop(message: string = 'This crawler has been gracefully stopped.') {
+        // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
         this.autoscaledPool
-            ?.pause() // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
-            .then(async () => this.autoscaledPool?.abort()) // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
+            ?.pause()
+            // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
+            .then(async () => this.autoscaledPool?.abort())
             .then(() => this.log.info(message))
             .catch((err) => {
                 this.log.error('Error stopping the crawler:', err);
