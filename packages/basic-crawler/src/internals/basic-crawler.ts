@@ -305,6 +305,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     useSessionPool?: boolean;
 
     /**
+     * Provide a custom {@apilink SessionPool} in lieu of having one be automatically created.
+     */
+    sessionPool?: SessionPool;
+
+    /**
      * The configuration options for {@apilink SessionPool} to use.
      */
     sessionPoolOptions?: SessionPoolOptions;
@@ -534,6 +539,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
+        sessionPool: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
 
@@ -574,6 +580,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
             keepAlive,
+            sessionPool,
             sessionPoolOptions = {},
             useSessionPool = true,
 
@@ -686,6 +693,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             config,
             ...statisticsOptions,
         });
+        this.sessionPool = sessionPool;
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
             log,
@@ -1084,7 +1092,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
 
-        if (this.useSessionPool) {
+        // Create a new SessionPool if one is requested, unless one is already provided.
+        if (this.useSessionPool && !this.sessionPool) {
             this.sessionPool = await SessionPool.open(this.sessionPoolOptions, this.config);
             // Assuming there are not more than 20 browsers running at once;
             this.sessionPool.setMaxListeners(20);
