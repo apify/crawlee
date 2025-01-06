@@ -544,7 +544,7 @@ async function restoreHistoryNavigationAndSaveCapturedUrls(page: Page, requests:
         const { stateHistory } = window.history as unknown as ApifyWindow;
         (window as unknown as Dictionary).history = (window as unknown as Dictionary).__originalHistory__;
         return stateHistory;
-    });
+    }) ?? [];
 
     state.forEach((args) => {
         try {
