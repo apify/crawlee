@@ -974,6 +974,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return stats;
     }
 
+    /**
+     * Gracefully stops the current run of the crawler.
+     *
+     * This method will wait for all running tasks to finish. Only once all tasks are finished, the method will resolve.
+     *
+     * **WARNING:** If this method is called (and awaited) from a task (e.g. in the `requestHandler`), it will wait indefinitely, as the task will never finish.
+     */
+    async stop() {
+        await this.autoscaledPool?.pause(); // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
+        await this.autoscaledPool?.abort(); // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
+    }
+
     async getRequestQueue() {
         if (!this.requestQueue && this.requestList) {
             this.log.warningOnce(
