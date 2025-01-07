@@ -59,11 +59,13 @@ Examples of how to use our proxy URLs with crawlers are shown below in [Crawler 
 
 ## Proxy Configuration
 
-All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> class. We create an instance using the `ProxyConfiguration` <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided options. See the <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink> for all the possible constructor options.
+All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> class. 
+We create an instance using the `ProxyConfiguration` <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided options. 
+See the <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink> for all the possible constructor options.
 
 ### Static proxy list
 
-We can provide a list of proxy URLs to the `proxyUrls` option. The `ProxyConfiguration` will then rotate through the provided proxies.
+We can provide a static list of proxy URLs to the `proxyUrls` option. The `ProxyConfiguration` will then rotate through the provided proxies.
 
 ```javascript
 const proxyConfiguration = new ProxyConfiguration({
@@ -75,7 +77,7 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 ```
 
-This is a simple way to use a list of proxies. Crawlee will rotate through the list of proxies in a round-robin fashion.
+This is the simplest way to use a list of proxies. Crawlee will rotate through the list of proxies in a round-robin fashion.
 
 ### Custom proxy function
 
@@ -97,17 +99,25 @@ The `newUrlFunction` receives two parameters - `sessionId` and `options` - and r
 
 The `sessionId` parameter is always provided and allows us to differentiate between different sessions - e.g. when Crawlee recognizes your crawlers are being blocked, it will automatically create a new session with a different id.
 
-The `options` parameter is an object containing the `request` object, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly.
+The `options` parameter is an object containing a <ApiLink to="core/class/Request">`Request`</ApiLink>, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly.
 Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
 
 ### Tiered proxies
 
 We can also provide a list of proxy tiers to the `ProxyConfiguration` class. This is useful when we want switch between different proxies automatically based on the blocking behavior of the website.
 
+:::warning
+
+Note that the `tieredProxyUrls` option requires `ProxyConfiguration` to be used from a crawler instance ([see below](#crawler-integration)). 
+
+Using this configuration through the `newUrl` calls will not yield the expected results.
+
+:::
+
 ```javascript
 const proxyConfiguration = new ProxyConfiguration({
     tieredProxyUrls: [
-        [null],
+        [null], // At first, we try to connect without a proxy
         ['http://okay-proxy.com'],
         ['http://slightly-better-proxy.com', 'http://slightly-better-proxy-2.com'],
         ['http://very-good-and-expensive-proxy.com'],
