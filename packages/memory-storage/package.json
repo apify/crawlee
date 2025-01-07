@@ -3,7 +3,7 @@
     "version": "3.12.1",
     "description": "A simple in-memory storage implementation of the Apify API",
     "engines": {
-        "node": ">= 16"
+        "node": ">=16.0.0"
     },
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
