@@ -987,7 +987,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             .then(async () => this.autoscaledPool?.abort())
             .then(() => this.log.info(message))
             .catch((err) => {
-                this.log.error('Error stopping the crawler:', err);
+                this.log.error('An error occurred when stopping the crawler:', err);
             });
     }
 
