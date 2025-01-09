@@ -30,7 +30,7 @@ We have grouped all crawler classes (and their corresponding crawling context cl
 + from crawlee.crawlers import BeautifulSoupCrawler, BeautifulSoupCrawlingContext
 ```
 
-Example of import code suggestions in the IDE:
+Look how you can see all the crawlers that we have, ain't that cool!
 
 ![Import from crawlers subpackage.](./img/import_crawlers.png)
 
@@ -211,8 +211,6 @@ In this example we combine a [`RequestList`](https://crawlee.dev/python/api/clas
 The [`ServiceLocator`](https://crawlee.dev/python/api/class/ServiceLocator) is primarily an internal mechanism for managing the services that Crawlee depends on. Specifically, the [`Configuration`](https://crawlee.dev/python/api/class/ServiceLocator), [`StorageClient`](https://crawlee.dev/python/api/class/ServiceLocator), and [`EventManager`](https://crawlee.dev/python/api/class/ServiceLocator). By swapping out these components, you can adapt Crawlee to suit different runtime environments.
 
 You can use the service locator explicitly:
-
-You can use service locator explicitly
 
 ```python
 import asyncio
