@@ -215,8 +215,8 @@ __metadata:
   linkType: hard
 
 "@apify/docusaurus-plugin-typedoc-api@npm:^4.3.2":
-  version: 4.3.5
-  resolution: "@apify/docusaurus-plugin-typedoc-api@npm:4.3.5"
+  version: 4.3.6
+  resolution: "@apify/docusaurus-plugin-typedoc-api@npm:4.3.6"
   dependencies:
     "@docusaurus/plugin-content-docs": "npm:^3.5.2"
     "@docusaurus/types": "npm:^3.5.2"
@@ -233,7 +233,7 @@ __metadata:
     "@docusaurus/mdx-loader": ^3.5.2
     react: ">=18.0.0"
     typescript: ^5.0.0
-  checksum: 10c0/f68d0e6fb3014e7d3777916c061fb2fcc1a83aba43ef06b3c1781cf9aded858c35343247ab90021d0d04b1897fa8d6f091168032c497506e5ab544b29fe8d219
+  checksum: 10c0/fa5a231de6200c50dc14b8d7b3abb45f8cc90cef46da9fefc43a44d55e9788142f7bb02cd7101c02c67d4ce9f421ef2c36817c45f4c7c7d5d5af3f67f21d8c7f
   languageName: node
   linkType: hard
 
@@ -4140,11 +4140,11 @@ __metadata:
   linkType: hard
 
 "@types/react@npm:*":
-  version: 19.0.3
-  resolution: "@types/react@npm:19.0.3"
+  version: 19.0.4
+  resolution: "@types/react@npm:19.0.4"
   dependencies:
     csstype: "npm:^3.0.2"
-  checksum: 10c0/90129c45f2f09154d9409964964d0ccbac7f04d5f7fcf73fc146d33887931fbfdfd1e2947514298f94f986cc264aff8ba3201e9a4ea207d3308f20a06d47c805
+  checksum: 10c0/96ecd1a73af57fd7b7facf5b36ec069b131c7608a98a0f1098183023bfb21c60a26a0dc09004fbe0ac70c436ef887bbec5690882cfb77c6e0c679f7e45987722
   languageName: node
   linkType: hard
 
@@ -5321,8 +5321,8 @@ __metadata:
   linkType: hard
 
 "browserslist@npm:^4.0.0, browserslist@npm:^4.18.1, browserslist@npm:^4.23.0, browserslist@npm:^4.23.1, browserslist@npm:^4.23.3, browserslist@npm:^4.24.0, browserslist@npm:^4.24.2, browserslist@npm:^4.24.3":
-  version: 4.24.3
-  resolution: "browserslist@npm:4.24.3"
+  version: 4.24.4
+  resolution: "browserslist@npm:4.24.4"
   dependencies:
     caniuse-lite: "npm:^1.0.30001688"
     electron-to-chromium: "npm:^1.5.73"
@@ -5330,7 +5330,7 @@ __metadata:
     update-browserslist-db: "npm:^1.1.1"
   bin:
     browserslist: cli.js
-  checksum: 10c0/bab261ef7b6e1656a719a9fa31240ae7ce4d5ba68e479f6b11e348d819346ab4c0ff6f4821f43adcc9c193a734b186775a83b37979e70a69d182965909fe569a
+  checksum: 10c0/db7ebc1733cf471e0b490b4f47e3e2ea2947ce417192c9246644e92c667dd56a71406cc58f62ca7587caf828364892e9952904a02b7aead752bc65b62a37cfe9
   languageName: node
   linkType: hard
 
@@ -12140,7 +12140,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"picocolors@npm:^1.0.0, picocolors@npm:^1.0.1, picocolors@npm:^1.1.0, picocolors@npm:^1.1.1":
+"picocolors@npm:^1.0.0, picocolors@npm:^1.0.1, picocolors@npm:^1.1.1":
   version: 1.1.1
   resolution: "picocolors@npm:1.1.1"
   checksum: 10c0/e2e3e8170ab9d7c7421969adaa7e1b31434f789afb9b3f115f6b96d91945041ac3ceb02e9ec6fe6510ff036bcc0bf91e69a1772edc0b707e12b19c0f2d6bcf58
@@ -15352,22 +15352,22 @@ __metadata:
   linkType: hard
 
 "typescript@npm:^5.7.2":
-  version: 5.7.2
-  resolution: "typescript@npm:5.7.2"
+  version: 5.7.3
+  resolution: "typescript@npm:5.7.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/a873118b5201b2ef332127ef5c63fb9d9c155e6fdbe211cbd9d8e65877283797cca76546bad742eea36ed7efbe3424a30376818f79c7318512064e8625d61622
+  checksum: 10c0/b7580d716cf1824736cc6e628ab4cd8b51877408ba2be0869d2866da35ef8366dd6ae9eb9d0851470a39be17cbd61df1126f9e211d8799d764ea7431d5435afa
   languageName: node
   linkType: hard
 
 "typescript@patch:typescript@npm%3A^5.7.2#optional!builtin<compat/typescript>":
-  version: 5.7.2
-  resolution: "typescript@patch:typescript@npm%3A5.7.2#optional!builtin<compat/typescript>::version=5.7.2&hash=5786d5"
+  version: 5.7.3
+  resolution: "typescript@patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/f3b8082c9d1d1629a215245c9087df56cb784f9fb6f27b5d55577a20e68afe2a889c040aacff6d27e35be165ecf9dca66e694c42eb9a50b3b2c451b36b5675cb
+  checksum: 10c0/6fd7e0ed3bf23a81246878c613423730c40e8bdbfec4c6e4d7bf1b847cbb39076e56ad5f50aa9d7ebd89877999abaee216002d3f2818885e41c907caaa192cc4
   languageName: node
   linkType: hard
 
@@ -15549,16 +15549,16 @@ __metadata:
   linkType: hard
 
 "update-browserslist-db@npm:^1.1.1":
-  version: 1.1.1
-  resolution: "update-browserslist-db@npm:1.1.1"
+  version: 1.1.2
+  resolution: "update-browserslist-db@npm:1.1.2"
   dependencies:
     escalade: "npm:^3.2.0"
-    picocolors: "npm:^1.1.0"
+    picocolors: "npm:^1.1.1"
   peerDependencies:
     browserslist: ">= 4.21.0"
   bin:
     update-browserslist-db: cli.js
-  checksum: 10c0/536a2979adda2b4be81b07e311bd2f3ad5e978690987956bc5f514130ad50cac87cd22c710b686d79731e00fbee8ef43efe5fcd72baa241045209195d43dcc80
+  checksum: 10c0/9cb353998d6d7d6ba1e46b8fa3db888822dd972212da4eda609d185eb5c3557a93fd59780ceb757afd4d84240518df08542736969e6a5d6d6ce2d58e9363aac6
   languageName: node
   linkType: hard
 
