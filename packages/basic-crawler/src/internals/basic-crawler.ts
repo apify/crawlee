@@ -979,7 +979,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      *
      * All the tasks active at the time of calling this method will be allowed to finish.
      */
-    stop(message: string = 'This crawler has been gracefully stopped.') {
+    stop(message = 'The crawler has been gracefully stopped.'): void {
         // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
         this.autoscaledPool
             ?.pause()
