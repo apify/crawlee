@@ -166,8 +166,7 @@ if __name__ == '__main__':
 
 There are new classes [`RequestLoader`](https://www.crawlee.dev/python/api/class/RequestLoader), [`RequestManager`](https://www.crawlee.dev/python/api/class/RequestManager) and [`RequestManagerTandem`](https://www.crawlee.dev/python/api/class/RequestManagerTandem) that manage how Crawlee accesses and stores requests. They allow you to use other component (service) as a source for requests and optionally you can combine it with a [`RequestQueue`](https://www.crawlee.dev/python/api/class/RequestQueue). They let you plug in any request source, and combine the external data sources with Crawlee's standard `RequestQueue`.
 
-<!-- TODO: uncoment this, once the guide is ready -->
-<!-- You can learn more about these new features in the [Request loaders guide](https://www.crawlee.dev/python/docs/guides/request-loaders). -->
+You can learn more about these new features in the [Request loaders guide](https://www.crawlee.dev/python/docs/guides/request-loaders).
 
 ```python
 import asyncio
