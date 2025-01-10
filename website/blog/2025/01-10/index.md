@@ -79,7 +79,7 @@ In this example, we use a [`ParselCrawler`](https://www.crawlee.dev/python/api/c
 
 ### Use state
 
-The [`use_state`](https://www.crawlee.dev/python/api/class/UseStateFunction) crawling context helper makes it simple to create and manage persistent state values within your crawler. It ensures that all state values are automatically persisted. It enables you to maintain data across different crawler runs, restarts and failures. It acts as a convenient abstraction for interaction with [`KeyValueStore`](https://www.crawlee.dev/python/api/class/KeyValueStore).
+The [`use_state`](https://www.crawlee.dev/python/api/class/UseStateFunction) crawling context helper makes it simple to create and manage persistent state values within your crawler. It ensures that all state values are automatically persisted. It enables you to maintain data across different crawler runs, restarts, and failures. It acts as a convenient abstraction for interaction with [`KeyValueStore`](https://www.crawlee.dev/python/api/class/KeyValueStore).
 
 ```python
 import asyncio
