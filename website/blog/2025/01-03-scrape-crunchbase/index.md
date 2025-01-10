@@ -3,7 +3,7 @@ slug: scrape-crunchbase-python
 title: 'How to scrape Crunchbase using Python in 2024 (Easy Guide)'
 tags: [community]
 description: 'Learn how to scrape Crunchbase using Crawlee for Python'
-image: ""
+image: "./img/scrape_crunchbase.webp"
 authors: [MaxB]
 ---
 
@@ -19,7 +19,7 @@ This guide comes from a developer in our growing community. Have you built inter
 
 :::
 
-![How to Scrape Crunchbase Using Python](soon main image)
+![How to Scrape Crunchbase Using Python](./img/scrape_crunchbase.webp)
 
 Key steps we'll cover:
 
