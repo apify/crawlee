@@ -30,7 +30,7 @@ We have grouped all crawler classes (and their corresponding crawling context cl
 + from crawlee.crawlers import BeautifulSoupCrawler, BeautifulSoupCrawlingContext
 ```
 
-Look how you can see all the crawlers that we have, ain't that cool!
+Look how you can see all the crawlers that we have, isn't that cool!
 
 ![Import from crawlers subpackage.](./img/import_crawlers.webp)
 
