@@ -5,7 +5,7 @@ description: Announcing the Crawlee for Python v0.5 release.
 authors: [VladaD]
 ---
 
-Crawlee for Python v0.5 is now available! This is our biggest release to this date, bringing new ported functionality from the [Crawlee for JavaScript](https://github.com/apify/crawlee), brand-new features that are exclusive to the Python library (for now), a new consolidated package structure, and a bunch of bug fixes and further improvements.
+Crawlee for Python v0.5 is now available! This is our biggest release to date, bringing new ported functionality from the [Crawlee for JavaScript](https://github.com/apify/crawlee), brand-new features that are exclusive to the Python library (for now), a new consolidated package structure, and a bunch of bug fixes and further improvements.
 
 ## Getting started
 
