@@ -51,7 +51,7 @@ We are constantly working toward feature parity with our JavaScript library, [Cr
 
 ### HTML to text context helper
 
-The `html_to_text` crawling context helper simplifies extracting text from an HTML page by automatically removing all tags and returning only the raw text content. It is available in the [`ParselCrawlingContext`](https://www.crawlee.dev/python/api/class/ParselCrawlingContext#html_to_text) and [`BeautifulSoupCrawlingContext`](https://www.crawlee.dev/python/api/class/BeautifulSoupCrawlingContext#html_to_text).
+The `html_to_text` crawling context helper simplifies extracting text from an HTML page by automatically removing all tags and returning only the raw text content. It's available in the [`ParselCrawlingContext`](https://www.crawlee.dev/python/api/class/ParselCrawlingContext#html_to_text) and [`BeautifulSoupCrawlingContext`](https://www.crawlee.dev/python/api/class/BeautifulSoupCrawlingContext#html_to_text).
 
 ```python
 import asyncio
