@@ -15,7 +15,7 @@ You can upgrade to the latest version straight from [PyPI](https://pypi.org/proj
 pip install --upgrade crawlee
 ```
 
-Check out the full changelog on our [website](https://crawlee.dev/python/docs/changelog#050-2025-01-02) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.5](https://crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v05) guide for smooth upgrade.
+Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#050-2025-01-02) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.5](https://www.crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v05) guide for smooth upgrade.
 
 ## New package structure
 
@@ -51,7 +51,7 @@ We are constantly working toward feature parity with our JavaScript library, [Cr
 
 ### HTML to text context helper
 
-The `html_to_text` crawling context helper simplifies extracting text from an HTML page by automatically removing all tags and returning only the raw text content. It is available in the [`ParselCrawlingContext`](https://crawlee.dev/python/api/class/ParselCrawlingContext#html_to_text) and [`BeautifulSoupCrawlingContext`](https://crawlee.dev/python/api/class/BeautifulSoupCrawlingContext#html_to_text).
+The `html_to_text` crawling context helper simplifies extracting text from an HTML page by automatically removing all tags and returning only the raw text content. It is available in the [`ParselCrawlingContext`](https://www.crawlee.dev/python/api/class/ParselCrawlingContext#html_to_text) and [`BeautifulSoupCrawlingContext`](https://www.crawlee.dev/python/api/class/BeautifulSoupCrawlingContext#html_to_text).
 
 ```python
 import asyncio
@@ -75,11 +75,11 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-In this example, we use a [`ParselCrawler`](https://crawlee.dev/python/api/class/ParselCrawler) to fetch a webpage, then invoke `context.html_to_text()` to extract clean text for further processing.
+In this example, we use a [`ParselCrawler`](https://www.crawlee.dev/python/api/class/ParselCrawler) to fetch a webpage, then invoke `context.html_to_text()` to extract clean text for further processing.
 
 ### Use state
 
-The [`use_state`](https://crawlee.dev/python/api/class/UseStateFunction) crawling context helper makes it simple to create and manage persistent state values within your crawler. It ensures that all state values are automatically persisted. It enables you to maintain data across different crawler runs, restarts and failures. It acts as a convenient abstraction for interaction with [`KeyValueStore`](https://crawlee.dev/python/api/class/KeyValueStore).
+The [`use_state`](https://www.crawlee.dev/python/api/class/UseStateFunction) crawling context helper makes it simple to create and manage persistent state values within your crawler. It ensures that all state values are automatically persisted. It enables you to maintain data across different crawler runs, restarts and failures. It acts as a convenient abstraction for interaction with [`KeyValueStore`](https://www.crawlee.dev/python/api/class/KeyValueStore).
 
 ```python
 import asyncio
@@ -129,7 +129,7 @@ In addition to porting features from JS, we are introducing new, Python-first fu
 
 ### Crawler's stop method
 
-The [`BasicCrawler`](https://crawlee.dev/python/api/class/BasicCrawler), and by extension, all crawlers that inherit from it, now has a [`stop`](https://crawlee.dev/python/api/class/BasicCrawler#stop) method. This makes it easy to halt the crawling when a specific condition is met, for instance, if you have found the data you were looking for.
+The [`BasicCrawler`](https://www.crawlee.dev/python/api/class/BasicCrawler), and by extension, all crawlers that inherit from it, now has a [`stop`](https://www.crawlee.dev/python/api/class/BasicCrawler#stop) method. This makes it easy to halt the crawling when a specific condition is met, for instance, if you have found the data you were looking for.
 
 ```python
 import asyncio
@@ -164,10 +164,10 @@ if __name__ == '__main__':
 
 ### Request loaders
 
-There are new classes [`RequestLoader`](https://crawlee.dev/python/api/class/RequestLoader), [`RequestManager`](https://crawlee.dev/python/api/class/RequestManager) and [`RequestManagerTandem`](https://crawlee.dev/python/api/class/RequestManagerTandem) that manage how Crawlee accesses and stores requests. They allow you to use other component (service) as a source for requests and optionally you can combine it with a [`RequestQueue`](https://crawlee.dev/python/api/class/RequestQueue). They let you plug in any request source, and combine the external data sources with Crawlee's standard `RequestQueue`.
+There are new classes [`RequestLoader`](https://www.crawlee.dev/python/api/class/RequestLoader), [`RequestManager`](https://www.crawlee.dev/python/api/class/RequestManager) and [`RequestManagerTandem`](https://www.crawlee.dev/python/api/class/RequestManagerTandem) that manage how Crawlee accesses and stores requests. They allow you to use other component (service) as a source for requests and optionally you can combine it with a [`RequestQueue`](https://www.crawlee.dev/python/api/class/RequestQueue). They let you plug in any request source, and combine the external data sources with Crawlee's standard `RequestQueue`.
 
 <!-- TODO: uncoment this, once the guide is ready -->
-<!-- You can learn more about these new features in the [Request loaders guide](https://crawlee.dev/python/docs/guides/request-loaders). -->
+<!-- You can learn more about these new features in the [Request loaders guide](https://www.crawlee.dev/python/docs/guides/request-loaders). -->
 
 ```python
 import asyncio
@@ -205,11 +205,11 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-In this example we combine a [`RequestList`](https://crawlee.dev/python/api/class/RequestList) with a [`RequestQueue`](https://crawlee.dev/python/api/class/RequestQueue). However, instead of the `RequestList` you can use any other class that implements the [`RequestLoader`](https://crawlee.dev/python/api/class/RequestLoader) interface to suit your specific requirements.
+In this example we combine a [`RequestList`](https://www.crawlee.dev/python/api/class/RequestList) with a [`RequestQueue`](https://www.crawlee.dev/python/api/class/RequestQueue). However, instead of the `RequestList` you can use any other class that implements the [`RequestLoader`](https://www.crawlee.dev/python/api/class/RequestLoader) interface to suit your specific requirements.
 
 ### Service locator
 
-The [`ServiceLocator`](https://crawlee.dev/python/api/class/ServiceLocator) is primarily an internal mechanism for managing the services that Crawlee depends on. Specifically, the [`Configuration`](https://crawlee.dev/python/api/class/ServiceLocator), [`StorageClient`](https://crawlee.dev/python/api/class/ServiceLocator), and [`EventManager`](https://crawlee.dev/python/api/class/ServiceLocator). By swapping out these components, you can adapt Crawlee to suit different runtime environments.
+The [`ServiceLocator`](https://www.crawlee.dev/python/api/class/ServiceLocator) is primarily an internal mechanism for managing the services that Crawlee depends on. Specifically, the [`Configuration`](https://www.crawlee.dev/python/api/class/ServiceLocator), [`StorageClient`](https://www.crawlee.dev/python/api/class/ServiceLocator), and [`EventManager`](https://www.crawlee.dev/python/api/class/ServiceLocator). By swapping out these components, you can adapt Crawlee to suit different runtime environments.
 
 You can use the service locator explicitly:
 
