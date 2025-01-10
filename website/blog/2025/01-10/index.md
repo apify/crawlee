@@ -19,7 +19,7 @@ Check out the full changelog on our [website](https://www.crawlee.dev/python/doc
 
 ## New package structure
 
-We have introduced a new consolidated package structure. The goal is to streamline development experience, help you find the crawlers you are looking for faster, and improve the IDE's code suggestions while importing.
+We have introduced a new consolidated package structure. The goal is to streamline the development experience, help you find the crawlers you are looking for faster, and improve the IDE's code suggestions while importing.
 
 ### Crawlers
 
