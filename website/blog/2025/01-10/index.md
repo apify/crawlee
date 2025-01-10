@@ -15,7 +15,7 @@ You can upgrade to the latest version straight from [PyPI](https://pypi.org/proj
 pip install --upgrade crawlee
 ```
 
-Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#050-2025-01-02) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.5](https://www.crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v05) guide for smooth upgrade.
+Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#050-2025-01-02) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.5](https://www.crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v05) guide for a smooth upgrade.
 
 ## New package structure
 
