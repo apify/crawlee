@@ -116,7 +116,7 @@ Cloudflare [also analyzes traffic at the sitemap level](https://developers.cloud
 
 To prevent blocks due to overly aggressive crawling, we'll configure [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings).
 
-When scaling this approach, you'll likely need proxies. Detailed information about proxy setup can be found in the [documentation](https://crawlee.dev/python/docs/guides/proxy-management).
+When scaling this approach, you'll likely need proxies. Detailed information about proxy setup can be found in the [documentation](https://www.crawlee.dev/python/docs/guides/proxy-management).
 
 We'll save our scraping results in `JSON` format. Here's how the basic crawler configuration looks:
 
@@ -289,7 +289,7 @@ Although the documentation states that key activation may take up to an hour, it
 
 ### 2. Configuring the crawler for API work
 
-An important API feature is the limit - no more than 200 requests per minute, but in the free version, this number is significantly lower. Taking this into account, let's configure [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings). Since we're working with the official API, we don't need to mask our HTTP client. We'll use the standard ['HttpxHttpClient'](https://crawlee.dev/python/api/class/HttpxHttpClient) with preset headers.
+An important API feature is the limit - no more than 200 requests per minute, but in the free version, this number is significantly lower. Taking this into account, let's configure [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings). Since we're working with the official API, we don't need to mask our HTTP client. We'll use the standard ['HttpxHttpClient'](https://www.crawlee.dev/python/api/class/HttpxHttpClient) with preset headers.
 
 First, let's save the API key in an environment variable:
 
