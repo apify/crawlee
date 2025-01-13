@@ -14,7 +14,7 @@ We launched Crawlee, the successor to our Apify SDK, in [August 2022](https://bl
 
 Since then, our dev community has grown exponentially. I’m proud to tell you that we have **over 11,500 Stars on GitHub**, over **6,000 community members on our Discord**, and over **125,000 downloads monthly on npm**. We’re now the most popular web scraping and automation library for Node.js developers 👏
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Changes in Crawlee since the launch
 

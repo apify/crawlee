@@ -14,7 +14,7 @@ This article will discuss a new approach that we use in one of our Actors to obt
 
 ![JSDOM based approach from scraping](./img/jsdom.webp)
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Analyzing the website
 

@@ -14,7 +14,7 @@ In this guide, we'll be extracting information from Amazon product pages using t
 
 ![How to scrape Amazon using Typescript, Cheerio, and Crawlee](./img/how-to-scrape-amazon.webp)
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Prerequisites
 

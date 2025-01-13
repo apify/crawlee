@@ -19,7 +19,7 @@ Welcome to another post on the Crawlee blog; this time, we are going to compare 
 
 Crawlee is also an open-source library that originated as [Apify SDK](https://docs.apify.com/sdk/js/). Crawlee has the advantage of being the latest library in the market, so it already has many features that Scrapy lacks, like autoscaling, headless browsing, working with JavaScript rendered websites without any plugins, and many more, which we are going to explain later on.
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Feature comparison
 
