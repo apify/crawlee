@@ -37,6 +37,7 @@ Key steps we'll cover:
 - Python 3.9 or higher
 - Familiarity with web scraping concepts
 - Crawlee for Python `v0.5.0`
+- poetry `v2.0` or higher
 
 ### Project setup
 
@@ -59,6 +60,12 @@ Before we start scraping, we need to set up our project. In this guide, we won't
     ```bash
     poetry init
     ```
+
+    When prompted:
+    - For "Compatible Python versions", enter: `>={your Python version},<4.0`
+    (For example, if you're using Python 3.10, enter: `>=3.10,<4.0`)
+    - Leave all other fields empty by pressing Enter
+    - Confirm the generation by typing "yes"
 
 4. Add and install Crawlee with necessary dependencies to your project using `Poetry.`
 
@@ -123,20 +130,26 @@ We'll save our scraping results in `JSON` format. Here's how the basic crawler c
 ```python
 # main.py
 
+from crawlee import ConcurrencySettings, HttpHeaders
 from crawlee.crawlers import ParselCrawler
 from crawlee.http_clients import CurlImpersonateHttpClient
-from crawlee import ConcurrencySettings, HttpHeaders
+
+from .routes import router
+
 
 async def main() -> None:
     """The crawler entry point."""
-
     concurrency_settings = ConcurrencySettings(max_concurrency=1, max_tasks_per_minute=50)
 
-    http_client = CurlImpersonateHttpClient(impersonate="safari17_0",
-                                            headers=HttpHeaders({
-                                                "accept-language": "en",
-                                                "accept-encoding": "gzip, deflate, br, zstd",
-                                                }))
+    http_client = CurlImpersonateHttpClient(
+        impersonate='safari17_0',
+        headers=HttpHeaders(
+            {
+                'accept-language': 'en',
+                'accept-encoding': 'gzip, deflate, br, zstd',
+            }
+        ),
+    )
     crawler = ParselCrawler(
         request_handler=router,
         max_request_retries=1,
@@ -147,7 +160,7 @@ async def main() -> None:
 
     await crawler.run(['https://www.crunchbase.com/www-sitemaps/sitemap-index.xml'])
 
-    await crawler.export_data_json("crunchbase_data.json")
+    await crawler.export_data_json('crunchbase_data.json')
 ```
 
 ### 2. Implementing sitemap navigation
@@ -169,9 +182,13 @@ async def default_handler(context: ParselCrawlingContext) -> None:
     """Default request handler."""
     context.log.info(f'default_handler processing {context.request} ...')
 
-    requests = [Request.from_url(url, label='sitemap') for url in context.selector.xpath('//loc[contains(., "sitemap-organizations")]/text()').getall()]
+    requests = [
+        Request.from_url(url, label='sitemap')
+        for url in context.selector.xpath('//loc[contains(., "sitemap-organizations")]/text()').getall()
+    ]
 
-    await context.add_requests(requests, limit=1) # Since this is a tutorial, I don't want to upload more than one sitemap link
+    # Since this is a tutorial, I don't want to upload more than one sitemap link
+    await context.add_requests(requests, limit=1)
 ```
 
 In the second stage, we process second-level sitemap files stored in `gzip` format. This requires a special approach as the data needs to be decompressed first:
@@ -181,6 +198,7 @@ In the second stage, we process second-level sitemap files stored in `gzip` form
 
 from gzip import decompress
 from parsel import Selector
+
 
 @router.handler('sitemap')
 async def sitemap_handler(context: ParselCrawlingContext) -> None:
@@ -217,12 +235,18 @@ async def company_handler(context: ParselCrawlingContext) -> None:
 
     json_selector = context.selector.xpath('//*[@id="ng-state"]/text()')
 
-    await context.push_data({
-        "Company Name": json_selector.jmespath('HttpState.*.data[].properties.identifier.value').get(),
-        "Short Description": json_selector.jmespath('HttpState.*.data[].properties.short_description').get(),
-        "Website": json_selector.jmespath('HttpState.*.data[].cards.company_about_fields2.website.value').get(),
-        "Location": "; ".join(json_selector.jmespath('HttpState.*.data[].cards.company_about_fields2.location_identifiers[].value').getall()),
-    })
+    await context.push_data(
+        {
+            'Company Name': json_selector.jmespath('HttpState.*.data[].properties.identifier.value').get(),
+            'Short Description': json_selector.jmespath('HttpState.*.data[].properties.short_description').get(),
+            'Website': json_selector.jmespath('HttpState.*.data[].cards.company_about_fields2.website.value').get(),
+            'Location': '; '.join(
+                json_selector.jmespath(
+                    'HttpState.*.data[].cards.company_about_fields2.location_identifiers[].value'
+                ).getall()
+            ),
+        }
+    )
 ```
 
 The collected data is saved in `Crawlee for Python`'s internal storage using the `context.push_data` method. When the crawler finishes, we export all collected data to a JSON file:
@@ -230,10 +254,30 @@ The collected data is saved in `Crawlee for Python`'s internal storage using the
 ```python
 # main.py
 
-await crawler.export_data_json("crunchbase_data.json")
+await crawler.export_data_json('crunchbase_data.json')
 ```
 
-### 4. Finally, characteristics of using the sitemap crawler
+### 4. Running the project
+
+With all components in place, we need to create an entry point for our crawler:
+
+```python
+# __main__.py
+import asyncio
+
+from .main import main
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+Execute the crawler using Poetry:
+
+```bash
+poetry run python -m crunchbase-crawlee
+```
+
+### 5. Finally, characteristics of using the sitemap crawler
 
 The sitemap approach has its distinct advantages and limitations. It's ideal in the following cases:
 
@@ -310,17 +354,17 @@ from crawlee import ConcurrencySettings, HttpHeaders
 
 from .routes import router
 
-CRUNCHBASE_TOKEN = os.getenv("CRUNCHBASE_TOKEN", "")
+CRUNCHBASE_TOKEN = os.getenv('CRUNCHBASE_TOKEN', '')
+
 
 async def main() -> None:
     """The crawler entry point."""
 
     concurrency_settings = ConcurrencySettings(max_tasks_per_minute=60)
 
-    http_client = HttpxHttpClient(headers=HttpHeaders({
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "X-cb-user-key": CRUNCHBASE_TOKEN
-        }))
+    http_client = HttpxHttpClient(
+        headers=HttpHeaders({'accept-encoding': 'gzip, deflate, br, zstd', 'X-cb-user-key': CRUNCHBASE_TOKEN})
+    )
     crawler = HttpCrawler(
         request_handler=router,
         concurrency_settings=concurrency_settings,
@@ -328,9 +372,11 @@ async def main() -> None:
         max_requests_per_crawl=30,
     )
 
-    await crawler.run(['https://api.crunchbase.com/api/v4/autocompletes?query=apify&collection_ids=organizations&limit=25'])
+    await crawler.run(
+        ['https://api.crunchbase.com/api/v4/autocompletes?query=apify&collection_ids=organizations&limit=25']
+    )
 
-    await crawler.export_data_json("crunchbase_data.json")
+    await crawler.export_data_json('crunchbase_data.json')
 ```
 
 ### 3. Processing search results
@@ -351,6 +397,7 @@ from crawlee import Request
 
 router = Router[HttpCrawlingContext]()
 
+
 @router.default_handler
 async def default_handler(context: HttpCrawlingContext) -> None:
     """Default request handler."""
@@ -361,11 +408,11 @@ async def default_handler(context: HttpCrawlingContext) -> None:
     requests = []
 
     for entity in data['entities']:
-        permalink = entity["identifier"]["permalink"]
+        permalink = entity['identifier']['permalink']
         requests.append(
             Request.from_url(
-                url=f"https://api.crunchbase.com/api/v4/entities/organizations/{permalink}?field_ids=short_description%2Clocation_identifiers%2Cwebsite_url",
-                label='company'
+                url=f'https://api.crunchbase.com/api/v4/entities/organizations/{permalink}?field_ids=short_description%2Clocation_identifiers%2Cwebsite_url',
+                label='company',
             )
         )
 
@@ -384,12 +431,14 @@ async def company_handler(context: HttpCrawlingContext) -> None:
 
     data = json.loads(context.http_response.read())
 
-    await context.push_data({
-        "Company Name": data['properties']["identifier"]["value"],
-        "Short Description": data['properties']["short_description"],
-        "Website": data['properties'].get("website_url"),
-        "Location": "; ".join([item["value"] for item in data['properties'].get("location_identifiers", [])]),
-    })
+    await context.push_data(
+        {
+            'Company Name': data['properties']['identifier']['value'],
+            'Short Description': data['properties']['short_description'],
+            'Website': data['properties'].get('website_url'),
+            'Location': '; '.join([item['value'] for item in data['properties'].get('location_identifiers', [])]),
+        }
+    )
 ```
 
 ### 5. Advanced location-based search
@@ -398,12 +447,7 @@ If you need more flexible search capabilities, the API provides a special [`sear
 
 ```python
 payload = {
-    'field_ids': [
-        'identifier',
-        'location_identifiers',
-        'short_description',
-        'website_url'
-    ],
+    'field_ids': ['identifier', 'location_identifiers', 'short_description', 'website_url'],
     'limit': 200,
     'order': [{'field_id': 'rank_org', 'sort': 'asc'}],
     'query': [
@@ -411,28 +455,25 @@ payload = {
             'field_id': 'location_identifiers',
             'operator_id': 'includes',
             'type': 'predicate',
-            'values': ['e0b951dc-f710-8754-ddde-5ef04dddd9f8']
+            'values': ['e0b951dc-f710-8754-ddde-5ef04dddd9f8'],
         },
-        {
-            'field_id': 'facet_ids',
-            'operator_id': 'includes',
-            'type': 'predicate',
-            'values': ['company']
-        }
-    ]
+        {'field_id': 'facet_ids', 'operator_id': 'includes', 'type': 'predicate', 'values': ['company']},
+    ],
 }
 
 serialiazed_payload = json.dumps(payload)
-await crawler.run([
-    Request.from_url(
-        url="https://api.crunchbase.com/api/v4/searches/organizations",
-        method="POST",
-        payload=serialiazed_payload,
-        use_extended_unique_key=True,
-        headers=HttpHeaders({'Content-Type': 'application/json'}),
-        label="search"
-    )
-])
+await crawler.run(
+    [
+        Request.from_url(
+            url='https://api.crunchbase.com/api/v4/searches/organizations',
+            method='POST',
+            payload=serialiazed_payload,
+            use_extended_unique_key=True,
+            headers=HttpHeaders({'Content-Type': 'application/json'}),
+            label='search',
+        )
+    ]
+)
 ```
 
 For processing search results and pagination, we use the following handler:
@@ -450,31 +491,35 @@ async def search_handler(context: HttpCrawlingContext) -> None:
 
     for entity in data['entities']:
         last_entity = entity['uuid']
-        results.append({
-            "Company Name": entity['properties']["identifier"]["value"],
-            "Short Description": entity['properties']["short_description"],
-            "Website": entity['properties'].get("website_url"),
-            "Location": "; ".join([item["value"] for item in entity['properties'].get("location_identifiers", [])]),
-        })
+        results.append(
+            {
+                'Company Name': entity['properties']['identifier']['value'],
+                'Short Description': entity['properties']['short_description'],
+                'Website': entity['properties'].get('website_url'),
+                'Location': '; '.join([item['value'] for item in entity['properties'].get('location_identifiers', [])]),
+            }
+        )
 
     if results:
         await context.push_data(results)
 
     if last_entity:
         payload = json.loads(context.request.payload)
-        payload["after_id"] = last_entity
+        payload['after_id'] = last_entity
         payload = json.dumps(payload)
 
-        await context.add_requests([
-            Request.from_url(
-                url="https://api.crunchbase.com/api/v4/searches/organizations",
-                method="POST",
-                payload=payload,
-                use_extended_unique_key=True,
-                headers=HttpHeaders({'Content-Type': 'application/json'}),
-                label="search"
-            )
-        ])
+        await context.add_requests(
+            [
+                Request.from_url(
+                    url='https://api.crunchbase.com/api/v4/searches/organizations',
+                    method='POST',
+                    payload=payload,
+                    use_extended_unique_key=True,
+                    headers=HttpHeaders({'Content-Type': 'application/json'}),
+                    label='search',
+                )
+            ]
+        )
 ```
 
 ### 6. Finally, free API limitations
