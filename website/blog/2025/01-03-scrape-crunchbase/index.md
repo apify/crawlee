@@ -34,7 +34,7 @@ Key steps we'll cover:
 
 ## Prerequisites
 
-- Python 3.7 or higher
+- Python 3.9 or higher
 - Familiarity with web scraping concepts
 - Crawlee for Python `v0.5.0`
 
