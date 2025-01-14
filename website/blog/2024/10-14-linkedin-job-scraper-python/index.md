@@ -26,7 +26,7 @@ By the end of this tutorial, you’ll have a fully functional web application th
 
 Let's begin.
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Prerequisites
 

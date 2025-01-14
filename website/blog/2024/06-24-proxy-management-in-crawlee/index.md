@@ -15,7 +15,7 @@ Proxies vary in quality, speed, reliability, and cost. There are a [few types of
 
 It is hard for developers to decide which proxy to use while scraping data. We might get blocked if we use [datacenter proxies](https://blog.apify.com/datacenter-proxies-when-to-use-them-and-how-to-make-the-most-of-them/) for low-cost scraping, but residential proxies are sometimes too expensive for bigger projects. Developers need a system that can manage both costs and avoid getting blocked. To manage this, we recently introduced tiered proxies in Crawlee. Let’s take a look at it.
 
-<!--truncate-->
+<!-- truncate -->
 
 :::note
 

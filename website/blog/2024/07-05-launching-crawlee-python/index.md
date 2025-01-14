@@ -26,7 +26,7 @@ The new library is still in **beta**, and we are looking for **early adopters**.
 
 Crawlee for Python has some amazing initial features, such as a unified interface for HTTP and headless browser crawling, automatic retries, and much more.
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Why use Crawlee instead of a random HTTP library with an HTML parser?
 
