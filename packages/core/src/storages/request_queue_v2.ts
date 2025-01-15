@@ -109,6 +109,11 @@ export class RequestQueue extends RequestProvider {
      * @inheritDoc
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+
+        // TODO Kuba: We are missing there check for the queuePausedForMigration and for aborting.
+        // If we did not pause it here, we would be fetching and locking requests.
+        // The raise condition is here that we call _clearPossibleLocks(), but after that we can still fetch and lock requests, so the requests will be locked and never unlocked.
+
         checkStorageAccess();
 
         this.lastActivity = new Date();
@@ -187,6 +192,7 @@ export class RequestQueue extends RequestProvider {
         checkStorageAccess();
 
         // Stop fetching if we are paused for migration
+        // TODO Kuba: We should stop fetching in case of aborting as well.
         if (this.queuePausedForMigration) {
             return;
         }
@@ -204,8 +210,10 @@ export class RequestQueue extends RequestProvider {
     }
 
     private async _listHeadAndLock(): Promise<void> {
+        // TODO Kuba: This is a little bit confusing, let's rename to something descriptive.
         const forefront = await this.hasPendingForefrontRequests();
 
+        // TODO Kuba: The list and lock is ATOMIC operation, so we can be sure that we are the only ones reading these requests for requestLockSecs nobody else can read them using listAndLockHead.
         const headData = await this.client.listAndLockHead({
             limit: Math.min(forefront ? this.assumedForefrontCount : 25, 25),
             lockSecs: this.requestLockSecs,
@@ -213,12 +221,17 @@ export class RequestQueue extends RequestProvider {
 
         const headIdBuffer = [];
 
+        // TODO Kuba: This is a bit of hack this should not happen. We need to investigate why.
         for (const { id, uniqueKey } of headData.items) {
             // Queue head index might be behind the main table, so ensure we don't recycle requests
             if (
+                // TODO Kuba: Missing id or uniqueKey means that the request returned from the queue is malformed. This should never happen, needs to investigate why.
                 !id ||
                 !uniqueKey ||
+
+                // TODO Kuba: This should not happen.
                 this.recentlyHandledRequestsCache.get(id) ||
+
                 // If we tried to read new forefront requests, but another client appeared in the meantime, we can't be sure we'll only read our requests.
                 // To retain the correct queue ordering, we rollback this head read.
                 (forefront && headData.hadMultipleClients)
@@ -235,6 +248,8 @@ export class RequestQueue extends RequestProvider {
                 try {
                     await this.client.deleteRequestLock(id);
                 } catch {
+                    // TODO Kuba: There is raise condition here, if you lock the request and did not unlock it, it will be locked there and run stuck.
+                    // TODO Kuba: We should at least log this.
                     // Ignore
                 }
 
