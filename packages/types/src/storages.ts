@@ -227,6 +227,7 @@ export interface ListAndLockOptions extends ListOptions {
 
 export interface ListAndLockHeadResult extends QueueHead {
     lockSecs: number;
+    queueHasLockedRequests?: boolean;
 }
 
 export interface ProlongRequestLockOptions {
