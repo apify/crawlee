@@ -2,29 +2,29 @@ import { Readable } from 'stream';
 import { isTypedArray } from 'util/types';
 
 import type { HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse, BaseHttpClient } from '@crawlee/core';
-import { type RetcherOptions, type HttpMethod, Retcher } from 'retch-http';
+import { type ImpitOptions, type HttpMethod, Impit } from 'impit';
 
-export { Browser } from 'retch-http';
+export { Browser } from 'impit';
 
 /**
- * A HTTP client implementation based on the `retch-http` library.
+ * A HTTP client implementation based on the `impit library.
  */
-export class RetchHttpClient implements BaseHttpClient {
-    private retcherOptions: RetcherOptions;
+export class ImpitHttpClient implements BaseHttpClient {
+    private impitOptions: ImpitOptions;
     private maxRedirects: number;
     private followRedirects: boolean;
 
-    constructor(options?: Omit<RetcherOptions, 'proxyUrl'> & { maxRedirects?: number }) {
-        this.retcherOptions = options ?? {};
+    constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number }) {
+        this.impitOptions = options ?? {};
 
         this.maxRedirects = options?.maxRedirects ?? 10;
         this.followRedirects = options?.followRedirects ?? true;
     }
 
     /**
-     * Converts the body of a `HttpRequest` to a format that can be passed to `retch-http`.
+     * Converts the body of a `HttpRequest` to a format that can be passed to `impit`.
      */
-    private async intoRetcherBody<TResponseType extends keyof ResponseTypes>(
+    private async intoImpitBody<TResponseType extends keyof ResponseTypes>(
         body: Exclude<HttpRequest<TResponseType>['body'], undefined>,
     ): Promise<string | Uint8Array> {
         if (typeof body === 'string' || isTypedArray(body)) {
@@ -48,7 +48,7 @@ export class RetchHttpClient implements BaseHttpClient {
     }
 
     /**
-     * Flattens the headers of a `HttpRequest` to a format that can be passed to `retch-http`.
+     * Flattens the headers of a `HttpRequest` to a format that can be passed to `impit`.
      * @param headers `SimpleHeaders` object
      * @returns `Record<string, string>` object
      */
@@ -91,15 +91,15 @@ export class RetchHttpClient implements BaseHttpClient {
 
         const url = typeof request.url === 'string' ? request.url : request.url.href;
         const headers = request.headers !== undefined ? this.flattenHeaders(request.headers) : undefined;
-        const body = request.body !== undefined ? await this.intoRetcherBody(request.body) : undefined;
+        const body = request.body !== undefined ? await this.intoImpitBody(request.body) : undefined;
 
-        const retcher = new Retcher({
-            ...this.retcherOptions,
+        const impit = new Impit({
+            ...this.impitOptions,
             proxyUrl: request.proxyUrl,
             followRedirects: false,
         });
 
-        const response = await retcher.fetch(url, {
+        const response = await impit.fetch(url, {
             method: request.method as HttpMethod,
             headers,
             body: body as string,
