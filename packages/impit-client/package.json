@@ -1,5 +1,5 @@
 {
-  "name": "@crawlee/retch-client",
+  "name": "@crawlee/impit-client",
   "version": "3.12.1",
   "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
   "engines": {

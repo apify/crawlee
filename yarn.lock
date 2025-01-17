@@ -616,6 +616,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@crawlee/impit-client@workspace:packages/impit-client":
+  version: 0.0.0-use.local
+  resolution: "@crawlee/impit-client@workspace:packages/impit-client"
+  dependencies:
+    "@crawlee/core": "npm:^3.12.1"
+    impit: "npm:^0.1.3"
+  peerDependencies:
+    "@crawlee/core": ^3.12.1
+  languageName: unknown
+  linkType: soft
+
 "@crawlee/jsdom@npm:3.12.1, @crawlee/jsdom@workspace:packages/jsdom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/jsdom@workspace:packages/jsdom-crawler"
@@ -714,17 +725,6 @@ __metadata:
   peerDependenciesMeta:
     puppeteer:
       optional: true
-  languageName: unknown
-  linkType: soft
-
-"@crawlee/retch-client@workspace:packages/retch-client":
-  version: 0.0.0-use.local
-  resolution: "@crawlee/retch-client@workspace:packages/retch-client"
-  dependencies:
-    "@crawlee/core": "npm:^3.12.1"
-    impit: "npm:^0.1.3"
-  peerDependencies:
-    "@crawlee/core": ^3.12.1
   languageName: unknown
   linkType: soft
 
