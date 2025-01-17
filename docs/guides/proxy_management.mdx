@@ -59,13 +59,11 @@ Examples of how to use our proxy URLs with crawlers are shown below in [Crawler 
 
 ## Proxy Configuration
 
-All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> class. 
-We create an instance using the `ProxyConfiguration` <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided options. 
-See the <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink> for all the possible constructor options.
+All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> class. We create an instance using the `ProxyConfiguration` <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided options. See the <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink> for all the possible constructor options.
 
 ### Static proxy list
 
-We can provide a static list of proxy URLs to the `proxyUrls` option. The `ProxyConfiguration` will then rotate through the provided proxies.
+You can provide a static list of proxy URLs to the `proxyUrls` option. The `ProxyConfiguration` will then rotate through the provided proxies.
 
 ```javascript
 const proxyConfiguration = new ProxyConfiguration({
@@ -81,7 +79,7 @@ This is the simplest way to use a list of proxies. Crawlee will rotate through t
 
 ### Custom proxy function
 
-The `ProxyConfiguration` class allows us to provide a custom function to pick a proxy URL. This is useful when we want to implement our own logic for selecting a proxy.
+The `ProxyConfiguration` class allows you to provide a custom function to pick a proxy URL. This is useful when you want to implement your own logic for selecting a proxy.
 
 ```javascript
 const proxyConfiguration = new ProxyConfiguration({
@@ -99,12 +97,11 @@ The `newUrlFunction` receives two parameters - `sessionId` and `options` - and r
 
 The `sessionId` parameter is always provided and allows us to differentiate between different sessions - e.g. when Crawlee recognizes your crawlers are being blocked, it will automatically create a new session with a different id.
 
-The `options` parameter is an object containing a <ApiLink to="core/class/Request">`Request`</ApiLink>, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly.
-Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
+The `options` parameter is an object containing a <ApiLink to="core/class/Request">`Request`</ApiLink>, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly. Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
 
 ### Tiered proxies
 
-We can also provide a list of proxy tiers to the `ProxyConfiguration` class. This is useful when we want switch between different proxies automatically based on the blocking behavior of the website.
+You can also provide a list of proxy tiers to the `ProxyConfiguration` class. This is useful when you want to switch between different proxies automatically based on the blocking behavior of the website.
 
 :::warning
 
@@ -125,8 +122,7 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 ```
 
-This configuration will start with no proxy, then switch to `http://okay-proxy.com` if Crawlee recognized we're getting blocked by the target website. 
-If that proxy is also blocked, we will switch to one of the `slightly-better-proxy` URLs. If those are blocked, we will switch to the `very-good-and-expensive-proxy.com` URL.
+This configuration will start with no proxy, then switch to `http://okay-proxy.com` if Crawlee recognizes we're getting blocked by the target website. If that proxy is also blocked, we will switch to one of the `slightly-better-proxy` URLs. If those are blocked, we will switch to the `very-good-and-expensive-proxy.com` URL.
 
 Crawlee also periodically probes lower tier proxies to see if they are unblocked, and if they are, it will switch back to them.
 
