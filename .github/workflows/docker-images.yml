@@ -26,7 +26,7 @@ env:
 jobs:
     trigger_ci:
         name: Trigger CI
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
 
         if: github.repository == 'apify/crawlee'
 

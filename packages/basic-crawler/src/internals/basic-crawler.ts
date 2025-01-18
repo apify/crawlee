@@ -874,7 +874,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
         }
 
-        const purgeRequestQueue = options?.purgeRequestQueue ?? true;
+        const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
 
         if (this.hasFinishedBefore) {
             // When executing the run method for the second time explicitly,
@@ -896,7 +896,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
         if (requests) {
-            await this.addRequests(requests, options);
+            await this.addRequests(requests, addRequestsOptions);
         }
 
         await this._init();
