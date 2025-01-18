@@ -1,6 +1,6 @@
 {
 	"actorSpecification": 1,
-	"name": "test-cheerio-stop",
+	"name": "test-cheerio-stop-resume",
 	"version": "0.0",
 	"buildTag": "latest",
 	"env": null

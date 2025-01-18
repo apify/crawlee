@@ -25,6 +25,7 @@ crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
 });
 
 await crawler.run(['https://crawlee.dev/docs/quick-start']);
+
 requestCount = 0;
-await crawler.run(['https://crawlee.dev/docs/quick-start']);
+await crawler.run(['https://crawlee.dev/docs/quick-start'], { purgeRequestQueue: false });
 await Actor.exit({ exit: Actor.isAtHome() });

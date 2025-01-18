@@ -2,7 +2,7 @@
 	"root": true,
 	"extends": "../../.eslintrc.json",
 	"parserOptions": {
-		"project": "./test/e2e/cheerio-stop/actor/tsconfig.json",
+		"project": "./test/e2e/cheerio-stop-resume/actor/tsconfig.json",
 		"ecmaVersion": 2022
 	}
 }

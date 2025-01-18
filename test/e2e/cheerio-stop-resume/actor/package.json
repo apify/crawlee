@@ -1,7 +1,7 @@
 {
-    "name": "test-cheerio-stop",
+    "name": "test-cheerio-stop-resume",
     "version": "0.0.1",
-    "description": "Crawler Stop Test - TypeScript",
+    "description": "Crawler Stop-Resume Test - TypeScript",
     "dependencies": {
         "apify": "next",
         "@apify/storage-local": "^2.1.3",

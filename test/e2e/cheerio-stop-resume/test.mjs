@@ -5,8 +5,8 @@ await initialize(testActorDirname);
 
 const { stats, datasetItems } = await runActor(testActorDirname);
 
-await expect(stats.requestsFinished < 20, 'crawler.stop() works');
+/// Some extra requests are expected (at most 10 extra for each run).
+await expect(stats.requestsFinished < 40, 'crawler.stop() works');
 
 const visitedUrls = new Set(datasetItems.map((x) => x.url));
-
-await expect(visitedUrls.size < 20, 'crawler.stop() is by default stateless');
+await expect(visitedUrls.size === datasetItems.length, 'stateful crawler.run({ purgeRQ: false }) works');
