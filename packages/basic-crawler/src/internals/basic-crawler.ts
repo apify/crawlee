@@ -971,6 +971,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.running = false;
             this.hasFinishedBefore = true;
 
+            // eslint-disable-next-line no-unsafe-finally -- Return from finally is safe (it's the only `return` in the function)
             return stats;
         }
     }
