@@ -918,7 +918,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.MIGRATING, boundPauseOnMigration);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
-        let stats: FinalStatistics = {} as FinalStatistics;
+        let stats = {} as FinalStatistics;
 
         try {
             await this.autoscaledPool!.run();
