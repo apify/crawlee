@@ -18,7 +18,7 @@ crawler.router.addDefaultHandler(async ({ document, enqueueLinks, request, log }
         globs: ['https://crawlee.dev/docs/**'],
     });
 
-    const pageTitle = document.title;
+    const pageTitle = document.querySelector('title')?.textContent ?? '';
     assert.notEqual(pageTitle, '');
     log.info(`URL: ${url} TITLE: ${pageTitle}`);
 
