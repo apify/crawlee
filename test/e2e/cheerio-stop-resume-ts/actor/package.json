@@ -1,5 +1,5 @@
 {
-    "name": "test-cheerio-stop-resume",
+    "name": "test-cheerio-stop-resume-ts",
     "version": "0.0.1",
     "description": "Crawler Stop-Resume Test - TypeScript",
     "dependencies": {
