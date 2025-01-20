@@ -18,7 +18,7 @@ As a big sneakerhead, I'll take the Nike shoes infinite-scrolling [website](http
 
 Crawlee for Python has some amazing initial features, such as a unified interface for HTTP and headless browser crawling, automatic retries, and much more.
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Prerequisites and bootstrapping the project
 

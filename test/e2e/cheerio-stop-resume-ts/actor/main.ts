@@ -1,6 +1,4 @@
-import assert from 'node:assert';
-
-import { LinkeDOMCrawler, Dataset } from '@crawlee/linkedom';
+import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import { Actor } from 'apify';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
@@ -10,21 +8,24 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     await Actor.init();
 }
 
-const crawler = new LinkeDOMCrawler();
+let requestCount = 0;
 
-crawler.router.addDefaultHandler(async ({ document, enqueueLinks, request, log }) => {
+const crawler = new CheerioCrawler();
+crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
         globs: ['https://crawlee.dev/docs/**'],
     });
 
-    const pageTitle = document.querySelector('title')?.textContent ?? '';
-    assert.notEqual(pageTitle, '');
+    const pageTitle = $('title').first().text();
     log.info(`URL: ${url} TITLE: ${pageTitle}`);
-
     await Dataset.pushData({ url, pageTitle });
+
+    if (requestCount++ > 10) crawler.stop();
 });
 
 await crawler.run(['https://crawlee.dev/docs/quick-start']);
 
+requestCount = 0;
+await crawler.run(['https://crawlee.dev/docs/quick-start'], { purgeRequestQueue: false });
 await Actor.exit({ exit: Actor.isAtHome() });
