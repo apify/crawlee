@@ -918,6 +918,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.MIGRATING, boundPauseOnMigration);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
+        let stats = {} as FinalStatistics;
+
         try {
             await this.autoscaledPool!.run();
         } finally {
@@ -927,49 +929,50 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             process.off('SIGINT', sigintHandler);
             this.events.off(EventType.MIGRATING, boundPauseOnMigration);
             this.events.off(EventType.ABORTING, boundPauseOnMigration);
+
+            const finalStats = this.stats.calculate();
+            stats = {
+                requestsFinished: this.stats.state.requestsFinished,
+                requestsFailed: this.stats.state.requestsFailed,
+                retryHistogram: this.stats.requestRetryHistogram,
+                ...finalStats,
+            };
+            this.log.info('Final request statistics:', stats);
+
+            if (this.stats.errorTracker.total !== 0) {
+                const prettify = ([count, info]: [number, string[]]) =>
+                    `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
+
+                this.log.info(`Error analysis:`, {
+                    totalErrors: this.stats.errorTracker.total,
+                    uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
+                    mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
+                });
+            }
+
+            const client = this.config.getStorageClient();
+
+            if (client.teardown) {
+                let finished = false;
+                setTimeout(() => {
+                    if (!finished) {
+                        this.log.info('Waiting for the storage to write its state to file system.');
+                    }
+                }, 1000);
+                await client.teardown();
+                finished = true;
+            }
+
+            periodicLogger.stop();
+            await this.setStatusMessage(
+                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
+                    this.stats.state.requestsFinished
+                } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                { isStatusMessageTerminal: true, level: 'INFO' },
+            );
+            this.running = false;
+            this.hasFinishedBefore = true;
         }
-
-        const finalStats = this.stats.calculate();
-        const stats = {
-            requestsFinished: this.stats.state.requestsFinished,
-            requestsFailed: this.stats.state.requestsFailed,
-            retryHistogram: this.stats.requestRetryHistogram,
-            ...finalStats,
-        };
-        this.log.info('Final request statistics:', stats);
-
-        if (this.stats.errorTracker.total !== 0) {
-            const prettify = ([count, info]: [number, string[]]) => `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
-
-            this.log.info(`Error analysis:`, {
-                totalErrors: this.stats.errorTracker.total,
-                uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
-                mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
-            });
-        }
-
-        const client = this.config.getStorageClient();
-
-        if (client.teardown) {
-            let finished = false;
-            setTimeout(() => {
-                if (!finished) {
-                    this.log.info('Waiting for the storage to write its state to file system.');
-                }
-            }, 1000);
-            await client.teardown();
-            finished = true;
-        }
-
-        periodicLogger.stop();
-        await this.setStatusMessage(
-            `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                this.stats.state.requestsFinished
-            } succeeded, ${this.stats.state.requestsFailed} failed.`,
-            { isStatusMessageTerminal: true, level: 'INFO' },
-        );
-        this.running = false;
-        this.hasFinishedBefore = true;
 
         return stats;
     }
