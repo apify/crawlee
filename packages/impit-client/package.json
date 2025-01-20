@@ -1,7 +1,7 @@
 {
   "name": "@crawlee/impit-client",
   "version": "3.12.1",
-  "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+  "description": "impit-based HTTP client implementation for Crawlee. Impersonates browser requests to avoid bot detection.",
   "engines": {
     "node": ">=16.0.0"
   },
