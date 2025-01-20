@@ -918,6 +918,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.MIGRATING, boundPauseOnMigration);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
+        let stats: FinalStatistics = {} as FinalStatistics;
+
         try {
             await this.autoscaledPool!.run();
         } finally {
@@ -929,7 +931,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.events.off(EventType.ABORTING, boundPauseOnMigration);
 
             const finalStats = this.stats.calculate();
-            const stats = {
+            stats = {
                 requestsFinished: this.stats.state.requestsFinished,
                 requestsFailed: this.stats.state.requestsFailed,
                 retryHistogram: this.stats.requestRetryHistogram,
@@ -970,10 +972,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
             this.running = false;
             this.hasFinishedBefore = true;
-
-            // eslint-disable-next-line no-unsafe-finally -- Return from finally is safe (it's the only `return` in the function)
-            return stats;
         }
+
+        return stats;
     }
 
     async getRequestQueue() {
