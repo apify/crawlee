@@ -294,7 +294,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     /**
      * Allows to keep the crawler alive even if the {@apilink RequestQueue} gets empty.
      * By default, the `crawler.run()` will resolve once the queue is empty. With `keepAlive: true` it will keep running,
-     * waiting for more requests to come. Use `crawler.teardown()` to exit the crawler.
+     * waiting for more requests to come. Use `crawler.stop()` to exit the crawler gracefully, or `crawler.teardown()` to stop it immediately.
      */
     keepAlive?: boolean;
 
@@ -975,6 +975,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         return stats;
+    }
+
+    /**
+     * Gracefully stops the current run of the crawler.
+     *
+     * All the tasks active at the time of calling this method will be allowed to finish.
+     */
+    stop(message = 'The crawler has been gracefully stopped.'): void {
+        // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
+        this.autoscaledPool
+            ?.pause()
+            // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
+            .then(async () => this.autoscaledPool?.abort())
+            .then(() => this.log.info(message))
+            .catch((err) => {
+                this.log.error('An error occurred when stopping the crawler:', err);
+            });
     }
 
     async getRequestQueue() {
