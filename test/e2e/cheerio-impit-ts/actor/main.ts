@@ -1,6 +1,6 @@
 import { CheerioCrawler, Dictionary } from '@crawlee/cheerio';
-import { Actor } from 'apify';
 import { ImpitHttpClient, Browser } from '@crawlee/impit-client';
+import { Actor } from 'apify';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     // @ts-ignore
