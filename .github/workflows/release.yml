@@ -86,7 +86,7 @@ jobs:
         name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
 
         steps:
             -   name: Checkout repository
@@ -173,7 +173,7 @@ jobs:
 
     version-docs:
         needs: release
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
         if: (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
 
         steps:

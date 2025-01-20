@@ -83,7 +83,7 @@ jobs:
     docs:
         name: Docs build
         if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
         steps:
             -   name: Checkout Source code
                 uses: actions/checkout@v4
@@ -125,7 +125,7 @@ jobs:
 
     lint:
         name: Lint
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
 
         steps:
             -   name: Checkout repository
@@ -168,7 +168,7 @@ jobs:
         name: Release @next
         if: github.event_name == 'push' && contains(github.event.ref, 'master') && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
 
         steps:
             -   name: Checkout repository

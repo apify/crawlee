@@ -7,7 +7,7 @@ on:
 jobs:
     check_pr_title:
         name: 'Check PR title'
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
         steps:
             -   uses: amannn/action-semantic-pull-request@v5.5.3
                 env:
