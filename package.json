@@ -83,7 +83,7 @@
         "@types/yargs": "^17.0.26",
         "@typescript-eslint/eslint-plugin": "^7.18.0",
         "@typescript-eslint/parser": "^7.18.0",
-        "@vitest/coverage-v8": "^2.0.0",
+        "@vitest/coverage-v8": "^3.0.0",
         "apify": "*",
         "apify-node-curl-impersonate": "^1.0.15",
         "basic-auth-parser": "^0.0.2",
@@ -112,7 +112,7 @@
         "turbo": "^2.1.0",
         "typescript": "^5.7.2",
         "vite-tsconfig-paths": "^4.3.2",
-        "vitest": "^2.0.0"
+        "vitest": "^3.0.0"
     },
     "packageManager": "yarn@4.6.0",
     "volta": {
