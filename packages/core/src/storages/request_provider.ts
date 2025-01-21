@@ -571,86 +571,10 @@ export abstract class RequestProvider implements IStorage {
     /**
      * Resolves to `true` if all requests were already handled and there are no more left.
      * Due to the nature of distributed storage used by the queue,
-     * the function might occasionally return a false negative,
-     * but it will never return a false positive.
+     * the function may occasionally return a false negative,
+     * but it shall never return a false positive.
      */
-    async isFinished(): Promise<boolean> {
-        if (this.inProgressRequestBatches.length > 0) {
-            return false;
-        }
-
-        // TODO: once/if we figure out why sometimes request queues get stuck (if it's even request queues), remove this once and for all :)
-        if (Date.now() - this.lastActivity.getTime() > this.internalTimeoutMillis) {
-            const maybeHead = await this.client.listHead({ limit: 1 });
-
-            const request = maybeHead.items[0] ? await this.client.getRequest(maybeHead.items[0].id) : null;
-
-            const message = `The request queue hasn't had activity for ${
-                this.internalTimeoutMillis / 1000
-            }s, resetting internal state.`;
-
-            this.log.warning(message, {
-                queueHeadIdsPending: this.queueHeadIds.length(),
-                hasPendingOrLockedRequests: maybeHead.items.length > 0,
-                pendingRequestIsLocked: request?.lockExpiresAt,
-            });
-
-            this.queueHeadIds.clear();
-            // This cache may be the bane of our existence, but it's still required for v1...
-            this.recentlyHandledRequestsCache.clear();
-        }
-
-        if (this.queueHeadIds.length() > 0) {
-            this.log.debug('There are still ids in the queue head that are pending processing', {
-                queueHeadIdsPending: this.queueHeadIds.length(),
-            });
-
-            return false;
-        }
-
-        const currentHead = await this.client.listHead({ limit: 2 });
-
-        if (currentHead.items.length !== 0) {
-            // Give users some more concrete info as to why their crawlers seem to be "hanging" doing nothing while we're waiting because the queue is technically
-            // not empty. We decided that a queue with elements in its head but that are also locked shouldn't return true in this function.
-            // If that ever changes, this function might need a rewrite
-            // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much. This is also a very specific path that most crawlers shouldn't hit
-            if (++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
-                const requests = await Promise.all(
-                    currentHead.items.map(async (item) => this.client.getRequest(item.id)),
-                );
-
-                this.log.info(
-                    `Queue head still returned requests that need to be processed (or that are locked by other clients)`,
-                    {
-                        requests: requests
-                            .map((r) => {
-                                if (!r) {
-                                    return null;
-                                }
-
-                                return {
-                                    id: r.id,
-                                    lockExpiresAt: r.lockExpiresAt,
-                                    lockedBy: r.lockByClient,
-                                };
-                            })
-                            .filter(Boolean),
-                        clientKey: this.clientKey,
-                    },
-                );
-            } else {
-                this.log.debug(
-                    'Queue head still returned requests that need to be processed (or that are locked by other clients)',
-                    {
-                        requestIds: currentHead.items.map((item) => item.id),
-                    },
-                );
-            }
-        }
-
-        return currentHead.items.length === 0;
-    }
+    abstract isFinished(): Promise<boolean>;
 
     protected _reset() {
         this.lastActivity = new Date();
