@@ -178,7 +178,7 @@ describe('playwrightUtils', () => {
     });
 
     describe('blockRequests()', () => {
-        let browser: Browser = null;
+        let browser: Browser = null as any;
         beforeAll(async () => {
             browser = await launchPlaywright(launchContext);
         });
@@ -235,7 +235,7 @@ describe('playwrightUtils', () => {
 
             const response = await playwrightUtils.gotoExtended(page, request);
 
-            const { method, headers, bodyLength } = JSON.parse(await response.text());
+            const { method, headers, bodyLength } = JSON.parse(await response!.text());
             expect(method).toBe('POST');
             expect(bodyLength).toBe(16);
             expect(headers['content-type']).toBe('application/json; charset=utf-8');

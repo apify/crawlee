@@ -25,7 +25,7 @@ describe('AutoscaledPool', () => {
             }
 
             return new Promise((resolve) => {
-                const item = range.shift();
+                const item = range.shift()!;
                 result.push(item);
                 setTimeout(resolve, 5);
             });
@@ -55,7 +55,7 @@ describe('AutoscaledPool', () => {
             }
 
             return new Promise((resolve) => {
-                const item = range.shift();
+                const item = range.shift()!;
                 result.push(item);
                 setTimeout(resolve, 5);
             });
@@ -86,7 +86,7 @@ describe('AutoscaledPool', () => {
             }
 
             return new Promise((resolve) => {
-                const item = range.shift();
+                const item = range.shift()!;
                 result.push(item);
                 setTimeout(resolve, 5);
             });
@@ -418,8 +418,6 @@ describe('AutoscaledPool', () => {
                 if (!aborted) {
                     await pool.abort();
                     aborted = true;
-                } else {
-                    return null;
                 }
             },
             isFinishedFunction: async () => {

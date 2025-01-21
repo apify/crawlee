@@ -65,8 +65,8 @@ let url: string;
 beforeAll(async () => {
     server = http.createServer((request, response) => {
         try {
-            const requestUrl = new URL(request.url, 'http://localhost');
-            router.get(requestUrl.pathname)(request, response);
+            const requestUrl = new URL(request.url!, 'http://localhost');
+            router.get(requestUrl.pathname)!(request, response);
         } catch (error) {
             response.destroy();
         }
@@ -301,7 +301,7 @@ test('should ignore http error status codes set by user', async () => {
 
     await crawler.run([`${url}/500Error`]);
 
-    expect(crawler.autoscaledPool.minConcurrency).toBe(2);
+    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
     expect(failed).toHaveLength(0);
 });
 
@@ -320,7 +320,7 @@ test('should throw an error on http error status codes set by user', async () =>
 
     await crawler.run([`${url}/hello.html`]);
 
-    expect(crawler.autoscaledPool.minConcurrency).toBe(2);
+    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
     expect(failed).toHaveLength(1);
 });
 

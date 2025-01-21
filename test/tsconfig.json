@@ -1,14 +1,12 @@
 {
 	"extends": "../tsconfig.json",
 	"include": ["**/*", "../packages/*/src/**/*"],
+	"exclude": ["e2e"],
 	"compilerOptions": {
 		"sourceMap": true,
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
-		"strictNullChecks": false,
 		"types": ["vitest/globals"],
-		"module": "Node16",
-		"moduleResolution": "Bundler",
 		"paths": {
 			"crawlee": ["packages/crawlee/src"],
 			"@crawlee/basic": ["packages/basic-crawler/src"],

@@ -45,7 +45,7 @@ describe('useState', () => {
         state.hello = 'foo';
         state.foo = ['fizz'];
 
-        const manager = Configuration.globalConfig.getEventManager();
+        const manager = Configuration.getEventManager();
 
         await manager.init();
 

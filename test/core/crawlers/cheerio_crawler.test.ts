@@ -17,6 +17,7 @@ import {
 } from '@crawlee/cheerio';
 import { sleep } from '@crawlee/utils';
 import type { Dictionary } from '@crawlee/utils';
+// @ts-expect-error type import of ESM only package
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
 import { runExampleComServer, responseSamples } from 'test/shared/_helper';
@@ -102,7 +103,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -135,7 +136,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -171,7 +172,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -407,8 +408,8 @@ describe('CheerioCrawler', () => {
             expect(headers).toHaveLength(4);
             headers.forEach((h) => {
                 const acceptHeader = h.accept || h.Accept;
-                expect(acceptHeader.includes('text/html')).toBe(true);
-                expect(acceptHeader.includes('application/xhtml+xml')).toBe(true);
+                expect(acceptHeader!.includes('text/html')).toBe(true);
+                expect(acceptHeader!.includes('application/xhtml+xml')).toBe(true);
             });
         });
 
@@ -554,7 +555,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
         expect(failed).toHaveLength(0);
     });
 
@@ -575,7 +576,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
         expect(failed).toHaveLength(4);
     });
 
@@ -720,7 +721,7 @@ describe('CheerioCrawler', () => {
             const crawler = new CheerioCrawler({
                 requestList,
                 requestHandler: ({ proxyInfo }) => {
-                    proxies.push(proxyInfo.url);
+                    proxies.push(proxyInfo!.url);
                 },
                 proxyConfiguration,
             });
@@ -742,8 +743,8 @@ describe('CheerioCrawler', () => {
             const proxies: ProxyInfo[] = [];
             const sessions: Session[] = [];
             const requestHandler = ({ session, proxyInfo }: CheerioCrawlingContext) => {
-                proxies.push(proxyInfo);
-                sessions.push(session);
+                proxies.push(proxyInfo!);
+                sessions.push(session!);
             };
 
             const requestList = await getRequestListForMirror();
@@ -914,7 +915,7 @@ describe('CheerioCrawler', () => {
             await cheerioCrawler.run();
 
             // @ts-expect-error private symbol
-            const { sessions } = cheerioCrawler.sessionPool;
+            const sessions = cheerioCrawler.sessionPool!.sessions;
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
@@ -947,7 +948,7 @@ describe('CheerioCrawler', () => {
                     persistCookiesPerSession: false,
                     maxRequestRetries: 0,
                     requestHandler: ({ session }) => {
-                        sessions.push(session);
+                        sessions.push(session!);
                     },
                     failedRequestHandler: ({ request }) => {
                         failed.push(request);
@@ -1017,7 +1018,7 @@ describe('CheerioCrawler', () => {
             await crawler.run();
             requests.forEach((_req, i) => {
                 if (i >= 1) {
-                    const response = JSON.parse(_req.payload);
+                    const response = JSON.parse(_req.payload!);
 
                     expect(response.headers['set-cookie']).toEqual(cookie);
                 }
@@ -1085,7 +1086,7 @@ describe('CheerioCrawler', () => {
                 },
                 preNavigationHooks: [
                     ({ request }) => {
-                        request.headers.Cookie = 'foo=override; coo=kie';
+                        request.headers!.Cookie = 'foo=override; coo=kie';
                     },
                 ],
             });
@@ -1115,7 +1116,7 @@ describe('CheerioCrawler', () => {
                 },
                 preNavigationHooks: [
                     ({ request }) => {
-                        request.headers.Cookie = 'foo=override; coo=kie';
+                        request.headers!.Cookie = 'foo=override; coo=kie';
                     },
                 ],
             });
@@ -1192,7 +1193,7 @@ describe('CheerioCrawler', () => {
             const oldHandleRequestF = cheerioCrawler._runRequestHandler;
             // @ts-expect-error Overriding private method
             cheerioCrawler._runRequestHandler = async (opts) => {
-                usedSession = opts.session;
+                usedSession = opts.session!;
                 return oldHandleRequestF.call(cheerioCrawler, opts);
             };
 
@@ -1202,7 +1203,10 @@ describe('CheerioCrawler', () => {
                 // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
             }
 
-            expect(newUrlSpy).toBeCalledWith(usedSession.id, expect.objectContaining({ request: expect.any(Request) }));
+            expect(newUrlSpy).toBeCalledWith(
+                usedSession!.id,
+                expect.objectContaining({ request: expect.any(Request) }),
+            );
         });
     });
 

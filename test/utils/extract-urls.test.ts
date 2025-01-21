@@ -9,11 +9,7 @@ vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
     };
 });
 
-const { gotScraping } = await import('@crawlee/utils/src/internals/gotScraping');
-
 const baseDataPath = path.join(__dirname, '..', 'shared', 'data');
-
-const gotScrapingSpy = vitest.mocked(gotScraping);
 
 describe('downloadListOfUrls()', () => {
     test('downloads a list of URLs', async () => {
@@ -23,6 +19,9 @@ describe('downloadListOfUrls()', () => {
             .split(/[\r\n]+/g)
             .map((u) => u.trim());
 
+        // @ts-ignore for some reason, this fails when the project is not built :/
+        const { gotScraping } = await import('@crawlee/utils');
+        const gotScrapingSpy = vitest.mocked(gotScraping);
         gotScrapingSpy.mockResolvedValueOnce({ body: text });
 
         await expect(

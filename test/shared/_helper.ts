@@ -206,8 +206,8 @@ console.log('Hello world!');
                     </template>
                 </div>
             </template>
-        </div> 
-        <div id="closed-container"> 
+        </div>
+        <div id="closed-container">
             <template shadowrootmode="closed">
                 <p>[BAD] This is inside the CLOSED shadow DOM.</p>
                 <div>
@@ -244,7 +244,7 @@ export async function runExampleComServer(): Promise<[Server, number]> {
             res.json({
                 headers: req.headers,
                 method: req.method,
-                bodyLength: +req.headers['content-length'] || 0,
+                bodyLength: +(req.headers['content-length'] ?? 0),
             });
         });
 

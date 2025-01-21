@@ -26,7 +26,7 @@ describe('PuppeteerCrawler', () => {
     let proxyConfiguration: ProxyConfiguration;
 
     beforeAll(async () => {
-        prevEnvHeadless = process.env.CRAWLEE_HEADLESS;
+        prevEnvHeadless = process.env.CRAWLEE_HEADLESS!;
         process.env.CRAWLEE_HEADLESS = '1';
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
@@ -93,11 +93,11 @@ describe('PuppeteerCrawler', () => {
         const requestListLarge = await RequestList.open({ sources: sourcesLarge });
         const requestHandler = async ({ page, request, response }: PuppeteerCrawlingContext) => {
             await page.waitForSelector('title');
-            asserts.push(response.status() === 200);
+            asserts.push(response!.status() === 200);
             request.userData.title = await page.title();
             processed.push(request);
             asserts.push(
-                !response
+                !response!
                     .request()
                     .headers()
                     ['user-agent'].match(/headless/i),
@@ -118,7 +118,7 @@ describe('PuppeteerCrawler', () => {
 
         await puppeteerCrawler.run();
 
-        expect(puppeteerCrawler.autoscaledPool.minConcurrency).toBe(1);
+        expect(puppeteerCrawler.autoscaledPool!.minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 
@@ -149,7 +149,7 @@ describe('PuppeteerCrawler', () => {
         });
 
         await puppeteerCrawler.run();
-        expect(options.timeout).toEqual(timeoutSecs * 1000);
+        expect(options!.timeout).toEqual(timeoutSecs * 1000);
     });
 
     test('should throw if launchOptions.proxyUrl is supplied', async () => {
@@ -246,14 +246,14 @@ describe('PuppeteerCrawler', () => {
         await requestQueue.drop();
 
         expect(requestHandler).not.toBeCalled();
-        const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1].retryCount]);
+        const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1]!.retryCount]);
         expect(warnings).toEqual([
             ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 1],
             ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 2],
             ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 3],
         ]);
 
-        const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
+        const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1]!.retryCount]);
         expect(errors).toEqual([
             ['Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.', undefined],
         ]);
@@ -289,14 +289,14 @@ describe('PuppeteerCrawler', () => {
         await requestQueue.drop();
 
         expect(requestHandler).not.toBeCalled();
-        const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1].retryCount]);
+        const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1]!.retryCount]);
         expect(warnings).toEqual([
             ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 1],
             ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 2],
             ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 3],
         ]);
 
-        const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
+        const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1]!.retryCount]);
         expect(errors).toEqual([
             ['Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.', undefined],
         ]);
@@ -328,7 +328,7 @@ describe('PuppeteerCrawler', () => {
             },
             requestHandler: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
-                sessionCookies = session.getCookieString(serverUrl);
+                sessionCookies = session!.getCookieString(serverUrl);
             },
         });
 
@@ -359,8 +359,8 @@ describe('PuppeteerCrawler', () => {
             },
             proxyConfiguration,
             requestHandler: async ({ proxyInfo, session }) => {
-                proxies.add(proxyInfo.url);
-                sessions.add(session.id);
+                proxies.add(proxyInfo!.url);
+                sessions.add(session!.id);
             },
         });
 
@@ -409,7 +409,7 @@ describe('PuppeteerCrawler', () => {
                 browserPoolOptions: {
                     prePageCreateHooks: [
                         (_id, _controller, options) => {
-                            options.proxyBypassList = ['<-loopback>'];
+                            options!.proxyBypassList = ['<-loopback>'];
                         },
                     ],
                 },

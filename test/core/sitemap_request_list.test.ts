@@ -3,7 +3,7 @@ import type { AddressInfo } from 'net';
 import { Readable } from 'stream';
 import { finished } from 'stream/promises';
 
-import { SitemapRequestList } from '@crawlee/core';
+import { SitemapRequestList, type Request } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper';
@@ -328,8 +328,8 @@ describe('SitemapRequestList', () => {
 
         while (!(await list.isEmpty())) {
             const request = await list.fetchNextRequest();
-            firstBatch.push(request);
-            await list.markRequestHandled(request);
+            firstBatch.push(request!);
+            await list.markRequestHandled(request!);
         }
 
         expect(firstBatch).toHaveLength(2);
@@ -342,8 +342,8 @@ describe('SitemapRequestList', () => {
 
         while (!(await list.isEmpty())) {
             const request = await list.fetchNextRequest();
-            secondBatch.push(request);
-            await list.markRequestHandled(request);
+            secondBatch.push(request!);
+            await list.markRequestHandled(request!);
         }
 
         expect(secondBatch).toHaveLength(5);
@@ -430,8 +430,8 @@ describe('SitemapRequestList', () => {
 
         while (!(await list.isFinished())) {
             const request = await list.fetchNextRequest();
-            await list.markRequestHandled(request);
-            requests.push(request);
+            await list.markRequestHandled(request!);
+            requests.push(request!);
         }
 
         await expect(list.isEmpty()).resolves.toBe(true);
@@ -457,10 +457,10 @@ describe('SitemapRequestList', () => {
             const request = await list.fetchNextRequest();
 
             if (counter % 2 === 0) {
-                await list.markRequestHandled(request);
-                requests.push(request);
+                await list.markRequestHandled(request!);
+                requests.push(request!);
             } else {
-                await list.reclaimRequest(request);
+                await list.reclaimRequest(request!);
             }
 
             counter += 1;
@@ -485,7 +485,7 @@ describe('SitemapRequestList', () => {
         const list = await SitemapRequestList.open(options);
 
         const firstRequest = await list.fetchNextRequest();
-        await list.markRequestHandled(firstRequest);
+        await list.markRequestHandled(firstRequest!);
 
         await list.persistState();
 
@@ -494,7 +494,7 @@ describe('SitemapRequestList', () => {
 
         while (!(await newList.isFinished())) {
             const request = await newList.fetchNextRequest();
-            await newList.markRequestHandled(request);
+            await newList.markRequestHandled(request!);
         }
 
         expect(list.handledCount()).toBe(1);
@@ -526,8 +526,8 @@ describe('SitemapRequestList', () => {
             const list = await SitemapRequestList.open(options);
 
             const firstRequest = await list.fetchNextRequest();
-            firstRequest.userData = userDataPayload;
-            firstLoadedUrl = firstRequest.url;
+            firstRequest!.userData = userDataPayload;
+            firstLoadedUrl = firstRequest!.url;
 
             await list.persistState();
             // simulates a migration in the middle of request processing
@@ -536,7 +536,7 @@ describe('SitemapRequestList', () => {
         const newList = await SitemapRequestList.open(options);
         const restoredRequest = await newList.fetchNextRequest();
 
-        expect(restoredRequest.url).toEqual(firstLoadedUrl);
-        expect(restoredRequest.userData).toEqual(userDataPayload);
+        expect(restoredRequest!.url).toEqual(firstLoadedUrl);
+        expect(restoredRequest!.userData).toEqual(userDataPayload);
     });
 });

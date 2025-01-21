@@ -31,14 +31,14 @@ describe('dataset', () => {
 
             const pushItemSpy = vitest.spyOn(dataset.client, 'pushItems');
 
-            const mockPushItems = pushItemSpy.mockResolvedValueOnce(null);
+            const mockPushItems = pushItemSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData({ foo: 'bar' });
 
             expect(mockPushItems).toBeCalledTimes(1);
             expect(mockPushItems).toBeCalledWith(JSON.stringify({ foo: 'bar' }));
 
-            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(null);
+            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
@@ -62,8 +62,8 @@ describe('dataset', () => {
             });
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(null);
-            mockPushItems.mockResolvedValueOnce(null);
+            mockPushItems.mockResolvedValueOnce(undefined);
+            mockPushItems.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: half }, { bar: half }]);
 
@@ -86,8 +86,8 @@ describe('dataset', () => {
             });
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(null);
-            mockPushItems.mockResolvedValueOnce(null);
+            mockPushItems.mockResolvedValueOnce(undefined);
+            mockPushItems.mockResolvedValueOnce(undefined);
 
             await dataset.pushData(data);
 
@@ -298,7 +298,7 @@ describe('dataset', () => {
 
                     return memo.concat(item);
                 },
-                [],
+                [] as unknown[],
                 {
                     limit: 2,
                 },
@@ -324,7 +324,7 @@ describe('dataset', () => {
 
                     return Promise.resolve(memo.concat(item));
                 },
-                [],
+                [] as unknown[],
                 {
                     limit: 2,
                 },
@@ -387,7 +387,7 @@ describe('dataset', () => {
                 offset: 2,
             });
 
-            expect(result.foo).toBe(5);
+            expect(result!.foo).toBe(5);
             expect(calledForIndexes).toEqual([1, 2, 3]);
         });
     });

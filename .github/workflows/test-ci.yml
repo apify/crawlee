@@ -21,8 +21,8 @@ jobs:
             fail-fast: false
             matrix:
                 # tests on windows are extremely unstable
-                # os: [ ubuntu-latest, windows-2019 ]
-                os: [ ubuntu-latest ]
+                # os: [ ubuntu-22.04, windows-2019 ]
+                os: [ ubuntu-22.04 ]
                 node-version: [ 16, 18, 20, 22 ]
 
         steps:
@@ -70,6 +70,11 @@ jobs:
                 env:
                     YARN_IGNORE_NODE: 1
 
+            -   name: Test TS
+                run: yarn tsc-check-tests
+                env:
+                    YARN_IGNORE_NODE: 1
+
             -   name: Tests
                 run: yarn test
                 env:
@@ -78,7 +83,7 @@ jobs:
     docs:
         name: Docs build
         if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
                 uses: actions/checkout@v4
@@ -120,7 +125,7 @@ jobs:
 
     lint:
         name: Lint
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
 
         steps:
             -   name: Checkout repository
@@ -163,7 +168,7 @@ jobs:
         name: Release @next
         if: github.event_name == 'push' && contains(github.event.ref, 'master') && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
 
         steps:
             -   name: Checkout repository

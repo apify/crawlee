@@ -13,7 +13,7 @@ jobs:
     # NPM install is done in a separate job and cached to speed up the following jobs.
     build_and_test:
         name: Build & Test
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
 
         strategy:
             fail-fast: false

@@ -105,7 +105,7 @@ test('streamHandler works', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         streamHandler: async ({ stream }) => {
-            for await (const chunk of stream as ReadableStream<any>) {
+            for await (const chunk of stream as unknown as ReadableStream<any>) {
                 result = Buffer.concat([result, chunk]);
             }
         },
