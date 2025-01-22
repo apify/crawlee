@@ -579,7 +579,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/core@npm:3.12.1, @crawlee/core@npm:^3.9.0, @crawlee/core@workspace:packages/core":
+"@crawlee/core@npm:3.12.1, @crawlee/core@npm:^3.12.1, @crawlee/core@npm:^3.9.0, @crawlee/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@crawlee/core@workspace:packages/core"
   dependencies:
@@ -626,6 +626,17 @@ __metadata:
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
+  languageName: unknown
+  linkType: soft
+
+"@crawlee/impit-client@workspace:packages/impit-client":
+  version: 0.0.0-use.local
+  resolution: "@crawlee/impit-client@workspace:packages/impit-client"
+  dependencies:
+    "@crawlee/core": "npm:^3.12.1"
+    impit: "npm:^0.1.3"
+  peerDependencies:
+    "@crawlee/core": ^3.12.1
   languageName: unknown
   linkType: soft
 
@@ -7231,6 +7242,75 @@ __metadata:
   version: 5.3.2
   resolution: "ignore@npm:5.3.2"
   checksum: 10c0/f9f652c957983634ded1e7f02da3b559a0d4cc210fca3792cb67f1b153623c9c42efdc1c4121af171e295444459fc4a9201101fb041b1104a3c000bccb188337
+  languageName: node
+  linkType: hard
+
+"impit-darwin-arm64@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-darwin-arm64@npm:0.1.3"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"impit-darwin-x64@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-darwin-x64@npm:0.1.3"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-gnu@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-linux-x64-gnu@npm:0.1.3"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-musl@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-linux-x64-musl@npm:0.1.3"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"impit-win32-arm64-msvc@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-win32-arm64-msvc@npm:0.1.3"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"impit-win32-x64-msvc@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-win32-x64-msvc@npm:0.1.3"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit@npm:^0.1.3":
+  version: 0.1.3
+  resolution: "impit@npm:0.1.3"
+  dependencies:
+    impit-darwin-arm64: "npm:0.1.3"
+    impit-darwin-x64: "npm:0.1.3"
+    impit-linux-x64-gnu: "npm:0.1.3"
+    impit-linux-x64-musl: "npm:0.1.3"
+    impit-win32-arm64-msvc: "npm:0.1.3"
+    impit-win32-x64-msvc: "npm:0.1.3"
+  dependenciesMeta:
+    impit-darwin-arm64:
+      optional: true
+    impit-darwin-x64:
+      optional: true
+    impit-linux-x64-gnu:
+      optional: true
+    impit-linux-x64-musl:
+      optional: true
+    impit-win32-arm64-msvc:
+      optional: true
+    impit-win32-x64-msvc:
+      optional: true
+  checksum: 10c0/0339d1c5fe11399e4a5a8bc4f5a1b1308ca3428ccc01d8e2b9eae49aa17a1163bc6e9fcdea26c6caf142fb6e0a00aa24a59e9d996224710b5112d3da4a0658c3
   languageName: node
   linkType: hard
 
