@@ -779,6 +779,8 @@ declare class BuiltRequestProvider extends RequestProvider {
     ): Promise<Request<T> | null>;
 
     protected override ensureHeadIsNonEmpty(): Promise<void>;
+
+    override isFinished(): Promise<boolean>;
 }
 
 interface RequestLruItem {
