@@ -343,7 +343,7 @@ Posts
 
 Users
 
-![Posts Example](./img/users.webp)
+![Users Example](./img/users.webp)
 
 ## Conclusion
 
