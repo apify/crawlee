@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
+
+
+### Bug Fixes
+
+* **core:** type definition of Dataset.reduce ([#2774](https://github.com/apify/crawlee/issues/2774)) ([59bc6d1](https://github.com/apify/crawlee/commit/59bc6d12cbd9e81c06ee18d0a6390b7806e346ae)), closes [#2773](https://github.com/apify/crawlee/issues/2773)
+
+
+### Features
+
+* add support for parsing comma-separated list environment variables ([#2765](https://github.com/apify/crawlee/issues/2765)) ([4e50c47](https://github.com/apify/crawlee/commit/4e50c474f60df66585c6decf07532c790c8e63a7))
+
+
+
+
+
 ## [3.12.1](https://github.com/apify/crawlee/compare/v3.12.0...v3.12.1) (2024-12-04)
 
 
