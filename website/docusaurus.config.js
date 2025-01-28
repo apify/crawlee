@@ -179,10 +179,10 @@ module.exports = {
                 hideable: true,
             },
         },
-        announcementBar: {
-            id: `crawlee-for-python-webinar`,
-            content: `🎉️ <b><a href="https://crawlee.dev/python/">Crawlee for Python is open to early adopters!</a></b> 🥳️`,
-        },
+        // announcementBar: {
+        //     id: `crawlee-for-python-webinar`,
+        //     content: `🎉️ <b><a href="https://crawlee.dev/python/">Crawlee for Python is open to early adopters!</a></b> 🥳️`,
+        // },
         navbar: {
             hideOnScroll: true,
             title: 'Crawlee',
