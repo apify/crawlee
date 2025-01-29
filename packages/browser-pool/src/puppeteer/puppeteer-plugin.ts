@@ -17,14 +17,14 @@ const PROXY_SERVER_ARG = '--proxy-server=';
 
 export class PuppeteerPlugin extends BrowserPlugin<
     typeof Puppeteer,
-    PuppeteerTypes.PuppeteerLaunchOptions,
+    PuppeteerTypes.LaunchOptions,
     PuppeteerTypes.Browser,
     PuppeteerNewPageOptions
 > {
     protected async _launch(
         launchContext: LaunchContext<
             typeof Puppeteer,
-            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.LaunchOptions,
             PuppeteerTypes.Browser,
             PuppeteerNewPageOptions
         >,
@@ -190,7 +190,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
     protected _createController(): BrowserController<
         typeof Puppeteer,
-        PuppeteerTypes.PuppeteerLaunchOptions,
+        PuppeteerTypes.LaunchOptions,
         PuppeteerTypes.Browser,
         PuppeteerNewPageOptions
     > {
@@ -200,7 +200,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
     protected async _addProxyToLaunchOptions(
         _launchContext: LaunchContext<
             typeof Puppeteer,
-            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.LaunchOptions,
             PuppeteerTypes.Browser,
             PuppeteerNewPageOptions
         >,
@@ -235,7 +235,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
     protected _isChromiumBasedBrowser(
         _launchContext: LaunchContext<
             typeof Puppeteer,
-            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.LaunchOptions,
             PuppeteerTypes.Browser,
             PuppeteerNewPageOptions
         >,

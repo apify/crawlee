@@ -71,9 +71,9 @@ playwright install
 
 *If you're new to **Crawlee**, check out its easy-to-follow documentation. It’s available for both [Node.js](https://www.crawlee.dev/docs/quick-start) and [Python](https://www.crawlee.dev/python/docs/quick-start).*
 
-::: note
+:::note
 
-Before going ahead with the project, I request to star Crawlee for Python on [GitHub](https://github.com/apify/crawlee-python/), it helps us to spread the world to fellow scraping developers. 
+Before going ahead with the project, I'd like to ask you to star Crawlee for Python on [GitHub](https://github.com/apify/crawlee-python/), it helps us to spread the word to fellow scraper developers. 
 
 :::
 

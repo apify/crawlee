@@ -478,16 +478,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@crawlee/basic@npm:3.12.1, @crawlee/basic@workspace:packages/basic-crawler":
+"@crawlee/basic@npm:3.12.2, @crawlee/basic@workspace:packages/basic-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/basic@workspace:packages/basic-crawler"
   dependencies:
     "@apify/log": "npm:^2.4.0"
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/core": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/core": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     csv-stringify: "npm:^6.2.0"
     fs-extra: "npm:^11.0.0"
     got-scraping: "npm:^4.0.0"
@@ -498,14 +498,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser-pool@npm:3.12.1, @crawlee/browser-pool@workspace:packages/browser-pool":
+"@crawlee/browser-pool@npm:3.12.2, @crawlee/browser-pool@workspace:packages/browser-pool":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser-pool@workspace:packages/browser-pool"
   dependencies:
     "@apify/log": "npm:^2.4.0"
     "@apify/timeout": "npm:^0.3.0"
-    "@crawlee/core": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
+    "@crawlee/core": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
     fingerprint-generator: "npm:^2.0.6"
     fingerprint-injector: "npm:^2.0.5"
     lodash.merge: "npm:^4.6.2"
@@ -527,15 +527,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser@npm:3.12.1, @crawlee/browser@workspace:packages/browser-crawler":
+"@crawlee/browser@npm:3.12.2, @crawlee/browser@workspace:packages/browser-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser@workspace:packages/browser-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.0"
-    "@crawlee/basic": "npm:3.12.1"
-    "@crawlee/browser-pool": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/basic": "npm:3.12.2"
+    "@crawlee/browser-pool": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
@@ -550,24 +550,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/cheerio@npm:3.12.1, @crawlee/cheerio@workspace:packages/cheerio-crawler":
+"@crawlee/cheerio@npm:3.12.2, @crawlee/cheerio@workspace:packages/cheerio-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/cheerio@workspace:packages/cheerio-crawler"
   dependencies:
-    "@crawlee/http": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/http": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     cheerio: "npm:1.0.0-rc.12"
     htmlparser2: "npm:^9.0.0"
     tslib: "npm:^2.4.0"
   languageName: unknown
   linkType: soft
 
-"@crawlee/cli@npm:3.12.1, @crawlee/cli@workspace:packages/cli":
+"@crawlee/cli@npm:3.12.2, @crawlee/cli@workspace:packages/cli":
   version: 0.0.0-use.local
   resolution: "@crawlee/cli@workspace:packages/cli"
   dependencies:
-    "@crawlee/templates": "npm:3.12.1"
+    "@crawlee/templates": "npm:3.12.2"
     ansi-colors: "npm:^4.1.3"
     fs-extra: "npm:^11.0.0"
     inquirer: "npm:^8.2.4"
@@ -579,7 +579,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/core@npm:3.12.1, @crawlee/core@npm:^3.9.0, @crawlee/core@workspace:packages/core":
+"@crawlee/core@npm:3.12.2, @crawlee/core@npm:^3.12.2, @crawlee/core@npm:^3.9.0, @crawlee/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@crawlee/core@workspace:packages/core"
   dependencies:
@@ -589,9 +589,9 @@ __metadata:
     "@apify/pseudo_url": "npm:^2.0.30"
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/memory-storage": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/memory-storage": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     "@sapphire/async-queue": "npm:^1.5.1"
     "@vladfrangu/async_event_emitter": "npm:^2.2.2"
     csv-stringify: "npm:^6.2.0"
@@ -608,15 +608,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/http@npm:3.12.1, @crawlee/http@workspace:packages/http-crawler":
+"@crawlee/http@npm:3.12.2, @crawlee/http@workspace:packages/http-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/basic": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/basic": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     "@types/content-type": "npm:^1.1.5"
     cheerio: "npm:1.0.0-rc.12"
     content-type: "npm:^1.0.4"
@@ -629,43 +629,54 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/jsdom@npm:3.12.1, @crawlee/jsdom@workspace:packages/jsdom-crawler":
+"@crawlee/impit-client@workspace:packages/impit-client":
+  version: 0.0.0-use.local
+  resolution: "@crawlee/impit-client@workspace:packages/impit-client"
+  dependencies:
+    "@crawlee/core": "npm:^3.12.2"
+    impit: "npm:^0.1.3"
+  peerDependencies:
+    "@crawlee/core": ^3.12.1
+  languageName: unknown
+  linkType: soft
+
+"@crawlee/jsdom@npm:3.12.2, @crawlee/jsdom@workspace:packages/jsdom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/jsdom@workspace:packages/jsdom-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/http": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/http": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     "@types/jsdom": "npm:^21.0.0"
     cheerio: "npm:1.0.0-rc.12"
-    jsdom: "npm:^25.0.0"
+    jsdom: "npm:^26.0.0"
     ow: "npm:^0.28.2"
     tslib: "npm:^2.4.0"
   languageName: unknown
   linkType: soft
 
-"@crawlee/linkedom@npm:3.12.1, @crawlee/linkedom@workspace:packages/linkedom-crawler":
+"@crawlee/linkedom@npm:3.12.2, @crawlee/linkedom@workspace:packages/linkedom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/http": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
+    "@crawlee/http": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
     linkedom: "npm:^0.18.0"
     ow: "npm:^0.28.2"
     tslib: "npm:^2.4.0"
   languageName: unknown
   linkType: soft
 
-"@crawlee/memory-storage@npm:3.12.1, @crawlee/memory-storage@workspace:packages/memory-storage":
+"@crawlee/memory-storage@npm:3.12.2, @crawlee/memory-storage@workspace:packages/memory-storage":
   version: 0.0.0-use.local
   resolution: "@crawlee/memory-storage@workspace:packages/memory-storage"
   dependencies:
     "@apify/log": "npm:^2.4.0"
-    "@crawlee/types": "npm:3.12.1"
+    "@crawlee/types": "npm:3.12.2"
     "@sapphire/async-queue": "npm:^1.5.0"
     "@sapphire/shapeshift": "npm:^3.0.0"
     content-type: "npm:^1.0.4"
@@ -677,18 +688,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/playwright@npm:3.12.1, @crawlee/playwright@workspace:packages/playwright-crawler":
+"@crawlee/playwright@npm:3.12.2, @crawlee/playwright@workspace:packages/playwright-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/playwright@workspace:packages/playwright-crawler"
   dependencies:
     "@apify/datastructures": "npm:^2.0.0"
     "@apify/log": "npm:^2.4.0"
     "@apify/timeout": "npm:^0.3.1"
-    "@crawlee/browser": "npm:3.12.1"
-    "@crawlee/browser-pool": "npm:3.12.1"
-    "@crawlee/core": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/browser": "npm:3.12.2"
+    "@crawlee/browser-pool": "npm:3.12.2"
+    "@crawlee/core": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     cheerio: "npm:1.0.0-rc.12"
     idcac-playwright: "npm:^0.1.2"
     jquery: "npm:^3.6.0"
@@ -706,16 +717,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/puppeteer@npm:3.12.1, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
+"@crawlee/puppeteer@npm:3.12.2, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/puppeteer@workspace:packages/puppeteer-crawler"
   dependencies:
     "@apify/datastructures": "npm:^2.0.0"
     "@apify/log": "npm:^2.4.0"
-    "@crawlee/browser": "npm:3.12.1"
-    "@crawlee/browser-pool": "npm:3.12.1"
-    "@crawlee/types": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/browser": "npm:3.12.2"
+    "@crawlee/browser-pool": "npm:3.12.2"
+    "@crawlee/types": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     cheerio: "npm:1.0.0-rc.12"
     devtools-protocol: "npm:*"
     idcac-playwright: "npm:^0.1.2"
@@ -785,7 +796,7 @@ __metadata:
     playwright: "npm:1.49.1"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
-    puppeteer: "npm:23.11.1"
+    puppeteer: "npm:24.1.0"
     rimraf: "npm:^6.0.0"
     tsx: "npm:^4.4.0"
     turbo: "npm:^2.1.0"
@@ -795,7 +806,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/templates@npm:3.12.1, @crawlee/templates@workspace:packages/templates":
+"@crawlee/templates@npm:3.12.2, @crawlee/templates@workspace:packages/templates":
   version: 0.0.0-use.local
   resolution: "@crawlee/templates@workspace:packages/templates"
   dependencies:
@@ -807,7 +818,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/types@npm:3.12.1, @crawlee/types@npm:^3.3.0, @crawlee/types@npm:^3.9.0, @crawlee/types@workspace:packages/types":
+"@crawlee/types@npm:3.12.2, @crawlee/types@npm:^3.3.0, @crawlee/types@npm:^3.9.0, @crawlee/types@workspace:packages/types":
   version: 0.0.0-use.local
   resolution: "@crawlee/types@workspace:packages/types"
   dependencies:
@@ -815,17 +826,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/utils@npm:3.12.1, @crawlee/utils@npm:^3.9.0, @crawlee/utils@workspace:packages/utils":
+"@crawlee/utils@npm:3.12.2, @crawlee/utils@npm:^3.9.0, @crawlee/utils@workspace:packages/utils":
   version: 0.0.0-use.local
   resolution: "@crawlee/utils@workspace:packages/utils"
   dependencies:
     "@apify/log": "npm:^2.4.0"
     "@apify/ps-tree": "npm:^1.2.0"
-    "@crawlee/types": "npm:3.12.1"
+    "@crawlee/types": "npm:3.12.2"
     "@types/sax": "npm:^1.2.7"
     "@types/whatwg-mimetype": "npm:^3.0.2"
     cheerio: "npm:1.0.0-rc.12"
-    file-type: "npm:^19.0.0"
+    file-type: "npm:^20.0.0"
     got-scraping: "npm:^4.0.3"
     ow: "npm:^0.28.1"
     robots-parser: "npm:^3.0.1"
@@ -2031,9 +2042,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puppeteer/browsers@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@puppeteer/browsers@npm:2.6.1"
+"@puppeteer/browsers@npm:2.7.0":
+  version: 2.7.0
+  resolution: "@puppeteer/browsers@npm:2.7.0"
   dependencies:
     debug: "npm:^4.4.0"
     extract-zip: "npm:^2.0.1"
@@ -2045,7 +2056,7 @@ __metadata:
     yargs: "npm:^17.7.2"
   bin:
     browsers: lib/cjs/main-cli.js
-  checksum: 10c0/31d4951eec40515769467be3878d3581fe0e50227f2a9fa865e9f872e4a003262996c412a1d48d9c800665b3aa91bb1c2d971eaa314ef10e536d08e63f2f40d3
+  checksum: 10c0/1b71c89337d04603621a4d19a0e66277453a1e8f41410d777e162ee02e83b0882b7595869c1351bf14ef6fb7d435faac798aa5239fa714296da7faf4ec1f1452
   languageName: node
   linkType: hard
 
@@ -2312,6 +2323,17 @@ __metadata:
   dependencies:
     defer-to-connect: "npm:^2.0.1"
   checksum: 10c0/4629d2fbb2ea67c2e9dc03af235c0991c79ebdddcbc19aed5d5732fb29ce01c13331e9b1a491584b9069bd6ecde6581dcbf871f11b7eefdebbab34de6cf2197e
+  languageName: node
+  linkType: hard
+
+"@tokenizer/inflate@npm:^0.2.6":
+  version: 0.2.6
+  resolution: "@tokenizer/inflate@npm:0.2.6"
+  dependencies:
+    debug: "npm:^4.3.7"
+    fflate: "npm:^0.8.2"
+    token-types: "npm:^6.0.0"
+  checksum: 10c0/7c0e5e85c86fd3dbe4210d26fa16a2121d04ca053eeb2c42826846e85650c585621ca80e587107410a1e664b50ba37fd645e973863aafa9dee594efbab104619
   languageName: node
   linkType: hard
 
@@ -4029,6 +4051,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chromium-bidi@npm:0.12.0":
+  version: 0.12.0
+  resolution: "chromium-bidi@npm:0.12.0"
+  dependencies:
+    mitt: "npm:3.0.1"
+    zod: "npm:3.24.1"
+  peerDependencies:
+    devtools-protocol: "*"
+  checksum: 10c0/dbddf97e9c829922078dc40e069c7ba5d5949c0902dde624000299027b2ecb4fb905068c5f3e67be619d5ff1906795629da676aa3ae1ac53adf719893d757f4f
+  languageName: node
+  linkType: hard
+
 "ci-info@npm:^3.1.0, ci-info@npm:^3.2.0":
   version: 3.9.0
   resolution: "ci-info@npm:3.9.0"
@@ -4483,18 +4517,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "crawlee@workspace:packages/crawlee"
   dependencies:
-    "@crawlee/basic": "npm:3.12.1"
-    "@crawlee/browser": "npm:3.12.1"
-    "@crawlee/browser-pool": "npm:3.12.1"
-    "@crawlee/cheerio": "npm:3.12.1"
-    "@crawlee/cli": "npm:3.12.1"
-    "@crawlee/core": "npm:3.12.1"
-    "@crawlee/http": "npm:3.12.1"
-    "@crawlee/jsdom": "npm:3.12.1"
-    "@crawlee/linkedom": "npm:3.12.1"
-    "@crawlee/playwright": "npm:3.12.1"
-    "@crawlee/puppeteer": "npm:3.12.1"
-    "@crawlee/utils": "npm:3.12.1"
+    "@crawlee/basic": "npm:3.12.2"
+    "@crawlee/browser": "npm:3.12.2"
+    "@crawlee/browser-pool": "npm:3.12.2"
+    "@crawlee/cheerio": "npm:3.12.2"
+    "@crawlee/cli": "npm:3.12.2"
+    "@crawlee/core": "npm:3.12.2"
+    "@crawlee/http": "npm:3.12.2"
+    "@crawlee/jsdom": "npm:3.12.2"
+    "@crawlee/linkedom": "npm:3.12.2"
+    "@crawlee/playwright": "npm:3.12.2"
+    "@crawlee/puppeteer": "npm:3.12.2"
+    "@crawlee/utils": "npm:3.12.2"
     import-local: "npm:^3.1.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
@@ -4569,7 +4603,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cssstyle@npm:^4.1.0":
+"cssstyle@npm:^4.2.1":
   version: 4.2.1
   resolution: "cssstyle@npm:4.2.1"
   dependencies:
@@ -4877,10 +4911,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"devtools-protocol@npm:0.0.1367902":
-  version: 0.0.1367902
-  resolution: "devtools-protocol@npm:0.0.1367902"
-  checksum: 10c0/be4017f2bfd04474d718daca0e88e062f4afceb2f311662d717f4eae5bda3473da748a68ff1bf2326a67ce35c37af33932190fe8ef1d36c8ef22576befdc57c4
+"devtools-protocol@npm:0.0.1380148":
+  version: 0.0.1380148
+  resolution: "devtools-protocol@npm:0.0.1380148"
+  checksum: 10c0/489cb7af6890e19a2815fabcbc5178a9d3e510e25680a0eb28567d76a7664e8db228ea221079ef7e5a9619e37951cf71191df641b86b7c47d8ed4f1aa7edb4db
   languageName: node
   linkType: hard
 
@@ -6080,6 +6114,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fflate@npm:^0.8.2":
+  version: 0.8.2
+  resolution: "fflate@npm:0.8.2"
+  checksum: 10c0/03448d630c0a583abea594835a9fdb2aaf7d67787055a761515bf4ed862913cfd693b4c4ffd5c3f3b355a70cf1e19033e9ae5aedcca103188aaff91b8bd6e293
+  languageName: node
+  linkType: hard
+
 "figlet@npm:^1.1.1":
   version: 1.8.0
   resolution: "figlet@npm:1.8.0"
@@ -6107,15 +6148,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"file-type@npm:^19.0.0":
-  version: 19.6.0
-  resolution: "file-type@npm:19.6.0"
+"file-type@npm:^20.0.0":
+  version: 20.0.0
+  resolution: "file-type@npm:20.0.0"
   dependencies:
-    get-stream: "npm:^9.0.1"
-    strtok3: "npm:^9.0.1"
+    "@tokenizer/inflate": "npm:^0.2.6"
+    strtok3: "npm:^10.0.1"
     token-types: "npm:^6.0.0"
-    uint8array-extras: "npm:^1.3.0"
-  checksum: 10c0/ae90ab618d0e759f26806024eb25ade851406301d2deae4b2dca6e9df0de13b4be575114a5f8129e73f6de537644a45fc4eb7cfa8b7dad63316b01b0e6f3bd2e
+    uint8array-extras: "npm:^1.4.0"
+  checksum: 10c0/4238d528d7f3e1a7ad9b99aed84e9fd720dea051a19d101e8e607e713507dd9cde154a1773d07b9c4a7bf9e39b67dfd26dffa6d25c329bf1e799432596a9a432
   languageName: node
   linkType: hard
 
@@ -6291,7 +6332,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"form-data@npm:^4.0.0":
+"form-data@npm:^4.0.0, form-data@npm:^4.0.1":
   version: 4.0.1
   resolution: "form-data@npm:4.0.1"
   dependencies:
@@ -7114,7 +7155,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"https-proxy-agent@npm:^7.0.1, https-proxy-agent@npm:^7.0.5, https-proxy-agent@npm:^7.0.6":
+"https-proxy-agent@npm:^7.0.1, https-proxy-agent@npm:^7.0.6":
   version: 7.0.6
   resolution: "https-proxy-agent@npm:7.0.6"
   dependencies:
@@ -7201,6 +7242,75 @@ __metadata:
   version: 5.3.2
   resolution: "ignore@npm:5.3.2"
   checksum: 10c0/f9f652c957983634ded1e7f02da3b559a0d4cc210fca3792cb67f1b153623c9c42efdc1c4121af171e295444459fc4a9201101fb041b1104a3c000bccb188337
+  languageName: node
+  linkType: hard
+
+"impit-darwin-arm64@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-darwin-arm64@npm:0.1.3"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"impit-darwin-x64@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-darwin-x64@npm:0.1.3"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-gnu@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-linux-x64-gnu@npm:0.1.3"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-musl@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-linux-x64-musl@npm:0.1.3"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"impit-win32-arm64-msvc@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-win32-arm64-msvc@npm:0.1.3"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"impit-win32-x64-msvc@npm:0.1.3":
+  version: 0.1.3
+  resolution: "impit-win32-x64-msvc@npm:0.1.3"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit@npm:^0.1.3":
+  version: 0.1.3
+  resolution: "impit@npm:0.1.3"
+  dependencies:
+    impit-darwin-arm64: "npm:0.1.3"
+    impit-darwin-x64: "npm:0.1.3"
+    impit-linux-x64-gnu: "npm:0.1.3"
+    impit-linux-x64-musl: "npm:0.1.3"
+    impit-win32-arm64-msvc: "npm:0.1.3"
+    impit-win32-x64-msvc: "npm:0.1.3"
+  dependenciesMeta:
+    impit-darwin-arm64:
+      optional: true
+    impit-darwin-x64:
+      optional: true
+    impit-linux-x64-gnu:
+      optional: true
+    impit-linux-x64-musl:
+      optional: true
+    impit-win32-arm64-msvc:
+      optional: true
+    impit-win32-x64-msvc:
+      optional: true
+  checksum: 10c0/0339d1c5fe11399e4a5a8bc4f5a1b1308ca3428ccc01d8e2b9eae49aa17a1163bc6e9fcdea26c6caf142fb6e0a00aa24a59e9d996224710b5112d3da4a0658c3
   languageName: node
   linkType: hard
 
@@ -8035,21 +8145,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsdom@npm:^25.0.0":
-  version: 25.0.1
-  resolution: "jsdom@npm:25.0.1"
+"jsdom@npm:^26.0.0":
+  version: 26.0.0
+  resolution: "jsdom@npm:26.0.0"
   dependencies:
-    cssstyle: "npm:^4.1.0"
+    cssstyle: "npm:^4.2.1"
     data-urls: "npm:^5.0.0"
     decimal.js: "npm:^10.4.3"
-    form-data: "npm:^4.0.0"
+    form-data: "npm:^4.0.1"
     html-encoding-sniffer: "npm:^4.0.0"
     http-proxy-agent: "npm:^7.0.2"
-    https-proxy-agent: "npm:^7.0.5"
+    https-proxy-agent: "npm:^7.0.6"
     is-potential-custom-element-name: "npm:^1.0.1"
-    nwsapi: "npm:^2.2.12"
-    parse5: "npm:^7.1.2"
-    rrweb-cssom: "npm:^0.7.1"
+    nwsapi: "npm:^2.2.16"
+    parse5: "npm:^7.2.1"
+    rrweb-cssom: "npm:^0.8.0"
     saxes: "npm:^6.0.0"
     symbol-tree: "npm:^3.2.4"
     tough-cookie: "npm:^5.0.0"
@@ -8057,15 +8167,15 @@ __metadata:
     webidl-conversions: "npm:^7.0.0"
     whatwg-encoding: "npm:^3.1.1"
     whatwg-mimetype: "npm:^4.0.0"
-    whatwg-url: "npm:^14.0.0"
+    whatwg-url: "npm:^14.1.0"
     ws: "npm:^8.18.0"
     xml-name-validator: "npm:^5.0.0"
   peerDependencies:
-    canvas: ^2.11.2
+    canvas: ^3.0.0
   peerDependenciesMeta:
     canvas:
       optional: true
-  checksum: 10c0/6bda32a6dfe4e37a30568bf51136bdb3ba9c0b72aadd6356280404275a34c9e097c8c25b5eb3c742e602623741e172da977ff456684befd77c9042ed9bf8c2b4
+  checksum: 10c0/e48725ba4027edcfc9bca5799eaec72c6561ecffe3675a8ff87fe9c3541ca4ff9f82b4eff5b3d9c527302da0d859b2f60e9364347a5d42b77f5c76c436c569dc
   languageName: node
   linkType: hard
 
@@ -9552,7 +9662,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nwsapi@npm:^2.2.12":
+"nwsapi@npm:^2.2.16":
   version: 2.2.16
   resolution: "nwsapi@npm:2.2.16"
   checksum: 10c0/0aa0637f4d51043d0183d994e08336bae996b03b42984381bf09ebdf3ff4909c018eda6b2a8aba0a08f3ea8303db8a0dad0608b38dc0bff15fd87017286ae21a
@@ -10190,7 +10300,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"parse5@npm:^7.0.0, parse5@npm:^7.1.2":
+"parse5@npm:^7.0.0, parse5@npm:^7.2.1":
   version: 7.2.1
   resolution: "parse5@npm:7.2.1"
   dependencies:
@@ -10670,33 +10780,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:23.11.1":
-  version: 23.11.1
-  resolution: "puppeteer-core@npm:23.11.1"
+"puppeteer-core@npm:24.1.0":
+  version: 24.1.0
+  resolution: "puppeteer-core@npm:24.1.0"
   dependencies:
-    "@puppeteer/browsers": "npm:2.6.1"
+    "@puppeteer/browsers": "npm:2.7.0"
     chromium-bidi: "npm:0.11.0"
     debug: "npm:^4.4.0"
-    devtools-protocol: "npm:0.0.1367902"
+    devtools-protocol: "npm:0.0.1380148"
     typed-query-selector: "npm:^2.12.0"
     ws: "npm:^8.18.0"
-  checksum: 10c0/6512a3dca8c7bea620219332b84c4442754fead6c5021c26ea395ddc2f84610a54accf185ba1450e02885cb063c2d12f96eb5f18e7e1b6795f3e32a4b8a2102e
+  checksum: 10c0/3ff0f4b6f1b86a8de973cd6a3e4d2db562062b88ef4d565ba986e3114c04e7cf61d16ecc90b0e2db29ae5adeb7bb260dfaac614d4e35be1c0d1432061edaebb7
   languageName: node
   linkType: hard
 
-"puppeteer@npm:23.11.1":
-  version: 23.11.1
-  resolution: "puppeteer@npm:23.11.1"
+"puppeteer@npm:24.1.0":
+  version: 24.1.0
+  resolution: "puppeteer@npm:24.1.0"
   dependencies:
-    "@puppeteer/browsers": "npm:2.6.1"
-    chromium-bidi: "npm:0.11.0"
+    "@puppeteer/browsers": "npm:2.7.0"
+    chromium-bidi: "npm:0.12.0"
     cosmiconfig: "npm:^9.0.0"
-    devtools-protocol: "npm:0.0.1367902"
-    puppeteer-core: "npm:23.11.1"
+    devtools-protocol: "npm:0.0.1380148"
+    puppeteer-core: "npm:24.1.0"
     typed-query-selector: "npm:^2.12.0"
   bin:
     puppeteer: lib/cjs/puppeteer/node/cli.js
-  checksum: 10c0/e967f5ce02ab9e0343eb4403f32ab7de8a6dbeffe6b23be8725e112015ae4a60264a554742cf10302434795a8e9ea27ec9b048126fee23750ce24c3b238d2ebc
+  checksum: 10c0/b2c84610fdd0ea5cf0f1f0b53d24c34e87093e9012616fad9ffa96f447a874be48d68ad9804a344016d30cd18fddfeb67fd429d7a52c44aa445e06b4f93e2417
   languageName: node
   linkType: hard
 
@@ -11201,13 +11311,6 @@ __metadata:
   bin:
     rollup: dist/bin/rollup
   checksum: 10c0/a318c57e2ca9741e1503bcd75483949c6e83edd72234a468010a3098a34248f523e44f7ad4fde90dc5c2da56abc1b78ac42a9329e1dbd708682728adbd8df7cc
-  languageName: node
-  linkType: hard
-
-"rrweb-cssom@npm:^0.7.1":
-  version: 0.7.1
-  resolution: "rrweb-cssom@npm:0.7.1"
-  checksum: 10c0/127b8ca6c8aac45e2755abbae6138d4a813b1bedc2caabf79466ae83ab3cfc84b5bfab513b7033f0aa4561c7753edf787d0dd01163ceacdee2e8eb1b6bf7237e
   languageName: node
   linkType: hard
 
@@ -12032,13 +12135,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"strtok3@npm:^9.0.1":
-  version: 9.1.1
-  resolution: "strtok3@npm:9.1.1"
+"strtok3@npm:^10.0.1":
+  version: 10.0.1
+  resolution: "strtok3@npm:10.0.1"
   dependencies:
     "@tokenizer/token": "npm:^0.3.0"
     peek-readable: "npm:^5.3.1"
-  checksum: 10c0/ef9cd2a6cd21aec368c7f6fbd1d93548adc2c5b69ee28fa9a4b4e8fb6be6e539f3fcdf21107196e0c3fdff1c433db7e5d0fb8cab132c0b013ed9eef220bdcf2f
+  checksum: 10c0/476ccea29feebef1659d825e71a5e054b80486617139966217f53fd197d9d78d2d6f1e3be52cad7bc7ff71e164d38696adc60f883705fb440be1162a3ce6cb9b
   languageName: node
   linkType: hard
 
@@ -12692,7 +12795,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uint8array-extras@npm:^1.3.0":
+"uint8array-extras@npm:^1.4.0":
   version: 1.4.0
   resolution: "uint8array-extras@npm:1.4.0"
   checksum: 10c0/eaffd3388634b7e5e1496073b878dd19136043137d3e7e0d2a453e37f566a5a551e640819e1a6596c6df9b9d1f7b70884cc29db6a357bdd424811f3598d504dd
@@ -13064,7 +13167,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"whatwg-url@npm:^14.0.0":
+"whatwg-url@npm:^14.0.0, whatwg-url@npm:^14.1.0":
   version: 14.1.0
   resolution: "whatwg-url@npm:14.1.0"
   dependencies:
@@ -13474,5 +13577,12 @@ __metadata:
   version: 3.23.8
   resolution: "zod@npm:3.23.8"
   checksum: 10c0/8f14c87d6b1b53c944c25ce7a28616896319d95bc46a9660fe441adc0ed0a81253b02b5abdaeffedbeb23bdd25a0bf1c29d2c12dd919aef6447652dd295e3e69
+  languageName: node
+  linkType: hard
+
+"zod@npm:3.24.1":
+  version: 3.24.1
+  resolution: "zod@npm:3.24.1"
+  checksum: 10c0/0223d21dbaa15d8928fe0da3b54696391d8e3e1e2d0283a1a070b5980a1dbba945ce631c2d1eccc088fdbad0f2dfa40155590bf83732d3ac4fcca2cc9237591b
   languageName: node
   linkType: hard
