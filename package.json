@@ -111,7 +111,7 @@
         "tsx": "^4.4.0",
         "turbo": "^2.1.0",
         "typescript": "^5.7.2",
-        "vite-tsconfig-paths": "^4.3.2",
+        "vite-tsconfig-paths": "^5.0.0",
         "vitest": "^2.0.0"
     },
     "packageManager": "yarn@4.6.0",
