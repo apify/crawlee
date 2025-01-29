@@ -44,9 +44,6 @@ jobs:
                 with:
                     cache: 'yarn'
 
-            -   uses: microsoft/playwright-github-action@v1
-                if: (matrix.storage != 'PLATFORM')
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v4
@@ -61,6 +58,10 @@ jobs:
 
             -   name: Install Dependencies
                 run: yarn
+
+            -   name: Install Playwright Dependencies
+                if: (matrix.storage != 'PLATFORM')
+                run: yarn playwright install --with-deps
 
             -   name: Build
                 run: yarn ci:build

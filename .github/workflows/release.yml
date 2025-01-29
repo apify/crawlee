@@ -61,9 +61,6 @@ jobs:
                 with:
                     cache: 'yarn'
 
-            -   name: Setup Playwright
-                uses: microsoft/playwright-github-action@v1
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v4
@@ -74,7 +71,9 @@ jobs:
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
-                run: yarn
+                run: |
+                    yarn
+                    yarn playwright install --with-deps
 
             -   name: Build
                 run: yarn ci:build
