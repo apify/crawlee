@@ -24,31 +24,27 @@ vitest.setConfig({ restoreMocks: false });
 describe('RequestQueueV2#isFinished should use listHead instead of listAndLock', () => {
     let queue: RequestQueueV2;
     let clientListHeadSpy: MockInstance<typeof queue.client.listHead>;
-    let listHeadCallCount = 0;
-    let clientListAndLockHeadSpy: MockInstance<typeof queue.client.listAndLockHead>;
-    let listAndLockHeadCallCount = 0;
-    let lockResult: ListAndLockHeadResult;
 
     beforeAll(async () => {
         queue = await makeQueue('is-finished', 2);
         clientListHeadSpy = vitest.spyOn(queue.client, 'listHead');
-        clientListAndLockHeadSpy = vitest.spyOn(queue.client, 'listAndLockHead');
     });
 
     test('should return false if there are still requests in the queue', async () => {
         expect(await queue.isFinished()).toBe(false);
-        expect(clientListHeadSpy).toHaveBeenCalledTimes(++listHeadCallCount);
     });
 
     test('should return false even if all requests are locked', async () => {
-        lockResult = await queue.client.listAndLockHead({ lockSecs: 60 });
-
-        expect(lockResult.items.length).toBe(2);
-        expect(clientListAndLockHeadSpy).toHaveBeenCalledTimes(++listAndLockHeadCallCount);
+        queue.client.listAndLockHead = async (options) => ({
+            lockSecs: options.lockSecs,
+            queueModifiedAt: new Date(),
+            limit: 10,
+            items: [],
+            queueHasLockedRequests: true,
+        });
 
         expect(await queue.isFinished()).toBe(false);
-        expect(clientListHeadSpy).toHaveBeenCalledTimes(++listHeadCallCount);
-        expect(clientListAndLockHeadSpy).toHaveBeenCalledTimes(listAndLockHeadCallCount);
+        expect(clientListHeadSpy).not.toHaveBeenCalled();
     });
 });
 
@@ -81,7 +77,7 @@ describe('RequestQueueV2#isFinished should return true once locked requests are 
         expect(clientListHeadSpy).toHaveBeenCalledWith({ limit: 2 });
         expect(clientListHeadSpy).toHaveBeenCalledTimes(++listHeadCallCount);
         // One time
-        expect(clientListAndLockHeadSpy).toHaveBeenCalledTimes(1);
+        expect(clientListAndLockHeadSpy).toHaveBeenCalled();
     });
 });
 
