@@ -94,7 +94,7 @@ export async function pushActor(client, dirName) {
     return id;
 }
 
-export async function startActorOnPlatform(id, memory = 4096) {
+export async function startActorOnPlatform(client, id, input, inputContentType = 'application/json', memory = 4096) {
     const gotClient = got.extend({
         retry: {
             limit: 2,
@@ -120,7 +120,7 @@ export async function startActorOnPlatform(id, memory = 4096) {
                 memory,
             },
             headers: {
-                'content-type': contentType,
+                'content-type': inputContentType,
                 authorization: `Bearer ${client.token}`,
             },
             body: input,
@@ -159,7 +159,7 @@ export async function runActor(dirName, memory = 4096) {
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
         const client = Actor.newClient();
         const id = await pushActor(client, dirName);
-        const runId = await startActorOnPlatform(id, memory);
+        const runId = await startActorOnPlatform(client, id, input, contentType, memory);
 
         const {
             defaultKeyValueStoreId,
