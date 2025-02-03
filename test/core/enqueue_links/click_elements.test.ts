@@ -1,15 +1,15 @@
-import type { Server } from 'http';
+import type { Server } from 'node:http';
 
 import type { RequestQueueOperationOptions, Source } from 'crawlee';
 import {
     Configuration,
-    RequestQueue,
-    puppeteerClickElements,
-    launchPuppeteer,
     launchPlaywright,
+    launchPuppeteer,
     playwrightClickElements,
-    puppeteerUtils,
     playwrightUtils,
+    puppeteerClickElements,
+    puppeteerUtils,
+    RequestQueue,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 import type { Browser as PPBrowser, Target } from 'puppeteer';

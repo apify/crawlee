@@ -1,4 +1,3 @@
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import type {
     Awaitable,
     BasicCrawlerOptions,
@@ -16,17 +15,17 @@ import type {
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
+    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
-    tryAbsoluteURL,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
-    validators,
     SessionError,
-    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
+    tryAbsoluteURL,
+    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -42,6 +41,8 @@ import type { Cookie as CookieObject } from '@crawlee/types';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
+
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
@@ -828,7 +829,7 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 export async function extractUrlsFromPage(
-    // eslint-disable-next-line @typescript-eslint/ban-types
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     page: { $$eval: Function },
     selector: string,
     baseUrl: string,

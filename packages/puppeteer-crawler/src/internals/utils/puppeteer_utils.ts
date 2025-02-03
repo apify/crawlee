@@ -18,26 +18,27 @@
  * @module puppeteerUtils
  */
 
-import { readFile } from 'fs/promises';
-import vm from 'vm';
+import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
 
-import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { KeyValueStore, RequestState, validators, Configuration } from '@crawlee/browser';
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import { Configuration, KeyValueStore, RequestState, validators } from '@crawlee/browser';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import { getInjectableScript } from 'idcac-playwright';
 import ow from 'ow';
-import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
+import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
 
-import type { InterceptHandler } from './puppeteer_request_interception';
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import { LruCache } from '@apify/datastructures';
+import log_ from '@apify/log';
+
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler';
+import type { InterceptHandler } from './puppeteer_request_interception';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 
 const jqueryPath = require.resolve('jquery');
 
@@ -396,7 +397,7 @@ export async function cacheResponses(
                     body: buffer,
                 };
             }
-        } catch (e) {
+        } catch {
             // ignore errors, usually means that buffer is empty or broken connection
         }
     });
@@ -504,6 +505,8 @@ export async function gotoExtended(
             if (!isEmpty(headers)) overrides.headers = headers;
             await removeInterceptRequestHandler(page, interceptRequestHandler);
             await interceptedRequest.continue(overrides);
+
+            return undefined;
         };
 
         await addInterceptRequestHandler(page, interceptRequestHandler);

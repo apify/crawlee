@@ -1,8 +1,8 @@
-import { readFile, access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';
-import { isDocker, getMemoryInfo } from '@crawlee/utils';
+import { getMemoryInfo, isDocker } from '@crawlee/utils';
 
 vitest.mock('node:os', async (importActual) => {
     const originalOs: typeof import('node:os') = await importActual();

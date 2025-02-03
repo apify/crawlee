@@ -35,12 +35,12 @@ if (!process.env.IN_WORKER_THREAD) {
             // Log out what the crawlers are doing
             // Note: we want to use console.log instead of log.info because we already get formatted output from the crawlers
             proc.stdout.on('data', (data) => {
-                // eslint-disable-next-line no-console
+                 
                 console.log(data.toString());
             });
 
             proc.stderr.on('data', (data) => {
-                // eslint-disable-next-line no-console
+                 
                 console.error(data.toString());
             });
         });

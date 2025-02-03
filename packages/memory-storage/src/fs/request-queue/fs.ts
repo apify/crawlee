@@ -7,7 +7,6 @@ import { ensureDir } from 'fs-extra';
 import { lockAndCallback, lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalRequest } from '../../resource-clients/request-queue';
 import type { StorageImplementation } from '../common';
-
 import type { CreateStorageImplementationOptions } from '.';
 
 export class RequestQueueFileSystemEntry implements StorageImplementation<InternalRequest> {

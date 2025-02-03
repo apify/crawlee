@@ -1,4 +1,4 @@
-import https from 'https';
+import https from 'node:https';
 
 export const MANIFEST_URL = 'https://raw.githubusercontent.com/apify/crawlee/master/packages/templates/manifest.json';
 
@@ -21,17 +21,17 @@ interface RawManifest {
 }
 
 // Data returned for the CLI or users to consume
-export interface Manifest {
-    templates: Template[];
+export interface TemplateFile {
+    path: string;
+    url: string;
 }
 
 export interface Template extends SharedTemplateData {
     files: TemplateFile[];
 }
 
-export interface TemplateFile {
-    path: string;
-    url: string;
+export interface Manifest {
+    templates: Template[];
 }
 
 export async function fetchManifest(): Promise<Manifest> {

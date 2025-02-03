@@ -1,10 +1,8 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import { extname } from 'node:path';
+import type { Readable } from 'node:stream';
 import util from 'node:util';
-import type { Readable } from 'stream';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
@@ -19,26 +17,26 @@ import type {
     Session,
 } from '@crawlee/basic';
 import {
-    BasicCrawler,
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    BasicCrawler,
+    Configuration,
     CrawlerExtension,
     mergeCookies,
-    Router,
-    validators,
-    Configuration,
-    RequestState,
-    SessionError,
     processHttpRequestOptions,
+    RequestState,
+    Router,
+    SessionError,
+    validators,
 } from '@crawlee/basic';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { RETRY_CSS_SELECTORS, type CheerioRoot } from '@crawlee/utils';
+import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import type {
-    OptionsInit,
     Method,
+    OptionsInit,
     TimeoutError as TimeoutErrorClass,
     // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 } from 'got-scraping';
@@ -46,6 +44,9 @@ import iconv from 'iconv-lite';
 import mime from 'mime-types';
 import ow, { ObjectPredicate } from 'ow';
 import type { JsonValue } from 'type-fest';
+
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 
 let TimeoutError: typeof TimeoutErrorClass;
 
@@ -477,7 +478,7 @@ export class HttpCrawler<
         const extensionOptions = extension.getCrawlerOptions();
 
         for (const [key, value] of Object.entries(extensionOptions)) {
-            const isConfigurable = this.hasOwnProperty(key);
+            const isConfigurable = Object.hasOwn(this, key);
             const originalType = typeof this[key as keyof this];
             const extensionType = typeof value; // What if we want to null something? It is really needed?
             const isSameType = originalType === extensionType || value == null; // fast track for deleting keys

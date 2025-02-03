@@ -8,8 +8,7 @@ import mimeTypes from 'mime-types';
 import { DatasetFileSystemEntry } from './fs/dataset/fs';
 import { KeyValueFileSystemEntry } from './fs/key-value-store/fs';
 import { RequestQueueFileSystemEntry } from './fs/request-queue/fs';
-// eslint-disable-next-line import/order
-import type { MemoryStorage } from './memory-storage';
+import { type MemoryStorage } from './memory-storage';
 
 const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
@@ -336,7 +335,7 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
                         JSON.parse(fileContent);
 
                         entries.add(entryName);
-                    } catch (err) {
+                    } catch {
                         memoryStorageLog.warning(
                             `Request queue entry "${entry.name}" for store ${entryNameOrId} has invalid JSON content and will be ignored from the store.`,
                         );

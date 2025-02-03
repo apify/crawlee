@@ -1,9 +1,9 @@
+import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
-import { Readable } from 'stream';
-import { isTypedArray } from 'util/types';
+import { isTypedArray } from 'node:util/types';
 
-import type { HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse, BaseHttpClient } from '@crawlee/core';
-import { type ImpitOptions, type HttpMethod, Impit, type ImpitResponse } from 'impit';
+import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
+import { type HttpMethod, Impit, type ImpitOptions, type ImpitResponse } from 'impit';
 
 export { Browser } from 'impit';
 
@@ -41,7 +41,6 @@ export class ImpitHttpClient implements BaseHttpClient {
             const reader = body.getReader();
             const buffer = new Uint8Array();
 
-            // eslint-disable-next-line no-constant-condition
             while (true) {
                 const { done, value } = await reader.read();
 
@@ -113,7 +112,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         });
 
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
-            const location = response.headers.location;
+            const { location } = response.headers;
 
             if (!location) {
                 throw new Error('Redirect response missing location header.');

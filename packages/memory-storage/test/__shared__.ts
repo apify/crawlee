@@ -4,6 +4,7 @@ import { setTimeout } from 'node:timers/promises';
 export async function waitTillWrittenToDisk(path: string): Promise<void> {
     try {
         await access(path);
+        return undefined;
     } catch {
         await setTimeout(50);
         return waitTillWrittenToDisk(path);

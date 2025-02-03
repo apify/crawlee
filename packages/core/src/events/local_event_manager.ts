@@ -1,11 +1,12 @@
 import os from 'node:os';
 
+import { getCurrentCpuTicksV2, getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
+
 import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
-import { getMemoryInfo, getMemoryInfoV2, getCurrentCpuTicksV2, isContainerized } from '@crawlee/utils';
 
-import { EventManager, EventType } from './event_manager';
 import type { SystemInfo } from '../autoscaling';
+import { EventManager, EventType } from './event_manager';
 
 export class LocalEventManager extends EventManager {
     private previousTicks = { idle: 0, total: 0 };

@@ -10,7 +10,6 @@ import { Actor } from 'apify';
 import fs from 'fs-extra';
 import { got } from 'got';
 
-// eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
 /**

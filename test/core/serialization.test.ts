@@ -1,9 +1,9 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import util from 'util';
-import zlib from 'zlib';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import util from 'node:util';
+import zlib from 'node:zlib';
 
-import { serializeArray, deserializeArray, createDeserialize } from '@crawlee/core';
+import { createDeserialize, deserializeArray, serializeArray } from '@crawlee/core';
 
 const TEST_JSON_PATH = path.join(__dirname, '..', 'shared', 'data', 'sample.json.gz');
 

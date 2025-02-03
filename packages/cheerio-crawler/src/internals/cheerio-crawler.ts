@@ -1,7 +1,8 @@
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 import { text as readStreamToString } from 'node:stream/consumers';
 
 import type {
+    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -9,11 +10,10 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RouterRoutes,
-    Configuration,
     RequestProvider,
+    RouterRoutes,
 } from '@crawlee/http';
-import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
+import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';

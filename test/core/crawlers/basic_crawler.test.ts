@@ -1,29 +1,29 @@
-import { mkdir, mkdtemp } from 'fs/promises';
-import type { Server } from 'http';
-import http from 'http';
-import type { AddressInfo } from 'net';
-import { readFile, rm } from 'node:fs/promises';
-import { join } from 'path';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import type { Server } from 'node:http';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { join } from 'node:path';
 
-import log from '@apify/log';
 import type { CrawlingContext, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import {
-    Request,
-    RequestQueue,
-    RequestList,
-    Configuration,
     BasicCrawler,
-    KeyValueStore,
-    EventType,
-    NonRetryableError,
+    Configuration,
     CriticalError,
+    EventType,
+    KeyValueStore,
     MissingRouteError,
+    NonRetryableError,
+    Request,
+    RequestList,
+    RequestQueue,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper';
 
@@ -1393,7 +1393,7 @@ describe('BasicCrawler', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
-        const tmpDir: string = `${__dirname}/tmp/foo/bar`;
+        const tmpDir = `${__dirname}/tmp/foo/bar`;
 
         beforeAll(async () => {
             await rm(tmpDir, { recursive: true, force: true });

@@ -1,6 +1,6 @@
-import { PassThrough } from 'stream';
+import { PassThrough } from 'node:stream';
 
-import { maybeStringify, Configuration, KeyValueStore } from '@crawlee/core';
+import { Configuration, KeyValueStore, maybeStringify } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 

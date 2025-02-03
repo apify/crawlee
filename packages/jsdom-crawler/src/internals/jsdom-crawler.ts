@@ -1,8 +1,7 @@
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 
-import { addTimeoutToPromise } from '@apify/timeout';
-import { concatStreamToBuffer } from '@apify/utilities';
 import type {
+    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -10,15 +9,14 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RouterRoutes,
-    Configuration,
     RequestProvider,
+    RouterRoutes,
 } from '@crawlee/http';
 import {
-    HttpCrawler,
     enqueueLinks,
-    Router,
+    HttpCrawler,
     resolveBaseUrlForEnqueueLinksFiltering,
+    Router,
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
@@ -27,6 +25,9 @@ import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';
+
+import { addTimeoutToPromise } from '@apify/timeout';
+import { concatStreamToBuffer } from '@apify/utilities';
 
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -317,7 +318,8 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             if ($(selector).get().length === 0) {
                 if (timeoutMs) {
                     await sleep(50);
-                    return context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                    await context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                    return;
                 }
 
                 throw new Error(`Selector '${selector}' not found.`);

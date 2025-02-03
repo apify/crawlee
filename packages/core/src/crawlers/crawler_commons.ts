@@ -1,6 +1,6 @@
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { Response as GotResponse, OptionsInit } from 'got-scraping';
+import type { OptionsInit, Response as GotResponse } from 'got-scraping';
 import type { ReadonlyDeep } from 'type-fest';
 
 import type { Configuration } from '../configuration';
@@ -9,7 +9,7 @@ import type { Log } from '../log';
 import type { ProxyInfo } from '../proxy_configuration';
 import type { Request, Source } from '../request';
 import type { Session } from '../session_pool/session';
-import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
+import type { Dataset, RecordOptions, RequestQueueOperationOptions } from '../storages';
 import { KeyValueStore } from '../storages';
 
 /** @internal */

@@ -1,6 +1,6 @@
-import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
-import * as readline from 'readline';
+import type { ChildProcess } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import * as readline from 'node:readline';
 
 export interface ProcessInfo {
     PPID: string;
@@ -24,7 +24,7 @@ type ProcessInfoStringKeys = {
  *                      Defaults to false.
  * @internal
  */
-export async function psTree(pid: number | string, includeRoot: boolean = false): Promise<ProcessInfo[]> {
+export async function psTree(pid: number | string, includeRoot = false): Promise<ProcessInfo[]> {
     return new Promise((resolve, reject) => {
         if (typeof pid === 'number') {
             pid = pid.toString();

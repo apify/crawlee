@@ -8,7 +8,7 @@ const data = [
     },
     {
         id: 456,
-        name: 'bar'
+        name: 'bar',
     },
 ];
 

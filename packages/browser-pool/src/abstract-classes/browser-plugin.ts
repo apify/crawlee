@@ -2,10 +2,10 @@ import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
-import type { BrowserController } from './browser-controller';
 import type { LaunchContextOptions } from '../launch-context';
 import { LaunchContext } from '../launch-context';
 import type { UnwrapPromise } from '../utils';
+import type { BrowserController } from './browser-controller';
 
 /**
  * The default User Agent used by `PlaywrightCrawler`, `launchPlaywright`, 'PuppeteerCrawler' and 'launchPuppeteer'

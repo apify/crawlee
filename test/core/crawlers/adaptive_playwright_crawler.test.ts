@@ -1,5 +1,5 @@
-import type { Server } from 'http';
-import type { AddressInfo } from 'net';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 
 import { type Dictionary, KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions } from '@crawlee/playwright';
