@@ -160,7 +160,7 @@ export abstract class RequestProvider implements IStorage {
         const queueOperationInfo = {
             ...(await this.client.addRequest(request, { forefront })),
             uniqueKey: request.uniqueKey,
-            forefront: forefront,
+            forefront,
         } satisfies RequestQueueOperationInfo;
 
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
@@ -492,7 +492,7 @@ export abstract class RequestProvider implements IStorage {
                 handledAt,
             })),
             uniqueKey: request.uniqueKey,
-            forefront: forefront,
+            forefront,
         } satisfies RequestQueueOperationInfo;
         request.handledAt = handledAt;
 
@@ -546,7 +546,7 @@ export abstract class RequestProvider implements IStorage {
                 forefront,
             })),
             uniqueKey: request.uniqueKey,
-            forefront: forefront,
+            forefront,
         } satisfies RequestQueueOperationInfo;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
