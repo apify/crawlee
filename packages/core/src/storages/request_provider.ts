@@ -157,8 +157,11 @@ export abstract class RequestProvider implements IStorage {
             };
         }
 
-        const queueOperationInfo = (await this.client.addRequest(request, { forefront })) as RequestQueueOperationInfo;
-        queueOperationInfo.uniqueKey = request.uniqueKey;
+        const queueOperationInfo = {
+            ...(await this.client.addRequest(request, { forefront })),
+            uniqueKey: request.uniqueKey,
+            forefront: forefront,
+        } satisfies RequestQueueOperationInfo;
 
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
         this._cacheRequest(cacheKey, queueOperationInfo);
@@ -480,13 +483,18 @@ export abstract class RequestProvider implements IStorage {
             }),
         );
 
+        const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
+
         const handledAt = request.handledAt ?? new Date().toISOString();
-        const queueOperationInfo = (await this.client.updateRequest({
-            ...request,
-            handledAt,
-        })) as RequestQueueOperationInfo;
+        const queueOperationInfo = {
+            ...(await this.client.updateRequest({
+                ...request,
+                handledAt,
+            })),
+            uniqueKey: request.uniqueKey,
+            forefront: forefront,
+        } satisfies RequestQueueOperationInfo;
         request.handledAt = handledAt;
-        queueOperationInfo.uniqueKey = request.uniqueKey;
 
         this.recentlyHandledRequestsCache.add(request.id, true);
 
@@ -533,10 +541,13 @@ export abstract class RequestProvider implements IStorage {
 
         // TODO: If request hasn't been changed since the last getRequest(),
         //   we don't need to call updateRequest() and thus improve performance.
-        const queueOperationInfo = (await this.client.updateRequest(request, {
-            forefront,
-        })) as RequestQueueOperationInfo;
-        queueOperationInfo.uniqueKey = request.uniqueKey;
+        const queueOperationInfo = {
+            ...(await this.client.updateRequest(request, {
+                forefront,
+            })),
+            uniqueKey: request.uniqueKey,
+            forefront: forefront,
+        } satisfies RequestQueueOperationInfo;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
