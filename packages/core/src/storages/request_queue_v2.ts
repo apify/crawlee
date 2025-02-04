@@ -200,6 +200,10 @@ export class RequestQueue extends RequestProvider {
         }
 
         if (this.queueHasLockedRequests !== undefined) {
+            if (this.queueHasLockedRequests) {
+                this.log.info('The queue still contains requests locked by another client');
+            }
+
             return !this.queueHasLockedRequests;
         }
 
