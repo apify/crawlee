@@ -1,12 +1,16 @@
-import type { Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 
 import { checkStorageAccess } from './access_checking';
-import type { RequestQueueOperationInfo, RequestProviderOptions } from './request_provider';
+import type {
+    RequestQueueOperationInfo,
+    RequestProviderOptions,
+    RequestQueueOperationOptions,
+} from './request_provider';
 import { RequestProvider } from './request_provider';
 import { getRequestId } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
-import type { Request } from '../request';
+import type { Request, Source } from '../request';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -55,6 +59,7 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 export class RequestQueue extends RequestProvider {
     private listHeadAndLockPromise: Promise<void> | null = null;
     private queueHasLockedRequests: boolean | undefined = undefined;
+    private shouldCheckForForefrontRequests = false;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
         super(
@@ -94,6 +99,36 @@ export class RequestQueue extends RequestProvider {
             hydrated: null,
             lockExpiresAt: null,
         });
+    }
+
+    /**
+     * @inheritDoc
+     */
+    override async addRequest(
+        requestLike: Source,
+        options: RequestQueueOperationOptions = {},
+    ): Promise<RequestQueueOperationInfo> {
+        const result = await super.addRequest(requestLike, options);
+        if (!result.wasAlreadyPresent && options.forefront) {
+            this.shouldCheckForForefrontRequests = true;
+        }
+        return result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    override async addRequests(
+        requestsLike: Source[],
+        options: RequestQueueOperationOptions = {},
+    ): Promise<BatchAddRequestsResult> {
+        const result = await super.addRequests(requestsLike, options);
+        for (const request of result.processedRequests) {
+            if (!request.wasAlreadyPresent && options.forefront) {
+                this.shouldCheckForForefrontRequests = true;
+            }
+        }
+        return result;
     }
 
     /**
@@ -225,6 +260,10 @@ export class RequestQueue extends RequestProvider {
         if (res) {
             const [request, options] = args;
 
+            if (options?.forefront) {
+                this.shouldCheckForForefrontRequests = true;
+            }
+
             // Try to delete the request lock if possible
             try {
                 await this.client.deleteRequestLock(request.id!, { forefront: options?.forefront ?? false });
@@ -245,7 +284,7 @@ export class RequestQueue extends RequestProvider {
         }
 
         // We want to fetch ahead of time to minimize dead time
-        if (this.queueHeadIds.length() > 1) {
+        if (this.queueHeadIds.length() > 1 && !this.shouldCheckForForefrontRequests) {
             return;
         }
 
@@ -269,12 +308,19 @@ export class RequestQueue extends RequestProvider {
     }
 
     private async _listHeadAndLock(): Promise<void> {
+        // Make a copy so that we can clear the flag only if the whole method executes after the flag was set
+        // (i.e, it was not set in the middle of the execution of the method)
+        const shouldCheckForForefrontRequests = this.shouldCheckForForefrontRequests;
+
         const headData = await this.client.listAndLockHead({
             limit: 25,
             lockSecs: this.requestLockSecs,
         });
 
         this.queueHasLockedRequests = headData.queueHasLockedRequests;
+
+        const headIdBuffer = [];
+        const forefrontHeadIdBuffer = [];
 
         for (const { id, uniqueKey } of headData.items) {
             if (!id || !uniqueKey) {
@@ -293,7 +339,11 @@ export class RequestQueue extends RequestProvider {
             // we will put it to the beginning of the local queue head to preserve the expected order.
             // If we do not remember that, we will enqueue it normally.
             const forefront = this.requestCache.get(getRequestId(uniqueKey))?.forefront ?? false;
-            this.queueHeadIds.add(id, id, forefront);
+            if (forefront) {
+                forefrontHeadIdBuffer.unshift(id);
+            } else {
+                headIdBuffer.push(id);
+            }
 
             // Ensure that the request is cached locally
             this._cacheRequest(getRequestId(uniqueKey), {
@@ -303,6 +353,18 @@ export class RequestQueue extends RequestProvider {
                 wasAlreadyHandled: false,
                 forefront,
             });
+        }
+
+        for (const id of headIdBuffer) {
+            this.queueHeadIds.add(id, id, false);
+        }
+
+        for (const id of forefrontHeadIdBuffer) {
+            this.queueHeadIds.add(id, id, true);
+        }
+
+        if (shouldCheckForForefrontRequests && forefrontHeadIdBuffer.length === 0) {
+            this.shouldCheckForForefrontRequests = false;
         }
     }
 
