@@ -318,6 +318,10 @@ class RequestQueue extends RequestProvider {
             this._reset();
         }
 
+        if (this.inProgressRequestBatches.length > 0) {
+            return false;
+        }
+
         if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
 
         const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
