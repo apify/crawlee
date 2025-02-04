@@ -241,9 +241,10 @@ jobs:
                 if: steps.changed-packages.outputs.changed_packages != '0'
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-                    repository: apify/crawlee
-                    event-type: crawlee-docker-image-bump
+                    repository: apify/apify-actor-docker
+                    event-type: build-node-images
                     client-payload: >
                         {
-                          "crawlee_version": "${{ steps.versions.outputs.crawlee }}"
+                          "crawlee_version": "${{ steps.versions.outputs.crawlee }}",
+                          "release_tag": "beta"
                         }
