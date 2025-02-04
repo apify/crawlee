@@ -331,8 +331,7 @@ class RequestQueue extends RequestProvider {
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>) {
         checkStorageAccess();
 
-        const [request, options] = args;
-        const forefront = options?.forefront ?? false;
+        const [request] = args;
 
         const result = await super.reclaimRequest(...args);
 
@@ -347,9 +346,6 @@ class RequestQueue extends RequestProvider {
             }
 
             this.inProgress.delete(request.id!);
-
-            // Performance optimization: add request straight to head if possible
-            this._maybeAddRequestToQueueHead(request.id!, forefront);
         }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
         return result;

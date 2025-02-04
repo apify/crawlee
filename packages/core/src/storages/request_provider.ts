@@ -44,15 +44,6 @@ export abstract class RequestProvider implements IStorage {
     assumedTotalCount = 0;
     assumedHandledCount = 0;
 
-    /**
-     * Counts enqueued `forefront` requests. This is used to invalidate the local head cache.
-     * We can trust these numbers only in a case that queue is used by a single client.
-     *
-     * Note that this number does not have to be persisted, as the local head cache is dropped
-     * on a migration event.
-     */
-    protected assumedForefrontCount = 0;
-
     private initialCount = 0;
 
     protected queueHeadIds = new ListDictionary<string>();
@@ -137,7 +128,7 @@ export abstract class RequestProvider implements IStorage {
             const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
             const processedRequests = await this._addFetchedRequests(requestLike as InternalSource, requests, options);
 
-            return processedRequests[0];
+            return { ...processedRequests[0], forefront };
         }
 
         ow(
@@ -162,6 +153,7 @@ export abstract class RequestProvider implements IStorage {
                 wasAlreadyHandled: cachedInfo.isHandled,
                 requestId: cachedInfo.id,
                 uniqueKey: cachedInfo.uniqueKey,
+                forefront,
             };
         }
 
@@ -173,8 +165,6 @@ export abstract class RequestProvider implements IStorage {
 
         if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
             this.assumedTotalCount++;
-
-            this.assumedForefrontCount += forefront ? 1 : 0;
 
             // Performance optimization: add request straight to head if possible
             this._maybeAddRequestToQueueHead(requestId, forefront);
@@ -277,7 +267,7 @@ export abstract class RequestProvider implements IStorage {
         // Report unprocessed requests
         results.unprocessedRequests = apiResults.unprocessedRequests;
 
-        // Add all new requests to the queue head
+        // Add all new requests to the requestCache
         for (const newRequest of apiResults.processedRequests) {
             // Add the new request to the processed list
             results.processedRequests.push(newRequest);
@@ -287,13 +277,11 @@ export abstract class RequestProvider implements IStorage {
             const { requestId, wasAlreadyPresent } = newRequest;
 
             if (cache) {
-                this._cacheRequest(cacheKey, newRequest);
+                this._cacheRequest(cacheKey, { ...newRequest, forefront });
             }
 
             if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
-
-                this.assumedForefrontCount += forefront ? 1 : 0;
 
                 // Performance optimization: add request straight to head if possible
                 this._maybeAddRequestToQueueHead(requestId, forefront);
@@ -549,7 +537,6 @@ export abstract class RequestProvider implements IStorage {
             forefront,
         })) as RequestQueueOperationInfo;
         queueOperationInfo.uniqueKey = request.uniqueKey;
-        this.assumedForefrontCount += forefront ? 1 : 0;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
@@ -598,6 +585,7 @@ export abstract class RequestProvider implements IStorage {
             uniqueKey: queueOperationInfo.uniqueKey,
             hydrated: null,
             lockExpiresAt: null,
+            forefront: queueOperationInfo.forefront,
         });
     }
 
@@ -789,6 +777,7 @@ interface RequestLruItem {
     id: string;
     hydrated: Request | null;
     lockExpiresAt: number | null;
+    forefront: boolean;
 }
 
 export interface RequestProviderOptions {
@@ -846,6 +835,7 @@ export interface RequestQueueOperationOptions {
  */
 export interface RequestQueueOperationInfo extends QueueOperationInfo {
     uniqueKey: string;
+    forefront: boolean;
 }
 
 export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions {
