@@ -236,11 +236,13 @@ class RequestQueue extends RequestProvider {
                             return;
 
                         this.queueHeadIds.add(requestId, requestId, false);
+                        const forefront = this.requestCache.get(getRequestId(uniqueKey))?.forefront ?? false;
                         this._cacheRequest(getRequestId(uniqueKey), {
                             requestId,
                             wasAlreadyHandled: false,
                             wasAlreadyPresent: true,
                             uniqueKey,
+                            forefront,
                         });
                     });
 
@@ -331,7 +333,8 @@ class RequestQueue extends RequestProvider {
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>) {
         checkStorageAccess();
 
-        const [request] = args;
+        const [request, options] = args;
+        const forefront = options?.forefront ?? false;
 
         const result = await super.reclaimRequest(...args);
 
@@ -346,6 +349,9 @@ class RequestQueue extends RequestProvider {
             }
 
             this.inProgress.delete(request.id!);
+
+            // Performance optimization: add request straight to head if possible
+            this._maybeAddRequestToQueueHead(request.id!, forefront);
         }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
         return result;
