@@ -167,8 +167,8 @@ jobs:
                 uses: peter-evans/repository-dispatch@v3
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-                    repository: apify/crawlee
-                    event-type: crawlee-docker-image-bump
+                    repository: apify/apify-actor-docker
+                    event-type: build-node-images
 
     version-docs:
         needs: release
