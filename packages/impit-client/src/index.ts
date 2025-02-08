@@ -1,8 +1,9 @@
+import type { ReadableStream } from 'node:stream/web';
 import { Readable } from 'stream';
 import { isTypedArray } from 'util/types';
 
 import type { HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse, BaseHttpClient } from '@crawlee/core';
-import { type ImpitOptions, type HttpMethod, Impit } from 'impit';
+import { type ImpitOptions, type HttpMethod, Impit, type ImpitResponse } from 'impit';
 
 export { Browser } from 'impit';
 
@@ -78,13 +79,13 @@ export class ImpitHttpClient implements BaseHttpClient {
      * @param request `HttpRequest` object
      * @returns `HttpResponse` object
      */
-    private async performRequest<TResponseType extends keyof ResponseTypes>(
+    private async getResponse<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
         redirects?: {
             redirectCount?: number;
             redirectUrls?: URL[];
         },
-    ): Promise<HttpResponse<TResponseType>> {
+    ): Promise<[ImpitResponse, URL[]]> {
         if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
             throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
         }
@@ -112,7 +113,7 @@ export class ImpitHttpClient implements BaseHttpClient {
                 throw new Error('Redirect response missing location header.');
             }
 
-            return this.performRequest(
+            return this.getResponse(
                 {
                     ...request,
                     url: location,
@@ -124,17 +125,28 @@ export class ImpitHttpClient implements BaseHttpClient {
             );
         }
 
+        return [response, redirects?.redirectUrls ?? []];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    async sendRequest<TResponseType extends keyof ResponseTypes>(
+        request: HttpRequest<TResponseType>,
+    ): Promise<HttpResponse<TResponseType>> {
+        const [response, redirectUrls] = await this.getResponse(request);
+
         let responseBody;
 
         switch (request.responseType) {
             case 'text':
-                responseBody = response.text();
+                responseBody = await response.text();
                 break;
             case 'json':
-                responseBody = response.json();
+                responseBody = await response.json();
                 break;
             case 'buffer':
-                responseBody = response.bytes();
+                responseBody = await response.bytes();
                 break;
             default:
                 throw new Error('Unsupported response type.');
@@ -143,9 +155,9 @@ export class ImpitHttpClient implements BaseHttpClient {
         return {
             headers: response.headers,
             statusCode: response.status,
-            url,
+            url: typeof request.url === 'string' ? request.url : request.url.href,
             request,
-            redirectUrls: redirects?.redirectUrls ?? [],
+            redirectUrls,
             trailers: {},
             body: responseBody,
             complete: true,
@@ -155,32 +167,18 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async sendRequest<TResponseType extends keyof ResponseTypes>(
-        request: HttpRequest<TResponseType>,
-    ): Promise<HttpResponse<TResponseType>> {
-        return this.performRequest(request);
-    }
-
-    /**
-     * @inheritDoc
-     */
     async stream(request: HttpRequest): Promise<StreamingHttpResponse> {
-        const response = await this.performRequest(request);
-
-        const stream = new Readable();
-        stream.push(response.body);
-        stream.push(null);
+        const [response, redirectUrls] = await this.getResponse(request);
 
         return {
             request,
-            url: response.url,
-            ip: response.ipAddress,
-            statusCode: response.statusCode,
-            stream,
+            url: redirectUrls[redirectUrls.length - 1].href,
+            statusCode: response.status,
+            stream: Readable.fromWeb(response.body as ReadableStream<any>),
             complete: true,
-            downloadProgress: { percent: 100, transferred: response.body.length },
+            downloadProgress: { percent: 100, transferred: 0 },
             uploadProgress: { percent: 100, transferred: 0 },
-            redirectUrls: response.redirectUrls,
+            redirectUrls,
             headers: response.headers,
             trailers: {},
         };
