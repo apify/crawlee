@@ -176,16 +176,13 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         const body = await readStreamToString(response, 'utf-8');
         const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
 
-        const $ = cheerio.load(
-            body,
-            {
-                xmlMode: isXml,
-                // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
-                // and not good for scraping. It also does not have a great streaming interface.
-                // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
-                _useHtmlParser2: true,
-            } as CheerioOptions,
-        );
+        const $ = cheerio.load(body, {
+            xmlMode: isXml,
+            // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
+            // and not good for scraping. It also does not have a great streaming interface.
+            // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
+            _useHtmlParser2: true,
+        } as CheerioOptions);
 
         return {
             dom,
