@@ -200,7 +200,8 @@ export class RequestQueue extends RequestProvider {
         }
 
         if (this.queueHasLockedRequests !== undefined) {
-            if (this.queueHasLockedRequests) {
+            // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much.
+            if (this.queueHasLockedRequests && ++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
                 this.log.info('The queue still contains requests locked by another client');
             }
 
