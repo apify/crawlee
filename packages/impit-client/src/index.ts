@@ -1,4 +1,4 @@
-import type { ReadableStream } from 'node:stream/web';
+import { ReadableStream } from 'node:stream/web';
 import { Readable } from 'stream';
 import { isTypedArray } from 'util/types';
 
