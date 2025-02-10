@@ -330,10 +330,13 @@ export class RequestQueue extends RequestProvider {
 
         for (const { id, uniqueKey } of headData.items) {
             if (!id || !uniqueKey) {
-                this.log.warning(`Skipping request from queue head as it's invalid. Please report this with the provided metadata!`, {
-                    id,
-                    uniqueKey,
-                });
+                this.log.warning(
+                    `Skipping request from queue head as it's invalid. Please report this with the provided metadata!`,
+                    {
+                        id,
+                        uniqueKey,
+                    },
+                );
 
                 // Remove the lock from the request for now, so that it can be picked up later
                 // This may/may not succeed, but that's fine
