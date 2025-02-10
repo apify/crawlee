@@ -53,6 +53,7 @@
         "access": "public"
     },
     "dependencies": {
+        "@apify/utilities": "^2.12.2",
         "@crawlee/http": "3.12.2",
         "@crawlee/types": "3.12.2",
         "@crawlee/utils": "3.12.2",

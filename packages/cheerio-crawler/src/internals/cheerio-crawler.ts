@@ -1,5 +1,6 @@
 import type { IncomingMessage } from 'http';
 
+import { readStreamToString } from '@apify/utilities';
 import type {
     EnqueueLinksOptions,
     ErrorHandler,
@@ -17,7 +18,7 @@ import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
-import { DomHandler } from 'htmlparser2';
+import { DomHandler, parseDocument } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 
 export type CheerioErrorHandler<
@@ -172,10 +173,11 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         isXml: boolean,
         crawlingContext: CheerioCrawlingContext,
     ) {
-        const dom = await this._parseHtmlToDom(response, isXml);
+        const body = await readStreamToString(response, 'utf-8');
+        const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
 
         const $ = cheerio.load(
-            dom as string,
+            body,
             {
                 xmlMode: isXml,
                 // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
@@ -188,9 +190,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         return {
             dom,
             $,
-            get body() {
-                return isXml ? $!.xml() : $!.html({ decodeEntities: false });
-            },
+            body,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
