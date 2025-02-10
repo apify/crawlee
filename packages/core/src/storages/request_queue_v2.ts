@@ -126,6 +126,7 @@ export class RequestQueue extends RequestProvider {
         for (const request of result.processedRequests) {
             if (!request.wasAlreadyPresent && options.forefront) {
                 this.shouldCheckForForefrontRequests = true;
+                break;
             }
         }
         return result;
@@ -329,7 +330,7 @@ export class RequestQueue extends RequestProvider {
 
         for (const { id, uniqueKey } of headData.items) {
             if (!id || !uniqueKey) {
-                this.log.warning(`Skipping request from queue head as it's evidently invalid`, {
+                this.log.warning(`Skipping request from queue head as it's invalid. Please report this with the provided metadata!`, {
                     id,
                     uniqueKey,
                 });
