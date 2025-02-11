@@ -192,22 +192,19 @@ export class ImpitHttpClient implements BaseHttpClient {
         const [response, redirectUrls] = await this.getResponse(request);
         const [stream, getDownloadProgress] = this.getStreamWithProgress(response);
 
-        const out = {
+        return {
             request,
             url: response.url,
             statusCode: response.status,
             stream,
             complete: true,
+            get downloadProgress() {
+                return getDownloadProgress();
+            },
             uploadProgress: { percent: 100, transferred: 0 },
             redirectUrls,
             headers: response.headers,
             trailers: {},
         };
-
-        Object.defineProperty(out, 'downloadProgress', {
-            get: getDownloadProgress,
-        });
-
-        return out as StreamingHttpResponse;
     }
 }
