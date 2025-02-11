@@ -386,7 +386,7 @@ export class RequestQueue extends RequestProvider {
         }
 
         if (toUnlock.length > 0) {
-            await Promise.all(toUnlock.map((id) => this.giveUpLock(id)));
+            await Promise.all(toUnlock.map(async (id) => await this.giveUpLock(id)));
         }
 
         if (shouldCheckForForefrontRequests) {
