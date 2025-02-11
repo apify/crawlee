@@ -554,7 +554,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/cheerio@workspace:packages/cheerio-crawler"
   dependencies:
-    "@apify/utilities": "npm:^2.12.2"
     "@crawlee/http": "npm:3.12.2"
     "@crawlee/types": "npm:3.12.2"
     "@crawlee/utils": "npm:3.12.2"

@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'http';
+import { text as readStreamToString } from 'node:stream/consumers';
 
-import { readStreamToString } from '@apify/utilities';
 import type {
     EnqueueLinksOptions,
     ErrorHandler,
@@ -173,7 +173,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         isXml: boolean,
         crawlingContext: CheerioCrawlingContext,
     ) {
-        const body = await readStreamToString(response, 'utf-8');
+        const body = await readStreamToString(response);
         const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
 
         const $ = cheerio.load(body, {
