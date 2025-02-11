@@ -323,8 +323,10 @@ export class RequestQueue extends RequestProvider {
         // (i.e, it was not set in the middle of the execution of the method)
         const shouldCheckForForefrontRequests = this.shouldCheckForForefrontRequests;
 
+        const limit = 25;
+
         const headData = await this.client.listAndLockHead({
-            limit: 25,
+            limit,
             lockSecs: this.requestLockSecs,
         });
 
@@ -377,7 +379,17 @@ export class RequestQueue extends RequestProvider {
             this.queueHeadIds.add(id, id, true);
         }
 
-        if (shouldCheckForForefrontRequests && forefrontHeadIdBuffer.length === 0) {
+        // Unlock and forget requests that would make the local queue head grow over the limit
+        const toUnlock = [];
+        while (this.queueHeadIds.length() > limit) {
+            toUnlock.push(this.queueHeadIds.removeLast()!);
+        }
+
+        if (toUnlock.length > 0) {
+            await Promise.all(toUnlock.map((id) => this.giveUpLock(id)));
+        }
+
+        if (shouldCheckForForefrontRequests) {
             this.shouldCheckForForefrontRequests = false;
         }
     }
