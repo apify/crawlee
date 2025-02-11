@@ -671,9 +671,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
         if (this.requestQueue) {
             this.requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
-            // for request queue v2, we want to lock requests by the timeout that would also account for internals (plus 5 seconds padding), but
-            // with a minimum of a minute
-            this.requestQueue.requestLockSecs = Math.max(this.internalTimeoutMillis / 1000 + 5, 60);
+            // for request queue v2, we want to lock requests for slightly longer than the request handler timeout so that there is some padding for locking-related overhead,
+            // but never for less than a minute
+            this.requestQueue.requestLockSecs = Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60);
         }
 
         this.maxRequestRetries = maxRequestRetries;

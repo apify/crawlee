@@ -44,15 +44,6 @@ export abstract class RequestProvider implements IStorage {
     assumedTotalCount = 0;
     assumedHandledCount = 0;
 
-    /**
-     * Counts enqueued `forefront` requests. This is used to invalidate the local head cache.
-     * We can trust these numbers only in a case that queue is used by a single client.
-     *
-     * Note that this number does not have to be persisted, as the local head cache is dropped
-     * on a migration event.
-     */
-    protected assumedForefrontCount = 0;
-
     private initialCount = 0;
 
     protected queueHeadIds = new ListDictionary<string>();
@@ -65,6 +56,8 @@ export abstract class RequestProvider implements IStorage {
     protected lastActivity = new Date();
 
     protected isFinishedCalledWhileHeadWasNotEmpty = 0;
+
+    protected inProgressRequestBatchCount = 0;
 
     constructor(
         options: InternalRequestProviderOptions,
@@ -135,7 +128,7 @@ export abstract class RequestProvider implements IStorage {
             const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
             const processedRequests = await this._addFetchedRequests(requestLike as InternalSource, requests, options);
 
-            return processedRequests[0];
+            return { ...processedRequests[0], forefront };
         }
 
         ow(
@@ -160,19 +153,21 @@ export abstract class RequestProvider implements IStorage {
                 wasAlreadyHandled: cachedInfo.isHandled,
                 requestId: cachedInfo.id,
                 uniqueKey: cachedInfo.uniqueKey,
+                forefront,
             };
         }
 
-        const queueOperationInfo = (await this.client.addRequest(request, { forefront })) as RequestQueueOperationInfo;
-        queueOperationInfo.uniqueKey = request.uniqueKey;
+        const queueOperationInfo = {
+            ...(await this.client.addRequest(request, { forefront })),
+            uniqueKey: request.uniqueKey,
+            forefront,
+        } satisfies RequestQueueOperationInfo;
 
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
         this._cacheRequest(cacheKey, queueOperationInfo);
 
         if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
             this.assumedTotalCount++;
-
-            this.assumedForefrontCount += forefront ? 1 : 0;
 
             // Performance optimization: add request straight to head if possible
             this._maybeAddRequestToQueueHead(requestId, forefront);
@@ -275,7 +270,7 @@ export abstract class RequestProvider implements IStorage {
         // Report unprocessed requests
         results.unprocessedRequests = apiResults.unprocessedRequests;
 
-        // Add all new requests to the queue head
+        // Add all new requests to the requestCache
         for (const newRequest of apiResults.processedRequests) {
             // Add the new request to the processed list
             results.processedRequests.push(newRequest);
@@ -285,13 +280,11 @@ export abstract class RequestProvider implements IStorage {
             const { requestId, wasAlreadyPresent } = newRequest;
 
             if (cache) {
-                this._cacheRequest(cacheKey, newRequest);
+                this._cacheRequest(cacheKey, { ...newRequest, forefront });
             }
 
             if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
-
-                this.assumedForefrontCount += forefront ? 1 : 0;
 
                 // Performance optimization: add request straight to head if possible
                 this._maybeAddRequestToQueueHead(requestId, forefront);
@@ -418,6 +411,11 @@ export abstract class RequestProvider implements IStorage {
             resolve(finalAddedRequests);
         });
 
+        this.inProgressRequestBatchCount += 1;
+        void promise.finally(() => {
+            this.inProgressRequestBatchCount -= 1;
+        });
+
         // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
         if (options.waitForAllRequestsToBeAdded) {
             addedRequests.push(...(await promise));
@@ -485,13 +483,18 @@ export abstract class RequestProvider implements IStorage {
             }),
         );
 
+        const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
+
         const handledAt = request.handledAt ?? new Date().toISOString();
-        const queueOperationInfo = (await this.client.updateRequest({
-            ...request,
-            handledAt,
-        })) as RequestQueueOperationInfo;
+        const queueOperationInfo = {
+            ...(await this.client.updateRequest({
+                ...request,
+                handledAt,
+            })),
+            uniqueKey: request.uniqueKey,
+            forefront,
+        } satisfies RequestQueueOperationInfo;
         request.handledAt = handledAt;
-        queueOperationInfo.uniqueKey = request.uniqueKey;
 
         this.recentlyHandledRequestsCache.add(request.id, true);
 
@@ -538,11 +541,13 @@ export abstract class RequestProvider implements IStorage {
 
         // TODO: If request hasn't been changed since the last getRequest(),
         //   we don't need to call updateRequest() and thus improve performance.
-        const queueOperationInfo = (await this.client.updateRequest(request, {
+        const queueOperationInfo = {
+            ...(await this.client.updateRequest(request, {
+                forefront,
+            })),
+            uniqueKey: request.uniqueKey,
             forefront,
-        })) as RequestQueueOperationInfo;
-        queueOperationInfo.uniqueKey = request.uniqueKey;
-        this.assumedForefrontCount += forefront ? 1 : 0;
+        } satisfies RequestQueueOperationInfo;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
@@ -564,82 +569,10 @@ export abstract class RequestProvider implements IStorage {
     /**
      * Resolves to `true` if all requests were already handled and there are no more left.
      * Due to the nature of distributed storage used by the queue,
-     * the function might occasionally return a false negative,
-     * but it will never return a false positive.
+     * the function may occasionally return a false negative,
+     * but it shall never return a false positive.
      */
-    async isFinished(): Promise<boolean> {
-        // TODO: once/if we figure out why sometimes request queues get stuck (if it's even request queues), remove this once and for all :)
-        if (Date.now() - this.lastActivity.getTime() > this.internalTimeoutMillis) {
-            const maybeHead = await this.client.listHead({ limit: 1 });
-
-            const request = maybeHead.items[0] ? await this.client.getRequest(maybeHead.items[0].id) : null;
-
-            const message = `The request queue hasn't had activity for ${
-                this.internalTimeoutMillis / 1000
-            }s, resetting internal state.`;
-
-            this.log.warning(message, {
-                queueHeadIdsPending: this.queueHeadIds.length(),
-                hasPendingOrLockedRequests: maybeHead.items.length > 0,
-                pendingRequestIsLocked: request?.lockExpiresAt,
-            });
-
-            this.queueHeadIds.clear();
-            // This cache may be the bane of our existence, but it's still required for v1...
-            this.recentlyHandledRequestsCache.clear();
-        }
-
-        if (this.queueHeadIds.length() > 0) {
-            this.log.debug('There are still ids in the queue head that are pending processing', {
-                queueHeadIdsPending: this.queueHeadIds.length(),
-            });
-
-            return false;
-        }
-
-        const currentHead = await this.client.listHead({ limit: 2 });
-
-        if (currentHead.items.length !== 0) {
-            // Give users some more concrete info as to why their crawlers seem to be "hanging" doing nothing while we're waiting because the queue is technically
-            // not empty. We decided that a queue with elements in its head but that are also locked shouldn't return true in this function.
-            // If that ever changes, this function might need a rewrite
-            // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much. This is also a very specific path that most crawlers shouldn't hit
-            if (++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
-                const requests = await Promise.all(
-                    currentHead.items.map(async (item) => this.client.getRequest(item.id)),
-                );
-
-                this.log.info(
-                    `Queue head still returned requests that need to be processed (or that are locked by other clients)`,
-                    {
-                        requests: requests
-                            .map((r) => {
-                                if (!r) {
-                                    return null;
-                                }
-
-                                return {
-                                    id: r.id,
-                                    lockExpiresAt: r.lockExpiresAt,
-                                    lockedBy: r.lockByClient,
-                                };
-                            })
-                            .filter(Boolean),
-                        clientKey: this.clientKey,
-                    },
-                );
-            } else {
-                this.log.debug(
-                    'Queue head still returned requests that need to be processed (or that are locked by other clients)',
-                    {
-                        requestIds: currentHead.items.map((item) => item.id),
-                    },
-                );
-            }
-        }
-
-        return currentHead.items.length === 0;
-    }
+    abstract isFinished(): Promise<boolean>;
 
     protected _reset() {
         this.lastActivity = new Date();
@@ -663,6 +596,7 @@ export abstract class RequestProvider implements IStorage {
             uniqueKey: queueOperationInfo.uniqueKey,
             hydrated: null,
             lockExpiresAt: null,
+            forefront: queueOperationInfo.forefront,
         });
     }
 
@@ -844,6 +778,8 @@ declare class BuiltRequestProvider extends RequestProvider {
     ): Promise<Request<T> | null>;
 
     protected override ensureHeadIsNonEmpty(): Promise<void>;
+
+    override isFinished(): Promise<boolean>;
 }
 
 interface RequestLruItem {
@@ -852,6 +788,7 @@ interface RequestLruItem {
     id: string;
     hydrated: Request | null;
     lockExpiresAt: number | null;
+    forefront: boolean;
 }
 
 export interface RequestProviderOptions {
@@ -909,6 +846,7 @@ export interface RequestQueueOperationOptions {
  */
 export interface RequestQueueOperationInfo extends QueueOperationInfo {
     uniqueKey: string;
+    forefront: boolean;
 }
 
 export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions {
