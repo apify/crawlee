@@ -155,7 +155,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         return {
             headers: response.headers,
             statusCode: response.status,
-            url: typeof request.url === 'string' ? request.url : request.url.href,
+            url: response.url,
             request,
             redirectUrls,
             trailers: {},
@@ -194,7 +194,7 @@ export class ImpitHttpClient implements BaseHttpClient {
 
         const out = {
             request,
-            url: redirectUrls[redirectUrls.length - 1]?.href ?? request.url,
+            url: response.url,
             statusCode: response.status,
             stream,
             complete: true,
