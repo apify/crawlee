@@ -164,23 +164,50 @@ export class ImpitHttpClient implements BaseHttpClient {
         };
     }
 
+    private getStreamWithProgress(
+        response: ImpitResponse,
+    ): [Readable, () => { percent: number; transferred: number; total: number }] {
+        const responseStream = Readable.fromWeb(response.body as ReadableStream<any>);
+        let transferred = 0;
+        const total = Number(response.headers['content-length'] ?? 0);
+        responseStream.on('data', (chunk) => {
+            transferred += chunk.length;
+        });
+
+        const getDownloadProgress = () => {
+            return {
+                percent: Math.round((transferred / total) * 100),
+                transferred,
+                total,
+            };
+        };
+
+        return [responseStream, getDownloadProgress];
+    }
+
     /**
      * @inheritDoc
      */
     async stream(request: HttpRequest): Promise<StreamingHttpResponse> {
         const [response, redirectUrls] = await this.getResponse(request);
+        const [stream, getDownloadProgress] = this.getStreamWithProgress(response);
 
-        return {
+        const out = {
             request,
-            url: redirectUrls[redirectUrls.length - 1].href,
+            url: redirectUrls[redirectUrls.length - 1]?.href ?? request.url,
             statusCode: response.status,
-            stream: Readable.fromWeb(response.body as ReadableStream<any>),
+            stream,
             complete: true,
-            downloadProgress: { percent: 100, transferred: 0 },
             uploadProgress: { percent: 100, transferred: 0 },
             redirectUrls,
             headers: response.headers,
             trailers: {},
         };
+
+        Object.defineProperty(out, 'downloadProgress', {
+            get: getDownloadProgress,
+        });
+
+        return out as StreamingHttpResponse;
     }
 }
