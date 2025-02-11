@@ -318,7 +318,7 @@ class RequestQueue extends RequestProvider {
             this._reset();
         }
 
-        if (this.inProgressRequestBatches.length > 0) {
+        if (this.inProgressRequestBatchCount > 0) {
             return false;
         }
 
