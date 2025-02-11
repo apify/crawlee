@@ -186,20 +186,25 @@ export class RequestQueue extends RequestProvider {
      * @inheritDoc
      */
     override async isFinished(): Promise<boolean> {
+        // We are not finished if we're still adding new requests in the background
         if (this.inProgressRequestBatches.length > 0) {
             return false;
         }
 
+        // If the local queue head is non-empty, we don't need to query the "upstream" queue to know we are not finished yet
         if (this.queueHeadIds.length() > 0) {
             return false;
         }
 
+        // Local queue head is empty - try to fetch and lock more requests
         await this.ensureHeadIsNonEmpty();
 
+        // We managed to lock something - we are not finished
         if (this.queueHeadIds.length() > 0) {
             return false;
         }
 
+        // We could not lock any new requests - decide based on whether the queue contains requests locked by another client
         if (this.queueHasLockedRequests !== undefined) {
             // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much.
             if (this.queueHasLockedRequests && ++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
@@ -209,7 +214,7 @@ export class RequestQueue extends RequestProvider {
             return !this.queueHasLockedRequests;
         }
 
-        // The following is a legacy algorithm for checking if the queue is finished
+        // The following is a legacy algorithm for checking if the queue is finished. It is used only for request queue clients that do not provide the `queueHasLockedRequests` flag.
 
         const currentHead = await this.client.listHead({ limit: 2 });
 
