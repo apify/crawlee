@@ -187,7 +187,7 @@ export class RequestQueue extends RequestProvider {
      */
     override async isFinished(): Promise<boolean> {
         // We are not finished if we're still adding new requests in the background
-        if (this.inProgressRequestBatches.length > 0) {
+        if (this.inProgressRequestBatchCount > 0) {
             return false;
         }
 

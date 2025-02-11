@@ -57,7 +57,7 @@ export abstract class RequestProvider implements IStorage {
 
     protected isFinishedCalledWhileHeadWasNotEmpty = 0;
 
-    protected inProgressRequestBatches: Promise<unknown>[] = [];
+    protected inProgressRequestBatchCount = 0;
 
     constructor(
         options: InternalRequestProviderOptions,
@@ -411,9 +411,9 @@ export abstract class RequestProvider implements IStorage {
             resolve(finalAddedRequests);
         });
 
-        this.inProgressRequestBatches.push(promise);
+        this.inProgressRequestBatchCount += 1;
         void promise.finally(() => {
-            this.inProgressRequestBatches = this.inProgressRequestBatches.filter((it) => it !== promise);
+            this.inProgressRequestBatchCount -= 1;
         });
 
         // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
