@@ -84,7 +84,7 @@
 			"files": [
 				"src/main.ts",
 				"src/routes.ts",
-				"scripts/download-camoufox.ts",
+				"scripts/download-binaries.ts",
 				".dockerignore",
 				".gitignore",
 				"Dockerfile",
