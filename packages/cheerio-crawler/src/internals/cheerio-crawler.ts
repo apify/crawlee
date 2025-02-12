@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'http';
+import { text as readStreamToString } from 'node:stream/consumers';
 
 import type {
     EnqueueLinksOptions,
@@ -17,7 +18,7 @@ import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
-import { DomHandler } from 'htmlparser2';
+import { DomHandler, parseDocument } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 
 export type CheerioErrorHandler<
@@ -172,25 +173,21 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         isXml: boolean,
         crawlingContext: CheerioCrawlingContext,
     ) {
-        const dom = await this._parseHtmlToDom(response, isXml);
+        const body = await readStreamToString(response);
+        const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
 
-        const $ = cheerio.load(
-            dom as string,
-            {
-                xmlMode: isXml,
-                // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
-                // and not good for scraping. It also does not have a great streaming interface.
-                // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
-                _useHtmlParser2: true,
-            } as CheerioOptions,
-        );
+        const $ = cheerio.load(body, {
+            xmlMode: isXml,
+            // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
+            // and not good for scraping. It also does not have a great streaming interface.
+            // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
+            _useHtmlParser2: true,
+        } as CheerioOptions);
 
         return {
             dom,
             $,
-            get body() {
-                return isXml ? $!.xml() : $!.html({ decodeEntities: false });
-            },
+            body,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
@@ -203,6 +200,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         };
     }
 
+    // TODO: unused code - remove in 4.0
     protected async _parseHtmlToDom(response: IncomingMessage, isXml: boolean) {
         return new Promise((resolve, reject) => {
             const domHandler = new DomHandler(
