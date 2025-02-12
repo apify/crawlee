@@ -7,6 +7,11 @@ import { type ImpitOptions, type HttpMethod, Impit, type ImpitResponse } from 'i
 
 export { Browser } from 'impit';
 
+interface ResponseWithRedirects {
+    response: ImpitResponse;
+    redirectUrls: URL[];
+}
+
 /**
  * A HTTP client implementation based on the `impit library.
  */
@@ -85,7 +90,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             redirectCount?: number;
             redirectUrls?: URL[];
         },
-    ): Promise<[ImpitResponse, URL[]]> {
+    ): Promise<ResponseWithRedirects> {
         if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
             throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
         }
@@ -125,7 +130,10 @@ export class ImpitHttpClient implements BaseHttpClient {
             );
         }
 
-        return [response, redirects?.redirectUrls ?? []];
+        return {
+            response,
+            redirectUrls: redirects?.redirectUrls ?? [],
+        };
     }
 
     /**
@@ -134,7 +142,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     async sendRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>> {
-        const [response, redirectUrls] = await this.getResponse(request);
+        const { response, redirectUrls } = await this.getResponse(request);
 
         let responseBody;
 
@@ -189,7 +197,7 @@ export class ImpitHttpClient implements BaseHttpClient {
      * @inheritDoc
      */
     async stream(request: HttpRequest): Promise<StreamingHttpResponse> {
-        const [response, redirectUrls] = await this.getResponse(request);
+        const { response, redirectUrls } = await this.getResponse(request);
         const [stream, getDownloadProgress] = this.getStreamWithProgress(response);
 
         return {
