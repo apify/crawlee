@@ -3,7 +3,7 @@
     "version": "3.12.2",
     "description": "impit-based HTTP client implementation for Crawlee. Impersonates browser requests to avoid bot detection.",
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=20.0.0"
     },
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
@@ -59,7 +59,7 @@
         "@crawlee/core": "^3.12.2"
     },
     "dependencies": {
-        "impit": "^0.1.3"
+        "impit": "^0.2.1"
     },
     "packageManager": "yarn@4.6.0"
 }
