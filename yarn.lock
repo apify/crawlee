@@ -755,7 +755,7 @@ __metadata:
     "@playwright/browser-webkit": "npm:1.50.1"
     "@types/content-type": "npm:^1.1.5"
     "@types/deep-equal": "npm:^1.0.1"
-    "@types/domhandler": "npm:^2.4.2"
+    "@types/domhandler": "npm:^3.0.0"
     "@types/express": "npm:^4.17.13"
     "@types/fs-extra": "npm:^11.0.0"
     "@types/inquirer": "npm:^8.2.1"
@@ -2418,10 +2418,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/domhandler@npm:^2.4.2":
-  version: 2.4.5
-  resolution: "@types/domhandler@npm:2.4.5"
-  checksum: 10c0/3cc421190153dd9d92a785bbec36aeff7ce6c570eb386ba74f23adc52385279354e0ef32d7aa3eb850e7b4f28c58659d29b15bfeb4fd8ae9b8c1ad300597b4d8
+"@types/domhandler@npm:^3.0.0":
+  version: 3.1.0
+  resolution: "@types/domhandler@npm:3.1.0"
+  dependencies:
+    domhandler: "npm:*"
+  checksum: 10c0/dde4af251db3644b4428ca7d24d9ad072efd932b0b0de821e90f99ba29b5f84be7f543b8790f88eefc54b9610d1763207b013649a3303cf24a4644abc777d678
   languageName: node
   linkType: hard
 
@@ -4979,7 +4981,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"domhandler@npm:^5.0.2, domhandler@npm:^5.0.3":
+"domhandler@npm:*, domhandler@npm:^5.0.2, domhandler@npm:^5.0.3":
   version: 5.0.3
   resolution: "domhandler@npm:5.0.3"
   dependencies:
