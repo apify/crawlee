@@ -1,0 +1,25 @@
+{
+    "name": "test-kv-open-return-storage-object",
+    "version": "0.0.1",
+    "description": "Key-Value Store - Return storage object on open",
+    "dependencies": {
+        "apify": "next",
+        "@apify/storage-local": "^2.1.3",
+        "@crawlee/basic": "file:./packages/basic-crawler",
+        "@crawlee/core": "file:./packages/core",
+        "@crawlee/memory-storage": "file:./packages/memory-storage",
+        "@crawlee/types": "file:./packages/types",
+        "@crawlee/utils": "file:./packages/utils"
+    },
+    "overrides": {
+        "apify": {
+            "@crawlee/core": "file:./packages/core",
+            "@crawlee/utils": "file:./packages/utils"
+        }
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
+}
