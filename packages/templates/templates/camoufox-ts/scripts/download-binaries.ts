@@ -1,10 +1,11 @@
 import { createWriteStream, existsSync, chmodSync } from 'fs';
-import { ensureFileSync } from 'fs-extra';
 import { join } from 'path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { ReadableStream } from 'stream/web';
-import admZip from 'adm-zip';
+
+import AdmZip from 'adm-zip';
+import { ensureFileSync } from 'fs-extra';
 
 const PATH_TO_ZIP = join(import.meta.dirname, '..', 'binaries', 'camoufox.zip');
 const PATH_TO_CAMOUFOX_HOME = join(import.meta.dirname, '..', 'binaries', 'camoufox');
@@ -40,7 +41,7 @@ function getArch() {
 }
 
 async function getBinaryUrl() {
-    const releases = await fetch('https://api.github.com/repos/daijro/camoufox/releases').then((x) => x.json());
+    const releases = await fetch('https://api.github.com/repos/daijro/camoufox/releases').then(async (x) => x.json());
 
     const os = getOs();
     const arch = getArch();
@@ -79,7 +80,7 @@ async function downloadZipAsset(url: string) {
 }
 
 function extractZip() {
-    const zip = new admZip(PATH_TO_ZIP);
+    const zip = new AdmZip(PATH_TO_ZIP);
     zip.extractAllTo(PATH_TO_CAMOUFOX_HOME, true);
     console.log('Extracted Camoufox to', PATH_TO_CAMOUFOX_HOME);
 
@@ -100,4 +101,4 @@ async function main() {
     extractZip();
 }
 
-main();
+void main();
