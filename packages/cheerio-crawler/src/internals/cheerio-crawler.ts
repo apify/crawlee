@@ -200,6 +200,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         };
     }
 
+    // TODO: unused code - remove in 4.0
     protected async _parseHtmlToDom(response: IncomingMessage, isXml: boolean) {
         return new Promise((resolve, reject) => {
             const domHandler = new DomHandler(
