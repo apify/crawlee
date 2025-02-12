@@ -1,10 +1,10 @@
-import { createWriteStream, existsSync, chmodSync } from "fs";
-import { ensureFileSync } from "fs-extra";
-import { join } from "path";
-import { Readable } from "stream";
-import { pipeline } from "stream/promises";
-import { ReadableStream } from "stream/web";
-import admZip from "adm-zip";
+import { createWriteStream, existsSync, chmodSync } from 'fs';
+import { ensureFileSync } from 'fs-extra';
+import { join } from 'path';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
+import { ReadableStream } from 'stream/web';
+import admZip from 'adm-zip';
 
 const PATH_TO_ZIP = join(import.meta.dirname, '..', 'binaries', 'camoufox.zip');
 const PATH_TO_CAMOUFOX_HOME = join(import.meta.dirname, '..', 'binaries', 'camoufox');
@@ -15,7 +15,7 @@ function getOs() {
         win32: 'win',
         darwin: 'mac',
         linux: 'lin',
-    }
+    };
 
     const platform = platforms[process.platform];
     if (!platform) {
@@ -29,7 +29,7 @@ function getArch() {
     const archs = {
         x64: 'x86_64',
         arm64: 'arm64',
-    }
+    };
 
     const arch = archs[process.arch];
     if (!arch) {
@@ -40,12 +40,12 @@ function getArch() {
 }
 
 async function getBinaryUrl() {
-    const releases = await fetch('https://api.github.com/repos/daijro/camoufox/releases').then(x => x.json());
+    const releases = await fetch('https://api.github.com/repos/daijro/camoufox/releases').then((x) => x.json());
 
     const os = getOs();
     const arch = getArch();
 
-    const asset = releases[0].assets.find(x => x.name.includes(`-${os}.${arch}`));
+    const asset = releases[0].assets.find((x) => x.name.includes(`-${os}.${arch}`));
 
     if (!asset) {
         throw new Error(`No asset found for ${os}.${arch}`);
@@ -67,15 +67,12 @@ async function downloadZipAsset(url: string) {
         let progress = 0;
         downloadStream.on('data', (chunk) => {
             if (Math.floor(progress / 1e7) < Math.floor((progress + chunk.length) / 1e7)) {
-                console.log(`Downloaded ${progress} bytes (${(progress / total * 100).toFixed(2)}%)`);
+                console.log(`Downloaded ${progress} bytes (${((progress / total) * 100).toFixed(2)}%)`);
             }
             progress += chunk.length;
         });
 
-        return pipeline([
-            downloadStream,
-            fileStream,
-        ]);
+        return pipeline([downloadStream, fileStream]);
     }
 
     console.log('Camoufox seems to already exist in the current directory. Skipping download.');
