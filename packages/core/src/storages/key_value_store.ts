@@ -106,6 +106,7 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
+    readonly storageObject?: Record<string, unknown>;
     private readonly client: KeyValueStoreClient;
     private persistStateEventStarted = false;
 
@@ -121,6 +122,7 @@ export class KeyValueStore {
     ) {
         this.id = options.id;
         this.name = options.name;
+        this.storageObject = options.storageObject;
         this.client = options.client.keyValueStore(this.id);
     }
 
@@ -708,6 +710,7 @@ export interface KeyValueStoreOptions {
     id: string;
     name?: string;
     client: StorageClient;
+    storageObject?: Record<string, unknown>;
 }
 
 export interface RecordOptions {

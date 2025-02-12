@@ -69,6 +69,79 @@ export function getActorTestDir(url) {
     return join(actorDirName, 'actor');
 }
 
+export async function pushActor(client, dirName) {
+    await copyPackages(dirName);
+    try {
+        execSync('npx -y apify-cli@beta push --no-prompt', { cwd: dirName });
+    } catch (err) {
+        console.error(colors.red(`Failed to push actor to the Apify platform. (signal ${colors.yellow(err.signal)})`));
+
+        if (err.stdout) {
+            console.log(colors.grey(`  STDOUT: `), err.stdout);
+        }
+
+        if (err.stderr) {
+            console.log(colors.red(`  STDERR: `), err.stderr);
+        }
+
+        throw err;
+    }
+
+    const actorName = await getActorName(dirName);
+    const { items: actors } = await client.actors().list();
+    const { id } = actors.find((actor) => actor.name === actorName);
+
+    return id;
+}
+
+export async function startActorOnPlatform(client, id, input, inputContentType = 'application/json', memory = 4096) {
+    const gotClient = got.extend({
+        retry: {
+            limit: 2,
+            statusCodes: [500, 502],
+        },
+        headers: {
+            'user-agent': 'crawlee e2e tests (got)',
+        },
+        timeout: {
+            request: 10000,
+        },
+    });
+
+    // Do NOT use Apify Client yet!
+    // See https://github.com/apify/apify-client-js/issues/277
+
+    try {
+        const {
+            data: { id: foundRunId },
+        } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
+            method: 'POST',
+            searchParams: {
+                memory,
+            },
+            headers: {
+                'content-type': inputContentType,
+                authorization: `Bearer ${client.token}`,
+            },
+            body: input,
+            retry: {
+                limit: 2,
+                statusCodes: [500, 502],
+            },
+        }).json();
+
+        return foundRunId;
+    } catch (err) {
+        console.error(colors.red(`Failed to start actor run on the Apify platform. (code ${colors.yellow(err.code)})`));
+
+        if (err.response) {
+            console.log(colors.grey(`  RESPONSE: `), err.response.body || err.response.rawBody?.toString('utf-8'));
+        }
+
+        throw err;
+    }
+}
+
 /**
  * @param {string} dirName
  * @param {number} [memory=4096]
@@ -85,78 +158,8 @@ export async function runActor(dirName, memory = 4096) {
 
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
         const client = Actor.newClient();
-
-        await copyPackages(dirName);
-        try {
-            execSync('npx -y apify-cli@beta push --no-prompt', { cwd: dirName });
-        } catch (err) {
-            console.error(
-                colors.red(`Failed to push actor to the Apify platform. (signal ${colors.yellow(err.signal)})`),
-            );
-
-            if (err.stdout) {
-                console.log(colors.grey(`  STDOUT: `), err.stdout);
-            }
-
-            if (err.stderr) {
-                console.log(colors.red(`  STDERR: `), err.stderr);
-            }
-
-            throw err;
-        }
-
-        const actorName = await getActorName(dirName);
-        const { items: actors } = await client.actors().list();
-        const { id } = actors.find((actor) => actor.name === actorName);
-
-        const gotClient = got.extend({
-            retry: {
-                limit: 2,
-                statusCodes: [500, 502],
-            },
-            headers: {
-                'user-agent': 'crawlee e2e tests (got)',
-            },
-            timeout: {
-                request: 10000,
-            },
-        });
-
-        // Do NOT use Apify Client yet!
-        // See https://github.com/apify/apify-client-js/issues/277
-        let runId;
-
-        try {
-            const {
-                data: { id: foundRunId },
-            } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
-                method: 'POST',
-                searchParams: {
-                    memory,
-                },
-                headers: {
-                    'content-type': contentType,
-                    authorization: `Bearer ${client.token}`,
-                },
-                body: input,
-                retry: {
-                    limit: 2,
-                    statusCodes: [500, 502],
-                },
-            }).json();
-
-            runId = foundRunId;
-        } catch (err) {
-            console.error(
-                colors.red(`Failed to start actor run on the Apify platform. (code ${colors.yellow(err.code)})`),
-            );
-
-            if (err.response) {
-                console.log(colors.grey(`  RESPONSE: `), err.response.body || err.response.rawBody?.toString('utf-8'));
-            }
-
-            throw err;
-        }
+        const id = await pushActor(client, dirName);
+        const runId = await startActorOnPlatform(client, id, input, contentType, memory);
 
         const {
             defaultKeyValueStoreId,

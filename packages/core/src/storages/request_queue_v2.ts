@@ -1,12 +1,16 @@
-import type { Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 
 import { checkStorageAccess } from './access_checking';
-import type { RequestQueueOperationInfo, RequestProviderOptions } from './request_provider';
+import type {
+    RequestQueueOperationInfo,
+    RequestProviderOptions,
+    RequestQueueOperationOptions,
+} from './request_provider';
 import { RequestProvider } from './request_provider';
 import { getRequestId } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
-import type { Request } from '../request';
+import type { Request, Source } from '../request';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -53,18 +57,9 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * @category Sources
  */
 export class RequestQueue extends RequestProvider {
-    private _listHeadAndLockPromise: Promise<void> | null = null;
-
-    /**
-     * Returns `true` if there are any requests in the queue that were enqueued to the forefront.
-     *
-     * Can return false negatives, but never false positives.
-     * @returns `true` if there are `forefront` requests in the queue.
-     */
-    private async hasPendingForefrontRequests(): Promise<boolean> {
-        const queueInfo = await this.client.get();
-        return this.assumedForefrontCount > 0 && !queueInfo?.hadMultipleClients;
-    }
+    private listHeadAndLockPromise: Promise<void> | null = null;
+    private queueHasLockedRequests: boolean | undefined = undefined;
+    private shouldCheckForForefrontRequests = false;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
         super(
@@ -100,6 +95,7 @@ export class RequestQueue extends RequestProvider {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
             uniqueKey: queueOperationInfo.uniqueKey,
+            forefront: queueOperationInfo.forefront,
             hydrated: null,
             lockExpiresAt: null,
         });
@@ -108,8 +104,43 @@ export class RequestQueue extends RequestProvider {
     /**
      * @inheritDoc
      */
+    override async addRequest(
+        requestLike: Source,
+        options: RequestQueueOperationOptions = {},
+    ): Promise<RequestQueueOperationInfo> {
+        const result = await super.addRequest(requestLike, options);
+        if (!result.wasAlreadyPresent && options.forefront) {
+            this.shouldCheckForForefrontRequests = true;
+        }
+        return result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    override async addRequests(
+        requestsLike: Source[],
+        options: RequestQueueOperationOptions = {},
+    ): Promise<BatchAddRequestsResult> {
+        const result = await super.addRequests(requestsLike, options);
+        for (const request of result.processedRequests) {
+            if (!request.wasAlreadyPresent && options.forefront) {
+                this.shouldCheckForForefrontRequests = true;
+                break;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * @inheritDoc
+     */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
+
+        if (this.queuePausedForMigration) {
+            return null;
+        }
 
         this.lastActivity = new Date();
 
@@ -119,15 +150,6 @@ export class RequestQueue extends RequestProvider {
 
         // We are likely done at this point.
         if (!nextRequestId) {
-            return null;
-        }
-
-        // This should never happen, but...
-        if (this.recentlyHandledRequestsCache.get(nextRequestId)) {
-            this.log.warning('Queue head returned a request that was recently marked as handled?!', {
-                nextRequestId,
-                recentlyHandled: !!this.recentlyHandledRequestsCache.get(nextRequestId),
-            });
             return null;
         }
 
@@ -154,11 +176,88 @@ export class RequestQueue extends RequestProvider {
         //    will not put the request again to queueHeadDict.
         if (request.handledAt) {
             this.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
-            this.recentlyHandledRequestsCache.add(nextRequestId, true);
             return null;
         }
 
         return request;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    override async isFinished(): Promise<boolean> {
+        // We are not finished if we're still adding new requests in the background
+        if (this.inProgressRequestBatchCount > 0) {
+            return false;
+        }
+
+        // If the local queue head is non-empty, we don't need to query the "upstream" queue to know we are not finished yet
+        if (this.queueHeadIds.length() > 0) {
+            return false;
+        }
+
+        // Local queue head is empty - try to fetch and lock more requests
+        await this.ensureHeadIsNonEmpty();
+
+        // We managed to lock something - we are not finished
+        if (this.queueHeadIds.length() > 0) {
+            return false;
+        }
+
+        // We could not lock any new requests - decide based on whether the queue contains requests locked by another client
+        if (this.queueHasLockedRequests !== undefined) {
+            // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much.
+            if (this.queueHasLockedRequests && ++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
+                this.log.info('The queue still contains requests locked by another client');
+            }
+
+            return !this.queueHasLockedRequests;
+        }
+
+        // The following is a legacy algorithm for checking if the queue is finished. It is used only for request queue clients that do not provide the `queueHasLockedRequests` flag.
+
+        const currentHead = await this.client.listHead({ limit: 2 });
+
+        if (currentHead.items.length === 0) {
+            return true;
+        }
+
+        // Give users some more concrete info as to why their crawlers seem to be "hanging" doing nothing while we're waiting because the queue is technically
+        // not empty. We decided that a queue with elements in its head but that are also locked shouldn't return true in this function.
+        // If that ever changes, this function might need a rewrite
+        // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much. This is also a very specific path that most crawlers shouldn't hit
+        if (++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
+            const requests = await Promise.all(currentHead.items.map(async (item) => this.client.getRequest(item.id)));
+
+            this.log.info(
+                `Queue head still returned requests that need to be processed (or that are locked by other clients)`,
+                {
+                    requests: requests
+                        .map((r) => {
+                            if (!r) {
+                                return null;
+                            }
+
+                            return {
+                                id: r.id,
+                                lockExpiresAt: r.lockExpiresAt,
+                                lockedBy: r.lockByClient,
+                            };
+                        })
+                        .filter(Boolean),
+                    clientKey: this.clientKey,
+                },
+            );
+        } else {
+            this.log.debug(
+                'Queue head still returned requests that need to be processed (or that are locked by other clients)',
+                {
+                    requestIds: currentHead.items.map((item) => item.id),
+                },
+            );
+        }
+
+        return false;
     }
 
     /**
@@ -171,6 +270,10 @@ export class RequestQueue extends RequestProvider {
 
         if (res) {
             const [request, options] = args;
+
+            if (options?.forefront) {
+                this.shouldCheckForForefrontRequests = true;
+            }
 
             // Try to delete the request lock if possible
             try {
@@ -192,67 +295,102 @@ export class RequestQueue extends RequestProvider {
         }
 
         // We want to fetch ahead of time to minimize dead time
-        if (this.queueHeadIds.length() > 1 && !(await this.hasPendingForefrontRequests())) {
+        if (this.queueHeadIds.length() > 1 && !this.shouldCheckForForefrontRequests) {
             return;
         }
 
-        this._listHeadAndLockPromise ??= this._listHeadAndLock().finally(() => {
-            this._listHeadAndLockPromise = null;
+        this.listHeadAndLockPromise ??= this._listHeadAndLock().finally(() => {
+            this.listHeadAndLockPromise = null;
         });
 
-        await this._listHeadAndLockPromise;
+        await this.listHeadAndLockPromise;
+    }
+
+    private async giveUpLock(id?: string, uniqueKey?: string) {
+        if (id === undefined) {
+            return;
+        }
+
+        try {
+            await this.client.deleteRequestLock(id);
+        } catch {
+            this.log.debug('Failed to delete request lock', { id, uniqueKey });
+        }
     }
 
     private async _listHeadAndLock(): Promise<void> {
-        const forefront = await this.hasPendingForefrontRequests();
+        // Make a copy so that we can clear the flag only if the whole method executes after the flag was set
+        // (i.e, it was not set in the middle of the execution of the method)
+        const shouldCheckForForefrontRequests = this.shouldCheckForForefrontRequests;
+
+        const limit = 25;
 
         const headData = await this.client.listAndLockHead({
-            limit: Math.min(forefront ? this.assumedForefrontCount : 25, 25),
+            limit,
             lockSecs: this.requestLockSecs,
         });
 
+        this.queueHasLockedRequests = headData.queueHasLockedRequests;
+
         const headIdBuffer = [];
+        const forefrontHeadIdBuffer = [];
 
         for (const { id, uniqueKey } of headData.items) {
-            // Queue head index might be behind the main table, so ensure we don't recycle requests
-            if (
-                !id ||
-                !uniqueKey ||
-                this.recentlyHandledRequestsCache.get(id) ||
-                // If we tried to read new forefront requests, but another client appeared in the meantime, we can't be sure we'll only read our requests.
-                // To retain the correct queue ordering, we rollback this head read.
-                (forefront && headData.hadMultipleClients)
-            ) {
-                this.log.debug(`Skipping request from queue head as it's potentially invalid or recently handled`, {
-                    id,
-                    uniqueKey,
-                    recentlyHandled: !!this.recentlyHandledRequestsCache.get(id),
-                    inconsistentForefrontRead: forefront && headData.hadMultipleClients,
-                });
+            if (!id || !uniqueKey) {
+                this.log.warning(
+                    `Skipping request from queue head as it's invalid. Please report this with the provided metadata!`,
+                    {
+                        id,
+                        uniqueKey,
+                    },
+                );
 
                 // Remove the lock from the request for now, so that it can be picked up later
                 // This may/may not succeed, but that's fine
-                try {
-                    await this.client.deleteRequestLock(id);
-                } catch {
-                    // Ignore
-                }
-
+                await this.giveUpLock(id, uniqueKey);
                 continue;
             }
 
-            headIdBuffer.push(id);
-            this.assumedForefrontCount = Math.max(0, this.assumedForefrontCount - 1);
+            // If we remember that we added the request ourselves and we added it to the forefront,
+            // we will put it to the beginning of the local queue head to preserve the expected order.
+            // If we do not remember that, we will enqueue it normally.
+            const forefront = this.requestCache.get(getRequestId(uniqueKey))?.forefront ?? false;
+            if (forefront) {
+                forefrontHeadIdBuffer.unshift(id);
+            } else {
+                headIdBuffer.push(id);
+            }
+
+            // Ensure that the request is cached locally
             this._cacheRequest(getRequestId(uniqueKey), {
                 requestId: id,
                 uniqueKey,
                 wasAlreadyPresent: true,
                 wasAlreadyHandled: false,
+                forefront,
             });
         }
 
-        for (const id of forefront ? headIdBuffer.reverse() : headIdBuffer) {
-            this.queueHeadIds.add(id, id, forefront);
+        for (const id of headIdBuffer) {
+            this.queueHeadIds.add(id, id, false);
+        }
+
+        for (const id of forefrontHeadIdBuffer) {
+            this.queueHeadIds.add(id, id, true);
+        }
+
+        // Unlock and forget requests that would make the local queue head grow over the limit
+        const toUnlock = [];
+        while (this.queueHeadIds.length() > limit) {
+            toUnlock.push(this.queueHeadIds.removeLast()!);
+        }
+
+        if (toUnlock.length > 0) {
+            await Promise.all(toUnlock.map(async (id) => await this.giveUpLock(id)));
+        }
+
+        if (shouldCheckForForefrontRequests) {
+            this.shouldCheckForForefrontRequests = false;
         }
     }
 
@@ -293,6 +431,7 @@ export class RequestQueue extends RequestProvider {
                 hydrated: hydratedRequest,
                 isHandled: hydratedRequest.handledAt !== null,
                 lockExpiresAt: prolongResult.getTime(),
+                forefront: false,
             });
 
             return hydratedRequest;
@@ -361,7 +500,8 @@ export class RequestQueue extends RequestProvider {
 
     protected override _reset() {
         super._reset();
-        this._listHeadAndLockPromise = null;
+        this.listHeadAndLockPromise = null;
+        this.queueHasLockedRequests = undefined;
     }
 
     protected override _maybeAddRequestToQueueHead() {
