@@ -860,12 +860,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
-     * We can use the `requests` parameter to enqueue the initial requests - it is a shortcut for
-     * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before the {@apilink BasicCrawler.run|`crawler.run()`}.
+     * Runs the crawler. Returns a promise that resolves once all the requests are processed
+     * and `autoscaledPool.isFinished` returns `true`.
      *
-     * @param [requests] The requests to add
-     * @param [options] Options for the request queue
+     * We can use the `requests` parameter to enqueue the initial requests — it is a shortcut for
+     * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before {@apilink BasicCrawler.run|`crawler.run()`}.
+     *
+     * @param [requests] The requests to add.
+     * @param [options] Options for the request queue.
      */
     async run(requests?: (string | Request | RequestOptions)[], options?: CrawlerRunOptions): Promise<FinalStatistics> {
         if (this.running) {
