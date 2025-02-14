@@ -60,6 +60,7 @@ export class RequestQueue extends RequestProvider {
     private listHeadAndLockPromise: Promise<void> | null = null;
     private queueHasLockedRequests: boolean | undefined = undefined;
     private shouldCheckForForefrontRequests = false;
+    private dequeuedRequestCount = 0;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
         super(
@@ -179,7 +180,17 @@ export class RequestQueue extends RequestProvider {
             return null;
         }
 
+        this.dequeuedRequestCount += 1;
+
         return request;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    override async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
+        this.dequeuedRequestCount -= 1;
+        return await super.markRequestHandled(request);
     }
 
     /**
@@ -207,7 +218,11 @@ export class RequestQueue extends RequestProvider {
         // We could not lock any new requests - decide based on whether the queue contains requests locked by another client
         if (this.queueHasLockedRequests !== undefined) {
             // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much.
-            if (this.queueHasLockedRequests && ++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
+            if (
+                this.queueHasLockedRequests &&
+                this.dequeuedRequestCount === 0 &&
+                ++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0
+            ) {
                 this.log.info('The queue still contains requests locked by another client');
             }
 
