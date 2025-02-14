@@ -3,7 +3,6 @@
 	"include": [
 		"packages/**/src/**/*.js",
 		"packages/**/src/**/*.ts",
-		"packages/**/scripts/**/*.ts",
 		"scripts/**/*.js",
 		"scripts/**/*.ts",
 		"test/**/*.js",
