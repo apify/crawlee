@@ -1,5 +1,5 @@
 ---
-slug: scrape-bluesky
+slug: scrape-bluesky-using-python
 title: 'How to scrape Bluesky with Python'
 tags: [community]
 description: 'Learn how to scrape Bluesky using Crawlee for Python'
