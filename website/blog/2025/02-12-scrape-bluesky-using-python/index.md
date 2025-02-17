@@ -44,7 +44,7 @@ One of our community members wrote this blog as a contribution to the Crawlee Bl
     uv add crawlee
     ```
 
-We've created a new isolated Python project with all the necessary dependencies for Crawlee.
+We have created a new isolated Python project with all the necessary dependencies for Crawlee.
 
 ## Development of the Bluesky crawler in Python
 
