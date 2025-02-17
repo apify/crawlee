@@ -1,12 +1,12 @@
 ---
 slug: superscraper-with-crawlee
-title: 'Inside implementing Superscraper with Crawlee.'
-description: 'This blog explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.'
+title: 'Inside implementing SuperScraper with Crawlee.'
+description: 'This article explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.'
 image: './img/superscraper.webp'
 authors: [SauravJ, RadoC]
 ---
 
-[SuperScraper](https://github.com/apify/super-scraper) is an open-source Actor that combines features from various web scraping services, including [ScrapingBee](https://www.scrapingbee.com/), [ScrapingAnt](https://scrapingant.com/), and [ScraperAPI](https://www.scraperapi.com/). 
+[SuperScraper](https://github.com/apify/super-scraper) is an open-source [Actor](https://docs.apify.com/platform/actors) that combines features from various web scraping services, including [ScrapingBee](https://www.scrapingbee.com/), [ScrapingAnt](https://scrapingant.com/), and [ScraperAPI](https://www.scraperapi.com/). 
 
 A key capability is its standby mode, which runs the Actor as a persistent API server. This removes the usual start-up times - a common pain point in many systems - and lets users make direct API calls to interact with the system immediately.
 
@@ -28,17 +28,17 @@ The project uses Node.js `http` module to create a server that listens on the de
 
 ### Handling multiple crawlers
 
-SuperScraper processes user requests using multiple instances of Crawlee’s `PlaywrightCrawler`. Since each `PlaywrightCrawler` instance can only handle one proxy configuration, a separate crawler is created for each unique proxy setting. 
+SuperScraper processes user requests using multiple instances of Crawlee’s [`PlaywrightCrawler`](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler). Since each `PlaywrightCrawler` instance can only handle one proxy configuration, a separate crawler is created for each unique proxy setting. 
 
 For example, if the user sends one request for “normal” proxies and one request with residential US proxies, a separate crawler needs to be created for each proxy configuration. Hence, to solve this, we store the crawlers in a key-value map, where the key is a stringified proxy configuration.
 
-```js
+```ts
 const crawlers = new Map<string, PlaywrightCrawler>();
 ```
 
 Here’s a part of the code that gets executed when a new request from the user arrives; if the crawler for this proxy configuration exists in the map, it will be used. Otherwise, a new crawler gets created. Then, we add the request to the crawler’s queue so it can be processed.
 
-```js
+```ts
 const key = JSON.stringify(crawlerOptions); 
 const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(crawlerOptions);
 
@@ -50,7 +50,7 @@ The function below initializes new crawlers with predefined settings and behavio
 1. **Performance**: In-memory queues are faster, and there's no need to persist them when SuperScraper migrates.
 2. **Isolation**: Using a separate queue prevents interference with the shared default queue of the SuperScraper Actor, avoiding potential bugs when multiple crawlers use it simultaneously.
 
-```js
+```ts
 export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEFAULT_CRAWLER_OPTIONS) => {
     const client = new MemoryStorage();
     const queue = await RequestQueue.open(undefined, { storageClient: client });
@@ -68,7 +68,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
 At the end of the function, we start the crawler and log a message if it terminates for any reason. Next, we add the newly created crawler to the key-value map containing all crawlers, and finally, we return the crawler.
 
-```js
+```ts
 crawler.run().then(
     () => log.warning(`Crawler ended`, crawlerOptions),
     () => { }
@@ -85,7 +85,7 @@ return crawler;
 
 When creating the server, it accepts a request listener function that takes two arguments: the user’s request and a response object. The response object is used to send scraped data back to the user. These response objects are stored in a key-value map to so they can be accessed later in the code. The key is a randomly generated string shared between the request and its corresponding response object, it is used as `request.uniqueKey`.
 
-```js
+```ts
 const responses = new Map<string, ServerResponse>();
 ```
 
@@ -93,17 +93,17 @@ const responses = new Map<string, ServerResponse>();
 
 The following function stores a response object in the key-value map:
 
-```js
-export const addResponse = (responseId: string, response: ServerResponse) => {
+```ts
+export function addResponse(responseId: string, response: ServerResponse) {
     responses.set(responseId, response);
-};
+}
 ```
 
 **Updating crawler logic to store responses**
 
 Here’s the updated logic for fetching/creating the corresponding crawler for a given proxy configuration, with a call to store the response object:
 
-```js
+```ts
 const key = JSON.stringify(crawlerOptions); 
 const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(crawlerOptions);
 
@@ -116,7 +116,7 @@ await crawler.requestQueue!.addRequest(request);
 
 Once a crawler finishes processing a request, it retrieves the corresponding response object using the key and sends the scraped data back to the user:
 
-```js
+```ts
 export const sendSuccResponseById = (responseId: string, result: unknown, contentType: string) => {
     const res = responses.get(responseId);
     if (!res) {
@@ -134,7 +134,7 @@ export const sendSuccResponseById = (responseId: string, result: unknown, conten
 
 There is similar logic to send a response back if an error occurs during scraping:
 
-```js
+```ts
 export const sendErrorResponseById = (responseId: string, result: string, statusCode: number = 500) => {
     const res = responses.get(responseId);
     if (!res) {
@@ -152,7 +152,7 @@ export const sendErrorResponseById = (responseId: string, result: string, status
 
 During migration, SuperScraper adds timeouts to pending responses to handle termination cleanly.
 
-```js
+```ts
 export const addTimeoutToAllResponses = (timeoutInSeconds: number = 60) => {
     const migrationErrorMessage = {
         errorMessage: 'Actor had to migrate to another server. Please, retry your request.',
@@ -172,7 +172,7 @@ export const addTimeoutToAllResponses = (timeoutInSeconds: number = 60) => {
 
 SuperScraper handles migrations by timing out active responses to prevent lingering requests during server transitions.
 
-```js
+```ts
 Actor.on('migrating', ()=>{
     addTimeoutToAllResponses(60);
 });
