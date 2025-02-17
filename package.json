@@ -65,7 +65,7 @@
         "@playwright/browser-webkit": "1.50.1",
         "@types/content-type": "^1.1.5",
         "@types/deep-equal": "^1.0.1",
-        "@types/domhandler": "^2.4.2",
+        "@types/domhandler": "^3.0.0",
         "@types/express": "^4.17.13",
         "@types/fs-extra": "^11.0.0",
         "@types/inquirer": "^8.2.1",
