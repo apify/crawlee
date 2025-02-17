@@ -2,7 +2,7 @@
 slug: superscraper-with-crawlee
 title: 'Inside implementing Superscraper with Crawlee.'
 description: 'This blog explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.'
-image: "./img/superscraper.webp"
+image: './img/superscraper.webp'
 authors: [SauravJ, RadoC]
 ---
 
@@ -28,7 +28,7 @@ The project uses Node.js `http` module to create a server that listens on the de
 
 ### Handling multiple crawlers
 
-SuperScraper processes user requests using multiple instances of Crawlee’s `PlaywrightCrawler`. Since each `PlaywrightCrawler` can only handle one proxy configuration, a separate crawler is created for each unique proxy setting. 
+SuperScraper processes user requests using multiple instances of Crawlee’s `PlaywrightCrawler`. Since each `PlaywrightCrawler` instance can only handle one proxy configuration, a separate crawler is created for each unique proxy setting. 
 
 For example, if the user sends one request for “normal” proxies and one request with residential US proxies, a separate crawler needs to be created for each proxy configuration. Hence, to solve this, we store the crawlers in a key-value map, where the key is a stringified proxy configuration.
 
@@ -42,7 +42,7 @@ Here’s a part of the code that gets executed when a new request from the user 
 const key = JSON.stringify(crawlerOptions); 
 const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(crawlerOptions);
 
-await crawler.requestQueue!.addRequest(request);
+await crawler.addRequests([request]);
 ```
 
 The function below initializes new crawlers with predefined settings and behaviors. Each crawler utilizes its own in-memory queue created with the `MemoryStorage` client. This approach is used for two key reasons:
@@ -94,8 +94,8 @@ const responses = new Map<string, ServerResponse>();
 The following function stores a response object in the key-value map:
 
 ```js
-export const addResponse = (responseId: string, response: ServerResponse) =>{
-	responses.set(responseId, response);
+export const addResponse = (responseId: string, response: ServerResponse) => {
+    responses.set(responseId, response);
 };
 ```
 
@@ -174,7 +174,7 @@ SuperScraper handles migrations by timing out active responses to prevent linger
 
 ```js
 Actor.on('migrating', ()=>{
-	addTimeoutToAllResponses(60);
+    addTimeoutToAllResponses(60);
 });
 ```
 
