@@ -65,8 +65,8 @@ Important: Save the generated password, as it won't be visible after creation.
 
 Next, create environment variables to store your credentials:
 
-- app password
-- user identifier (found in your profile and Bluesky URL, for example: [`mantisus.bsky.social`](https://bsky.app/profile/mantisus.bsky.social))
+- Your application password
+- Your user identifier (found in your profile and Bluesky URL, for example: [`mantisus.bsky.social`](https://bsky.app/profile/mantisus.bsky.social))
 
 ```bash
 export BLUESKY_APP_PASSWORD=your_app_password
