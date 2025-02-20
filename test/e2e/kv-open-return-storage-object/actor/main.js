@@ -10,5 +10,5 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const kv = await KeyValueStore.open();
-    kv.setValue('storageObject', { storeObject: kv.storageObject });
+    await kv.setValue('storageObject', { storeObject: kv.storageObject });
 }, mainOptions);
