@@ -1425,9 +1425,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lerna/create@npm:8.1.9":
-  version: 8.1.9
-  resolution: "@lerna/create@npm:8.1.9"
+"@lerna/create@npm:8.2.0":
+  version: 8.2.0
+  resolution: "@lerna/create@npm:8.2.0"
   dependencies:
     "@npmcli/arborist": "npm:7.5.4"
     "@npmcli/package-json": "npm:5.2.0"
@@ -1487,7 +1487,6 @@ __metadata:
     slash: "npm:^3.0.0"
     ssri: "npm:^10.0.6"
     string-width: "npm:^4.2.3"
-    strip-ansi: "npm:^6.0.1"
     strong-log-transformer: "npm:2.1.0"
     tar: "npm:6.2.1"
     temp-dir: "npm:1.0.0"
@@ -1500,7 +1499,7 @@ __metadata:
     write-pkg: "npm:4.0.0"
     yargs: "npm:17.7.2"
     yargs-parser: "npm:21.1.1"
-  checksum: 10c0/f050e79c0bd982c6fdf9b7347275a94cc80f7a6599094f1cf114c10d5373c21afac9bd1a5c0b2ca400e6aaf18da883c384dfd6e5c84a186a2c09c912bf9b2238
+  checksum: 10c0/6da8d2ec143246f2ca47dfce07cf9bd86175b66b4612aad3ddcf3f215044388d5b85a886a35a2357843e56d5e2960e9a6ac3b36c795a83fe4eeb64cd961dd288
   languageName: node
   linkType: hard
 
@@ -3248,8 +3247,8 @@ __metadata:
   linkType: hard
 
 "apify@npm:*":
-  version: 3.3.0
-  resolution: "apify@npm:3.3.0"
+  version: 3.3.1
+  resolution: "apify@npm:3.3.1"
   dependencies:
     "@apify/consts": "npm:^2.23.0"
     "@apify/input_secrets": "npm:^1.1.40"
@@ -3265,7 +3264,7 @@ __metadata:
     semver: "npm:^7.5.4"
     tslib: "npm:^2.6.2"
     ws: "npm:^8.18.0"
-  checksum: 10c0/5abcbd6f0be5b6ad266d4a9e680a37f5af332d6ad4bb7fcf07efc8cb6f4d52bd45af0d7494c56d5044af11ab4edc602209e00f8f349e123efc4183c337e45573
+  checksum: 10c0/bf9579e7ca40e6bb5dd706b6c7903742a6304f6c4cf4bc50678f28b233cbb80e210454d7ad2c64a65bdad911b6dd34129056ee2c2a1085192980e5dcc52c9fee
   languageName: node
   linkType: hard
 
@@ -7302,58 +7301,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-arm64@npm:0.2.1":
-  version: 0.2.1
-  resolution: "impit-darwin-arm64@npm:0.2.1"
+"impit-darwin-arm64@npm:0.2.2":
+  version: 0.2.2
+  resolution: "impit-darwin-arm64@npm:0.2.2"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"impit-darwin-x64@npm:0.2.1":
-  version: 0.2.1
-  resolution: "impit-darwin-x64@npm:0.2.1"
+"impit-darwin-x64@npm:0.2.2":
+  version: 0.2.2
+  resolution: "impit-darwin-x64@npm:0.2.2"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"impit-linux-x64-gnu@npm:0.2.1":
-  version: 0.2.1
-  resolution: "impit-linux-x64-gnu@npm:0.2.1"
+"impit-linux-x64-gnu@npm:0.2.2":
+  version: 0.2.2
+  resolution: "impit-linux-x64-gnu@npm:0.2.2"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"impit-linux-x64-musl@npm:0.2.1":
-  version: 0.2.1
-  resolution: "impit-linux-x64-musl@npm:0.2.1"
+"impit-linux-x64-musl@npm:0.2.2":
+  version: 0.2.2
+  resolution: "impit-linux-x64-musl@npm:0.2.2"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"impit-win32-arm64-msvc@npm:0.2.1":
-  version: 0.2.1
-  resolution: "impit-win32-arm64-msvc@npm:0.2.1"
+"impit-win32-arm64-msvc@npm:0.2.2":
+  version: 0.2.2
+  resolution: "impit-win32-arm64-msvc@npm:0.2.2"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"impit-win32-x64-msvc@npm:0.2.1":
-  version: 0.2.1
-  resolution: "impit-win32-x64-msvc@npm:0.2.1"
+"impit-win32-x64-msvc@npm:0.2.2":
+  version: 0.2.2
+  resolution: "impit-win32-x64-msvc@npm:0.2.2"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
 "impit@npm:^0.2.1":
-  version: 0.2.1
-  resolution: "impit@npm:0.2.1"
+  version: 0.2.2
+  resolution: "impit@npm:0.2.2"
   dependencies:
-    impit-darwin-arm64: "npm:0.2.1"
-    impit-darwin-x64: "npm:0.2.1"
-    impit-linux-x64-gnu: "npm:0.2.1"
-    impit-linux-x64-musl: "npm:0.2.1"
-    impit-win32-arm64-msvc: "npm:0.2.1"
-    impit-win32-x64-msvc: "npm:0.2.1"
+    impit-darwin-arm64: "npm:0.2.2"
+    impit-darwin-x64: "npm:0.2.2"
+    impit-linux-x64-gnu: "npm:0.2.2"
+    impit-linux-x64-musl: "npm:0.2.2"
+    impit-win32-arm64-msvc: "npm:0.2.2"
+    impit-win32-x64-msvc: "npm:0.2.2"
   dependenciesMeta:
     impit-darwin-arm64:
       optional: true
@@ -7367,7 +7366,7 @@ __metadata:
       optional: true
     impit-win32-x64-msvc:
       optional: true
-  checksum: 10c0/07fd1a8ac7b047f4e7bb0efa349a4b5e004637b4775b3c0596b07ca63a0a439c50f339ecfcc14b9a5c34886463f815312aecb50011067a60ef060819b397c5c4
+  checksum: 10c0/f38365ff7c0065d6970236af33fbbe4bae53b4bec359dc65dae6732c9ef605819e35ec98188485d8d4d59164ceb2e861f1a63bb16cef72258aa5b586549da36d
   languageName: node
   linkType: hard
 
@@ -8406,10 +8405,10 @@ __metadata:
   linkType: hard
 
 "lerna@npm:^8.0.0":
-  version: 8.1.9
-  resolution: "lerna@npm:8.1.9"
+  version: 8.2.0
+  resolution: "lerna@npm:8.2.0"
   dependencies:
-    "@lerna/create": "npm:8.1.9"
+    "@lerna/create": "npm:8.2.0"
     "@npmcli/arborist": "npm:7.5.4"
     "@npmcli/package-json": "npm:5.2.0"
     "@npmcli/run-script": "npm:8.1.0"
@@ -8476,7 +8475,6 @@ __metadata:
     slash: "npm:3.0.0"
     ssri: "npm:^10.0.6"
     string-width: "npm:^4.2.3"
-    strip-ansi: "npm:^6.0.1"
     strong-log-transformer: "npm:2.1.0"
     tar: "npm:6.2.1"
     temp-dir: "npm:1.0.0"
@@ -8492,7 +8490,7 @@ __metadata:
     yargs-parser: "npm:21.1.1"
   bin:
     lerna: dist/cli.js
-  checksum: 10c0/e3362d66324f5ee9606dbdb332a6b09eeb2df6378177e36a1bbcf532927d921beb4d25dbcc717c4adf3a7dcd67e0bcee67bedf81fdbe7e78bbecce310358d762
+  checksum: 10c0/60e2bc71877d7b04881854484f8ceec5a198e8114d11be757be866b28f66fa65cae1b94f53e802f10f031234522fe2a771afa0e9bf58f5eb14bfeedc9592a123
   languageName: node
   linkType: hard
 
@@ -10632,13 +10630,13 @@ __metadata:
   linkType: hard
 
 "postcss@npm:^8.4.43":
-  version: 8.5.2
-  resolution: "postcss@npm:8.5.2"
+  version: 8.5.3
+  resolution: "postcss@npm:8.5.3"
   dependencies:
     nanoid: "npm:^3.3.8"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
-  checksum: 10c0/3044d49bc725029ab62292e8bf9849741251b95f3b754e191bf8b4025414d40ec3b4ac05c5a563d4b50060b5c8e96683eb4d783d8d8fa3867eb7b763cbe66127
+  checksum: 10c0/b75510d7b28c3ab728c8733dd01538314a18c52af426f199a3c9177e63eb08602a3938bfb66b62dc01350b9aed62087eabbf229af97a1659eb8d3513cec823b3
   languageName: node
   linkType: hard
 
@@ -12404,12 +12402,12 @@ __metadata:
   linkType: hard
 
 "tinyglobby@npm:^0.2.11":
-  version: 0.2.11
-  resolution: "tinyglobby@npm:0.2.11"
+  version: 0.2.12
+  resolution: "tinyglobby@npm:0.2.12"
   dependencies:
     fdir: "npm:^6.4.3"
     picomatch: "npm:^4.0.2"
-  checksum: 10c0/16664aa782fa1350789e9253e0ec5f7c974876d83fe7edf7467246591ad2e2bed1660c0ff1ed14c00601623780c118918b1a5fdfaa487699c1d3aa598454566b
+  checksum: 10c0/7c9be4fd3625630e262dcb19015302aad3b4ba7fc620f269313e688f2161ea8724d6cb4444baab5ef2826eb6bed72647b169a33ec8eea37501832a2526ff540f
   languageName: node
   linkType: hard
 
