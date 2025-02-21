@@ -2,7 +2,7 @@ import os from 'node:os';
 
 import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
-import { getMemoryInfo } from '@crawlee/utils';
+import { getMemoryInfo, getMemoryInfoV2, getCurrentCpuTicksV2 } from '@crawlee/utils';
 
 import { EventManager, EventType } from './event_manager';
 import type { SystemInfo } from '../autoscaling';
@@ -69,27 +69,46 @@ export class LocalEventManager extends EventManager {
     private async createSystemInfo(options: { maxUsedCpuRatio: number }) {
         return {
             createdAt: new Date(),
-            ...this.createCpuInfo(options),
+            ...(await this.createCpuInfo(options)),
             ...(await this.createMemoryInfo()),
         } as SystemInfo;
     }
 
-    private createCpuInfo(options: { maxUsedCpuRatio: number }) {
-        const ticks = this.getCurrentCpuTicks();
-        const idleTicksDelta = ticks.idle - this.previousTicks!.idle;
-        const totalTicksDelta = ticks.total - this.previousTicks!.total;
-        const usedCpuRatio = totalTicksDelta ? 1 - idleTicksDelta / totalTicksDelta : 0;
-        Object.assign(this.previousTicks, ticks);
+    private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
+        try {
+            if (this.config.get("systemInfoV2")) {
+                const usedCpuRatio = await getCurrentCpuTicksV2()
+                return {
+                    cpuCurrentUsage: usedCpuRatio * 100,
+                    isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
+                };
+            } 
+            const ticks = this.getCurrentCpuTicks();
+            const idleTicksDelta = ticks.idle - this.previousTicks!.idle;
+            const totalTicksDelta = ticks.total - this.previousTicks!.total;
+            const usedCpuRatio = totalTicksDelta ? 1 - idleTicksDelta / totalTicksDelta : 0;
+            Object.assign(this.previousTicks, ticks);
+    
+            return {
+                cpuCurrentUsage: usedCpuRatio * 100,
+                isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
+            };
+            
+        } catch (err) {
+            log.exception(err as Error, 'Cpu snapshot failed.');
+            return {};
+        }
 
-        return {
-            cpuCurrentUsage: usedCpuRatio * 100,
-            isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
-        };
     }
 
     private async createMemoryInfo() {
         try {
-            const memInfo = await this._getMemoryInfo();
+            let memInfo = {mainProcessBytes: -1, childProcessesBytes: -1}
+            if (this.config.get("systemInfoV2")) {
+                memInfo = await getMemoryInfoV2()
+            } else {
+                memInfo  = await getMemoryInfo();
+            }
             const { mainProcessBytes, childProcessesBytes } = memInfo;
 
             return {
@@ -101,10 +120,4 @@ export class LocalEventManager extends EventManager {
         }
     }
 
-    /**
-     * Helper method for easier mocking.
-     */
-    private async _getMemoryInfo() {
-        return getMemoryInfo();
-    }
 }

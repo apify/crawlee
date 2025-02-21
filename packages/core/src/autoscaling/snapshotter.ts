@@ -194,7 +194,7 @@ export class Snapshotter {
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            const { totalBytes } = await this._getMemoryInfo();
+            const { totalBytes } = await getMemoryInfo();
             this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
             this.log.debug(
                 `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
@@ -415,12 +415,5 @@ export class Snapshotter {
             else break;
         }
         snapshots.splice(0, oldCount);
-    }
-
-    /**
-     * Helper method for easier mocking.
-     */
-    private async _getMemoryInfo() {
-        return getMemoryInfo();
     }
 }

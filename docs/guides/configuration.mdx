@@ -92,6 +92,18 @@ The default request queue has ID `default`. Setting this environment variable ov
 
 Storage directories are purged by default. If set to `false` - local storage directories would not be purged automatically at the start of the crawler run or before opening of some storage explicitly (e.g. via `Dataset.open()`). Useful if we're trying e.g. to add more items to dataset with each next run (and keep the previously saved/scraped items).
 
+#### `CRAWLEE_CONTAINERIZED`
+
+This variable is only effective when the systemInfoV2 experiment is enabled.
+Changes how crawlee measures its CPU and Memory usage and limits. If unset, crawlee will determine if it is containerised using common features of containerized environments.
+ - A file at `/.dockerenv`.
+ - A file at `/proc/self/cgroup` containing `docker`.
+ - A value for the `KUBERNETES_SERVICE_HOST` environment variable.
+ If `isLambda` returns true, `isContainerized` will return false regardless of these other checks.
+
+Setting this environment variable overwrites the behaviour of `isContainerized`. Most values will make `isContainerized` return `true`.
+Setting this environment variable to `false` will make `isContainerized` return `false`.
+
 ### Convenience env vars
 
 The next group includes env vars that can help achieve certain goals without having to change
