@@ -161,7 +161,7 @@ export interface ConfigurationOptions {
      * Alternative to `CRAWLEE_PERSIST_STORAGE` environment variable.
      */
     persistStorage?: boolean;
-    
+
     /**
      * @internal
      * Defines wether to use the systemInfoV2 metric collection experiment.
@@ -256,7 +256,14 @@ export class Configuration {
         CRAWLEE_PERSIST_STORAGE: 'persistStorage',
     };
 
-    protected static BOOLEAN_VARS = ['purgeOnStart', 'headless', 'xvfb', 'disableBrowserSandbox', 'persistStorage', 'systemInfoV2'];
+    protected static BOOLEAN_VARS = [
+        'purgeOnStart',
+        'headless',
+        'xvfb',
+        'disableBrowserSandbox',
+        'persistStorage',
+        'systemInfoV2',
+    ];
 
     protected static INTEGER_VARS = ['memoryMbytes', 'persistStateIntervalMillis', 'systemInfoIntervalMillis'];
 

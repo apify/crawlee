@@ -177,9 +177,10 @@ export async function getCurrentCpuTicksV2(): Promise<number> {
     if (await isContainerized()) {
         const cgroupsVersion = await getCgroupsVersion();
         if (cgroupsVersion === null) {
-            log.deprecated("Your environment is containerized, but your system does not support cgroups.\n" +
-                "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
-            )
+            log.deprecated(
+                'Your environment is containerized, but your system does not support cgroups.\n' +
+                    "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
+            );
         }
         // cgroup aware cpu limit. If no limits are set, default to returning getCurrentCpuTicks.
         const quota = await getCpuQuota(cgroupsVersion!);

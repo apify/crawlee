@@ -93,11 +93,11 @@ export async function getMemoryInfoV2(): Promise<MemoryInfo> {
     } else if (isContainerizedVar) {
         // When running inside a container, use container memory limits
 
-        const cgroupsVersion = await getCgroupsVersion()
+        const cgroupsVersion = await getCgroupsVersion();
 
         try {
             if (cgroupsVersion === null) {
-              throw new Error("cgroup not available")
+                throw new Error('cgroup not available');
             }
             let [totalBytesStr, usedBytesStr] = await Promise.all([
                 readFile(MEMORY_FILE_PATHS.TOTAL[cgroupsVersion], 'utf8'),

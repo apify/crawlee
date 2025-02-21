@@ -88,7 +88,7 @@ export function isLambda() {
     return !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
 }
 
-let _cgroupsVersion:  null | 'V1' | 'V2';
+let _cgroupsVersion: null | 'V1' | 'V2';
 /**
  * gets the cgroup version by checking for a file at /sys/fs/cgroup/memory
  * @returns "V1" or "V2" for the version of cgroup or null if cgroup is not found.
@@ -103,7 +103,7 @@ export async function getCgroupsVersion(forceReset?: boolean) {
         await fs.access('/sys/fs/cgroup/');
     } catch (e) {
         _cgroupsVersion = null;
-        return null
+        return null;
     }
     _cgroupsVersion = 'V1';
     try {

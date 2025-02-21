@@ -379,7 +379,7 @@ export interface CrawlerExperiments {
     requestLocking?: boolean;
 
     /**
-     * Enables the use of the new resource management system. 
+     * Enables the use of the new resource management system.
      * It should improve autoscaling in containerized environments by respecting cGroup resource limits.
      */
     systemInfoV2?: boolean;
@@ -624,7 +624,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.experiments = experiments;
 
         if (this.experiments.systemInfoV2) {
-          this.config.set("systemInfoV2", true)
+            this.config.set('systemInfoV2', true);
         }
 
         this._handlePropertyNameChange({
