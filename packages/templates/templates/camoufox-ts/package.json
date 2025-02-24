@@ -1,0 +1,29 @@
+{
+    "name": "crawlee-camoufox-ts",
+    "version": "0.0.1",
+    "type": "module",
+    "description": "This is an example of a Crawlee project.",
+    "dependencies": {
+        "camoufox-js": "^0.1.3",
+        "crawlee": "^3.0.0",
+        "playwright": "*"
+    },
+    "devDependencies": {
+        "@apify/tsconfig": "^0.1.0",
+        "@types/fs-extra": "^11",
+        "@types/node": "^22.0.0",
+        "fs-extra": "^11.3.0",
+        "tsx": "^4.4.0",
+        "typescript": "~5.7.0"
+    },
+    "scripts": {
+        "start": "npm run start:dev",
+        "start:prod": "node dist/main.js",
+        "start:dev": "tsx src/main.ts",
+        "build": "tsc",
+        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1",
+        "get-binaries": "camoufox-js fetch"
+    },
+    "author": "It's not you it's me",
+    "license": "ISC"
+}
