@@ -66,13 +66,13 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.65
-  resolution: "@apify/input_secrets@npm:1.1.65"
+  version: 1.1.66
+  resolution: "@apify/input_secrets@npm:1.1.66"
   dependencies:
     "@apify/log": "npm:^2.5.13"
-    "@apify/utilities": "npm:^2.13.1"
+    "@apify/utilities": "npm:^2.14.0"
     ow: "npm:^0.28.2"
-  checksum: 10c0/d81c9861c1226e2a55260ed8639d8b5bc110f453aeef1ad0685c62dbd2c7e91da23988de57cec882b6a762f7c8a0922772e3c1ce3c4dd2ad0d8047d868fab43a
+  checksum: 10c0/9af4aacf964d7c1309dd467bf555abc7bfeabd389faa5d08a9ac807dd6c8878f675e68809b293f1eba1887a4fd74dd9071d0d8fc0157809b4cddbce0c0605531
   languageName: node
   linkType: hard
 
@@ -120,13 +120,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.13.1, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
-  version: 2.13.1
-  resolution: "@apify/utilities@npm:2.13.1"
+"@apify/utilities@npm:^2.14.0, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
+  version: 2.14.0
+  resolution: "@apify/utilities@npm:2.14.0"
   dependencies:
     "@apify/consts": "npm:^2.37.0"
     "@apify/log": "npm:^2.5.13"
-  checksum: 10c0/9935384164cf5a5b0efd7a9b4816987a2733836165ab022719f7e7463210eb17193c5fb53a4593ea6304b09e5e248dad536942940097a86434b19fe8349a637c
+  checksum: 10c0/4a50afa88156ed0c5e4c021358df70108efdb7afdab00369323eb3e0befd043aa74a6067dcb1b04e7041191c7bf3e4c8c7e17af9967a292fbce6bd87bb977094
   languageName: node
   linkType: hard
 
@@ -846,33 +846,33 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@csstools/color-helpers@npm:^5.0.1":
-  version: 5.0.1
-  resolution: "@csstools/color-helpers@npm:5.0.1"
-  checksum: 10c0/77fa3b7236eaa3f36dea24708ac0d5e53168903624ac5aed54615752a0730cd20773fda50e742ce868012eca8c000cc39688e05869e79f34714230ab6968d1e6
+"@csstools/color-helpers@npm:^5.0.2":
+  version: 5.0.2
+  resolution: "@csstools/color-helpers@npm:5.0.2"
+  checksum: 10c0/bebaddb28b9eb58b0449edd5d0c0318fa88f3cb079602ee27e88c9118070d666dcc4e09a5aa936aba2fde6ba419922ade07b7b506af97dd7051abd08dfb2959b
   languageName: node
   linkType: hard
 
-"@csstools/css-calc@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "@csstools/css-calc@npm:2.1.1"
+"@csstools/css-calc@npm:^2.1.1, @csstools/css-calc@npm:^2.1.2":
+  version: 2.1.2
+  resolution: "@csstools/css-calc@npm:2.1.2"
   peerDependencies:
     "@csstools/css-parser-algorithms": ^3.0.4
     "@csstools/css-tokenizer": ^3.0.3
-  checksum: 10c0/857c8dac40eb6ba8810408dad141bbcad060b28bce69dfd3bcf095a060fcaa23d5c4dbf52be88fcb57e12ce32c666e855dc68de1d8020851f6b432e3f9b29950
+  checksum: 10c0/34ced30553968ef5d5f9e00e3b90b48c47480cf130e282e99d57ec9b09f803aab8bc06325683e72a1518b5e7180a3da8b533f1b462062757c21989a53b482e1a
   languageName: node
   linkType: hard
 
 "@csstools/css-color-parser@npm:^3.0.7":
-  version: 3.0.7
-  resolution: "@csstools/css-color-parser@npm:3.0.7"
+  version: 3.0.8
+  resolution: "@csstools/css-color-parser@npm:3.0.8"
   dependencies:
-    "@csstools/color-helpers": "npm:^5.0.1"
-    "@csstools/css-calc": "npm:^2.1.1"
+    "@csstools/color-helpers": "npm:^5.0.2"
+    "@csstools/css-calc": "npm:^2.1.2"
   peerDependencies:
     "@csstools/css-parser-algorithms": ^3.0.4
     "@csstools/css-tokenizer": ^3.0.3
-  checksum: 10c0/b81780e6c50f0b0605776bd39bbd6203780231a561601853a9835cc70788560e7a281d0fbfe47ebe8affcb07dd64b0b1dcd4b67552520cfbe0e5088df158f12c
+  checksum: 10c0/90722c5a62ca94e9d578ddf59be604a76400b932bd3d4bd23cb1ae9b7ace8fcf83c06995d2b31f96f4afef24a7cefba79beb11ed7ee4999d7ecfec3869368359
   languageName: node
   linkType: hard
 
@@ -2332,13 +2332,13 @@ __metadata:
   linkType: hard
 
 "@tokenizer/inflate@npm:^0.2.6":
-  version: 0.2.6
-  resolution: "@tokenizer/inflate@npm:0.2.6"
+  version: 0.2.7
+  resolution: "@tokenizer/inflate@npm:0.2.7"
   dependencies:
-    debug: "npm:^4.3.7"
+    debug: "npm:^4.4.0"
     fflate: "npm:^0.8.2"
     token-types: "npm:^6.0.0"
-  checksum: 10c0/7c0e5e85c86fd3dbe4210d26fa16a2121d04ca053eeb2c42826846e85650c585621ca80e587107410a1e664b50ba37fd645e973863aafa9dee594efbab104619
+  checksum: 10c0/75bd0c510810dfd62be9d963216b5852cde021e1f8aab43b37662bc6aa75e65fd7277fcab7d463186b55cee36a5b61129916161bdb2a7d18064016156c7daf4f
   languageName: node
   linkType: hard
 
@@ -2586,11 +2586,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^22.5.1":
-  version: 22.13.4
-  resolution: "@types/node@npm:22.13.4"
+  version: 22.13.5
+  resolution: "@types/node@npm:22.13.5"
   dependencies:
     undici-types: "npm:~6.20.0"
-  checksum: 10c0/3a234fa7766a3efc382cf81f66f474c26cdab2f54f43f757634c81c0444eb2160c2dabbde9741e4983078a318a88515b65416b5f1ab5478548579d7b3ead1d95
+  checksum: 10c0/a2e7ed7bb0690e439004779baedeb05159c5cc41ef6d81c7a6ebea5303fde4033669e1c0e41ff7453b45fd2fea8dbd55fddfcd052950c7fcae3167c970bca725
   languageName: node
   linkType: hard
 
@@ -3867,7 +3867,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"call-bind-apply-helpers@npm:^1.0.0, call-bind-apply-helpers@npm:^1.0.1":
+"call-bind-apply-helpers@npm:^1.0.0, call-bind-apply-helpers@npm:^1.0.1, call-bind-apply-helpers@npm:^1.0.2":
   version: 1.0.2
   resolution: "call-bind-apply-helpers@npm:1.0.2"
   dependencies:
@@ -4920,9 +4920,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1422344
-  resolution: "devtools-protocol@npm:0.0.1422344"
-  checksum: 10c0/09aa2e396cad583f3262315ebab7583638f14ce85f475411132578e0423664a3bf5072ac993e347b1d359c541fa1f48f390606b2873246917e037a04563c106c
+  version: 0.0.1423531
+  resolution: "devtools-protocol@npm:0.0.1423531"
+  checksum: 10c0/f2a025d3d6ab148a76d5a93056b0cc095b20338ddc190f99720a04e3dad7a0940c0c08298d9929635a4561616fe1847d4957647bc20f78b56cd5319110a0eab2
   languageName: node
   linkType: hard
 
@@ -5092,9 +5092,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.73":
-  version: 1.5.102
-  resolution: "electron-to-chromium@npm:1.5.102"
-  checksum: 10c0/db07dab3ee3b7fbc39ad26203925669ade86b12a62d09fa14ae48a354a0f34d162ac9a2ca9d6f70ceb1b16821b01b155e56467702bcc915da1e1dd147dd034b4
+  version: 1.5.103
+  resolution: "electron-to-chromium@npm:1.5.103"
+  checksum: 10c0/3b297311b9266ec3ad00eaa8566901603afedc2e19310a16ab9e7217e62f54dda83120ca5f2f75fe64a214d1ba6f6cbb52d7a1692e28de03fcba8bebf7bfc4d5
   languageName: node
   linkType: hard
 
@@ -5344,7 +5344,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"es-object-atoms@npm:^1.0.0":
+"es-object-atoms@npm:^1.0.0, es-object-atoms@npm:^1.1.1":
   version: 1.1.1
   resolution: "es-object-atoms@npm:1.1.1"
   dependencies:
@@ -6555,20 +6555,20 @@ __metadata:
   linkType: hard
 
 "get-intrinsic@npm:^1.1.3, get-intrinsic@npm:^1.2.2, get-intrinsic@npm:^1.2.4, get-intrinsic@npm:^1.2.5, get-intrinsic@npm:^1.2.6, get-intrinsic@npm:^1.2.7":
-  version: 1.2.7
-  resolution: "get-intrinsic@npm:1.2.7"
+  version: 1.3.0
+  resolution: "get-intrinsic@npm:1.3.0"
   dependencies:
-    call-bind-apply-helpers: "npm:^1.0.1"
+    call-bind-apply-helpers: "npm:^1.0.2"
     es-define-property: "npm:^1.0.1"
     es-errors: "npm:^1.3.0"
-    es-object-atoms: "npm:^1.0.0"
+    es-object-atoms: "npm:^1.1.1"
     function-bind: "npm:^1.1.2"
-    get-proto: "npm:^1.0.0"
+    get-proto: "npm:^1.0.1"
     gopd: "npm:^1.2.0"
     has-symbols: "npm:^1.1.0"
     hasown: "npm:^2.0.2"
     math-intrinsics: "npm:^1.1.0"
-  checksum: 10c0/b475dec9f8bff6f7422f51ff4b7b8d0b68e6776ee83a753c1d627e3008c3442090992788038b37eff72e93e43dceed8c1acbdf2d6751672687ec22127933080d
+  checksum: 10c0/52c81808af9a8130f581e6a6a83e1ba4a9f703359e7a438d1369a5267a25412322f03dcbd7c549edaef0b6214a0630a28511d7df0130c93cfd380f4fa0b5b66a
   languageName: node
   linkType: hard
 
@@ -7301,58 +7301,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-arm64@npm:0.2.2":
-  version: 0.2.2
-  resolution: "impit-darwin-arm64@npm:0.2.2"
+"impit-darwin-arm64@npm:0.2.3":
+  version: 0.2.3
+  resolution: "impit-darwin-arm64@npm:0.2.3"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"impit-darwin-x64@npm:0.2.2":
-  version: 0.2.2
-  resolution: "impit-darwin-x64@npm:0.2.2"
+"impit-darwin-x64@npm:0.2.3":
+  version: 0.2.3
+  resolution: "impit-darwin-x64@npm:0.2.3"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"impit-linux-x64-gnu@npm:0.2.2":
-  version: 0.2.2
-  resolution: "impit-linux-x64-gnu@npm:0.2.2"
+"impit-linux-x64-gnu@npm:0.2.3":
+  version: 0.2.3
+  resolution: "impit-linux-x64-gnu@npm:0.2.3"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"impit-linux-x64-musl@npm:0.2.2":
-  version: 0.2.2
-  resolution: "impit-linux-x64-musl@npm:0.2.2"
+"impit-linux-x64-musl@npm:0.2.3":
+  version: 0.2.3
+  resolution: "impit-linux-x64-musl@npm:0.2.3"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"impit-win32-arm64-msvc@npm:0.2.2":
-  version: 0.2.2
-  resolution: "impit-win32-arm64-msvc@npm:0.2.2"
+"impit-win32-arm64-msvc@npm:0.2.3":
+  version: 0.2.3
+  resolution: "impit-win32-arm64-msvc@npm:0.2.3"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"impit-win32-x64-msvc@npm:0.2.2":
-  version: 0.2.2
-  resolution: "impit-win32-x64-msvc@npm:0.2.2"
+"impit-win32-x64-msvc@npm:0.2.3":
+  version: 0.2.3
+  resolution: "impit-win32-x64-msvc@npm:0.2.3"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
 "impit@npm:^0.2.1":
-  version: 0.2.2
-  resolution: "impit@npm:0.2.2"
+  version: 0.2.3
+  resolution: "impit@npm:0.2.3"
   dependencies:
-    impit-darwin-arm64: "npm:0.2.2"
-    impit-darwin-x64: "npm:0.2.2"
-    impit-linux-x64-gnu: "npm:0.2.2"
-    impit-linux-x64-musl: "npm:0.2.2"
-    impit-win32-arm64-msvc: "npm:0.2.2"
-    impit-win32-x64-msvc: "npm:0.2.2"
+    impit-darwin-arm64: "npm:0.2.3"
+    impit-darwin-x64: "npm:0.2.3"
+    impit-linux-x64-gnu: "npm:0.2.3"
+    impit-linux-x64-musl: "npm:0.2.3"
+    impit-win32-arm64-msvc: "npm:0.2.3"
+    impit-win32-x64-msvc: "npm:0.2.3"
   dependenciesMeta:
     impit-darwin-arm64:
       optional: true
@@ -7366,7 +7366,7 @@ __metadata:
       optional: true
     impit-win32-x64-msvc:
       optional: true
-  checksum: 10c0/f38365ff7c0065d6970236af33fbbe4bae53b4bec359dc65dae6732c9ef605819e35ec98188485d8d4d59164ceb2e861f1a63bb16cef72258aa5b586549da36d
+  checksum: 10c0/ce962104bce70e074573d807fd09c35bea5a7012950885a48b6856bb7c0d16625469be98eddaec6d085ce688e81804a502e44d193f28b89ba2648a80bc84877c
   languageName: node
   linkType: hard
 
@@ -8108,11 +8108,11 @@ __metadata:
   linkType: hard
 
 "jackspeak@npm:^4.0.1":
-  version: 4.0.3
-  resolution: "jackspeak@npm:4.0.3"
+  version: 4.1.0
+  resolution: "jackspeak@npm:4.1.0"
   dependencies:
     "@isaacs/cliui": "npm:^8.0.2"
-  checksum: 10c0/3d252c84fe3ea2b44da70ea3bb46a4a6fb13cd22c9e256ee254684be86ace87f5ce40cb181d279dd6ee1de5d82b88b7f231335e9f45dcbce17b6d64fcb04de23
+  checksum: 10c0/08a6a24a366c90b83aef3ad6ec41dcaaa65428ffab8d80bc7172add0fbb8b134a34f415ad288b2a6fbd406526e9a62abdb40ed4f399fbe00cb45c44056d4dce0
   languageName: node
   linkType: hard
 
@@ -11401,11 +11401,11 @@ __metadata:
   linkType: hard
 
 "rxjs@npm:^7.2.0, rxjs@npm:^7.5.5, rxjs@npm:^7.8.1":
-  version: 7.8.1
-  resolution: "rxjs@npm:7.8.1"
+  version: 7.8.2
+  resolution: "rxjs@npm:7.8.2"
   dependencies:
     tslib: "npm:^2.1.0"
-  checksum: 10c0/3c49c1ecd66170b175c9cacf5cef67f8914dcbc7cd0162855538d365c83fea631167cacb644b3ce533b2ea0e9a4d0b12175186985f89d75abe73dbd8f7f06f68
+  checksum: 10c0/1fcd33d2066ada98ba8f21fcbbcaee9f0b271de1d38dc7f4e256bfbc6ffcdde68c8bfb69093de7eeb46f24b1fb820620bf0223706cff26b4ab99a7ff7b2e2c45
   languageName: node
   linkType: hard
 
@@ -13475,8 +13475,8 @@ __metadata:
   linkType: hard
 
 "ws@npm:^8.18.0":
-  version: 8.18.0
-  resolution: "ws@npm:8.18.0"
+  version: 8.18.1
+  resolution: "ws@npm:8.18.1"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -13485,7 +13485,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10c0/25eb33aff17edcb90721ed6b0eb250976328533ad3cd1a28a274bd263682e7296a6591ff1436d6cbc50fa67463158b062f9d1122013b361cec99a05f84680e06
+  checksum: 10c0/e498965d6938c63058c4310ffb6967f07d4fa06789d3364829028af380d299fe05762961742971c764973dce3d1f6a2633fe8b2d9410c9b52e534b4b882a99fa
   languageName: node
   linkType: hard
 
