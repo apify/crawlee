@@ -193,7 +193,7 @@ let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
 export async function getCurrentCpuTicksV2(): Promise<number> {
     if (await isContainerized()) {
         if (!CLOCK_TICKS_CHECKED) {
-            CLOCK_TICKS_PER_SECOND = getClockTicks()
+            CLOCK_TICKS_PER_SECOND = getClockTicks();
             CLOCK_TICKS_CHECKED = true;
         }
         const cgroupsVersion = await getCgroupsVersion();
