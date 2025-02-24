@@ -202,7 +202,7 @@ export async function getCurrentCpuTicksV2(): Promise<number> {
         const numCpus = os.cpus().length;
 
         // Calculate the CPU usage percentage.
-        return ((containerDelta / systemDelta) * numCpus * 100) / cpuAllowance;
+        return ((containerDelta / systemDelta) * numCpus) / cpuAllowance;
     }
     // bare metal cpu limit
     return getCurrentCpuTicks();

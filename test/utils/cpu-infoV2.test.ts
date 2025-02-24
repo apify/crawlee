@@ -251,14 +251,14 @@ describe('getCpuInfo()', () => {
         // - getCpuPeriod: return 100000 → period = 100000.
         //   cpuAllowance = quota/period = 2.
         // - sampleCpuUsage: returns container usage and system usage.
-        //   For container usage, simulate "1000000\n"
+        //   For container usage, simulate "1000000000\n"
         //   For system usage, simulate a /proc/stat line with 300 total ticks,
         //   so systemUsage = (300 * 1e9) / 100 = 3000000000.
         readFileSpy
             .mockResolvedValueOnce('200000\n') // for getCpuQuota
             .mockResolvedValueOnce('100000\n') // for getCpuPeriod
-            .mockResolvedValueOnce('1000000\n') // for getContainerCpuUsage
-            .mockResolvedValueOnce('cpu 100 0 50 150 0 0 0\n'); // for getSystemCpuUsage
+            .mockResolvedValueOnce('1000000000\n') // for getContainerCpuUsage
+            .mockResolvedValueOnce('cpu 300 0 0 0 0 0 0\n'); // for getSystemCpuUsage
         // Simulate a system with 2 CPUs.
         const cpusMock = vitest
             .spyOn(os, 'cpus')
@@ -270,8 +270,8 @@ describe('getCpuInfo()', () => {
         const result = await getCurrentCpuTicksV2();
         // Calculation:
         // containerDelta = 1000000, systemDelta = 3000000000, numCpus = 2, cpuAllowance = 2.
-        // So: ((1000000 / 3000000000) * 2 * 100) / 2 ≈ 0.03333
-        expect(result).toBeCloseTo(0.03333, 4);
+        // So: ((1000000000 / 3000000000) * 2) / 2 ≈ 0.3333
+        expect(result).toBeCloseTo(0.3333, 4);
         cpusMock.mockRestore();
     });
 
