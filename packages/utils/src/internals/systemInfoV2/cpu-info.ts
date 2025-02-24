@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 
@@ -20,7 +21,9 @@ const CPU_FILE_PATHS = {
     },
 };
 
-const CLOCK_TICKS_PER_SECOND = 100; // Typical Linux tick rate.
+let CLOCK_TICKS_PER_SECOND = 100;
+let CLOCK_TICKS_CHECKED = false;
+
 const NANOSECONDS_PER_SECOND = 1e9;
 
 const previousTicks = { idle: 0, total: 0 };
@@ -48,6 +51,20 @@ export function getCurrentCpuTicks() {
     const idleTicksDelta = ticks.idle - previousTicks!.idle;
     const totalTicksDelta = ticks.total - previousTicks!.total;
     return totalTicksDelta ? 1 - idleTicksDelta / totalTicksDelta : 0;
+}
+
+/**
+ * Reads the linux tick rate
+ * @returns the number of ticks per second
+ */
+function getClockTicks(): number {
+    try {
+        const result = execSync('getconf CLK_TCK').toString().trim();
+        return parseInt(result, 10);
+    } catch (err) {
+        log.warningOnce('Failed to get clock ticks; defaulting to 100');
+        return 100;
+    }
 }
 
 /**
@@ -175,6 +192,10 @@ let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
  */
 export async function getCurrentCpuTicksV2(): Promise<number> {
     if (await isContainerized()) {
+        if (!CLOCK_TICKS_CHECKED) {
+            CLOCK_TICKS_PER_SECOND = getClockTicks()
+            CLOCK_TICKS_CHECKED = true;
+        }
         const cgroupsVersion = await getCgroupsVersion();
         if (cgroupsVersion === null) {
             log.deprecated(
