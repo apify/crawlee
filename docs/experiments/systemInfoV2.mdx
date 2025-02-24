@@ -1,0 +1,99 @@
+---
+id: experiments-system-infomation-v2
+title: System Infomation V2
+description: Improved autoscaling through cgroup aware metric collection.
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+:::caution
+
+This is an experimental feature. While we welcome testers, keep in mind that it is currently not recommended to use this in production.
+
+The API is subject to change, and we might introduce breaking changes in the future.
+
+Should you be using this, feel free to open issues on our [GitHub repository](https://github.com/apify/crawlee), and we'll take a look.
+
+:::
+
+Starting with the newest `crawlee` beta, we have introduced a new crawler option that enables an improved metric collection system.
+This new system should collect cpu and memory metrics more accurately in containerised environments by checking for cgroup enforce limits. 
+
+## How to enable the experiment
+
+:::note
+
+This example shows how to enable the experiment in the <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>,
+but you can apply this to any crawler type.
+
+:::
+
+```ts
+import { CheerioCrawler } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    // highlight-next-line
+    experiments: {
+        // highlight-next-line
+        systemInfoV2: true,
+        // highlight-next-line
+    },
+    async requestHandler({ $, request }) {
+        const title = $('title').text();
+        console.log(`The title of "${request.url}" is: ${title}.`);
+    },
+});
+
+await crawler.run(['https://crawlee.dev']);
+```
+
+## Other changes
+
+:::info
+
+This section is only useful if you're a tinkerer and want to see what's going on under the hood.
+
+:::
+
+The existing solution checked the bare metal metrics for how much cpu and memory was being used and how much headroom was available. 
+This is an intuitive solution but unfortunately doesnt account for when there is an external limit on the amount of resources a process can consume.
+This is often the case in containerized environments where each container will have a quota for its cpu and memory usage.
+
+This experiment attempts to address this issue by introducing a new `isContainerized()` utility function and changing the way resources are collected 
+when a container is detected.
+
+:::note
+
+This `isContainerized()` function is very similar to the existing `isDocker()` function however for now they both work side by side.
+If this experiment is successful, eventualy `isDocker()` may eventually be depreciated in favour of `isContainerized()`.
+
+:::
+
+### Cgroup detection
+
+On linux, to detect if cgroup is available, we check if there is a directory at `/sys/fs/cgroup`.
+If the directory exists, a version of cgroup is installed.
+Next we check the version of cgroup installed by checking for a directory at `/sys/fs/cgroup/memory/`.
+If it exists, cgroup V1 is installed. If it is missing, it is assumed cgroup V2 is installed.
+
+### CPU metric collection
+
+The existing solution worked by checking the fraction of cpu idle ticks to the total number of cpu ticks since the last profile.
+If 100000 ticks elapse and 5000 were idle, the cpu is at 95% utilisation.
+
+In this experiment, the method of cpu load calculation depends on the result of `isContainerized()`
+If `isContainerised()` returns true, the new cgroup aware metric collection will be used over the "bare metal" numbers.
+This works by inspecting the `/sys/fs/cgroup/cpuacct/cpuacct.usage`, `/sys/fs/cgroup/cpu/cpu.cfs_quota_us` and `/sys/fs/cgroup/cpu/cpu.cfs_period_us`
+files for cgroup V1 and the `/sys/fs/cgroup/cpu.stat` and `/sys/fs/cgroup/cpu.max` files for cgroup V2.
+The actual cpu usage figure is calculated in the same manner as the "bare metal" figure by comparing the total number of ticks elapsed to the number
+of idle ticks between profiles but by using the figures from the cgroup files. 
+If no cgroup quota is enforced, the "bare metal" numbers will be used.
+
+### Memory metric collection
+
+The existing solution was already cgroup aware however an improvement has been made to memory metric collection when running on windows.
+The existing solution used an external package `apify/ps-tree` to find the amount of memory crawlee and any child processes were using. 
+On Windows, this package used the depreciated "WMIC" command line utility to determine memory usage.
+
+In this experiment, `apify/ps-tree` has been removed and replaced by the `packages/utils/src/internals/ps-tree.ts` file. This works in much the 
+same manner however, instead of using "WMIC", it uses "powershell" to collect the same data.
