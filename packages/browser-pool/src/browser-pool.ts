@@ -433,27 +433,38 @@ export class BrowserPool<
      * or their page limits have been exceeded.
      */
     async newPage(options: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
-        const { id = nanoid(), pageOptions, browserPlugin = this._pickBrowserPlugin(), proxyUrl, proxyTier } = options;
+    const { id = nanoid(), pageOptions, browserPlugin = this._pickBrowserPlugin(), proxyUrl, proxyTier } = options;
 
-        if (this.pages.has(id)) {
-            throw new Error(`Page with ID: ${id} already exists.`);
-        }
-
-        if (browserPlugin && !this.browserPlugins.includes(browserPlugin)) {
-            throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
-        }
-
-        // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
-        return this.limiter(async () => {
-            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
-
-            if (!browserController)
-                browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
-            tryCancel();
-
-            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
-        });
+    if (this.pages.has(id)) {
+        throw new Error(`Page with ID: ${id} already exists.`);
     }
+
+    if (browserPlugin && !this.browserPlugins.includes(browserPlugin)) {
+        throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
+    }
+
+    return this.limiter(async () => {
+        let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
+
+        if (!browserController) {
+            browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
+        }
+
+        tryCancel();
+
+        let page: PageReturn | null = null;
+        try {
+            page = await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
+            this.pages.set(id, page); 
+            return page;
+        } catch (error) {
+            console.error(`Error creating page: ${error}`);
+            await browserController.close().catch(() => {}); 
+            throw error;
+        }
+    });
+}
+
 
     /**
      * Unlike {@apilink newPage}, `newPageInNewBrowser` always launches a new
@@ -461,17 +472,27 @@ export class BrowserPool<
      * configure the new browser.
      */
     async newPageInNewBrowser(
-        options: BrowserPoolNewPageInNewBrowserOptions<PageOptions, BrowserPlugins[number]> = {},
-    ): Promise<PageReturn> {
-        const { id = nanoid(), pageOptions, launchOptions, browserPlugin = this._pickBrowserPlugin() } = options;
+    options: BrowserPoolNewPageInNewBrowserOptions<PageOptions, BrowserPlugins[number]> = {},
+): Promise<PageReturn> {
+    const { id = nanoid(), pageOptions, launchOptions, browserPlugin = this._pickBrowserPlugin() } = options;
 
-        if (this.pages.has(id)) {
-            throw new Error(`Page with ID: ${id} already exists.`);
+    if (this.pages.has(id)) {
+        throw new Error(`Page with ID: ${id} already exists.`);
+    }
+
+    const browserController = await this._launchBrowser(id, { launchOptions, browserPlugin });
+    tryCancel();
+
+    let page: PageReturn | null = null;
+    try {
+        page = await this._createPageForBrowser(id, browserController, pageOptions);
+        this.pages.set(id, page); 
+        return page;
+    } catch (error) {
+        console.error(`Error creating page in new browser: ${error}`);
+        await browserController.close().catch(() => {}); 
+        throw error;
         }
-
-        const browserController = await this._launchBrowser(id, { launchOptions, browserPlugin });
-        tryCancel();
-        return await this._createPageForBrowser(id, browserController, pageOptions);
     }
 
     /**
