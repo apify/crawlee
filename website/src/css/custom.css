@@ -15,6 +15,12 @@ html[data-theme='dark'] {
     --ifm-navbar-link-color: #f2f3fb;
 
     --docsearch-text-color: #8d92af;
+
+    --color-background: #1a1b21;
+    --color-separator: #343847;
+    --color-text: #f3f4fa;
+    --color-text-subtle: #8c93a8;
+    --color-text-muted: #b2b8cc;
 }
 
 :root {
@@ -56,6 +62,12 @@ html[data-theme='dark'] {
     --docusaurus-highlighted-code-line-bg: rgba(0, 255, 77, 0.1);
 
     --ifm-heading-color: #242736;
+
+    --color-background: #fff;
+    --color-separator: #e0e3f2;
+    --color-text: #242836;
+    --color-text-subtle: #6c7590;
+    --color-text-muted: #555d76;
 }
 
 @font-face {

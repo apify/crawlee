@@ -297,41 +297,46 @@ module.exports = {
                     items: [
                         {
                             label: 'Guides',
-                            to: 'docs/guides',
+                            href: 'docs/guides',
                         },
                         {
                             label: 'Examples',
-                            to: 'docs/examples',
+                            href: 'docs/examples',
                         },
                         {
                             label: 'API reference',
-                            to: 'api/core',
+                            href: 'api/core',
                         },
                         {
-                            label: 'Upgrading to v3',
-                            to: 'docs/upgrading/upgrading-to-v3',
+                            label: 'Changelog',
+                            href: 'api/core/changelog',
                         },
                     ],
                 },
                 {
-                    title: 'Community',
+                    title: 'Product',
                     items: [
                         {
-                            label: 'Blog',
-                            to: 'blog',
-                        },
-                        {
                             label: 'Discord',
+                            isExternal: true,
                             href: 'https://discord.com/invite/jyEM2PRvMU',
                         },
                         {
                             label: 'Stack Overflow',
+                            isExternal: true,
                             href: 'https://stackoverflow.com/questions/tagged/crawlee',
                         },
                         {
                             label: 'Twitter',
+                            isExternal: true,
                             href: 'https://twitter.com/apify',
                         },
+                        {
+                            label: 'YouTube',
+                            isExternal: true,
+                            href: 'https://www.youtube.com/apify',
+                        },
+
                     ],
                 },
                 {
@@ -339,25 +344,22 @@ module.exports = {
                     items: [
                         {
                             label: 'Apify Platform',
+                            isExternal: true,
                             href: 'https://apify.com',
                         },
                         {
                             label: 'Docusaurus',
+                            isExternal: true,
                             href: 'https://docusaurus.io',
                         },
                         {
                             label: 'GitHub',
+                            isExternal: true,
                             href: 'https://github.com/apify/crawlee',
                         },
                     ],
                 },
             ],
-            logo: {
-                src: 'img/apify_logo.svg',
-                href: '/',
-                width: '60px',
-                height: '60px',
-            },
         },
         algolia: {
             appId: '5JC94MPMLY',
