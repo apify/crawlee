@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { useThemeConfig } from '@docusaurus/theme-common';
+import LinkItem from '@theme/Footer/LinkItem';
 import NavbarColorModeToggle from '@theme/Navbar/ColorModeToggle';
 import ThemedImage from '@theme/ThemedImage';
 import clsx from 'clsx';
@@ -8,27 +9,13 @@ import React from 'react';
 import styles from './index.module.css';
 
 function FooterLinksColumn({ column }) {
-    const ExternalLinkIcon = require('../../../static/img/external-link.svg').default;
-
     return (
         <div>
             <div className={styles.footerTitle}>{column.title}</div>
             <ul className={clsx(styles.footerList, 'clean-list')}>
-                {column.items.map(({ href, label, isExternal }, i) => (
+                {column.items.map((item, i) => (
                     <li key={i}>
-                        <a
-                            className={styles.footerLink}
-                            href={href}
-                            target={isExternal ? '_blank' : undefined}
-                            rel={isExternal ? 'noopener noreferrer' : undefined}
-                        >
-                            {label}
-                            {isExternal && (
-                                <ExternalLinkIcon
-                                    className={styles.externalLinkIcon}
-                                />
-                            )}
-                        </a>
+                        <LinkItem item={item} />
                     </li>
                 ))}
             </ul>

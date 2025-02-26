@@ -89,31 +89,11 @@
     line-height: 24px;
 }
 
-.footerLink {
-    color: var(--color-text);
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 20px;
-    &:hover {
-        color: var(--color-text-subtle);
-        path {
-            fill: var(--color-text-subtle);
-        }
-    }
-}
-
 .footerList {
     margin: 0;
     li {
         margin-top: 16px;
         height: 28px;
-    }
-}
-
-.externalLinkIcon {
-    margin-left: 5px;
-    path {
-        fill: var(--color-text);
     }
 }
 
