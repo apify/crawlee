@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import os from 'os';
 
-import { isContainerized, getCgroupsVersion } from '@crawlee/utils';
+import { getCgroupsVersion } from '@crawlee/utils';
 
 import {
     getCurrentCpuTicks,
@@ -17,7 +17,6 @@ vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {
     const original: typeof import('@crawlee/utils') = await importActual();
     return {
         ...original,
-        isContainerized: vitest.fn(),
         getCgroupsVersion: vitest.fn(),
     };
 });
@@ -30,7 +29,6 @@ vitest.mock('node:fs/promises', async (importActual) => {
     };
 });
 
-const isContainerizedSpy = vitest.mocked(isContainerized);
 const getCgroupsVersionSpy = vitest.mocked(getCgroupsVersion);
 const readFileSpy = vitest.mocked(readFile);
 
@@ -232,8 +230,6 @@ describe('getCpuInfo()', () => {
     });
 
     test('returns bare metal cpu ticks when not containerized', async () => {
-        // Simulate non-AWS Lambda and non-containerized environment.
-        isContainerizedSpy.mockResolvedValueOnce(false);
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([{ times: { user: 200, nice: 0, sys: 100, idle: 100, irq: 0 } }] as os.CpuInfo[]);
@@ -244,7 +240,6 @@ describe('getCpuInfo()', () => {
     });
 
     test('returns container-aware cpu usage when containerized with quota set', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         // For V1:
         // - getCpuQuota: return 200000 → quota = 200000.
@@ -276,7 +271,6 @@ describe('getCpuInfo()', () => {
     });
 
     test('returns bare metal cpu ticks when containerized but no cgroup quota', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         // For V1, a quota of "-1" signals no limit → quota becomes null.
         readFileSpy.mockResolvedValueOnce('-1\n'); // getCpuQuota returns null
@@ -284,7 +278,7 @@ describe('getCpuInfo()', () => {
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([{ times: { user: 300, nice: 0, sys: 150, idle: 150, irq: 0 } }] as os.CpuInfo[]);
-        const result = await getCurrentCpuTicksV2();
+        const result = await getCurrentCpuTicksV2(true);
         // For one CPU: total = 300+0+150+150 = 600, idle = 150 → load = 0.75.
         expect(result).toBeCloseTo(0.75);
         cpusMock.mockRestore();

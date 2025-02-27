@@ -2,7 +2,7 @@ import { readFile, access } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';
-import { getCgroupsVersion, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
+import { getCgroupsVersion, getMemoryInfoV2 } from '@crawlee/utils';
 
 vitest.mock('node:os', async (importActual) => {
     const originalOs: typeof import('node:os') = await importActual();
@@ -18,7 +18,6 @@ vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {
 
     return {
         ...original,
-        isContainerized: vitest.fn(),
         getCgroupsVersion: vitest.fn(),
     };
 });
@@ -32,7 +31,6 @@ vitest.mock('node:fs/promises', async (importActual) => {
     };
 });
 
-const isContainerizedSpy = vitest.mocked(isContainerized);
 const getCgroupsVersionSpy = vitest.mocked(getCgroupsVersion);
 const freememSpy = vitest.mocked(freemem);
 const totalmemSpy = vitest.mocked(totalmem);
@@ -42,7 +40,6 @@ const readFileSpy = vitest.mocked(readFile);
 
 describe('getMemoryInfoV2()', () => {
     test('works WITHOUT child process outside the container', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(false);
         freememSpy.mockReturnValueOnce(222);
         totalmemSpy.mockReturnValueOnce(333);
 
@@ -61,7 +58,6 @@ describe('getMemoryInfoV2()', () => {
     });
 
     test('works WITHOUT child process inside the container', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         accessSpy.mockResolvedValueOnce();
 
@@ -90,7 +86,6 @@ describe('getMemoryInfoV2()', () => {
 
     test('works WITH child process outside the container', async () => {
         process.env.CRAWLEE_HEADLESS = '1';
-        isContainerizedSpy.mockResolvedValueOnce(false);
         freememSpy.mockReturnValueOnce(222);
         totalmemSpy.mockReturnValueOnce(333);
 
@@ -117,7 +112,6 @@ describe('getMemoryInfoV2()', () => {
 
     test('works WITH child process inside the container', async () => {
         process.env.CRAWLEE_HEADLESS = '1';
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         accessSpy.mockResolvedValueOnce();
 
@@ -152,7 +146,6 @@ describe('getMemoryInfoV2()', () => {
     });
 
     test('works with cgroup V1 with LIMITED memory', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         accessSpy.mockResolvedValueOnce();
 
@@ -177,7 +170,6 @@ describe('getMemoryInfoV2()', () => {
     });
 
     test('works with cgroup V1 with UNLIMITED memory', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         accessSpy.mockResolvedValueOnce();
 
@@ -204,7 +196,6 @@ describe('getMemoryInfoV2()', () => {
     });
 
     test('works with cgroup V2 with LIMITED memory', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V2');
         accessSpy.mockRejectedValueOnce(new Error('ENOENT'));
 
@@ -229,7 +220,6 @@ describe('getMemoryInfoV2()', () => {
     });
 
     test('works with cgroup V2 with UNLIMITED memory', async () => {
-        isContainerizedSpy.mockResolvedValueOnce(true);
         getCgroupsVersionSpy.mockResolvedValueOnce('V2');
         accessSpy.mockRejectedValueOnce(new Error('ENOENT'));
 
