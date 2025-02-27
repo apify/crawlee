@@ -139,6 +139,28 @@ aside > div > a > b {
     display: none;
 }
 
+@media (max-width: 1024px) {
+    .navbar__toggle {
+        display: inherit;
+    }
+    .navbar__item {
+        display: none;
+    }
+    .navbar__items--right > div,
+    .navbar__items--right > a {
+        display: none;
+    }
+}
+
+.navbar__toggle {
+    margin: 0;
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
 .navbar__title {
     /* Replaced by SVG */
     display: none;
@@ -262,6 +284,7 @@ nav.navbar .dropdown__menu {
     height: 28px;
     margin-top: 4px;
     margin-bottom: 18px;
+    margin-left: 8px;
 }
 
 .main-wrapper a[class*='sidebarLogo'] b {

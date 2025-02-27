@@ -95,26 +95,29 @@ export default function NavbarContent() {
         <NavbarContentLayout
             left={
                 <>
-                    {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
                     <NavbarLogo />
                     <NavbarItems items={leftItems} />
                 </>
             }
             right={
-                !isOnLanguageAgnosticPage && (
-                    <>
-                        {rightItems?.length > 0
-                            && <NavbarItems items={rightItems} />
-                        }
-                        {!searchBarItem && (
-                            <NavbarSearch>
-                                <SearchBar />
-                            </NavbarSearch>
-                        )}
-                        <Link className={styles.getStartedButton} to="/docs/quick-start">
-                            Get Started
-                        </Link>
-                    </>)
+                <>
+                    {!isOnLanguageAgnosticPage && (
+                        <>
+                            {rightItems?.length > 0
+                                && <NavbarItems items={rightItems} />
+                            }
+                            {!searchBarItem && (
+                                <NavbarSearch>
+                                    <SearchBar />
+                                </NavbarSearch>
+                            )}
+                            <Link className={styles.getStartedButton} to="/docs/quick-start">
+                                Get Started
+                            </Link>
+                        </>)}
+                    {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
+                </>
+
             }
         />
     );
