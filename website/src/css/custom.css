@@ -267,6 +267,10 @@ nav.navbar .dropdown__menu {
     display: none;
 }
 
+div[class*='sidebarViewport'] {
+    top: 22px;
+}
+
 html.plugin-pages {
     font-size: 18px;
     line-height: 32px;
