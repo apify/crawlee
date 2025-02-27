@@ -209,7 +209,7 @@ export async function getCurrentCpuTicksV2(containerized = false): Promise<numbe
                 'Your environment is containerized, but your system does not support cgroups.\n' +
                     "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
             );
-            return getCurrentCpuTicks()
+            return getCurrentCpuTicks();
         }
         // cgroup aware cpu limit. If no limits are set, default to returning getCurrentCpuTicks.
         const quota = await getCpuQuota(cgroupsVersion!);
@@ -220,22 +220,21 @@ export async function getCurrentCpuTicksV2(containerized = false): Promise<numbe
         const period = await getCpuPeriod(cgroupsVersion!);
         // eg. having a 200000us quots per 100000us means the cGroup can fully use 2 cores
         const cpuAllowance = quota / period;
-    
+
         const sample = await sampleCpuUsage(cgroupsVersion!);
-    
+
         const containerDelta = sample.containerUsage - previousSample.containerUsage;
         const systemDelta = sample.systemUsage - previousSample.systemUsage;
-    
+
         previousSample = sample;
-    
+
         const numCpus = os.cpus().length;
-    
+
         // Calculate the CPU usage percentage.
-        return ((containerDelta / systemDelta) * numCpus) / cpuAllowance
-        
+        return ((containerDelta / systemDelta) * numCpus) / cpuAllowance;
     } catch (err) {
         // if anything fails, default to bare metal metrics
-        log.exception(err as Error, 'Cpu snapshot failed.')
-        return getCurrentCpuTicks()
+        log.exception(err as Error, 'Cpu snapshot failed.');
+        return getCurrentCpuTicks();
     }
 }

@@ -164,14 +164,14 @@ export interface ConfigurationOptions {
 
     /**
      * Defines whether to use the systemInfoV2 metric collection experiment.
-     * 
+     *
      * Alternative to `SYSTEM_INFO_V2` environment variable.
      */
     systemInfoV2?: boolean;
 
     /**
      * Used in place of `isContainerized()` when collecting system metrics.
-     * 
+     *
      * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
      */
     containerized?: boolean;

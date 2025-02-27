@@ -50,7 +50,6 @@ export interface MemoryInfo {
  * @internal
  */
 export async function getMemoryInfoV2(containerized = false): Promise<MemoryInfo> {
-
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
 

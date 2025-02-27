@@ -50,14 +50,14 @@ export class LocalEventManager extends EventManager {
     }
 
     /**
-     * @internal 
+     * @internal
      */
     async isContainerizedWrapper() {
-        const config = this.config.get("containerized")
+        const config = this.config.get('containerized');
         if (config !== undefined) {
-            return config
+            return config;
         }
-        return isContainerized()
+        return isContainerized();
     }
 
     private getCurrentCpuTicks() {
@@ -103,7 +103,6 @@ export class LocalEventManager extends EventManager {
             cpuCurrentUsage: usedCpuRatio * 100,
             isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
         };
-
     }
 
     private async createMemoryInfo() {
@@ -111,14 +110,13 @@ export class LocalEventManager extends EventManager {
             if (this.config.get('systemInfoV2')) {
                 const memInfo = await getMemoryInfoV2(await this.isContainerizedWrapper());
                 return {
-                  memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
-              };
-            } 
+                    memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
+                };
+            }
             const memInfo = await getMemoryInfo();
             return {
-              memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
-          };
-            
+                memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
+            };
         } catch (err) {
             log.exception(err as Error, 'Memory snapshot failed.');
             return {};
