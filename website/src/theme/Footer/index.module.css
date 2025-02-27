@@ -12,7 +12,7 @@
 }
 
 .footerTopRow {
-    max-width: 1200px;
+    max-width: var(--max-layout-width);
     margin: auto;
 
     display: flex;
@@ -55,7 +55,7 @@
 }
 
 .footerBottomRow {
-    max-width: 1200px;
+    max-width: var(--max-layout-width);
     margin: auto;
 
     display: flex;

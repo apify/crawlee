@@ -1,15 +1,17 @@
-import React from 'react';
+import Link from '@docusaurus/Link';
+import { useLocation } from '@docusaurus/router';
 import { useThemeConfig } from '@docusaurus/theme-common';
 import {
     splitNavbarItems,
     useNavbarMobileSidebar,
 } from '@docusaurus/theme-common/internal';
-import NavbarItem from '@theme/NavbarItem';
-import NavbarColorModeToggle from '@theme/Navbar/ColorModeToggle';
-import SearchBar from '@theme/SearchBar';
-import NavbarMobileSidebarToggle from '@theme/Navbar/MobileSidebar/Toggle';
 import NavbarLogo from '@theme/Navbar/Logo';
+import NavbarMobileSidebarToggle from '@theme/Navbar/MobileSidebar/Toggle';
 import NavbarSearch from '@theme/Navbar/Search';
+import NavbarItem from '@theme/NavbarItem';
+import SearchBar from '@theme/SearchBar';
+import React from 'react';
+
 import styles from './styles.module.css';
 
 function useNavbarItems() {
@@ -18,17 +20,17 @@ function useNavbarItems() {
 
 function NavbarItems({ items }) {
     return (
-        <>
+        <div className={styles.navbarItems}>
             {items.map((item, i) => (
-                <NavbarItem {...item} key={i}/>
+                <NavbarItem {...item} key={i} />
             ))}
-        </>
+        </div>
     );
 }
 
 function NavbarContentLayout({
     left,
-    right
+    right,
 }) {
     return (
         <div className="navbar__inner">
@@ -38,30 +40,81 @@ function NavbarContentLayout({
     );
 }
 
+const GENERIC_PAGE_ITEMS = [{
+    to: 'javascript',
+    label: 'JavaScript',
+    position: 'left',
+}, {
+    to: 'https://crawlee.dev/python',
+    label: 'Python',
+    rel: 'dofollow',
+    target: '_self',
+    position: 'left',
+},
+{
+    to: 'blog',
+    label: 'Blog',
+    position: 'left',
+}];
+
+const VERSIONS_ITEM = {
+    type: 'docsVersionDropdown',
+    position: 'left',
+    label: 'Versions',
+    dropdownItemsAfter: [
+        {
+            href: 'https://sdk.apify.com/docs/guides/getting-started',
+            label: '2.2',
+        },
+        {
+            href: 'https://sdk.apify.com/docs/1.3.1/guides/getting-started',
+            label: '1.3',
+        },
+    ],
+    dropdownItemsBefore: [],
+};
+
+function getEffectiveNavbarItems(items, location, isOnLanguageAgnosticPage) {
+    if (isOnLanguageAgnosticPage) {
+        return GENERIC_PAGE_ITEMS;
+    } if (location.pathname !== '/javascript') {
+        return [...items, VERSIONS_ITEM];
+    }
+    return items;
+}
+
 export default function NavbarContent() {
+    const location = useLocation();
+    const isOnLanguageAgnosticPage = location.pathname === '/' || location.pathname.includes('/blog');
     const mobileSidebar = useNavbarMobileSidebar();
     const items = useNavbarItems();
-    const [leftItems, rightItems] = splitNavbarItems(items);
+    const effectiveItems = getEffectiveNavbarItems(items, location, isOnLanguageAgnosticPage);
+    const [leftItems, rightItems] = splitNavbarItems(effectiveItems);
     const searchBarItem = items.find((item) => item.type === 'search');
     return (
         <NavbarContentLayout
             left={
                 <>
-                    {!mobileSidebar.disabled && <NavbarMobileSidebarToggle/>}
-                    <NavbarLogo/>
-                    <NavbarItems items={leftItems}/>
+                    {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
+                    <NavbarLogo />
+                    <NavbarItems items={leftItems} />
                 </>
             }
             right={
-                <>
-                    <NavbarColorModeToggle className={styles.colorModeToggle}/>
-                    <NavbarItems items={rightItems}/>
-                    {!searchBarItem && (
-                        <NavbarSearch>
-                            <SearchBar/>
-                        </NavbarSearch>
-                    )}
-                </>
+                !isOnLanguageAgnosticPage && (
+                    <>
+                        {rightItems?.length > 0
+                            && <NavbarItems items={rightItems} />
+                        }
+                        {!searchBarItem && (
+                            <NavbarSearch>
+                                <SearchBar />
+                            </NavbarSearch>
+                        )}
+                        <Link className={styles.getStartedButton} to="/docs/quick-start">
+                            Get Started
+                        </Link>
+                    </>)
             }
         />
     );

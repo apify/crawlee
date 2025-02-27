@@ -1,4 +1,4 @@
-/* eslint-disable global-require,import/no-extraneous-dependencies */
+/* eslint-disable global-require */
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -222,53 +222,6 @@ module.exports = {
                     to: 'blog',
                     label: 'Blog',
                     position: 'left',
-                },
-                {
-                    type: 'dropdown',
-                    label: 'Node.js',
-                    position: 'left',
-                    items: [
-                        {
-                            label: 'Node.js',
-                            href: '#',
-                            target: '_self',
-                            rel: 'dofollow',
-                        },
-                        {
-                            label: 'Python',
-                            href: 'https://crawlee.dev/python',
-                            target: '_self',
-                            rel: 'dofollow',
-                        },
-                    ],
-                },
-                {
-                    type: 'docsVersionDropdown',
-                    position: 'left',
-                    dropdownItemsAfter: [
-                        {
-                            href: 'https://sdk.apify.com/docs/guides/getting-started',
-                            label: '2.2',
-                        },
-                        {
-                            href: 'https://sdk.apify.com/docs/1.3.1/guides/getting-started',
-                            label: '1.3',
-                        },
-                    ],
-                },
-                {
-                    href: 'https://github.com/apify/crawlee',
-                    label: 'GitHub',
-                    title: 'View on GitHub',
-                    position: 'right',
-                    className: 'icon',
-                },
-                {
-                    href: 'https://discord.com/invite/jyEM2PRvMU',
-                    label: 'Discord',
-                    title: 'Chat on Discord',
-                    position: 'right',
-                    className: 'icon',
                 },
             ],
         },

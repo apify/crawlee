@@ -1,8 +1,19 @@
-/*
-Hide color mode toggle in small viewports
- */
-@media (max-width: 996px) {
-  .colorModeToggle {
-    display: none;
-  }
+.navbarItems {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.getStartedButton {
+    color: var(--color-text-on-primary);
+    background: var(--color-black-action);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+    padding: 8px 16px !important;
+    border: none;
+    &:hover {
+        color: var(--color-text-on-primary);
+    }
 }

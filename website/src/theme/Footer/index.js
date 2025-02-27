@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
+import Link from '@docusaurus/Link';
 import { useThemeConfig } from '@docusaurus/theme-common';
 import LinkItem from '@theme/Footer/LinkItem';
 import NavbarColorModeToggle from '@theme/Navbar/ColorModeToggle';
@@ -36,16 +36,16 @@ function Footer() {
             <div className={styles.footerTop}>
                 <div className={styles.footerTopRow}>
                     <div className={styles.footerTopRowLeft}>
-                        <a href="/" width="120" className={styles.footerLogo}>
+                        <Link to="/" width="120" className={styles.footerLogo}>
                             <ThemedImage
                                 width="120"
                                 alt="Docusaurus themed image"
                                 sources={{
-                                    light: 'img/crawlee-light.svg',
-                                    dark: 'img/crawlee-dark.svg',
+                                    light: '/img/crawlee-light.svg',
+                                    dark: '/img/crawlee-dark.svg',
                                 }}
                             />
-                        </a>
+                        </Link>
                         <NavbarColorModeToggle />
                     </div>
                     <div className={styles.footerTopRowRight}>
