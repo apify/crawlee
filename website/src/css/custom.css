@@ -260,7 +260,8 @@ nav.navbar .dropdown__menu {
 
 .main-wrapper a[class*='sidebarLogo'] img {
     height: 28px;
-    margin-top: 24px;
+    margin-top: 4px;
+    margin-bottom: 18px;
 }
 
 .main-wrapper a[class*='sidebarLogo'] b {
