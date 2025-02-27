@@ -60,22 +60,6 @@ describe('isContainerized()', () => {
         vi.resetModules();
     });
 
-    test('returns true when CRAWLEE_CONTAINERIZED environment variable is set', async () => {
-        // @ts-ignore flaky linting of dynamic import. Some environments throw ts(2307), others not.
-        const { isContainerized } = await import('@crawlee/utils');
-        process.env.CRAWLEE_CONTAINERIZED = '1';
-        const result = await isContainerized();
-        expect(result).toBe(true);
-    });
-
-    test('returns false when CRAWLEE_CONTAINERIZED environment variable is set to "false"', async () => {
-        // @ts-ignore flaky linting of dynamic import. Some environments throw ts(2307), others not.
-        const { isContainerized } = await import('@crawlee/utils');
-        process.env.CRAWLEE_CONTAINERIZED = 'false';
-        const result = await isContainerized();
-        expect(result).toBe(false);
-    });
-
     test('returns true when a "/.dockerenv" file exists', async () => {
         // @ts-ignore flaky linting of dynamic import. Some environments throw ts(2307), others not.
         const { isContainerized } = await import('@crawlee/utils');

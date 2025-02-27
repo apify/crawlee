@@ -29,15 +29,11 @@ but you can apply this to any crawler type.
 :::
 
 ```ts
-import { CheerioCrawler } from 'crawlee';
+import { CheerioCrawler, Configuration } from 'crawlee';
+
+Configuration.set('systemInfoV2', true);
 
 const crawler = new CheerioCrawler({
-    // highlight-next-line
-    experiments: {
-        // highlight-next-line
-        systemInfoV2: true,
-        // highlight-next-line
-    },
     async requestHandler({ $, request }) {
         const title = $('title').text();
         console.log(`The title of "${request.url}" is: ${title}.`);
@@ -81,8 +77,8 @@ If it exists, cgroup V1 is installed. If it is missing, it is assumed cgroup V2 
 The existing solution worked by checking the fraction of cpu idle ticks to the total number of cpu ticks since the last profile.
 If 100000 ticks elapse and 5000 were idle, the cpu is at 95% utilisation.
 
-In this experiment, the method of cpu load calculation depends on the result of `isContainerized()`
-If `isContainerised()` returns true, the new cgroup aware metric collection will be used over the "bare metal" numbers.
+In this experiment, the method of cpu load calculation depends on the result of `isContainerized()` or if set, the `CRAWLEE_CONTAINERIZED` environment variable.
+If `isContainerized()` returns true, the new cgroup aware metric collection will be used over the "bare metal" numbers.
 This works by inspecting the `/sys/fs/cgroup/cpuacct/cpuacct.usage`, `/sys/fs/cgroup/cpu/cpu.cfs_quota_us` and `/sys/fs/cgroup/cpu/cpu.cfs_period_us`
 files for cgroup V1 and the `/sys/fs/cgroup/cpu.stat` and `/sys/fs/cgroup/cpu.max` files for cgroup V2.
 The actual cpu usage figure is calculated in the same manner as the "bare metal" figure by comparing the total number of ticks elapsed to the number

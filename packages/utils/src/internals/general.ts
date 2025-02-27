@@ -15,8 +15,6 @@ export const URL_NO_COMMAS_REGEX =
 export const URL_WITH_COMMAS_REGEX =
     /https?:\/\/(www\.)?([\p{L}0-9]|[\p{L}0-9][-\p{L}0-9@:%._+~#=]{0,254}[\p{L}0-9])\.[a-z]{2,63}(:\d{1,5})?(\/[-\p{L}0-9@:%_+,.~#?&/=()]*)?/giu;
 
-export const FALSY_REGEX = /^false$/giu;
-
 let isDockerPromiseCache: Promise<boolean> | undefined;
 
 async function createIsDockerPromise() {
@@ -48,17 +46,11 @@ export async function isDocker(forceReset?: boolean): Promise<boolean> {
 let isContainerizedResult: boolean | undefined;
 
 /**
- * Detects if crawlee is running in a containerized environment. The result can be controlled manually by setting the `CRAWLEE_CONTAINERIZED` environment variable.
- * Most values for `CRAWLEE_CONTAINERIZED` will make this function return true. `false` makes this function return false.
+ * Detects if crawlee is running in a containerized environment.
  */
 export async function isContainerized() {
     // Value is very unlikley to change. Cache the result after the first execution.
     if (isContainerizedResult !== undefined) {
-        return isContainerizedResult;
-    }
-    // if the user has explicitly set CRAWLEE_CONTAINERIZED, honor it
-    if (process.env.CRAWLEE_CONTAINERIZED) {
-        isContainerizedResult = !FALSY_REGEX.test(process.env.CRAWLEE_CONTAINERIZED);
         return isContainerizedResult;
     }
 

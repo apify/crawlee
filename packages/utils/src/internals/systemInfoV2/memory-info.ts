@@ -4,7 +4,7 @@ import { freemem, totalmem } from 'node:os';
 
 import log from '@apify/log';
 
-import { getCgroupsVersion, isContainerized, isLambda } from '../general';
+import { getCgroupsVersion, isLambda } from '../general';
 import { psTree } from './ps-tree';
 
 const MEMORY_FILE_PATHS = {
@@ -46,9 +46,10 @@ export interface MemoryInfo {
  *
  * Beware that the function is quite inefficient because it spawns a new process.
  * Therefore you shouldn't call it too often, like more than once per second.
+ * @returns An object containing the free and used memory metrics.
+ * @internal
  */
-export async function getMemoryInfoV2(): Promise<MemoryInfo> {
-    const isContainerizedVar = await isContainerized();
+export async function getMemoryInfoV2(containerized = false): Promise<MemoryInfo> {
 
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
@@ -90,7 +91,7 @@ export async function getMemoryInfoV2(): Promise<MemoryInfo> {
         freeBytes = totalBytes - usedBytes;
 
         log.debug(`lambda size of ${totalBytes} with ${freeBytes} free bytes`);
-    } else if (isContainerizedVar) {
+    } else if (containerized) {
         // When running inside a container, use container memory limits
 
         const cgroupsVersion = await getCgroupsVersion();

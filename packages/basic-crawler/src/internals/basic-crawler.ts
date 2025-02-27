@@ -377,12 +377,6 @@ export interface CrawlerExperiments {
      * - set `requestLocking` to `false` in the `experiments` option of the crawler
      */
     requestLocking?: boolean;
-
-    /**
-     * Enables the use of the new resource management system.
-     * It should improve autoscaling in containerized environments by respecting cGroup resource limits.
-     */
-    systemInfoV2?: boolean;
 }
 
 /**
@@ -622,10 +616,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
-
-        if (this.experiments.systemInfoV2) {
-            this.config.set('systemInfoV2', true);
-        }
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',

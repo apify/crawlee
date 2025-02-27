@@ -267,7 +267,7 @@ describe('getCpuInfo()', () => {
                 { times: { user: 200, nice: 0, sys: 100, idle: 100, irq: 0 } },
             ] as os.CpuInfo[]);
         // Initially, previousSample is { containerUsage: 0, systemUsage: 0 }.
-        const result = await getCurrentCpuTicksV2();
+        const result = await getCurrentCpuTicksV2(true);
         // Calculation:
         // containerDelta = 1000000, systemDelta = 3000000000, numCpus = 2, cpuAllowance = 2.
         // So: ((1000000000 / 3000000000) * 2) / 2 ≈ 0.3333

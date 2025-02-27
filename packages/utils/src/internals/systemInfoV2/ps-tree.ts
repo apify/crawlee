@@ -22,6 +22,7 @@ type ProcessInfoStringKeys = {
  * @param pid - The PID (number or string) for which to list child processes.
  * @param includeRoot - Optional flag. When true, include the process with the given PID if found.
  *                      Defaults to false.
+ * @internal
  */
 export async function psTree(pid: number | string, includeRoot: boolean = false): Promise<ProcessInfo[]> {
     return new Promise((resolve, reject) => {

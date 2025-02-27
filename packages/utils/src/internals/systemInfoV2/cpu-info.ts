@@ -4,7 +4,7 @@ import os from 'node:os';
 
 import log from '@apify/log';
 
-import { getCgroupsVersion, isContainerized } from '../general';
+import { getCgroupsVersion } from '../general';
 
 const CPU_FILE_PATHS = {
     STAT: {
@@ -189,19 +189,27 @@ let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
  * If the crawler is running in a containerized environment, crawlee will check for a cgroup enforced cpu limit.
  * If a cgroup limit is found, it will be taken as the maximum load against which the current load will be gauged.
  * @returns a number between 0 and 1 for the cpu load
+ * @internal
  */
-export async function getCurrentCpuTicksV2(): Promise<number> {
-    if (await isContainerized()) {
+export async function getCurrentCpuTicksV2(containerized = false): Promise<number> {
+    try {
+        // if not containerized
+        if (!containerized) {
+            // bare metal cpu limit
+            return getCurrentCpuTicks();
+        }
         if (!CLOCK_TICKS_CHECKED) {
             CLOCK_TICKS_PER_SECOND = getClockTicks();
             CLOCK_TICKS_CHECKED = true;
         }
         const cgroupsVersion = await getCgroupsVersion();
+        // if cgroup is not detected, return bare metal cpu limit
         if (cgroupsVersion === null) {
             log.deprecated(
                 'Your environment is containerized, but your system does not support cgroups.\n' +
                     "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
             );
+            return getCurrentCpuTicks()
         }
         // cgroup aware cpu limit. If no limits are set, default to returning getCurrentCpuTicks.
         const quota = await getCpuQuota(cgroupsVersion!);
@@ -212,19 +220,22 @@ export async function getCurrentCpuTicksV2(): Promise<number> {
         const period = await getCpuPeriod(cgroupsVersion!);
         // eg. having a 200000us quots per 100000us means the cGroup can fully use 2 cores
         const cpuAllowance = quota / period;
-
+    
         const sample = await sampleCpuUsage(cgroupsVersion!);
-
+    
         const containerDelta = sample.containerUsage - previousSample.containerUsage;
         const systemDelta = sample.systemUsage - previousSample.systemUsage;
-
+    
         previousSample = sample;
-
+    
         const numCpus = os.cpus().length;
-
+    
         // Calculate the CPU usage percentage.
-        return ((containerDelta / systemDelta) * numCpus) / cpuAllowance;
+        return ((containerDelta / systemDelta) * numCpus) / cpuAllowance
+        
+    } catch (err) {
+        // if anything fails, default to bare metal metrics
+        log.exception(err as Error, 'Cpu snapshot failed.')
+        return getCurrentCpuTicks()
     }
-    // bare metal cpu limit
-    return getCurrentCpuTicks();
 }
