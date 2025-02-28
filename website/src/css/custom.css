@@ -114,6 +114,10 @@ html .DocSearch-Button {
     color: var(--docsearch-muted-color);
 }
 
+div[class*='navbarSearchContainer'] {
+    position: static;
+}
+
 html[data-theme="dark"] .DocSearch-Button {
     background: none;
     border: 1px solid var(--docsearch-muted-color);
@@ -183,7 +187,10 @@ aside > div > a > b {
 }
 
 .navbar__items {
-    height: 40px;
+    height: 28px;
+    @media (min-width: 768px) {
+        height: 40px;   
+    }
 }
 
 .navbar__items--right {
