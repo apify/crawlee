@@ -39,7 +39,7 @@ export default function LogoWrapper(props) {
                         {!isOnLanguageAgnosticPage && <CheckIcon />}
                     </Link>
                     <Link className={styles.menuItem} href="https://crawlee.dev/python" target="_self" rel="dofollow">
-                        < ThemedImage sources={pythonLogo} alt="Crawlee Python" />
+                        <ThemedImage sources={pythonLogo} alt="Crawlee Python" />
                     </Link>
                     <Link className={styles.menuItem} to="/">
                         <ThemedImage sources={languageAgnosticLogo} alt="Crawlee" />
