@@ -314,6 +314,11 @@ module.exports = {
             algoliaOptions: {
                 facetFilters: ['version:VERSION'],
             },
+            translations: {
+                button: {
+                    buttonText: 'Search documentation...',
+                },
+            },
         },
     }),
 };

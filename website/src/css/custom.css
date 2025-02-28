@@ -17,6 +17,8 @@ html[data-theme='dark'] {
     --docsearch-text-color: #8d92af;
 
     --color-background: #1a1b21;
+    --color-background-subtle: #2a2d39;
+    --color-field-background: #101114;
     --color-separator: #343847;
     --color-border: #414758;
     --color-card-background: #1e2027;
@@ -24,6 +26,7 @@ html[data-theme='dark'] {
     --color-text-subtle: #8c93a8;
     --color-text-muted: #b2b8cc;
     --color-text-on-primary: #1a1b21;
+    --color-text-placeholder: #6e758a;
     --color-black-action: #fff;
     --color-icon: #b2b8cc;
     --color-hover: #2d313e;
@@ -72,6 +75,8 @@ html[data-theme='dark'] {
     --ifm-heading-color: #242736;
 
     --color-background: #fff;
+    --color-background-subtle: #f3f4fa;
+    --color-field-background: #f8f9fc;
     --color-separator: #e0e3f2;
     --color-border: #d0d5e9;
     --color-card-background: #fff;
@@ -79,6 +84,7 @@ html[data-theme='dark'] {
     --color-text-subtle: #6c7590;
     --color-text-muted: #555d76;
     --color-text-on-primary: #fff;
+    --color-text-placeholder: #969eb8;
     --color-black-action: #272d3e;
     --color-icon: #555d76;
     --color-hover: #eef0f8;
@@ -91,27 +97,33 @@ html[data-theme='dark'] {
     font-weight: 600;
 }
 
-.DocSearch-Button-Placeholder {
-    font-size: 14px !important;
-}
-
 html .DocSearch-Button {
     border-radius: 6px !important;
     font-weight: 400 !important;
-    background: #f9fafd;
-    border: 1px solid #c1c6dd;
+    background: var(--color-field-background) !important;
+    border: 1px solid var(--color-border) !important;
     width: 256px;
     height: 40px;
+    padding: 0;
+    padding-inline: 4px;
 
     /* Annoying, but needed */
     /* https://stackoverflow.com/questions/26140050/why-is-font-family-not-inherited-in-button-tags-automatically/26140154 */
     font-family: inherit;
+    color: var(--color-text-placeholder);
+
+    &:hover {
+        color: var(--color-text-muted);
+        box-shadow: none !important;
+        background: var(--color-field-background) !important;
+    }
 }
+.DocSearch-Button-Placeholder {
+    font-size: 16px !important;
+}
+
 .DocSearch-Search-Icon {
     display: none;
-}
-html .DocSearch-Button {
-    color: var(--docsearch-muted-color);
 }
 
 div[class*='navbarSearchContainer'] {
@@ -125,10 +137,6 @@ html[data-theme="dark"] .DocSearch-Button {
 
 html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
     color: var(--docsearch-muted-color);
-}
-
-.DocSearch-Button:hover {
-    box-shadow: none !important;
 }
 
 html.plugin-pages .main-wrapper {
@@ -562,5 +570,14 @@ div[class^=announcementBar_] button {
     border-left-width: var(--ifm-alert-border-left-width);
     border-radius: var(--ifm-alert-border-radius);
     box-shadow: var(--ifm-alert-shadow);
-    padding: var(--ifm-alert-padding-vertical) var(--ifm-alert-padding-horizontal);
+    padding: var(--ifm-alert-padding-vertical)
+        var(--ifm-alert-padding-horizontal);
+}
+
+.DocSearch-Button-Key {
+    background: var(--color-background-subtle) !important;
+    box-shadow: none !important;
+    border: 1px solid var(--color-border) !important;
+    padding: 0 !important;
+    color: var(--color-text-muted) !important;
 }
