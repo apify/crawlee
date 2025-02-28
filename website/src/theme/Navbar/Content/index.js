@@ -10,6 +10,7 @@ import NavbarMobileSidebarToggle from '@theme/Navbar/MobileSidebar/Toggle';
 import NavbarSearch from '@theme/Navbar/Search';
 import NavbarItem from '@theme/NavbarItem';
 import SearchBar from '@theme/SearchBar';
+import clsx from 'clsx';
 import React from 'react';
 
 import styles from './styles.module.css';
@@ -18,9 +19,9 @@ function useNavbarItems() {
     return useThemeConfig().navbar.items;
 }
 
-function NavbarItems({ items }) {
+function NavbarItems({ items, className }) {
     return (
-        <div className={styles.navbarItems}>
+        <div className={clsx(styles.navbarItems, className)}>
             {items.map((item, i) => (
                 <NavbarItem {...item} key={i} />
             ))}
@@ -96,7 +97,7 @@ export default function NavbarContent() {
             left={
                 <>
                     <NavbarLogo />
-                    <NavbarItems items={leftItems} />
+                    <NavbarItems items={leftItems} className={isOnLanguageAgnosticPage ? styles.navbarItems__leftMargin : styles.navbarItems__center} />
                 </>
             }
             right={
@@ -112,7 +113,7 @@ export default function NavbarContent() {
                                 </NavbarSearch>
                             )}
                             <Link className={styles.getStartedButton} to="/docs/quick-start">
-                                Get Started
+                                Get started
                             </Link>
                         </>)}
                     {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}

@@ -100,13 +100,17 @@ html .DocSearch-Button {
     font-weight: 400 !important;
     background: #f9fafd;
     border: 1px solid #c1c6dd;
+    width: 256px;
+    height: 40px;
 
     /* Annoying, but needed */
     /* https://stackoverflow.com/questions/26140050/why-is-font-family-not-inherited-in-button-tags-automatically/26140154 */
     font-family: inherit;
 }
-
-html .DocSearch-Button .DocSearch-Search-Icon {
+.DocSearch-Search-Icon {
+    display: none;
+}
+html .DocSearch-Button {
     color: var(--docsearch-muted-color);
 }
 
@@ -174,7 +178,6 @@ aside > div > a > b {
 }
 
 .navbar__items {
-    gap: 40px;
     height: 40px;
 }
 

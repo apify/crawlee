@@ -1,7 +1,16 @@
 .navbarItems {
     display: flex;
     align-items: center;
+    gap: 40px;
+}
+
+.navbarItems__center {
+    margin-inline: auto;
     gap: 32px;
+}
+
+.navbarItems__leftMargin {
+    margin-left: 40px;
 }
 
 .getStartedButton {
