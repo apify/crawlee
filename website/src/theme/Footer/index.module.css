@@ -6,8 +6,12 @@
 .footerBottom,
 .footerTop {
     border-top: 1px solid var(--color-separator);
+
     @media (min-width: 768px) {
-        padding: 40px;
+        padding: 40px 40px;
+    }
+    @media (min-width: 1024px) {
+        padding: 40px 64px;
     }
 }
 

@@ -143,13 +143,16 @@ aside > div > a > b {
     display: none;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
     .navbar__toggle {
         display: inherit;
     }
     .navbar__item {
         display: none;
     }
+}
+
+@media (max-width: 768px) {
     .navbar__items--right > div,
     .navbar__items--right > a {
         display: none;
@@ -158,8 +161,10 @@ aside > div > a > b {
 
 .navbar__toggle {
     margin: 0;
+    padding: 8px !important;
 
     svg {
+        color: var(--color-icon);
         width: 20px;
         height: 20px;
     }
@@ -209,9 +214,17 @@ aside > div > a > b {
 
 .navbar {
     border-bottom: 1px solid var(--color-separator);
-    padding: 20px 40px;
     height: auto;
     background: var(--color-background);
+
+    padding: 16px;
+
+    @media (min-width: 768px) {
+        padding: 20px 40px;
+    }
+    @media (min-width: 1024px) {
+        padding: 20px 64px;
+    }
 }
 
 .navbar .icon {
@@ -286,7 +299,7 @@ nav.navbar .dropdown__menu {
 .main-wrapper a[class*='sidebarLogo'] img {
     height: 28px;
     margin-top: 4px;
-    margin-bottom: 18px;
+    margin-bottom: 30px;
     margin-left: 8px;
 }
 
