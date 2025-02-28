@@ -51,6 +51,10 @@
 
     border-bottom: 1px solid var(--color-separator);
 
+    img {
+        display: block !important;
+    }
+
     @media (min-width: 768px) {
         padding: 0;
         border: 0;

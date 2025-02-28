@@ -48,6 +48,8 @@ html[data-theme='dark'] {
     --ifm-heading-margin-top: var(--ifm-heading-margin-bottom);
     --ifm-hero-background-color: transparent;
 
+    --ifm-navbar-sidebar-width: 100%;
+
     --ifm-code-background: var(--ifm-pre-background) !important;
     --ifm-code-padding-horizontal: 0.4rem;
     --ifm-code-padding-vertical: 0.2rem;
@@ -119,6 +121,7 @@ html .DocSearch-Button {
     }
 }
 .DocSearch-Button-Placeholder {
+    display: block !important;
     font-size: 16px !important;
 }
 
@@ -405,7 +408,10 @@ html.plugin-docs .theme-doc-markdown h3 {
 }
 
 html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link,
-html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .toc-highlight {
+html[data-theme='dark']
+    .theme-doc-toc-desktop
+    .table-of-contents
+    .toc-highlight {
     color: #b3b8d2;
 }
 
@@ -580,4 +586,41 @@ div[class^=announcementBar_] button {
     border: 1px solid var(--color-border) !important;
     padding: 0 !important;
     color: var(--color-text-muted) !important;
+}
+
+.navbar-sidebar__brand {
+    border-bottom: 1px solid var(--color-separator);
+    flex-direction: column;
+    height: auto;
+    padding: 0;
+}
+
+.menu-primary {
+    padding: 0;
+    .menu__list-item {
+        border-bottom: 1px solid var(--color-separator);
+        margin: 0px 24px !important;
+        a {
+            margin: 8px 0px 4px;
+            padding: 8px;
+        }
+        display: flex;
+    }
+    .menu__link {
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 24px;
+    }
+}
+
+.navbar-sidebar__close {
+    margin-left: 16px;
+    svg {
+        g {
+            stroke: var(--color-icon);
+        }
+        width: 32px;
+        height: 32px;
+        padding: 8px;
+    }
 }
