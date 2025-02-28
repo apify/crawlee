@@ -7,6 +7,7 @@ FROM apify/actor-node-playwright-chrome:20 AS builder
 # to speed up the build using Docker layer cache.
 COPY --chown=myuser package*.json ./
 
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # Install all dependencies. Don't audit to speed up the installation.
 RUN npm install --include=dev --audit=false
 
@@ -39,8 +40,6 @@ RUN npm --quiet set progress=false \
     && node --version \
     && echo "NPM version:" \
     && npm --version
-
-RUN npm run get-binaries
 
 # Next, copy the remaining files and directories with the source code.
 # Since we do this after NPM install, quick build will be really fast
