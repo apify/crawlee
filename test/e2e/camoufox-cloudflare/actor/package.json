@@ -23,7 +23,8 @@
         }
     },
     "scripts": {
-        "start": "node main.js"
+        "start": "node main.js",
+        "postinstall": "camoufox-js fetch"
     },
     "type": "module",
     "license": "ISC"

@@ -647,6 +647,9 @@ export async function closeCookieModals(page: Page): Promise<void> {
 interface HandleCloudflareChallengeOptions {
     verbose?: boolean;
     sleepSecs?: number;
+    clickCallback?: (page: Page, boundingBox: DOMRect) => Promise<void>;
+    isChallengeCallback?: (page: Page) => Promise<boolean>;
+    isBlockedCallback?: (page: Page) => Promise<boolean>;
 }
 
 /**
@@ -676,7 +679,7 @@ async function handleCloudflareChallenge(
     page: Page,
     url: string,
     session?: Session,
-    options?: HandleCloudflareChallengeOptions,
+    options: HandleCloudflareChallengeOptions = {},
 ): Promise<void> {
     // eslint-disable-next-line dot-notation
     const blockedStatusCodes = session?.['sessionPool']['blockedStatusCodes'] as number[];
@@ -687,12 +690,21 @@ async function handleCloudflareChallenge(
         blockedStatusCodes.splice(idx, 1);
     }
 
+    options.isBlockedCallback ??= async () => {
+        const isBlocked = await page.evaluate(() => {
+            return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+        });
+        return !!isBlocked;
+    };
+
+    options.isChallengeCallback ??= async () => {
+        return await page.evaluate(async () => {
+            return !!document.querySelector('.footer > .footer-inner > .diagnostic-wrapper > .ray-id');
+        });
+    };
+
     const retryBlocked = async () => {
-        const isBlocked = await page
-            .evaluate(() => {
-                return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
-            })
-            .catch(() => false);
+        const isBlocked = await options.isBlockedCallback!(page).catch(() => false);
 
         if (isBlocked) {
             throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
@@ -700,22 +712,18 @@ async function handleCloudflareChallenge(
     };
 
     // check if we ended up on the CF challenge page
-    const isCF = async () => {
-        return await page
-            .evaluate(async () => {
-                return !!document.querySelector('.footer > .footer-inner > .diagnostic-wrapper > .ray-id');
-            })
-            .catch(() => false);
+    const isChallenge = async () => {
+        return options.isChallengeCallback!(page).catch(() => false);
     };
 
-    if (!(await isCF())) {
+    if (!(await isChallenge())) {
         await retryBlocked();
         return;
     }
 
-    const logLevel = options?.verbose ? 'info' : 'debug';
+    const logLevel = options.verbose ? 'info' : 'debug';
     log[logLevel](
-        `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options?.sleepSecs ?? 10)} seconds.`,
+        `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
     );
 
     const bb = await page
@@ -738,8 +746,13 @@ async function handleCloudflareChallenge(
         await sleep(1000);
 
         // break early if we are no longer on the CF challenge page
-        if (!(await isCF())) {
+        if (!(await isChallenge())) {
             break;
+        }
+
+        if (options.clickCallback) {
+            await options.clickCallback(page, bb);
+            continue;
         }
 
         // we can click on the text too, so X can be a bit larger
@@ -753,9 +766,9 @@ async function handleCloudflareChallenge(
         await page.mouse.click(x, y + 35);
     }
 
-    await sleep((options?.sleepSecs ?? 10) * 1000);
+    await sleep((options.sleepSecs ?? 10) * 1000);
 
-    if (await isCF()) {
+    if (await isChallenge()) {
         throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
     }
 

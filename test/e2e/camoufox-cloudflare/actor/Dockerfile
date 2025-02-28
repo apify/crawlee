@@ -1,4 +1,4 @@
-FROM node:22 AS builder
+FROM apify/actor-node-playwright-chrome:22-beta AS builder
 
 COPY /packages ./packages
 COPY /package*.json ./
