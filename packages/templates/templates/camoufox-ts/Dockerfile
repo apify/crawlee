@@ -7,7 +7,6 @@ FROM apify/actor-node-playwright-chrome:20 AS builder
 # to speed up the build using Docker layer cache.
 COPY --chown=myuser package*.json ./
 
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # Install all dependencies. Don't audit to speed up the installation.
 RUN npm install --include=dev --audit=false
 
@@ -29,6 +28,8 @@ COPY --from=builder --chown=myuser /home/myuser/dist ./dist
 # to speed up the build using Docker layer cache.
 COPY --chown=myuser package*.json ./
 
+# Ensure we'll install Camoufox using the npm postinstall script
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
 # Install NPM packages, skip optional and development dependencies to
 # keep the image small. Avoid logging too much and print the dependency
 # tree for debugging
