@@ -2586,11 +2586,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^22.5.1":
-  version: 22.13.5
-  resolution: "@types/node@npm:22.13.5"
+  version: 22.13.7
+  resolution: "@types/node@npm:22.13.7"
   dependencies:
     undici-types: "npm:~6.20.0"
-  checksum: 10c0/a2e7ed7bb0690e439004779baedeb05159c5cc41ef6d81c7a6ebea5303fde4033669e1c0e41ff7453b45fd2fea8dbd55fddfcd052950c7fcae3167c970bca725
+  checksum: 10c0/cd44f2a77369def4d21a917c1a4b518777f9488495fe1fd26284c4f19cc2c01e2f7e4030bf92ec14b613fa3d314e52b484b711f4c5a14fa6a01a30adf2c878db
   languageName: node
   linkType: hard
 
@@ -5992,9 +5992,9 @@ __metadata:
   linkType: hard
 
 "expect-type@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "expect-type@npm:1.1.0"
-  checksum: 10c0/5af0febbe8fe18da05a6d51e3677adafd75213512285408156b368ca471252565d5ca6e59e4bddab25121f3cfcbbebc6a5489f8cc9db131cc29e69dcdcc7ae15
+  version: 1.2.0
+  resolution: "expect-type@npm:1.2.0"
+  checksum: 10c0/6069e1980bf16b9385646800e23499c1447df636c433014f6bbabe4bb0e20bd0033f30d38a6f9ae0938b0203a9e870cc82cdfd74b7c837b480cefb8e8240d8e8
   languageName: node
   linkType: hard
 
@@ -12493,11 +12493,11 @@ __metadata:
   linkType: hard
 
 "tough-cookie@npm:^5.0.0":
-  version: 5.1.1
-  resolution: "tough-cookie@npm:5.1.1"
+  version: 5.1.2
+  resolution: "tough-cookie@npm:5.1.2"
   dependencies:
     tldts: "npm:^6.1.32"
-  checksum: 10c0/84fe18b7c28ce273c916d95028c00ffff58c285d58e90fbd44eb9380dd1bc21892c675cd1bbd4bfbc95108fe833c406b285844757d41636248bfe264655a6ef8
+  checksum: 10c0/5f95023a47de0f30a902bba951664b359725597d8adeabc66a0b93a931c3af801e1e697dae4b8c21a012056c0ea88bd2bf4dfe66b2adcf8e2f42cd9796fe0626
   languageName: node
   linkType: hard
 
@@ -12825,22 +12825,22 @@ __metadata:
   linkType: hard
 
 "typescript@npm:>=3 < 6, typescript@npm:^5.7.2":
-  version: 5.7.3
-  resolution: "typescript@npm:5.7.3"
+  version: 5.8.2
+  resolution: "typescript@npm:5.8.2"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/b7580d716cf1824736cc6e628ab4cd8b51877408ba2be0869d2866da35ef8366dd6ae9eb9d0851470a39be17cbd61df1126f9e211d8799d764ea7431d5435afa
+  checksum: 10c0/5c4f6fbf1c6389b6928fe7b8fcd5dc73bb2d58cd4e3883f1d774ed5bd83b151cbac6b7ecf11723de56d4676daeba8713894b1e9af56174f2f9780ae7848ec3c6
   languageName: node
   linkType: hard
 
 "typescript@patch:typescript@npm%3A>=3 < 6#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.7.2#optional!builtin<compat/typescript>":
-  version: 5.7.3
-  resolution: "typescript@patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"
+  version: 5.8.2
+  resolution: "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>::version=5.8.2&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/6fd7e0ed3bf23a81246878c613423730c40e8bdbfec4c6e4d7bf1b847cbb39076e56ad5f50aa9d7ebd89877999abaee216002d3f2818885e41c907caaa192cc4
+  checksum: 10c0/5448a08e595cc558ab321e49d4cac64fb43d1fa106584f6ff9a8d8e592111b373a995a1d5c7f3046211c8a37201eb6d0f1566f15cdb7a62a5e3be01d087848e2
   languageName: node
   linkType: hard
 
