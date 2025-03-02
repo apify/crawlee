@@ -325,9 +325,7 @@ describe('Plugins', () => {
             const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
             const text = await response!.text();
 
-            // FAILING. It should give 127.0.0.3 for all platforms.
-            // See https://github.com/puppeteer/puppeteer/issues/7698
-            expect(text).toBe(process.platform === 'win32' ? '127.0.0.1' : '127.0.0.3');
+            expect(text).toBe('127.0.0.3');
 
             await page.close();
         });

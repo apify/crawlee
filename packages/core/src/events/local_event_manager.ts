@@ -2,7 +2,7 @@ import os from 'node:os';
 
 import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
-import { getMemoryInfo } from '@crawlee/utils';
+import { getMemoryInfo, getMemoryInfoV2, getCurrentCpuTicksV2, isContainerized } from '@crawlee/utils';
 
 import { EventManager, EventType } from './event_manager';
 import type { SystemInfo } from '../autoscaling';
@@ -49,6 +49,17 @@ export class LocalEventManager extends EventManager {
         intervalCallback();
     }
 
+    /**
+     * @internal
+     */
+    async isContainerizedWrapper() {
+        const config = this.config.get('containerized');
+        if (config !== undefined) {
+            return config;
+        }
+        return isContainerized();
+    }
+
     private getCurrentCpuTicks() {
         const cpus = os.cpus();
         return cpus.reduce(
@@ -69,12 +80,19 @@ export class LocalEventManager extends EventManager {
     private async createSystemInfo(options: { maxUsedCpuRatio: number }) {
         return {
             createdAt: new Date(),
-            ...this.createCpuInfo(options),
+            ...(await this.createCpuInfo(options)),
             ...(await this.createMemoryInfo()),
         } as SystemInfo;
     }
 
-    private createCpuInfo(options: { maxUsedCpuRatio: number }) {
+    private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
+        if (this.config.get('systemInfoV2')) {
+            const usedCpuRatio = await getCurrentCpuTicksV2(await this.isContainerizedWrapper());
+            return {
+                cpuCurrentUsage: usedCpuRatio * 100,
+                isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
+            };
+        }
         const ticks = this.getCurrentCpuTicks();
         const idleTicksDelta = ticks.idle - this.previousTicks!.idle;
         const totalTicksDelta = ticks.total - this.previousTicks!.total;
@@ -89,22 +107,19 @@ export class LocalEventManager extends EventManager {
 
     private async createMemoryInfo() {
         try {
-            const memInfo = await this._getMemoryInfo();
-            const { mainProcessBytes, childProcessesBytes } = memInfo;
-
+            if (this.config.get('systemInfoV2')) {
+                const memInfo = await getMemoryInfoV2(await this.isContainerizedWrapper());
+                return {
+                    memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
+                };
+            }
+            const memInfo = await getMemoryInfo();
             return {
-                memCurrentBytes: mainProcessBytes + childProcessesBytes,
+                memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
             };
         } catch (err) {
             log.exception(err as Error, 'Memory snapshot failed.');
             return {};
         }
-    }
-
-    /**
-     * Helper method for easier mocking.
-     */
-    private async _getMemoryInfo() {
-        return getMemoryInfo();
     }
 }
