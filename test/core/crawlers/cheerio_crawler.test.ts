@@ -701,6 +701,23 @@ describe('CheerioCrawler', () => {
                 expect(string).toBe(html);
             }
         });
+
+        test('Cheerio decodes html entities', async () => {
+            let context: CheerioCrawlingContext | null = null;
+
+            const crawler = new CheerioCrawler({
+                requestHandler: (ctx) => {
+                    context = ctx;
+                },
+            });
+
+            await crawler.run([`${serverAddress}/special/html-entities`]);
+
+            context = context as unknown as CheerioCrawlingContext;
+            expect(context?.$.html()).toBe('&quot;&lt;&gt;&quot;&lt;&gt;');
+            expect(context?.$.html({ decodeEntities: false })).toBe('"<>"<>');
+            expect(context?.body).toBe('&quot;&lt;&gt;"<>');
+        });
     });
 
     describe('proxy', () => {

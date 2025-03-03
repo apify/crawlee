@@ -327,6 +327,10 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         special.get('/shadow-root', (_req, res) => {
             res.type('html').send(responseSamples.shadowRoots);
         });
+
+        special.get('/html-entities', (_req, res) => {
+            res.type('html').send('&quot;&lt;&gt;"<>');
+        });
     })();
 
     // "cacheable" site with one page, scripts and stylesheets

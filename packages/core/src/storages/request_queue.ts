@@ -236,11 +236,13 @@ class RequestQueue extends RequestProvider {
                             return;
 
                         this.queueHeadIds.add(requestId, requestId, false);
+                        const forefront = this.requestCache.get(getRequestId(uniqueKey))?.forefront ?? false;
                         this._cacheRequest(getRequestId(uniqueKey), {
                             requestId,
                             wasAlreadyHandled: false,
                             wasAlreadyPresent: true,
                             uniqueKey,
+                            forefront,
                         });
                     });
 
@@ -314,6 +316,10 @@ class RequestQueue extends RequestProvider {
             }s, resetting internal state.`;
             this.log.warning(message, { inProgress: [...this.inProgress] });
             this._reset();
+        }
+
+        if (this.inProgressRequestBatchCount > 0) {
+            return false;
         }
 
         if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;

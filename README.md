@@ -80,6 +80,28 @@ await crawler.run(['https://crawlee.dev']);
 
 By default, Crawlee stores data to `./storage` in the current working directory. You can override this directory via Crawlee configuration. For details, see [Configuration guide](https://crawlee.dev/docs/guides/configuration), [Request storage](https://crawlee.dev/docs/guides/request-storage) and [Result storage](https://crawlee.dev/docs/guides/result-storage).
 
+### Installing pre-release versions
+
+We provide automated beta builds for every merged code change in Crawlee. You can find them in the npm [list of releases](https://www.npmjs.com/package/crawlee?activeTab=versions). If you want to test new features or bug fixes before we release them, feel free to install a beta build like this:
+
+```bash
+npm install crawlee@3.12.3-beta.13
+```
+
+If you also use the [Apify SDK](https://github.com/apify/apify-sdk-js), you need to specify dependency overrides in your `package.json` file so that you don't end up with multiple versions of Crawlee installed:
+
+```json
+{
+    "overrides": {
+       "apify": {
+           "@crawlee/core": "3.12.3-beta.13",
+           "@crawlee/types": "3.12.3-beta.13",
+           "@crawlee/utils": "3.12.3-beta.13"
+       }
+    }
+}
+```
+
 ## 🛠 Features
 
 - Single interface for **HTTP and headless browser** crawling

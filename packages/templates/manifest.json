@@ -79,6 +79,20 @@
 			]
 		},
 		{
+			"name": "camoufox-ts",
+			"description": "Camoufox-based PlaywrightCrawler template project [TypeScript]",
+			"files": [
+				"src/main.ts",
+				"src/routes.ts",
+				".dockerignore",
+				".gitignore",
+				"Dockerfile",
+				"package.json",
+				"README.md",
+				"tsconfig.json"
+			]
+		},
+		{
 			"name": "puppeteer-ts",
 			"description": "PuppeteerCrawler template project [TypeScript]",
 			"files": [

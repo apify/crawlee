@@ -1,0 +1,8 @@
+# configurations
+.idea
+
+# crawlee storage folder
+storage
+
+# installed files
+node_modules
