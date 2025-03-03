@@ -1,7 +1,7 @@
 {
 	"extends": "../tsconfig.json",
 	"include": ["**/*", "../packages/*/src/**/*"],
-	"exclude": ["e2e"],
+	"exclude": ["e2e", "**/fixtures/*"],
 	"compilerOptions": {
 		"sourceMap": true,
 		"noUnusedLocals": false,
