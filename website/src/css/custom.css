@@ -14,7 +14,7 @@ html[data-theme='dark'] {
     --ifm-heading-color: #f2f3fb;
     --ifm-navbar-link-color: #f2f3fb;
 
-    --docsearch-text-color: #8d92af;
+    --docsearch-text-color: #8c93a8;
     --docsearch-highlight-color: #f3f4fa;
 
     --color-background: #1a1b21;
@@ -73,6 +73,9 @@ html[data-theme='dark'] {
     --docsearch-highlight-color: #242836;
 
     --ifm-heading-color: #242736;
+
+    --docsearch-text-color: #6c7590;
+    --docsearch-highlight-color: #242836;
 
     --color-background: #fff;
     --color-background-subtle: #f3f4fa;
@@ -769,5 +772,9 @@ div[class^=announcementBar_] button {
         &:hover {
             color: var(--color-text);
         }
+    }
+
+    .DocSearch-NoResults-Prefill-List ul {
+        padding: 0;
     }
 }
