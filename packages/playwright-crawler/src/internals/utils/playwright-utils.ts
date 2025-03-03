@@ -645,10 +645,15 @@ export async function closeCookieModals(page: Page): Promise<void> {
 }
 
 interface HandleCloudflareChallengeOptions {
+    /** Logging defaults to the `debug` level, use this flag to log to `info` level instead. */
     verbose?: boolean;
+    /** How long should we wait after the challenge is completed for the final page to load. */
     sleepSecs?: number;
-    clickCallback?: (page: Page, boundingBox: DOMRect) => Promise<void>;
+    /** Allows overriding the checkbox clicking. The `boundingBox` gives you approximate coordinates of the checkbox, use this if you need to adjust the click position. */
+    clickCallback?: (page: Page, boundingBox: { x: number; y: number }) => Promise<void>;
+    /** Allows overriding the detection of Cloudflare "challenge page". */
     isChallengeCallback?: (page: Page) => Promise<boolean>;
+    /** Allows overriding the detection of Cloudflare "blocked page". */
     isBlockedCallback?: (page: Page) => Promise<boolean>;
 }
 
@@ -741,6 +746,9 @@ async function handleCloudflareChallenge(
         return Math.round(100 * range * Math.random()) / 100;
     };
 
+    const x = bb.x + 30;
+    const y = bb.y + 25;
+
     // try to click the checkbox every second
     for (let i = 0; i < 10; i++) {
         await sleep(1000);
@@ -751,19 +759,19 @@ async function handleCloudflareChallenge(
         }
 
         if (options.clickCallback) {
-            await options.clickCallback(page, bb);
+            await options.clickCallback(page, { x, y });
             continue;
         }
 
         // we can click on the text too, so X can be a bit larger
-        const x = bb.x + 30 + randomOffset(10);
-        const y = bb.y + 25 + randomOffset(10);
+        const xRandomized = x + randomOffset(10);
+        const yRandomized = y + randomOffset(10);
 
-        log[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, { x, y });
-        await page.mouse.click(x, y);
+        log[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, { x: xRandomized, y: yRandomized });
+        await page.mouse.click(xRandomized, yRandomized);
 
         // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)
-        await page.mouse.click(x, y + 35);
+        await page.mouse.click(xRandomized, yRandomized + 35);
     }
 
     await sleep((options.sleepSecs ?? 10) * 1000);

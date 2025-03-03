@@ -1,7 +1,7 @@
 {
-    "name": "test-playwright-chromium-experimental-containers",
+    "name": "test-camoufox-cloudflare",
     "version": "0.0.1",
-    "description": "Playwright Test - Chromium - Experimental containers",
+    "description": "Playwright Test - Camoufox - Solving Cloudflare Challenge",
     "dependencies": {
         "apify": "next",
         "@apify/storage-local": "^2.1.3",
