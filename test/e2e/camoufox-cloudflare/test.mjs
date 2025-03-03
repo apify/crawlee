@@ -1,4 +1,8 @@
-import { initialize, getActorTestDir, runActor, expect } from '../tools.mjs';
+import { initialize, getActorTestDir, runActor, expect, skipTest } from '../tools.mjs';
+
+if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
+    await skipTest('TODO fails to build the docker image now');
+}
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
