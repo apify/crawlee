@@ -61,5 +61,5 @@
     "dependencies": {
         "impit": "^0.2.1"
     },
-    "packageManager": "yarn@4.6.0"
+    "packageManager": "yarn@4.7.0"
 }
