@@ -165,7 +165,7 @@ export interface ConfigurationOptions {
     /**
      * Defines whether to use the systemInfoV2 metric collection experiment.
      *
-     * Alternative to `SYSTEM_INFO_V2` environment variable.
+     * Alternative to `CRAWLEE_SYSTEM_INFO_V2` environment variable.
      */
     systemInfoV2?: boolean;
 
