@@ -598,7 +598,7 @@ __metadata:
     fs-extra: "npm:^11.0.0"
     got-scraping: "npm:^4.0.0"
     json5: "npm:^2.2.3"
-    minimatch: "npm:^9.0.0"
+    minimatch: "npm:^10.0.0"
     ow: "npm:^0.28.1"
     stream-json: "npm:^1.8.0"
     tldts: "npm:^6.0.0"
