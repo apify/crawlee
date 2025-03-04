@@ -1,254 +1,374 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
+:root {
+    --color-text: #242836;
+    --color-text-muted: #3f475d;
+    --color-text-subtle: #6c7590;
+    --color-background: #ffffff;
+    --color-background-subtle: #f3f4fa;
+    --color-separator-subtle: #e0e3f2;
+    --color-primary-action: #272d3e;
+    --color-primary-action-hover: #2b3143;
+    --color-text-on-primary: #ffffff;
+    --color-icon: #555d76;
+    --color-border: #d0d5e9;
+}
 
-.buttons {
+/* Dark theme colors */
+html[data-theme='dark'] {
+    --color-text: #f3f4fa;
+    --color-text-muted: #b2b8cc;
+    --color-text-subtle: #8c93a8;
+    --color-background: #1a1b21;
+    --color-background-subtle: #2a2d39;
+    --color-separator-subtle: #343847;
+    --color-primary-action: #ffffff;
+    --color-primary-action-hover: #d1d5e4;
+    --color-text-on-primary: #1a1b21;
+    --color-icon: #b2b8cc;
+    --color-border: #414758;
+}
+
+/************* PAGE LAYOUT *************/
+
+#homepageContainer {
+    width: calc(100% - 32px) !important;
+    max-width: 1200px !important;
+    border-left: 1px solid var(--color-separator-subtle);
+    border-right: 1px solid var(--color-separator-subtle);
+    margin: 0 16px;
+}
+
+.dashedSeparator {
+    position: relative;
+    width: 100%;
+    border-bottom: 1px dashed var(--color-separator-subtle);
+}
+
+.dashedSeparatorVertical {
+    position: relative;
+    border-right: 1px dashed var(--color-separator-subtle);
+}
+
+.dashedDecorativeCircle {
+    width: 60px;
+    height: 60px;
+    border: 1px dashed var(--color-separator-subtle);
+    border-radius: 50%;
+    position: absolute;
+}
+
+.fadedOutSeparator {
+    border: none;
+    height: 1px;
+    background-image:
+        linear-gradient(
+            90deg,
+            transparent,
+            transparent 50%,
+            var(--color-background) 50%,
+            var(--color-background) 100%
+        ),
+        linear-gradient(
+            90deg,
+            var(--color-separator-subtle) 0%,
+            transparent 50%,
+            var(--color-separator-subtle) 100%
+        );
+    background-size:
+        6px 1px,
+        100% 1px;
+}
+
+/* most separators and decorations are not displayed on mobile */
+.dashedSeparator,
+.dashedSeparatorVertical,
+.dashedDecorativeCircle,
+.fadedOutSeparator {
+    display: none;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .dashedSeparator,
+    .dashedSeparatorVertical,
+    .dashedDecorativeCircle,
+    .fadedOutSeparator {
+        display: block;
+    }
+
+    #homepageContainer {
+        width: calc(100% - 128px) !important;
+        margin: 0 64px;
+    }
+}
+
+/************* HERO SECTION *************/
+
+.hero {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 32px 0;
 }
 
-.tagline {
-    font-family: 'Lota Grotesque', sans-serif;
-    font-size: 64px;
-    font-weight: 600;
-    line-height: 80px;
-    letter-spacing: 0;
-    text-align: left;
-    transition: all var(--ifm-transition-fast);
-
-}
-
-.taglineGap {
-    color: transparent !important;
-}
-
-.relative {
-    position: relative;
-}
-
-.codeBlock {
-    position: absolute;
-    top: 40%;
-    max-width: 400px;
-    width: 100%;
-}
-
-.heroBanner {
-    padding-top: 100px;
-    padding-bottom: 4rem;
-}
-
-.heroBanner h1:nth-child(1) {
-    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
-        #FCA000;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.heroBanner h1:nth-child(2) {
-    position: absolute;
-    top: 0;
-    z-index: 1;
-    width: calc(100% - 2rem);
-}
-
-.heroBanner h1::selection,
-.heroBanner h1 span::selection {
-    color: rgb(36, 39, 54) !important;
-    -webkit-text-fill-color: rgb(36, 39, 54);
-    background: #B4D7FE !important;
-    -webkit-background-clip: unset;
-    background-clip: unset;
-}
-
-html[data-theme='dark'] .heroBanner ::selection {
-    color: #fff !important;
-    -webkit-text-fill-color: #fff;
-    background: #385477 !important;
-}
-
-html .heroBanner h2 {
-    font-style: normal;
+.hero-title {
+    color: var(--color-text);
+    font-size: 52px;
+    line-height: 60px;
     font-weight: 400;
-    font-size: 24px;
-    line-height: 40px;
-    color: #41465d;
-    margin-top: 8px;
-    margin-bottom: 24px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    text-align: center;
+    margin: 0 0 16px 0;
 }
 
-html[data-theme='dark'] .heroBanner h2 {
-    color: #b3b8d2;
-}
-
-.heroBanner code {
-    background: #272c3d;
-    padding: 10px 20px;
-}
-
-.heroBanner button {
-    opacity: 0.4;
-    padding: 5px 8px;
-    margin-top: -2px;
-}
-
-.heroBanner button span {
-    width: 16px;
-    height: 16px;
-    padding: 0;
-    margin: 0;
-}
-
-.heroBanner code span {
-    color: #f2f3fb;
-}
-
-.logoBlur {
-    position: absolute;
-    width: 680px;
-    height: 680px;
-    top: -120px;
-    left: -100px;
-    z-index: -1;
-}
-
-.heroButtons {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 50px;
-}
-
-@media only screen and (min-device-width: 1101px) and (max-device-width: 1440px) {
-    .tagline {
-        font-size: 56px;
-        line-height: 78px;
-    }
-}
-
-@media only screen and (min-device-width: 997px) and (max-device-width: 1100px) {
-    .tagline {
-        font-size: 48px;
-        line-height: 64px;
-    }
-}
-
-@media only screen and (max-device-width: 996px) {
-    .codeBlock {
-        position: relative;
-        top: 50px;
-    }
-
-    .logoBlur {
-        display: none;
-    }
-}
-
-@media only screen and (max-device-width: 736px) {
-    .heroBanner {
-        padding-top: 20px;
-        padding-bottom: 2rem;
-    }
-
-    .tagline {
-        font-size: 32px;
-        line-height: 48px;
-    }
-
-    .tagline br {
-        display: none;
-    }
-
-    .hideSmall {
-        display: none;
-    }
-
-    .codeBlock {
-        top: 0;
-    }
-}
-
-@media only screen and (max-device-width: 450px) {
-    .codeBlock code {
-        font-size: 0.8em;
-    }
-
-    .heroButtons {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-
-    .heroBanner button {
-        opacity: 0;
-    }
-}
-
-@media only screen and (max-device-width: 350px) {
-    .codeBlock code {
-        font-size: 0.7em;
-    }
-}
-
-.tagline span {
-    color: var(--ifm-color-primary);
-}
-
-.getStarted {
+.hero-subtitle {
+    color: var(--color-text-muted);
     font-size: 18px;
     line-height: 28px;
-    padding: 12px 24px;
-    background: #ed3545;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
-}
-
-.getStarted:hover {
-    color: white;
-    background: #ad1934;
-}
-
-html[data-theme='dark'] .getStarted {
-    border-color: #585e76;
-}
-
-.try {
-    padding-top: 20px;
-}
-
-.try, .features {
-    color: #41465d;
-}
-
-html[data-theme='dark'] .try,
-html[data-theme='dark'] .features {
-    color: #b3b8d2;
-}
-
-.features > * {
-    margin: 2em 0;
-}
-
-.bottomLogo path:nth-child(1) {
-    fill: url(#gradient-1) !important;
-    stroke: url(#gradient-1) !important;
-}
-
-.crawleeForPython {
-    font-size: 44px;
-    font-weight: 700;
-    line-height: 60px;
+    font-weight: 400;
     text-align: center;
-    margin-bottom: 80px;
+    margin: 0 16px;
+    max-width: 792px;
 }
 
-.crawleeForPython a {
-    background: linear-gradient(90deg, #833ab4, #fd1d1d 50%, #fcb045);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: #0000;
+#separatorHeroHeader {
+    display: none;
+}
+
+#heroDecorativeCircle {
+    right: -30px;
+    top: -30px;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .hero {
+        padding: 64px 0 0 0;
+    }
+    .hero-title {
+        font-size: 54px;
+        line-height: 64px;
+        margin: 0 16px 24px 16px;
+    }
+    .hero-subtitle {
+        margin: 0 16px 30px 16px;
+    }
+    #separatorHeroHeader {
+        display: none;
+    }
+}
+
+/* DESKTOP */
+@media (min-width: 1024px) {
+    .hero {
+        padding: 120px 0 0 0;
+    }
+    .hero-subtitle {
+        margin: 30px 16px;
+    }
+    #separatorHeroHeader {
+        display: block;
+    }
+}
+
+/************* LANGUAGE GET STARTED SECTION *************/
+
+.languageGetStartedSection {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin: 0 0 24px 0;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .languageGetStartedSection {
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-around;
+        gap: 0;
+        margin: 0;
+    }
+}
+
+/************* CODE EXAMPLE SECTION *************/
+
+.languageSwitchContainer {
+    place-self: center;
+    margin: 32px 0 16px 0;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .codeExampleSection {
+        position: relative;
+    }
+
+    .languageSwitchContainer {
+        margin: 0;
+        position: absolute;
+        top: calc(46px - 18px);
+        left: calc(50% - 90px);
+    }
+
+    .decorativeRow {
+        position: relative;
+        height: 46px;
+        border-bottom: 1px dashed var(--color-separator-subtle);
+
+        &::before {
+            content: ' ';
+            position: absolute;
+            left: 60px;
+            height: 100%;
+            border-right: 1px dashed var(--color-separator-subtle);
+        }
+
+        &::after {
+            content: ' ';
+            position: absolute;
+            right: 60px;
+            height: 100%;
+            border-left: 1px dashed var(--color-separator-subtle);
+        }
+    }
+
+    .codeBlockContainer {
+        margin: 0 60px;
+        border-left: 1px dashed var(--color-separator-subtle);
+        border-right: 1px dashed var(--color-separator-subtle);
+    }
+
+    .codeBlock {
+        border-radius: 0;
+        margin: 0;
+    }
+}
+
+/************* CLI EXAMPLE SECTION *************/
+
+.cliExampleSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+}
+
+.cliExampleTitle {
+    color: var(--color-text-muted);
+    font-family: Inter;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    margin-bottom: 16px;
+}
+
+.cliExampleSubtitle {
+    color: var(--color-text-subtle);
+    font-family: Inter;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .cliExampleSection {
+        padding: 64px 0;
+    }
+}
+
+/************* CTA SECTION *************/
+
+.ctaSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+    gap: 24px;
+}
+
+.ctaTitle {
+    color: var(--color-text);
+    font-family: 'Lota Grotesque';
+    font-size: 36px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 46px;
+}
+
+.ctaDescription {
+    color: var(--color-text-muted);
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    max-width: 780px;
+}
+
+.ctaButtonContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    width: 100%;
+
+    a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+        background: var(--color-background);
+        color: var(--color-text);
+        text-align: center;
+        width: 100%;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 24px;
+        svg {
+            margin-right: 8px;
+        }
+    }
+
+    a:hover {
+        border: 1px solid var(--color-text);
+    }
+}
+
+#ctaDecorativeCircle {
+    width: 120px;
+    height: 120px;
+    left: -60px;
+    top: -60px;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .ctaSection {
+        padding: 80px 0;
+    }
+
+    .ctaTitle {
+        font-size: 48px;
+        line-height: 56px;
+    }
+
+    .ctaButtonContainer {
+        flex-direction: row;
+
+        a {
+            width: auto;
+        }
+    }
 }

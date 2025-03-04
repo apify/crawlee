@@ -1,0 +1,61 @@
+.languageGetStartedContainer {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logoContainer {
+    display: flex;
+    align-items: center;
+    gap: 9.222px;
+    margin-bottom: 16px;
+}
+
+.languageGetStartedContainerTitle {
+    color: var(--color-text);
+    font-family: 'Lota Grotesque';
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 32px;
+
+    .crawleeText {
+        font-size: 24px;
+        font-weight: 600;
+    }
+    .slashText {
+        color: var(--color-icon);
+    }
+}
+
+.buttonContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.commandContainer {
+    margin: 0;
+    padding: 0;
+    color: var(--color-text);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 16px;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .languageGetStartedContainer {
+        margin: 24px 0 40px 0;
+    }
+    .buttonContainer {
+        flex-direction: row;
+    }
+}
