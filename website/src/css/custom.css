@@ -2,7 +2,7 @@
 
 html[data-theme='dark'] {
     --ifm-navbar-background-color: #1a1b23;
-    --ifm-background-color: #1a1b23;
+    --ifm-background-color: #1a1b21;
     --ifm-background-surface-color: #242736;
 
     --ifm-font-color-base: #f2f3fb;
@@ -19,7 +19,10 @@ html[data-theme='dark'] {
 
 :root {
     /* use default system font based on https://devhints.io/css-system-font-stack */
-    --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --ifm-font-family-base:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
     --ifm-heading-font-family: 'Lota Grotesque', sans-serif;
     --ifm-font-weight-semibold: 600;
     --ifm-font-color-base: #242736;
@@ -60,8 +63,9 @@ html[data-theme='dark'] {
 
 @font-face {
     font-family: 'Lota Grotesque';
-    src: url('/font/lota.woff2') format('woff2'),
-         url('/font/lota.woff') format('woff');
+    src:
+        url('/font/lota.woff2') format('woff2'),
+        url('/font/lota.woff') format('woff');
     font-weight: 600;
 }
 
@@ -109,12 +113,12 @@ html .DocSearch-Button .DocSearch-Search-Icon {
     color: var(--docsearch-muted-color);
 }
 
-html[data-theme="dark"] .DocSearch-Button {
+html[data-theme='dark'] .DocSearch-Button {
     background: none;
     border: 1px solid var(--docsearch-muted-color);
 }
 
-html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
+html[data-theme='dark'] .DocSearch-Button .DocSearch-Search-Icon {
     color: var(--docsearch-muted-color);
 }
 
@@ -122,7 +126,8 @@ html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
     box-shadow: none !important;
 }
 
-.navbar, .main-wrapper {
+.navbar,
+.main-wrapper {
     justify-content: center;
 }
 
@@ -172,28 +177,28 @@ aside > div > a > b {
     background-size: cover;
 }
 
-.navbar .icon[href*=github]::before {
+.navbar .icon[href*='github']::before {
     background-image: url('/static/img/github-brand.svg');
 }
 
-html[data-theme="dark"] .navbar .navbar__link[href*=github]:before {
+html[data-theme='dark'] .navbar .navbar__link[href*='github']:before {
     background-image: url('/static/img/github-brand-dark.svg');
 }
 
-.navbar .icon[href*=discord]::before {
+.navbar .icon[href*='discord']::before {
     background-image: url('/static/img/discord-brand.svg');
 }
 
-html[data-theme="dark"] .navbar .navbar__link[href*=discord]:before {
+html[data-theme='dark'] .navbar .navbar__link[href*='discord']:before {
     background-image: url('/static/img/discord-brand-dark.svg');
 }
 
-.navbar svg[class*=iconExternalLink],
-aside svg[class*=iconExternalLink] {
+.navbar svg[class*='iconExternalLink'],
+aside svg[class*='iconExternalLink'] {
     display: none;
 }
 
-header.hero div[class^=heroButtons] {
+header.hero div[class^='heroButtons'] {
     justify-content: inherit;
 }
 
@@ -329,12 +334,18 @@ html.plugin-docs .theme-doc-markdown h3 {
 }
 
 html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link,
-html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .toc-highlight {
+html[data-theme='dark']
+    .theme-doc-toc-desktop
+    .table-of-contents
+    .toc-highlight {
     color: #b3b8d2;
 }
 
 html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link--active,
-html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+html[data-theme='dark']
+    .theme-doc-toc-desktop
+    .table-of-contents
+    .table-of-contents__link--active {
     color: #f2f3fb;
 }
 
@@ -486,7 +497,7 @@ html[data-theme='dark'] .runnable-code-block svg .apify-logo {
     text-align: right;
     min-width: 1.5rem;
     display: inline-block;
-    opacity: .3;
+    opacity: 0.3;
     left: var(--ifm-pre-padding);
 }
 
@@ -500,18 +511,18 @@ html[data-theme='dark'] .runnable-code-block svg .apify-logo {
     border: 1px solid #b3b8d2;
 }
 
-div[class^=announcementBar_] {
+div[class^='announcementBar_'] {
     background: #d05c29;
     color: #fff;
 }
 
-div[class^=announcementBar_] button {
+div[class^='announcementBar_'] button {
     color: #fff;
 }
 
 .markdown blockquote {
     --ifm-alert-background-color: var(--ifm-color-info-contrast-background);
-    --ifm-alert-background-color-highlight: rgba(84,199,236,.15);
+    --ifm-alert-background-color-highlight: rgba(84, 199, 236, 0.15);
     --ifm-alert-foreground-color: var(--ifm-color-info-contrast-foreground);
     --ifm-alert-border-color: var(--ifm-color-info-dark);
     --ifm-code-background: var(--ifm-alert-background-color-highlight);
@@ -526,5 +537,6 @@ div[class^=announcementBar_] button {
     border-left-width: var(--ifm-alert-border-left-width);
     border-radius: var(--ifm-alert-border-radius);
     box-shadow: var(--ifm-alert-shadow);
-    padding: var(--ifm-alert-padding-vertical) var(--ifm-alert-padding-horizontal);
+    padding: var(--ifm-alert-padding-vertical)
+        var(--ifm-alert-padding-horizontal);
 }
