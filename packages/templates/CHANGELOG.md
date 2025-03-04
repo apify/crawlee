@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Bug Fixes
+
+* install browser in the `camoufox` template correctly ([#2864](https://github.com/apify/crawlee/issues/2864)) ([a9d008c](https://github.com/apify/crawlee/commit/a9d008c6f36a6cb1b6bc827cb0323ed9d6f6b536)), closes [#2863](https://github.com/apify/crawlee/issues/2863)
+
+
+### Features
+
+* Camoufox-based crawler template ([#2842](https://github.com/apify/crawlee/issues/2842)) ([7f08de4](https://github.com/apify/crawlee/commit/7f08de4c73812cb957828dec9946ca7f385739e4)), closes [#2836](https://github.com/apify/crawlee/issues/2836)
+
+
+
+
+
 ## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
 
 **Note:** Version bump only for package @crawlee/templates

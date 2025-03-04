@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Bug Fixes
+
+* Make log message in RequestQueue.isFinished more accurate ([#2848](https://github.com/apify/crawlee/issues/2848)) ([3d124ae](https://github.com/apify/crawlee/commit/3d124aee8f6fa096df0daafad4bb9d07b0ae4684))
+* Simplified RequestQueueV2 implementation ([#2775](https://github.com/apify/crawlee/issues/2775)) ([d1a094a](https://github.com/apify/crawlee/commit/d1a094a47eaecbf367b222f9b8c14d7da5d3e03a)), closes [#2767](https://github.com/apify/crawlee/issues/2767) [#2700](https://github.com/apify/crawlee/issues/2700)
+
+
+### Features
+
+* improved cross platform metric collection ([#2834](https://github.com/apify/crawlee/issues/2834)) ([e41b2f7](https://github.com/apify/crawlee/commit/e41b2f744513dd80aa05336eedfa1c08c54d3832)), closes [#2771](https://github.com/apify/crawlee/issues/2771)
+
+
+
+
+
 ## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
 
 

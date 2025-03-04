@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Bug Fixes
+
+* **cheerio:** don't decode HTML entities in `context.body` ([#2838](https://github.com/apify/crawlee/issues/2838)) ([32d6d0e](https://github.com/apify/crawlee/commit/32d6d0ee7e7eaad1a401f4884926f31e0f68cc55)), closes [#2401](https://github.com/apify/crawlee/issues/2401)
+* install browser in the `camoufox` template correctly ([#2864](https://github.com/apify/crawlee/issues/2864)) ([a9d008c](https://github.com/apify/crawlee/commit/a9d008c6f36a6cb1b6bc827cb0323ed9d6f6b536)), closes [#2863](https://github.com/apify/crawlee/issues/2863)
+* Make log message in RequestQueue.isFinished more accurate ([#2848](https://github.com/apify/crawlee/issues/2848)) ([3d124ae](https://github.com/apify/crawlee/commit/3d124aee8f6fa096df0daafad4bb9d07b0ae4684))
+* Simplified RequestQueueV2 implementation ([#2775](https://github.com/apify/crawlee/issues/2775)) ([d1a094a](https://github.com/apify/crawlee/commit/d1a094a47eaecbf367b222f9b8c14d7da5d3e03a)), closes [#2767](https://github.com/apify/crawlee/issues/2767) [#2700](https://github.com/apify/crawlee/issues/2700)
+
+
+### Features
+
+* Camoufox-based crawler template ([#2842](https://github.com/apify/crawlee/issues/2842)) ([7f08de4](https://github.com/apify/crawlee/commit/7f08de4c73812cb957828dec9946ca7f385739e4)), closes [#2836](https://github.com/apify/crawlee/issues/2836)
+* improved cross platform metric collection ([#2834](https://github.com/apify/crawlee/issues/2834)) ([e41b2f7](https://github.com/apify/crawlee/commit/e41b2f744513dd80aa05336eedfa1c08c54d3832)), closes [#2771](https://github.com/apify/crawlee/issues/2771)
+* **playwright:** add `handleCloudflareChallenge` helper ([#2865](https://github.com/apify/crawlee/issues/2865)) ([9a1725f](https://github.com/apify/crawlee/commit/9a1725f7b87fb70194fc31858500cb35639fb964))
+* remove old docker CI ([#2831](https://github.com/apify/crawlee/issues/2831)) ([7f09d56](https://github.com/apify/crawlee/commit/7f09d56ed5776d92a11feee3a5e61255301d0099))
+* use native `impit` streaming ([#2833](https://github.com/apify/crawlee/issues/2833)) ([af2fe23](https://github.com/apify/crawlee/commit/af2fe2315b3b36e7e2466f452c1df9c63abd156b)), closes [#2756](https://github.com/apify/crawlee/issues/2756)
+
+
+
+
+
 ## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
 
 
