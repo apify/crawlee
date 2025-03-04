@@ -12,7 +12,6 @@ import PlaywrightSource from '!!raw-loader!./avoid_blocking_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./avoid_blocking_puppeteer';
 import PlaywrightFingerprintsOffSource from '!!raw-loader!./avoid_blocking_playwright_fingerprints_off.ts';
 import PuppeteerFingerprintsOffSource from '!!raw-loader!./avoid_blocking_puppeteer_fingerprints_off.ts';
-import PlaywrightCamoufox from '!!raw-loader!./avoid_blocking_camoufox.ts';
 
 A scraper might get blocked for numerous reasons. Let's narrow it down to the two main ones. The first is a bad or blocked IP address. You can learn about this topic in the [proxy management guide](./proxy-management). The second reason is [browser fingerprints](https://pixelprivacy.com/resources/browser-fingerprinting/) (or signatures), which we will explore more in this guide. Check the [Apify Academy anti-scraping course](https://docs.apify.com/academy/anti-scraping) to gain a deeper theoretical understanding of blocking and learn a few tips and tricks.
 
@@ -56,16 +55,7 @@ On the contrary, sometimes we want to entirely disable the usage of browser fing
     </TabItem>
 </Tabs>
 
-## Camoufox
-
-For some protections, using our integrated solutions is not enough, one example could be the Cloudflare challenge. For such pages, you can try [Camoufox](https://camoufox.com/), a custom stealthy build of Firefox for web scraping. It might not get you through the challenge automatically, but with our `handleCloudflareChallenge` helper, it should be able to successfully mimic the required user action and get you through it.
-
-<CodeBlock language="ts">
-    {PlaywrightCamoufox}
-</CodeBlock>
-
 **Related links**
 
 - [Fingerprint Suite Docs](https://github.com/apify/fingerprint-suite)
 - [Apify Academy anti-scraping course](https://docs.apify.com/academy/anti-scraping)
-- [Camoufox JS wrapper](https://github.com/apify/camoufox-js)
