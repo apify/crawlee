@@ -52,7 +52,7 @@ The function below initializes new crawlers with predefined settings and behavio
 
 ```ts
 export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEFAULT_CRAWLER_OPTIONS) => {
-    const client = new MemoryStorage();
+    const client = new MemoryStorage({ persistStorage: false });
     const queue = await RequestQueue.open(undefined, { storageClient: client });
 
     const proxyConfig = await Actor.createProxyConfiguration(crawlerOptions.proxyConfigurationOptions);
