@@ -12,6 +12,8 @@ A key capability is its standby mode, which runs the Actor as a persistent API s
 
 This blog explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.
 
+<!-- truncate -->
+
 ### What is SuperScraper?
 
 SuperScraper transforms a traditional scraper into an API server. Instead of running with static inputs and waiting for completion, it starts only once, stays active, and listens for incoming requests. 
