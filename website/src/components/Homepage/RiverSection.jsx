@@ -1,19 +1,22 @@
+import clsx from 'clsx';
 import React from 'react';
 
 import styles from './RiverSection.module.css';
+import ArrowRightIcon from '../../../static/img/arrow_right.svg';
 
-export default function RiverSection({ title, description, content, contentOnLeft }) {
+export default function RiverSection({ title, description, content, reversed }) {
     return (
-        <div className={`${styles.riverSection} ${contentOnLeft ? styles.contentLeft : styles.contentRight}`}>
-            <div className={styles.riverSectionContainer}>
-                <div className={styles.riverSectionText}>
-                    <h3 className={styles.riverSectionTitle}>{title}</h3>
-                    <p className={styles.riverSectionDescription}>{description}</p>
-                    <button className={styles.riverSectionButton}>
-                        Learn more <span className={styles.arrow}>→</span>
+        <div className={styles.riverWrapper}>
+            <div className={clsx(styles.riverContainer, { [styles.riverReversed]: reversed })}>
+                <div className={clsx(styles.riverSection, styles.riverText)}>
+                    <h3 className={styles.riverTitle}>{title}</h3>
+                    <p className={styles.riverDescription}>{description}</p>
+                    <button className={styles.riverButton}>
+                        Learn more
+                        <ArrowRightIcon />
                     </button>
                 </div>
-                <div className={styles.riverSectionContent}>{content}</div>
+                <div className={clsx(styles.riverSection, styles.riverContent)}>{content}</div>
             </div>
         </div>
     );

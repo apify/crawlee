@@ -10,6 +10,7 @@
     --color-text-on-primary: #ffffff;
     --color-icon: #555d76;
     --color-border: #d0d5e9;
+    --color-editor: #F8F9FC;
 }
 
 /* Dark theme colors */
@@ -25,6 +26,7 @@ html[data-theme='dark'] {
     --color-text-on-primary: #1a1b21;
     --color-icon: #b2b8cc;
     --color-border: #414758;
+    --color-editor: #252832;
 }
 
 /************* PAGE LAYOUT *************/
@@ -49,11 +51,12 @@ html[data-theme='dark'] {
 }
 
 .dashedDecorativeCircle {
-    width: 60px;
-    height: 60px;
+    width: 120px;
+    height: 120px;
     border: 1px dashed var(--color-separator-subtle);
     border-radius: 50%;
     position: absolute;
+    transform: translate(-50%, -50%);
 }
 
 .fadedOutSeparator {
@@ -78,8 +81,26 @@ html[data-theme='dark'] {
         100% 1px;
 }
 
+.trianglesSeparator {
+    width: 100%;
+    height: 32px;
+    background-position: center;
+    background-repeat: repeat-x;
+    background-image: url('../../static/img/triangles_light.svg');
+
+    html[data-theme='dark'] & {
+        background-image: url('../../static/img/triangles_dark.svg');
+    }
+
+    /* TABLET */
+    @media (min-width: 768px) {
+        background-position: unset;
+        background-repeat: repeat;
+        height: 52px;
+    }
+}
+
 /* most separators and decorations are not displayed on mobile */
-.dashedSeparator,
 .dashedSeparatorVertical,
 .dashedDecorativeCircle,
 .fadedOutSeparator {
@@ -88,7 +109,6 @@ html[data-theme='dark'] {
 
 /* TABLET */
 @media (min-width: 768px) {
-    .dashedSeparator,
     .dashedSeparatorVertical,
     .dashedDecorativeCircle,
     .fadedOutSeparator {
@@ -172,5 +192,21 @@ html[data-theme='dark'] {
     .codeBlock {
         border-radius: 0;
         margin: 0;
+    }
+}
+
+.imgLight {
+    display: initial;
+
+    html[data-theme='dark'] & {
+        display: none;
+    }
+}
+
+.imgDark {
+    display: none;
+
+    html[data-theme='dark'] & {
+        display: initial;
     }
 }

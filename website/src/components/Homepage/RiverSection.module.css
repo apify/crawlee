@@ -1,8 +1,8 @@
 /* Base styles */
-.riverSection {
+.riverWrapper {
     width: 100%;
-    padding: 3rem 1.5rem;
-    box-sizing: border-box;
+    border-top: 1px solid var(--color-separator-subtle);
+    border-bottom: 1px solid var(--color-separator-subtle);
 }
 
 .riverContainer {
@@ -10,111 +10,105 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 2.5rem;
+
+    /* Tablet layout */
+    @media (min-width: 768px) {
+        flex-direction: row;
+
+        &.riverReversed {
+            flex-direction: row-reverse;
+        }
+    }
+}
+
+.riverSection {
+    width: 100%;
+
+    /* Tablet layout */
+    @media (min-width: 768px) {
+        min-width: 0;
+        flex-basis: 50%;
+        flex-grow: 0;
+    }
+}
+
+.riverText {
+    padding: 24px 16px;
+
+    /* Tablet layout */
+    @media (min-width: 768px) {
+        padding: 40px 32px;
+    }
+
+    /* Desktop layout */
+    @media (min-width: 1024px) {
+        padding: 80px;
+    }
 }
 
 /* Text styles */
-.sectionTitle {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin: 0 0 1.25rem 0;
-    color: #242836;
-    line-height: 1.2;
+.riverTitle {
+    flex: 1;
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 40px;
+    
+    /* Desktop layout */
+    @media (min-width: 1024px) {
+        max-width: 440px;
+    }
 }
 
-.sectionDescription {
-    font-size: 1.125rem;
-    line-height: 1.6;
-    margin: 0 0 2rem 0;
-    color: #555d76;
-    max-width: 540px;
+.riverDescription {
+    margin-bottom: 24px;
+    color: var(--color-text-muted);
+    font-size: 16px;
+    line-height: 24px;
+
+   /* Desktop layout */
+    @media (min-width: 1024px) {
+        max-width: 440px;
+    }
 }
 
-.learnMoreButton {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.75rem 1.5rem;
-    background-color: #242836;
-    color: white;
-    border: none;
-    border-radius: 2rem;
-    font-size: 1rem;
-    font-weight: 500;
+.riverButton {
     cursor: pointer;
-    transition: all 0.2s ease;
+    padding: 8px 12px;
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 16px;
+    line-height: 24px;
+    transition: background-color 0.12s ease-out;
+
+    &:hover {
+        background-color: var(--color-hover);
+    }
 }
 
-.learnMoreButton:hover {
-    background-color: #3f475d;
-}
-
-.arrowIcon {
-    margin-left: 0.5rem;
-}
-
-/* Content container */
-.contentContainer {
-    width: 100%;
-    border-radius: 0.5rem;
+.riverContent {
+    min-height: 180px;
+    background-color: var(--color-editor);
+    border-top: 1px solid var(--color-separator-subtle);
     overflow: hidden;
-}
 
-/* Desktop layout */
-@media (min-width: 768px) {
-    .riverSection {
-        padding: 5rem 2rem;
+    /* Tablet layout */
+    @media (min-width: 768px) {
+        border-top: none;
+        border-left: 1px solid var(--color-separator-subtle);
     }
 
-    .riverContainer {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        gap: 4rem;
+    .riverReversed & {
+        /* Tablet layout */
+        @media (min-width: 768px) {
+            border-left: none;
+            border-right: 1px solid var(--color-separator-subtle);
+        }
     }
-
-    .textContainer,
-    .contentContainer {
-        flex: 1;
-    }
-
-    /* When content is on the left */
-    .contentLeft .riverContainer {
-        flex-direction: row-reverse;
-    }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .sectionTitle {
-        color: #ffffff;
-    }
-
-    .sectionDescription {
-        color: #8a93ae;
-    }
-
-    .learnMoreButton {
-        background-color: #3f475d;
-    }
-
-    .learnMoreButton:hover {
-        background-color: #555d76;
-    }
-}
-
-/* Class-based dark mode */
-.darkMode .sectionTitle {
-    color: #ffffff;
-}
-
-.darkMode .sectionDescription {
-    color: #8a93ae;
-}
-
-.darkMode .learnMoreButton {
-    background-color: #3f475d;
-}
-
-.darkMode .learnMoreButton:hover {
-    background-color: #555d76;
 }

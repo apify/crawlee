@@ -381,7 +381,12 @@ html.plugin-pages {
 
 html.plugin-pages h2 {
     font-size: 36px;
-    line-height: 48px;
+    line-height: 46px;
+
+    @media (min-width: 768px) {
+        font-size: 48px;
+        line-height: 56px;
+    }
 }
 
 html.plugin-docs .theme-doc-markdown {

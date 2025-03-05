@@ -1,11 +1,12 @@
 /* eslint-disable max-len */
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import CodeBlock from '@theme/CodeBlock';
 import Layout from '@theme/Layout';
 import React from 'react';
 
 import commonStyles from './index.module.css';
 import styles from './js.module.css';
+import jsDarkImageUrl from '../../static/img/js_dark.png';
+import jsLightImageUrl from '../../static/img/js_light.png';
 import Button from '../components/Button';
 import HomepageCliExample from '../components/Homepage/HomepageCliExample';
 import HomepageCtaSection from '../components/Homepage/HomepageCtaSection';
@@ -85,32 +86,25 @@ function BenefitsSection() {
     return (
         <section className={styles.benefitsSection}>
             <h2>What are the benefits?</h2>
-            <div className={styles.riverSectionsContainer}>
-                <RiverSection
-                    title="Unblock websites by default"
-                    description="Crawlee crawls stealthily with zero configuration, but you can customize its behavior to overcome any protection. Real-world fingerprints included."
-                    content={
-                        <CodeBlock>
-                            TODO: figure out what code snippet should be here
-                        </CodeBlock>
-                    }
-                />
-                <RiverSection
-                    title="Work with your favorite tools"
-                    description="Crawlee integrates BeautifulSoup, Cheerio, Puppeteer, Playwright, and other popular open-source tools. No need to learn new syntax."
-                    content={<img alt="" src="" />}
-                    contentOnLeft
-                />
-                <RiverSection
-                    title="One API for headless and HTTP"
-                    description="Switch between HTTP and headless without big rewrites thanks to a shared API. Or even let Adaptive crawler decide if JS rendering is needed."
-                    content={
-                        <CodeBlock>
-                            TODO: figure out what code snippet should be here
-                        </CodeBlock>
-                    }
-                />
-            </div>
+            <RiverSection
+                title="Unblock websites by default"
+                description="Crawlee crawls stealthily with zero configuration, but you can customize its behavior to overcome any protection. Real-world fingerprints included."
+            />
+            <div className={commonStyles.trianglesSeparator} />
+            <RiverSection
+                title="Work with your favorite tools"
+                description="Crawlee integrates BeautifulSoup, Cheerio, Puppeteer, Playwright, and other popular open-source tools. No need to learn new syntax."
+                content={<>
+                    <img src={jsLightImageUrl} className={commonStyles.imgLight} alt="Work with your favorite tools" />
+                    <img src={jsDarkImageUrl} className={commonStyles.imgDark} alt="Work with your favorite tools" />
+                </>}
+                reversed
+            />
+            <div className={commonStyles.trianglesSeparator} />
+            <RiverSection
+                title="One API for headless and HTTP"
+                description="Switch between HTTP and headless without big rewrites thanks to a shared API. Or even let Adaptive crawler decide if JS rendering is needed."
+            />
         </section>
     );
 }

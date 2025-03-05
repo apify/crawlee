@@ -4,15 +4,17 @@
 /************** BENEFITS SECTION ***********/
 
 .benefitsSection {
+    margin-bottom: 60px;
+
     h2 {
+        margin: 32px 0;
+        text-align: center;
+
+        /* TABLET */
+        @media (min-width: 768px) {
+            margin: 80px 0;
+        }
     }
-}
-
-.riverSectionsContainer {
-}
-
-/* TABLET */
-@media (min-width: 768px) {
 }
 
 /************** OTHER FEATURES SECTION ***********/
