@@ -1,4 +1,4 @@
-/* eslint-disable global-require,import/no-extraneous-dependencies */
+/* eslint-disable global-require */
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -223,53 +223,6 @@ module.exports = {
                     label: 'Blog',
                     position: 'left',
                 },
-                {
-                    type: 'dropdown',
-                    label: 'Node.js',
-                    position: 'left',
-                    items: [
-                        {
-                            label: 'Node.js',
-                            href: '#',
-                            target: '_self',
-                            rel: 'dofollow',
-                        },
-                        {
-                            label: 'Python',
-                            href: 'https://crawlee.dev/python',
-                            target: '_self',
-                            rel: 'dofollow',
-                        },
-                    ],
-                },
-                {
-                    type: 'docsVersionDropdown',
-                    position: 'left',
-                    dropdownItemsAfter: [
-                        {
-                            href: 'https://sdk.apify.com/docs/guides/getting-started',
-                            label: '2.2',
-                        },
-                        {
-                            href: 'https://sdk.apify.com/docs/1.3.1/guides/getting-started',
-                            label: '1.3',
-                        },
-                    ],
-                },
-                {
-                    href: 'https://github.com/apify/crawlee',
-                    label: 'GitHub',
-                    title: 'View on GitHub',
-                    position: 'right',
-                    className: 'icon',
-                },
-                {
-                    href: 'https://discord.com/invite/jyEM2PRvMU',
-                    label: 'Discord',
-                    title: 'Chat on Discord',
-                    position: 'right',
-                    className: 'icon',
-                },
             ],
         },
         colorMode: {
@@ -308,18 +261,14 @@ module.exports = {
                             to: 'api/core',
                         },
                         {
-                            label: 'Upgrading to v3',
-                            to: 'docs/upgrading/upgrading-to-v3',
+                            label: 'Changelog',
+                            to: 'api/core/changelog',
                         },
                     ],
                 },
                 {
-                    title: 'Community',
+                    title: 'Product',
                     items: [
-                        {
-                            label: 'Blog',
-                            to: 'blog',
-                        },
                         {
                             label: 'Discord',
                             href: 'https://discord.com/invite/jyEM2PRvMU',
@@ -332,6 +281,11 @@ module.exports = {
                             label: 'Twitter',
                             href: 'https://twitter.com/apify',
                         },
+                        {
+                            label: 'YouTube',
+                            href: 'https://www.youtube.com/apify',
+                        },
+
                     ],
                 },
                 {
@@ -352,12 +306,6 @@ module.exports = {
                     ],
                 },
             ],
-            logo: {
-                src: 'img/apify_logo.svg',
-                href: '/',
-                width: '60px',
-                height: '60px',
-            },
         },
         algolia: {
             appId: '5JC94MPMLY',
@@ -366,6 +314,11 @@ module.exports = {
             placeholder: 'Search documentation',
             algoliaOptions: {
                 facetFilters: ['version:VERSION'],
+            },
+            translations: {
+                button: {
+                    buttonText: 'Search documentation...',
+                },
             },
         },
     }),

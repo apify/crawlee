@@ -1,0 +1,19 @@
+.footerLink {
+    color: var(--color-text);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 20px;
+    &:hover {
+        color: var(--color-text-subtle);
+        path {
+            fill: var(--color-text-subtle);
+        }
+    }
+}
+
+.externalLinkIcon {
+    margin-left: 5px;
+    path {
+        fill: var(--color-text);
+    }
+}

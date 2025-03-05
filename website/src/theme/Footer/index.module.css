@@ -1,46 +1,110 @@
 .footer {
-    background: #272c3d;
-    padding-top: 64px;
+    background: var(--color-background);
+    color: var(--color-text);
 }
 
-.builtBy {
-    color: #b3b8d2;
+.footerBottom,
+.footerTop {
+    border-top: 1px solid var(--color-separator);
+
+    @media (min-width: 768px) {
+        padding: 40px 40px;
+    }
+    @media (min-width: 1024px) {
+        padding: 40px 64px;
+    }
 }
 
-.builtBy svg {
-    margin-left: 10px;
-    width: 90px;
-    height: 24px;
+.footerTopRow {
+    max-width: var(--max-layout-width);
+    margin: auto;
+
+    display: flex;
+    flex-direction: column;
+    @media (min-width: 768px) {
+        flex-direction: row;
+    }
 }
 
-.freeAndOpenSource {
-    color: #b3b8d2;
+.footerTopRowRight {
+    flex-direction: column;
+    display: flex;
+    flex: 3;
+    gap: 32px;
+    padding: 16px 40px 40px;
+
+    @media (min-width: 768px) {
+        gap: 0;
+        flex-direction: row;
+        padding: 0;
+        justify-content: space-between;
+    }
 }
 
-.alignMiddle {
-    vertical-align: middle;
-    display: inline-block;
+.footerTopRowLeft {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 2;
+    padding: 32px 40px 24px;
+    gap: 32px;
+
+    border-bottom: 1px solid var(--color-separator);
+
+    img {
+        display: block !important;
+    }
+
+    @media (min-width: 768px) {
+        padding: 0;
+        border: 0;
+        gap: 0;
+    }
 }
 
-.freeAndOpenSource svg {
-    margin-right: 10px;
+.footerBottomRow {
+    max-width: var(--max-layout-width);
+    margin: auto;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 24px 40px;
+
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+
+    @media (min-width: 768px) {
+        gap: 0;
+        padding: 0;
+        flex-direction: row;
+        justify-content: space-between;
+    }
 }
 
-.freeAndOpenSource svg path {
-    fill: #b3b8d2 !important;
-}
-
-.footer .footer__item svg path {
-    fill: #6f7490;
+.hearthIcon {
+    margin-right: 8px;
+    path {
+        fill: var(--color-text-muted);
+    }
 }
 
 .footerTitle {
-    font-family: 'Lota Grotesque', sans-serif;
-    font-weight: 600;
     font-size: 16px;
-    line-height: 20px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #8d92af;
-    margin-bottom: 20px;
+    font-weight: 700;
+    line-height: 24px;
+}
+
+.footerList {
+    margin: 0;
+    li {
+        margin-top: 16px;
+        height: 28px;
+    }
+}
+
+.footerLogo {
+    width: fit-content;
 }
