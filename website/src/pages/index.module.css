@@ -257,7 +257,6 @@ html[data-theme='dark'] {
 
 .cliExampleTitle {
     color: var(--color-text-muted);
-    font-family: Inter;
     font-size: 18px;
     font-style: normal;
     font-weight: 400;
@@ -267,7 +266,6 @@ html[data-theme='dark'] {
 
 .cliExampleSubtitle {
     color: var(--color-text-subtle);
-    font-family: Inter;
     font-size: 16px;
     font-style: normal;
     font-weight: 400;
