@@ -311,6 +311,7 @@ module.exports = {
             appId: '5JC94MPMLY',
             apiKey: '267679200b833c2ca1255ab276731869', // search only (public) API key
             indexName: 'crawlee',
+            placeholder: 'Search documentation',
             algoliaOptions: {
                 facetFilters: ['version:VERSION'],
             },
