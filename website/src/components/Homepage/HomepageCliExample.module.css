@@ -1,0 +1,32 @@
+.cliExampleSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+}
+
+.cliExampleTitle {
+    color: var(--color-text-muted);
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    margin-bottom: 16px;
+}
+
+.cliExampleSubtitle {
+    color: var(--color-text-subtle);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .cliExampleSection {
+        padding: 64px 0;
+    }
+}

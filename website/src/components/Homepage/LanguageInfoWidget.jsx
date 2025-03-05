@@ -1,7 +1,7 @@
 import React from 'react';
 
-import Button from './Button';
-import CopyButton from './CopyButton';
+import Button from '../Button';
+import CopyButton from '../CopyButton';
 import styles from './LanguageInfoWidget.module.css';
 
 export default function LanguageInfoWidget({ language, command, githubUrl, to }) {

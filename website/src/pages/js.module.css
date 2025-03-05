@@ -1,0 +1,120 @@
+.getStartedSection {
+}
+
+/************** BENEFITS SECTION ***********/
+
+.benefitsSection {
+    h2 {
+    }
+}
+
+.riverSectionsContainer {
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+}
+
+/************** OTHER FEATURES SECTION ***********/
+
+.otherFeaturesSection {
+    h2 {
+    }
+}
+
+.cardsWithImageContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.cardWithImage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #1a1a2e;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cardWithImage img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cardWithImageText {
+    padding: 1.5rem;
+    color: #ffffff;
+}
+
+.cardWithImageTitle {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #ffffff;
+}
+
+.cardWithImageDescription {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* TABLET */
+@media (max-width: 768px) {
+    .cardsWithImageContainer {
+        flex-direction: column;
+    }
+}
+
+/************** DEPLOY TO CLOUD SECTION ***********/
+
+.deployToCloudSection {
+}
+
+.deployToCloudLeftSide {
+    h2 {
+    }
+}
+
+.deployToCloudDescription {
+}
+
+.deployToCloudRightSide {
+}
+
+.deployToCloudStep {
+}
+
+.deployToCloudStepNumber {
+}
+
+.deployToCloudStepText {
+    display: inline-flex;
+    align-items: baseline;
+    pre {
+        margin: 0;
+        padding: 0;
+        background-color: transparent;
+    }
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+}
+
+/************** BUILD SCRAPERS FAST SECTION ***********/
+
+.buildFastScrapersSection {
+    h2 {
+    }
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+}

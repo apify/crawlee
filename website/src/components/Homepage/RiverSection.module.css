@@ -1,0 +1,120 @@
+/* Base styles */
+.riverSection {
+    width: 100%;
+    padding: 3rem 1.5rem;
+    box-sizing: border-box;
+}
+
+.riverContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+/* Text styles */
+.sectionTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 1.25rem 0;
+    color: #242836;
+    line-height: 1.2;
+}
+
+.sectionDescription {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    margin: 0 0 2rem 0;
+    color: #555d76;
+    max-width: 540px;
+}
+
+.learnMoreButton {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background-color: #242836;
+    color: white;
+    border: none;
+    border-radius: 2rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.learnMoreButton:hover {
+    background-color: #3f475d;
+}
+
+.arrowIcon {
+    margin-left: 0.5rem;
+}
+
+/* Content container */
+.contentContainer {
+    width: 100%;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* Desktop layout */
+@media (min-width: 768px) {
+    .riverSection {
+        padding: 5rem 2rem;
+    }
+
+    .riverContainer {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4rem;
+    }
+
+    .textContainer,
+    .contentContainer {
+        flex: 1;
+    }
+
+    /* When content is on the left */
+    .contentLeft .riverContainer {
+        flex-direction: row-reverse;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .sectionTitle {
+        color: #ffffff;
+    }
+
+    .sectionDescription {
+        color: #8a93ae;
+    }
+
+    .learnMoreButton {
+        background-color: #3f475d;
+    }
+
+    .learnMoreButton:hover {
+        background-color: #555d76;
+    }
+}
+
+/* Class-based dark mode */
+.darkMode .sectionTitle {
+    color: #ffffff;
+}
+
+.darkMode .sectionDescription {
+    color: #8a93ae;
+}
+
+.darkMode .learnMoreButton {
+    background-color: #3f475d;
+}
+
+.darkMode .learnMoreButton:hover {
+    background-color: #555d76;
+}

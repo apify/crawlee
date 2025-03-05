@@ -1,39 +1,15 @@
 /* eslint-disable max-len */
-import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import CodeBlock from '@theme/CodeBlock';
 import Layout from '@theme/Layout';
 import React, { useState } from 'react';
 
 import styles from './index.module.css';
-import CrawleeSvg from '../../static/img/crawlee-logo-monocolor.svg';
-import LanguageInfoWidget from '../components/LanguageInfoWidget';
-import LanguageSwitch from '../components/LanguageSwitch';
+import HomepageCliExample from '../components/Homepage/HomepageCliExample';
+import HomepageCtaSection from '../components/Homepage/HomepageCtaSection';
+import HomepageHeroSection from '../components/Homepage/HomepageHeroSection';
+import LanguageInfoWidget from '../components/Homepage/LanguageInfoWidget';
+import LanguageSwitch from '../components/Homepage/LanguageSwitch';
 import RunnableCodeBlock from '../components/RunnableCodeBlock';
-
-function Hero() {
-    return (
-        <section className={styles.hero}>
-            <h1 className={styles['hero-title']}>
-                Build reliable web scrapers. Fast.
-            </h1>
-            <div
-                className={styles.dashedSeparator}
-                id={styles.separatorHeroHeader}
-            />
-            <p className={styles['hero-subtitle']}>
-                Crawlee is a web scraping library for JavaScript and Python. It
-                handles blocking, crawling, proxies, and browsers for you.
-            </p>
-            <div className={styles.dashedSeparator}>
-                <div
-                    className={styles.dashedDecorativeCircle}
-                    id={styles.heroDecorativeCircle}
-                />
-            </div>
-        </section>
-    );
-}
 
 function LanguageGetStartedSection() {
     return (
@@ -134,65 +110,24 @@ function CodeExampleSection() {
     );
 }
 
-const cliCommand = `npx crawlee create my-crawler`;
-
-function CliExample() {
-    return (
-        <section className={styles.cliExampleSection}>
-            <div className={styles.cliExampleTitle}>
-                Or start with a template from our CLI
-            </div>
-            <CodeBlock className="language-bash" style={{ margin: 0 }}>
-                {cliCommand}
-            </CodeBlock>
-            <div className={styles.cliExampleSubtitle}>
-                Built with 🤍 by Apify. Forever free and open-source.
-            </div>
-        </section>
-    );
-}
-
-function CtaSection() {
-    return (
-        <section className={styles.ctaSection}>
-            <div className={styles.ctaTitle}>Get started now!</div>
-            <div className={styles.ctaDescription}>
-                Crawlee won’t fix broken selectors for you (yet), but it makes
-                building and maintaining reliable crawlers faster and easier—so
-                you can focus on what matters most.
-            </div>
-            <div className={styles.ctaButtonContainer}>
-                <Link to="/js">
-                    <CrawleeSvg />
-                    Get started with JS
-                </Link>
-                <Link to="/python">
-                    <CrawleeSvg />
-                    Get started with Python
-                </Link>
-            </div>
-        </section>
-    );
-}
-
 export default function Home() {
     const { siteConfig } = useDocusaurusContext();
     return (
         <Layout description={siteConfig.description}>
             <div id={styles.homepageContainer}>
-                <Hero />
+                <HomepageHeroSection />
                 <LanguageGetStartedSection />
                 <div className={styles.dashedSeparator} />
                 <CodeExampleSection />
                 <div className={styles.dashedSeparator} />
-                <CliExample />
+                <HomepageCliExample />
                 <div className={styles.dashedSeparator}>
                     <div
                         className={styles.dashedDecorativeCircle}
                         id={styles.ctaDecorativeCircle}
                     />
                 </div>
-                <CtaSection />
+                <HomepageCtaSection showJs showPython />
             </div>
         </Layout>
     );
