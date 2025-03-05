@@ -1,6 +1,7 @@
 .button {
     display: inline-flex;
     align-items: center;
+    text-align: center;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 16px;
@@ -9,6 +10,11 @@
     line-height: 24px;
     cursor: pointer;
     transition: background-color 0.2s;
+    width: 100%;
+
+    svg {
+        margin-right: 8px;
+    }
 }
 
 .buttonPrimary {
@@ -19,4 +25,25 @@
 
 .buttonPrimary:hover {
     background-color: var(--color-primary-action-hover);
+}
+
+.buttonSecondary {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.buttonSecondary:hover {
+    border: 1px solid var(--color-text);
+}
+
+.big {
+    padding: 12px 24px;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .button {
+        width: auto;
+    }
 }
