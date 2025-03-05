@@ -208,7 +208,7 @@ aside > div > a > b {
     gap: 16px;
 }
 
-.navbar__item {
+.navbar__item, .navbar__link {
     font-size: 16px;
     font-weight: 500;
     line-height: 24px; /* 150% */
@@ -299,7 +299,16 @@ article .card h2 {
 
 nav.navbar .dropdown__menu {
     min-width: 6rem;
-    margin-left: 20px;
+    background: var(--color-card-background);
+    border: 1px solid var(--color-border);
+}
+
+.dropdown__menu .dropdown__link--active{
+    background: transparent;
+}
+
+.dropdown__menu .dropdown__link:hover, .dropdown__menu .dropdown__link--active:hover {
+    background: var(--color-hover);
 }
 
 .navbar__logo {
