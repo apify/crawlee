@@ -34,7 +34,7 @@ export default function LogoWrapper(props) {
             </div>
             <div className={styles.menuWrapper}>
                 <div className={styles.menu}>
-                    <Link className={styles.menuItem} to="/javascript">
+                    <Link className={styles.menuItem} to="/js">
                         <ThemedImage sources={javascriptLogo} alt="Crawlee JavaScript" />
                         {!isOnLanguageAgnosticPage && <CheckIcon />}
                     </Link>

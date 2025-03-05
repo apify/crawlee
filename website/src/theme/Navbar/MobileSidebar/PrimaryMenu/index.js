@@ -5,7 +5,7 @@ import NavbarItem from '@theme/NavbarItem';
 import React from 'react';
 
 const GENERIC_PAGE_ITEMS = [{
-    to: 'javascript',
+    to: 'js',
     label: 'JavaScript',
     position: 'left',
 }, {

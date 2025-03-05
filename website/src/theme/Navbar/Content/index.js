@@ -42,7 +42,7 @@ function NavbarContentLayout({
 }
 
 const GENERIC_PAGE_ITEMS = [{
-    to: 'javascript',
+    to: 'js',
     label: 'JavaScript',
     position: 'left',
 }, {
@@ -78,7 +78,7 @@ const VERSIONS_ITEM = {
 function getEffectiveNavbarItems(items, location, isOnLanguageAgnosticPage) {
     if (isOnLanguageAgnosticPage) {
         return GENERIC_PAGE_ITEMS;
-    } if (location.pathname !== '/javascript') {
+    } if (location.pathname !== '/js') {
         return [...items, VERSIONS_ITEM];
     }
     return items;

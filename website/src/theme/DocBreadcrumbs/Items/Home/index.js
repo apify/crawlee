@@ -7,7 +7,7 @@ import React from 'react';
 import styles from './styles.module.css';
 
 export default function HomeBreadcrumbItem() {
-    const homeHref = useBaseUrl('/javascript');
+    const homeHref = useBaseUrl('/js');
     return (
         <li className="breadcrumbs__item">
             <Link

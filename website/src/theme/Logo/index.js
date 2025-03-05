@@ -8,7 +8,7 @@ import React from 'react';
 
 import styles from './styles.module.css';
 
-export default function Logo({ props }) {
+export default function Logo() {
     const {
         navbar: { logo },
     } = useThemeConfig();
@@ -25,17 +25,11 @@ export default function Logo({ props }) {
     return (
         <Link
             className={clsx(styles.logoImage, 'sidebarLogo')}
-            to={isOnLanguageAgnosticPage ? '/' : '/javascript'}
+            to={isOnLanguageAgnosticPage ? '/' : '/js'}
         >
             <ThemedImage
-                alt={
-                    isOnLanguageAgnosticPage ? 'Crawlee' : 'Crawlee JavaScript'
-                }
-                sources={
-                    isOnLanguageAgnosticPage
-                        ? languageAgnosticLogo
-                        : javascriptLogo
-                }
+                alt={isOnLanguageAgnosticPage ? 'Crawlee' : 'Crawlee JavaScript'}
+                sources={isOnLanguageAgnosticPage ? languageAgnosticLogo : javascriptLogo}
             />
         </Link>
     );
