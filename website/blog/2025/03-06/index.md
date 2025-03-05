@@ -11,17 +11,17 @@ Crawlee for Python v0.6 is here, and it's packed with powerful new features, imp
 
 ## Getting started
 
-You can upgrade to the latest version straight from [PyPI](https://pypi.org/project/crawlee/):
+You can upgrade to the latest version straight from [PyPI](https://www.pypi.org/project/crawlee/):
 
 ```shell
 pip install --upgrade crawlee
 ```
 
-Check out the full changelog on our [website](https://crawlee.dev/python/docs/changelog#060-2025-03-03) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.6](https://crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v06) guide for a smooth upgrade.
+Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#060-2025-03-03) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.6](https://www.crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v06) guide for a smooth upgrade.
 
 ## Adaptive Playwright crawler
 
-The new [`AdaptivePlaywrightCrawler`](https://crawlee.dev/python/api/class/AdaptivePlaywrightCrawler) is a hybrid solution that combines the best of two worlds: full browser rendering with [Playwright](https://playwright.dev/) and lightweight HTTP-based crawling (using, for example, [`BeautifulSoupCrawler`](https://crawlee.dev/python/api/class/BeautifulSoupCrawler) or [`ParselCrawler`](https://crawlee.dev/python/api/class/ParselCrawler)). It automatically switches between the two methods based on real-time analysis of the target page, helping you achieve lower crawl costs and improved performance when crawling a variety of websites.
+The new [`AdaptivePlaywrightCrawler`](https://www.crawlee.dev/python/api/class/AdaptivePlaywrightCrawler) is a hybrid solution that combines the best of two worlds: full browser rendering with [Playwright](https://www.playwright.dev/) and lightweight HTTP-based crawling (using, for example, [`BeautifulSoupCrawler`](https://www.crawlee.dev/python/api/class/BeautifulSoupCrawler) or [`ParselCrawler`](https://www.crawlee.dev/python/api/class/ParselCrawler)). It automatically switches between the two methods based on real-time analysis of the target page, helping you achieve lower crawl costs and improved performance when crawling a variety of websites.
 
 The example below demonstrates how the `AdaptivePlaywrightCrawler` can handle both static and dynamic content.
 
@@ -52,22 +52,22 @@ async def main() -> None:
         # Save some data.
         await context.push_data({'Visited url': context.request.url})
 
-    await crawler.run(['https://crawlee.dev/'])
+    await crawler.run(['https://www.crawlee.dev/'])
 
 
 if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-Check out our [Adaptive Playwright crawler guide](https://crawlee.dev/python/docs/guides/adaptive-playwright-crawler) for more details on how to use this new crawler.
+Check out our [Adaptive Playwright crawler guide](https://www.crawlee.dev/python/docs/guides/adaptive-playwright-crawler) for more details on how to use this new crawler.
 
 ## Browserforge fingerprints
 
-To help you avoid detection and blocking, Crawlee now integrates the [browserforge](https://github.com/daijro/browserforge) library - intelligent browser header & fingerprint generator. This feature simulates real browser behavior by automatically randomizing HTTP headers and fingerprints, making your crawling sessions significantly more resilient against anti-bot measures.
+To help you avoid detection and blocking, Crawlee now integrates the [browserforge](https://www.github.com/daijro/browserforge) library - intelligent browser header & fingerprint generator. This feature simulates real browser behavior by automatically randomizing HTTP headers and fingerprints, making your crawling sessions significantly more resilient against anti-bot measures.
 
-With [browserforge](https://github.com/daijro/browserforge) fingerprints enabled by default, your crawler sends realistic HTTP headers and user-agent strings. HTTP-based crawlers, which use [`HttpxHttpClient`](https://crawlee.dev/python/api/class/HttpxHttpClient) by default benefit from these adjustments, while the [`CurlImpersonateHttpClient`](https://crawlee.dev/python/api/class/CurlImpersonateHttpClient) employs its own stealthy techniques. The [`PlaywrightCrawler`](https://crawlee.dev/python/docs/guides/playwright-crawler) adjusts HTTP headers and browser fingerprints accordingly. Together, these improvements make your crawlers much harder to detect.
+With [browserforge](https://www.github.com/daijro/browserforge) fingerprints enabled by default, your crawler sends realistic HTTP headers and user-agent strings. HTTP-based crawlers, which use [`HttpxHttpClient`](https://www.crawlee.dev/python/api/class/HttpxHttpClient) by default benefit from these adjustments, while the [`CurlImpersonateHttpClient`](https://www.crawlee.dev/python/api/class/CurlImpersonateHttpClient) employs its own stealthy techniques. The [`PlaywrightCrawler`](https://www.crawlee.dev/python/docs/guides/playwright-crawler) adjusts HTTP headers and browser fingerprints accordingly. Together, these improvements make your crawlers much harder to detect.
 
-Below is an example of using `PlaywrightCrawler`, which now benefits from the [browserforge](https://github.com/daijro/browserforge) library:
+Below is an example of using `PlaywrightCrawler`, which now benefits from the [browserforge](https://www.github.com/daijro/browserforge) library:
 
 ```python
 import asyncio
@@ -85,13 +85,13 @@ async def main() -> None:
         title = await context.page.title()
         context.log.info(f'Page title: {title}')
 
-    await crawler.run(['https://example.com'])
+    await crawler.run(['https://www.example.com'])
 
 if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-For further details on utilizing [browserforge](https://github.com/daijro/browserforge) to avoid blocking, please refer to our [Avoid getting blocked guide](https://crawlee.dev/python/docs/guides/avoid-blocking).
+For further details on utilizing [browserforge](https://www.github.com/daijro/browserforge) to avoid blocking, please refer to our [Avoid getting blocked guide](https://www.crawlee.dev/python/docs/guides/avoid-blocking).
 
 ## CLI dependencies
 
@@ -113,4 +113,4 @@ This change ensures that while the core package remains lean, you can still opt 
 
 ## Conclusion
 
-We are excited to share that Crawlee v0.6 is here. If you have any questions or feedback, please open a [GitHub discussion](https://github.com/apify/crawlee-python/discussions). If you encounter any bugs, or have an idea for a new feature, please open a [GitHub issue](https://github.com/apify/crawlee-python/issues).
+We are excited to share that Crawlee v0.6 is here. If you have any questions or feedback, please open a [GitHub discussion](https://www.github.com/apify/crawlee-python/discussions). If you encounter any bugs, or have an idea for a new feature, please open a [GitHub issue](https://www.github.com/apify/crawlee-python/issues).
