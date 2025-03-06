@@ -18,13 +18,13 @@
 }
 
 .buttonPrimary {
-    background-color: var(--color-primary-action);
+    background-color: var(--color-black-action);
     color: var(--color-text-on-primary);
     border: none;
 }
 
 .buttonPrimary:hover {
-    background-color: var(--color-primary-action-hover);
+    background-color: var(--color-black-action-hover);
 }
 
 .buttonSecondary {

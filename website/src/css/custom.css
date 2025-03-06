@@ -31,6 +31,8 @@ html[data-theme='dark'] {
     --color-black-action: #fff;
     --color-icon: #b2b8cc;
     --color-hover: #2d313e;
+    --color-primary-action-hover: #d1d5e4;
+    --color-editor: #282a36;
 }
 
 :root {
@@ -98,6 +100,8 @@ html[data-theme='dark'] {
     --color-black-action: #272d3e;
     --color-icon: #555d76;
     --color-hover: #eef0f8;
+    --color-primary-action-hover: #2b3143;
+    --color-editor: #f6f8fa;
 }
 
 @font-face {
