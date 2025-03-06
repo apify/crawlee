@@ -12,6 +12,8 @@ A key capability is its standby mode, which runs the Actor as a persistent API s
 
 This blog explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.
 
+![Google Maps Data Screenshot](./img/superscraper.webp)
+
 <!-- truncate -->
 
 ### What is SuperScraper?
