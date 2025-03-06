@@ -5,7 +5,7 @@ description: Announcing the Crawlee for Python v0.6 release.
 authors: [VladaD]
 ---
 
-Crawlee for Python v0.6 is here, and it's packed with powerful new features, important bug fixes, and some breaking improvements designed to streamline your Crawlee experience. If you're upgrading from a previous version, please take a moment to review the breaking changes detailed below to ensure a smooth transition.
+Crawlee for Python v0.6 is here, and it's packed with new features, important bug fixes, and some breaking improvements designed to streamline your Crawlee experience. If you're upgrading from a previous version, please take a moment to review the breaking changes detailed below to ensure a smooth transition.
 
 <!-- truncate -->
 
@@ -17,7 +17,7 @@ You can upgrade to the latest version straight from [PyPI](https://www.pypi.org/
 pip install --upgrade crawlee
 ```
 
-Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#060-2025-03-03) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.6](https://www.crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v06) guide for a smooth upgrade.
+Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#060-2025-03-03) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v0.6](https://www.crawlee.dev/python/docs/upgrading/upgrading-to-v0x#upgrading-to-v06) guide.
 
 ## Adaptive Playwright crawler
 
@@ -27,6 +27,7 @@ The example below demonstrates how the `AdaptivePlaywrightCrawler` can handle bo
 
 ```python
 import asyncio
+from datetime import timedelta
 
 from crawlee.crawlers import AdaptivePlaywrightCrawler, AdaptivePlaywrightCrawlingContext
 
@@ -71,10 +72,15 @@ Below is an example of using `PlaywrightCrawler`, which now benefits from the [b
 
 ```python
 import asyncio
+
 from crawlee.crawlers import PlaywrightCrawler, PlaywrightCrawlingContext
+from crawlee.fingerprint_suite import DefaultFingerprintGenerator
+
 
 async def main() -> None:
-    crawler = PlaywrightCrawler()
+    crawler = PlaywrightCrawler(
+        fingerprint_generator=DefaultFingerprintGenerator(),
+    )
 
     @crawler.router.default_handler
     async def handler(context: PlaywrightCrawlingContext) -> None:
@@ -85,7 +91,8 @@ async def main() -> None:
         title = await context.page.title()
         context.log.info(f'Page title: {title}')
 
-    await crawler.run(['https://www.example.com'])
+    await crawler.run(['https://www.crawlee.dev/'])
+
 
 if __name__ == '__main__':
     asyncio.run(main())
