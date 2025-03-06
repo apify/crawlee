@@ -1,5 +1,6 @@
 /* eslint-disable max-len */
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import CodeBlock from '@theme/CodeBlock';
 import Layout from '@theme/Layout';
 import React, { useState } from 'react';
 
@@ -10,7 +11,6 @@ import HomepageHeroSection from '../components/Homepage/HomepageHeroSection';
 import LanguageInfoWidget from '../components/Homepage/LanguageInfoWidget';
 import LanguageSwitch from '../components/Homepage/LanguageSwitch';
 import RunnableCodeBlock from '../components/RunnableCodeBlock';
-import clsx from 'clsx';
 
 function LanguageGetStartedSection() {
     return (
@@ -139,15 +139,9 @@ function CodeExampleSection() {
                     </RunnableCodeBlock>
                 )}
                 {activeOption === 'Python' && (
-                    <RunnableCodeBlock
-                        className={clsx(styles.codeBlock, 'language-python')}
-                        type="playwright"
-                    >
-                        {{
-                            code: pythonExample,
-                            hash: '',
-                        }}
-                    </RunnableCodeBlock>
+                    <CodeBlock className="language-python">
+                        {pythonExample}
+                    </CodeBlock>
                 )}
             </div>
             <div className={styles.dashedSeparator} />
