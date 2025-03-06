@@ -67,6 +67,13 @@
     z-index: -2;
 }
 
+#ctaDashedCircleRight {
+    position: absolute;
+    right: -120px;
+    top: 370px;
+    z-index: -2;
+}
+
 /* TABLET */
 @media (min-width: 768px) {
     .ctaSection {
