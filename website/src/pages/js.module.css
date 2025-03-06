@@ -20,58 +20,109 @@
 /************** OTHER FEATURES SECTION ***********/
 
 .otherFeaturesSection {
+    display: flex;
+    flex-direction: column;
+
     h2 {
+        padding: 32px 12px;
+
+        text-align: center;
+        color: var(--color-text);
+        font-weight: 400;
+
+        line-height: 46px !important;
+        font-size: 36px !important;
+
+        @media (min-width: 768px) {
+            line-height: 56px !important;
+            font-size: 48px !important;
+            margin: 80px 0 64px;
+            padding: 32px 24px;
+        }
+    }
+    margin-bottom: 40px;
+
+    @media (min-width: 768px) {
+        margin-bottom: 80px;
+    }
+}
+
+.cardsWithContentContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background-position-x: 5px;
+    background-image: url('../../static/img/triangles_light.svg');
+
+    html[data-theme='dark'] & {
+        background-image: url('../../static/img/triangles_dark.svg');
+    }
+
+    @media (min-width: 768px) {
+        gap: 48px;
     }
 }
 
 .cardsWithImageContainer {
     display: flex;
-    flex-direction: row;
-    gap: 2rem;
+    flex-direction: column;
+    gap: 20px;
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+
+    @media (min-width: 768px) {
+        gap: 32px;
+        flex-direction: row;
+    }
 }
 
 .cardWithImage {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: #1a1a2e;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: var(--color-card-background);
+    border: 1px solid var(--color-separator);
+    &:first-child {
+        border-left: 0;
+    }
+    &:last-child {
+        border-right: 0;
+    }
 }
 
 .cardWithImage img {
     width: 100%;
-    height: auto;
+    height: 250px;
     object-fit: cover;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cardWithImage:last-child img {
+    object-position: left 90%;
 }
 
 .cardWithImageText {
-    padding: 1.5rem;
-    color: #ffffff;
+    padding: 40px 24px;
+    border-top: 1px solid var(--color-separator);
 }
 
 .cardWithImageTitle {
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: #ffffff;
+    margin: 0;
+
+    color: var(--color-text);
+    font-size: 26px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 34px;
 }
 
 .cardWithImageDescription {
-    font-size: 1rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* TABLET */
-@media (max-width: 768px) {
-    .cardsWithImageContainer {
-        flex-direction: column;
-    }
+    margin-top: 12px;
+    color: var(--color-text-muted);
+    font-family: var(--ifm-font-family-base);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
 }
 
 /************** DEPLOY TO CLOUD SECTION ***********/
@@ -113,10 +164,44 @@
 /************** BUILD SCRAPERS FAST SECTION ***********/
 
 .buildFastScrapersSection {
+    position: relative;
+
+    padding: 40px 0 32px;
+
+    border-bottom: 1px solid var(--color-separator);
+
     h2 {
+        margin: 0;
+        padding: 32px 0;
+        text-align: center;
+        color: var(--color-text);
+        font-weight: 400;
+        padding-inline: 12px;
+
+        line-height: 46px !important;
+        font-size: 36px !important;
+
+        @media (min-width: 768px) {
+            padding-inline: 24px;
+
+            line-height: 56px !important;
+            font-size: 48px !important;
+            padding: 80px 0 64px;
+        }
+    }
+
+    div[class*='dashedDecorativeCircle'] {
+        display: none;
+    }
+
+    @media (min-width: 1024px) {
+        padding: 80px 0 60px;
+        div[class*='dashedDecorativeCircle'] {
+            display: block;
+        }
     }
 }
 
-/* TABLET */
-@media (min-width: 768px) {
+.buildFastScrapersContent {
+    border-block: 1px solid var(--color-separator);
 }

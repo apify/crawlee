@@ -1,6 +1,7 @@
 /* eslint-disable max-len */
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
+import ThemedImage from '@theme/ThemedImage';
 import React from 'react';
 
 import commonStyles from './index.module.css';
@@ -113,57 +114,60 @@ function OtherFeaturesSection() {
     return (
         <section className={styles.otherFeaturesSection}>
             <h2>What else is in Crawlee?</h2>
-            <div className={styles.cardsWithImageContainer}>
-                <div className={styles.cardWithImage}>
-                    <img alt="" src="" />
-                    <div className={styles.cardWithImageText}>
-                        <div className={styles.cardWithImageTitle}>
-                            Auto scaling
+            <div className={styles.cardsWithContentContainer}>
+                <div className={styles.cardsWithImageContainer}>
+                    <div className={styles.cardWithImage}>
+                        <ThemedImage sources={{ light: '/img/auto-scaling-light.webp', dark: '/img/auto-scaling-dark.webp' }} alt='' />
+                        <div className={styles.cardWithImageText}>
+                            <h3 className={styles.cardWithImageTitle}>
+                                Auto scaling
+                            </h3>
+                            <div className={styles.cardWithImageDescription}>
+                                Crawlers automatically adjust concurrency based on
+                                available system resources. Avoid memory errors in
+                                small containers and run faster in large ones.
+                            </div>
                         </div>
-                        <div className={styles.cardWithImageDescription}>
-                            Crawlers automatically adjust concurrency based on
-                            available system resources. Avoid memory errors in
-                            small containers and run faster in large ones.
+                    </div>
+                    <div className={styles.cardWithImage}>
+                        <ThemedImage sources={{ light: '/img/smart-proxy-light.webp', dark: '/img/smart-proxy-dark.webp' }} alt='' />
+                        <div className={styles.cardWithImageText}>
+                            <h3 className={styles.cardWithImageTitle}>
+                                Smart proxy rotation
+                            </h3>
+                            <div className={styles.cardWithImageDescription}>
+                                Crawlee uses a pool of sessions represented by
+                                different proxies to maintain the proxy performance
+                                and keep IPs healthy. Blocked proxies are removed
+                                from the pool automatically.
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div className={styles.cardWithImage}>
-                    <img alt="" src="" />
-                    <div className={styles.cardWithImageText}>
-                        <div className={styles.cardWithImageTitle}>
-                            Smart proxy rotation
-                        </div>
-                        <div className={styles.cardWithImageDescription}>
-                            Crawlee uses a pool of sessions represented by
-                            different proxies to maintain the proxy performance
-                            and keep IPs healthy. Blocked proxies are removed
-                            from the pool automatically.
-                        </div>
-                    </div>
-                </div>
+                <ThreeCardsWithIcon
+                    cards={[
+                        {
+                            icon: <ThemedImage sources={{ light: '/img/queue-light-icon.svg', dark: '/img/queue-dark-icon.svg' }} alt='' />,
+                            title: 'Queue and storage',
+                            description:
+                                'Pause and resume crawlers thanks to a persistent queue of URLs and storage for structured data.',
+                        },
+                        {
+                            icon: <ThemedImage sources={{ light: '/img/scraping-utils-light-icon.svg', dark: '/img/scraping-utils-dark-icon.svg' }} alt='' />,
+                            title: 'Handy scraping utils',
+                            description:
+                                'Sitemaps, infinite scroll, contact extraction, large asset blocking and many more utils included.',
+                        },
+                        {
+                            icon: <ThemedImage sources={{ light: '/img/routing-light-icon.svg', dark: '/img/routing-dark-icon.svg' }} alt='' />,
+                            title: 'Routing & middleware',
+                            description:
+                                'Keep your code clean and organized while managing complex crawls with a built-in router that streamlines the process.',
+                        },
+                    ]}
+                />
             </div>
-            <ThreeCardsWithIcon
-                cards={[
-                    {
-                        icon: <img alt="" src="" />,
-                        title: 'Queue and storage',
-                        description:
-                            'Pause and resume crawlers thanks to a persistent queue of URLs and storage for structured data.',
-                    },
-                    {
-                        icon: <img alt="" src="" />,
-                        title: 'Handy scraping utils',
-                        description:
-                            'Sitemaps, infinite scroll, contact extraction, large asset blocking and many more utils included.',
-                    },
-                    {
-                        icon: <img alt="" src="" />,
-                        title: 'Routing & middleware',
-                        description:
-                            'Keep your code clean and organized while managing complex crawls with a built-in router that streamlines the process.',
-                    },
-                ]}
-            />
+
         </section>
     );
 }
@@ -207,29 +211,31 @@ function DeployToCloudSection() {
 function BuildFastScrapersSection() {
     return (
         <section className={styles.buildFastScrapersSection}>
+            <div className={commonStyles.dashedDecorativeCircle} />
+            <div className={commonStyles.dashedSeparator} />
             <h2>Crawlee helps you build scrapers faster</h2>
             <ThreeCardsWithIcon
                 cards={[
                     {
-                        icon: <img alt="" src="" />,
+                        icon: <ThemedImage sources={{ light: '/img/zero-setup-light-icon.svg', dark: '/img/zero-setup-dark-icon.svg' }} alt='' />,
                         title: 'Zero setup required',
                         description:
                             'Use on the templates, install Crawlee and go. No CLI required, no complex file structure, no boilerplate.',
-                        actionLink: { text: 'Get started', href: '' },
+                        actionLink: { text: 'Get started', href: '/docs/quick-start' },
                     },
                     {
-                        icon: <img alt="" src="" />,
+                        icon: <ThemedImage sources={{ light: '/img/defaults-light-icon.svg', dark: '/img/defaults-dark-icon.svg' }} alt='' />,
                         title: 'Reasonable defaults',
                         description:
                             'Unblocking, proxy rotation and other core features are already turned on. But also very configurable.',
-                        actionLink: { text: 'Learn more', href: '' },
+                        actionLink: { text: 'Learn more', href: '/docs/guides/configuration' },
                     },
                     {
-                        icon: <img alt="" src="" />,
+                        icon: <ThemedImage sources={{ light: '/img/community-light-icon.svg', dark: '/img/community-dark-icon.svg' }} alt='' />,
                         title: 'Helpful community',
                         description:
                             'Join our Discord community of over Xk developers and get fast answers to your web scraping questions.',
-                        actionLink: { text: 'Join Discord', href: '' },
+                        actionLink: { text: 'Join Discord', href: 'https://discord.gg/jyEM2PRvMU' },
                     },
                 ]}
             />
