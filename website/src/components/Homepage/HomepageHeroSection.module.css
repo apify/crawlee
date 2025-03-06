@@ -4,6 +4,9 @@
     align-items: center;
     justify-content: center;
     padding: 32px 0;
+    h1 {
+        padding-inline: 12px;
+    }
 }
 
 .heroTitle {
@@ -29,6 +32,10 @@
     display: none;
 }
 
+#separatorHeroHeader2 {
+    display: none;
+}
+
 #heroDecorativeCircle {
     width: 60px;
     height: 60px;
@@ -40,6 +47,9 @@
 @media (min-width: 768px) {
     .hero {
         padding: 64px 0 0 0;
+        h1 {
+            padding-inline: 24px;
+        }
     }
     .heroTitle {
         font-size: 54px;
@@ -51,6 +61,9 @@
     }
     #separatorHeroHeader {
         display: none;
+    }
+    #separatorHeroHeader2 {
+        display: block;
     }
 }
 

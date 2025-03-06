@@ -22,7 +22,7 @@ function GetStartedSection() {
             <LanguageInfoWidget
                 language="JavaScript"
                 githubUrl="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large"
-                to="/js"
+                to="/docs/introduction"
             />
         </section>
     );
@@ -103,6 +103,8 @@ function BenefitsSection() {
                         {benefitsCodeBlockCrawler}
                     </CodeBlock>
                 }
+
+                to="/docs/guides/avoid-blocking"
             />
             <div className={commonStyles.trianglesSeparator} />
             <RiverSection
@@ -118,6 +120,7 @@ function BenefitsSection() {
                     />
                 }
                 reversed
+                to="/docs/quick-start#choose-your-crawler"
             />
             <div className={commonStyles.trianglesSeparator} />
             <RiverSection
@@ -128,6 +131,7 @@ function BenefitsSection() {
                         {benefitsCodeBlockHeadless}
                     </CodeBlock>
                 }
+                to="/api/core"
             />
         </section>
     );

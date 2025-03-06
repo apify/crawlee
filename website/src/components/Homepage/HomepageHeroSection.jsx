@@ -17,7 +17,10 @@ export default function HomepageHeroSection() {
                 Crawlee is a web scraping library for JavaScript and Python. It
                 handles blocking, crawling, proxies, and browsers for you.
             </p>
-            <div className={homepageStyles.dashedSeparator}>
+            <div
+                className={homepageStyles.dashedSeparator}
+                id={styles.separatorHeroHeader2}
+            >
                 <div
                     className={homepageStyles.dashedDecorativeCircle}
                     id={styles.heroDecorativeCircle}

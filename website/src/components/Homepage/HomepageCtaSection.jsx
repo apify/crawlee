@@ -17,7 +17,7 @@ export default function HomepageCtaSection({ showJs, showPython }) {
             <div className={styles.ctaButtonContainer}>
                 {showJs && (
                     <Button
-                        to="https://crawlee.dev/js"
+                        to="/js"
                         withIcon
                         type={showJs && showPython ? 'secondary' : 'primary'}
                         isBig
