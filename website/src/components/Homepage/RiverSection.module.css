@@ -1,8 +1,8 @@
 /* Base styles */
 .riverWrapper {
     width: 100%;
-    border-top: 1px solid var(--color-separator-subtle);
-    border-bottom: 1px solid var(--color-separator-subtle);
+    border-top: 1px solid var(--color-separator);
+    border-bottom: 1px solid var(--color-separator);
 }
 
 .riverContainer {
@@ -54,7 +54,7 @@
     font-size: 32px;
     font-weight: 400;
     line-height: 40px;
-    
+
     /* Desktop layout */
     @media (min-width: 1024px) {
         max-width: 440px;
@@ -67,7 +67,7 @@
     font-size: 16px;
     line-height: 24px;
 
-   /* Desktop layout */
+    /* Desktop layout */
     @media (min-width: 1024px) {
         max-width: 440px;
     }
@@ -95,20 +95,35 @@
 .riverContent {
     min-height: 180px;
     background-color: var(--color-editor);
-    border-top: 1px solid var(--color-separator-subtle);
+    border-top: 1px solid var(--color-separator);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+
+    :global(.code-block) {
+        flex-grow: 1;
+
+        :global(.codeBlockContent_biex) {
+            height: 100%;
+
+            pre,
+            code {
+                height: 100%;
+            }
+        }
+    }
 
     /* Tablet layout */
     @media (min-width: 768px) {
         border-top: none;
-        border-left: 1px solid var(--color-separator-subtle);
+        border-left: 1px solid var(--color-separator);
     }
 
     .riverReversed & {
         /* Tablet layout */
         @media (min-width: 768px) {
             border-left: none;
-            border-right: 1px solid var(--color-separator-subtle);
+            border-right: 1px solid var(--color-separator);
         }
     }
 }

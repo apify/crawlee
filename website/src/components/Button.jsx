@@ -7,8 +7,8 @@ import CrawleeSvg from '../../static/img/crawlee-logo-monocolor.svg';
 
 export default function Button({ children, to, withIcon, type = 'primary', className, isBig }) {
     return (
-        <Link to={to}>
-            <button className={clsx(
+        <Link to={to} target="_self" rel="dofollow">
+            <span className={clsx(
                 className,
                 styles.button,
                 type === 'primary' && styles.buttonPrimary,
@@ -17,7 +17,7 @@ export default function Button({ children, to, withIcon, type = 'primary', class
             )}>
                 {withIcon && <CrawleeSvg />}
                 {children}
-            </button>
+            </span>
         </Link>
     );
 }

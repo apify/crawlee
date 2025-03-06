@@ -4,6 +4,7 @@
     text-align: center;
     padding: 8px 16px;
     border-radius: 8px;
+    font-family: (--ifm-font-family-base);
     font-size: 16px;
     font-style: normal;
     font-weight: 500;
@@ -18,7 +19,7 @@
 }
 
 .buttonPrimary {
-    background-color: var(--color-primary-action);
+    background-color: var(--color-black-action);
     color: var(--color-text-on-primary);
     border: none;
 }

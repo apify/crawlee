@@ -1,59 +1,28 @@
-:root {
-    --color-text: #242836;
-    --color-text-muted: #3f475d;
-    --color-text-subtle: #6c7590;
-    --color-background: #ffffff;
-    --color-background-subtle: #f3f4fa;
-    --color-separator-subtle: #e0e3f2;
-    --color-primary-action: #272d3e;
-    --color-primary-action-hover: #2b3143;
-    --color-text-on-primary: #ffffff;
-    --color-icon: #555d76;
-    --color-border: #d0d5e9;
-    --color-editor: #F8F9FC;
-}
-
-/* Dark theme colors */
-html[data-theme='dark'] {
-    --color-text: #f3f4fa;
-    --color-text-muted: #b2b8cc;
-    --color-text-subtle: #8c93a8;
-    --color-background: #1a1b21;
-    --color-background-subtle: #2a2d39;
-    --color-separator-subtle: #343847;
-    --color-primary-action: #ffffff;
-    --color-primary-action-hover: #d1d5e4;
-    --color-text-on-primary: #1a1b21;
-    --color-icon: #b2b8cc;
-    --color-border: #414758;
-    --color-editor: #252832;
-}
-
 /************* PAGE LAYOUT *************/
 
 #homepageContainer {
     width: calc(100% - 32px) !important;
     max-width: 1200px !important;
-    border-left: 1px solid var(--color-separator-subtle);
-    border-right: 1px solid var(--color-separator-subtle);
+    border-left: 1px solid var(--color-separator);
+    border-right: 1px solid var(--color-separator);
     margin: 0 16px;
 }
 
 .dashedSeparator {
     position: relative;
     width: 100%;
-    border-bottom: 1px dashed var(--color-separator-subtle);
+    border-bottom: 1px dashed var(--color-separator);
 }
 
 .dashedSeparatorVertical {
     position: relative;
-    border-right: 1px dashed var(--color-separator-subtle);
+    border-right: 1px dashed var(--color-separator);
 }
 
 .dashedDecorativeCircle {
     width: 120px;
     height: 120px;
-    border: 1px dashed var(--color-separator-subtle);
+    border: 1px dashed var(--color-separator);
     border-radius: 50%;
     position: absolute;
     transform: translate(-50%, -50%);
@@ -72,9 +41,9 @@ html[data-theme='dark'] {
         ),
         linear-gradient(
             90deg,
-            var(--color-separator-subtle) 0%,
+            var(--color-separator) 0%,
             transparent 50%,
-            var(--color-separator-subtle) 100%
+            var(--color-separator) 100%
         );
     background-size:
         6px 1px,
@@ -164,14 +133,14 @@ html[data-theme='dark'] {
     .decorativeRow {
         position: relative;
         height: 46px;
-        border-bottom: 1px dashed var(--color-separator-subtle);
+        border-bottom: 1px dashed var(--color-separator);
 
         &::before {
             content: ' ';
             position: absolute;
             left: 60px;
             height: 100%;
-            border-right: 1px dashed var(--color-separator-subtle);
+            border-right: 1px dashed var(--color-separator);
         }
 
         &::after {
@@ -179,34 +148,18 @@ html[data-theme='dark'] {
             position: absolute;
             right: 60px;
             height: 100%;
-            border-left: 1px dashed var(--color-separator-subtle);
+            border-left: 1px dashed var(--color-separator);
         }
     }
 
     .codeBlockContainer {
         margin: 0 60px;
-        border-left: 1px dashed var(--color-separator-subtle);
-        border-right: 1px dashed var(--color-separator-subtle);
+        border-left: 1px dashed var(--color-separator);
+        border-right: 1px dashed var(--color-separator);
     }
 
     .codeBlock {
         border-radius: 0;
         margin: 0;
-    }
-}
-
-.imgLight {
-    display: initial;
-
-    html[data-theme='dark'] & {
-        display: none;
-    }
-}
-
-.imgDark {
-    display: none;
-
-    html[data-theme='dark'] & {
-        display: initial;
     }
 }
