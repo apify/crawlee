@@ -74,13 +74,11 @@ Below is an example of using `PlaywrightCrawler`, which now benefits from the [b
 import asyncio
 
 from crawlee.crawlers import PlaywrightCrawler, PlaywrightCrawlingContext
-from crawlee.fingerprint_suite import DefaultFingerprintGenerator
 
 
 async def main() -> None:
-    crawler = PlaywrightCrawler(
-        fingerprint_generator=DefaultFingerprintGenerator(),
-    )
+    # The browserforge fingerprints are used by default.
+    crawler = PlaywrightCrawler()
 
     @crawler.router.default_handler
     async def handler(context: PlaywrightCrawlingContext) -> None:
