@@ -19,7 +19,7 @@ export default function HomepageHeroSection() {
             </p>
             <div className={homepageStyles.dashedSeparator}>
                 <div
-                    className={styles.dashedDecorativeCircle}
+                    className={homepageStyles.dashedDecorativeCircle}
                     id={styles.heroDecorativeCircle}
                 />
             </div>

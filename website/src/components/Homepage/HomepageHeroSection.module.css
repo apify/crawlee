@@ -30,8 +30,10 @@
 }
 
 #heroDecorativeCircle {
-    right: -30px;
-    top: -30px;
+    width: 60px;
+    height: 60px;
+    right: -60px;
+    top: 0px;
 }
 
 /* TABLET */

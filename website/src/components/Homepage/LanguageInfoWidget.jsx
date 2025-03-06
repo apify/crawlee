@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import React from 'react';
 
 import Button from '../Button';
@@ -20,7 +21,7 @@ export default function LanguageInfoWidget({ language, command, githubUrl, to })
                     <span className={styles.languageText}>{language}</span>
                 </div>
             </div>
-            <div className={styles.buttonContainer}>
+            <div className={clsx(styles.buttonContainer, command && styles.buttonContainerVertical)}>
                 <Button to={to}>Learn more</Button>
                 <iframe
                     src={githubUrl}

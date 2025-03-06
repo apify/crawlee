@@ -33,8 +33,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     margin-bottom: 16px;
+}
+
+.buttonContainer:has(+ code) {
+    gap: 12px;
 }
 
 .commandContainer {
@@ -66,7 +70,7 @@
     .languageGetStartedContainer {
         margin: 24px 0 40px 0;
     }
-    .buttonContainer {
+    .buttonContainer:has(+ code) {
         flex-direction: row;
     }
 }

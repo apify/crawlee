@@ -61,13 +61,15 @@ function CodeExampleSection() {
                     }}
                 </RunnableCodeBlock>
             </div>
+            <div className={commonStyles.dashedSeparator} />
+            <div className={commonStyles.decorativeRow} />
         </section>
     );
 }
 
 const benefitsCodeBlockCrawler = `{
     useFingerprints: true,
-    fingerprintOptions: { 
+    fingerprintOptions: {
         fingerprintGeneratorOptions: {
             browsers: [BrowserName.chrome, BrowserName.firefox],
             devices: [DeviceCategory.mobile],
@@ -84,7 +86,7 @@ const benefitsCodeBlockHeadless = `const crawler = new AdaptivePlaywrightCrawler
         // to extract this data. If not, it will use HTTP
         // for follow-up requests to save time and costs.
         const $prices = await querySelector('span.price')
-        await enqueueLinks();    
+        await enqueueLinks();
     },
 });
 `;
@@ -113,7 +115,8 @@ function BenefitsSection() {
                             light: '/img/js_light.png',
                             dark: '/img/js_dark.png',
                         }}
-                    />}
+                    />
+                }
                 reversed
             />
             <div className={commonStyles.trianglesSeparator} />
@@ -272,7 +275,6 @@ export default function JavascriptHomepage() {
                 <GetStartedSection />
                 <div className={commonStyles.dashedSeparator} />
                 <CodeExampleSection />
-                <div className={commonStyles.dashedSeparator} />
                 <HomepageCliExample />
                 <div className={commonStyles.dashedSeparator}>
                     <div

@@ -150,6 +150,8 @@ function CodeExampleSection() {
                     </RunnableCodeBlock>
                 )}
             </div>
+            <div className={styles.dashedSeparator} />
+            <div className={styles.decorativeRow} />
         </section>
     );
 }
@@ -163,7 +165,6 @@ export default function Home() {
                 <LanguageGetStartedSection />
                 <div className={styles.dashedSeparator} />
                 <CodeExampleSection />
-                <div className={styles.dashedSeparator} />
                 <HomepageCliExample />
                 <div className={styles.dashedSeparator}>
                     <div
