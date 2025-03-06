@@ -29,7 +29,9 @@ export default function LanguageInfoWidget({ language, command, githubUrl, to })
                     title="GitHub"
                 ></iframe>
             </div>
-            <pre className={styles.commandContainer}>{command} <CopyButton copyText={command} /></pre>
+            {command && (
+                <pre className={styles.commandContainer}>{command} <CopyButton copyText={command} compact /></pre>
+            )}
         </div>
     );
 }

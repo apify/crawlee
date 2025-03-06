@@ -1,6 +1,6 @@
-import CodeBlock from '@theme/CodeBlock';
 import React from 'react';
 
+import CopyButton from '../CopyButton';
 import styles from './HomepageCliExample.module.css';
 
 const cliCommand = `npx crawlee create my-crawler`;
@@ -11,9 +11,10 @@ export default function CliExample() {
             <div className={styles.cliExampleTitle}>
                 Or start with a template from our CLI
             </div>
-            <CodeBlock className="language-bash">
+            <pre className={styles.cliExampleCodeBlock}>
                 {cliCommand}
-            </CodeBlock>
+                <CopyButton copyText={cliCommand} />
+            </pre>
             <div className={styles.cliExampleSubtitle}>
                 Built with 🤍 by Apify. Forever free and open-source.
             </div>

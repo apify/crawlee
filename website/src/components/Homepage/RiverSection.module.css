@@ -96,7 +96,21 @@
     min-height: 180px;
     background-color: var(--color-editor);
     border-top: 1px solid var(--color-separator-subtle);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+
+    :global(.code-block) {
+        flex-grow: 1;
+
+        :global(.codeBlockContent_biex) {
+            height: 100%;
+
+            pre, code {
+                height: 100%;
+            }
+        }
+    }
 
     /* Tablet layout */
     @media (min-width: 768px) {

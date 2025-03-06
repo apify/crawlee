@@ -10,7 +10,7 @@
     --color-text-on-primary: #ffffff;
     --color-icon: #555d76;
     --color-border: #d0d5e9;
-    --color-editor: #F8F9FC;
+    --color-editor: #f6f8fa;
 }
 
 /* Dark theme colors */
@@ -26,7 +26,7 @@ html[data-theme='dark'] {
     --color-text-on-primary: #1a1b21;
     --color-icon: #b2b8cc;
     --color-border: #414758;
-    --color-editor: #252832;
+    --color-editor: #282a36;
 }
 
 /************* PAGE LAYOUT *************/
