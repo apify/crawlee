@@ -7,6 +7,8 @@ authors: [VladaD]
 
 Crawlee for Python v0.6 is here, and it's packed with new features, important bug fixes, and some breaking improvements designed to streamline your Crawlee experience. If you're upgrading from a previous version, please take a moment to review the breaking changes detailed below to ensure a smooth transition.
 
+![Crawlee for Python v0.6.0](./img/crawlee_v060.png)
+
 <!-- truncate -->
 
 ## Getting started
@@ -77,19 +79,18 @@ from crawlee.crawlers import PlaywrightCrawler, PlaywrightCrawlingContext
 
 
 async def main() -> None:
-    # The browserforge fingerprints are used by default.
+    # The browserforge fingerprints and headers are used by default.
     crawler = PlaywrightCrawler()
 
     @crawler.router.default_handler
     async def handler(context: PlaywrightCrawlingContext) -> None:
-        context.log.info(f'Crawling URL: {context.request.url}')
-        # The browserforge fingerprints automatically adjust the request headers
-        headers = context.request.headers
-        context.log.info(f'Request headers: {headers}')
-        title = await context.page.title()
-        context.log.info(f'Page title: {title}')
+        url = context.request.url
+        context.log.info(f'Crawling URL: {url}')
 
-    await crawler.run(['https://www.crawlee.dev/'])
+        headers = (await context.response.body()).decode()
+        context.log.info(f'Response headers: {headers}')  # Check the headers we've sent.
+
+    await crawler.run(['https://www.httpbin.org/headers'])
 
 
 if __name__ == '__main__':
