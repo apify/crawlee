@@ -140,29 +140,42 @@ function OtherFeaturesSection() {
             <div className={styles.cardsWithContentContainer}>
                 <div className={styles.cardsWithImageContainer}>
                     <div className={styles.cardWithImage}>
-                        <ThemedImage sources={{ light: '/img/auto-scaling-light.webp', dark: '/img/auto-scaling-dark.webp' }} alt='' />
+                        <ThemedImage
+                            sources={{
+                                light: '/img/auto-scaling-light.webp',
+                                dark: '/img/auto-scaling-dark.webp',
+                            }}
+                            alt=""
+                        />
                         <div className={styles.cardWithImageText}>
                             <h3 className={styles.cardWithImageTitle}>
                                 Auto scaling
                             </h3>
                             <div className={styles.cardWithImageDescription}>
-                                Crawlers automatically adjust concurrency based on
-                                available system resources. Avoid memory errors in
-                                small containers and run faster in large ones.
+                                Crawlers automatically adjust concurrency based
+                                on available system resources. Avoid memory
+                                errors in small containers and run faster in
+                                large ones.
                             </div>
                         </div>
                     </div>
                     <div className={styles.cardWithImage}>
-                        <ThemedImage sources={{ light: '/img/smart-proxy-light.webp', dark: '/img/smart-proxy-dark.webp' }} alt='' />
+                        <ThemedImage
+                            sources={{
+                                light: '/img/smart-proxy-light.webp',
+                                dark: '/img/smart-proxy-dark.webp',
+                            }}
+                            alt=""
+                        />
                         <div className={styles.cardWithImageText}>
                             <h3 className={styles.cardWithImageTitle}>
                                 Smart proxy rotation
                             </h3>
                             <div className={styles.cardWithImageDescription}>
                                 Crawlee uses a pool of sessions represented by
-                                different proxies to maintain the proxy performance
-                                and keep IPs healthy. Blocked proxies are removed
-                                from the pool automatically.
+                                different proxies to maintain the proxy
+                                performance and keep IPs healthy. Blocked
+                                proxies are removed from the pool automatically.
                             </div>
                         </div>
                     </div>
@@ -170,19 +183,43 @@ function OtherFeaturesSection() {
                 <ThreeCardsWithIcon
                     cards={[
                         {
-                            icon: <ThemedImage sources={{ light: '/img/queue-light-icon.svg', dark: '/img/queue-dark-icon.svg' }} alt='' />,
+                            icon: (
+                                <ThemedImage
+                                    sources={{
+                                        light: '/img/queue-light-icon.svg',
+                                        dark: '/img/queue-dark-icon.svg',
+                                    }}
+                                    alt=""
+                                />
+                            ),
                             title: 'Queue and storage',
                             description:
                                 'Pause and resume crawlers thanks to a persistent queue of URLs and storage for structured data.',
                         },
                         {
-                            icon: <ThemedImage sources={{ light: '/img/scraping-utils-light-icon.svg', dark: '/img/scraping-utils-dark-icon.svg' }} alt='' />,
+                            icon: (
+                                <ThemedImage
+                                    sources={{
+                                        light: '/img/scraping-utils-light-icon.svg',
+                                        dark: '/img/scraping-utils-dark-icon.svg',
+                                    }}
+                                    alt=""
+                                />
+                            ),
                             title: 'Handy scraping utils',
                             description:
                                 'Sitemaps, infinite scroll, contact extraction, large asset blocking and many more utils included.',
                         },
                         {
-                            icon: <ThemedImage sources={{ light: '/img/routing-light-icon.svg', dark: '/img/routing-dark-icon.svg' }} alt='' />,
+                            icon: (
+                                <ThemedImage
+                                    sources={{
+                                        light: '/img/routing-light-icon.svg',
+                                        dark: '/img/routing-dark-icon.svg',
+                                    }}
+                                    alt=""
+                                />
+                            ),
                             title: 'Routing & middleware',
                             description:
                                 'Keep your code clean and organized while managing complex crawls with a built-in router that streamlines the process.',
@@ -190,7 +227,6 @@ function OtherFeaturesSection() {
                     ]}
                 />
             </div>
-
         </section>
     );
 }
@@ -206,25 +242,43 @@ function DeployToCloudSection() {
                     serverless micro-app with built-in infra, proxies, and
                     storage.
                 </div>
-                <Button withIcon>Deploy to Apify</Button>
+                <Button
+                    withIcon
+                    to="https://docs.apify.com/platform/actors/development/deployment"
+                >
+                    Deploy to Apify
+                </Button>
             </div>
             <div className={styles.deployToCloudRightSide}>
+                <div
+                    className={commonStyles.dashedSeparatorVertical}
+                    id={styles.verticalStepLine}
+                />
                 <div className={styles.deployToCloudStep}>
-                    <div className={styles.deployToCloudStepNumber}>1</div>
-                    Install Apify SDK and Apify CLI.
-                    <div className={styles.deployToCloudStepText}></div>
+                    <div className={styles.deployToCloudStepNumber}>
+                        <div>1</div>
+                    </div>
+                    <div className={styles.deployToCloudStepText}>
+                        Install Apify SDK and Apify CLI.
+                    </div>
                 </div>
                 <div className={styles.deployToCloudStep}>
-                    <div className={styles.deployToCloudStepNumber}>2</div>
+                    <div className={styles.deployToCloudStepNumber}>
+                        <div>2</div>
+                    </div>
                     <div className={styles.deployToCloudStepText}>
                         Add <pre>Actor.init()</pre> to the begining and{' '}
                         <pre>Actor.exit()</pre> to the end of your code.
                     </div>
                 </div>
                 <div className={styles.deployToCloudStep}>
-                    <div className={styles.deployToCloudStepNumber}>3</div>
-                    Use the Apify CLI to push the code to the Apify platform.
-                    <div className={styles.deployToCloudStepText}></div>
+                    <div className={styles.deployToCloudStepNumber}>
+                        <div>3</div>
+                    </div>
+                    <div className={styles.deployToCloudStepText}>
+                        Use the Apify CLI to push the code to the Apify
+                        platform.
+                    </div>
                 </div>
             </div>
         </section>
@@ -240,25 +294,58 @@ function BuildFastScrapersSection() {
             <ThreeCardsWithIcon
                 cards={[
                     {
-                        icon: <ThemedImage sources={{ light: '/img/zero-setup-light-icon.svg', dark: '/img/zero-setup-dark-icon.svg' }} alt='' />,
+                        icon: (
+                            <ThemedImage
+                                sources={{
+                                    light: '/img/zero-setup-light-icon.svg',
+                                    dark: '/img/zero-setup-dark-icon.svg',
+                                }}
+                                alt=""
+                            />
+                        ),
                         title: 'Zero setup required',
                         description:
                             'Use on the templates, install Crawlee and go. No CLI required, no complex file structure, no boilerplate.',
-                        actionLink: { text: 'Get started', href: '/docs/quick-start' },
+                        actionLink: {
+                            text: 'Get started',
+                            href: '/docs/quick-start',
+                        },
                     },
                     {
-                        icon: <ThemedImage sources={{ light: '/img/defaults-light-icon.svg', dark: '/img/defaults-dark-icon.svg' }} alt='' />,
+                        icon: (
+                            <ThemedImage
+                                sources={{
+                                    light: '/img/defaults-light-icon.svg',
+                                    dark: '/img/defaults-dark-icon.svg',
+                                }}
+                                alt=""
+                            />
+                        ),
                         title: 'Reasonable defaults',
                         description:
                             'Unblocking, proxy rotation and other core features are already turned on. But also very configurable.',
-                        actionLink: { text: 'Learn more', href: '/docs/guides/configuration' },
+                        actionLink: {
+                            text: 'Learn more',
+                            href: '/docs/guides/configuration',
+                        },
                     },
                     {
-                        icon: <ThemedImage sources={{ light: '/img/community-light-icon.svg', dark: '/img/community-dark-icon.svg' }} alt='' />,
+                        icon: (
+                            <ThemedImage
+                                sources={{
+                                    light: '/img/community-light-icon.svg',
+                                    dark: '/img/community-dark-icon.svg',
+                                }}
+                                alt=""
+                            />
+                        ),
                         title: 'Helpful community',
                         description:
                             'Join our Discord community of over Xk developers and get fast answers to your web scraping questions.',
-                        actionLink: { text: 'Join Discord', href: 'https://discord.gg/jyEM2PRvMU' },
+                        actionLink: {
+                            text: 'Join Discord',
+                            href: 'https://discord.gg/jyEM2PRvMU',
+                        },
                     },
                 ]}
             />

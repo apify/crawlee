@@ -1,6 +1,3 @@
-.getStartedSection {
-}
-
 /************** BENEFITS SECTION ***********/
 
 .benefitsSection {
@@ -128,28 +125,89 @@
 /************** DEPLOY TO CLOUD SECTION ***********/
 
 .deployToCloudSection {
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
 }
 
 .deployToCloudLeftSide {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 50%;
+    gap: 24px;
+    text-align: center;
+    font-style: normal;
+    font-weight: 400;
+
     h2 {
+        color: var(--color-text);
+        font-family: 'Lota Grotesque';
+        font-size: 38px;
+        line-height: 46px;
     }
 }
 
 .deployToCloudDescription {
+    color: var(--color-text-muted);
+    font-size: 16px;
+    line-height: 24px;
 }
 
 .deployToCloudRightSide {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex-basis: 50%;
+    position: relative;
 }
 
 .deployToCloudStep {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: center;
 }
 
 .deployToCloudStepNumber {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 72px;
+    height: 72px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-separator);
+    background: var(--color-background);
+    color: var(--color-text-muted);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+    z-index: 1;
+    div {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        border: 1px dashed var(--color-separator);
+    }
 }
 
 .deployToCloudStepText {
     display: inline-flex;
     align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+    color: var(--color-text);
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 20px;
+
     pre {
         margin: 0;
         padding: 0;
@@ -157,8 +215,33 @@
     }
 }
 
+#verticalStepLine {
+    position: absolute;
+    left: 36px;
+    height: 100%;
+    z-index: 0;
+}
+
 /* TABLET */
 @media (min-width: 768px) {
+    .deployToCloudSection {
+        padding: 96px 40px;
+        flex-direction: row;
+    }
+    .deployToCloudLeftSide {
+        text-align: left;
+
+        h2 {
+            color: var(--color-text);
+            font-family: 'Lota Grotesque';
+            font-size: 48px;
+            line-height: 58px;
+        }
+    }
+    .deployToCloudDescription {
+        font-size: 18px;
+        line-height: 28px;
+    }
 }
 
 /************** BUILD SCRAPERS FAST SECTION ***********/

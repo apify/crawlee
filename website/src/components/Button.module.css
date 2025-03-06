@@ -11,7 +11,6 @@
     line-height: 24px;
     cursor: pointer;
     transition: background-color 0.2s;
-    width: 100%;
 
     svg {
         margin-right: 8px;
