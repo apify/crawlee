@@ -4,6 +4,7 @@
     text-align: center;
     padding: 8px 16px;
     border-radius: 8px;
+    font-family: (--ifm-font-family-base);
     font-size: 16px;
     font-style: normal;
     font-weight: 500;
@@ -24,7 +25,7 @@
 }
 
 .buttonPrimary:hover {
-    background-color: var(--color-black-action-hover);
+    background-color: var(--color-primary-action-hover);
 }
 
 .buttonSecondary {

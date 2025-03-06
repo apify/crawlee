@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 import styles from './CopyButton.module.css';
 
-export default function CopyButton({ copyText, compact = false }) {
+export default function CopyButton({ copyText, compact = false, className }) {
     const [copied, setCopied] = useState(false);
     const copy = async () => {
         await navigator.clipboard.writeText(copyText);
@@ -16,11 +16,11 @@ export default function CopyButton({ copyText, compact = false }) {
         aria-label="Copy code to clipboard"
         title="Copy"
         onClick={copy}
-        className={clsx(styles.copyButton, compact ? styles.copyButtonCompact : styles.copyButtonDefault)}
+        className={clsx(className, styles.copyButton, compact ? styles.copyButtonCompact : styles.copyButtonDefault)}
     >
         {copied
             ? <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" clipRule="evenodd" d="M18.0303 5.09467C18.3232 5.38756 18.3232 5.86244 18.0303 6.15533L8.03033 16.1553C7.73744 16.4482 7.26256 16.4482 6.96967 16.1553L2.59467 11.7803C2.30178 11.4874 2.30178 11.0126 2.59467 10.7197C2.88756 10.4268 3.36244 10.4268 3.65533 10.7197L7.5 14.5643L16.9697 5.09467C17.2626 4.80178 17.7374 4.80178 18.0303 5.09467Z"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M18.0303 5.09467C18.3232 5.38756 18.3232 5.86244 18.0303 6.15533L8.03033 16.1553C7.73744 16.4482 7.26256 16.4482 6.96967 16.1553L2.59467 11.7803C2.30178 11.4874 2.30178 11.0126 2.59467 10.7197C2.88756 10.4268 3.36244 10.4268 3.65533 10.7197L7.5 14.5643L16.9697 5.09467C17.2626 4.80178 17.7374 4.80178 18.0303 5.09467Z" />
             </svg>
 
             : <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">

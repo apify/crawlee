@@ -30,7 +30,7 @@ export default function LanguageInfoWidget({ language, command, githubUrl, to })
                 ></iframe>
             </div>
             {command && (
-                <pre className={styles.commandContainer}>{command} <CopyButton copyText={command} compact /></pre>
+                <code className={styles.commandContainer}>{command} <CopyButton copyText={command} compact /></code>
             )}
         </div>
     );

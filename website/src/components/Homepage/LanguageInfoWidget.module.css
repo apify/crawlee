@@ -46,8 +46,19 @@
     font-weight: 400;
     line-height: 16px;
     background-color: transparent;
+    border: 0;
     display: flex;
     align-items: center;
+}
+
+.commandContainer button {
+    opacity: 0;
+    transition: opacity var(--ifm-transition-fast) ease-in;
+}
+
+.commandContainer:hover button,
+.commandContainer button:hover {
+    opacity: 1;
 }
 
 /* TABLET */
