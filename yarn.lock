@@ -3096,11 +3096,11 @@ __metadata:
   linkType: hard
 
 "acorn@npm:^8.9.0":
-  version: 8.14.0
-  resolution: "acorn@npm:8.14.0"
+  version: 8.14.1
+  resolution: "acorn@npm:8.14.1"
   bin:
     acorn: bin/acorn
-  checksum: 10c0/6d4ee461a7734b2f48836ee0fbb752903606e576cc100eb49340295129ca0b452f3ba91ddd4424a1d4406a98adfb2ebb6bd0ff4c49d7a0930c10e462719bbfd7
+  checksum: 10c0/dbd36c1ed1d2fa3550140000371fcf721578095b18777b85a79df231ca093b08edc6858d75d6e48c73e431c174dcf9214edbd7e6fa5911b93bd8abfa54e47123
   languageName: node
   linkType: hard
 
@@ -3580,9 +3580,9 @@ __metadata:
   linkType: hard
 
 "axe-core@npm:^4.10.0":
-  version: 4.10.2
-  resolution: "axe-core@npm:4.10.2"
-  checksum: 10c0/0e20169077de96946a547fce0df39d9aeebe0077f9d3eeff4896518b96fde857f80b98f0d4279274a7178791744dd5a54bb4f322de45b4f561ffa2586ff9a09d
+  version: 4.10.3
+  resolution: "axe-core@npm:4.10.3"
+  checksum: 10c0/1b1c24f435b2ffe89d76eca0001cbfff42dbf012ad9bd37398b70b11f0d614281a38a28bc3069e8972e3c90ec929a8937994bd24b0ebcbaab87b8d1e241ab0c7
   languageName: node
   linkType: hard
 
@@ -5063,9 +5063,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1427544
-  resolution: "devtools-protocol@npm:0.0.1427544"
-  checksum: 10c0/d4d53710236c345743a45368228d0c76af51b476b53787f2a468fadc4a7ac3cdbebb38d7cf0c0b2910135bb60f7243ea31bf5752e1c18b14b1478edb3bd8b397
+  version: 0.0.1428127
+  resolution: "devtools-protocol@npm:0.0.1428127"
+  checksum: 10c0/b3feb8aa546c7db27fbdf4f7cc27b44dca008ad055b4783a00427374943e943f8bc0721d0e529fefb313aeab2f7246bb3c60a841270f77ac4a08e3da558c0243
   languageName: node
   linkType: hard
 
