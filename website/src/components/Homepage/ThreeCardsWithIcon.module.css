@@ -11,6 +11,7 @@
 /* Card styles */
 .cardItem {
     display: flex;
+    flex: 1;
     flex-direction: column;
     padding: 40px 24px;
     background: var(--color-card-background);

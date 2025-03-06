@@ -78,7 +78,12 @@
     flex-direction: column;
     overflow: hidden;
     background: var(--color-card-background);
-    border: 1px solid var(--color-separator);
+    border-block: 1px solid var(--color-separator);
+
+    @media (min-width: 768px) {
+        border: 1px solid var(--color-separator);
+    }
+
     &:first-child {
         border-left: 0;
     }

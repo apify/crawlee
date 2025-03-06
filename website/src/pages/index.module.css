@@ -85,6 +85,20 @@
     }
 
     #homepageContainer {
+        width: calc(100% - 80px) !important;
+        margin: 0 40px;
+    }
+}
+
+/* DESKTOP */
+@media (min-width: 1024px) {
+    .dashedSeparatorVertical,
+    .dashedDecorativeCircle,
+    .fadedOutSeparator {
+        display: block;
+    }
+
+    #homepageContainer {
         width: calc(100% - 128px) !important;
         margin: 0 64px;
     }
