@@ -5,6 +5,7 @@
     align-items: center;
     text-align: center;
     padding: 16px;
+    padding-bottom: 0;
     gap: 24px;
 }
 
@@ -36,6 +37,11 @@
     width: 100%;
 }
 
+.ctaImage {
+    z-index: -1;
+    margin-top: -100px;
+}
+
 #ctaDecorativeCircle {
     width: 120px;
     height: 120px;
@@ -46,7 +52,7 @@
 /* TABLET */
 @media (min-width: 768px) {
     .ctaSection {
-        padding: 80px 0;
+        padding-top: 80px;
     }
 
     .ctaTitle {

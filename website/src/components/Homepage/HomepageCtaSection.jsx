@@ -1,3 +1,5 @@
+import ThemedImage from '@theme/ThemedImage';
+import clsx from 'clsx';
 import React from 'react';
 
 import styles from './HomepageCtaSection.module.css';
@@ -13,9 +15,34 @@ export default function HomepageCtaSection({ showJs, showPython }) {
                 you can focus on what matters most.
             </div>
             <div className={styles.ctaButtonContainer}>
-                {showJs && <Button to='https://crawlee.dev/js' withIcon type='secondary' isBig>Get started with JS</Button>}
-                {showPython && <Button to='https://crawlee.dev/python' withIcon type='secondary' isBig>Get started with Python</Button>}
+                {showJs && (
+                    <Button
+                        to="https://crawlee.dev/js"
+                        withIcon
+                        type={showJs && showPython ? 'secondary' : 'primary'}
+                        isBig
+                    >
+                        {showPython ? 'Get started with JS' : 'Get started'}
+                    </Button>
+                )}
+                {showPython && (
+                    <Button
+                        to="https://crawlee.dev/python"
+                        withIcon
+                        type="secondary"
+                        isBig
+                    >
+                        {showJs ? 'Get started with Python' : 'Get started'}
+                    </Button>
+                )}
             </div>
+            <ThemedImage
+                className={styles.ctaImage}
+                sources={{
+                    light: '/img/animated-crawlee-logo-light.svg',
+                    dark: '/img/animated-crawlee-logo-dark.svg',
+                }}
+            />
         </section>
     );
 }
