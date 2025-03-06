@@ -3,7 +3,7 @@ slug: scrape-bluesky-using-python
 title: 'How to scrape Bluesky with Python'
 tags: [community]
 description: 'Learn how to scrape Bluesky using Crawlee for Python'
-image: ''
+image: 'img/scrape-bluesky-using-python.webp'
 authors: [MaxB]
 ---
 
@@ -15,7 +15,7 @@ One of our community members wrote this blog as a contribution to the Crawlee Bl
 
 :::
 
-![Banner article](soon)
+![Banner article](img/scrape-bluesky-using-python.webp)
 
 Key steps we will cover:
 
@@ -740,7 +740,7 @@ We have created an efficient crawler for Bluesky using the official API. If you 
 
 And if you need to quickly create a crawler that can retrieve data for various queries, you now have everything you need.
 
-You can find the complete code in the [repository](soon)
+You can find the complete code in the [repository](https://github.com/Mantisus/bluesky-crawlee)
 
 If you enjoyed this blog, feel free to support Crawlee for Python by starring the [repository](https://github.com/apify/crawlee-python) or joining the maintainer team.
 
