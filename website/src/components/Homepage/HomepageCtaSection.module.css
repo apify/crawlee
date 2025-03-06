@@ -1,0 +1,67 @@
+.ctaSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+    padding-bottom: 0;
+    gap: 24px;
+}
+
+.ctaTitle {
+    color: var(--color-text);
+    font-family: 'Lota Grotesque';
+    font-size: 36px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 46px;
+    margin: 0;
+}
+
+.ctaDescription {
+    color: var(--color-text-muted);
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    max-width: 780px;
+}
+
+.ctaButtonContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.ctaImage {
+    z-index: -1;
+    margin-top: -100px;
+}
+
+#ctaDecorativeCircle {
+    width: 120px;
+    height: 120px;
+    left: -60px;
+    top: -60px;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .ctaSection {
+        padding-top: 80px;
+    }
+
+    .ctaTitle {
+        font-size: 48px;
+        line-height: 56px;
+    }
+
+    .ctaButtonContainer {
+        flex-direction: row;
+    }
+}

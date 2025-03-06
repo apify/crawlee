@@ -2,7 +2,7 @@
 
 html[data-theme='dark'] {
     --ifm-navbar-background-color: #1a1b23;
-    --ifm-background-color: #1a1b23;
+    --ifm-background-color: #1a1b21;
     --ifm-background-surface-color: #242736;
 
     --ifm-font-color-base: #f2f3fb;
@@ -31,11 +31,16 @@ html[data-theme='dark'] {
     --color-black-action: #fff;
     --color-icon: #b2b8cc;
     --color-hover: #2d313e;
+    --color-primary-action-hover: #d1d5e4;
+    --color-editor: #282a36;
 }
 
 :root {
     /* use default system font based on https://devhints.io/css-system-font-stack */
-    --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --ifm-font-family-base:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
     --ifm-heading-font-family: 'Lota Grotesque', sans-serif;
     --ifm-font-weight-semibold: 600;
     --ifm-font-color-base: #242736;
@@ -95,12 +100,15 @@ html[data-theme='dark'] {
     --color-black-action: #272d3e;
     --color-icon: #555d76;
     --color-hover: #eef0f8;
+    --color-primary-action-hover: #2b3143;
+    --color-editor: #f6f8fa;
 }
 
 @font-face {
     font-family: 'Lota Grotesque';
-    src: url('/font/lota.woff2') format('woff2'),
-         url('/font/lota.woff') format('woff');
+    src:
+        url('/font/lota.woff2') format('woff2'),
+        url('/font/lota.woff') format('woff');
     font-weight: 600;
 }
 
@@ -138,13 +146,22 @@ div[class*='navbarSearchContainer'] {
     position: static;
 }
 
-html[data-theme="dark"] .DocSearch-Button {
+html[data-theme='dark'] .DocSearch-Button {
     background: none;
     border: 1px solid var(--docsearch-muted-color);
 }
 
-html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
+html[data-theme='dark'] .DocSearch-Button .DocSearch-Search-Icon {
     color: var(--docsearch-muted-color);
+}
+
+.DocSearch-Button:hover {
+    box-shadow: none !important;
+}
+
+.navbar,
+.main-wrapper {
+    justify-content: center;
 }
 
 html.plugin-pages .main-wrapper {
@@ -205,7 +222,7 @@ aside > div > a > b {
 .navbar__items {
     height: 28px;
     @media (min-width: 768px) {
-        height: 40px;   
+        height: 40px;
     }
 }
 
@@ -213,7 +230,8 @@ aside > div > a > b {
     gap: 16px;
 }
 
-.navbar__item, .navbar__link {
+.navbar__item,
+.navbar__link {
     font-size: 16px;
     font-weight: 500;
     line-height: 24px; /* 150% */
@@ -265,12 +283,28 @@ aside > div > a > b {
     background-size: cover;
 }
 
+.navbar .icon[href*='github']::before {
+    background-image: url('/static/img/github-brand.svg');
+}
+
+html[data-theme='dark'] .navbar .navbar__link[href*='github']:before {
+    background-image: url('/static/img/github-brand-dark.svg');
+}
+
+.navbar .icon[href*='discord']::before {
+    background-image: url('/static/img/discord-brand.svg');
+}
+
+html[data-theme='dark'] .navbar .navbar__link[href*='discord']:before {
+    background-image: url('/static/img/discord-brand-dark.svg');
+}
+
 .navbar svg[class*='iconExternalLink'],
 aside svg[class*='iconExternalLink'] {
     display: none;
 }
 
-header.hero div[class^=heroButtons] {
+header.hero div[class^='heroButtons'] {
     justify-content: inherit;
 }
 
@@ -308,11 +342,12 @@ nav.navbar .dropdown__menu {
     border: 1px solid var(--color-border);
 }
 
-.dropdown__menu .dropdown__link--active{
+.dropdown__menu .dropdown__link--active {
     background: transparent;
 }
 
-.dropdown__menu .dropdown__link:hover, .dropdown__menu .dropdown__link--active:hover {
+.dropdown__menu .dropdown__link:hover,
+.dropdown__menu .dropdown__link--active:hover {
     background: var(--color-hover);
 }
 
@@ -350,7 +385,12 @@ html.plugin-pages {
 
 html.plugin-pages h2 {
     font-size: 36px;
-    line-height: 48px;
+    line-height: 46px;
+
+    @media (min-width: 768px) {
+        font-size: 48px;
+        line-height: 56px;
+    }
 }
 
 html.plugin-docs .theme-doc-markdown {
@@ -430,7 +470,10 @@ html[data-theme='dark']
 }
 
 html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link--active,
-html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+html[data-theme='dark']
+    .theme-doc-toc-desktop
+    .table-of-contents
+    .table-of-contents__link--active {
     color: #f2f3fb;
 }
 
@@ -522,6 +565,12 @@ html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(6)::before {
     opacity: 0.4;
 }
 
+.code-block.theme-code-block {
+    margin-bottom: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
 html[data-theme='dark'] .runnable-code-block svg .apify-logo {
     fill: #fff;
 }
@@ -543,14 +592,15 @@ html[data-theme='dark'] .runnable-code-block svg .apify-logo {
 .prism-code.language-json .token-line::before,
 .prism-code.language-json5 .token-line::before,
 .prism-code.language-XML .token-line::before,
-.prism-code.language-js .token-line::before {
+.prism-code.language-js .token-line::before,
+.prism-code.language-python .token-line::before {
     counter-increment: line-number;
     content: counter(line-number);
     margin-right: calc(var(--ifm-pre-padding) * 0.8);
     text-align: right;
     min-width: 1.5rem;
     display: inline-block;
-    opacity: .3;
+    opacity: 0.3;
     left: var(--ifm-pre-padding);
 }
 
@@ -564,18 +614,18 @@ html[data-theme='dark'] .runnable-code-block svg .apify-logo {
     border: 1px solid #b3b8d2;
 }
 
-div[class^=announcementBar_] {
+div[class^='announcementBar_'] {
     background: #d05c29;
     color: #fff;
 }
 
-div[class^=announcementBar_] button {
+div[class^='announcementBar_'] button {
     color: #fff;
 }
 
 .markdown blockquote {
     --ifm-alert-background-color: var(--ifm-color-info-contrast-background);
-    --ifm-alert-background-color-highlight: rgba(84,199,236,.15);
+    --ifm-alert-background-color-highlight: rgba(84, 199, 236, 0.15);
     --ifm-alert-foreground-color: var(--ifm-color-info-contrast-foreground);
     --ifm-alert-border-color: var(--ifm-color-info-dark);
     --ifm-code-background: var(--ifm-alert-background-color-highlight);

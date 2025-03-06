@@ -2,7 +2,7 @@
     display: inline-block;
     padding: 3px 10px;
     position: absolute;
-    top: 9px;
+    top: calc(var(--ifm-pre-padding) / 2);
     right: 9px;
     z-index: 1;
     font-size: 16px;

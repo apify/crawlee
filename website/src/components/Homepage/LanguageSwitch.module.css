@@ -1,0 +1,41 @@
+.languageSwitch {
+    z-index: 1;
+    display: inline-flex;
+    position: relative;
+    background-color: var(--color-background-subtle);
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.switchOption {
+    position: relative;
+    z-index: 1;
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.switchOption:hover {
+    color: var(--color-text);
+}
+
+.switchOption.active {
+    color: var(--color-text);
+}
+
+.switchBackground {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    border-radius: 6px;
+    background-color: var(--color-background);
+    transition:
+        transform 0.3s ease,
+        width 0.3s ease;
+}
