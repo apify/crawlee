@@ -5,28 +5,9 @@
     align-items: center;
 }
 
-.logoContainer {
-    display: flex;
-    align-items: center;
-    gap: 9.222px;
+.languageGetStartedContainer img {
+    height: 40px;
     margin-bottom: 16px;
-}
-
-.languageGetStartedContainerTitle {
-    color: var(--color-text);
-    font-family: 'Lota Grotesque';
-    font-size: 20px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 32px;
-
-    .crawleeText {
-        font-size: 24px;
-        font-weight: 600;
-    }
-    .slashText {
-        color: var(--color-icon);
-    }
 }
 
 .buttonContainer {
@@ -35,10 +16,17 @@
     align-items: center;
     gap: 16px;
     margin-bottom: 16px;
+    iframe {
+        margin-left: 20px;
+    }
 }
 
 .buttonContainer:has(+ code) {
     gap: 12px;
+    padding-left: 20px;
+    iframe {
+        margin-left: 0px;
+    }
 }
 
 .commandContainer {
