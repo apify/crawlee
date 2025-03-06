@@ -1,8 +1,8 @@
 import ThemedImage from '@theme/ThemedImage';
-import clsx from 'clsx';
 import React from 'react';
 
 import styles from './HomepageCtaSection.module.css';
+import homepageStyles from '../../pages/index.module.css';
 import Button from '../Button';
 
 export default function HomepageCtaSection({ showJs, showPython }) {
@@ -36,6 +36,13 @@ export default function HomepageCtaSection({ showJs, showPython }) {
                     </Button>
                 )}
             </div>
+
+            <div className={homepageStyles.fadedOutSeparator} id={styles.ctaFadedOutSeparator} />
+            <div className={homepageStyles.fadedOutSeparatorVertical} id={styles.fadedOutSeparatorVerticalLeft} />
+            <div className={homepageStyles.fadedOutSeparatorVertical} id={styles.fadedOutSeparatorVerticalRight} />
+            {/* <div className={homepageStyles.dashedDecorativeCircle} id={styles.ctaDashedCircleRight} />
+            <div className={homepageStyles.dashedDecorativeCircle} id={styles.ctaDashedCircleBottom} /> */}
+
             <ThemedImage
                 className={styles.ctaImage}
                 sources={{

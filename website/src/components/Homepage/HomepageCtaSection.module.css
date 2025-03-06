@@ -1,4 +1,5 @@
 .ctaSection {
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -43,11 +44,27 @@
     margin-top: -100px;
 }
 
-#ctaDecorativeCircle {
-    width: 120px;
-    height: 120px;
-    left: -60px;
-    top: -60px;
+#ctaFadedOutSeparator {
+    position: absolute;
+    top: 370px;
+    width: 100%;
+    z-index: -2;
+}
+
+#fadedOutSeparatorVerticalLeft {
+    position: absolute;
+    left: 190px;
+    bottom: 0;
+    height: 100%;
+    z-index: -2;
+}
+
+#fadedOutSeparatorVerticalRight {
+    position: absolute;
+    right: 190px;
+    bottom: 0;
+    height: 100%;
+    z-index: -2;
 }
 
 /* TABLET */
