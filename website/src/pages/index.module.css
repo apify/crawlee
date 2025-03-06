@@ -194,19 +194,3 @@ html[data-theme='dark'] {
         margin: 0;
     }
 }
-
-.imgLight {
-    display: initial;
-
-    html[data-theme='dark'] & {
-        display: none;
-    }
-}
-
-.imgDark {
-    display: none;
-
-    html[data-theme='dark'] & {
-        display: initial;
-    }
-}

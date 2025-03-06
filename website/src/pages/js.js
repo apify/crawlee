@@ -1,12 +1,11 @@
 /* eslint-disable max-len */
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
+import ThemedImage from '@theme/ThemedImage';
 import React from 'react';
 
 import commonStyles from './index.module.css';
 import styles from './js.module.css';
-import jsDarkImageUrl from '../../static/img/js_dark.png';
-import jsLightImageUrl from '../../static/img/js_light.png';
 import Button from '../components/Button';
 import HomepageCliExample from '../components/Homepage/HomepageCliExample';
 import HomepageCtaSection from '../components/Homepage/HomepageCtaSection';
@@ -94,10 +93,14 @@ function BenefitsSection() {
             <RiverSection
                 title="Work with your favorite tools"
                 description="Crawlee integrates BeautifulSoup, Cheerio, Puppeteer, Playwright, and other popular open-source tools. No need to learn new syntax."
-                content={<>
-                    <img src={jsLightImageUrl} className={commonStyles.imgLight} alt="Work with your favorite tools" />
-                    <img src={jsDarkImageUrl} className={commonStyles.imgDark} alt="Work with your favorite tools" />
-                </>}
+                content={
+                    <ThemedImage
+                        alt="Work with your favorite tools"
+                        sources={{
+                            light: '/img/js_light.png',
+                            dark: '/img/js_dark.png',
+                        }}
+                    />}
                 reversed
             />
             <div className={commonStyles.trianglesSeparator} />
