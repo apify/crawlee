@@ -13,6 +13,7 @@ export default function CliExample() {
             </div>
             <code className={styles.cliExampleCodeBlock}>
                 <pre>
+                    <span className={styles.cliCommandPrefix}>$</span>
                     {cliCommand}
                     <CopyButton copyText={cliCommand} />
                 </pre>
