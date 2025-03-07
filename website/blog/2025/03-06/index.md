@@ -7,7 +7,7 @@ authors: [VladaD]
 
 Crawlee for Python v0.6 is here, and it's packed with new features, important bug fixes, and some breaking improvements designed to streamline your Crawlee experience. If you're upgrading from a previous version, please take a moment to review the breaking changes detailed below to ensure a smooth transition.
 
-![Crawlee for Python v0.6.0](./img/crawlee_v060.png)
+![Crawlee for Python v0.6.0](./img/crawlee_v060.webp)
 
 <!-- truncate -->
 
