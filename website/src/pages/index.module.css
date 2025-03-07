@@ -167,6 +167,7 @@
         box-shadow: none;
         code {
             background: var(--color-background-muted);
+            padding: 16px 8px 16px 4px;
         }
         pre {
             border-radius: 0;

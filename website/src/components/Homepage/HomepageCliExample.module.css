@@ -27,7 +27,7 @@
     pre {
         margin: 0;
         width: 100%;
-        padding: 12px 16px;
+        padding: 8px 16px;
         background-color: var(--color-background-muted);
         border: 1px solid var(--color-border);
         display: flex;
