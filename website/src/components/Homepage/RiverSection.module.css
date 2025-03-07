@@ -134,7 +134,17 @@
             }
             code {
                 background: var(--color-background-muted);
-                padding: 16px 8px 16px 4px;
+                padding: 16px 8px 16px 2px;
+                span::before {
+                    margin-right: 16px;
+                }
+                /* white-space: pre-wrap;
+                & > span {
+                    width: 100%;
+                    display: inline-block;
+                    padding-left: 200px;
+                    text-indent: -200px;
+                } */
             }
         }
     }
