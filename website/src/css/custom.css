@@ -19,6 +19,7 @@ html[data-theme='dark'] {
 
     --color-background: #1a1b21;
     --color-background-subtle: #2a2d39;
+    --color-background-muted: #252832;
     --color-field-background: #101114;
     --color-separator: #343847;
     --color-border: #414758;
@@ -32,7 +33,6 @@ html[data-theme='dark'] {
     --color-icon: #b2b8cc;
     --color-hover: #2d313e;
     --color-primary-action-hover: #d1d5e4;
-    --color-editor: #282a36;
 }
 
 :root {
@@ -88,6 +88,7 @@ html[data-theme='dark'] {
 
     --color-background: #fff;
     --color-background-subtle: #f3f4fa;
+    --color-background-muted: #f8f9fc;
     --color-field-background: #f8f9fc;
     --color-separator: #e0e3f2;
     --color-border: #d0d5e9;
@@ -101,7 +102,6 @@ html[data-theme='dark'] {
     --color-icon: #555d76;
     --color-hover: #eef0f8;
     --color-primary-action-hover: #2b3143;
-    --color-editor: #f6f8fa;
 }
 
 @font-face {
@@ -563,12 +563,6 @@ html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(6)::before {
 
 .runnable-code-block:hover .code-block button {
     opacity: 0.4;
-}
-
-.code-block.theme-code-block {
-    margin-bottom: 0;
-    border-radius: 0;
-    box-shadow: none;
 }
 
 html[data-theme='dark'] .runnable-code-block svg .apify-logo {

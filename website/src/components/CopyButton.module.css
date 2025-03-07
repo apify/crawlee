@@ -15,7 +15,7 @@
 .copyButtonDefault {
   width: 28px;
   height: 28px;
-  background-color: var(--color-editor);
+  background-color: var(--color-background-muted);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   transition: background-color 0.12s ease-out;

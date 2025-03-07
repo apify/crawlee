@@ -17,20 +17,28 @@
 }
 
 .cliExampleCodeBlock {
-    width: 100%;
-    padding: 12px 16px;
-    background-color: var(--color-editor);
-    border: 1px solid var(--color-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    font-size: 14px;
-    line-height: 20px;
+    width: fit-content;
+    height: fit-content;
+    padding: 0;
+    border: 0;
+    margin-bottom: 18px;
+    pre {
+        margin: 0;
+        width: 100%;
+        padding: 12px 16px;
+        background-color: var(--color-background-muted);
+        border: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 14px;
+        line-height: 20px;
 
-    /* TABLET */
-    @media (min-width: 768px) {
-        max-width: 526px;
+        /* TABLET */
+        @media (min-width: 768px) {
+            max-width: 526px;
+        }
     }
 }
 

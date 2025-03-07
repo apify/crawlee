@@ -113,7 +113,7 @@
 
 .riverContent {
     min-height: 180px;
-    background-color: var(--color-editor);
+    background-color: var(--color-background-muted);
     border-top: 1px solid var(--color-separator);
     display: flex;
     flex-direction: column;
@@ -121,13 +121,19 @@
 
     :global(.code-block) {
         flex-grow: 1;
+        margin-bottom: 0;
+        border-radius: 0;
+        box-shadow: none;
 
-        :global(.codeBlockContent_biex) {
+        :global(div[class*='codeBlockContent']) {
             height: 100%;
 
             pre,
             code {
                 height: 100%;
+            }
+            code {
+                background: var(--color-background-muted);
             }
         }
     }
