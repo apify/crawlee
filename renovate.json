@@ -27,6 +27,7 @@
 	"ignoreDeps": [
 		"crawlee",
 		"cheerio",
+		"playwright",
 		"@docusaurus/core",
 		"@docusaurus/mdx-loader",
 		"@docusaurus/module-type-aliases",

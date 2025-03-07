@@ -14,7 +14,7 @@
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
         "camoufox-js": "^0.2.1",
-        "playwright": "*"
+        "playwright": "1.50.1"
     },
     "overrides": {
         "apify": {

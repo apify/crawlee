@@ -1,4 +1,4 @@
-FROM apify/actor-node-playwright-chrome:20-beta AS builder
+FROM apify/actor-node-playwright-chrome:20-1.50.1-beta AS builder
 
 COPY /packages ./packages
 COPY /package*.json ./
@@ -6,7 +6,7 @@ RUN npm --quiet set progress=false \
     && npm install --only=prod --no-optional --no-audit --ignore-scripts \
     && npm update
 
-FROM apify/actor-node-playwright-chrome:20-beta
+FROM apify/actor-node-playwright-chrome:20-1.50.1-beta
 
 RUN rm -r node_modules
 COPY --from=builder /node_modules ./node_modules
