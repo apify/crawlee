@@ -51,8 +51,9 @@
 
 .ctaImage {
     z-index: -1;
-    margin-top: -80px;
+    margin-top: -90px;
     margin-bottom: -30px;
+    min-height: 400px;
 }
 
 #ctaFadedOutSeparator {
