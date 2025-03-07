@@ -5,7 +5,7 @@ description: Announcing the Crawlee for Python v0.6 release.
 authors: [VladaD]
 ---
 
-Crawlee for Python v0.6 is here, and it's packed with new features, important bug fixes, and some breaking improvements designed to streamline your Crawlee experience. If you're upgrading from a previous version, please take a moment to review the breaking changes detailed below to ensure a smooth transition.
+Crawlee for Python v0.6 is here, and it's packed with new features and important bug fixes. If you're upgrading from a previous version, please take a moment to review the breaking changes detailed below to ensure a smooth transition.
 
 ![Crawlee for Python v0.6.0](./img/crawlee_v060.webp)
 
@@ -46,7 +46,7 @@ async def main() -> None:
         context.log.info(context.parsed_content.title)
 
         # Locate element h2 within 5 seconds
-        h2 = await context.query_selector_one('h2', timedelta(milliseconds=5000))
+        h2 = await context.query_selector_one('h2', timedelta(seconds=5))
         # Do stuff with element found by the selector
         context.log.info(h2)
 
