@@ -1,6 +1,6 @@
 ---
 slug: superscraper-with-crawlee
-title: 'Inside implementing SuperScraper with Crawlee.'
+title: 'Inside implementing SuperScraper with Crawlee'
 description: 'This article explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.'
 image: './img/superscraper.webp'
 authors: [SauravJ, RadoC]
@@ -11,6 +11,8 @@ authors: [SauravJ, RadoC]
 A key capability is its standby mode, which runs the Actor as a persistent API server. This removes the usual start-up times - a common pain point in many systems - and lets users make direct API calls to interact with the system immediately.
 
 This blog explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.
+
+![Google Maps Data Screenshot](./img/superscraper.webp)
 
 <!-- truncate -->
 
