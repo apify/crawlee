@@ -19,14 +19,10 @@
     & > span {
         line-height: 0;
     }
-
-    width: 100%;
-
     a,
     a span {
-        max-width: 300px;
+        min-width: 190px;
         text-align: center;
-        width: 100%;
         justify-content: center;
     }
 }
@@ -68,11 +64,10 @@
     .buttonContainer:has(+ code) {
         flex-direction: row;
     }
-    .buttonContainer {
-        width: fit-content;
+    .buttonContainer:has(+ code) {
         a,
         a span {
-            width: fit-content;
+            min-width: 0;
         }
     }
 }

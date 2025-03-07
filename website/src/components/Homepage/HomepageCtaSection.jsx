@@ -1,4 +1,5 @@
 import ThemedImage from '@theme/ThemedImage';
+import clsx from 'clsx';
 import React from 'react';
 
 import styles from './HomepageCtaSection.module.css';
@@ -14,7 +15,11 @@ export default function HomepageCtaSection({ showJs, showPython }) {
                 building and maintaining reliable crawlers faster and easier—so
                 you can focus on what matters most.
             </div>
-            <div className={styles.ctaButtonContainer}>
+            <div
+                className={clsx(styles.ctaButtonContainer, {
+                    [styles.ctaButtonContainerFullWidth]: showJs && showPython,
+                })}
+            >
                 {showJs && (
                     <Button
                         to={showPython ? '/js' : '/docs/quick-start'}

@@ -211,6 +211,7 @@
         width: 40px;
         border-radius: 50%;
         border: 1px dashed var(--color-separator);
+        flex-shrink: 0;
     }
 }
 

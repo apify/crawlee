@@ -38,7 +38,9 @@
     text-align: center;
     gap: 16px;
     width: 100%;
+}
 
+.ctaButtonContainerFullWidth {
     a,
     a span {
         text-align: center;
@@ -102,7 +104,7 @@
         font-size: 18px;
     }
 
-    .ctaButtonContainer {
+    .ctaButtonContainerFullWidth {
         a,
         a span {
             width: fit-content;
