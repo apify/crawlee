@@ -8,6 +8,7 @@
     padding: 16px;
     padding-bottom: 0;
     gap: 24px;
+    overflow: clip;
 }
 
 .ctaTitle {
@@ -41,7 +42,8 @@
 
 .ctaImage {
     z-index: -1;
-    margin-top: -100px;
+    margin-top: -90px;
+    margin-bottom: -30px;
 }
 
 #ctaFadedOutSeparator {
