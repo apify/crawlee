@@ -136,6 +136,10 @@
     flex-direction: column;
     gap: 32px;
     margin: 0 0 24px 0;
+
+    div[class^='languageGetStartedContainer'] {
+        flex: 1;
+    }
 }
 
 /* TABLET */
