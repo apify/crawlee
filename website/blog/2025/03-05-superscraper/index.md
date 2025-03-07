@@ -1,6 +1,6 @@
 ---
 slug: superscraper-with-crawlee
-title: 'Inside implementing SuperScraper with Crawlee.'
+title: 'Inside implementing SuperScraper with Crawlee'
 description: 'This article explains how SuperScraper works, highlights its implementation details, and provides code snippets to demonstrate its core functionality.'
 image: './img/superscraper.webp'
 authors: [SauravJ, RadoC]
