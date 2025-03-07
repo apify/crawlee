@@ -78,7 +78,7 @@ const VERSIONS_ITEM = {
 function getEffectiveNavbarItems(items, location, isOnLanguageAgnosticPage) {
     if (isOnLanguageAgnosticPage) {
         return GENERIC_PAGE_ITEMS;
-    } if (location.pathname !== '/js') {
+    } if (location.pathname !== '/js' && location.pathname !== '/js/') {
         return [...items, VERSIONS_ITEM];
     }
     return items;
