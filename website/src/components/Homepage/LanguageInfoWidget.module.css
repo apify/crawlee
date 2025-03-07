@@ -3,6 +3,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding-inline: 12px;
 }
 
 .languageGetStartedContainer img {
@@ -17,6 +18,16 @@
     gap: 16px;
     & > span {
         line-height: 0;
+    }
+
+    width: 100%;
+
+    a,
+    a span {
+        max-width: 300px;
+        text-align: center;
+        width: 100%;
+        justify-content: center;
     }
 }
 
@@ -56,5 +67,12 @@
     }
     .buttonContainer:has(+ code) {
         flex-direction: row;
+    }
+    .buttonContainer {
+        width: fit-content;
+        a,
+        a span {
+            width: fit-content;
+        }
     }
 }

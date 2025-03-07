@@ -23,7 +23,7 @@
 
 .ctaDescription {
     color: var(--color-text-muted);
-    font-size: 18px;
+    font-size: 16px;
     font-style: normal;
     font-weight: 400;
     line-height: 28px;
@@ -38,11 +38,18 @@
     text-align: center;
     gap: 16px;
     width: 100%;
+
+    a,
+    a span {
+        text-align: center;
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .ctaImage {
     z-index: -1;
-    margin-top: -90px;
+    margin-top: -80px;
     margin-bottom: -30px;
 }
 
@@ -89,5 +96,16 @@
 
     .ctaButtonContainer {
         flex-direction: row;
+    }
+
+    .ctaDescription {
+        font-size: 18px;
+    }
+
+    .ctaButtonContainer {
+        a,
+        a span {
+            width: fit-content;
+        }
     }
 }

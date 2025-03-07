@@ -1,3 +1,10 @@
+.getStartedSection {
+    margin-bottom: 32px;
+    @media (min-width: 768px) {
+        margin-bottom: 0;
+    }
+}
+
 /************** BENEFITS SECTION ***********/
 
 .benefitsSection {
@@ -21,6 +28,7 @@
     flex-direction: column;
 
     h2 {
+        margin: 0;
         padding: 32px 12px;
 
         text-align: center;
@@ -34,7 +42,7 @@
             line-height: 56px !important;
             font-size: 48px !important;
             margin: 80px 0 64px;
-            padding: 32px 24px;
+            padding: 0 24px;
         }
     }
     margin-bottom: 40px;
@@ -158,6 +166,10 @@
     color: var(--color-text-muted);
     font-size: 16px;
     line-height: 24px;
+    a {
+        color: inherit;
+        text-decoration: underline;
+    }
 }
 
 .deployToCloudRightSide {
@@ -260,21 +272,18 @@
 
     h2 {
         margin: 0;
-        padding: 32px 0;
+        padding: 32px 12px;
         text-align: center;
         color: var(--color-text);
         font-weight: 400;
-        padding-inline: 12px;
 
         line-height: 46px !important;
         font-size: 36px !important;
 
         @media (min-width: 768px) {
-            padding-inline: 24px;
-
             line-height: 56px !important;
             font-size: 48px !important;
-            padding: 80px 0 64px;
+            padding: 80px 24px 64px;
         }
     }
 

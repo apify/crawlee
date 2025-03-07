@@ -17,7 +17,7 @@ export default function HomepageCtaSection({ showJs, showPython }) {
             <div className={styles.ctaButtonContainer}>
                 {showJs && (
                     <Button
-                        to="/js"
+                        to={showPython ? '/js' : '/docs/quick-start'}
                         withIcon
                         type={showJs && showPython ? 'secondary' : 'primary'}
                         isBig
@@ -37,10 +37,22 @@ export default function HomepageCtaSection({ showJs, showPython }) {
                 )}
             </div>
 
-            <div className={homepageStyles.fadedOutSeparator} id={styles.ctaFadedOutSeparator} />
-            <div className={homepageStyles.fadedOutSeparatorVertical} id={styles.fadedOutSeparatorVerticalLeft} />
-            <div className={homepageStyles.fadedOutSeparatorVertical} id={styles.fadedOutSeparatorVerticalRight} />
-            <div className={homepageStyles.dashedDecorativeCircle} id={styles.ctaDashedCircleRight} />
+            <div
+                className={homepageStyles.fadedOutSeparator}
+                id={styles.ctaFadedOutSeparator}
+            />
+            <div
+                className={homepageStyles.fadedOutSeparatorVertical}
+                id={styles.fadedOutSeparatorVerticalLeft}
+            />
+            <div
+                className={homepageStyles.fadedOutSeparatorVertical}
+                id={styles.fadedOutSeparatorVerticalRight}
+            />
+            <div
+                className={homepageStyles.dashedDecorativeCircle}
+                id={styles.ctaDashedCircleRight}
+            />
 
             <ThemedImage
                 className={styles.ctaImage}

@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import CodeBlock from '@theme/CodeBlock';
 import Layout from '@theme/Layout';
@@ -18,7 +19,7 @@ import RunnableCodeBlock from '../components/RunnableCodeBlock';
 
 function GetStartedSection() {
     return (
-        <section className={styles.commonStyles}>
+        <section className={styles.getStartedSection}>
             <LanguageInfoWidget
                 language="JavaScript"
                 githubUrl="https://github.com/apify/crawlee"
@@ -242,7 +243,7 @@ function DeployToCloudSection() {
                 <h2>Deploy to cloud </h2>
                 <div className={styles.deployToCloudDescription}>
                     Crawlee, by Apify, works anywhere, but Apify offers the best
-                    experience. Easily turn your project into an Actor—a
+                    experience. Easily turn your project into an <Link to="https://apify.com/actors" rel="dofollow">Actor</Link>—a
                     serverless micro-app with built-in infra, proxies, and
                     storage.
                 </div>
