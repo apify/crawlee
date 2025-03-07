@@ -139,7 +139,7 @@ function CodeExampleSection() {
                     </RunnableCodeBlock>
                 )}
                 {activeOption === 'Python' && (
-                    <CodeBlock className="language-python">
+                    <CodeBlock language="python">
                         {pythonExample}
                     </CodeBlock>
                 )}

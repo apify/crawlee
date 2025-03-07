@@ -161,7 +161,7 @@
 }
 
 .codeBlockContainer {
-    :global(.code-block.theme-code-block) {
+    :global(.theme-code-block) {
         margin-bottom: 0;
         border-radius: 0;
         box-shadow: none;
