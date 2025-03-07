@@ -21,8 +21,8 @@ function GetStartedSection() {
         <section className={styles.commonStyles}>
             <LanguageInfoWidget
                 language="JavaScript"
-                githubUrl="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large"
-                to="/docs/introduction"
+                githubUrl="https://github.com/apify/crawlee"
+                to="/docs/quick-start"
             />
         </section>
     );

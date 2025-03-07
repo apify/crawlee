@@ -8185,6 +8185,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"github-buttons@npm:^2.22.0":
+  version: 2.29.1
+  resolution: "github-buttons@npm:2.29.1"
+  checksum: 10c0/f403cce395b09acab1bc3c2d08549d1130f77a56338d7c7be84cd101774eeb681b0f9a050c6e263dc585c60f3a3cf406be762afe2400449ad842e41732a3f897
+  languageName: node
+  linkType: hard
+
 "github-slugger@npm:^1.5.0":
   version: 1.5.0
   resolution: "github-slugger@npm:1.5.0"
@@ -13375,6 +13382,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-github-btn@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "react-github-btn@npm:1.4.0"
+  dependencies:
+    github-buttons: "npm:^2.22.0"
+  peerDependencies:
+    react: ">=16.3.0"
+  checksum: 10c0/ce21b1081e8985fce93f19deb3ab3e20b36e80508fcd9346eb617728b2e242bea845434296a9b8acbc339259551d58e43d840dbe9ec03c21a7094a7a9038986e
+  languageName: node
+  linkType: hard
+
 "react-helmet-async@npm:@slorber/react-helmet-async@*, react-helmet-async@npm:@slorber/react-helmet-async@1.3.0":
   version: 1.3.0
   resolution: "@slorber/react-helmet-async@npm:1.3.0"
@@ -14111,6 +14129,7 @@ __metadata:
     raw-loader: "npm:^4.0.2"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
+    react-github-btn: "npm:^1.4.0"
     react-lite-youtube-embed: "npm:^2.3.52"
     rimraf: "npm:^6.0.0"
     stream-browserify: "npm:^3.0.0"
@@ -15415,11 +15434,11 @@ __metadata:
 
 "typescript@patch:typescript@npm%3A^5.7.2#optional!builtin<compat/typescript>":
   version: 5.7.3
-  resolution: "typescript@patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"
+  resolution: "typescript@patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=d69c25"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/6fd7e0ed3bf23a81246878c613423730c40e8bdbfec4c6e4d7bf1b847cbb39076e56ad5f50aa9d7ebd89877999abaee216002d3f2818885e41c907caaa192cc4
+  checksum: 10c0/3b56d6afa03d9f6172d0b9cdb10e6b1efc9abc1608efd7a3d2f38773d5d8cfb9bbc68dfb72f0a7de5e8db04fc847f4e4baeddcd5ad9c9feda072234f0d788896
   languageName: node
   linkType: hard
 

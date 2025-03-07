@@ -18,14 +18,14 @@ function LanguageGetStartedSection() {
             <LanguageInfoWidget
                 language="JavaScript"
                 command="npx crawlee create my-crawler"
-                githubUrl="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large"
+                githubUrl="https://github.com/apify/crawlee"
                 to="/js"
             />
             <div className={styles.dashedSeparatorVertical} />
             <LanguageInfoWidget
                 language="Python"
                 command="pipx run crawlee create my-crawler"
-                githubUrl="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee-python&type=star&count=true&size=large"
+                githubUrl="https://github.com/apify/crawlee-python"
                 to="https://crawlee.dev/python"
             />
         </section>

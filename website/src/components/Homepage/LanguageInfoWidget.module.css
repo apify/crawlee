@@ -15,18 +15,14 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
-    margin-bottom: 16px;
-    iframe {
-        margin-left: 20px;
+    & > span {
+        line-height: 0;
     }
 }
 
 .buttonContainer:has(+ code) {
+    margin-bottom: 16px;
     gap: 12px;
-    padding-left: 20px;
-    iframe {
-        margin-left: 0px;
-    }
 }
 
 .commandContainer {
