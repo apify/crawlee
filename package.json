@@ -60,9 +60,9 @@
         "@apify/tsconfig": "^0.1.0",
         "@biomejs/biome": "^1.7.3",
         "@commitlint/config-conventional": "^19.0.0",
-        "@playwright/browser-chromium": "1.50.1",
-        "@playwright/browser-firefox": "1.50.1",
-        "@playwright/browser-webkit": "1.50.1",
+        "@playwright/browser-chromium": "1.51.0",
+        "@playwright/browser-firefox": "1.51.0",
+        "@playwright/browser-webkit": "1.51.0",
         "@types/content-type": "^1.1.5",
         "@types/deep-equal": "^1.0.1",
         "@types/domhandler": "^2.4.2",
@@ -88,6 +88,7 @@
         "apify-node-curl-impersonate": "^1.0.15",
         "basic-auth-parser": "^0.0.2",
         "body-parser": "^1.20.0",
+        "camoufox-js": "^0.2.1",
         "commitlint": "^19.0.0",
         "cross-env": "^7.0.3",
         "deep-equal": "^2.0.5",
@@ -103,10 +104,10 @@
         "lerna": "^8.0.0",
         "lint-staged": "^15.0.0",
         "nock": "^13.4.0",
-        "playwright": "1.50.1",
+        "playwright": "1.51.0",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
-        "puppeteer": "24.2.1",
+        "puppeteer": "24.4.0",
         "rimraf": "^6.0.0",
         "tsx": "^4.4.0",
         "turbo": "^2.1.0",
@@ -114,10 +115,10 @@
         "vite-tsconfig-paths": "^4.3.2",
         "vitest": "^2.0.0"
     },
-    "packageManager": "yarn@4.6.0",
+    "packageManager": "yarn@4.7.0",
     "volta": {
         "node": "22.14.0",
-        "yarn": "4.6.0"
+        "yarn": "4.7.0"
     },
     "resolutions": {
         "vite": "5.4.11"

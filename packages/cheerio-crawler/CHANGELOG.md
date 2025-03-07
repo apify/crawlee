@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Bug Fixes
+
+* **cheerio:** don't decode HTML entities in `context.body` ([#2838](https://github.com/apify/crawlee/issues/2838)) ([32d6d0e](https://github.com/apify/crawlee/commit/32d6d0ee7e7eaad1a401f4884926f31e0f68cc55)), closes [#2401](https://github.com/apify/crawlee/issues/2401)
+
+
+
+
+
 ## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
 
 **Note:** Version bump only for package @crawlee/cheerio

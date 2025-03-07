@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Features
+
+* **playwright:** add `handleCloudflareChallenge` helper ([#2865](https://github.com/apify/crawlee/issues/2865)) ([9a1725f](https://github.com/apify/crawlee/commit/9a1725f7b87fb70194fc31858500cb35639fb964))
+* use native `impit` streaming ([#2833](https://github.com/apify/crawlee/issues/2833)) ([af2fe23](https://github.com/apify/crawlee/commit/af2fe2315b3b36e7e2466f452c1df9c63abd156b)), closes [#2756](https://github.com/apify/crawlee/issues/2756)
+
+
+
+
+
 ## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
 
 
