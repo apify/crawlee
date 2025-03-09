@@ -1,0 +1,37 @@
+.copyButton {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  cursor: pointer;
+  fill: var(--color-icon);
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.copyButtonDefault {
+  width: 28px;
+  height: 28px;
+  background-color: var(--color-background-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition: background-color 0.12s ease-out;
+
+  &:hover {
+      background-color: var(--color-hover);
+  }
+
+  svg {
+    padding: 1px;
+  }
+}
+
+.copyButtonCompact {
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}

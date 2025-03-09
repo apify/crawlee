@@ -1,0 +1,68 @@
+.cliExampleSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+}
+
+.cliExampleTitle {
+    color: var(--color-text-muted);
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    margin-bottom: 16px;
+}
+
+.cliExampleCodeBlock {
+    width: fit-content;
+    height: fit-content;
+    padding: 0;
+    border: 0;
+    margin-bottom: 18px;
+    width: 100%;
+
+    pre {
+        margin: 0;
+        width: 100%;
+        padding: 8px 16px;
+        background-color: var(--color-background-muted);
+        border: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 14px;
+        line-height: 20px;
+
+        button {
+            margin-left: auto;
+        }
+    }
+
+    .cliCommandPrefix {
+        color: var(--color-text-muted);
+        user-select: none;
+    }
+
+    /* TABLET */
+    @media (min-width: 768px) {
+        max-width: 526px;
+    }
+}
+
+.cliExampleSubtitle {
+    color: var(--color-text-subtle);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .cliExampleSection {
+        padding: 64px 0;
+    }
+}
