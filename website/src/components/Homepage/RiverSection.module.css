@@ -138,13 +138,6 @@
                 span::before {
                     margin-right: 16px;
                 }
-                /* white-space: pre-wrap;
-                & > span {
-                    width: 100%;
-                    display: inline-block;
-                    padding-left: 200px;
-                    text-indent: -200px;
-                } */
             }
         }
     }
