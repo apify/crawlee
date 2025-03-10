@@ -131,6 +131,7 @@ function CodeExampleSection() {
                     <RunnableCodeBlock
                         className={styles.codeBlock}
                         type="playwright"
+                        language="javascript"
                     >
                         {{
                             code: jsExample,
