@@ -70,7 +70,6 @@ function CodeExampleSection() {
 }
 
 const benefitsCodeBlockCrawler = `{
-    useFingerprints: true,
     fingerprintOptions: {
         fingerprintGeneratorOptions: {
             browsers: ['chrome', 'firefox'],
