@@ -291,12 +291,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.14.0
-  resolution: "@apify/utilities@npm:2.14.0"
+  version: 2.15.0
+  resolution: "@apify/utilities@npm:2.15.0"
   dependencies:
     "@apify/consts": "npm:^2.37.0"
     "@apify/log": "npm:^2.5.13"
-  checksum: 10c0/4a50afa88156ed0c5e4c021358df70108efdb7afdab00369323eb3e0befd043aa74a6067dcb1b04e7041191c7bf3e4c8c7e17af9967a292fbce6bd87bb977094
+  checksum: 10c0/a67ad9dd2299f3d19c42b531fed49c20843594408eda0077a304b6ec7a9e7b16b6316f84b913a01bddc74a0e2d793173e2a61a6b4de44945db6760c7d0845700
   languageName: node
   linkType: hard
 
@@ -6218,9 +6218,9 @@ __metadata:
   linkType: hard
 
 "cssdb@npm:^8.2.3":
-  version: 8.2.3
-  resolution: "cssdb@npm:8.2.3"
-  checksum: 10c0/17c3ca6432ed02431db6b44bed74649ccef7d7b7b900ccbc7297525f030722c441dd67c71f28aef3cfa0814ba7b254a24adfb0dcd5728937da179ff437cdcd0c
+  version: 8.2.4
+  resolution: "cssdb@npm:8.2.4"
+  checksum: 10c0/441167ca3c636fe1b5f92abfe1a594fae93331292c0050d38ffea9b542a0e6c0486dc38fd67aad01f68d1401fbad459b2b6a62df1c83f6cfe0fce70a16830584
   languageName: node
   linkType: hard
 
@@ -6782,9 +6782,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.73":
-  version: 1.5.113
-  resolution: "electron-to-chromium@npm:1.5.113"
-  checksum: 10c0/837fe2fd26adbc4f3ad8e758d14067a14f636f9c2923b5ded8adb93426bbe3fdc83b48ddf9f2cf03be31b5becb0c31144db19c823b696fd52a7bc4583f4bde00
+  version: 1.5.114
+  resolution: "electron-to-chromium@npm:1.5.114"
+  checksum: 10c0/cb86057d78f1aeb53ab6550dedacfd9496bcc6676bab7b48466c3958ba9ce0ed78c7213b1eab99ba38542cbaaa176eb7f8ea8b0274c0688b8ce3058291549430
   languageName: node
   linkType: hard
 
@@ -7186,8 +7186,8 @@ __metadata:
   linkType: hard
 
 "eslint-import-resolver-typescript@npm:^3.6.1":
-  version: 3.8.3
-  resolution: "eslint-import-resolver-typescript@npm:3.8.3"
+  version: 3.8.4
+  resolution: "eslint-import-resolver-typescript@npm:3.8.4"
   dependencies:
     "@nolyfill/is-core-module": "npm:1.0.39"
     debug: "npm:^4.3.7"
@@ -7205,7 +7205,7 @@ __metadata:
       optional: true
     eslint-plugin-import-x:
       optional: true
-  checksum: 10c0/886ceeab4cad14958d7c7d3432ead2486374616c8ada7925ab96e55f919f2dbbbdbe7c3081d7d238231e84699849e82930417a66e05638bcc8202e1263edddeb
+  checksum: 10c0/d582536ab56091d6a0321ed35101ee315a7e101e5b360f47eb196b28ec9d3c9c6bd64d253d5935547490e97f70a47922bc9810e44b29964f9ec70e2251661a52
   languageName: node
   linkType: hard
 
@@ -13061,9 +13061,9 @@ __metadata:
   linkType: hard
 
 "prismjs@npm:^1.29.0":
-  version: 1.29.0
-  resolution: "prismjs@npm:1.29.0"
-  checksum: 10c0/d906c4c4d01b446db549b4f57f72d5d7e6ccaca04ecc670fb85cea4d4b1acc1283e945a9cbc3d81819084a699b382f970e02f9d1378e14af9808d366d9ed7ec6
+  version: 1.30.0
+  resolution: "prismjs@npm:1.30.0"
+  checksum: 10c0/f56205bfd58ef71ccfcbcb691fd0eb84adc96c6ff21b0b69fc6fdcf02be42d6ef972ba4aed60466310de3d67733f6a746f89f2fb79c00bf217406d465b3e8f23
   languageName: node
   linkType: hard
 
