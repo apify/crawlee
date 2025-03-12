@@ -219,6 +219,12 @@ export interface ListOptions {
      * @default 100
      */
     limit?: number;
+
+    locked?: boolean;
+
+    pending?: boolean;
+
+    lockedByRunId?: string;
 }
 
 export interface ListAndLockOptions extends ListOptions {
