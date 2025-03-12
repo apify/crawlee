@@ -236,6 +236,15 @@ aside > div > a > b {
     font-weight: 500;
     line-height: 24px; /* 150% */
     padding: 0;
+    &:hover,
+    &:focus {
+        color: var(--color-text-subtle);
+    }
+}
+
+.navbar__link--active,
+.navbar__link:hover {
+    color: var(--color-text-subtle);
 }
 
 .dropdown > .navbar__link::after {
@@ -344,6 +353,7 @@ nav.navbar .dropdown__menu {
 
 .dropdown__menu .dropdown__link--active {
     background: transparent;
+    color: var(--color-text-subtle);
 }
 
 .dropdown__menu .dropdown__link:hover,

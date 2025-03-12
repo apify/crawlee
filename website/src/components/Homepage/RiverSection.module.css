@@ -42,7 +42,7 @@
 
     /* Desktop layout */
     @media (min-width: 1024px) {
-        padding: 80px;
+        padding: 48px 80px;
     }
 }
 
@@ -119,6 +119,14 @@
     flex-direction: column;
     overflow: hidden;
 
+    img {
+        max-height: 284px;
+        object-fit: cover;
+        height: 100%;
+        width: 100%;
+        margin-block: auto;
+    }
+
     :global(.code-block) {
         flex-grow: 1;
         margin-bottom: 0;
@@ -133,10 +141,13 @@
                 height: 100%;
             }
             code {
+                font-size: 14px;
                 background: var(--color-background-muted);
-                padding: 16px 8px 16px 2px;
+                padding: 16px 8px 16px 4px;
                 span::before {
                     margin-right: 16px;
+                    color: var(--color-text-subtle);
+                    opacity: 1;
                 }
             }
         }

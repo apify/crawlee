@@ -115,8 +115,8 @@ function BenefitsSection() {
                     <ThemedImage
                         alt="Work with your favorite tools"
                         sources={{
-                            light: '/img/js_light.png',
-                            dark: '/img/js_dark.png',
+                            light: '/img/favorite-tools-light.webp',
+                            dark: '/img/favorite-tools-dark.webp',
                         }}
                     />
                 }

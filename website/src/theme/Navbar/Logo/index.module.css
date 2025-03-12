@@ -6,7 +6,6 @@
 .logoWithArrows {
     display: flex;
     align-items: center;
-    pointer-events: none;
 
     svg {
         margin: 0 2px;
@@ -62,7 +61,7 @@
 .menuItem {
     padding: 8px;
     width: 100%;
-    border-radius: 4px;
+    border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
