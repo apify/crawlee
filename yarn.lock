@@ -169,23 +169,23 @@ __metadata:
   linkType: hard
 
 "@babel/parser@npm:^7.25.4":
-  version: 7.26.9
-  resolution: "@babel/parser@npm:7.26.9"
+  version: 7.26.10
+  resolution: "@babel/parser@npm:7.26.10"
   dependencies:
-    "@babel/types": "npm:^7.26.9"
+    "@babel/types": "npm:^7.26.10"
   bin:
     parser: ./bin/babel-parser.js
-  checksum: 10c0/4b9ef3c9a0d4c328e5e5544f50fe8932c36f8a2c851e7f14a85401487cd3da75cad72c2e1bcec1eac55599a6bbb2fdc091f274c4fcafa6bdd112d4915ff087fc
+  checksum: 10c0/c47f5c0f63cd12a663e9dc94a635f9efbb5059d98086a92286d7764357c66bceba18ccbe79333e01e9be3bfb8caba34b3aaebfd8e62c3d5921c8cf907267be75
   languageName: node
   linkType: hard
 
-"@babel/types@npm:^7.25.4, @babel/types@npm:^7.26.9":
-  version: 7.26.9
-  resolution: "@babel/types@npm:7.26.9"
+"@babel/types@npm:^7.25.4, @babel/types@npm:^7.26.10":
+  version: 7.26.10
+  resolution: "@babel/types@npm:7.26.10"
   dependencies:
     "@babel/helper-string-parser": "npm:^7.25.9"
     "@babel/helper-validator-identifier": "npm:^7.25.9"
-  checksum: 10c0/999c56269ba00e5c57aa711fbe7ff071cd6990bafd1b978341ea7572cc78919986e2aa6ee51dacf4b6a7a6fa63ba4eb3f1a03cf55eee31b896a56d068b895964
+  checksum: 10c0/7a7f83f568bfc3dfabfaf9ae3a97ab5c061726c0afa7dcd94226d4f84a81559da368ed79671e3a8039d16f12476cf110381a377ebdea07587925f69628200dac
   languageName: node
   linkType: hard
 
@@ -1258,13 +1258,13 @@ __metadata:
   linkType: hard
 
 "@eslint-community/eslint-utils@npm:^4.2.0, @eslint-community/eslint-utils@npm:^4.4.0":
-  version: 4.4.1
-  resolution: "@eslint-community/eslint-utils@npm:4.4.1"
+  version: 4.5.0
+  resolution: "@eslint-community/eslint-utils@npm:4.5.0"
   dependencies:
     eslint-visitor-keys: "npm:^3.4.3"
   peerDependencies:
     eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
-  checksum: 10c0/2aa0ac2fc50ff3f234408b10900ed4f1a0b19352f21346ad4cc3d83a1271481bdda11097baa45d484dd564c895e0762a27a8240be7a256b3ad47129e96528252
+  checksum: 10c0/0fad96181bd73ef7254ba61dbbca460a41fe155880122db8852e75c1063617dc60005ff31a7354ecf9dbfcb46fce4349ceca5c1d24db036c5aa39a4bf622fafc
   languageName: node
   linkType: hard
 
@@ -3263,8 +3263,8 @@ __metadata:
   linkType: hard
 
 "apify-client@npm:^2.12.0":
-  version: 2.12.0
-  resolution: "apify-client@npm:2.12.0"
+  version: 2.12.1
+  resolution: "apify-client@npm:2.12.1"
   dependencies:
     "@apify/consts": "npm:^2.25.0"
     "@apify/log": "npm:^2.2.6"
@@ -3276,7 +3276,7 @@ __metadata:
     ow: "npm:^0.28.2"
     tslib: "npm:^2.5.0"
     type-fest: "npm:^4.0.0"
-  checksum: 10c0/f709b2c5b2c61af6b5bf0c36339ca4808a6b2aad260b42b6755e2cb258f9d24b05c5207066d972674d189865c4c855b994dfc0d8dcc81e7a0463903098d5999a
+  checksum: 10c0/fb39b2c0aa4d6628037ba11f9f1164a46e5657f63587cfd3bdae035b793eb00b6dfcc6480eb30c7aec8d6d1dabc1dfa09ed2200ce3f20b3b487b41170cd3df38
   languageName: node
   linkType: hard
 
@@ -3637,9 +3637,9 @@ __metadata:
   linkType: hard
 
 "bare-os@npm:^3.0.1":
-  version: 3.5.1
-  resolution: "bare-os@npm:3.5.1"
-  checksum: 10c0/868433c4f5a551919191ad039fd04ba3ec5d0cd7b0de4fbb5854af517561b83a32b722d2d36070520bbf888a1dad6e492ef70f0ff1d41f6861f365fb271af946
+  version: 3.6.0
+  resolution: "bare-os@npm:3.6.0"
+  checksum: 10c0/e578cc1c415b9fe75f0049cdce58f28755044a2cb91dc907898b1284c49f98cda34c7bc3a7ee40b1d4bc1f510fae53edcc293063caec1d5a099e9d13b3415475
   languageName: node
   linkType: hard
 
@@ -5063,9 +5063,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1429850
-  resolution: "devtools-protocol@npm:0.0.1429850"
-  checksum: 10c0/b256d2f215cdc64795192641351c02f203dfc591965d743fbc723ade419e0b66cf02a2bc9e717045a215061636aa56032e380fbf8142f47c0f2c012c5244cc01
+  version: 0.0.1430640
+  resolution: "devtools-protocol@npm:0.0.1430640"
+  checksum: 10c0/9302dbe374412b052e8af756a6aa2d512e3376802da48bb663406b310acf7d4d3b36825544a03fc91d3b5694e0a2b0898715f3f8bf5550ff0f64b44e9152ed39
   languageName: node
   linkType: hard
 
@@ -5811,8 +5811,8 @@ __metadata:
   linkType: hard
 
 "eslint-import-resolver-typescript@npm:^3.6.1":
-  version: 3.8.4
-  resolution: "eslint-import-resolver-typescript@npm:3.8.4"
+  version: 3.8.5
+  resolution: "eslint-import-resolver-typescript@npm:3.8.5"
   dependencies:
     "@nolyfill/is-core-module": "npm:1.0.39"
     debug: "npm:^4.3.7"
@@ -5830,7 +5830,7 @@ __metadata:
       optional: true
     eslint-plugin-import-x:
       optional: true
-  checksum: 10c0/d582536ab56091d6a0321ed35101ee315a7e101e5b360f47eb196b28ec9d3c9c6bd64d253d5935547490e97f70a47922bc9810e44b29964f9ec70e2251661a52
+  checksum: 10c0/787fcd1ee314f8adb206ae72da0f35e4d6dd0d561509305e99316b1cc94aabf57a3cd22627f83fd0a723fad4e7701ae5f80324b450c3adb83c4f48ca4661c178
   languageName: node
   linkType: hard
 
@@ -9615,12 +9615,12 @@ __metadata:
   linkType: hard
 
 "ml-matrix@npm:^6.11.0, ml-matrix@npm:^6.5.0":
-  version: 6.12.0
-  resolution: "ml-matrix@npm:6.12.0"
+  version: 6.12.1
+  resolution: "ml-matrix@npm:6.12.1"
   dependencies:
     is-any-array: "npm:^2.0.1"
     ml-array-rescale: "npm:^1.3.7"
-  checksum: 10c0/7927c3ab18856fcdef75bd8bebf88c13c7291ef1a3b78b0e8c827abbaead4a489c634bc888ae05e4df962141448f758b6fb9dcaf876ff42b7fd35a018dacb8c8
+  checksum: 10c0/1e7a382a9abf099f6650a01056f09072f95bba15f566c1c9d78b208ebef5ba4cd4498d5aeef4a1014e71e059a5101a31fc2d5e3260f812b55b3d610bbd3d5484
   languageName: node
   linkType: hard
 
