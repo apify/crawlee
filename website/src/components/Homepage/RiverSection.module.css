@@ -136,11 +136,13 @@
         :global(div[class*='codeBlockContent']) {
             height: 100%;
 
-            pre,
-            code {
+            pre {
                 height: 100%;
+                display: flex;
+                align-items: center;
             }
             code {
+                height: auto;
                 font-size: 14px;
                 background: var(--color-background-muted);
                 padding: 16px 8px 16px 4px;

@@ -45,6 +45,7 @@ export default function LanguageInfoWidget({
                     data-show-count="true"
                     aria-label="Star crawlee on GitHub"
                     data-size="large"
+                    style={{ minHeight: '28px' }}
                 >
                     Star
                 </GitHubButton>
