@@ -1,11 +1,11 @@
 /************* PAGE LAYOUT *************/
 
 #homepageContainer {
-    width: calc(100% - 32px) !important;
+    width: calc(100% - 48px) !important;
     max-width: 1200px !important;
     border-left: 1px solid var(--color-separator);
     border-right: 1px solid var(--color-separator);
-    margin: 0 16px;
+    margin: 0 24px;
 }
 
 .dashedSeparator {
@@ -162,7 +162,7 @@
 
 .codeBlockContainer {
     :global(.theme-code-block) {
-        margin-bottom: 0;
+        margin-bottom: 32px;
         border-radius: 0;
         box-shadow: none;
         code {
@@ -183,6 +183,9 @@
 
 /* TABLET */
 @media (min-width: 768px) {
+    .codeBlockContainer :global(.theme-code-block) {
+        margin-bottom: 0;
+    }
     .codeExampleSection {
         position: relative;
     }
