@@ -170,6 +170,47 @@ module.exports = {
                 },
             };
         },
+        // skipping svgo for animated crawlee logo
+        async function doNotUseSVGO() {
+            return {
+                name: 'docusaurus-svgo',
+                configureWebpack(config) {
+                    for (const rule of config.module.rules) {
+                        if (
+                            typeof rule === 'object'
+                            && rule.test.toString() === '/\\.svg$/i'
+                        ) {
+                            for (const nestedRule of rule.oneOf) {
+                                if (nestedRule.use instanceof Array) {
+                                    for (const loader of nestedRule.use) {
+                                        if (
+                                            typeof loader === 'object'
+                                            && loader.loader === require.resolve('@svgr/webpack')
+                                        ) {
+                                            if (typeof loader.options === 'object' && loader.options.svgo === true) {
+                                                loader.options.svgo = false;
+                                                const nestedRuleCopy = JSON.parse(JSON.stringify(nestedRule));
+                                                rule.oneOf.splice(1, 0, nestedRuleCopy);
+                                                nestedRule.exclude = /animated-crawlee-logo/;
+                                                loader.options.svgo = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return {
+                        mergeStrategy: {
+                            'module.rules': 'replace',
+                        },
+                        module: {
+                            rules: config.module.rules,
+                        },
+                    };
+                },
+            };
+        },
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({

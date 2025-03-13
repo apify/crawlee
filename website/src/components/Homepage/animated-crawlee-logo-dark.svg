@@ -1,16 +1,17 @@
 <svg width="543" height="615" viewBox="0 0 543 615" fill="none" xmlns="http://www.w3.org/2000/svg" >
 <style>
+
     g > rect {
       animation: rotate 5s ease-in-out infinite;
-      transform-origin: center; 
+      transform-origin: center;
       transform-box: fill-box;
+      will-change: transform;
     }
 
     @keyframes rotate {
-      2%   { transform: rotate(0deg); }
-      50%  { transform: rotate(180deg); }
-      52%  { transform: rotate(180deg); }
-      100% { transform: rotate(0deg); }
+      0%   { transform: rotateZ(0deg); }
+      50%  { transform: rotateZ(180deg); }
+      100% { transform: rotateZ(0deg); }
     }
 </style>
 <mask id="mask0_964_28846" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="238.25" y="444.375" width="59" height="40.5">

@@ -14,7 +14,7 @@ export default function LanguageInfoWidget({
     to,
     githubUrl,
 }) {
-    const { isDarkTheme } = useColorMode();
+    const { colorMode } = useColorMode();
     return (
         <div className={styles.languageGetStartedContainer}>
             {language === 'JavaScript' && (
@@ -41,7 +41,7 @@ export default function LanguageInfoWidget({
                 </Button>
                 <GitHubButton
                     href={githubUrl}
-                    data-color-scheme={isDarkTheme ? 'dark' : 'light'}
+                    data-color-scheme={colorMode}
                     data-show-count="true"
                     aria-label="Star crawlee on GitHub"
                     data-size="large"
