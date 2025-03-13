@@ -1,12 +1,15 @@
-import ThemedImage from '@theme/ThemedImage';
+import { useColorMode } from '@docusaurus/theme-common';
 import clsx from 'clsx';
 import React from 'react';
 
+import AnimatedLogoDark from './animated-crawlee-logo-dark.svg';
+import AnimatedLogoLight from './animated-crawlee-logo-light.svg';
 import styles from './HomepageCtaSection.module.css';
 import homepageStyles from '../../pages/index.module.css';
 import Button from '../Button';
 
 export default function HomepageCtaSection({ showJs, showPython }) {
+    const { colorMode } = useColorMode();
     return (
         <section className={styles.ctaSection}>
             <h2 className={styles.ctaTitle}>Get started now!</h2>
@@ -58,14 +61,11 @@ export default function HomepageCtaSection({ showJs, showPython }) {
                 className={homepageStyles.dashedDecorativeCircle}
                 id={styles.ctaDashedCircleRight}
             />
-
-            <ThemedImage
-                className={styles.ctaImage}
-                sources={{
-                    light: '/img/animated-crawlee-logo-light.svg',
-                    dark: '/img/animated-crawlee-logo-dark.svg',
-                }}
-            />
+            {colorMode === 'dark' ? (
+                <AnimatedLogoDark className={styles.ctaImage} />
+            ) : (
+                <AnimatedLogoLight className={styles.ctaImage} />
+            )}
         </section>
     );
 }
