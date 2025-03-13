@@ -191,7 +191,7 @@ aside > div > a > b {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     .navbar__items--right > div,
     .navbar__items--right > a {
         display: none;

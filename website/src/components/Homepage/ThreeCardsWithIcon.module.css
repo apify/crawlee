@@ -30,6 +30,10 @@
     }
 }
 
+.cardItem:has(:local(.cardAction)) {
+    padding: 24px;
+}
+
 .cardIcon {
     margin-bottom: 16px;
     display: flex;
