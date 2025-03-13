@@ -15,10 +15,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.37.0":
-  version: 2.37.0
-  resolution: "@apify/consts@npm:2.37.0"
-  checksum: 10c0/f8d48904e07382c9c9a5cc7823fd4ea1ccd6bb91dade0d88d10a75c7c24146b43ee996861a66e1b43d33c63496eaa82aa850c59a1be03ce804783a6d142225ef
+"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.38.0":
+  version: 2.38.0
+  resolution: "@apify/consts@npm:2.38.0"
+  checksum: 10c0/4600d45674ded3d346474f02ec6d6b18831c059cbf83bbc3cf81a3976b1112b27dcb593e328432ede9b5509b05b7c3de6f7432e3b469f86847e3586da7b32422
   languageName: node
   linkType: hard
 
@@ -66,23 +66,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.67
-  resolution: "@apify/input_secrets@npm:1.1.67"
+  version: 1.1.68
+  resolution: "@apify/input_secrets@npm:1.1.68"
   dependencies:
-    "@apify/log": "npm:^2.5.13"
-    "@apify/utilities": "npm:^2.15.0"
+    "@apify/log": "npm:^2.5.14"
+    "@apify/utilities": "npm:^2.15.1"
     ow: "npm:^0.28.2"
-  checksum: 10c0/290a7a2fe6960f23a1103125e429d1596a6366accbfaedb4b3225f9bbb3da9945b3ffe64d6cfcbdc9b06857bdb5bd1519d38579557aa8cc1ef88405ac1e69949
+  checksum: 10c0/e7359b8261bb8f68f313610b1b41933063f4ae86539555b002a4e0de20fc5c814f62ca84c85f1a635b12ff17f78e85b6e82b65b013594413ac6357868cefe98d
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.13":
-  version: 2.5.13
-  resolution: "@apify/log@npm:2.5.13"
+"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.14":
+  version: 2.5.14
+  resolution: "@apify/log@npm:2.5.14"
   dependencies:
-    "@apify/consts": "npm:^2.37.0"
+    "@apify/consts": "npm:^2.38.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 10c0/b4295fec3101e63ed13af4c6ea103af6bd2bc2062091b1d6d921e23e4272883a262cba5fd1b68136a4dff207a40a4a36b5370eba0dac4f6f056c0bd2648a8118
+  checksum: 10c0/542708d6049b299f1fec2ac1a57bc4651400dc9ae11834534253d440df8697c3786c3d856261053e5822fb07a7c3aa29a9a4eda621edc62ad67612826a6d05e7
   languageName: node
   linkType: hard
 
@@ -98,11 +98,11 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.30":
-  version: 2.0.54
-  resolution: "@apify/pseudo_url@npm:2.0.54"
+  version: 2.0.55
+  resolution: "@apify/pseudo_url@npm:2.0.55"
   dependencies:
-    "@apify/log": "npm:^2.5.13"
-  checksum: 10c0/8a04d0af3b8b08ea1ce5790bae46ab13c669456dabc8100ae8cca5d10bb68fa71c5a813fce140dc02a3080128a5da67dd4176967c97179678eba50182d24f14c
+    "@apify/log": "npm:^2.5.14"
+  checksum: 10c0/c5651d709e969d1c488774130df0e3e1146406202370d3f96ba0d108785a567ebcd5b9a4842bd9a49d58e0e5463a78aad125a300fcd92da5be63f261e28adb75
   languageName: node
   linkType: hard
 
@@ -120,13 +120,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.15.0, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
-  version: 2.15.0
-  resolution: "@apify/utilities@npm:2.15.0"
+"@apify/utilities@npm:^2.15.1, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
+  version: 2.15.1
+  resolution: "@apify/utilities@npm:2.15.1"
   dependencies:
-    "@apify/consts": "npm:^2.37.0"
-    "@apify/log": "npm:^2.5.13"
-  checksum: 10c0/a67ad9dd2299f3d19c42b531fed49c20843594408eda0077a304b6ec7a9e7b16b6316f84b913a01bddc74a0e2d793173e2a61a6b4de44945db6760c7d0845700
+    "@apify/consts": "npm:^2.38.0"
+    "@apify/log": "npm:^2.5.14"
+  checksum: 10c0/1269731a571f3ff85da0829f6bcec5b4544f94b8792fedc7ba6914406b1e9c75ef928bb94ed02c691f02f05d401dc7cb3a0c9a5eea6b47f63296adc8fc5f4ac2
   languageName: node
   linkType: hard
 
@@ -3587,13 +3587,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.6.7, axios@npm:^1.7.4":
-  version: 1.8.2
-  resolution: "axios@npm:1.8.2"
+  version: 1.8.3
+  resolution: "axios@npm:1.8.3"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/d8c2969e4642dc6d39555ac58effe06c051ba7aac2bd40cad7a9011c019fb2f16ee011c5a6906cb25b8a4f87258c359314eb981f852e60ad445ecaeb793c7aa2
+  checksum: 10c0/de75da9859adf0a6481d4af2b687db357a054d20f0d69b99d502b71dae3578326b1fdc0951dabaef769827484941cda93d3f89150bf9e04f05f6615fb8316780
   languageName: node
   linkType: hard
 
@@ -5235,9 +5235,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.73":
-  version: 1.5.114
-  resolution: "electron-to-chromium@npm:1.5.114"
-  checksum: 10c0/cb86057d78f1aeb53ab6550dedacfd9496bcc6676bab7b48466c3958ba9ce0ed78c7213b1eab99ba38542cbaaa176eb7f8ea8b0274c0688b8ce3058291549430
+  version: 1.5.115
+  resolution: "electron-to-chromium@npm:1.5.115"
+  checksum: 10c0/52429944c95118d5f1fd9d245225f64e3ab55933a7a7c975bec43bea857a285ea9d57586f5cee7978ed9f7edce8cf650354a824ed821806846493566c6be6400
   languageName: node
   linkType: hard
 
@@ -5811,8 +5811,8 @@ __metadata:
   linkType: hard
 
 "eslint-import-resolver-typescript@npm:^3.6.1":
-  version: 3.8.5
-  resolution: "eslint-import-resolver-typescript@npm:3.8.5"
+  version: 3.8.6
+  resolution: "eslint-import-resolver-typescript@npm:3.8.6"
   dependencies:
     "@nolyfill/is-core-module": "npm:1.0.39"
     debug: "npm:^4.3.7"
@@ -5830,7 +5830,7 @@ __metadata:
       optional: true
     eslint-plugin-import-x:
       optional: true
-  checksum: 10c0/787fcd1ee314f8adb206ae72da0f35e4d6dd0d561509305e99316b1cc94aabf57a3cd22627f83fd0a723fad4e7701ae5f80324b450c3adb83c4f48ca4661c178
+  checksum: 10c0/bc18552c2d5ff94b3d476af36906834cb2e120334832bf0f7bc6353607c3bcf6f44cf29bb3516ecfe3fd8c07c0009065d52e3588ff0c24032819b408d5963aaf
   languageName: node
   linkType: hard
 
@@ -8789,8 +8789,8 @@ __metadata:
   linkType: hard
 
 "lint-staged@npm:^15.0.0":
-  version: 15.4.3
-  resolution: "lint-staged@npm:15.4.3"
+  version: 15.5.0
+  resolution: "lint-staged@npm:15.5.0"
   dependencies:
     chalk: "npm:^5.4.1"
     commander: "npm:^13.1.0"
@@ -8804,7 +8804,7 @@ __metadata:
     yaml: "npm:^2.7.0"
   bin:
     lint-staged: bin/lint-staged.js
-  checksum: 10c0/c1f71f2273bcbd992af929620f5acc6b9f6899da4b395e780e0b3ab33a0d725c239eb961873067c8c842e057c585c71dd4d44c0dc8b25539d3c2e97a3bdd6f30
+  checksum: 10c0/393b24d85d705a36e6556dc9d9b710594163be60f7789a2ca71bbf8f31debc10f7fde9cd0e868466ac2b7c154661983602decd7abbb6c685b21007bc70dbbdd6
   languageName: node
   linkType: hard
 
