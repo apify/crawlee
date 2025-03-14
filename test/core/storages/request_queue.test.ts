@@ -1009,4 +1009,11 @@ describe('RequestQueue v2', () => {
 
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(Array.from({ length: 5 }, (_, i) => `/${i + 1}`));
     });
+
+    test('repeated `open` calls should return the same instance', async () => {
+        const queue1 = await RequestQueueV2.open('repeated-open-call');
+        const queue2 = await RequestQueueV2.open('repeated-open-call');
+
+        expect(queue1).toBe(queue2);
+    });
 });
