@@ -1,4 +1,6 @@
-/* eslint-disable global-require,import/no-extraneous-dependencies */
+/* eslint-disable global-require */
+const { cp } = require('fs');
+
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -34,7 +36,7 @@ const packagesOrder = [
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
-    title: 'Crawlee · Build reliable crawlers. Fast.',
+    title: 'Crawlee for JavaScript · Build reliable crawlers. Fast.',
     tagline: 'Build reliable crawlers. Fast.',
     url: 'https://crawlee.dev',
     baseUrl: '/',
@@ -170,202 +172,189 @@ module.exports = {
                 },
             };
         },
+        // skipping svgo for animated crawlee logo
+        async function doNotUseSVGO() {
+            return {
+                name: 'docusaurus-svgo',
+                configureWebpack(config) {
+                    // find the svg rule
+                    const svgRule = config.module.rules.find((r) => typeof r === 'object' && r.test.toString() === '/\\.svg$/i');
+
+                    // find the svgr loader
+                    const svgrLoader = svgRule?.oneOf?.[0];
+
+                    // make copy of svgr loader and disable svgo
+                    const svgrLoaderCopy = JSON.parse(JSON.stringify(svgrLoader));
+
+                    // turn off svgo
+                    svgrLoaderCopy.use[0].options.svgo = false;
+
+                    // insert the copy after the original svgr loader
+                    svgRule.oneOf.splice(1, 0, svgrLoaderCopy);
+
+                    // exclude animated logo from the first svgr loader (with svgo enabled)
+                    svgrLoader.exclude = /animated-crawlee-logo/;
+                    return {
+                        mergeStrategy: {
+                            'module.rules': 'replace',
+                        },
+                        module: {
+                            rules: config.module.rules,
+                        },
+                    };
+                },
+            };
+        },
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({
-        docs: {
-            versionPersistence: 'localStorage',
-            sidebar: {
-                hideable: true,
+            docs: {
+                versionPersistence: 'localStorage',
+                sidebar: {
+                    hideable: true,
+                },
             },
-        },
-        // announcementBar: {
-        //     id: `crawlee-for-python-webinar`,
-        //     content: `🎉️ <b><a href="https://crawlee.dev/python/">Crawlee for Python is open to early adopters!</a></b> 🥳️`,
-        // },
-        navbar: {
-            hideOnScroll: true,
-            title: 'Crawlee',
-            logo: {
-                src: 'img/crawlee-light.svg',
-                srcDark: 'img/crawlee-dark.svg',
+            // announcementBar: {
+            //     id: `crawlee-for-python-webinar`,
+            //     content: `🎉️ <b><a href="https://crawlee.dev/python/">Crawlee for Python is open to early adopters!</a></b> 🥳️`,
+            // },
+            navbar: {
+                hideOnScroll: true,
+                title: 'Crawlee',
+                logo: {
+                    src: 'img/crawlee-light.svg',
+                    srcDark: 'img/crawlee-dark.svg',
+                },
+                items: [
+                    {
+                        type: 'doc',
+                        docId: 'quick-start/quick-start',
+                        label: 'Docs',
+                        position: 'left',
+                    },
+                    {
+                        type: 'doc',
+                        docId: '/examples',
+                        label: 'Examples',
+                        position: 'left',
+                    },
+                    {
+                        type: 'custom-api',
+                        to: 'core',
+                        label: 'API',
+                        position: 'left',
+                        activeBaseRegex: 'api/(?!.*/changelog)',
+                    },
+                    {
+                        type: 'custom-api',
+                        to: 'core/changelog',
+                        label: 'Changelog',
+                        position: 'left',
+                        className: 'changelog',
+                        activeBaseRegex: 'changelog',
+                    },
+                    {
+                        to: 'blog',
+                        label: 'Blog',
+                        position: 'left',
+                    },
+                ],
             },
-            items: [
-                {
-                    type: 'doc',
-                    docId: 'quick-start/quick-start',
-                    label: 'Docs',
-                    position: 'left',
-                },
-                {
-                    type: 'doc',
-                    docId: '/examples',
-                    label: 'Examples',
-                    position: 'left',
-                },
-                {
-                    type: 'custom-api',
-                    to: 'core',
-                    label: 'API',
-                    position: 'left',
-                    activeBaseRegex: 'api/(?!.*/changelog)',
-                },
-                {
-                    type: 'custom-api',
-                    to: 'core/changelog',
-                    label: 'Changelog',
-                    position: 'left',
-                    className: 'changelog',
-                    activeBaseRegex: 'changelog',
-                },
-                {
-                    to: 'blog',
-                    label: 'Blog',
-                    position: 'left',
-                },
-                {
-                    type: 'dropdown',
-                    label: 'Node.js',
-                    position: 'left',
-                    items: [
-                        {
-                            label: 'Node.js',
-                            href: '#',
-                            target: '_self',
-                            rel: 'dofollow',
-                        },
-                        {
-                            label: 'Python',
-                            href: 'https://crawlee.dev/python',
-                            target: '_self',
-                            rel: 'dofollow',
-                        },
-                    ],
-                },
-                {
-                    type: 'docsVersionDropdown',
-                    position: 'left',
-                    dropdownItemsAfter: [
-                        {
-                            href: 'https://sdk.apify.com/docs/guides/getting-started',
-                            label: '2.2',
-                        },
-                        {
-                            href: 'https://sdk.apify.com/docs/1.3.1/guides/getting-started',
-                            label: '1.3',
-                        },
-                    ],
-                },
-                {
-                    href: 'https://github.com/apify/crawlee',
-                    label: 'GitHub',
-                    title: 'View on GitHub',
-                    position: 'right',
-                    className: 'icon',
-                },
-                {
-                    href: 'https://discord.com/invite/jyEM2PRvMU',
-                    label: 'Discord',
-                    title: 'Chat on Discord',
-                    position: 'right',
-                    className: 'icon',
-                },
+            colorMode: {
+                defaultMode: 'light',
+                disableSwitch: false,
+                respectPrefersColorScheme: true,
+            },
+            prism: {
+                defaultLanguage: 'typescript',
+                theme: require('prism-react-renderer').themes.github,
+                darkTheme: require('prism-react-renderer').themes.dracula,
+                additionalLanguages: ['docker', 'log', 'bash', 'diff', 'json'],
+            },
+            metadata: [
+                // eslint-disable-next-line max-len
+                { name: 'description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
+                // eslint-disable-next-line max-len
+                { name: 'og:description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
             ],
-        },
-        colorMode: {
-            defaultMode: 'light',
-            disableSwitch: false,
-            respectPrefersColorScheme: true,
-        },
-        prism: {
-            defaultLanguage: 'typescript',
-            theme: require('prism-react-renderer').themes.github,
-            darkTheme: require('prism-react-renderer').themes.dracula,
-            additionalLanguages: ['docker', 'log', 'bash', 'diff', 'json'],
-        },
-        metadata: [
-            // eslint-disable-next-line max-len
-            { name: 'description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
-            // eslint-disable-next-line max-len
-            { name: 'og:description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
-        ],
-        image: 'img/crawlee-og.png',
-        footer: {
-            links: [
-                {
-                    title: 'Docs',
-                    items: [
-                        {
-                            label: 'Guides',
-                            to: 'docs/guides',
-                        },
-                        {
-                            label: 'Examples',
-                            to: 'docs/examples',
-                        },
-                        {
-                            label: 'API reference',
-                            to: 'api/core',
-                        },
-                        {
-                            label: 'Upgrading to v3',
-                            to: 'docs/upgrading/upgrading-to-v3',
-                        },
-                    ],
-                },
-                {
-                    title: 'Community',
-                    items: [
-                        {
-                            label: 'Blog',
-                            to: 'blog',
-                        },
-                        {
-                            label: 'Discord',
-                            href: 'https://discord.com/invite/jyEM2PRvMU',
-                        },
-                        {
-                            label: 'Stack Overflow',
-                            href: 'https://stackoverflow.com/questions/tagged/crawlee',
-                        },
-                        {
-                            label: 'Twitter',
-                            href: 'https://twitter.com/apify',
-                        },
-                    ],
-                },
-                {
-                    title: 'More',
-                    items: [
-                        {
-                            label: 'Apify Platform',
-                            href: 'https://apify.com',
-                        },
-                        {
-                            label: 'Docusaurus',
-                            href: 'https://docusaurus.io',
-                        },
-                        {
-                            label: 'GitHub',
-                            href: 'https://github.com/apify/crawlee',
-                        },
-                    ],
-                },
-            ],
-            logo: {
-                src: 'img/apify_logo.svg',
-                href: '/',
-                width: '60px',
-                height: '60px',
+            image: 'img/crawlee-og.png',
+            footer: {
+                links: [
+                    {
+                        title: 'Docs',
+                        items: [
+                            {
+                                label: 'Guides',
+                                to: 'docs/guides',
+                            },
+                            {
+                                label: 'Examples',
+                                to: 'docs/examples',
+                            },
+                            {
+                                label: 'API reference',
+                                to: 'api/core',
+                            },
+                            {
+                                label: 'Changelog',
+                                to: 'api/core/changelog',
+                            },
+                        ],
+                    },
+                    {
+                        title: 'Product',
+                        items: [
+                            {
+                                label: 'Discord',
+                                href: 'https://discord.com/invite/jyEM2PRvMU',
+                            },
+                            {
+                                label: 'Stack Overflow',
+                                href: 'https://stackoverflow.com/questions/tagged/crawlee',
+                            },
+                            {
+                                label: 'Twitter',
+                                href: 'https://twitter.com/apify',
+                            },
+                            {
+                                label: 'YouTube',
+                                href: 'https://www.youtube.com/apify',
+                            },
+
+                        ],
+                    },
+                    {
+                        title: 'More',
+                        items: [
+                            {
+                                label: 'Apify Platform',
+                                href: 'https://apify.com',
+                            },
+                            {
+                                label: 'Docusaurus',
+                                href: 'https://docusaurus.io',
+                            },
+                            {
+                                label: 'GitHub',
+                                href: 'https://github.com/apify/crawlee',
+                            },
+                        ],
+                    },
+                ],
             },
-        },
-        algolia: {
-            appId: '5JC94MPMLY',
-            apiKey: '267679200b833c2ca1255ab276731869', // search only (public) API key
-            indexName: 'crawlee',
-            algoliaOptions: {
-                facetFilters: ['version:VERSION'],
+            algolia: {
+                appId: '5JC94MPMLY',
+                apiKey: '267679200b833c2ca1255ab276731869', // search only (public) API key
+                indexName: 'crawlee',
+                placeholder: 'Search documentation',
+                algoliaOptions: {
+                    facetFilters: ['version:VERSION'],
+                },
+                translations: {
+                    button: {
+                        buttonText: 'Search documentation...',
+                    },
+                },
             },
-        },
-    }),
+        }),
 };
