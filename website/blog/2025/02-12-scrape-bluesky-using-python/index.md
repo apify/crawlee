@@ -252,7 +252,7 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
             }
         )
 
-    await self._posts.push_data(posts)  # Push butch posts data to the dataset
+    await self._posts.push_data(posts)  # Push a batch of posts to the dataset
     await context.add_requests(list(user_requests.values()))
 
     if cursor := data.get('cursor'):
