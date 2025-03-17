@@ -88,19 +88,22 @@ Your `request_handler` function should look similar to the example below:
 ```python
 @crawler.router.default_handler
 async def request_handler(context: BeautifulSoupCrawlingContext) -> None:
-    url = context.request.url<br>    Actor.log.info(f'Scraping {url}...')
+    url = context.request.url
+    Actor.log.info(f'Scraping {url}...')
+
     # Select the product name and price elements.
     product_name_element = context.soup.find('div', class_='productname')
-    
+
     # Extract the desired data.
     data = {
         'url': context.request.url,
         'product_name': product_name_element.text.strip() if product_name_element else None,
-    } 
+    }
+
     # Store the extracted data to the default dataset.
     await context.push_data(data)
 
-    # Enqueue additional links found on the current page.    
+    # Enqueue additional links found on the current page.
     # await context.enqueue_links() -> REMOVE THIS LINE
 ```
 
@@ -256,7 +259,9 @@ if data['price'] < price_threshold:
     Actor.log.info(f"Email sent with run ID: {actor_run.id}")
 ```
 
-In the code above, we’re using the **Apify Python SDK**, which is already included in our project, to call the “Send Email” Actor with the required input.<br><br>To make this API call work, you’ll need to log in to your Apify account from the terminal using your **`APIFY_API_TOKEN`**.
+In the code above, we’re using the **Apify Python SDK**, which is already included in our project, to call the “Send Email” Actor with the required input.
+
+To make this API call work, you’ll need to log in to your Apify account from the terminal using your **`APIFY_API_TOKEN`**.
 
 To get your **`APIFY_API_TOKEN`**, sign up for an Apify account, then navigate to **Settings → API & Integrations**, and copy your **Personal API token**.
 
