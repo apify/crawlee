@@ -293,6 +293,12 @@ aside > div > a > b {
     }
 }
 
+nav[class*='navbarHidden'] {
+    div[class*='navbarLogo'] {
+        display: none;
+    }
+}
+
 .navbar .icon {
     font-size: 0;
     padding: 4px;
