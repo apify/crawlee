@@ -3,9 +3,7 @@ import React from 'react';
 import CopyButton from '../CopyButton';
 import styles from './HomepageCliExample.module.css';
 
-const cliCommand = `npx crawlee create my-crawler`;
-
-export default function CliExample() {
+export default function CliExample({ example }) {
     return (
         <section className={styles.cliExampleSection}>
             <div className={styles.cliExampleTitle}>
@@ -14,8 +12,8 @@ export default function CliExample() {
             <code className={styles.cliExampleCodeBlock}>
                 <pre>
                     <span className={styles.cliCommandPrefix}>$</span>
-                    {cliCommand}
-                    <CopyButton copyText={cliCommand} />
+                    {example}
+                    <CopyButton copyText={example} />
                 </pre>
             </code>
             <div className={styles.cliExampleSubtitle}>

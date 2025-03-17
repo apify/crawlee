@@ -104,7 +104,6 @@ function BenefitsSection() {
                         {benefitsCodeBlockCrawler}
                     </CodeBlock>
                 }
-
                 to="/docs/guides/avoid-blocking"
             />
             <div className={commonStyles.trianglesSeparator} />
@@ -243,8 +242,11 @@ function DeployToCloudSection() {
                 <h2>Deploy to cloud </h2>
                 <div className={styles.deployToCloudDescription}>
                     Crawlee, by Apify, works anywhere, but Apify offers the best
-                    experience. Easily turn your project into an <Link to="https://apify.com/actors" rel="dofollow">Actor</Link>—a
-                    serverless micro-app with built-in infra, proxies, and
+                    experience. Easily turn your project into an{' '}
+                    <Link to="https://apify.com/actors" rel="dofollow">
+                        Actor
+                    </Link>
+                    —a serverless micro-app with built-in infra, proxies, and
                     storage.
                 </div>
                 <Button
@@ -367,7 +369,7 @@ export default function JavascriptHomepage() {
                 <GetStartedSection />
                 <div className={commonStyles.dashedSeparator} />
                 <CodeExampleSection />
-                <HomepageCliExample />
+                <HomepageCliExample example={`npx crawlee create my-crawler`} />
                 <div className={commonStyles.dashedSeparator}>
                     <div
                         className={commonStyles.dashedDecorativeCircle}
