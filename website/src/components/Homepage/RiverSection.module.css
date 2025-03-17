@@ -140,12 +140,14 @@
                 height: 100%;
                 display: flex;
                 align-items: center;
+                background: var(--color-background-muted) !important;
             }
             code {
                 height: auto;
                 font-size: 14px;
                 background: var(--color-background-muted);
                 padding: 16px 8px 16px 4px;
+                min-width: initial;
                 span::before {
                     margin-right: 16px;
                     color: var(--color-text-subtle);
