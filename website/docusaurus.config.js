@@ -1,6 +1,4 @@
 /* eslint-disable global-require */
-const { cp } = require('fs');
-
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
