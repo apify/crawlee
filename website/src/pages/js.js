@@ -315,7 +315,7 @@ function BuildFastScrapersSection() {
                         ),
                         title: 'Zero setup required',
                         description:
-                            'Use on the templates, install Crawlee and go. No CLI required, no complex file structure, no boilerplate.',
+                            'Copy code example, install Crawlee and go. No CLI required, no complex file structure, no boilerplate.',
                         actionLink: {
                             text: 'Get started',
                             href: '/docs/quick-start',
@@ -351,7 +351,7 @@ function BuildFastScrapersSection() {
                         ),
                         title: 'Helpful community',
                         description:
-                            'Join our Discord community of over Xk developers and get fast answers to your web scraping questions.',
+                            'Join our Discord community of over 10k developers and get fast answers to your web scraping questions.',
                         actionLink: {
                             text: 'Join Discord',
                             href: 'https://discord.gg/jyEM2PRvMU',
