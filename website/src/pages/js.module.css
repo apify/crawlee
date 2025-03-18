@@ -98,6 +98,10 @@
     &:last-child {
         border-right: 0;
     }
+
+    &:hover {
+        background: var(--color-card-background-hover);
+    }
 }
 
 .cardWithImage img {

@@ -25,6 +25,7 @@ html[data-theme='dark'] {
     --color-separator: #343847;
     --color-border: #414758;
     --color-card-background: #1e2027;
+    --color-card-background-hover: #252832;
     --color-text: #f3f4fa;
     --color-text-subtle: #8c93a8;
     --color-text-muted: #b2b8cc;
@@ -95,6 +96,7 @@ html[data-theme='dark'] {
     --color-separator: #e0e3f2;
     --color-border: #d0d5e9;
     --color-card-background: #fff;
+    --color-card-background-hover: #ffffff;
     --color-text: #242836;
     --color-text-subtle: #6c7590;
     --color-text-muted: #555d76;

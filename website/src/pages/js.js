@@ -143,7 +143,7 @@ function OtherFeaturesSection() {
             <h2>What else is in Crawlee?</h2>
             <div className={styles.cardsWithContentContainer}>
                 <div className={styles.cardsWithImageContainer}>
-                    <div className={styles.cardWithImage}>
+                    <Link className={styles.cardWithImage} to="/docs/guides/scaling-crawlers">
                         <ThemedImage
                             sources={{
                                 light: '/img/auto-scaling-light.webp',
@@ -162,8 +162,8 @@ function OtherFeaturesSection() {
                                 large ones.
                             </div>
                         </div>
-                    </div>
-                    <div className={styles.cardWithImage}>
+                    </Link>
+                    <Link className={styles.cardWithImage} to="/docs/guides/proxy-management">
                         <ThemedImage
                             sources={{
                                 light: '/img/smart-proxy-light.webp',
@@ -182,7 +182,7 @@ function OtherFeaturesSection() {
                                 proxies are removed from the pool automatically.
                             </div>
                         </div>
-                    </div>
+                    </Link>
                 </div>
                 <ThreeCardsWithIcon
                     cards={[
@@ -199,6 +199,7 @@ function OtherFeaturesSection() {
                             title: 'Queue and storage',
                             description:
                                 'Pause and resume crawlers thanks to a persistent queue of URLs and storage for structured data.',
+                            to: '/docs/guides/request-storage',
                         },
                         {
                             icon: (
@@ -213,6 +214,7 @@ function OtherFeaturesSection() {
                             title: 'Handy scraping utils',
                             description:
                                 'Sitemaps, infinite scroll, contact extraction, large asset blocking and many more utils included.',
+                            to: '/docs/guides/avoid-blocking',
                         },
                         {
                             icon: (
@@ -227,6 +229,7 @@ function OtherFeaturesSection() {
                             title: 'Routing & middleware',
                             description:
                                 'Keep your code clean and organized while managing complex crawls with a built-in router that streamlines the process.',
+                            to: '/api/core/class/router',
                         },
                     ]}
                 />

@@ -30,6 +30,10 @@
     }
 }
 
+a.cardItem:hover {
+    background: var(--color-card-background-hover);
+}
+
 .cardItem:has(:local(.cardAction)) {
     padding: 24px;
 }
