@@ -158,6 +158,11 @@
     font-style: normal;
     font-weight: 400;
 
+    a {
+        width: fit-content;
+        margin: auto;
+    }
+
     h2 {
         color: var(--color-text);
         font-family: 'Lota Grotesque';
@@ -252,6 +257,10 @@
     }
     .deployToCloudLeftSide {
         text-align: left;
+
+        a {
+            margin: 0;
+        }
 
         h2 {
             color: var(--color-text);
