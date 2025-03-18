@@ -142,7 +142,7 @@
 </mask>
 <path d="M271.5 150L392.886 307.07L271.5 464.139L150.114 307.07L271.5 150Z" stroke="url(#paint15_linear_964_28846)" stroke-width="30" mask="url(#path-31-inside-1_964_28846)"/>
 </g>
-<g style="mix-blend-mode:color-dodge" filter="url(#filter16_f_964_28846)">
+<g style="mix-blend-mode:screen" filter="url(#filter16_f_964_28846)">
 <mask id="path-32-inside-2_964_28846" fill="white">
 <path d="M271.5 150L392.886 307.07L271.5 464.139L150.114 307.07L271.5 150Z"/>
 </mask>
