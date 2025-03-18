@@ -29,10 +29,7 @@ function NavbarItems({ items, className }) {
     );
 }
 
-function NavbarContentLayout({
-    left,
-    right,
-}) {
+function NavbarContentLayout({ left, right }) {
     return (
         <div className="navbar__inner">
             <div className="navbar__items">{left}</div>
@@ -41,22 +38,25 @@ function NavbarContentLayout({
     );
 }
 
-const GENERIC_PAGE_ITEMS = [{
-    to: 'js',
-    label: 'JavaScript',
-    position: 'left',
-}, {
-    to: 'https://crawlee.dev/python',
-    label: 'Python',
-    rel: 'dofollow',
-    target: '_self',
-    position: 'left',
-},
-{
-    to: 'blog',
-    label: 'Blog',
-    position: 'left',
-}];
+const GENERIC_PAGE_ITEMS = [
+    {
+        to: 'js',
+        label: 'JavaScript',
+        position: 'left',
+    },
+    {
+        to: 'https://crawlee.dev/python',
+        label: 'Python',
+        rel: 'dofollow',
+        target: '_self',
+        position: 'left',
+    },
+    {
+        to: 'blog',
+        label: 'Blog',
+        position: 'left',
+    },
+];
 
 const VERSIONS_ITEM = {
     type: 'docsVersionDropdown',
@@ -78,7 +78,8 @@ const VERSIONS_ITEM = {
 function getEffectiveNavbarItems(items, location, isOnLanguageAgnosticPage) {
     if (isOnLanguageAgnosticPage) {
         return GENERIC_PAGE_ITEMS;
-    } if (location.pathname !== '/js' && location.pathname !== '/js/') {
+    }
+    if (location.pathname !== '/js' && location.pathname !== '/js/') {
         return [...items, VERSIONS_ITEM];
     }
     return items;
@@ -89,7 +90,11 @@ export default function NavbarContent() {
     const isOnLanguageAgnosticPage = location.pathname === '/' || location.pathname.includes('/blog');
     const mobileSidebar = useNavbarMobileSidebar();
     const items = useNavbarItems();
-    const effectiveItems = getEffectiveNavbarItems(items, location, isOnLanguageAgnosticPage);
+    const effectiveItems = getEffectiveNavbarItems(
+        items,
+        location,
+        isOnLanguageAgnosticPage,
+    );
     const [leftItems, rightItems] = splitNavbarItems(effectiveItems);
     const searchBarItem = items.find((item) => item.type === 'search');
     return (
@@ -97,28 +102,38 @@ export default function NavbarContent() {
             left={
                 <>
                     <NavbarLogo />
-                    <NavbarItems items={leftItems} className={isOnLanguageAgnosticPage ? styles.navbarItems__leftMargin : styles.navbarItems__center} />
+                    <NavbarItems
+                        items={leftItems}
+                        className={
+                            isOnLanguageAgnosticPage
+                                ? styles.navbarItems__leftMargin
+                                : styles.navbarItems__center
+                        }
+                    />
                 </>
             }
             right={
                 <>
                     {!isOnLanguageAgnosticPage && (
                         <>
-                            {rightItems?.length > 0
-                                && <NavbarItems items={rightItems} />
-                            }
+                            {rightItems?.length > 0 && (
+                                <NavbarItems items={rightItems} />
+                            )}
                             {!searchBarItem && (
                                 <NavbarSearch>
                                     <SearchBar />
                                 </NavbarSearch>
                             )}
-                            <Link className={styles.getStartedButton} to="/docs/quick-start">
+                            <Link
+                                className={styles.getStartedButton}
+                                to="/docs/quick-start"
+                            >
                                 Get started
                             </Link>
-                        </>)}
+                        </>
+                    )}
                     {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
                 </>
-
             }
         />
     );
