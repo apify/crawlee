@@ -227,13 +227,13 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
     user_requests = {}
     posts = []
 
-    prfile_url = URL(f'{self._service_endpoint}/xrpc/app.bsky.actor.getProfile')
+    profile_url = URL(f'{self._service_endpoint}/xrpc/app.bsky.actor.getProfile')
 
     for post in data['posts']:
         # Add user request if not already added in current context
         if post['author']['did'] not in user_requests:
             user_requests[post['author']['did']] = Request.from_url(
-                url=str(prfile_url.with_query(actor=post['author']['did'])),
+                url=str(profile_url.with_query(actor=post['author']['did'])),
                 user_data={'label': 'user'},
             )
 
@@ -643,12 +643,12 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
     user_requests = {}
     posts = []
 
-    prfile_url = URL(f'{self._service_endpoint}/xrpc/app.bsky.actor.getProfile')
+    profile_url = URL(f'{self._service_endpoint}/xrpc/app.bsky.actor.getProfile')
 
     for post in data['posts']:
         if self.mode == 'users' and post['author']['did'] not in user_requests:
             user_requests[post['author']['did']] = Request.from_url(
-                url=str(prfile_url.with_query(actor=post['author']['did'])),
+                url=str(profile_url.with_query(actor=post['author']['did'])),
                 user_data={'label': 'user'},
             )
         elif self.mode == 'posts':
