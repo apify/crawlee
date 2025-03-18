@@ -6,7 +6,7 @@
     "dependencies": {
         "camoufox-js": "^0.2.1",
         "crawlee": "^3.0.0",
-        "playwright": "1.50.1"
+        "playwright": "*"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
