@@ -331,7 +331,7 @@ module.exports = {
                     title: 'More',
                     items: [
                         {
-                            label: 'Apify Platform',
+                            label: 'Apify platform',
                             href: 'https://apify.com',
                         },
                         {
