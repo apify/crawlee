@@ -87,6 +87,7 @@
     overflow: hidden;
     background: var(--color-card-background);
     border-block: 1px solid var(--color-separator);
+    transition: background 0.1s ease;
 
     @media (min-width: 768px) {
         border: 1px solid var(--color-separator);

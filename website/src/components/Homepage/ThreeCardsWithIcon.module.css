@@ -15,6 +15,7 @@
     flex-direction: column;
     padding: 40px 24px;
     background: var(--color-card-background);
+    transition: background 0.1s ease;
 
     border-bottom: 1px solid var(--color-separator);
     &:last-child {
