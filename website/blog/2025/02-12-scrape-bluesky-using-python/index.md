@@ -118,9 +118,9 @@ BLUESKY_IDENTIFIER = os.getenv('BLUESKY_IDENTIFIER')
 
 
 class BlueskyApiScraper:
-    """A crawler class for extracting data from Bluesky social network using their official API.
+    """A scraper class for extracting data from Bluesky social network using their official API.
 
-    This crawler manages authentication, concurrent requests, and data collection for both
+    This scraper manages authentication, concurrent requests, and data collection for both
     posts and user profiles. It uses separate datasets for storing post and user information.
     """
 
@@ -131,7 +131,7 @@ class BlueskyApiScraper:
         self._posts: Dataset | None = None
 
         # Variables for storing session data
-        self._service_edpoint: str | None = None
+        self._service_endpoint: str | None = None
         self._user_did: str | None = None
         self._access_token: str | None = None
         self._refresh_token: str | None = None
@@ -150,7 +150,7 @@ class BlueskyApiScraper:
 
         data = response.json()
 
-        self._service_edpoint = data['didDoc']['service'][0]['serviceEndpoint']
+        self._service_endpoint = data['didDoc']['service'][0]['serviceEndpoint']
         self._user_did = data['didDoc']['id']
         self._access_token = data['accessJwt']
         self._refresh_token = data['refreshJwt']
@@ -158,7 +158,7 @@ class BlueskyApiScraper:
 
     def delete_session(self) -> None:
         """Delete the current session."""
-        url = f'{self._service_edpoint}/xrpc/com.atproto.server.deleteSession'
+        url = f'{self._service_endpoint}/xrpc/com.atproto.server.deleteSession'
         headers = {'Content-Type': 'application/json', 'authorization': f'Bearer {self._refresh_token}'}
 
         response = httpx.post(url, headers=headers)
@@ -227,7 +227,7 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
     user_requests = {}
     posts = []
 
-    prfile_url = URL(f'{self._service_edpoint}/xrpc/app.bsky.actor.getProfile')
+    prfile_url = URL(f'{self._service_endpoint}/xrpc/app.bsky.actor.getProfile')
 
     for post in data['posts']:
         # Add user request if not already added in current context
@@ -315,7 +315,7 @@ async def crawl(self, queries: list[str]) -> None:
     if not self._crawler:
         raise ValueError('Crawler not initialized.')
 
-    search_url = URL(f'{self._service_edpoint}/xrpc/app.bsky.feed.searchPosts')
+    search_url = URL(f'{self._service_endpoint}/xrpc/app.bsky.feed.searchPosts')
 
     await self._crawler.run([str(search_url.with_query(q=query)) for query in queries])
 ```
@@ -326,19 +326,19 @@ Let's finalize the code:
 async def run() -> None:
     """Main execution function that orchestrates the crawling process.
 
-    Creates a crawler instance, manages the session, and handles the complete
+    Creates a scraper instance, manages the session, and handles the complete
     crawling lifecycle including proper cleanup on completion or error.
     """
-    crawler = BlueskyApiScraper()
-    crawler.create_session()
+    scraper = BlueskyApiScraper()
+    scraper.create_session()
     try:
-        await crawler.init_crawler()
-        await crawler.crawl(['python', 'apify', 'crawlee'])
-        await crawler.save_data()
+        await scraper.init_crawler()
+        await scraper.crawl(['python', 'apify', 'crawlee'])
+        await scraper.save_data()
     except Exception:
         traceback.print_exc()
     finally:
-        crawler.delete_session()
+        scraper.delete_session()
 
 
 def main() -> None:
@@ -552,7 +552,7 @@ class ActorInput:
 async def run() -> None:
     """Main execution function that orchestrates the crawling process.
 
-    Creates a crawler instance, manages the session, and handles the complete
+    Creates a scraper instance, manages the session, and handles the complete
     crawling lifecycle including proper cleanup on completion or error.
     """
     async with Actor:
@@ -564,12 +564,12 @@ async def run() -> None:
             mode=raw_input.get('mode', 'posts'),
             max_requests_per_crawl=raw_input.get('maxRequestsPerCrawl')
         )
-        crawler = BlueskyApiScraper(actor_input.mode, actor_input.max_requests_per_crawl)
+        scraper = BlueskyApiScraper(actor_input.mode, actor_input.max_requests_per_crawl)
         try:
-            crawler.create_session(actor_input.identifier, actor_input.app_password)
+            scraper.create_session(actor_input.identifier, actor_input.app_password)
 
-            await crawler.init_crawler()
-            await crawler.crawl(actor_input.queries)
+            await scraper.init_crawler()
+            await scraper.crawl(actor_input.queries)
         except httpx.HTTPError as e:
             Actor.log.error(f'HTTP error occurred: {e}')
             raise
@@ -577,10 +577,10 @@ async def run() -> None:
             Actor.log.error(f'Unexpected error: {e}')
             traceback.print_exc()
         finally:
-            crawler.delete_session()
+            scraper.delete_session()
 
 def main() -> None:
-    """Entry point for the crawler application."""
+    """Entry point for the scraper application."""
     asyncio.run(run())
 ```
 
@@ -588,9 +588,9 @@ Update methods with actor input parameters:
 
 ```python
 class BlueskyApiScraper:
-    """A crawler class for extracting data from Bluesky social network using their official API.
+    """A scraper class for extracting data from Bluesky social network using their official API.
 
-    This crawler manages authentication, concurrent requests, and data collection for both
+    This scraper manages authentication, concurrent requests, and data collection for both
     posts and user profiles. It uses separate datasets for storing post and user information.
     """
 
@@ -601,7 +601,7 @@ class BlueskyApiScraper:
         self.max_request = max_request
 
         # Variables for storing session data
-        self._service_edpoint: str | None = None
+        self._service_endpoint: str | None = None
         self._user_did: str | None = None
         self._access_token: str | None = None
         self._refresh_token: str | None = None
@@ -620,7 +620,7 @@ class BlueskyApiScraper:
 
         data = response.json()
 
-        self._service_edpoint = data['didDoc']['service'][0]['serviceEndpoint']
+        self._service_endpoint = data['didDoc']['service'][0]['serviceEndpoint']
         self._user_did = data['didDoc']['id']
         self._access_token = data['accessJwt']
         self._refresh_token = data['refreshJwt']
@@ -643,7 +643,7 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
     user_requests = {}
     posts = []
 
-    prfile_url = URL(f'{self._service_edpoint}/xrpc/app.bsky.actor.getProfile')
+    prfile_url = URL(f'{self._service_endpoint}/xrpc/app.bsky.actor.getProfile')
 
     for post in data['posts']:
         if self.mode == 'users' and post['author']['did'] not in user_requests:
