@@ -169,11 +169,11 @@ The session expires after 2 hours of creation, so if you plan for your crawler t
 
 ### 3. Configuring Crawlee for Python for data collection
 
-Since we will be using the official API, we do not need to worry about being blocked by Bluesky. However, we should be careful with the number of requests to avoid overloading Bluesky's servers, so we will configure [`ConcurrencySettings`](https://crawlee.dev/python/api/class/ConcurrencySettings). We will also configure [`HttpxHttpClient`](https://crawlee.dev/python/api/class/HttpxHttpClient) to use custom headers with the current session's `Authorization`.
+Since we will be using the official API, we do not need to worry about being blocked by Bluesky. However, we should be careful with the number of requests to avoid overloading Bluesky's servers, so we will configure [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings). We will also configure [`HttpxHttpClient`](https://www.crawlee.dev/python/api/class/HttpxHttpClient) to use custom headers with the current session's `Authorization`.
 
 We will use 2 endpoints for data collection: [searchPosts](https://docs.bsky.app/docs/api/app-bsky-feed-search-posts) for posts and [getProfile](https://docs.bsky.app/docs/api/app-bsky-actor-get-profile). If you plan to scale the crawler, you can use [getProfiles](https://docs.bsky.app/docs/api/app-bsky-actor-get-profiles) for user data, but in this case, you will need to implement deduplication logic. When each link is unique, Crawlee for Python handles this for you.
 
-When collecting data, I want to separately obtain user and post data, so we will use different [`Dataset`](https://crawlee.dev/python/api/class/Dataset) instances for storage.
+When collecting data, I want to separately obtain user and post data, so we will use different [`Dataset`](https://www.crawlee.dev/python/api/class/Dataset) instances for storage.
 
 ```python
 async def init_crawler(self) -> None:
@@ -290,7 +290,7 @@ async def _user_handler(self, context: HttpCrawlingContext) -> None:
 
 ### 5. Saving data to files
 
-For saving results, we will use the [`write_to_json`](https://crawlee.dev/python/api/class/Dataset#write_to_json).
+For saving results, we will use the [`write_to_json`](https://www.crawlee.dev/python/api/class/Dataset#write_to_json).
 
 ```python
 async def save_data(self) -> None:
