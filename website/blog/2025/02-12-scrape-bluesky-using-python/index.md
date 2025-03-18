@@ -7,7 +7,7 @@ image: 'img/scrape-bluesky-using-python.webp'
 authors: [MaxB]
 ---
 
-[Bluesky](https://bsky.app/) is an emerging social network developed by former members of the [Twitter](https://x.com/) development team. The platform has been showing significant growth recently, reaching 144.7 million visits according to [SimilarWeb](https://www.similarweb.com/website/bsky.app/#traffic). Like Twitter, Bluesky generates a vast amount of data that can be used for analysis. In this article, we will explore how to collect this data using [Crawlee for Python](https://github.com/apify/crawlee-python).
+[Bluesky](https://bsky.app/) is an emerging social network developed by former members of the [Twitter](https://x.com/) development team. The platform has been showing significant growth recently, reaching 140.3 million visits according to [SimilarWeb](https://www.similarweb.com/website/bsky.app/#traffic). Like Twitter, Bluesky generates a vast amount of data that can be used for analysis. In this article, we will explore how to collect this data using [Crawlee for Python](https://github.com/apify/crawlee-python).
 
 :::note
 
@@ -31,7 +31,7 @@ Key steps we will cover:
 - Basic understanding of web scraping concepts
 - Python 3.9 or higher
 - [UV](https://docs.astral.sh/uv/) version 0.6.0 or higher
-- Crawlee for Python v0.5.4 or higher
+- Crawlee for Python v0.6.5 or higher
 - Bluesky account for API access
 
 ### Project setup
@@ -105,6 +105,7 @@ import httpx
 from yarl import URL
 
 from crawlee import ConcurrencySettings, Request
+from crawlee.configuration import Configuration
 from crawlee.crawlers import HttpCrawler, HttpCrawlingContext
 from crawlee.http_clients import HttpxHttpClient
 from crawlee.storages import Dataset
@@ -116,7 +117,7 @@ BLUESKY_APP_PASSWORD = os.getenv('BLUESKY_APP_PASSWORD')
 BLUESKY_IDENTIFIER = os.getenv('BLUESKY_IDENTIFIER')
 
 
-class BlueskyCrawler:
+class BlueskyApiScraper:
     """A crawler class for extracting data from Bluesky social network using their official API.
 
     This crawler manages authentication, concurrent requests, and data collection for both
@@ -130,8 +131,8 @@ class BlueskyCrawler:
         self._posts: Dataset | None = None
 
         # Variables for storing session data
-        self._domain: str | None = None
-        self._did: str | None = None
+        self._service_edpoint: str | None = None
+        self._user_did: str | None = None
         self._access_token: str | None = None
         self._refresh_token: str | None = None
         self._handle: str | None = None
@@ -149,15 +150,15 @@ class BlueskyCrawler:
 
         data = response.json()
 
-        self._domain = data['didDoc']['service'][0]['serviceEndpoint']
-        self._did = data['didDoc']['id']
+        self._service_edpoint = data['didDoc']['service'][0]['serviceEndpoint']
+        self._user_did = data['didDoc']['id']
         self._access_token = data['accessJwt']
         self._refresh_token = data['refreshJwt']
         self._handle = data['handle']
 
     def delete_session(self) -> None:
         """Delete the current session."""
-        url = f'{self._domain}/xrpc/com.atproto.server.deleteSession'
+        url = f'{self._service_edpoint}/xrpc/com.atproto.server.deleteSession'
         headers = {'Content-Type': 'application/json', 'authorization': f'Bearer {self._refresh_token}'}
 
         response = httpx.post(url, headers=headers)
@@ -177,12 +178,12 @@ When collecting data, I want to separately obtain user and post data, so we will
 ```python
 async def init_crawler(self) -> None:
     """Initialize the crawler."""
-    if not self._did:
+    if not self._user_did:
         raise ValueError('Session not created.')
 
-    # Initialize the datasets
-    self._users = await Dataset.open(name='users')
-    self._posts = await Dataset.open(name='posts')
+    # Initialize the datasets purge the data if it is not empty
+    self._users = await Dataset.open(name='users', configuration=Configuration(purge_on_start=True))
+    self._posts = await Dataset.open(name='posts', configuration=Configuration(purge_on_start=True))
 
     # Initialize the crawler
     self._crawler = HttpCrawler(
@@ -226,11 +227,13 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
     user_requests = {}
     posts = []
 
+    prfile_url = URL(f'{self._service_edpoint}/xrpc/app.bsky.actor.getProfile')
+
     for post in data['posts']:
         # Add user request if not already added in current context
         if post['author']['did'] not in user_requests:
             user_requests[post['author']['did']] = Request.from_url(
-                url=f'{self._domain}/xrpc/app.bsky.actor.getProfile?actor={post["author"]["did"]}',
+                url=str(prfile_url.with_query(actor=post['author']['did'])),
                 user_data={'label': 'user'},
             )
 
@@ -312,7 +315,9 @@ async def crawl(self, queries: list[str]) -> None:
     if not self._crawler:
         raise ValueError('Crawler not initialized.')
 
-    await self._crawler.run([f'{self._domain}/xrpc/app.bsky.feed.searchPosts?q={query}' for query in queries])
+    search_url = URL(f'{self._service_edpoint}/xrpc/app.bsky.feed.searchPosts')
+
+    await self._crawler.run([str(search_url.with_query(q=query)) for query in queries])
 ```
 
 Let's finalize the code:
@@ -324,7 +329,7 @@ async def run() -> None:
     Creates a crawler instance, manages the session, and handles the complete
     crawling lifecycle including proper cleanup on completion or error.
     """
-    crawler = BlueskyCrawler()
+    crawler = BlueskyApiScraper()
     crawler.create_session()
     try:
         await crawler.init_crawler()
@@ -520,16 +525,15 @@ apify_logger.addHandler(handler)
 Update imports and entry point code:
 
 ```python
-from typing import Optional
 import asyncio
 import json
-import logging
 import traceback
 from dataclasses import dataclass
 
 import httpx
 from apify import Actor
 from yarl import URL
+
 from crawlee import ConcurrencySettings, Request
 from crawlee.crawlers import HttpCrawler, HttpCrawlingContext
 from crawlee.http_clients import HttpxHttpClient
@@ -547,44 +551,33 @@ class ActorInput:
 
 async def run() -> None:
     """Main execution function that orchestrates the crawling process.
-    
-    Handles the complete lifecycle of the crawler:
-    1. Initializes actor and gets input
-    2. Creates and configures crawler
-    3. Executes crawling
-    4. Ensures proper cleanup
+
+    Creates a crawler instance, manages the session, and handles the complete
+    crawling lifecycle including proper cleanup on completion or error.
     """
     async with Actor:
-        # Get and validate actor input
-        raw_input = await Actor.get_input() or {}
+        raw_input = await Actor.get_input()
         actor_input = ActorInput(
-            identifier=raw_input.get('identifier', ''),
+            identifier=raw_input.get('indentifier', ''),
             app_password=raw_input.get('appPassword', ''),
             queries=raw_input.get('queries', []),
             mode=raw_input.get('mode', 'posts'),
             max_requests_per_crawl=raw_input.get('maxRequestsPerCrawl')
         )
-
-        # Set up logging
-        log = logging.getLogger(__name__)
-        
+        crawler = BlueskyApiScraper(actor_input.mode, actor_input.max_requests_per_crawl)
         try:
-            # Initialize and run crawler
-            crawler = BlueskyCrawler(actor_input.mode, actor_input.max_requests_per_crawl)
             crawler.create_session(actor_input.identifier, actor_input.app_password)
-            
+
             await crawler.init_crawler()
             await crawler.crawl(actor_input.queries)
-            
         except httpx.HTTPError as e:
-            log.error(f"HTTP error occurred: {e}")
+            Actor.log.error(f'HTTP error occurred: {e}')
             raise
         except Exception as e:
-            log.error(f"Unexpected error: {e}")
+            Actor.log.error(f'Unexpected error: {e}')
             traceback.print_exc()
         finally:
             crawler.delete_session()
-
 
 def main() -> None:
     """Entry point for the crawler application."""
@@ -594,31 +587,41 @@ def main() -> None:
 Update methods with actor input parameters:
 
 ```python
-class BlueskyCrawler:
-    """Bluesky network crawler using official API."""
+class BlueskyApiScraper:
+    """A crawler class for extracting data from Bluesky social network using their official API.
+
+    This crawler manages authentication, concurrent requests, and data collection for both
+    posts and user profiles. It uses separate datasets for storing post and user information.
+    """
 
     def __init__(self, mode: str, max_request: int | None) -> None:
         self._crawler: HttpCrawler | None = None
+
         self.mode = mode
         self.max_request = max_request
-        self._domain: str | None = None
-        self._did: str | None = None
+
+        # Variables for storing session data
+        self._service_edpoint: str | None = None
+        self._user_did: str | None = None
         self._access_token: str | None = None
         self._refresh_token: str | None = None
         self._handle: str | None = None
 
     def create_session(self, identifier: str, password: str) -> None:
-        """Create API session credentials."""
+        """Create credentials for the session."""
         url = 'https://bsky.social/xrpc/com.atproto.server.createSession'
-        headers = {'Content-Type': 'application/json'}
+        headers = {
+            'Content-Type': 'application/json',
+        }
         data = {'identifier': identifier, 'password': password}
 
         response = httpx.post(url, headers=headers, json=data)
         response.raise_for_status()
 
         data = response.json()
-        self._domain = data['didDoc']['service'][0]['serviceEndpoint']
-        self._did = data['didDoc']['id']
+
+        self._service_edpoint = data['didDoc']['service'][0]['serviceEndpoint']
+        self._user_did = data['didDoc']['id']
         self._access_token = data['accessJwt']
         self._refresh_token = data['refreshJwt']
         self._handle = data['handle']
@@ -640,28 +643,32 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
     user_requests = {}
     posts = []
 
+    prfile_url = URL(f'{self._service_edpoint}/xrpc/app.bsky.actor.getProfile')
+
     for post in data['posts']:
         if self.mode == 'users' and post['author']['did'] not in user_requests:
             user_requests[post['author']['did']] = Request.from_url(
-                url=f'{self._domain}/xrpc/app.bsky.actor.getProfile?actor={post["author"]["did"]}',
+                url=str(prfile_url.with_query(actor=post['author']['did'])),
                 user_data={'label': 'user'},
             )
         elif self.mode == 'posts':
-            posts.append({
-                'uri': post['uri'],
-                'cid': post['cid'],
-                'author_did': post['author']['did'],
-                'created': post['record']['createdAt'],
-                'indexed': post['indexedAt'],
-                'reply_count': post['replyCount'],
-                'repost_count': post['repostCount'],
-                'like_count': post['likeCount'],
-                'quote_count': post['quoteCount'],
-                'text': post['record']['text'],
-                'langs': '; '.join(post['record'].get('langs', [])),
-                'reply_parent': post['record'].get('reply', {}).get('parent', {}).get('uri'),
-                'reply_root': post['record'].get('reply', {}).get('root', {}).get('uri'),
-            })
+            posts.append(
+                {
+                    'uri': post['uri'],
+                    'cid': post['cid'],
+                    'author_did': post['author']['did'],
+                    'created': post['record']['createdAt'],
+                    'indexed': post['indexedAt'],
+                    'reply_count': post['replyCount'],
+                    'repost_count': post['repostCount'],
+                    'like_count': post['likeCount'],
+                    'quote_count': post['quoteCount'],
+                    'text': post['record']['text'],
+                    'langs': '; '.join(post['record'].get('langs', [])),
+                    'reply_parent': post['record'].get('reply', {}).get('parent', {}).get('uri'),
+                    'reply_root': post['record'].get('reply', {}).get('root', {}).get('uri'),
+                }
+            )
 
     if self.mode == 'posts':
         await context.push_data(posts)
