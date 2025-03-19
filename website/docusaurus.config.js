@@ -66,6 +66,7 @@ module.exports = {
                     showLastUpdateAuthor: true,
                     showLastUpdateTime: true,
                     path: '../docs',
+                    routeBasePath: 'js/docs',
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
                     disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
@@ -107,6 +108,7 @@ module.exports = {
                 projectRoot: `${__dirname}/..`,
                 changelogs: true,
                 readmes: true,
+                routeBasePath: 'js/api',
                 sortPackages: (a, b) => {
                     return packagesOrder.indexOf(a.packageName) - packagesOrder.indexOf(b.packageName);
                 },
