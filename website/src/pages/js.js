@@ -336,7 +336,7 @@ function BuildFastScrapersSection() {
                             'Unblocking, proxy rotation and other core features are already turned on. But also very configurable.',
                         actionLink: {
                             text: 'Learn more',
-                            href: '/docs/guides/configuration',
+                            href: '/js/docs/guides/configuration',
                         },
                     },
                     {
