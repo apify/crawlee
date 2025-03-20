@@ -23,7 +23,7 @@ function GetStartedSection() {
             <LanguageInfoWidget
                 language="JavaScript"
                 githubUrl="https://github.com/apify/crawlee"
-                to="/docs/quick-start"
+                to="/js/docs/quick-start"
             />
         </section>
     );
@@ -104,7 +104,7 @@ function BenefitsSection() {
                         {benefitsCodeBlockCrawler}
                     </CodeBlock>
                 }
-                to="/docs/guides/avoid-blocking"
+                to="/js/docs/guides/avoid-blocking"
             />
             <div className={commonStyles.trianglesSeparator} />
             <RiverSection
@@ -120,7 +120,7 @@ function BenefitsSection() {
                     />
                 }
                 reversed
-                to="/docs/quick-start#choose-your-crawler"
+                to="/js/docs/quick-start#choose-your-crawler"
             />
             <div className={commonStyles.trianglesSeparator} />
             <RiverSection
@@ -131,7 +131,7 @@ function BenefitsSection() {
                         {benefitsCodeBlockHeadless}
                     </CodeBlock>
                 }
-                to="/api/core"
+                to="/js/api/core"
             />
         </section>
     );
@@ -143,7 +143,7 @@ function OtherFeaturesSection() {
             <h2>What else is in Crawlee?</h2>
             <div className={styles.cardsWithContentContainer}>
                 <div className={styles.cardsWithImageContainer}>
-                    <Link className={styles.cardWithImage} to="/docs/guides/scaling-crawlers">
+                    <Link className={styles.cardWithImage} to="/js/docs/guides/scaling-crawlers">
                         <ThemedImage
                             sources={{
                                 light: '/img/auto-scaling-light.webp',
@@ -163,7 +163,7 @@ function OtherFeaturesSection() {
                             </div>
                         </div>
                     </Link>
-                    <Link className={styles.cardWithImage} to="/docs/guides/proxy-management">
+                    <Link className={styles.cardWithImage} to="/js/docs/guides/proxy-management">
                         <ThemedImage
                             sources={{
                                 light: '/img/smart-proxy-light.webp',
@@ -199,7 +199,7 @@ function OtherFeaturesSection() {
                             title: 'Queue and storage',
                             description:
                                 'Pause and resume crawlers thanks to a persistent queue of URLs and storage for structured data.',
-                            to: '/docs/guides/request-storage',
+                            to: '/js/docs/guides/request-storage',
                         },
                         {
                             icon: (
@@ -214,7 +214,7 @@ function OtherFeaturesSection() {
                             title: 'Handy scraping utils',
                             description:
                                 'Sitemaps, infinite scroll, contact extraction, large asset blocking and many more utils included.',
-                            to: '/docs/guides/avoid-blocking',
+                            to: '/js/docs/guides/avoid-blocking',
                         },
                         {
                             icon: (
@@ -229,7 +229,7 @@ function OtherFeaturesSection() {
                             title: 'Routing & middleware',
                             description:
                                 'Keep your code clean and organized while managing complex crawls with a built-in router that streamlines the process.',
-                            to: '/api/core/class/Router',
+                            to: '/js/api/core/class/Router',
                         },
                     ]}
                 />
@@ -254,7 +254,7 @@ function DeployToCloudSection() {
                 </div>
                 <Button
                     withIcon
-                    to="https://docs.apify.com/platform/actors/development/deployment"
+                    to="/js/docs/deployment/apify-platform"
                 >
                     Deploy to Apify
                 </Button>
@@ -318,7 +318,7 @@ function BuildFastScrapersSection() {
                             'Copy code example, install Crawlee and go. No CLI required, no complex file structure, no boilerplate.',
                         actionLink: {
                             text: 'Get started',
-                            href: '/docs/quick-start',
+                            href: '/js/docs/quick-start',
                         },
                     },
                     {

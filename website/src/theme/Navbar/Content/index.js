@@ -126,7 +126,7 @@ export default function NavbarContent() {
                             )}
                             <Link
                                 className={styles.getStartedButton}
-                                to="/docs/quick-start"
+                                to="/js/docs/quick-start"
                             >
                                 Get started
                             </Link>

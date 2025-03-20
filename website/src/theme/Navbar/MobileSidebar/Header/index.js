@@ -41,14 +41,14 @@ export default function NavbarMobileSidebarHeader() {
                     <div onClick={closeSidebar} >
                         <SearchBar />
                     </div>
-                    <Link className={styles.getStartedButton} to="/docs/quick-start" onClick={closeSidebar} >
+                    <Link className={styles.getStartedButton} to="/js/docs/quick-start" onClick={closeSidebar} >
                         Get started
                     </Link>
                 </div>}
                 <CloseButton />
             </div>
             {!isOnLanguageAgnosticPage && <div className={clsx(styles.navbarButtonsWrapper, styles.navbarButtonsWrapperMobile)} >
-                <Link className={styles.getStartedButton} to="/docs/quick-start" onClick={closeSidebar}>
+                <Link className={styles.getStartedButton} to="/js/docs/quick-start" onClick={closeSidebar}>
                     Get started
                 </Link>
                 <div onClick={closeSidebar} >

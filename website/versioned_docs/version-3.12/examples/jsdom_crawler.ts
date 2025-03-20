@@ -25,7 +25,7 @@ const crawler = new JSDOMCrawler({
 
     // This function will be called for each URL to crawl.
     // It accepts a single parameter, which is an object with options as:
-    // https://crawlee.dev/api/jsdom-crawler/interface/JSDOMCrawlerOptions#requestHandler
+    // https://crawlee.dev/js/api/jsdom-crawler/interface/JSDOMCrawlerOptions#requestHandler
     // We use for demonstration only 2 of them:
     // - request: an instance of the Request class with information such as the URL that is being crawled and HTTP method
     // - window: the JSDOM window object

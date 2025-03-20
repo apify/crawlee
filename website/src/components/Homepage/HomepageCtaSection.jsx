@@ -25,7 +25,7 @@ export default function HomepageCtaSection({ showJs, showPython }) {
             >
                 {showJs && (
                     <Button
-                        to={showPython ? '/js' : '/docs/quick-start'}
+                        to={showPython ? '/js' : '/js/docs/quick-start'}
                         withIcon
                         type={showJs && showPython ? 'secondary' : 'primary'}
                         isBig

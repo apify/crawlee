@@ -123,33 +123,33 @@ module.exports = {
             {
                 redirects: [
                     {
-                        from: '/docs',
-                        to: '/docs/quick-start',
+                        from: '/js/docs',
+                        to: '/js/docs/quick-start',
                     },
                     {
-                        from: '/docs/next',
-                        to: '/docs/next/quick-start',
+                        from: '/js/docs/next',
+                        to: '/js/docs/next/quick-start',
                     },
                     {
-                        from: '/docs/guides/environment-variables',
-                        to: '/docs/guides/configuration',
+                        from: '/js/docs/guides/environment-variables',
+                        to: '/js/docs/guides/configuration',
                     },
                     {
-                        from: '/docs/guides/getting-started',
-                        to: '/docs/introduction',
+                        from: '/js/docs/guides/getting-started',
+                        to: '/js/docs/introduction',
                     },
                     {
-                        from: '/docs/guides/apify-platform',
-                        to: '/docs/deployment/apify-platform',
+                        from: '/js/docs/guides/apify-platform',
+                        to: '/js/docs/deployment/apify-platform',
                     },
                 ],
-                createRedirects(existingPath) {
-                    if (!existingPath.endsWith('/')) {
-                        return `${existingPath}/`;
-                    }
-
-                    return undefined; // Return a falsy value: no redirect created
-                },
+                // createRedirects(existingPath) {
+                //     if (!existingPath.endsWith('/')) {
+                //         return `${existingPath}/`;
+                //     }
+                //
+                //     return undefined; // Return a falsy value: no redirect created
+                // },
             },
         ],
         [
@@ -289,19 +289,19 @@ module.exports = {
                     items: [
                         {
                             label: 'Guides',
-                            to: 'docs/guides',
+                            to: 'js/docs/guides',
                         },
                         {
                             label: 'Examples',
-                            to: 'docs/examples',
+                            to: 'js/docs/examples',
                         },
                         {
                             label: 'API reference',
-                            to: 'api/core',
+                            to: 'js/api/core',
                         },
                         {
                             label: 'Changelog',
-                            to: 'api/core/changelog',
+                            to: 'js/api/core/changelog',
                         },
                     ],
                 },
