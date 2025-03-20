@@ -4,6 +4,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import CodeBlock from '@theme/CodeBlock';
 import Layout from '@theme/Layout';
 import ThemedImage from '@theme/ThemedImage';
+import clsx from 'clsx';
 import React from 'react';
 
 import commonStyles from './index.module.css';
@@ -370,7 +371,7 @@ export default function JavascriptHomepage() {
             <div id={commonStyles.homepageContainer}>
                 <HomepageHeroSection />
                 <GetStartedSection />
-                <div className={commonStyles.dashedSeparator} />
+                <div className={clsx(commonStyles.dashedSeparator, styles.codeExampleTopSeparator)} />
                 <CodeExampleSection />
                 <HomepageCliExample example={`npx crawlee create my-crawler`} />
                 <div className={commonStyles.dashedSeparator}>

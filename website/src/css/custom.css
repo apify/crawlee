@@ -79,7 +79,7 @@ html[data-theme='dark'] {
     --ifm-footer-title-color: #f2f3fb;
     --ifm-footer-link-color: #f2f3fb;
     --ifm-menu-color-active: #555d76;
-    --max-layout-width: 1200px;
+    --max-layout-width: 1680px;
 
     --docusaurus-highlighted-code-line-bg: rgba(0, 255, 77, 0.1);
     --docsearch-highlight-color: #242836;
@@ -114,6 +114,11 @@ html[data-theme='dark'] {
         url('/font/lota.woff2') format('woff2'),
         url('/font/lota.woff') format('woff');
     font-weight: 600;
+}
+
+footer,
+nav {
+    --max-layout-width: 1200px;
 }
 
 html .DocSearch-Button {
@@ -407,8 +412,8 @@ nav.navbar .dropdown__menu {
 .main-wrapper a[class*='sidebarLogo'] img {
     height: 28px;
     margin-top: 4px;
-    margin-bottom: 30px;
-    margin-left: 8px;
+    margin-bottom: 24px;
+    margin-left: 24px;
 }
 
 .main-wrapper a[class*='sidebarLogo'] b {

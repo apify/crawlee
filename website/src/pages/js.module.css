@@ -5,12 +5,22 @@
     }
 }
 
+.codeExampleTopSeparator {
+    display: none;
+}
+@media (min-width: 768px) {
+    .codeExampleTopSeparator {
+        display: block;
+    }
+}
+
 /************** BENEFITS SECTION ***********/
 
 .benefitsSection {
     margin-bottom: 60px;
 
     h2 {
+        padding: 0 12px;
         margin: 32px 0;
         text-align: center;
 

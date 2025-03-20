@@ -155,6 +155,11 @@
 
 /************* CODE EXAMPLE SECTION *************/
 
+.codeExampleSection {
+    display: flex;
+    flex-direction: column;
+}
+
 .languageSwitchContainer {
     place-self: center;
     margin: 32px 0 16px 0;
@@ -165,6 +170,9 @@
         margin-bottom: 32px;
         border-radius: 0;
         box-shadow: none;
+        border-bottom: 1px dashed var(--color-separator);
+        border-top: 1px dashed var(--color-separator);
+
         code {
             font-size: 14px;
             background: var(--color-background-muted);
@@ -185,6 +193,8 @@
 @media (min-width: 768px) {
     .codeBlockContainer :global(.theme-code-block) {
         margin-bottom: 0;
+        border-bottom: none;
+        border-top: none;
     }
     .codeExampleSection {
         position: relative;
