@@ -1,15 +1,16 @@
-import React from 'react';
-import clsx from 'clsx';
-import useIsBrowser from '@docusaurus/useIsBrowser';
 import { translate } from '@docusaurus/Translate';
-import IconLightMode from '../Icon/LightMode';
-import IconDarkMode from '../Icon/DarkMode';
+import useIsBrowser from '@docusaurus/useIsBrowser';
+import clsx from 'clsx';
+import React from 'react';
+
+import IconDarkMode from './dark-mode-icon.svg';
+import IconLightMode from './light-mode-icon.svg';
 import styles from './styles.module.css';
 
 function ColorModeToggle({
     className,
     value,
-    onChange
+    onChange,
 }) {
     const isBrowser = useIsBrowser();
     const title = translate(
@@ -34,7 +35,7 @@ function ColorModeToggle({
         },
     );
     return (
-        <div className={clsx(styles.toggle, className)}>
+        <div className={className}>
             <button
                 className={clsx(
                     'clean-btn',
@@ -46,16 +47,14 @@ function ColorModeToggle({
                 disabled={!isBrowser}
                 title={title}
                 aria-label={title}>
-                <span>
-                    <IconLightMode
-                        className={clsx(styles.toggleIcon, styles.lightToggleIcon)}
-                        width={14} height={14}
-                    />
-                    <IconDarkMode
-                        className={clsx(styles.toggleIcon, styles.darkToggleIcon)}
-                        width={14} height={14}
-                    />
-                </span>
+                <IconLightMode
+                    className={clsx(styles.toggleIcon, styles.lightToggleIcon)}
+
+                />
+                <IconDarkMode
+                    className={clsx(styles.toggleIcon, styles.darkToggleIcon)}
+                />
+                <span />
             </button>
         </div>
     );

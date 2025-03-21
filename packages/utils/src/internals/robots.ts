@@ -14,7 +14,7 @@ let HTTPError: typeof HTTPErrorClass;
  * **Example usage:**
  * ```javascript
  * // Load the robots.txt file
- * const robots = await RobotsFile.find('https://crawlee.dev/docs/introduction/first-crawler');
+ * const robots = await RobotsFile.find('https://crawlee.dev/js/docs/introduction/first-crawler');
  *
  * // Check if a URL should be crawled according to robots.txt
  * const url = 'https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler';

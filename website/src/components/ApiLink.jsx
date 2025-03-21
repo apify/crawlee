@@ -15,12 +15,12 @@ const ApiLink = ({ to, children }) => {
 
     if (siteConfig.presets[0][1].docs.disableVersioning || version.version === stable) {
         return (
-            <Link to={`/api/${to}`}>{children}</Link>
+            <Link to={`/js/api/${to}`}>{children}</Link>
         );
     }
 
     return (
-        <Link to={`/api/${version.version === 'current' ? 'next' : version.version}/${to}`}>{children}</Link>
+        <Link to={`/js/api/${version.version === 'current' ? 'next' : version.version}/${to}`}>{children}</Link>
     );
 };
 

@@ -67,7 +67,7 @@ Run this command to install `crawlee`:
 npm install crawlee
 ```
 
-Crawlee utilizes Cheerio for HTML parsing and scraping of static websites. While faster and [less resource-intensive](https://crawlee.dev/docs/guides/scaling-crawlers), it can only scrape websites that do not require JavaScript rendering, making it unsuitable for SPAs (single page applications).
+Crawlee utilizes Cheerio for HTML parsing and scraping of static websites. While faster and [less resource-intensive](https://crawlee.dev/js/docs/guides/scaling-crawlers), it can only scrape websites that do not require JavaScript rendering, making it unsuitable for SPAs (single page applications).
 
 In this tutorial we can extract data from the HTML structure, so we will go with Cheerio but for extracting data from SPAs or JavaScript-rendered websites, Crawlee also supports headless browser libraries like [Playwright](https://playwright.dev/) and [Puppeteer](https://pptr.dev/)
 
@@ -119,7 +119,7 @@ This will give the `genres` and `shows` array having list of genres and shows st
 
 Now we have all the data that we want for our project and it’s time to store or save the scraped data. To store the data, Crawlee comes with a `pushData()` method.
 
-The [pushData()](https://crawlee.dev/docs/introduction/saving-data) method creates a storage folder in the project directory and stores the scraped data in JSON format.
+The [pushData()](https://crawlee.dev/js/docs/introduction/saving-data) method creates a storage folder in the project directory and stores the scraped data in JSON format.
 
 ```js
 await pushData({
@@ -290,4 +290,4 @@ Project link - [https://github.com/ayush2390/web-show-recommender](https://githu
 
 In this project, we used Crawlee to scrape Netflix; similarly, Crawlee can be used to scrape single application pages (SPAs) and JavaScript-rendered websites. The best part is all of this can be done while coding in JavaScript/TypeScript and using a single library.
 
-If you want to learn more about Crawlee, go through the [documentation](https://crawlee.dev/docs/quick-start) and this step-by-step [Crawlee web scraping tutorial](https://blog.apify.com/crawlee-web-scraping-tutorial/) from Apify.
+If you want to learn more about Crawlee, go through the [documentation](https://crawlee.dev/js/docs/quick-start) and this step-by-step [Crawlee web scraping tutorial](https://blog.apify.com/crawlee-web-scraping-tutorial/) from Apify.

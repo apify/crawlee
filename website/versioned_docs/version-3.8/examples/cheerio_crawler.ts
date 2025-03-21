@@ -25,7 +25,7 @@ const crawler = new CheerioCrawler({
 
     // This function will be called for each URL to crawl.
     // It accepts a single parameter, which is an object with options as:
-    // https://crawlee.dev/api/cheerio-crawler/interface/CheerioCrawlerOptions#requestHandler
+    // https://crawlee.dev/js/api/cheerio-crawler/interface/CheerioCrawlerOptions#requestHandler
     // We use for demonstration only 2 of them:
     // - request: an instance of the Request class with information such as the URL that is being crawled and HTTP method
     // - $: the cheerio object containing parsed HTML

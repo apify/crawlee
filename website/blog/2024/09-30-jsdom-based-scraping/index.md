@@ -28,7 +28,7 @@ You will see a list of hashtags with their live ranking, the number of posts the
 
 Our goal here is to extract the top 100 hashtags from the list with the given filters.
 
-The two possible approaches are to use [`CheerioCrawler`](https://crawlee.dev/docs/guides/cheerio-crawler-guide), and the second one will be browser-based scraping. Cheerio gives results faster but does not work with JavaScript-rendered websites.
+The two possible approaches are to use [`CheerioCrawler`](https://crawlee.dev/js/docs/guides/cheerio-crawler-guide), and the second one will be browser-based scraping. Cheerio gives results faster but does not work with JavaScript-rendered websites.
 
 Cheerio is not the best option here as the [Creative Center](https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en) is a web application, and the data source is API, so we can only get the hashtags initially present in the HTML structure but not each of the 100 as we require.
 
@@ -108,7 +108,7 @@ In this function, the main goal is to call `https://ads.tiktok.com/business/crea
 
 :::note
 
-Before going ahead, I want to mention that Crawlee natively supports JSDOM using the [JSDOM Crawler](https://crawlee.dev/api/jsdom-crawler). It gives a framework for the parallel crawling of web pages using plain HTTP requests and jsdom DOM implementation. It uses raw HTTP requests to download web pages, it is very fast and efficient on data bandwidth.
+Before going ahead, I want to mention that Crawlee natively supports JSDOM using the [JSDOM Crawler](https://crawlee.dev/js/api/jsdom-crawler). It gives a framework for the parallel crawling of web pages using plain HTTP requests and jsdom DOM implementation. It uses raw HTTP requests to download web pages, it is very fast and efficient on data bandwidth.
 
 :::
 

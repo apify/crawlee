@@ -25,7 +25,7 @@ const crawler = new HttpCrawler({
 
     // This function will be called for each URL to crawl.
     // It accepts a single parameter, which is an object with options as:
-    // https://crawlee.dev/api/http-crawler/interface/HttpCrawlerOptions#requestHandler
+    // https://crawlee.dev/js/api/http-crawler/interface/HttpCrawlerOptions#requestHandler
     // We use for demonstration only 2 of them:
     // - request: an instance of the Request class with information such as the URL that is being crawled and HTTP method
     // - body: the HTML code of the current page

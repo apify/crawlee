@@ -245,7 +245,7 @@ export async function enqueueLinks(
         throw new RangeError(
             [
                 'enqueueLinks() was called without the required options. You can only do that when you use the `crawlingContext.enqueueLinks()` method in request handlers.',
-                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/docs/examples/crawl-relative-links',
+                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/js/docs/examples/crawl-relative-links',
             ].join('\n'),
         );
     }
