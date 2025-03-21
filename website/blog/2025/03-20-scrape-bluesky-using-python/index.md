@@ -62,6 +62,12 @@ We’ve created a new isolated Python project with all the necessary dependencie
 
 ## Development of the Bluesky crawler in Python
 
+:::note
+
+Before going ahead with the project, I'd like to ask you to star Crawlee for Python on [GitHub](https://github.com/apify/crawlee-python/), it helps us to spread the word to fellow scraper developers.
+
+:::
+
 ### 1. Identifying the data source
 
 When accessing the [search page](https://bsky.app/search?q=apify), you'll see data displayed, but be aware of a key limitation: the site only allows viewing the first page of results, preventing access to any additional pages.
