@@ -7,11 +7,11 @@ image: 'img/scrape-bluesky-using-python.webp'
 authors: [MaxB]
 ---
 
-[Bluesky](https://bsky.app/) is an emerging social network developed by former members of the [Twitter](https://x.com/) development team. The platform has been showing significant growth recently, reaching 140.3 million visits according to [SimilarWeb](https://www.similarweb.com/website/bsky.app/#traffic). Like Twitter, Bluesky generates a vast amount of data that can be used for analysis. In this article, we will explore how to collect this data using [Crawlee for Python](https://github.com/apify/crawlee-python).
+[Bluesky](https://bsky.app/) is an emerging social network developed by former members of the [Twitter](https://x.com/)(now X) development team. The platform has been showing significant growth recently, reaching 140.3 million visits according to [SimilarWeb](https://www.similarweb.com/website/bsky.app/#traffic). Like X, luesky generates a vast amount of data that can be used for analysis. In this article, we’ll  explore how to collect this data using [Crawlee for Python](https://github.com/apify/crawlee-python).
 
 :::note
 
-One of our community members wrote this blog as a contribution to the Crawlee Blog. If you would like to contribute blogs like these to Crawlee Blog, please reach out to us on our [discord channel](https://apify.com/discord).
+One of our community members wrote this blog as a contribution to the Crawlee Blog. If you’d like to contribute articles like these, please reach out to us on our [discord channel](https://apify.com/discord).
 
 :::
 
@@ -36,9 +36,9 @@ Key steps we will cover:
 
 ### Project setup
 
-We will be using UV for package management in this project and to use a specific Python version installed through UV. UV is a fast and modern package manager written in Rust.
+In this project, we’ll use UV for package management and a specific Python version installed through UV. UV is a fast and modern package manager written in Rust.
 
-1. If you do not have UV installed yet, follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
+1. If you don’t have UV installed yet, follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
 
     ```bash
     curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -58,17 +58,17 @@ We will be using UV for package management in this project and to use a specific
     uv add crawlee
     ```
 
-We have created a new isolated Python project with all the necessary dependencies for Crawlee.
+We’ve created a new isolated Python project with all the necessary dependencies for Crawlee.
 
 ## Development of the Bluesky crawler in Python
 
 ### 1. Identifying the data source
 
-If you navigate to the [search page](https://bsky.app/search?q=apify), while you will see data, you will encounter a limitation - the site does not allow viewing results beyond the first page.
+When accessing the [search page](https://bsky.app/search?q=apify), you'll see data displayed, but be aware of a key limitation: the site only allows viewing the first page of results, preventing access to any additional pages.
 
 ![Search Limit](img/search_limit.webp)
 
-Fortunately, Bluesky provides a well-documented [API](https://docs.bsky.app/docs/get-started) that is accessible to any registered user without additional permissions. This is what we will use for data collection.
+Fortunately, Bluesky provides a well-documented [API](https://docs.bsky.app/docs/get-started) that is accessible to any registered user without additional permissions. This is what we’ll use for data collection
 
 ### 2. Creating a session for API interaction
 
@@ -77,7 +77,7 @@ Fortunately, Bluesky provides a well-documented [API](https://docs.bsky.app/docs
 For secure API interaction, you need to create a dedicated app password instead of using your main account password.
 
 Go to Settings -> Privacy and Security -> [App Passwords](https://bsky.app/settings/app-passwords) and click *Add App Password*.
-Important: Save the generated password, as it will not be visible after creation.
+Important: Save the generated password, as it won’t be visible after creation.
 
 :::
 
@@ -165,15 +165,15 @@ class BlueskyApiScraper:
         response.raise_for_status()
 ```
 
-The session expires after 2 hours of creation, so if you plan for your crawler to run longer, you should also add a method for [refresh](https://docs.bsky.app/docs/api/com-atproto-server-refresh-session).
+The session expires after 2 hours, so if you plan for your crawler to run longer, you should also add a method for [refresh](https://docs.bsky.app/docs/api/com-atproto-server-refresh-session).
 
 ### 3. Configuring Crawlee for Python for data collection
 
-Since we will be using the official API, we do not need to worry about being blocked by Bluesky. However, we should be careful with the number of requests to avoid overloading Bluesky's servers, so we will configure [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings). We will also configure [`HttpxHttpClient`](https://www.crawlee.dev/python/api/class/HttpxHttpClient) to use custom headers with the current session's `Authorization`.
+Since we’ll be using the official API, we do not need to worry about being blocked by Bluesky. However, we should be careful with the number of requests to avoid overloading Bluesky's servers, so we will configure [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings). We’ll also configure [`HttpxHttpClient`](https://www.crawlee.dev/python/api/class/HttpxHttpClient) to use custom headers with the current session's `Authorization`.
 
-We will use 2 endpoints for data collection: [searchPosts](https://docs.bsky.app/docs/api/app-bsky-feed-search-posts) for posts and [getProfile](https://docs.bsky.app/docs/api/app-bsky-actor-get-profile). If you plan to scale the crawler, you can use [getProfiles](https://docs.bsky.app/docs/api/app-bsky-actor-get-profiles) for user data, but in this case, you will need to implement deduplication logic. When each link is unique, Crawlee for Python handles this for you.
+We’ll use 2 endpoints for data collection: [searchPosts](https://docs.bsky.app/docs/api/app-bsky-feed-search-posts) for posts and [getProfile](https://docs.bsky.app/docs/api/app-bsky-actor-get-profile). If you plan to scale the crawler, you can use [getProfiles](https://docs.bsky.app/docs/api/app-bsky-actor-get-profiles) for user data, but in this case, you’ll need to implement deduplication logic. When each link is unique, Crawlee for Python handles this for you.
 
-When collecting data, I want to separately obtain user and post data, so we will use different [`Dataset`](https://www.crawlee.dev/python/api/class/Dataset) instances for storage.
+When collecting data, I’d like to separately collect user and post data, so we’ll use different [`Dataset`](https://www.crawlee.dev/python/api/class/Dataset) instances for storage.
 
 ```python
 async def init_crawler(self) -> None:
@@ -212,7 +212,7 @@ async def init_crawler(self) -> None:
 
 ### 4. Implementing handlers for data collection
 
-Now we can implement the handler for searching posts. We will save the retrieved posts in `self._posts` and create requests for user data, placing them in the crawler's queue. We also need to handle pagination by forming the link to the next search page.
+Now we can implement the handler for searching posts. We’ll save the retrieved posts in `self._posts` and create requests for user data, placing them in the crawler's queue. We also need to handle pagination by forming the link to the next search page.
 
 ```python
 async def _search_handler(self, context: HttpCrawlingContext) -> None:
@@ -352,7 +352,7 @@ If you check your `pyproject.toml`, you will see that UV created an entrypoint f
 uv run bluesky-crawlee
 ```
 
-Let us look at sample results:
+Let's look at sample results:
 
 Posts
 
@@ -366,7 +366,7 @@ Users
 
 We already have a fully functional implementation for local execution. Let us explore how to adapt it for running on the [Apify Platform](https://apify.com/) and transform in [Apify Actor](https://docs.apify.com/platform/actors).
 
-Actor is a simple and efficient way to deploy your code in the cloud infrastructure on the Apify Platform. You can flexibly interact with the Actor, [schedule regular runs](https://docs.apify.com/platform/schedules) for monitoring data, or [integrate](https://docs.apify.com/platform/integrations) with other tools to build data processing flows.
+An Actor is a simple and efficient way to deploy your code in the cloud infrastructure on the Apify Platform. You can flexibly interact with the Actor, [schedule regular runs](https://docs.apify.com/platform/schedules) for monitoring data, or [integrate](https://docs.apify.com/platform/integrations) with other tools to build data processing flows.
 
 First, create an `.actor` directory with platform configuration files:
 
@@ -382,7 +382,7 @@ uv add apify
 
 ### Configure Dockerfile
 
-We will use the official [Apify Docker image](https://docs.apify.com/academy/deploying-your-code/docker-file) along with recommended [UV practices for Docker](https://docs.astral.sh/uv/guides/integration/docker/):
+We’ll use the official [Apify Docker image](https://docs.apify.com/academy/deploying-your-code/docker-file) along with recommended [UV practices for Docker](https://docs.astral.sh/uv/guides/integration/docker/):
 
 ```dockerfile
 FROM apify/actor-python:3.13
@@ -429,7 +429,7 @@ The `actor.json` file contains project metadata for Apify Platform. Follow the [
 
 ### Define Actor input parameters
 
-Our crawler requires several external parameters. Let us define them:
+Our crawler requires several external parameters. Let’s define them:
 
 - identifier: User's Bluesky identifier (encrypted for security)
 - appPassword: Bluesky app password (encrypted)
@@ -499,7 +499,7 @@ Configure the input schema following the [specification](https://docs.apify.com/
 
 ### Update project code
 
-Remove environment variables and parameterize the code according to actor input parameters. Replace named Datasets with the default Dataset.
+Remove environment variables and parameterize the code according to the Actor input parameters. Replace named datasets with the default dataset.
 
 Add Actor logging:
 
@@ -584,7 +584,7 @@ def main() -> None:
     asyncio.run(run())
 ```
 
-Update methods with actor input parameters:
+Update methods with Actor input parameters:
 
 ```python
 class BlueskyApiScraper:
@@ -680,7 +680,7 @@ async def _search_handler(self, context: HttpCrawlingContext) -> None:
         await context.add_requests([str(next_url)])
 ```
 
-Update the user handler for the default Dataset:
+Update the user handler for the default dataset:
 
 ```python
 async def _user_handler(self, context: HttpCrawlingContext) -> None:
@@ -725,7 +725,7 @@ apify push
 
 Now you can configure runs on Apify Platform.
 
-Let us perform a test run:
+Let’s perform a test run:
 
 Fill in the input parameters:
 
@@ -735,15 +735,15 @@ Check that logging works correctly:
 
 ![Actor Log](img/actor_log.webp)
 
-View results in the Dataset:
+View results in the dataset:
 
 ![Dataset Results](img/actor_results.webp)
 
-If you want to make your Actor public and provide access to other users, potentially for a fee, follow this [publishing guide](https://docs.apify.com/platform/actors/publishing) for [Apify Store](https://apify.com/store).
+If you want to make your Actor public and provide access to other users, potentially to earn income from it, follow this [publishing guide](https://docs.apify.com/platform/actors/publishing) for [Apify Store](https://apify.com/store).
 
 ## Conclusion and repository access
 
-We have created an efficient crawler for Bluesky using the official API. If you want to dive deeper into this topic for regular data extraction from Bluesky, I recommend exploring [custom feed generation](https://docs.bsky.app/docs/starter-templates/custom-feeds) - I think it opens up some interesting possibilities.
+We’ve created an efficient crawler for Bluesky using the official API. If you want to learn more this topic for regular data extraction from Bluesky, I recommend explorin [custom feed generation](https://docs.bsky.app/docs/starter-templates/custom-feeds) - I think it opens up some interesting possibilities.
 
 And if you need to quickly create a crawler that can retrieve data for various queries, you now have everything you need.
 
@@ -751,4 +751,4 @@ You can find the complete code in the [repository](https://github.com/Mantisus/b
 
 If you enjoyed this blog, feel free to support Crawlee for Python by starring the [repository](https://github.com/apify/crawlee-python) or joining the maintainer team.
 
-Have questions or want to discuss implementation details? Join our [Discord](https://discord.com/invite/jyEM2PRvMU) - our community of developers is there to help.
+Have questions or want to discuss implementation details? Join our [Discord](https://discord.com/invite/jyEM2PRvMU) - our community of 10,000+ developers is there to help.
