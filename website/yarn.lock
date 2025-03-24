@@ -8279,6 +8279,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"github-buttons@npm:^2.22.0":
+  version: 2.29.1
+  resolution: "github-buttons@npm:2.29.1"
+  checksum: 10c0/f403cce395b09acab1bc3c2d08549d1130f77a56338d7c7be84cd101774eeb681b0f9a050c6e263dc585c60f3a3cf406be762afe2400449ad842e41732a3f897
+  languageName: node
+  linkType: hard
+
 "github-slugger@npm:^1.5.0":
   version: 1.5.0
   resolution: "github-slugger@npm:1.5.0"
@@ -13470,6 +13477,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-github-btn@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "react-github-btn@npm:1.4.0"
+  dependencies:
+    github-buttons: "npm:^2.22.0"
+  peerDependencies:
+    react: ">=16.3.0"
+  checksum: 10c0/ce21b1081e8985fce93f19deb3ab3e20b36e80508fcd9346eb617728b2e242bea845434296a9b8acbc339259551d58e43d840dbe9ec03c21a7094a7a9038986e
+  languageName: node
+  linkType: hard
+
 "react-helmet-async@npm:@slorber/react-helmet-async@*, react-helmet-async@npm:@slorber/react-helmet-async@1.3.0":
   version: 1.3.0
   resolution: "@slorber/react-helmet-async@npm:1.3.0"
@@ -14206,6 +14224,7 @@ __metadata:
     raw-loader: "npm:^4.0.2"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
+    react-github-btn: "npm:^1.4.0"
     react-lite-youtube-embed: "npm:^2.3.52"
     rimraf: "npm:^6.0.0"
     stream-browserify: "npm:^3.0.0"

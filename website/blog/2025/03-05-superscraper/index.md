@@ -6,7 +6,7 @@ image: './img/superscraper.webp'
 authors: [SauravJ, RadoC]
 ---
 
-[SuperScraper](https://github.com/apify/super-scraper) is an open-source [Actor](https://docs.apify.com/platform/actors) that combines features from various web scraping services, including [ScrapingBee](https://www.scrapingbee.com/), [ScrapingAnt](https://scrapingant.com/), and [ScraperAPI](https://www.scraperapi.com/). 
+[SuperScraper](https://github.com/apify/super-scraper) is an open-source [Actor](https://docs.apify.com/platform/actors) that combines features from various web scraping services, including [ScrapingBee](https://www.scrapingbee.com/), [ScrapingAnt](https://scrapingant.com/), and [ScraperAPI](https://www.scraperapi.com/).
 
 A key capability is its standby mode, which runs the Actor as a persistent API server. This removes the usual start-up times - a common pain point in many systems - and lets users make direct API calls to interact with the system immediately.
 
@@ -18,7 +18,7 @@ This blog explains how SuperScraper works, highlights its implementation details
 
 ### What is SuperScraper?
 
-SuperScraper transforms a traditional scraper into an API server. Instead of running with static inputs and waiting for completion, it starts only once, stays active, and listens for incoming requests. 
+SuperScraper transforms a traditional scraper into an API server. Instead of running with static inputs and waiting for completion, it starts only once, stays active, and listens for incoming requests.
 
 ### How to enable standby mode
 
@@ -32,7 +32,7 @@ The project uses Node.js `http` module to create a server that listens on the de
 
 ### Handling multiple crawlers
 
-SuperScraper processes user requests using multiple instances of Crawlee’s [`PlaywrightCrawler`](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler). Since each `PlaywrightCrawler` instance can only handle one proxy configuration, a separate crawler is created for each unique proxy setting. 
+SuperScraper processes user requests using multiple instances of Crawlee’s [`PlaywrightCrawler`](https://crawlee.dev/js/api/playwright-crawler/class/PlaywrightCrawler). Since each `PlaywrightCrawler` instance can only handle one proxy configuration, a separate crawler is created for each unique proxy setting.
 
 For example, if the user sends one request for “normal” proxies and one request with residential US proxies, a separate crawler needs to be created for each proxy configuration. Hence, to solve this, we store the crawlers in a key-value map, where the key is a stringified proxy configuration.
 
@@ -43,7 +43,7 @@ const crawlers = new Map<string, PlaywrightCrawler>();
 Here’s a part of the code that gets executed when a new request from the user arrives; if the crawler for this proxy configuration exists in the map, it will be used. Otherwise, a new crawler gets created. Then, we add the request to the crawler’s queue so it can be processed.
 
 ```ts
-const key = JSON.stringify(crawlerOptions); 
+const key = JSON.stringify(crawlerOptions);
 const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(crawlerOptions);
 
 await crawler.addRequests([request]);
@@ -108,7 +108,7 @@ export function addResponse(responseId: string, response: ServerResponse) {
 Here’s the updated logic for fetching/creating the corresponding crawler for a given proxy configuration, with a call to store the response object:
 
 ```ts
-const key = JSON.stringify(crawlerOptions); 
+const key = JSON.stringify(crawlerOptions);
 const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(crawlerOptions);
 
 addResponse(request.uniqueKey!, res);
