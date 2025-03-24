@@ -25,7 +25,7 @@ function LanguageGetStartedSection() {
             <div className={styles.dashedSeparatorVertical} />
             <LanguageInfoWidget
                 language="Python"
-                command="pipx run crawlee create my-crawler"
+                command="pipx run 'crawlee[cli]' create my-crawler"
                 githubUrl="https://github.com/apify/crawlee-python"
                 to="https://crawlee.dev/python"
             />
