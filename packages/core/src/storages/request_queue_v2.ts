@@ -1,4 +1,4 @@
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary, RequestQueueHeadItem } from '@crawlee/types';
 
 import { checkStorageAccess } from './access_checking';
 import type {
@@ -8,7 +8,7 @@ import type {
 } from './request_provider';
 import { RequestProvider } from './request_provider';
 import { getRequestId } from './utils';
-import { Configuration } from '../configuration';
+import { Configuration, ConfigurationOptions } from '../configuration';
 import { EventType } from '../events';
 import type { Request, Source } from '../request';
 
@@ -61,6 +61,8 @@ export class RequestQueue extends RequestProvider {
     private queueHasLockedRequests: boolean | undefined = undefined;
     private shouldCheckForForefrontRequests = false;
     private dequeuedRequestCount = 0;
+    private initialized = false;
+    private runId?: string;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
         super(
@@ -72,6 +74,9 @@ export class RequestQueue extends RequestProvider {
             },
             config,
         );
+
+        // HACK - runId is only used when running on Apify, and in that case, the Apify SDK will monkeypatch the Configuration class to provide it
+        this.runId = config.get('actorRunId' as keyof ConfigurationOptions, undefined as string | undefined);
 
         const eventManager = config.getEventManager();
 
@@ -537,10 +542,45 @@ export class RequestQueue extends RequestProvider {
         }
     }
 
+    private async initialize(): Promise<void> {
+        // When opening this particular storage for the first time with the Apify request queue implementation,
+        // check for requests locked by the same run and try to re-lock and enqueue them locally.
+        // This prevents us from waiting for locks made by the same run (e.g., before a migration) to time out.
+
+        if (!this.initialized && this.runId !== undefined) {
+            this.initialized = true;
+
+            let items: RequestQueueHeadItem[] = [];
+
+            try {
+                const head = await this.client.listHead({ limit: 1_000_000, lockedByRunId: this.runId }); // Might be overkill, but who knows
+                items = head.items;
+            } catch {
+                this.log.warning(
+                    'Could not check for locked requests from our run - make sure to update the apify-client package',
+                );
+                return;
+            }
+
+            for (const item of items) {
+                const lockResult = await this._prolongRequestLock(item.id);
+                if (lockResult !== null) {
+                    this.queueHeadIds.add(item.id, item.id, false);
+                }
+            }
+
+            this.log.info(
+                `Found ${items.length} requests that the current run locked in the past and recovered ${this.queueHeadIds.length()} of those`,
+            );
+        }
+    }
+
     /**
      * @inheritDoc
      */
     static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
-        return super.open(...args) as Promise<RequestQueue>;
+        const rq = (await super.open(...args)) as RequestQueue;
+        await rq.initialize();
+        return rq;
     }
 }
