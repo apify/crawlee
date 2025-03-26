@@ -74,7 +74,7 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
      * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
      * and override settings of the enqueued {@apilink Request} objects.
      *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/docs/examples/crawl-relative-links) example
+     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
      * for more details regarding its usage.
      *
      * **Example usage**
@@ -294,7 +294,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     /**
      * Allows to keep the crawler alive even if the {@apilink RequestQueue} gets empty.
      * By default, the `crawler.run()` will resolve once the queue is empty. With `keepAlive: true` it will keep running,
-     * waiting for more requests to come. Use `crawler.teardown()` to exit the crawler.
+     * waiting for more requests to come. Use `crawler.stop()` to exit the crawler gracefully, or `crawler.teardown()` to stop it immediately.
      */
     keepAlive?: boolean;
 
@@ -671,9 +671,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
         if (this.requestQueue) {
             this.requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
-            // for request queue v2, we want to lock requests by the timeout that would also account for internals (plus 5 seconds padding), but
-            // with a minimum of a minute
-            this.requestQueue.requestLockSecs = Math.max(this.internalTimeoutMillis / 1000 + 5, 60);
+            // for request queue v2, we want to lock requests for slightly longer than the request handler timeout so that there is some padding for locking-related overhead,
+            // but never for less than a minute
+            this.requestQueue.requestLockSecs = Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60);
         }
 
         this.maxRequestRetries = maxRequestRetries;
@@ -860,12 +860,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
-     * We can use the `requests` parameter to enqueue the initial requests - it is a shortcut for
-     * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before the {@apilink BasicCrawler.run|`crawler.run()`}.
+     * Runs the crawler. Returns a promise that resolves once all the requests are processed
+     * and `autoscaledPool.isFinished` returns `true`.
      *
-     * @param [requests] The requests to add
-     * @param [options] Options for the request queue
+     * We can use the `requests` parameter to enqueue the initial requests — it is a shortcut for
+     * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before {@apilink BasicCrawler.run|`crawler.run()`}.
+     *
+     * @param [requests] The requests to add.
+     * @param [options] Options for the request queue.
      */
     async run(requests?: (string | Request | RequestOptions)[], options?: CrawlerRunOptions): Promise<FinalStatistics> {
         if (this.running) {
@@ -874,7 +876,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
         }
 
-        const purgeRequestQueue = options?.purgeRequestQueue ?? true;
+        const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
 
         if (this.hasFinishedBefore) {
             // When executing the run method for the second time explicitly,
@@ -896,7 +898,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
         if (requests) {
-            await this.addRequests(requests, options);
+            await this.addRequests(requests, addRequestsOptions);
         }
 
         await this._init();
@@ -918,6 +920,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.MIGRATING, boundPauseOnMigration);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
+        let stats = {} as FinalStatistics;
+
         try {
             await this.autoscaledPool!.run();
         } finally {
@@ -927,51 +931,69 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             process.off('SIGINT', sigintHandler);
             this.events.off(EventType.MIGRATING, boundPauseOnMigration);
             this.events.off(EventType.ABORTING, boundPauseOnMigration);
+
+            const finalStats = this.stats.calculate();
+            stats = {
+                requestsFinished: this.stats.state.requestsFinished,
+                requestsFailed: this.stats.state.requestsFailed,
+                retryHistogram: this.stats.requestRetryHistogram,
+                ...finalStats,
+            };
+            this.log.info('Final request statistics:', stats);
+
+            if (this.stats.errorTracker.total !== 0) {
+                const prettify = ([count, info]: [number, string[]]) =>
+                    `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
+
+                this.log.info(`Error analysis:`, {
+                    totalErrors: this.stats.errorTracker.total,
+                    uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
+                    mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
+                });
+            }
+
+            const client = this.config.getStorageClient();
+
+            if (client.teardown) {
+                let finished = false;
+                setTimeout(() => {
+                    if (!finished) {
+                        this.log.info('Waiting for the storage to write its state to file system.');
+                    }
+                }, 1000);
+                await client.teardown();
+                finished = true;
+            }
+
+            periodicLogger.stop();
+            await this.setStatusMessage(
+                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
+                    this.stats.state.requestsFinished
+                } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                { isStatusMessageTerminal: true, level: 'INFO' },
+            );
+            this.running = false;
+            this.hasFinishedBefore = true;
         }
-
-        const finalStats = this.stats.calculate();
-        const stats = {
-            requestsFinished: this.stats.state.requestsFinished,
-            requestsFailed: this.stats.state.requestsFailed,
-            retryHistogram: this.stats.requestRetryHistogram,
-            ...finalStats,
-        };
-        this.log.info('Final request statistics:', stats);
-
-        if (this.stats.errorTracker.total !== 0) {
-            const prettify = ([count, info]: [number, string[]]) => `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
-
-            this.log.info(`Error analysis:`, {
-                totalErrors: this.stats.errorTracker.total,
-                uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
-                mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
-            });
-        }
-
-        const client = this.config.getStorageClient();
-
-        if (client.teardown) {
-            let finished = false;
-            setTimeout(() => {
-                if (!finished) {
-                    this.log.info('Waiting for the storage to write its state to file system.');
-                }
-            }, 1000);
-            await client.teardown();
-            finished = true;
-        }
-
-        periodicLogger.stop();
-        await this.setStatusMessage(
-            `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                this.stats.state.requestsFinished
-            } succeeded, ${this.stats.state.requestsFailed} failed.`,
-            { isStatusMessageTerminal: true, level: 'INFO' },
-        );
-        this.running = false;
-        this.hasFinishedBefore = true;
 
         return stats;
+    }
+
+    /**
+     * Gracefully stops the current run of the crawler.
+     *
+     * All the tasks active at the time of calling this method will be allowed to finish.
+     */
+    stop(message = 'The crawler has been gracefully stopped.'): void {
+        // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
+        this.autoscaledPool
+            ?.pause()
+            // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
+            .then(async () => this.autoscaledPool?.abort())
+            .then(() => this.log.info(message))
+            .catch((err) => {
+                this.log.error('An error occurred when stopping the crawler:', err);
+            });
     }
 
     async getRequestQueue() {

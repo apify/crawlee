@@ -1,0 +1,114 @@
+.ctaSection {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+    padding-bottom: 0;
+    gap: 24px;
+    overflow: clip;
+}
+
+.ctaTitle {
+    color: var(--color-text);
+    font-family: 'Lota Grotesque';
+    font-size: 36px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 46px;
+    margin: 0;
+}
+
+.ctaDescription {
+    color: var(--color-text-muted);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    max-width: 780px;
+}
+
+.ctaButtonContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.ctaButtonContainerFullWidth {
+    a,
+    a span {
+        text-align: center;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.ctaImage {
+    z-index: -1;
+    margin-top: -90px;
+    margin-bottom: -30px;
+    min-height: 400px;
+}
+
+#ctaFadedOutSeparator {
+    position: absolute;
+    top: 370px;
+    width: 100%;
+    z-index: -2;
+}
+
+#fadedOutSeparatorVerticalLeft {
+    position: absolute;
+    left: 190px;
+    bottom: 0;
+    height: 100%;
+    z-index: -2;
+}
+
+#fadedOutSeparatorVerticalRight {
+    position: absolute;
+    right: 190px;
+    bottom: 0;
+    height: 100%;
+    z-index: -2;
+}
+
+#ctaDashedCircleRight {
+    position: absolute;
+    right: -120px;
+    top: 370px;
+    z-index: -2;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .ctaSection {
+        padding-top: 80px;
+    }
+
+    .ctaTitle {
+        font-size: 48px;
+        line-height: 56px;
+    }
+
+    .ctaButtonContainer {
+        flex-direction: row;
+    }
+
+    .ctaDescription {
+        font-size: 18px;
+    }
+
+    .ctaButtonContainerFullWidth {
+        a,
+        a span {
+            width: fit-content;
+        }
+    }
+}

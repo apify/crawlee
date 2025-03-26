@@ -15,7 +15,7 @@ Proxies vary in quality, speed, reliability, and cost. There are a [few types of
 
 It is hard for developers to decide which proxy to use while scraping data. We might get blocked if we use [datacenter proxies](https://blog.apify.com/datacenter-proxies-when-to-use-them-and-how-to-make-the-most-of-them/) for low-cost scraping, but residential proxies are sometimes too expensive for bigger projects. Developers need a system that can manage both costs and avoid getting blocked. To manage this, we recently introduced tiered proxies in Crawlee. Let’s take a look at it.
 
-<!--truncate-->
+<!-- truncate -->
 
 :::note
 
@@ -77,9 +77,9 @@ await crawler.run();
 
 ## How tiered proxies use Session Pool under the hood
 
-A session pool is a way to manage multiple [sessions](https://crawlee.dev/api/core/class/Session) on a website so you can distribute your requests across them, reducing the chances of being detected and blocked. You can imagine each session like a different human user with its own IP address.
+A session pool is a way to manage multiple [sessions](https://crawlee.dev/js/api/core/class/Session) on a website so you can distribute your requests across them, reducing the chances of being detected and blocked. You can imagine each session like a different human user with its own IP address.
 
-When you use tiered proxies, each proxy tier works with the [session pool](https://crawlee.dev/api/core/class/SessionPool) to enhance request distribution and manage errors effectively.
+When you use tiered proxies, each proxy tier works with the [session pool](https://crawlee.dev/js/api/core/class/SessionPool) to enhance request distribution and manage errors effectively.
 
 ![Diagram explaining how tiered proxies use Session Pool under the hood](./img/session-pool-working.webp)
 

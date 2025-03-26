@@ -40,6 +40,7 @@ LukasP:
     image_url: ./img/lukasp.webp
     socials:
         github: Patai5
+
 MatejV:
     name: Matěj Volf
     title: Web Automation Engineer
@@ -47,6 +48,7 @@ MatejV:
     image_url: https://avatars.githubusercontent.com/u/31281386?v=4
     socials:
         github: mvolfik
+
 SatyamT:
     name: Satyam Tripathi
     title: Community Member of Crawlee
@@ -54,4 +56,20 @@ SatyamT:
     image_url: https://avatars.githubusercontent.com/u/69134468?v=4
     socials:
         github: triposat
+
+VladaD:
+    name: Vlada Dusek
+    title: Developer of Crawlee for Python
+    url: https://github.com/vdusek
+    image_url: https://avatars.githubusercontent.com/u/25082181?v=4
+    socials:
+        github: vdusek
+        
+RadoC:
+    name: Radoslav Chudovský
+    title: Web Automation Engineer
+    url: https://github.com/chudovskyr
+    image_url: https://ca.slack-edge.com/T0KRMEKK6-U04MGU11VUK-7f59c4a9343b-512
+    socials:
+        github: chudovskyr
         

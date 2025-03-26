@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Bug Fixes
+
+* Simplified RequestQueueV2 implementation ([#2775](https://github.com/apify/crawlee/issues/2775)) ([d1a094a](https://github.com/apify/crawlee/commit/d1a094a47eaecbf367b222f9b8c14d7da5d3e03a)), closes [#2767](https://github.com/apify/crawlee/issues/2767) [#2700](https://github.com/apify/crawlee/issues/2700)
+
+
+
+
+
+## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
+
+
+### Bug Fixes
+
+* destructure `CrawlerRunOptions` before passing them to `addRequests` ([#2803](https://github.com/apify/crawlee/issues/2803)) ([02a598c](https://github.com/apify/crawlee/commit/02a598c2a501957f04ca3a2362bcee289ef861c0)), closes [#2802](https://github.com/apify/crawlee/issues/2802)
+* graceful `BasicCrawler` tidy-up on `CriticalError` ([#2817](https://github.com/apify/crawlee/issues/2817)) ([53331e8](https://github.com/apify/crawlee/commit/53331e82ee66274316add7cadb4afec1ce2d4bcf)), closes [#2807](https://github.com/apify/crawlee/issues/2807)
+
+
+### Features
+
+* stopping the crawlers gracefully with `BasicCrawler.stop()` ([#2792](https://github.com/apify/crawlee/issues/2792)) ([af2966f](https://github.com/apify/crawlee/commit/af2966f65caeaf4273fd0a8ab583a7857e4330ab)), closes [#2777](https://github.com/apify/crawlee/issues/2777)
+
+
+
+
+
 ## [3.12.1](https://github.com/apify/crawlee/compare/v3.12.0...v3.12.1) (2024-12-04)
 
 

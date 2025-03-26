@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Bug Fixes
+
+* Make log message in RequestQueue.isFinished more accurate ([#2848](https://github.com/apify/crawlee/issues/2848)) ([3d124ae](https://github.com/apify/crawlee/commit/3d124aee8f6fa096df0daafad4bb9d07b0ae4684))
+* Simplified RequestQueueV2 implementation ([#2775](https://github.com/apify/crawlee/issues/2775)) ([d1a094a](https://github.com/apify/crawlee/commit/d1a094a47eaecbf367b222f9b8c14d7da5d3e03a)), closes [#2767](https://github.com/apify/crawlee/issues/2767) [#2700](https://github.com/apify/crawlee/issues/2700)
+
+
+### Features
+
+* improved cross platform metric collection ([#2834](https://github.com/apify/crawlee/issues/2834)) ([e41b2f7](https://github.com/apify/crawlee/commit/e41b2f744513dd80aa05336eedfa1c08c54d3832)), closes [#2771](https://github.com/apify/crawlee/issues/2771)
+
+
+
+
+
+## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
+
+
+### Bug Fixes
+
+* **core:** type definition of Dataset.reduce ([#2774](https://github.com/apify/crawlee/issues/2774)) ([59bc6d1](https://github.com/apify/crawlee/commit/59bc6d12cbd9e81c06ee18d0a6390b7806e346ae)), closes [#2773](https://github.com/apify/crawlee/issues/2773)
+
+
+### Features
+
+* add support for parsing comma-separated list environment variables ([#2765](https://github.com/apify/crawlee/issues/2765)) ([4e50c47](https://github.com/apify/crawlee/commit/4e50c474f60df66585c6decf07532c790c8e63a7))
+
+
+
+
+
 ## [3.12.1](https://github.com/apify/crawlee/compare/v3.12.0...v3.12.1) (2024-12-04)
 
 
@@ -1010,7 +1043,7 @@ const crawler = new BasicCrawler({
 
 #### How to use `sendRequest()`?
 
-See [the Got Scraping guide](https://crawlee.dev/docs/guides/got-scraping).
+See [the Got Scraping guide](https://crawlee.dev/js/docs/guides/got-scraping).
 
 #### Removed options
 
@@ -1135,7 +1168,7 @@ Previously, you were able to have a browser pool that would mix Puppeteer and Pl
 
 One small feature worth mentioning is the ability to handle requests with browser crawlers outside the browser. To do that, we can use a combination of `Request.skipNavigation` and `context.sendRequest()`.
 
-Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](https://crawlee.dev/docs/examples/skip-navigation) example!
+Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](https://crawlee.dev/js/docs/examples/skip-navigation) example!
 
 ### Logging
 
@@ -1195,14 +1228,14 @@ await Actor.main(async () => {
 
 #### Events
 
-Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by [`EventManager`](https://crawlee.dev/api/core/class/EventManager) class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
+Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by [`EventManager`](https://crawlee.dev/js/api/core/class/EventManager) class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
 
 ```diff
 -Apify.events.on(...);
 +Actor.on(...);
 ```
 
-> We can also get the [`EventManager`](https://crawlee.dev/api/core/class/EventManager) instance via `Configuration.getEventManager()`.
+> We can also get the [`EventManager`](https://crawlee.dev/js/api/core/class/EventManager) instance via `Configuration.getEventManager()`.
 
 In addition to the existing events, we now have an `exit` event fired when calling `Actor.exit()` (which is called at the end of `Actor.main()`). This event allows you to gracefully shut down any resources when `Actor.exit` is called.
 

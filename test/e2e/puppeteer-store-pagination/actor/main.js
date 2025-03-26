@@ -26,7 +26,7 @@ crawler.router.addHandler('START', async ({ log, enqueueLinks, page }) => {
     // enqueue product details from the first three pages of the store
     for (let pageNo = 1; pageNo < 3; pageNo++) {
         // Wait for network events to finish
-        await page.waitForNetworkIdle();
+        await page.waitForNetworkIdle({ concurrency: 2 });
         // Enqueue all loaded links
         await enqueueLinks({
             selector: 'a.product-item__image-wrapper',

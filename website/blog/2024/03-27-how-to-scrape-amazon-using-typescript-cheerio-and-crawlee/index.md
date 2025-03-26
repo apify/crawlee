@@ -14,7 +14,7 @@ In this guide, we'll be extracting information from Amazon product pages using t
 
 ![How to scrape Amazon using Typescript, Cheerio, and Crawlee](./img/how-to-scrape-amazon.webp)
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Prerequisites
 
@@ -424,7 +424,7 @@ While Crawlee's browser-like user-agent headers prevent blocking to a certain ex
 
 ### Using proxies
 
-The use of proxies marks another significant tactic in evading blocking. You'll be pleased to know that Crawlee excels in this domain, supporting both [custom proxies](https://crawlee.dev/docs/guides/proxy-management) and [Apify proxies](https://apify.com/proxy).
+The use of proxies marks another significant tactic in evading blocking. You'll be pleased to know that Crawlee excels in this domain, supporting both [custom proxies](https://crawlee.dev/js/docs/guides/proxy-management) and [Apify proxies](https://apify.com/proxy).
 
 Here's an example of how to use Apify's [residential proxies](https://docs.apify.com/platform/proxy/residential-proxy), which are highly effective in preventing blocking:
 
@@ -444,7 +444,7 @@ const crawler = new CheerioCrawler({ requestHandler, proxyConfiguration });
 
 ### Using headless browsers to scrape Amazon
 
-For more advanced scraping, you can use a headless browser like [Playwright](https://crawlee.dev/docs/examples/playwright-crawler) to scrape Amazon. This method is more effective in preventing blocking and can handle websites with complex JavaScript interactions.
+For more advanced scraping, you can use a headless browser like [Playwright](https://crawlee.dev/js/docs/examples/playwright-crawler) to scrape Amazon. This method is more effective in preventing blocking and can handle websites with complex JavaScript interactions.
 
 To use Playwright with Crawlee, we can replace the `CheerioCrawler` with `PlaywrightCrawler`:
 

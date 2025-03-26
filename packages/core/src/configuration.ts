@@ -161,6 +161,20 @@ export interface ConfigurationOptions {
      * Alternative to `CRAWLEE_PERSIST_STORAGE` environment variable.
      */
     persistStorage?: boolean;
+
+    /**
+     * Defines whether to use the systemInfoV2 metric collection experiment.
+     *
+     * Alternative to `CRAWLEE_SYSTEM_INFO_V2` environment variable.
+     */
+    systemInfoV2?: boolean;
+
+    /**
+     * Used in place of `isContainerized()` when collecting system metrics.
+     *
+     * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
+     */
+    containerized?: boolean;
 }
 
 /**
@@ -226,6 +240,8 @@ export interface ConfigurationOptions {
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -
  * `disableBrowserSandbox` | `CRAWLEE_DISABLE_BROWSER_SANDBOX` | -
  * `availableMemoryRatio` | `CRAWLEE_AVAILABLE_MEMORY_RATIO` | `0.25`
+ * `systemInfoV2` | `CRAWLEE_SYSTEM_INFO_V2` | false
+ * `containerized | `CRAWLEE_CONTAINERIZED | -
  */
 export class Configuration {
     /**
@@ -247,9 +263,19 @@ export class Configuration {
         CRAWLEE_DISABLE_BROWSER_SANDBOX: 'disableBrowserSandbox',
         CRAWLEE_LOG_LEVEL: 'logLevel',
         CRAWLEE_PERSIST_STORAGE: 'persistStorage',
+        CRAWLEE_SYSTEM_INFO_V2: 'systemInfoV2',
+        CRAWLEE_CONTAINERIZED: 'containerized',
     };
 
-    protected static BOOLEAN_VARS = ['purgeOnStart', 'headless', 'xvfb', 'disableBrowserSandbox', 'persistStorage'];
+    protected static BOOLEAN_VARS = [
+        'purgeOnStart',
+        'headless',
+        'xvfb',
+        'disableBrowserSandbox',
+        'persistStorage',
+        'systemInfoV2',
+        'containerized',
+    ];
 
     protected static INTEGER_VARS = ['memoryMbytes', 'persistStateIntervalMillis', 'systemInfoIntervalMillis'];
 
@@ -268,6 +294,7 @@ export class Configuration {
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 1_000,
         persistStorage: true,
+        systemInfoV2: false,
     };
 
     /**

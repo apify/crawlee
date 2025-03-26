@@ -3,6 +3,7 @@ import os from 'os';
 import log from '@apify/log';
 import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';
+import * as utils from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 
 const toBytes = (x: number) => x * 1024 * 1024;
@@ -208,15 +209,11 @@ describe('Snapshotter', () => {
     test('correctly marks memoryOverloaded using OS metrics', async () => {
         const noop = () => {};
         const memoryData = {
+            totalBytes: toBytes(10000),
             mainProcessBytes: toBytes(1000),
             childProcessesBytes: toBytes(1000),
         } as MemoryInfo;
-        const getMemoryInfo = async () => ({ ...memoryData });
-        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockImplementation(getMemoryInfo);
-        vitest
-            .spyOn(Snapshotter.prototype as any, '_getMemoryInfo')
-            .mockResolvedValueOnce({ totalBytes: toBytes(10000) });
-
+        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         // do not initialize the event intervals as we will fire them manually
@@ -247,9 +244,7 @@ describe('Snapshotter', () => {
     });
 
     test('correctly logs critical memory overload', async () => {
-        vitest
-            .spyOn(Snapshotter.prototype as any, '_getMemoryInfo')
-            .mockResolvedValueOnce({ totalBytes: toBytes(10000) });
+        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) } as MemoryInfo);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         await snapshotter.start();
@@ -313,7 +308,7 @@ describe('Snapshotter', () => {
         });
         await snapshotter.start();
         await config.getEventManager().init();
-        await sleep(1e3);
+        await sleep(1.5e3);
         await snapshotter.stop();
         await config.getEventManager().close();
         const memorySnapshots = snapshotter.getMemorySample();

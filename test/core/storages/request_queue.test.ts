@@ -305,6 +305,7 @@ describe('RequestQueue remote', () => {
             uniqueKey: requestA.uniqueKey,
             wasAlreadyPresent: true,
             wasAlreadyHandled: false,
+            forefront: false,
         });
     });
 
@@ -335,6 +336,7 @@ describe('RequestQueue remote', () => {
             uniqueKey: requestX.uniqueKey,
             wasAlreadyPresent: true,
             wasAlreadyHandled: true,
+            forefront: false,
         });
     });
 
@@ -362,6 +364,7 @@ describe('RequestQueue remote', () => {
             uniqueKey: 'aaa',
             wasAlreadyPresent: true,
             wasAlreadyHandled: false,
+            forefront: false,
         });
     });
 

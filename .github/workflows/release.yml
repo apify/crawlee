@@ -32,7 +32,7 @@ jobs:
             fail-fast: true
             matrix:
                 # We don't test on Windows as the tests are flaky
-                os: [ ubuntu-latest ]
+                os: [ ubuntu-22.04 ]
                 node-version: [ 16, 18, 20, 22 ]
 
         runs-on: ${{ matrix.os }}
@@ -61,9 +61,6 @@ jobs:
                 with:
                     cache: 'yarn'
 
-            -   name: Setup Playwright
-                uses: microsoft/playwright-github-action@v1
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v4
@@ -74,7 +71,9 @@ jobs:
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
-                run: yarn
+                run: |
+                    yarn
+                    yarn playwright install --with-deps
 
             -   name: Build
                 run: yarn ci:build
@@ -86,7 +85,7 @@ jobs:
         name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
 
         steps:
             -   name: Checkout repository
@@ -168,12 +167,12 @@ jobs:
                 uses: peter-evans/repository-dispatch@v3
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-                    repository: apify/crawlee
-                    event-type: crawlee-docker-image-bump
+                    repository: apify/apify-actor-docker
+                    event-type: build-node-images
 
     version-docs:
         needs: release
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
         if: (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
 
         steps:

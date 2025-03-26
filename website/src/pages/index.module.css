@@ -1,254 +1,257 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
+/************* PAGE LAYOUT *************/
 
-.buttons {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+#homepageContainer {
+    width: calc(100% - 48px) !important;
+    max-width: 1200px !important;
+    border-left: 1px solid var(--color-separator);
+    border-right: 1px solid var(--color-separator);
+    margin: 0 24px;
 }
 
-.tagline {
-    font-family: 'Lota Grotesque', sans-serif;
-    font-size: 64px;
-    font-weight: 600;
-    line-height: 80px;
-    letter-spacing: 0;
-    text-align: left;
-    transition: all var(--ifm-transition-fast);
-
-}
-
-.taglineGap {
-    color: transparent !important;
-}
-
-.relative {
+.dashedSeparator {
     position: relative;
-}
-
-.codeBlock {
-    position: absolute;
-    top: 40%;
-    max-width: 400px;
     width: 100%;
+    border-bottom: 1px dashed var(--color-separator);
 }
 
-.heroBanner {
-    padding-top: 100px;
-    padding-bottom: 4rem;
+.dashedSeparatorVertical {
+    position: relative;
+    border-right: 1px dashed var(--color-separator);
 }
 
-.heroBanner h1:nth-child(1) {
-    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
-        #FCA000;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.heroBanner h1:nth-child(2) {
+.dashedDecorativeCircle {
+    width: 120px;
+    height: 120px;
+    border: 1px dashed var(--color-separator);
+    border-radius: 50%;
     position: absolute;
-    top: 0;
-    z-index: 1;
-    width: calc(100% - 2rem);
+    transform: translate(-50%, -50%);
 }
 
-.heroBanner h1::selection,
-.heroBanner h1 span::selection {
-    color: rgb(36, 39, 54) !important;
-    -webkit-text-fill-color: rgb(36, 39, 54);
-    background: #B4D7FE !important;
-    -webkit-background-clip: unset;
-    background-clip: unset;
+.fadedOutSeparator {
+    border: none;
+    height: 1px;
+    background-image:
+        linear-gradient(
+            90deg,
+            transparent,
+            transparent 50%,
+            var(--color-background) 50%,
+            var(--color-background) 100%
+        ),
+        linear-gradient(
+            90deg,
+            var(--color-separator) 0%,
+            transparent 50%,
+            var(--color-separator) 100%
+        );
+    background-size:
+        6px 1px,
+        100% 1px;
 }
 
-html[data-theme='dark'] .heroBanner ::selection {
-    color: #fff !important;
-    -webkit-text-fill-color: #fff;
-    background: #385477 !important;
+.fadedOutSeparatorVertical {
+    border: none;
+    width: 1px;
+    background-image:
+        linear-gradient(
+            180deg,
+            transparent,
+            transparent 50%,
+            var(--color-background) 50%,
+            var(--color-background) 100%
+        ),
+        linear-gradient(
+            180deg,
+            var(--color-separator) 0%,
+            transparent 50%,
+            var(--color-separator) 100%
+        );
+    background-size:
+        1px 6px,
+        1px 100%;
 }
 
-html .heroBanner h2 {
-    font-style: normal;
-    font-weight: 400;
-    font-size: 24px;
-    line-height: 40px;
-    color: #41465d;
-    margin-top: 8px;
-    margin-bottom: 24px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+.trianglesSeparator {
+    width: 100%;
+    height: 32px;
+    background-position: center;
+    background-repeat: repeat-x;
+    background-image: url('../../static/img/triangles_light.svg');
+
+    html[data-theme='dark'] & {
+        background-image: url('../../static/img/triangles_dark.svg');
+    }
+
+    /* TABLET */
+    @media (min-width: 768px) {
+        background-position: unset;
+        background-repeat: repeat;
+        height: 52px;
+    }
 }
 
-html[data-theme='dark'] .heroBanner h2 {
-    color: #b3b8d2;
+/* most separators and decorations are not displayed on mobile */
+.dashedSeparatorVertical,
+.dashedDecorativeCircle,
+.fadedOutSeparator,
+.fadedOutSeparatorVertical {
+    display: none;
 }
 
-.heroBanner code {
-    background: #272c3d;
-    padding: 10px 20px;
+/* TABLET */
+@media (min-width: 768px) {
+    .dashedSeparatorVertical,
+    .dashedDecorativeCircle,
+    .fadedOutSeparator,
+    .fadedOutSeparatorVertical {
+        display: block;
+    }
+
+    #homepageContainer {
+        width: calc(100% - 80px) !important;
+        margin: 0 40px;
+    }
 }
 
-.heroBanner button {
-    opacity: 0.4;
-    padding: 5px 8px;
-    margin-top: -2px;
+/* DESKTOP */
+@media (min-width: 1024px) {
+    .dashedSeparatorVertical,
+    .dashedDecorativeCircle,
+    .fadedOutSeparator,
+    .fadedOutSeparatorVertical {
+        display: block;
+    }
+
+    #homepageContainer {
+        width: calc(100% - 128px) !important;
+        margin: 0 64px;
+    }
 }
 
-.heroBanner button span {
-    width: 16px;
-    height: 16px;
-    padding: 0;
-    margin: 0;
-}
+/************* LANGUAGE GET STARTED SECTION *************/
 
-.heroBanner code span {
-    color: #f2f3fb;
-}
-
-.logoBlur {
-    position: absolute;
-    width: 680px;
-    height: 680px;
-    top: -120px;
-    left: -100px;
-    z-index: -1;
-}
-
-.heroButtons {
+.languageGetStartedSection {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 50px;
-}
+    flex-direction: column;
+    gap: 32px;
+    margin: 0 0 24px 0;
 
-@media only screen and (min-device-width: 1101px) and (max-device-width: 1440px) {
-    .tagline {
-        font-size: 56px;
-        line-height: 78px;
+    div[class^='languageGetStartedContainer'] {
+        flex: 1;
     }
 }
 
-@media only screen and (min-device-width: 997px) and (max-device-width: 1100px) {
-    .tagline {
-        font-size: 48px;
-        line-height: 64px;
+/* TABLET */
+@media (min-width: 768px) {
+    .languageGetStartedSection {
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-around;
+        gap: 0;
+        margin: 0;
     }
 }
 
-@media only screen and (max-device-width: 996px) {
-    .codeBlock {
+/************* CODE EXAMPLE SECTION *************/
+
+.codeExampleSection {
+    display: flex;
+    flex-direction: column;
+}
+
+.languageSwitchContainer {
+    place-self: center;
+    margin: 32px 0 16px 0;
+}
+
+.codeBlockContainer {
+    :global(.theme-code-block) {
+        margin-bottom: 32px;
+        border-radius: 0;
+        box-shadow: none;
+        border-bottom: 1px dashed var(--color-separator);
+        border-top: 1px dashed var(--color-separator);
+
+        code {
+            font-size: 14px;
+            background: var(--color-background-muted);
+            padding: 16px 8px 16px 4px;
+            span::before {
+                margin-right: 16px !important;
+                color: var(--color-text-subtle);
+                opacity: 1 !important;
+            }
+        }
+        pre {
+            border-radius: 0;
+        }
+    }
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+    .codeBlockContainer :global(.theme-code-block) {
+        margin-bottom: 0;
+        border-bottom: none;
+        border-top: none;
+    }
+    .codeExampleSection {
         position: relative;
-        top: 50px;
     }
 
-    .logoBlur {
-        display: none;
-    }
-}
-
-@media only screen and (max-device-width: 736px) {
-    .heroBanner {
-        padding-top: 20px;
-        padding-bottom: 2rem;
+    .languageSwitchContainer {
+        margin: 0;
+        position: absolute;
+        top: calc(46px - 18px);
+        left: calc(50% - 90px);
     }
 
-    .tagline {
-        font-size: 32px;
-        line-height: 48px;
+    .decorativeRow {
+        position: relative;
+        height: 46px;
+        border-bottom: 1px dashed var(--color-separator);
+
+        &::before {
+            content: ' ';
+            position: absolute;
+            left: 40px;
+            height: 100%;
+            border-right: 1px dashed var(--color-separator);
+        }
+
+        &::after {
+            content: ' ';
+            position: absolute;
+            right: 40px;
+            height: 100%;
+            border-left: 1px dashed var(--color-separator);
+        }
     }
 
-    .tagline br {
-        display: none;
-    }
-
-    .hideSmall {
-        display: none;
-    }
-
-    .codeBlock {
-        top: 0;
-    }
-}
-
-@media only screen and (max-device-width: 450px) {
-    .codeBlock code {
-        font-size: 0.8em;
-    }
-
-    .heroButtons {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-
-    .heroBanner button {
-        opacity: 0;
+    .codeBlockContainer {
+        margin: 0 40px;
+        border-left: 1px dashed var(--color-separator);
+        border-right: 1px dashed var(--color-separator);
     }
 }
 
-@media only screen and (max-device-width: 350px) {
-    .codeBlock code {
-        font-size: 0.7em;
+@media (min-width: 1024px) {
+    .decorativeRow {
+        &::before {
+            left: 60px;
+        }
+
+        &::after {
+            right: 60px;
+        }
+    }
+    .codeBlockContainer {
+        margin: 0 60px;
     }
 }
 
-.tagline span {
-    color: var(--ifm-color-primary);
-}
-
-.getStarted {
-    font-size: 18px;
-    line-height: 28px;
-    padding: 12px 24px;
-    background: #ed3545;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
-}
-
-.getStarted:hover {
-    color: white;
-    background: #ad1934;
-}
-
-html[data-theme='dark'] .getStarted {
-    border-color: #585e76;
-}
-
-.try {
-    padding-top: 20px;
-}
-
-.try, .features {
-    color: #41465d;
-}
-
-html[data-theme='dark'] .try,
-html[data-theme='dark'] .features {
-    color: #b3b8d2;
-}
-
-.features > * {
-    margin: 2em 0;
-}
-
-.bottomLogo path:nth-child(1) {
-    fill: url(#gradient-1) !important;
-    stroke: url(#gradient-1) !important;
-}
-
-.crawleeForPython {
-    font-size: 44px;
-    font-weight: 700;
-    line-height: 60px;
-    text-align: center;
-    margin-bottom: 80px;
-}
-
-.crawleeForPython a {
-    background: linear-gradient(90deg, #833ab4, #fd1d1d 50%, #fcb045);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: #0000;
+#ctaDecorativeCircle {
+    width: 120px;
+    height: 120px;
 }

@@ -19,7 +19,7 @@ Welcome to another post on the Crawlee blog; this time, we are going to compare 
 
 Crawlee is also an open-source library that originated as [Apify SDK](https://docs.apify.com/sdk/js/). Crawlee has the advantage of being the latest library in the market, so it already has many features that Scrapy lacks, like autoscaling, headless browsing, working with JavaScript rendered websites without any plugins, and many more, which we are going to explain later on.
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Feature comparison
 
@@ -126,7 +126,7 @@ Autoscaling refers to the capability of a library to automatically adjusting the
 
 Scrapy does not have built-in autoscaling capabilities, but it can be done using external services like [Scrapyd](https://scrapyd.readthedocs.io/en/latest/) or deployed in a distributed manner with Scrapy Cluster.
 
-Crawlee has [built-in autoscaling](https://crawlee.dev/api/core/class/AutoscaledPool) with `AutoscaledPool`. It increases the number of requests that are processed concurrently within one crawler.
+Crawlee has [built-in autoscaling](https://crawlee.dev/js/api/core/class/AutoscaledPool) with `AutoscaledPool`. It increases the number of requests that are processed concurrently within one crawler.
 
 ### Queue management
 
@@ -150,7 +150,7 @@ Scrapy CLI comes with Scrapy. Just run this command, and you are good to go:
 pip install scrapy
 ```
 
-Crawlee also [includes a CLI tool](https://crawlee.dev/docs/quick-start#installation-with-crawlee-cli) (`crawlee-cli`) that facilitates project setup, crawler creation and execution, streamlining the development process for users familiar with Node.js environments. The command for installation is:
+Crawlee also [includes a CLI tool](https://crawlee.dev/js/docs/quick-start#installation-with-crawlee-cli) (`crawlee-cli`) that facilitates project setup, crawler creation and execution, streamlining the development process for users familiar with Node.js environments. The command for installation is:
 
 ```bash
 npx crawlee create my-crawler
@@ -183,7 +183,7 @@ ROTATING_PROXY_LIST = [
 
 Now create a spider with the code you want to scrape any site and the `ROTATING_PROXY_LIST` in `settings.py` will manage which proxy to use for each request. Here middleware will treat each proxy initially as valid and then when a request is made, the middleware selects a proxy from the list of available proxies. The selection isn't purely sequential but is influenced by the recent history of proxy performance. The middleware has mechanisms to detect when a proxy might be banned or rendered ineffective. When such conditions are detected, the proxy is temporarily deactivated and put into a cooldown period. After the cooldown period expires, the proxy is reconsidered for use.
 
-In Crawlee, you can [use your own proxy servers](https://crawlee.dev/docs/guides/proxy-management) or proxy servers acquired from third-party providers. If you already have your proxy URLs, you can start using them like this:
+In Crawlee, you can [use your own proxy servers](https://crawlee.dev/js/docs/guides/proxy-management) or proxy servers acquired from third-party providers. If you already have your proxy URLs, you can start using them like this:
 
 ```js title="crawler.js"
 import { ProxyConfiguration } from 'crawlee';
@@ -200,7 +200,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-Crawlee also has [`SessionPool`](https://crawlee.dev/api/core/class/SessionPool), a built-in allocation system for proxies. It handles the rotation, creation, and persistence of user-like sessions. It creates a pool of session instances that are randomly rotated.
+Crawlee also has [`SessionPool`](https://crawlee.dev/js/api/core/class/SessionPool), a built-in allocation system for proxies. It handles the rotation, creation, and persistence of user-like sessions. It creates a pool of session instances that are randomly rotated.
 
 ### Data storage
 
@@ -263,7 +263,7 @@ Let's see how Crawlee stores the result:
 
 In Scrapy, handling anti-blocking strategies like [IP rotation](https://pypi.org/project/scrapy-rotated-proxy/), [user-agent rotation](https://python.plainenglish.io/rotating-user-agent-with-scrapy-78ca141969fe), custom solutions via middleware, and plugins are needed.
 
-Crawlee provides HTTP crawling and [browser fingerprints](https://crawlee.dev/docs/guides/avoid-blocking) with zero configuration necessary; fingerprints are enabled by default and available in `PlaywrightCrawler` and `PuppeteerCrawler` but also work with `CheerioCrawler` and the other HTTP Crawlers.
+Crawlee provides HTTP crawling and [browser fingerprints](https://crawlee.dev/js/docs/guides/avoid-blocking) with zero configuration necessary; fingerprints are enabled by default and available in `PlaywrightCrawler` and `PuppeteerCrawler` but also work with `CheerioCrawler` and the other HTTP Crawlers.
 
 ### Error handling
 
@@ -290,11 +290,11 @@ const crawler = new CheerioCrawler({
 
 There is also `noRetry`. If set to `true` then the request will not be automatically tried.
 
-Crawlee also provides a built-in [logging mechanism](https://crawlee.dev/api/core/class/Log) via `log`, allowing you to log warnings, errors, and other information effectively.
+Crawlee also provides a built-in [logging mechanism](https://crawlee.dev/js/api/core/class/Log) via `log`, allowing you to log warnings, errors, and other information effectively.
 
 ### Deployment using Docker
 
-Scrapy can be containerized using Docker, though it typically requires manual setup to create Dockerfiles and configure environments. While Crawlee includes [ready-to-use Docker configurations](https://crawlee.dev/docs/guides/docker-images), making deployment straightforward across various environments without additional configuration.
+Scrapy can be containerized using Docker, though it typically requires manual setup to create Dockerfiles and configure environments. While Crawlee includes [ready-to-use Docker configurations](https://crawlee.dev/js/docs/guides/docker-images), making deployment straightforward across various environments without additional configuration.
 
 ## Community
 
@@ -312,4 +312,4 @@ But if you want to explore or are comfortable working with TypeScript or JavaScr
 
 As promised, this is just the first of the many articles comparing Scrapy and Crawlee. With the upcoming articles, you will learn more about every technical detail.
 
-Meanwhile, if you want to learn more about Crawlee, read our [introduction to Crawlee](https://crawlee.dev/docs/introduction) or Apify's [Crawlee web scraping tutorial](https://blog.apify.com/crawlee-web-scraping-tutorial/).
+Meanwhile, if you want to learn more about Crawlee, read our [introduction to Crawlee](https://crawlee.dev/js/docs/introduction) or Apify's [Crawlee web scraping tutorial](https://blog.apify.com/crawlee-web-scraping-tutorial/).

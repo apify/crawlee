@@ -77,7 +77,7 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
      * import { firefox } from 'playwright';
      * ```
      *
-     * For more details, check out the [example](https://crawlee.dev/docs/examples/playwright-crawler-firefox).
+     * For more details, check out the [example](https://crawlee.dev/js/docs/examples/playwright-crawler-firefox).
      */
     launcher?: Launcher;
 }

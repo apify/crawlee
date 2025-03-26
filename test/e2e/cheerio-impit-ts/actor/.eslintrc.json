@@ -1,0 +1,13 @@
+{
+	"root": true,
+	"extends": "../../.eslintrc.json",
+	"parserOptions": {
+		"project": "./test/e2e/cheerio-impit-ts/actor/tsconfig.json",
+		"ecmaVersion": 2022
+	},
+	"rules": {
+		"no-empty-function": "off",
+		"@typescript-eslint/no-explicit-any": "off",
+		"no-constant-condition": "off"
+	}
+}

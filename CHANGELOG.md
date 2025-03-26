@@ -3,6 +3,49 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
+
+
+### Bug Fixes
+
+* **cheerio:** don't decode HTML entities in `context.body` ([#2838](https://github.com/apify/crawlee/issues/2838)) ([32d6d0e](https://github.com/apify/crawlee/commit/32d6d0ee7e7eaad1a401f4884926f31e0f68cc55)), closes [#2401](https://github.com/apify/crawlee/issues/2401)
+* install browser in the `camoufox` template correctly ([#2864](https://github.com/apify/crawlee/issues/2864)) ([a9d008c](https://github.com/apify/crawlee/commit/a9d008c6f36a6cb1b6bc827cb0323ed9d6f6b536)), closes [#2863](https://github.com/apify/crawlee/issues/2863)
+* Make log message in RequestQueue.isFinished more accurate ([#2848](https://github.com/apify/crawlee/issues/2848)) ([3d124ae](https://github.com/apify/crawlee/commit/3d124aee8f6fa096df0daafad4bb9d07b0ae4684))
+* Simplified RequestQueueV2 implementation ([#2775](https://github.com/apify/crawlee/issues/2775)) ([d1a094a](https://github.com/apify/crawlee/commit/d1a094a47eaecbf367b222f9b8c14d7da5d3e03a)), closes [#2767](https://github.com/apify/crawlee/issues/2767) [#2700](https://github.com/apify/crawlee/issues/2700)
+
+
+### Features
+
+* Camoufox-based crawler template ([#2842](https://github.com/apify/crawlee/issues/2842)) ([7f08de4](https://github.com/apify/crawlee/commit/7f08de4c73812cb957828dec9946ca7f385739e4)), closes [#2836](https://github.com/apify/crawlee/issues/2836)
+* improved cross platform metric collection ([#2834](https://github.com/apify/crawlee/issues/2834)) ([e41b2f7](https://github.com/apify/crawlee/commit/e41b2f744513dd80aa05336eedfa1c08c54d3832)), closes [#2771](https://github.com/apify/crawlee/issues/2771)
+* **playwright:** add `handleCloudflareChallenge` helper ([#2865](https://github.com/apify/crawlee/issues/2865)) ([9a1725f](https://github.com/apify/crawlee/commit/9a1725f7b87fb70194fc31858500cb35639fb964))
+* remove old docker CI ([#2831](https://github.com/apify/crawlee/issues/2831)) ([7f09d56](https://github.com/apify/crawlee/commit/7f09d56ed5776d92a11feee3a5e61255301d0099))
+* use native `impit` streaming ([#2833](https://github.com/apify/crawlee/issues/2833)) ([af2fe23](https://github.com/apify/crawlee/commit/af2fe2315b3b36e7e2466f452c1df9c63abd156b)), closes [#2756](https://github.com/apify/crawlee/issues/2756)
+
+
+
+
+
+## [3.12.2](https://github.com/apify/crawlee/compare/v3.12.1...v3.12.2) (2025-01-27)
+
+
+### Bug Fixes
+
+* **core:** type definition of Dataset.reduce ([#2774](https://github.com/apify/crawlee/issues/2774)) ([59bc6d1](https://github.com/apify/crawlee/commit/59bc6d12cbd9e81c06ee18d0a6390b7806e346ae)), closes [#2773](https://github.com/apify/crawlee/issues/2773)
+* destructure `CrawlerRunOptions` before passing them to `addRequests` ([#2803](https://github.com/apify/crawlee/issues/2803)) ([02a598c](https://github.com/apify/crawlee/commit/02a598c2a501957f04ca3a2362bcee289ef861c0)), closes [#2802](https://github.com/apify/crawlee/issues/2802)
+* graceful `BasicCrawler` tidy-up on `CriticalError` ([#2817](https://github.com/apify/crawlee/issues/2817)) ([53331e8](https://github.com/apify/crawlee/commit/53331e82ee66274316add7cadb4afec1ce2d4bcf)), closes [#2807](https://github.com/apify/crawlee/issues/2807)
+
+
+### Features
+
+* `impit`-based `HttpClient` implementation ([#2787](https://github.com/apify/crawlee/issues/2787)) ([61d7ffa](https://github.com/apify/crawlee/commit/61d7ffae8aff8dd4451fea63ecc0d25c243a6271))
+* add support for parsing comma-separated list environment variables ([#2765](https://github.com/apify/crawlee/issues/2765)) ([4e50c47](https://github.com/apify/crawlee/commit/4e50c474f60df66585c6decf07532c790c8e63a7))
+* stopping the crawlers gracefully with `BasicCrawler.stop()` ([#2792](https://github.com/apify/crawlee/issues/2792)) ([af2966f](https://github.com/apify/crawlee/commit/af2966f65caeaf4273fd0a8ab583a7857e4330ab)), closes [#2777](https://github.com/apify/crawlee/issues/2777)
+
+
+
+
+
 ## [3.12.1](https://github.com/apify/crawlee/compare/v3.12.0...v3.12.1) (2024-12-04)
 
 
@@ -1213,7 +1256,7 @@ const crawler = new BasicCrawler({
 
 #### How to use `sendRequest()`?
 
-See [the Got Scraping guide](https://crawlee.dev/docs/guides/got-scraping).
+See [the Got Scraping guide](https://crawlee.dev/js/docs/guides/got-scraping).
 
 #### Removed options
 
@@ -1338,7 +1381,7 @@ Previously, you were able to have a browser pool that would mix Puppeteer and Pl
 
 One small feature worth mentioning is the ability to handle requests with browser crawlers outside the browser. To do that, we can use a combination of `Request.skipNavigation` and `context.sendRequest()`.
 
-Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](https://crawlee.dev/docs/examples/skip-navigation) example!
+Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](https://crawlee.dev/js/docs/examples/skip-navigation) example!
 
 ### Logging
 
@@ -1398,14 +1441,14 @@ await Actor.main(async () => {
 
 #### Events
 
-Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by [`EventManager`](https://crawlee.dev/api/core/class/EventManager) class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
+Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by [`EventManager`](https://crawlee.dev/js/api/core/class/EventManager) class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
 
 ```diff
 -Apify.events.on(...);
 +Actor.on(...);
 ```
 
-> We can also get the [`EventManager`](https://crawlee.dev/api/core/class/EventManager) instance via `Configuration.getEventManager()`.
+> We can also get the [`EventManager`](https://crawlee.dev/js/api/core/class/EventManager) instance via `Configuration.getEventManager()`.
 
 In addition to the existing events, we now have an `exit` event fired when calling `Actor.exit()` (which is called at the end of `Actor.main()`). This event allows you to gracefully shut down any resources when `Actor.exit` is called.
 

@@ -13,7 +13,7 @@ jobs:
     # NPM install is done in a separate job and cached to speed up the following jobs.
     build_and_test:
         name: Build & Test
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
 
         strategy:
             fail-fast: false
@@ -44,9 +44,6 @@ jobs:
                 with:
                     cache: 'yarn'
 
-            -   uses: microsoft/playwright-github-action@v1
-                if: (matrix.storage != 'PLATFORM')
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v4
@@ -61,6 +58,10 @@ jobs:
 
             -   name: Install Dependencies
                 run: yarn
+
+            -   name: Install Playwright Dependencies
+                if: (matrix.storage != 'PLATFORM')
+                run: yarn playwright install --with-deps
 
             -   name: Build
                 run: yarn ci:build
