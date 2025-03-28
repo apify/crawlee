@@ -7,7 +7,6 @@ import type {
     BatchAddRequestsResult,
     Dictionary,
     ProcessedRequest,
-    QueueOperationInfo,
     RequestQueueClient,
     RequestQueueInfo,
     StorageClient,
@@ -26,8 +25,15 @@ import type { ProxyConfiguration } from '../proxy_configuration';
 import { Request } from '../request';
 import type { RequestOptions, InternalSource, Source } from '../request';
 import type { Constructor } from '../typedefs';
+import {
+    AddRequestsBatchedOptions,
+    AddRequestsBatchedResult,
+    IRequestManager,
+    RequestQueueOperationInfo,
+    RequestQueueOperationOptions,
+} from './request_manager';
 
-export abstract class RequestProvider implements IStorage {
+export abstract class RequestProvider implements IStorage, IRequestManager {
     id: string;
     name?: string;
     timeoutSecs = 30;
@@ -461,7 +467,7 @@ export abstract class RequestProvider implements IStorage {
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.
      */
-    abstract fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null>;
+    abstract fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null>;
 
     /**
      * Marks a request that was previously returned by the
@@ -816,74 +822,4 @@ export interface InternalRequestProviderOptions extends RequestProviderOptions {
     logPrefix: string;
     requestCacheMaxSize: number;
     recentlyHandledRequestsMaxSize: number;
-}
-
-export interface RequestQueueOperationOptions {
-    /**
-     * If set to `true`:
-     *   - while adding the request to the queue: the request will be added to the foremost position in the queue.
-     *   - while reclaiming the request: the request will be placed to the beginning of the queue, so that it's returned
-     *   in the next call to {@apilink RequestQueue.fetchNextRequest}.
-     * By default, it's put to the end of the queue.
-     *
-     * In case the request is already present in the queue, this option has no effect.
-     *
-     * If more requests are added with this option at once, their order in the following `fetchNextRequest` call
-     * is arbitrary.
-     * @default false
-     */
-    forefront?: boolean;
-    /**
-     * Should the requests be added to the local LRU cache?
-     * @default false
-     * @internal
-     */
-    cache?: boolean;
-}
-
-/**
- * @internal
- */
-export interface RequestQueueOperationInfo extends QueueOperationInfo {
-    uniqueKey: string;
-    forefront: boolean;
-}
-
-export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions {
-    /**
-     * Whether to wait for all the provided requests to be added, instead of waiting just for the initial batch of up to `batchSize`.
-     * @default false
-     */
-    waitForAllRequestsToBeAdded?: boolean;
-
-    /**
-     * @default 1000
-     */
-    batchSize?: number;
-
-    /**
-     * @default 1000
-     */
-    waitBetweenBatchesMillis?: number;
-}
-
-export interface AddRequestsBatchedResult {
-    addedRequests: ProcessedRequest[];
-    /**
-     * A promise which will resolve with the rest of the requests that were added to the queue.
-     *
-     * Alternatively, we can set {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} to `true`
-     * in the {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} options.
-     *
-     * **Example:**
-     *
-     * ```ts
-     * // Assuming `requests` is a list of requests.
-     * const result = await crawler.addRequests(requests);
-     *
-     * // If we want to wait for the rest of the requests to be added to the queue:
-     * await result.waitForAllRequestsToBeAdded;
-     * ```
-     */
-    waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>;
 }

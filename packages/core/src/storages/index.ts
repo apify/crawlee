@@ -1,6 +1,8 @@
 export * from './dataset';
 export * from './key_value_store';
 export * from './request_list';
+export * from './request_manager';
+export * from './request_manager_tandem';
 export * from './request_provider';
 export { RequestQueueV1 } from './request_queue';
 export { RequestQueue } from './request_queue_v2';
