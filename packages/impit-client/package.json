@@ -59,7 +59,7 @@
         "@crawlee/core": "^3.13.0"
     },
     "dependencies": {
-        "impit": "^0.2.1"
+        "impit": "^0.3.0"
     },
     "packageManager": "yarn@4.7.0"
 }
