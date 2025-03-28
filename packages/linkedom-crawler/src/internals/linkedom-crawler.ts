@@ -10,7 +10,7 @@ import type {
     EnqueueLinksOptions,
     GetUserDataFromRequest,
     RouterRoutes,
-    RequestProvider,
+    IRequestManager,
 } from '@crawlee/http';
 import {
     HttpCrawler,
@@ -223,7 +223,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
     window: Window | null;
-    requestQueue: RequestProvider;
+    requestQueue: IRequestManager;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

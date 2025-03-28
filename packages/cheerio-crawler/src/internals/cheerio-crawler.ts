@@ -11,7 +11,7 @@ import type {
     RequestHandler,
     RouterRoutes,
     Configuration,
-    RequestProvider,
+    IRequestManager,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
@@ -237,7 +237,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
-    requestQueue: RequestProvider;
+    requestQueue: IRequestManager;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

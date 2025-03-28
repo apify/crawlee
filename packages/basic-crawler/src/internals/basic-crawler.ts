@@ -15,6 +15,7 @@ import type {
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
+    IRequestManager,
     ProxyInfo,
     Request,
     RequestOptions,
@@ -52,6 +53,7 @@ import {
     Statistics,
     validators,
     GotScrapingHttpClient,
+    RequestManagerTandem,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
@@ -183,7 +185,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * > Alternatively, `requests` parameter of {@apilink BasicCrawler.run|`crawler.run()`} could be used to enqueue the initial requests -
      * it is a shortcut for running `crawler.addRequests()` before the `crawler.run()`.
      */
-    requestQueue?: RequestProvider;
+    requestQueue?: IRequestManager;
 
     /**
      * Timeout in which the function passed as {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`} needs to finish, in seconds.
@@ -462,7 +464,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * A reference to the underlying {@apilink RequestQueue} class that manages the crawler's {@apilink Request|requests}.
      * Only available if used by the crawler.
      */
-    requestQueue?: RequestProvider;
+    requestQueue?: IRequestManager;
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
@@ -669,7 +671,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
 
         // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
-        if (this.requestQueue) {
+        if (this.requestQueue && this.requestQueue instanceof RequestProvider) {
             this.requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
             // for request queue v2, we want to lock requests for slightly longer than the request handler timeout so that there is some padding for locking-related overhead,
             // but never for less than a minute
@@ -883,7 +885,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             // we need to purge the default RQ to allow processing the same requests again - this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored - as a failed requests is still handled.
-            if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
+            if (
+                this.requestQueue &&
+                (this.requestQueue as unknown as Record<string, unknown>)['name'] === 'default' &&
+                purgeRequestQueue
+            ) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();
             }
@@ -996,16 +1002,34 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             });
     }
 
-    async getRequestQueue() {
+    async getRequestQueue(): Promise<IRequestManager> {
         if (!this.requestQueue && this.requestList) {
             this.log.warningOnce(
                 'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
             );
         }
 
-        this.requestQueue ??= await this._getRequestQueue();
+        if (!this.requestQueue) {
+            if (this.requestList) {
+                this.requestQueue = new RequestManagerTandem({
+                    requestList: this.requestList,
+                    requestQueue: await this._getRequestQueue(),
+                    log: this.log,
+                });
+            } else {
+                this.requestQueue = await this._getRequestQueue();
+            }
+        }
 
-        return this.requestQueue!;
+        return this.requestQueue;
+    }
+
+    private async getRequestLoader(): Promise<IRequestList | IRequestManager> {
+        if (!this.requestQueue && this.requestList) {
+            return this.requestList;
+        }
+
+        return await this.getRequestQueue();
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
@@ -1174,28 +1198,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * and RequestQueue is present then enqueues it to the queue first.
      */
     protected async _fetchNextRequest() {
-        if (!this.requestList || (await this.requestList.isFinished())) {
-            return this.requestQueue?.fetchNextRequest();
-        }
-
-        const request = await this.requestList.fetchNextRequest();
-        if (!this.requestQueue) return request;
-        if (!request) return this.requestQueue.fetchNextRequest();
-
-        try {
-            await this.requestQueue.addRequest(request, { forefront: true });
-        } catch (err) {
-            // If requestQueue.addRequest() fails here then we must reclaim it back to
-            // the RequestList because probably it's not yet in the queue!
-            this.log.error(
-                'Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.',
-                { request },
-            );
-            await this.requestList.reclaimRequest(request);
-            return null;
-        }
-        await this.requestList.markRequestHandled(request);
-        return this.requestQueue.fetchNextRequest();
+        const source = await this.getRequestLoader();
+        return await source.fetchNextRequest();
     }
 
     /**
@@ -1209,7 +1213,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: IRequestList | RequestProvider) {
+    protected delayRequest(request: Request, source: IRequestList | IRequestManager) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1252,7 +1256,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * then retries them in a case of an error, etc.
      */
     protected async _runTaskFunction() {
-        const source = this.requestQueue || this.requestList || (await this.getRequestQueue());
+        const source = await this.getRequestLoader();
 
         let request: Request | null | undefined;
         let session: Session | undefined;
@@ -1446,7 +1450,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: IRequestList | RequestProvider,
+        source: IRequestList | IRequestManager,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);

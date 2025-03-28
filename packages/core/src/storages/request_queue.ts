@@ -4,7 +4,7 @@ import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import type { Dictionary } from '@crawlee/types';
 
 import { checkStorageAccess } from './access_checking';
-import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider';
+import type { RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
@@ -16,6 +16,7 @@ import {
 } from './utils';
 import { Configuration } from '../configuration';
 import type { Request } from '../request';
+import { RequestQueueOperationInfo } from './request_manager';
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 

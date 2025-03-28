@@ -12,7 +12,7 @@ import type {
     RequestHandler,
     RouterRoutes,
     Configuration,
-    RequestProvider,
+    IRequestManager,
 } from '@crawlee/http';
 import {
     HttpCrawler,
@@ -340,7 +340,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: DOMWindow | null;
-    requestQueue: RequestProvider;
+    requestQueue: IRequestManager;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

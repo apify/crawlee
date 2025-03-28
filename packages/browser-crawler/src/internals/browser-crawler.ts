@@ -6,11 +6,11 @@ import type {
     Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
+    IRequestManager,
     LoadedContext,
     ProxyConfiguration,
     ProxyInfo,
     RequestHandler,
-    RequestProvider,
     Session,
 } from '@crawlee/basic';
 import {
@@ -789,7 +789,7 @@ export abstract class BrowserCrawler<
 interface EnqueueLinksInternalOptions {
     options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
-    requestQueue: RequestProvider;
+    requestQueue: IRequestManager;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
