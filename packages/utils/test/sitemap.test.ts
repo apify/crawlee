@@ -1,8 +1,8 @@
 import nock from 'nock';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { SitemapUrl } from '../src/internals/sitemap';
-import { Sitemap, parseSitemap } from '../src/internals/sitemap';
+import { parseSitemap, Sitemap } from '../src/internals/sitemap';
 
 describe('Sitemap', () => {
     beforeEach(() => {
@@ -180,7 +180,7 @@ describe('Sitemap', () => {
                         2005-02-03
                     </lastmod>`,
                     `<changefreq>
-                        
+
                         monthly
                     </changefreq>`,
                     `<priority>

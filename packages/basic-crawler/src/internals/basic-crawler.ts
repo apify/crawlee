@@ -1,33 +1,29 @@
 import { dirname } from 'node:path';
 
-import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
-import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
+    BaseHttpClient,
     CrawlingContext,
+    DatasetExportOptions,
     EnqueueLinksOptions,
     EventManager,
-    DatasetExportOptions,
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
+    LoadedContext,
     ProxyInfo,
     Request,
     RequestOptions,
+    RestrictedCrawlingContext,
     RouterHandler,
     RouterRoutes,
     Session,
     SessionPoolOptions,
     Source,
-    StatisticState,
     StatisticsOptions,
-    LoadedContext,
-    BaseHttpClient,
-    RestrictedCrawlingContext,
+    StatisticState,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -37,13 +33,14 @@ import {
     enqueueLinks,
     EnqueueStrategy,
     EventType,
+    GotScrapingHttpClient,
     KeyValueStore,
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
     RequestProvider,
-    RequestQueueV1,
     RequestQueue,
+    RequestQueueV1,
     RequestState,
     RetryRequestError,
     Router,
@@ -51,17 +48,21 @@ import {
     SessionPool,
     Statistics,
     validators,
-    GotScrapingHttpClient,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { OptionsInit, Method, GotResponse } from 'got-scraping';
+import type { GotResponse, Method, OptionsInit } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+
+import type { Log } from '@apify/log';
+import defaultLog, { LogLevel } from '@apify/log';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request';
 
@@ -844,12 +845,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             if (this.statusMessageCallback) {
-                return this.statusMessageCallback({
+                await this.statusMessageCallback({
                     crawler: this as any,
                     state: this.stats.state,
                     previousState,
                     message,
                 });
+                return;
             }
 
             await this.setStatusMessage(message);
@@ -1401,7 +1403,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             if (retried <= maxRetries) {
                 // we retry on any error, not just timeout
                 this.log.warning(`${(e as Error).message} (retrying ${retried}/${maxRetries})`);
-                return this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
+                void this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
+                return;
             }
 
             throw e;

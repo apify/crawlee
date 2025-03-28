@@ -1,8 +1,7 @@
-import type { IncomingHttpHeaders, Server } from 'http';
-import { Readable } from 'stream';
+import type { IncomingHttpHeaders, Server } from 'node:http';
+import { Readable } from 'node:stream';
 
-import log, { Log } from '@apify/log';
-import type { CheerioRequestHandler, CheerioCrawlingContext, ProxyInfo, Source } from '@crawlee/cheerio';
+import type { CheerioCrawlingContext, CheerioRequestHandler, ProxyInfo, Source } from '@crawlee/cheerio';
 import {
     AutoscaledPool,
     CheerioCrawler,
@@ -15,13 +14,15 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import { sleep } from '@crawlee/utils';
 import type { Dictionary } from '@crawlee/utils';
+import { sleep } from '@crawlee/utils';
 // @ts-expect-error type import of ESM only package
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
-import { runExampleComServer, responseSamples } from 'test/shared/_helper';
+import { responseSamples, runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log, { Log } from '@apify/log';
 
 let server: Server;
 let port: number;
@@ -938,9 +939,8 @@ describe('CheerioCrawler', () => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
                 // @ts-expect-error Accessing private prop
                 if (session.errorScore !== 1) {
-                    // eslint-disable-next-line no-console
                     console.log('SESSIONS:');
-                    // eslint-disable-next-line no-console
+
                     console.dir(sessions);
                 }
 

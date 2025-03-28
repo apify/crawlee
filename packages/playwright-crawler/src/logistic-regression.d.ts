@@ -1,5 +1,5 @@
 declare module 'ml-logistic-regression' {
-    import Matrix from 'ml-matrix';
+    import type Matrix from 'ml-matrix';
 
     class LogisticRegressionTwoClasses {
         testScores(Xtest: Matrix): number;

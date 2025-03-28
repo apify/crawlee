@@ -1,16 +1,16 @@
 import { readFile } from 'node:fs/promises';
-import os from 'os';
+import os from 'node:os';
 
 import { getCgroupsVersion } from '@crawlee/utils';
 
 import {
-    getCurrentCpuTicks,
-    getCpuQuota,
-    getCpuPeriod,
     getContainerCpuUsage,
+    getCpuPeriod,
+    getCpuQuota,
+    getCurrentCpuTicks,
+    getCurrentCpuTicksV2,
     getSystemCpuUsage,
     sampleCpuUsage,
-    getCurrentCpuTicksV2,
 } from '../../packages/utils/src/internals/systemInfoV2/cpu-info';
 
 vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {

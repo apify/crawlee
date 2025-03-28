@@ -1,12 +1,13 @@
-import type { Server } from 'http';
-import path from 'path';
+import type { Server } from 'node:http';
+import path from 'node:path';
 
-import log from '@apify/log';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 const launchContext = { launchOptions: { headless: true } };
 

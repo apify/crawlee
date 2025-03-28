@@ -1,12 +1,13 @@
-import type { Server } from 'http';
-import path from 'path';
+import type { Server } from 'node:http';
+import path from 'node:path';
 
-import log from '@apify/log';
-import { KeyValueStore, Request, launchPlaywright, playwrightUtils } from '@crawlee/playwright';
+import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 let serverAddress = 'http://localhost:';
 let port: number;

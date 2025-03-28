@@ -1,6 +1,7 @@
-import log from '@apify/log';
 import { AutoscaledPool } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
+
+import log from '@apify/log';
 
 describe('AutoscaledPool', () => {
     let logLevel: number;

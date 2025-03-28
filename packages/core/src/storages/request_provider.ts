@@ -1,8 +1,5 @@
 import { inspect } from 'node:util';
 
-import { ListDictionary, LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
-import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     BatchAddRequestsResult,
     Dictionary,
@@ -15,17 +12,21 @@ import type {
 import { chunk, downloadListOfUrls, sleep } from '@crawlee/utils';
 import ow from 'ow';
 
-import { checkStorageAccess } from './access_checking';
-import type { IStorage, StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { QUERY_HEAD_MIN_LENGTH, getRequestId, purgeDefaultStorages } from './utils';
+import { ListDictionary, LruCache } from '@apify/datastructures';
+import type { Log } from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
+
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
+import type { InternalSource, RequestOptions, Source } from '../request';
 import { Request } from '../request';
-import type { RequestOptions, InternalSource, Source } from '../request';
 import type { Constructor } from '../typedefs';
+import { checkStorageAccess } from './access_checking';
+import type { IStorage, StorageManagerOptions } from './storage_manager';
+import { StorageManager } from './storage_manager';
+import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils';
 
 export abstract class RequestProvider implements IStorage {
     id: string;

@@ -1,4 +1,3 @@
-import log from '@apify/log';
 import {
     Configuration,
     deserializeArray,
@@ -8,10 +7,12 @@ import {
     Request,
     RequestList,
 } from '@crawlee/core';
-import { sleep } from '@crawlee/utils';
 import type { gotScraping } from '@crawlee/utils';
+import { sleep } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { beforeAll, type MockedFunction } from 'vitest';
+
+import log from '@apify/log';
 
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)
@@ -166,7 +167,7 @@ describe('RequestList', () => {
         const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
-        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve(list1) as any, 100)) as any);
+        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
         spy.mockResolvedValueOnce(list2);
 
         const requestList = await RequestList.open({

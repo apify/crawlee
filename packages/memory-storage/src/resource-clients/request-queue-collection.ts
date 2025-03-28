@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { RequestQueueClient } from './request-queue';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
+import { RequestQueueClient } from './request-queue';
 
 export interface RequestQueueCollectionClientOptions {
     baseStorageDirectory: string;

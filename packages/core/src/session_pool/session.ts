@@ -1,13 +1,13 @@
 import { EventEmitter } from 'node:events';
 
-import type { Log } from '@apify/log';
-import { cryptoRandomObjectId } from '@apify/utilities';
 import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { Cookie, SerializedCookieJar } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
-import { EVENT_SESSION_RETIRED } from './events';
+import type { Log } from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
+
 import type { ResponseLike } from '../cookie_utils';
 import {
     browserPoolCookieToToughCookie,
@@ -16,6 +16,7 @@ import {
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils';
 import { log as defaultLog } from '../log';
+import { EVENT_SESSION_RETIRED } from './events';
 
 /**
  * Persistable {@apilink Session} state.

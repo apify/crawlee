@@ -1,17 +1,17 @@
-import type { Server } from 'http';
-import http from 'http';
-import type { AddressInfo } from 'net';
-import { promisify } from 'util';
+import type { Server } from 'node:http';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { promisify } from 'node:util';
 
+import type { CommonLibrary, UnwrapPromise } from '@crawlee/browser-pool';
 import {
-    PuppeteerPlugin,
+    LaunchContext,
+    PlaywrightBrowser,
+    PlaywrightController,
     PlaywrightPlugin,
     PuppeteerController,
-    PlaywrightController,
-    PlaywrightBrowser,
-    LaunchContext,
+    PuppeteerPlugin,
 } from '@crawlee/browser-pool';
-import type { UnwrapPromise, CommonLibrary } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';

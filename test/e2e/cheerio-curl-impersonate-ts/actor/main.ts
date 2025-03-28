@@ -1,7 +1,8 @@
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 
-import { CheerioCrawler, Dictionary } from '@crawlee/cheerio';
-import {
+import type { Dictionary } from '@crawlee/cheerio';
+import { CheerioCrawler } from '@crawlee/cheerio';
+import type {
     BaseHttpClient,
     BaseHttpResponseData,
     HttpRequest,
