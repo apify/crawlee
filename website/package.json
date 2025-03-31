@@ -58,5 +58,5 @@
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
-    "packageManager": "yarn@4.7.0"
+    "packageManager": "yarn@4.8.1"
 }
