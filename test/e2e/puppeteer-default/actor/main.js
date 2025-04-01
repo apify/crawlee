@@ -27,5 +27,5 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run(['https://crawlee.dev/docs/3.0/examples/']);
+    await crawler.run(['https://crawlee.dev/js/docs/3.0/examples/']);
 }, mainOptions);

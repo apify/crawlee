@@ -20,7 +20,7 @@ await Actor.main(async () => {
         async requestHandler({ $, enqueueLinks, request, log }) {
             const { url } = request;
             await enqueueLinks({
-                globs: ['https://crawlee.dev/docs/**'],
+                globs: ['https://crawlee.dev/js/docs/**'],
             });
 
             const pageTitle = $('title').first().text();
@@ -30,5 +30,5 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run(['https://crawlee.dev/docs/quick-start']);
+    await crawler.run(['https://crawlee.dev/js/docs/quick-start']);
 }, mainOptions);
