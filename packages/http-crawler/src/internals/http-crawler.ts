@@ -899,13 +899,6 @@ export class HttpCrawler<
         const { statusCode } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        if (statusCode === 406) {
-            request.noRetry = true;
-            throw new Error(
-                `Resource ${request.url} is not available in the format requested by the Accept header. Skipping resource.`,
-            );
-        }
-
         // eslint-disable-next-line dot-notation -- accessing private property
         const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
         // if we retry the request, can the Content-Type change?
