@@ -503,7 +503,8 @@ describe('CheerioCrawler', () => {
                 errorMessages.forEach((msg) => expect(msg).toMatch('CUSTOM_ERROR'));
             });
 
-            test('when 406 is received', async () => {
+            // Tests legacy behaviour removed in https://github.com/apify/crawlee/pull/2907
+            test.skip('when 406 is received', async () => {
                 // Mock Request to respond with a 406.
                 crawler = new CheerioCrawler({
                     requestList: await getRequestListForMock({
