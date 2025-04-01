@@ -666,6 +666,35 @@ describe('BrowserCrawler', () => {
         expect(called).toBeTruthy();
     });
 
+    test('should increment session usage correctly', async () => {
+        const sessionUsageHistory: number[] = [];
+
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            useSessionPool: true,
+            sessionPoolOptions: {
+                maxPoolSize: 1,
+            },
+            requestHandler: async ({ session }) => {
+                // @ts-expect-error Accessing private property
+                sessionUsageHistory.push(session!.usageCount);
+            },
+        });
+
+        await browserCrawler.run([
+            { url: `${serverAddress}/?q=1` },
+            { url: `${serverAddress}/?q=2` },
+            { url: `${serverAddress}/?q=3` },
+            { url: `${serverAddress}/?q=4` },
+            { url: `${serverAddress}/?q=5` },
+            { url: `${serverAddress}/?q=6` },
+        ]);
+
+        expect(sessionUsageHistory).toEqual([0, 1, 2, 3, 4, 5]);
+    });
+
     test('should allow using fingerprints from browser pool', async () => {
         const requestList = await RequestList.open({
             sources: [{ url: `${serverAddress}/?q=1` }],
