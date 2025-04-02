@@ -1,10 +1,10 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { type RobotsFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
-import { type RobotsFile } from '@crawlee/utils';
 
 import type { RequestOptions } from '../request';
 import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
