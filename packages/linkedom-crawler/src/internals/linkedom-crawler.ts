@@ -19,7 +19,7 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, sleep } from '@crawlee/utils';
+import { type CheerioRoot, type RobotsFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 // @ts-expect-error This throws a compilation error due to TypeScript not inferring the module has CJS versions too
 import { DOMParser } from 'linkedom/cached';
@@ -187,6 +187,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                     options: enqueueOptions,
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
+                    robotsFile: await this.getRobotsFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -226,6 +227,7 @@ interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
     window: Window | null;
     requestQueue: RequestProvider;
+    robotsFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -235,6 +237,7 @@ export async function linkedomCrawlerEnqueueLinks({
     options,
     window,
     requestQueue,
+    robotsFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -257,6 +260,7 @@ export async function linkedomCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsFile,
         urls,
         baseUrl,
         ...options,

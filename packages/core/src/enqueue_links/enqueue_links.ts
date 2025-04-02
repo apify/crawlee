@@ -4,6 +4,7 @@ import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
+import { type RobotsFile } from '@crawlee/utils';
 
 import type { RequestOptions } from '../request';
 import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
@@ -158,6 +159,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * You can use this option to wait for adding all of them.
      */
     waitForAllRequestsToBeAdded?: boolean;
+
+    /**
+     * RobotsFile instance for the current request that triggered the `enqueueLinks`.
+     * If provided, disallowed URLs will be ignored.
+     */
+    robotsFile?: RobotsFile;
 }
 
 /**
@@ -256,6 +263,7 @@ export async function enqueueLinks(
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            robotsFile: ow.object.hasKeys('isAllowed'),
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
@@ -286,6 +294,7 @@ export async function enqueueLinks(
         transformRequestFunction,
         forefront,
         waitForAllRequestsToBeAdded,
+        robotsFile,
     } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
@@ -362,6 +371,12 @@ export async function enqueueLinks(
     }
 
     let requestOptions = createRequestOptions(urls, options);
+
+    if (robotsFile) {
+        requestOptions = requestOptions.filter((request) => {
+            return robotsFile.isAllowed(request.url);
+        });
+    }
 
     if (transformRequestFunction) {
         requestOptions = requestOptions

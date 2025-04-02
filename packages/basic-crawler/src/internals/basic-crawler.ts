@@ -1142,17 +1142,26 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
     }
 
-    protected async isDisallowedBasedOnRobotsFile(request: Request, _session?: Session): Promise<boolean> {
+    protected async isDisallowedBasedOnRobotsFile(request: Request): Promise<boolean> {
         if (!this.respectRobotsFile) {
             return false;
         }
 
+        const robotsFile = await this.getRobotsFileForUrl(request.url);
+        return !!robotsFile && !robotsFile.isAllowed(request.url);
+    }
+
+    // TODO cache the result in LRU cache
+    protected async getRobotsFileForUrl(url: string): Promise<RobotsFile | undefined> {
+        if (!this.respectRobotsFile) {
+            return undefined;
+        }
+
         try {
-            const robotsFile = await RobotsFile.find(request.url);
-            return !robotsFile.isAllowed(request.url);
+            return await RobotsFile.find(url);
         } catch (e: any) {
-            this.log.warning(`Failed to fetch robots.txt for request ${request.url}`);
-            return false;
+            this.log.warning(`Failed to fetch robots.txt for request ${url}`);
+            return undefined;
         }
     }
 
@@ -1309,10 +1318,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return;
         }
 
-        if (await this.isDisallowedBasedOnRobotsFile(request, session)) {
+        if (await this.isDisallowedBasedOnRobotsFile(request)) {
             this.log.debug(
                 `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
             );
+            request.noRetry = true;
+            await source.markRequestHandled(request);
             return;
         }
 
@@ -1324,7 +1335,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // Shared crawling context
         // @ts-expect-error
-        // All missing properties properties (that extend CrawlingContext) are set dynamically,
+        // All missing properties (that extend CrawlingContext) are set dynamically,
         // but TS does not know that, so otherwise it would throw when compiling.
         const crawlingContext: Context = {
             id: cryptoRandomObjectId(10),
@@ -1336,6 +1347,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
+                    robotsFile: await this.getRobotsFileForUrl(request!.url),
                     ...options,
                 });
             },

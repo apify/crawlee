@@ -30,7 +30,7 @@ import {
 } from '@crawlee/basic';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS, RobotsFile } from '@crawlee/utils';
+import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
@@ -587,22 +587,6 @@ export class HttpCrawler<
         } catch (e: any) {
             request.state = RequestState.ERROR;
             throw e;
-        }
-    }
-
-    protected override async isDisallowedBasedOnRobotsFile(request: Request, session?: Session): Promise<boolean> {
-        if (!this.respectRobotsFile) {
-            return false;
-        }
-
-        try {
-            const proxyInfo = await this.proxyConfiguration?.newProxyInfo(session?.id, { request });
-            const robotsFile = await RobotsFile.find(request.url, proxyInfo?.url);
-
-            return !robotsFile.isAllowed(request.url);
-        } catch (e: any) {
-            this.log.warning(`Failed to fetch robots.txt for request ${request.url}`);
-            return false;
         }
     }
 

@@ -8,7 +8,6 @@ import type {
     LoadedContext,
     ProxyConfiguration,
     ProxyInfo,
-    Request,
     RequestHandler,
     RequestProvider,
     Session,
@@ -464,22 +463,6 @@ export abstract class BrowserCrawler<
         }
     }
 
-    protected override async isDisallowedBasedOnRobotsFile(request: Request, session?: Session): Promise<boolean> {
-        if (!this.respectRobotsFile) {
-            return false;
-        }
-
-        try {
-            const proxyInfo = await this.proxyConfiguration?.newProxyInfo(session?.id, { request });
-            const robotsFile = await RobotsFile.find(request.url, proxyInfo?.url);
-
-            return !robotsFile.isAllowed(request.url);
-        } catch (e: any) {
-            this.log.warning(`Failed to fetch robots.txt for request ${request.url}`);
-            return false;
-        }
-    }
-
     private async containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
         const foundSelectors = (await Promise.all(selectors.map((selector) => (page as any).$(selector))))
             .map((x, i) => [x, selectors[i]] as [any, string])
@@ -643,6 +626,7 @@ export abstract class BrowserCrawler<
                 options: enqueueOptions,
                 page,
                 requestQueue: await this.getRequestQueue(),
+                robotsFile: await this.getRobotsFileForUrl(crawlingContext.request.url),
                 originalRequestUrl: crawlingContext.request.url,
                 finalRequestUrl: crawlingContext.request.loadedUrl,
             });
@@ -808,6 +792,7 @@ interface EnqueueLinksInternalOptions {
     options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
     requestQueue: RequestProvider;
+    robotsFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -817,6 +802,7 @@ export async function browserCrawlerEnqueueLinks({
     options,
     page,
     requestQueue,
+    robotsFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -835,9 +821,10 @@ export async function browserCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsFile,
         urls,
         baseUrl,
-        ...options,
+        ...(options as EnqueueLinksOptions),
     });
 }
 

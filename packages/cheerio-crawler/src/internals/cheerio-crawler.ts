@@ -15,7 +15,7 @@ import type {
 } from '@crawlee/http';
 import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
+import { type CheerioRoot, extractUrlsFromCheerio, type RobotsFile } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { DomHandler, parseDocument } from 'htmlparser2';
@@ -193,6 +193,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
                     options: enqueueOptions,
                     $,
                     requestQueue: await this.getRequestQueue(),
+                    robotsFile: await this.getRobotsFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -238,6 +239,7 @@ interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
     requestQueue: RequestProvider;
+    robotsFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -247,6 +249,7 @@ export async function cheerioCrawlerEnqueueLinks({
     options,
     $,
     requestQueue,
+    robotsFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -269,6 +272,7 @@ export async function cheerioCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsFile,
         urls,
         baseUrl,
         ...options,
