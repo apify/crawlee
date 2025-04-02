@@ -502,35 +502,6 @@ describe('CheerioCrawler', () => {
                 expect(errorMessages).toHaveLength(8);
                 errorMessages.forEach((msg) => expect(msg).toMatch('CUSTOM_ERROR'));
             });
-
-            // Tests legacy behaviour removed in https://github.com/apify/crawlee/pull/2907
-            test.skip('when 406 is received', async () => {
-                // Mock Request to respond with a 406.
-                crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock({
-                        headers: {
-                            'content-type': 'text/plain',
-                        },
-                        statusCode: 406,
-                    }),
-                    maxRequestRetries: 1,
-                    requestHandler: () => {
-                        handlePageInvocationCount++;
-                    },
-                    failedRequestHandler: ({ request }) => {
-                        errorMessages = [...errorMessages, ...request.errorMessages];
-                    },
-                });
-                await crawler.run();
-
-                expect(handlePageInvocationCount).toBe(0);
-                expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach((msg) => {
-                    expect(msg).toMatch(
-                        'is not available in the format requested by the Accept header. Skipping resource.',
-                    );
-                });
-            });
         });
     });
 
