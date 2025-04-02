@@ -8,6 +8,7 @@ import type {
     LoadedContext,
     ProxyConfiguration,
     ProxyInfo,
+    Request,
     RequestHandler,
     RequestProvider,
     Session,
@@ -38,7 +39,7 @@ import type {
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
-import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
+import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, RobotsFile, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
@@ -460,6 +461,22 @@ export abstract class BrowserCrawler<
         // Page creation may be aborted
         if (page) {
             await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
+        }
+    }
+
+    protected override async isDisallowedBasedOnRobotsFile(request: Request, session?: Session): Promise<boolean> {
+        if (!this.respectRobotsFile) {
+            return false;
+        }
+
+        try {
+            const proxyInfo = await this.proxyConfiguration?.newProxyInfo(session?.id, { request });
+            const robotsFile = await RobotsFile.find(request.url, proxyInfo?.url);
+
+            return !robotsFile.isAllowed(request.url);
+        } catch (e: any) {
+            this.log.warning(`Failed to fetch robots.txt for request ${request.url}`);
+            return false;
         }
     }
 
