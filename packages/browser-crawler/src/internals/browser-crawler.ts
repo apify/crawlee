@@ -593,8 +593,6 @@ export abstract class BrowserCrawler<
             throw e;
         }
         tryCancel();
-
-        if (session) session.markGood();
     }
 
     protected _enhanceCrawlingContextWithPageInfo(
