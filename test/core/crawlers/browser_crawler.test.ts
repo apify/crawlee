@@ -678,7 +678,6 @@ describe('BrowserCrawler', () => {
                 maxPoolSize: 1,
             },
             requestHandler: async ({ session }) => {
-                // @ts-expect-error Accessing private property
                 sessionUsageHistory.push(session!.usageCount);
             },
         });

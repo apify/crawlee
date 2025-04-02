@@ -13,19 +13,14 @@ describe('Session - testing session behaviour ', () => {
     });
 
     test('should markGood session and lower the errorScore', () => {
-        // @ts-expect-error Private property
         expect(session.usageCount).toBe(0);
-        // @ts-expect-error Private property
         expect(session.errorScore).toBe(0);
         session.markGood();
-        // @ts-expect-error Private property
         expect(session.usageCount).toBe(1);
-        // @ts-expect-error Private property
         expect(session.errorScore).toBe(0);
         // @ts-expect-error Private property
-        session.errorScore = 1;
+        session._errorScore = 1;
         session.markGood();
-        // @ts-expect-error Private property
         expect(session.errorScore).toBe(0.5);
     });
 
@@ -37,9 +32,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('should mark session markBad', () => {
         session.markBad();
-        // @ts-expect-error Private property
         expect(session.errorScore).toBe(1);
-        // @ts-expect-error Private property
         expect(session.usageCount).toBe(1);
     });
 
@@ -52,7 +45,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('should max out session usage', () => {
         // @ts-expect-error Private property
-        session.maxUsageCount = 1;
+        session._maxUsageCount = 1;
         session.markGood();
         expect(session.isMaxUsageCountReached()).toBe(true);
         expect(session.isUsable()).toBe(false);
@@ -60,7 +53,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('should block session', () => {
         // @ts-expect-error Private property
-        session.errorScore += session.maxErrorScore;
+        session._errorScore += session.maxErrorScore;
         expect(session.isBlocked()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });
@@ -81,7 +74,6 @@ describe('Session - testing session behaviour ', () => {
 
     test('should markGood session', () => {
         session.markGood();
-        // @ts-expect-error Private property
         expect(session.usageCount).toBe(1);
         expect(session.isUsable()).toBe(true);
     });
@@ -94,7 +86,6 @@ describe('Session - testing session behaviour ', () => {
         });
         session.retire();
         expect(discarded).toBe(true);
-        // @ts-expect-error Private property
         expect(session.usageCount).toBe(1);
     });
 
@@ -172,7 +163,6 @@ describe('Session - testing session behaviour ', () => {
 
     test('should use cookieJar', () => {
         session = new Session({ sessionPool });
-        // @ts-expect-error Private property
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 

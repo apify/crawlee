@@ -135,7 +135,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool.sessions[0].id === session.id).toBe(true);
 
             // @ts-expect-error Overriding private property
-            session.errorScore += session.maxErrorScore;
+            session._errorScore += session.maxErrorScore;
             await sessionPool.getSession();
 
             // @ts-expect-error private symbol
@@ -274,7 +274,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         const session = sessionPool.sessions[0];
         // @ts-expect-error Overriding private property
-        session.errorScore += session.maxErrorScore;
+        session._errorScore += session.maxErrorScore;
         const { id: retiredSessionId } = session;
 
         await sessionPool.getSession();
@@ -290,7 +290,7 @@ describe('SessionPool - testing session pool', () => {
 
             if (i % 2 === 0) {
                 // @ts-expect-error Overriding private property
-                session.errorScore += session.maxErrorScore;
+                session._errorScore += session.maxErrorScore;
                 invalidSessionsCount += 1;
             }
         }
@@ -315,7 +315,6 @@ describe('SessionPool - testing session pool', () => {
 
         const recreatedSession = await loadedSessionPool.getSession();
 
-        // @ts-expect-error Accessing private property
         expect(recreatedSession.maxUsageCount).toEqual(66);
     });
 
@@ -426,7 +425,7 @@ describe('SessionPool - testing session pool', () => {
             await sessionPool.addSession({ id: `session_${i}` });
             const session = await sessionPool.getSession(`session_${i}`);
             // @ts-expect-error Overriding private property
-            session.errorScore += session.maxErrorScore;
+            session._errorScore += session.maxErrorScore;
         }
 
         await sessionPool.getSession();
