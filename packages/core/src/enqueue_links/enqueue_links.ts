@@ -263,7 +263,7 @@ export async function enqueueLinks(
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
-            robotsFile: ow.object.hasKeys('isAllowed'),
+            robotsFile: ow.optional.object.hasKeys('isAllowed'),
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
