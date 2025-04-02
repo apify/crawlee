@@ -59,6 +59,7 @@ import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
+import { LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
 import defaultLog, { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
@@ -519,6 +520,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
+    private readonly robotsFileCache: LruCache<RobotsFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
 
     protected static optionsShape = {
@@ -626,6 +628,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
+        this.robotsFileCache = new LruCache({ maxLength: 1000 });
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -1151,14 +1154,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return !!robotsFile && !robotsFile.isAllowed(request.url);
     }
 
-    // TODO cache the result in LRU cache
     protected async getRobotsFileForUrl(url: string): Promise<RobotsFile | undefined> {
         if (!this.respectRobotsFile) {
             return undefined;
         }
 
         try {
-            return await RobotsFile.find(url);
+            const origin = new URL(url).origin;
+            const cachedRobotsFile = this.robotsFileCache.get(origin);
+
+            if (cachedRobotsFile) {
+                return cachedRobotsFile;
+            }
+
+            const robotsFile = await RobotsFile.find(url);
+            this.robotsFileCache.add(origin, robotsFile);
+
+            return robotsFile;
         } catch (e: any) {
             this.log.warning(`Failed to fetch robots.txt for request ${url}`);
             return undefined;

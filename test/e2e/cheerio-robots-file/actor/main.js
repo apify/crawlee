@@ -17,14 +17,14 @@ crawler.router.addDefaultHandler(async ({ log, request, enqueueLinks, pushData }
     log.info(`Processing ${request.loadedUrl}`);
     await enqueueLinks({
         // '/cart' is disallowed by robots.txt
-        globs: ['**/cart'],
+        globs: ['**/cart', '**/collections/*'],
     });
     await pushData({ url: request.url, loadedUrl: request.loadedUrl });
 });
 
 await crawler.run([
     'https://warehouse-theme-metal.myshopify.com',
-    'https://warehouse-theme-metal.myshopify.com/checkout',
+    'https://warehouse-theme-metal.myshopify.com/checkout', // '/checkout' is disallowed by robots.txt
 ]);
 
 const data = await crawler.getData();
