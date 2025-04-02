@@ -1044,6 +1044,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
+
+        if (this.respectRobotsFile) {
+            const allowedRequests: (string | Source)[] = [];
+
+            for (const request of requests) {
+                const url = typeof request === 'string' ? request : request.url!;
+
+                if (await this.isDisallowedBasedOnRobotsFile(url)) {
+                    continue;
+                }
+
+                allowedRequests.push(request);
+            }
+
+            return requestQueue.addRequestsBatched(allowedRequests, options);
+        }
+
         return requestQueue.addRequestsBatched(requests, options);
     }
 
@@ -1145,13 +1162,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
     }
 
-    protected async isDisallowedBasedOnRobotsFile(request: Request): Promise<boolean> {
+    protected async isDisallowedBasedOnRobotsFile(url: string): Promise<boolean> {
         if (!this.respectRobotsFile) {
             return false;
         }
 
-        const robotsFile = await this.getRobotsFileForUrl(request.url);
-        return !!robotsFile && !robotsFile.isAllowed(request.url);
+        const robotsFile = await this.getRobotsFileForUrl(url);
+        return !!robotsFile && !robotsFile.isAllowed(url);
     }
 
     protected async getRobotsFileForUrl(url: string): Promise<RobotsFile | undefined> {
@@ -1330,7 +1347,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return;
         }
 
-        if (await this.isDisallowedBasedOnRobotsFile(request)) {
+        if (await this.isDisallowedBasedOnRobotsFile(request.url)) {
             this.log.debug(
                 `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
             );
