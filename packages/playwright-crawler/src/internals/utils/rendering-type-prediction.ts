@@ -1,3 +1,4 @@
+import type { Request } from '@crawlee/core';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
@@ -52,15 +53,17 @@ export class RenderingTypePredictor {
     /**
      * Predict the rendering type for a given URL and request label.
      */
-    public predict(
-        url: URL,
-        label: string | undefined,
-    ): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
+    public predict({ url, loadedUrl, label }: Request): {
+        renderingType: RenderingType;
+        detectionProbabilityRecommendation: number;
+    } {
         if (this.logreg.classifiers.length === 0) {
             return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
         }
 
-        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(url), label)]);
+        const predictionUrl = new URL(loadedUrl ?? url);
+
+        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(predictionUrl), label)]);
         const [prediction] = this.logreg.predict(urlFeature);
         const scores = [
             this.logreg.classifiers[0].testScores(urlFeature),
@@ -79,7 +82,9 @@ export class RenderingTypePredictor {
     /**
      * Store the rendering type for a given URL and request label. This updates the underlying prediction model, which may be costly.
      */
-    public storeResult(url: URL, label: string | undefined, renderingType: RenderingType) {
+    public storeResult({ url, loadedUrl, label }: Request, renderingType: RenderingType) {
+        const resultUrl = new URL(loadedUrl ?? url);
+
         if (!this.renderingTypeDetectionResults.has(renderingType)) {
             this.renderingTypeDetectionResults.set(renderingType, new Map());
         }
@@ -88,7 +93,7 @@ export class RenderingTypePredictor {
             this.renderingTypeDetectionResults.get(renderingType)!.set(label, []);
         }
 
-        this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(url));
+        this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(resultUrl));
         this.retrain();
     }
 
