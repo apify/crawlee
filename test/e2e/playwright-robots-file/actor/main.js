@@ -10,7 +10,7 @@ await Actor.init({
 
 const crawler = new PlaywrightCrawler({
     maxRequestsPerCrawl: 10,
-    respectRobotsFile: true,
+    respectRobotsTxtFile: true,
 });
 
 crawler.router.addDefaultHandler(async ({ log, request, enqueueLinks, pushData }) => {
