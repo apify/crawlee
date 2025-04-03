@@ -193,7 +193,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
                     options: enqueueOptions,
                     $,
                     requestQueue: await this.getRequestQueue(),
-                    robotsFile: await this.getRobotsFileForUrl(crawlingContext.request.url),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -239,7 +239,7 @@ interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
     requestQueue: RequestProvider;
-    robotsFile?: RobotsFile;
+    robotsTxtFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -249,7 +249,7 @@ export async function cheerioCrawlerEnqueueLinks({
     options,
     $,
     requestQueue,
-    robotsFile,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -272,7 +272,7 @@ export async function cheerioCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
-        robotsFile,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...options,

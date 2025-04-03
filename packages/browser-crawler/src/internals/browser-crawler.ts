@@ -627,7 +627,7 @@ export abstract class BrowserCrawler<
                 options: enqueueOptions,
                 page,
                 requestQueue: await this.getRequestQueue(),
-                robotsFile: await this.getRobotsFileForUrl(crawlingContext.request.url),
+                robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                 originalRequestUrl: crawlingContext.request.url,
                 finalRequestUrl: crawlingContext.request.loadedUrl,
             });
@@ -793,7 +793,7 @@ interface EnqueueLinksInternalOptions {
     options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
     requestQueue: RequestProvider;
-    robotsFile?: RobotsFile;
+    robotsTxtFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -803,7 +803,7 @@ export async function browserCrawlerEnqueueLinks({
     options,
     page,
     requestQueue,
-    robotsFile,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -822,7 +822,7 @@ export async function browserCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
-        robotsFile,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...(options as EnqueueLinksOptions),

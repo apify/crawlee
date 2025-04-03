@@ -187,7 +187,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                     options: enqueueOptions,
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
-                    robotsFile: await this.getRobotsFileForUrl(crawlingContext.request.url),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -227,7 +227,7 @@ interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
     window: Window | null;
     requestQueue: RequestProvider;
-    robotsFile?: RobotsFile;
+    robotsTxtFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -237,7 +237,7 @@ export async function linkedomCrawlerEnqueueLinks({
     options,
     window,
     requestQueue,
-    robotsFile,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -260,7 +260,7 @@ export async function linkedomCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
-        robotsFile,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...options,

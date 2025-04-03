@@ -164,7 +164,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * RobotsFile instance for the current request that triggered the `enqueueLinks`.
      * If provided, disallowed URLs will be ignored.
      */
-    robotsFile?: RobotsFile;
+    robotsTxtFile?: RobotsFile;
 }
 
 /**
@@ -263,7 +263,7 @@ export async function enqueueLinks(
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
-            robotsFile: ow.optional.object.hasKeys('isAllowed'),
+            robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
@@ -294,7 +294,7 @@ export async function enqueueLinks(
         transformRequestFunction,
         forefront,
         waitForAllRequestsToBeAdded,
-        robotsFile,
+        robotsTxtFile,
     } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
@@ -372,9 +372,9 @@ export async function enqueueLinks(
 
     let requestOptions = createRequestOptions(urls, options);
 
-    if (robotsFile) {
+    if (robotsTxtFile) {
         requestOptions = requestOptions.filter((request) => {
-            return robotsFile.isAllowed(request.url);
+            return robotsTxtFile.isAllowed(request.url);
         });
     }
 

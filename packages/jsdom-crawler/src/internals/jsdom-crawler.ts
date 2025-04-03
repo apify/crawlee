@@ -304,7 +304,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
                     options: enqueueOptions,
                     window,
                     requestQueue: await this.getRequestQueue(),
-                    robotsFile: await this.getRobotsFileForUrl(crawlingContext.request.url),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -344,7 +344,7 @@ interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: DOMWindow | null;
     requestQueue: RequestProvider;
-    robotsFile?: RobotsFile;
+    robotsTxtFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -354,7 +354,7 @@ export async function domCrawlerEnqueueLinks({
     options,
     window,
     requestQueue,
-    robotsFile,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -377,7 +377,7 @@ export async function domCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
-        robotsFile,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...options,

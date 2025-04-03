@@ -347,7 +347,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * If set to `true`, the crawler will automatically try to fetch the robots.txt file for each domain,
      * and skip those that are not allowed. This also prevents disallowed URLs to be added via `enqueueLinks`.
      */
-    respectRobotsFile?: boolean;
+    respectRobotsTxtFile?: boolean;
 
     /** @internal */
     log?: Log;
@@ -516,11 +516,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected events: EventManager;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
-    protected respectRobotsFile: boolean;
+    protected respectRobotsTxtFile: boolean;
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
-    private readonly robotsFileCache: LruCache<RobotsFile>;
+    private readonly robotsTxtFileCache: LruCache<RobotsFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
 
     protected static optionsShape = {
@@ -551,7 +551,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         statusMessageCallback: ow.optional.function,
 
         retryOnBlocked: ow.optional.boolean,
-        respectRobotsFile: ow.optional.boolean,
+        respectRobotsTxtFile: ow.optional.boolean,
         httpClient: ow.optional.object,
 
         // AutoscaledPool shorthands
@@ -594,7 +594,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             maxRequestsPerMinute,
 
             retryOnBlocked = false,
-            respectRobotsFile = false,
+            respectRobotsTxtFile = false,
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
@@ -628,7 +628,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
-        this.robotsFileCache = new LruCache({ maxLength: 1000 });
+        this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -667,7 +667,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.retryOnBlocked = retryOnBlocked;
-        this.respectRobotsFile = respectRobotsFile;
+        this.respectRobotsTxtFile = respectRobotsTxtFile;
 
         this._handlePropertyNameChange({
             newName: 'requestHandlerTimeoutSecs',
@@ -1045,17 +1045,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
 
-        if (this.respectRobotsFile) {
+        if (this.respectRobotsTxtFile) {
             const allowedRequests: (string | Source)[] = [];
 
             for (const request of requests) {
                 const url = typeof request === 'string' ? request : request.url!;
 
-                if (await this.isDisallowedBasedOnRobotsFile(url)) {
-                    continue;
+                if (await this.isAllowedBasedOnRobotsTxtFile(url)) {
+                    allowedRequests.push(request);
                 }
-
-                allowedRequests.push(request);
             }
 
             return requestQueue.addRequestsBatched(allowedRequests, options);
@@ -1162,32 +1160,32 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
     }
 
-    protected async isDisallowedBasedOnRobotsFile(url: string): Promise<boolean> {
-        if (!this.respectRobotsFile) {
-            return false;
+    protected async isAllowedBasedOnRobotsTxtFile(url: string): Promise<boolean> {
+        if (!this.respectRobotsTxtFile) {
+            return true;
         }
 
-        const robotsFile = await this.getRobotsFileForUrl(url);
-        return !!robotsFile && !robotsFile.isAllowed(url);
+        const robotsTxtFile = await this.getRobotsTxtFileForUrl(url);
+        return !robotsTxtFile || robotsTxtFile.isAllowed(url);
     }
 
-    protected async getRobotsFileForUrl(url: string): Promise<RobotsFile | undefined> {
-        if (!this.respectRobotsFile) {
+    protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsFile | undefined> {
+        if (!this.respectRobotsTxtFile) {
             return undefined;
         }
 
         try {
             const origin = new URL(url).origin;
-            const cachedRobotsFile = this.robotsFileCache.get(origin);
+            const cachedRobotsTxtFile = this.robotsTxtFileCache.get(origin);
 
-            if (cachedRobotsFile) {
-                return cachedRobotsFile;
+            if (cachedRobotsTxtFile) {
+                return cachedRobotsTxtFile;
             }
 
-            const robotsFile = await RobotsFile.find(url);
-            this.robotsFileCache.add(origin, robotsFile);
+            const robotsTxtFile = await RobotsFile.find(url);
+            this.robotsTxtFileCache.add(origin, robotsTxtFile);
 
-            return robotsFile;
+            return robotsTxtFile;
         } catch (e: any) {
             this.log.warning(`Failed to fetch robots.txt for request ${url}`);
             return undefined;
@@ -1347,10 +1345,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return;
         }
 
-        if (await this.isDisallowedBasedOnRobotsFile(request.url)) {
+        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
             this.log.debug(
                 `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
             );
+            request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await source.markRequestHandled(request);
             return;
@@ -1376,7 +1375,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
-                    robotsFile: await this.getRobotsFileForUrl(request!.url),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     ...options,
                 });
             },
