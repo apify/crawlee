@@ -100,7 +100,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      */
     getKeyValueStore: (
         idOrName?: string,
-    ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue'>>;
+    ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
 
     /**
      * A preconfigured logger for the request handler.
@@ -303,6 +303,7 @@ export class RequestHandlerResult {
             setValue: async (key, value, options) => {
                 this.setKeyValueStoreChangedValue(idOrName, key, value, options);
             },
+            getPublicUrl: store.getPublicUrl,
         };
     };
 

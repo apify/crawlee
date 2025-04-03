@@ -6,6 +6,7 @@ import {
     type RouterHandler,
 } from '@crawlee/browser';
 import type {
+    BaseHttpResponseData,
     GetUserDataFromRequest,
     RestrictedCrawlingContext,
     RouterRoutes,
@@ -18,6 +19,7 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio, type Element, load } from 'cheerio';
 import isEqual from 'lodash.isequal';
+import type { Page } from 'playwright';
 
 import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
@@ -88,7 +90,18 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
     }
 }
 
-export interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
+export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = Dictionary>
+    extends RestrictedCrawlingContext<UserData> {
+    /**
+     *
+     */
+    response: BaseHttpResponseData;
+
+    /**
+     * Playwright Page object. If accessed in HTTP-only rendering, this will throw an error and make the AdaptivePlaywrightCrawlerContext retry the request in a browser.
+     */
+    page: Page;
+
     /**
      * Wait for an element matching the selector to appear and return a Cheerio object of matched elements.
      * Timeout defaults to 5s.
@@ -165,6 +178,8 @@ export interface AdaptivePlaywrightCrawlerOptions
      * A custom rendering type predictor
      */
     renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult'>;
+
+    preventDirectStorageAccess?: boolean;
 }
 
 const proxyLogMethods = [
@@ -214,6 +229,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
+    private preventDirectStorageAccess: boolean;
     declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
 
     /**
@@ -235,6 +251,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             resultChecker,
             resultComparator,
             statisticsOptions,
+            preventDirectStorageAccess = true,
             ...rest
         } = options;
 
@@ -265,6 +282,8 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             config,
             ...statisticsOptions,
         });
+
+        this.preventDirectStorageAccess = preventDirectStorageAccess;
     }
 
     protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext): Promise<void> {
@@ -384,9 +403,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                             return async (playwrightContext: PlaywrightCrawlingContext) =>
                                 withCheckedStorageAccess(
                                     () => {
-                                        throw new Error(
-                                            'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
-                                        );
+                                        if (this.preventDirectStorageAccess) {
+                                            throw new Error(
+                                                'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
+                                            );
+                                        }
                                     },
                                     () =>
                                         this.adaptiveRequestHandler({
@@ -394,7 +415,16 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                             session: crawlingContext.session,
                                             proxyInfo: crawlingContext.proxyInfo,
                                             request: crawlingContext.request as LoadedRequest<Request>,
+                                            response: {
+                                                url: crawlingContext.response!.url(),
+                                                statusCode: crawlingContext.response!.status(),
+                                                headers: crawlingContext.response!.headers(),
+                                                trailers: {},
+                                                complete: true,
+                                                redirectUrls: [],
+                                            },
                                             log: crawlingContext.log,
+                                            page: crawlingContext.page,
                                             querySelector: async (selector, timeoutMs = 5_000) => {
                                                 const locator = playwrightContext.page.locator(selector).first();
                                                 await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
@@ -464,9 +494,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         try {
             await withCheckedStorageAccess(
                 () => {
-                    throw new Error(
-                        'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
-                    );
+                    if (this.preventDirectStorageAccess) {
+                        throw new Error(
+                            'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
+                        );
+                    }
                 },
                 async () =>
                     addTimeoutToPromise(
@@ -476,7 +508,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 session: crawlingContext.session,
                                 proxyInfo: crawlingContext.proxyInfo,
                                 request: crawlingContext.request as LoadedRequest<Request>,
+                                response,
                                 log: this.createLogProxy(crawlingContext.log, logs),
+                                get page(): Page {
+                                    throw new Error('Page object was used in HTTP-only request handler');
+                                },
                                 async querySelector(selector, _timeoutMs?: number) {
                                     return $(selector) as Cheerio<Element>;
                                 },
