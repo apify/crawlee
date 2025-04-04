@@ -2,6 +2,7 @@ export * from '@crawlee/browser';
 export * from './internals/playwright-crawler';
 export * from './internals/playwright-launcher';
 export * from './internals/adaptive-playwright-crawler';
+export { RenderingTypePredictor } from './internals/utils/rendering-type-prediction';
 
 export * as playwrightUtils from './internals/utils/playwright-utils';
 export * as playwrightClickElements from './internals/enqueue-links/click-elements';
