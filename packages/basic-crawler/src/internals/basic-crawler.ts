@@ -50,7 +50,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { RobotsFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
@@ -520,7 +520,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
-    private readonly robotsTxtFileCache: LruCache<RobotsFile>;
+    private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
 
     protected static optionsShape = {
@@ -1178,7 +1178,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return !robotsTxtFile || robotsTxtFile.isAllowed(url);
     }
 
-    protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsFile | undefined> {
+    protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined> {
         if (!this.respectRobotsTxtFile) {
             return undefined;
         }
@@ -1191,7 +1191,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsFile.find(url);
+            const robotsTxtFile = await RobotsTxtFile.find(url);
             this.robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;

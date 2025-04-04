@@ -1,5 +1,5 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type RobotsFile } from '@crawlee/utils';
+import { type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
@@ -161,10 +161,10 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     waitForAllRequestsToBeAdded?: boolean;
 
     /**
-     * RobotsFile instance for the current request that triggered the `enqueueLinks`.
+     * RobotsTxtFile instance for the current request that triggered the `enqueueLinks`.
      * If provided, disallowed URLs will be ignored.
      */
-    robotsTxtFile?: RobotsFile;
+    robotsTxtFile?: RobotsTxtFile;
 }
 
 /**
