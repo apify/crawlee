@@ -38,11 +38,11 @@ export class RobotsFile {
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static async find(url: string, proxyUrl?: string): Promise<RobotsFile> {
-        const robotsFileUrl = new URL(url);
-        robotsFileUrl.pathname = '/robots.txt';
-        robotsFileUrl.search = '';
+        const robotsTxtFileUrl = new URL(url);
+        robotsTxtFileUrl.pathname = '/robots.txt';
+        robotsTxtFileUrl.search = '';
 
-        return RobotsFile.load(robotsFileUrl.toString(), proxyUrl);
+        return RobotsFile.load(robotsTxtFileUrl.toString(), proxyUrl);
     }
 
     /**

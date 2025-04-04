@@ -1,4 +1,5 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { type RobotsFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
@@ -158,6 +159,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * You can use this option to wait for adding all of them.
      */
     waitForAllRequestsToBeAdded?: boolean;
+
+    /**
+     * RobotsFile instance for the current request that triggered the `enqueueLinks`.
+     * If provided, disallowed URLs will be ignored.
+     */
+    robotsTxtFile?: RobotsFile;
 }
 
 /**
@@ -256,6 +263,7 @@ export async function enqueueLinks(
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
@@ -286,6 +294,7 @@ export async function enqueueLinks(
         transformRequestFunction,
         forefront,
         waitForAllRequestsToBeAdded,
+        robotsTxtFile,
     } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
@@ -362,6 +371,12 @@ export async function enqueueLinks(
     }
 
     let requestOptions = createRequestOptions(urls, options);
+
+    if (robotsTxtFile) {
+        requestOptions = requestOptions.filter((request) => {
+            return robotsTxtFile.isAllowed(request.url);
+        });
+    }
 
     if (transformRequestFunction) {
         requestOptions = requestOptions

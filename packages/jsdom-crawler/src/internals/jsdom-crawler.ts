@@ -20,7 +20,7 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, sleep } from '@crawlee/utils';
+import { type CheerioRoot, type RobotsFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
@@ -304,6 +304,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
                     options: enqueueOptions,
                     window,
                     requestQueue: await this.getRequestQueue(),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -343,6 +344,7 @@ interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: DOMWindow | null;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -352,6 +354,7 @@ export async function domCrawlerEnqueueLinks({
     options,
     window,
     requestQueue,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -374,6 +377,7 @@ export async function domCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...options,

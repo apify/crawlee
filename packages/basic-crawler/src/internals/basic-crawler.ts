@@ -50,7 +50,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { RobotsFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
@@ -59,6 +59,7 @@ import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
+import { LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
 import defaultLog, { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
@@ -342,6 +343,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     retryOnBlocked?: boolean;
 
+    /**
+     * If set to `true`, the crawler will automatically try to fetch the robots.txt file for each domain,
+     * and skip those that are not allowed. This also prevents disallowed URLs to be added via `enqueueLinks`.
+     */
+    respectRobotsTxtFile?: boolean;
+
     /** @internal */
     log?: Log;
 
@@ -509,9 +516,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected events: EventManager;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
+    protected respectRobotsTxtFile: boolean;
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
+    private readonly robotsTxtFileCache: LruCache<RobotsFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
 
     protected static optionsShape = {
@@ -542,6 +551,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         statusMessageCallback: ow.optional.function,
 
         retryOnBlocked: ow.optional.boolean,
+        respectRobotsTxtFile: ow.optional.boolean,
         httpClient: ow.optional.object,
 
         // AutoscaledPool shorthands
@@ -584,6 +594,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             maxRequestsPerMinute,
 
             retryOnBlocked = false,
+            respectRobotsTxtFile = false,
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
@@ -617,6 +628,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
+        this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -655,6 +667,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.retryOnBlocked = retryOnBlocked;
+        this.respectRobotsTxtFile = respectRobotsTxtFile;
 
         this._handlePropertyNameChange({
             newName: 'requestHandlerTimeoutSecs',
@@ -1031,7 +1044,31 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
-        return requestQueue.addRequestsBatched(requests, options);
+
+        if (!this.respectRobotsTxtFile) {
+            return requestQueue.addRequestsBatched(requests, options);
+        }
+
+        const allowedRequests: (string | Source)[] = [];
+        const skipped = new Set<string>();
+
+        for (const request of requests) {
+            const url = typeof request === 'string' ? request : request.url!;
+
+            if (await this.isAllowedBasedOnRobotsTxtFile(url)) {
+                allowedRequests.push(request);
+            } else {
+                skipped.add(url);
+            }
+        }
+
+        if (skipped.size > 0) {
+            this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
+                skipped: [...skipped],
+            });
+        }
+
+        return requestQueue.addRequestsBatched(allowedRequests, options);
     }
 
     /**
@@ -1129,6 +1166,38 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (isBlocked) {
             throw new Error(`Request blocked - received ${statusCode} status code.`);
+        }
+    }
+
+    private async isAllowedBasedOnRobotsTxtFile(url: string): Promise<boolean> {
+        if (!this.respectRobotsTxtFile) {
+            return true;
+        }
+
+        const robotsTxtFile = await this.getRobotsTxtFileForUrl(url);
+        return !robotsTxtFile || robotsTxtFile.isAllowed(url);
+    }
+
+    protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsFile | undefined> {
+        if (!this.respectRobotsTxtFile) {
+            return undefined;
+        }
+
+        try {
+            const origin = new URL(url).origin;
+            const cachedRobotsTxtFile = this.robotsTxtFileCache.get(origin);
+
+            if (cachedRobotsTxtFile) {
+                return cachedRobotsTxtFile;
+            }
+
+            const robotsTxtFile = await RobotsFile.find(url);
+            this.robotsTxtFileCache.add(origin, robotsTxtFile);
+
+            return robotsTxtFile;
+        } catch (e: any) {
+            this.log.warning(`Failed to fetch robots.txt for request ${url}`);
+            return undefined;
         }
     }
 
@@ -1285,6 +1354,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return;
         }
 
+        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
+            this.log.debug(
+                `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
+            );
+            request.state = RequestState.SKIPPED;
+            request.noRetry = true;
+            await source.markRequestHandled(request);
+            return;
+        }
+
         // Reset loadedUrl so an old one is not carried over to retries.
         request.loadedUrl = undefined;
 
@@ -1293,7 +1372,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // Shared crawling context
         // @ts-expect-error
-        // All missing properties properties (that extend CrawlingContext) are set dynamically,
+        // All missing properties (that extend CrawlingContext) are set dynamically,
         // but TS does not know that, so otherwise it would throw when compiling.
         const crawlingContext: Context = {
             id: cryptoRandomObjectId(10),
@@ -1305,6 +1384,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     ...options,
                 });
             },
