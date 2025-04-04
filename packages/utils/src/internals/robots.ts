@@ -14,7 +14,7 @@ let HTTPError: typeof HTTPErrorClass;
  * **Example usage:**
  * ```javascript
  * // Load the robots.txt file
- * const robots = await RobotsFile.find('https://crawlee.dev/js/docs/introduction/first-crawler');
+ * const robots = await RobotsTxtFile.find('https://crawlee.dev/js/docs/introduction/first-crawler');
  *
  * // Check if a URL should be crawled according to robots.txt
  * const url = 'https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler';
@@ -26,7 +26,7 @@ let HTTPError: typeof HTTPErrorClass;
  * await crawler.addRequests(await robots.parseUrlsFromSitemaps());
  * ```
  */
-export class RobotsFile {
+export class RobotsTxtFile {
     private constructor(
         private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
         private proxyUrl?: string,
@@ -37,12 +37,12 @@ export class RobotsFile {
      * @param url the URL to fetch robots.txt for
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
-    static async find(url: string, proxyUrl?: string): Promise<RobotsFile> {
+    static async find(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
         robotsTxtFileUrl.search = '';
 
-        return RobotsFile.load(robotsTxtFileUrl.toString(), proxyUrl);
+        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl);
     }
 
     /**
@@ -51,11 +51,11 @@ export class RobotsFile {
      * @param content contents of robots.txt
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
-    static from(url: string, content: string, proxyUrl?: string): RobotsFile {
-        return new RobotsFile(robotsParser(url, content), proxyUrl);
+    static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile {
+        return new RobotsTxtFile(robotsParser(url, content), proxyUrl);
     }
 
-    protected static async load(url: string, proxyUrl?: string): Promise<RobotsFile> {
+    protected static async load(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
         if (!HTTPError) {
             HTTPError = (await import('got-scraping')).HTTPError;
         }
@@ -68,10 +68,10 @@ export class RobotsFile {
                 responseType: 'text',
             });
 
-            return new RobotsFile(robotsParser(url.toString(), response.body), proxyUrl);
+            return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);
         } catch (e) {
             if (e instanceof HTTPError && e.response.statusCode === 404) {
-                return new RobotsFile(
+                return new RobotsTxtFile(
                     {
                         isAllowed() {
                             return true;
@@ -117,3 +117,6 @@ export class RobotsFile {
         return (await this.parseSitemaps()).urls;
     }
 }
+
+// to stay backwards compatible
+export { RobotsTxtFile as RobotsFile };

@@ -20,7 +20,7 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, type RobotsFile, sleep } from '@crawlee/utils';
+import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
@@ -344,7 +344,7 @@ interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: DOMWindow | null;
     requestQueue: RequestProvider;
-    robotsTxtFile?: RobotsFile;
+    robotsTxtFile?: RobotsTxtFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

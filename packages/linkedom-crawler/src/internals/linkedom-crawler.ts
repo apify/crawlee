@@ -19,7 +19,7 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, type RobotsFile, sleep } from '@crawlee/utils';
+import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 // @ts-expect-error This throws a compilation error due to TypeScript not inferring the module has CJS versions too
 import { DOMParser } from 'linkedom/cached';
@@ -227,7 +227,7 @@ interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
     window: Window | null;
     requestQueue: RequestProvider;
-    robotsTxtFile?: RobotsFile;
+    robotsTxtFile?: RobotsTxtFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
