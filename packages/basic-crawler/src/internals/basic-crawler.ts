@@ -48,6 +48,10 @@ import {
     SessionPool,
     Statistics,
     validators,
+    ProxyConfiguration,
+    RequestList,
+    TandemRequestProvider,
+    RequestListAdapter,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
@@ -452,6 +456,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Only available if used by the crawler.
      */
     requestQueue?: RequestProvider;
+
+    /**
+     * The main request provider used by the crawler. This is either a RequestList, RequestQueue,
+     * or TandemRequestProvider combining both. It's initialized during the crawler startup.
+     * @internal
+     */
+    protected requestProvider?: IRequestProvider;
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
@@ -1055,6 +1066,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return items;
     }
 
+    /**
+     * Initializes the crawler.
+     */
     protected async _init(): Promise<void> {
         if (!this.events.isInitialized()) {
             await this.events.init();
@@ -1072,7 +1086,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.sessionPool.setMaxListeners(20);
         }
 
+        await this._initializeRequestProviders();
         await this._loadHandledRequestCount();
+
+        this.events.on(EventType.MIGRATING, this._pauseOnMigration);
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
@@ -1130,29 +1147,36 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Fetches request from either RequestList or RequestQueue. If request comes from a RequestList
-     * and RequestQueue is present then enqueues it to the queue first.
+     * Initializes both the RequestList and the RequestQueue and then transfers requests from the RequestList
+     * to the RequestQueue using a TandemRequestProvider. This ensures that each request will be processed only once.
+     */
+    protected async _initializeRequestProviders() {
+        if (this.requestList && this.requestQueue) {
+            // Create a TandemRequestProvider if both RequestList and RequestQueue are provided
+            const requestListAdapter = new RequestListAdapter(this.requestList);
+            const tandemProvider = new TandemRequestProvider(requestListAdapter, this.requestQueue);
+            // Start the background transfer of requests
+            await tandemProvider.startBackgroundTransfer();
+            // Use this as our main request provider
+            this.requestProvider = tandemProvider;
+        } else if (this.requestQueue) {
+            // Use RequestQueue directly if only it is provided
+            this.requestProvider = this.requestQueue;
+        } else if (this.requestList) {
+            // Use RequestList through the adapter if only it is provided
+            this.requestProvider = new RequestListAdapter(this.requestList);
+        } else {
+            // Create and use a default RequestQueue if nothing else is provided
+            this.requestQueue = await this._getRequestQueue();
+            this.requestProvider = this.requestQueue;
+        }
+    }
+
+    /**
+     * Fetches the next request to process from the underlying request provider.
      */
     protected async _fetchNextRequest() {
-        if (!this.requestList) return this.requestQueue!.fetchNextRequest();
-        const request = await this.requestList.fetchNextRequest();
-        if (!this.requestQueue) return request;
-        if (!request) return this.requestQueue.fetchNextRequest();
-
-        try {
-            await this.requestQueue.addRequest(request, { forefront: true });
-        } catch (err) {
-            // If requestQueue.addRequest() fails here then we must reclaim it back to
-            // the RequestList because probably it's not yet in the queue!
-            this.log.error(
-                'Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.',
-                { request },
-            );
-            await this.requestList.reclaimRequest(request);
-            return null;
-        }
-        await this.requestList.markRequestHandled(request);
-        return this.requestQueue.fetchNextRequest();
+        return this.requestProvider!.fetchNextRequest();
     }
 
     /**

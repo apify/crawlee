@@ -27,7 +27,58 @@ import { Request } from '../request';
 import type { RequestOptions, InternalSource, Source } from '../request';
 import type { Constructor } from '../typedefs';
 
-export abstract class RequestProvider implements IStorage {
+/**
+ * Represents a provider of requests/URLs to crawl.
+ */
+export interface IRequestProvider {
+    /**
+     * Returns `true` if all requests were already handled and there are no more left.
+     */
+    isFinished(): Promise<boolean>;
+
+    /**
+     * Resolves to `true` if the next call to {@apilink IRequestProvider.fetchNextRequest} function
+     * would return `null`, otherwise it resolves to `false`.
+     * Note that even if the provider is empty, there might be some pending requests currently being processed.
+     */
+    isEmpty(): Promise<boolean>;
+
+    /**
+     * Returns number of handled requests.
+     */
+    handledCount(): Promise<number>;
+
+    /**
+     * Gets the next {@apilink Request} to process.
+     * 
+     * The function's `Promise` resolves to `null` if there are no more
+     * requests to process.
+     */
+    fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null>;
+
+    /**
+     * Gets the next {@apilink Request} to process.
+     * 
+     * The function resolves to `null` if there are no more requests to process.
+     *
+     * Can be used to iterate over the request provider in a `for await .. of` loop.
+     * Provides an alternative for the repeated use of `fetchNextRequest`.
+     */
+    [Symbol.asyncIterator](): AsyncGenerator<Request>;
+
+    /**
+     * Marks request as handled after successful processing.
+     */
+    markRequestHandled(request: Request): Promise<QueueOperationInfo | void | null>;
+
+    /**
+     * Reclaims request to the provider if its processing failed.
+     * The request will become available in the next `fetchNextRequest()`.
+     */
+    reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | void | null>;
+}
+
+export abstract class RequestProvider implements IStorage, IRequestProvider {
     id: string;
     name?: string;
     timeoutSecs = 30;
@@ -671,6 +722,17 @@ export abstract class RequestProvider implements IStorage {
     }
 
     /**
+     * @inheritdoc
+     */
+    async *[Symbol.asyncIterator]() {
+        while (true) {
+            const req = await this.fetchNextRequest();
+            if (!req) break;
+            yield req;
+        }
+    }
+
+    /**
      * Returns the number of handled requests.
      *
      * This function is just a convenient shortcut for:
@@ -678,6 +740,7 @@ export abstract class RequestProvider implements IStorage {
      * ```javascript
      * const { handledRequestCount } = await queue.getInfo();
      * ```
+     * @inheritdoc
      */
     async handledCount(): Promise<number> {
         // NOTE: We keep this function for compatibility with RequestList.handledCount()
@@ -686,28 +749,7 @@ export abstract class RequestProvider implements IStorage {
     }
 
     /**
-     * Returns an object containing general information about the request queue.
-     *
-     * The function returns the same object as the Apify API Client's
-     * [getQueue](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-requestQueues)
-     * function, which in turn calls the
-     * [Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
-     * API endpoint.
-     *
-     * **Example:**
-     * ```
-     * {
-     *   id: "WkzbQMuFYuamGv3YF",
-     *   name: "my-queue",
-     *   userId: "wRsJZtadYvn4mBZmm",
-     *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
-     *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
-     *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
-     *   totalRequestCount: 25,
-     *   handledRequestCount: 5,
-     *   pendingRequestCount: 20,
-     * }
-     * ```
+     * Gets information about the queue.
      */
     async getInfo(): Promise<RequestQueueInfo | undefined> {
         checkStorageAccess();
