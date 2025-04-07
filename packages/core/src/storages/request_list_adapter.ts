@@ -60,4 +60,4 @@ export class RequestListAdapter implements IRequestProvider {
             yield request;
         }
     }
-} 
+}

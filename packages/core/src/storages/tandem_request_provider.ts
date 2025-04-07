@@ -61,7 +61,7 @@ export class TandemRequestProvider implements IRequestProvider {
      */
     async isFinished(): Promise<boolean> {
         const listFinished = await this.requestList.isFinished();
-        return listFinished && await this.requestQueue.isFinished();
+        return listFinished && (await this.requestQueue.isFinished());
     }
 
     /**
@@ -69,7 +69,7 @@ export class TandemRequestProvider implements IRequestProvider {
      */
     async isEmpty(): Promise<boolean> {
         const listEmpty = await this.requestList.isEmpty();
-        return listEmpty && await this.requestQueue.isEmpty();
+        return listEmpty && (await this.requestQueue.isEmpty());
     }
 
     /**
@@ -103,7 +103,7 @@ export class TandemRequestProvider implements IRequestProvider {
         if (!this.listFinishedPromise) {
             await this.startBackgroundTransfer();
         }
-        
+
         // Simply iterate through the queue
         for await (const request of this.requestQueue) {
             yield request;
@@ -120,14 +120,20 @@ export class TandemRequestProvider implements IRequestProvider {
     /**
      * @inheritdoc
      */
-    async reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | void | null> {
+    async reclaimRequest(
+        request: Request,
+        options?: RequestQueueOperationOptions,
+    ): Promise<RequestQueueOperationInfo | void | null> {
         return this.requestQueue.reclaimRequest(request, options);
     }
 
     /**
      * Additional method to add new requests directly to the underlying RequestQueue.
      */
-    async addRequest(request: Request | RequestOptions, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null> {
+    async addRequest(
+        request: Request | RequestOptions,
+        options?: RequestQueueOperationOptions,
+    ): Promise<RequestQueueOperationInfo | null> {
         return this.requestQueue.addRequest(request, options);
     }
-} 
+}

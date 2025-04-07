@@ -51,7 +51,7 @@ export interface IRequestProvider {
 
     /**
      * Gets the next {@apilink Request} to process.
-     * 
+     *
      * The function's `Promise` resolves to `null` if there are no more
      * requests to process.
      */
@@ -59,7 +59,7 @@ export interface IRequestProvider {
 
     /**
      * Gets the next {@apilink Request} to process.
-     * 
+     *
      * The function resolves to `null` if there are no more requests to process.
      *
      * Can be used to iterate over the request provider in a `for await .. of` loop.
