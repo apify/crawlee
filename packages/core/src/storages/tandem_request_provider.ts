@@ -24,14 +24,16 @@ export class TandemRequestProvider implements IRequestProvider {
         this.log = log.child({ prefix: 'TandemRequestProvider' });
         this.requestList = requestList;
         this.requestQueue = requestQueue;
+        
+        // Initialize the background transfer immediately
+        this.startBackgroundTransfer();
     }
 
     /**
      * Starts transferring requests from RequestList to RequestQueue in the background.
-     * This should be called when the provider is initialized to ensure all requests
-     * are properly transferred.
+     * @private
      */
-    startBackgroundTransfer(): void {
+    private startBackgroundTransfer(): void {
         if (this.listFinishedPromise) return;
 
         this.listFinishedPromise = this.transferAllListRequestsToQueue();
@@ -87,9 +89,6 @@ export class TandemRequestProvider implements IRequestProvider {
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null> {
-        // Start the background transfer if not already started
-        this.startBackgroundTransfer();
-
         // Simply forward the request to the queue
         return this.requestQueue.fetchNextRequest<T>(options);
     }
@@ -98,8 +97,6 @@ export class TandemRequestProvider implements IRequestProvider {
      * @inheritdoc
      */
     async *[Symbol.asyncIterator]() {
-        this.startBackgroundTransfer();
-
         // Simply iterate through the queue
         for await (const request of this.requestQueue) {
             yield request;

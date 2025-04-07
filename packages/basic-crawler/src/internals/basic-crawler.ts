@@ -1267,15 +1267,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             // Create a TandemRequestProvider if both RequestList and RequestQueue are provided
             const requestListAdapter = new RequestListAdapter(this.requestList);
             const tandemProvider = new TandemRequestProvider(requestListAdapter, this.requestQueue);
-            // Start the background transfer of requests
-            await tandemProvider.startBackgroundTransfer();
             // Use this as our main request provider
             this.requestProvider = tandemProvider;
         } else if (this.requestQueue) {
             // Use RequestQueue directly if only it is provided
             this.requestProvider = this.requestQueue;
         } else if (this.requestList) {
-            // Use RequestList through the adapter if only it is provided
+            // Use RequestList directly if only it is provided
+            // Make it compatible with the IRequestProvider interface
             this.requestProvider = new RequestListAdapter(this.requestList);
         } else {
             // Create and use a default RequestQueue if nothing else is provided
