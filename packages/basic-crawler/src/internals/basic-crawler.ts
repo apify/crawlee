@@ -1169,7 +1169,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this._initializeRequestProviders();
         await this._loadHandledRequestCount();
 
-        this.events.on(EventType.MIGRATING, this._pauseOnMigration);
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
