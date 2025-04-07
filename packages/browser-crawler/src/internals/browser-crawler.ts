@@ -8,11 +8,10 @@ import type {
     LoadedContext,
     ProxyConfiguration,
     ProxyInfo,
-    Request,
     RequestHandler,
-    RequestOptions,
     RequestProvider,
     Session,
+    SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
@@ -795,7 +794,7 @@ interface EnqueueLinksInternalOptions {
     page: CommonPage;
     requestQueue: RequestProvider;
     robotsTxtFile?: RobotsTxtFile;
-    onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
+    onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

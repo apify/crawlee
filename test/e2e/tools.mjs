@@ -50,7 +50,7 @@ export function getStorage(dirName) {
  */
 export async function getStats(dirName) {
     const dir = getStorage(dirName);
-    const path = join(dir, 'key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json');
+    const path = join(dir, `key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json`);
 
     if (!existsSync(path)) {
         return false;

@@ -129,6 +129,8 @@ export type StatusMessageCallback<
     Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
+export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
+
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
@@ -353,7 +355,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * When a request is skipped for some reason, you can use this callback to act on it.
      * This is currently fired only for requests skipped based on robots.txt file.
      */
-    onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
+    onSkippedRequest?: SkippedRequestCallback;
 
     /** @internal */
     log?: Log;
@@ -523,7 +525,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean;
-    protected onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
+    protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
@@ -1069,8 +1071,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 allowedRequests.push(request);
             } else {
                 skipped.add(url);
-                const req = typeof request === 'string' ? { url: request } : request;
-                await this.onSkippedRequest?.(req as RequestOptions, 'robotsTxt');
+                await this.onSkippedRequest?.({ url, reason: 'robotsTxt' });
             }
         }
 
@@ -1078,6 +1079,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
                 skipped: [...skipped],
             });
+
+            if (this.onSkippedRequest) {
+                await Promise.all(
+                    [...skipped].map((url) => {
+                        return this.onSkippedRequest!({ url, reason: 'robotsTxt' });
+                    }),
+                );
+            }
         }
 
         return requestQueue.addRequestsBatched(allowedRequests, options);
@@ -1373,7 +1382,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await source.markRequestHandled(request);
-            await this.onSkippedRequest?.(request, 'robotsTxt');
+            await this.onSkippedRequest?.({
+                url: request.url,
+                reason: 'robotsTxt',
+            });
             return;
         }
 

@@ -8,11 +8,10 @@ import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
-    Request,
     RequestHandler,
-    RequestOptions,
     RequestProvider,
     RouterRoutes,
+    SkippedRequestCallback,
 } from '@crawlee/http';
 import {
     enqueueLinks,
@@ -348,7 +347,7 @@ interface EnqueueLinksInternalOptions {
     window: DOMWindow | null;
     requestQueue: RequestProvider;
     robotsTxtFile?: RobotsTxtFile;
-    onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
+    onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

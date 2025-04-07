@@ -1,4 +1,4 @@
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { Awaitable, BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
@@ -6,7 +6,7 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { Request, RequestOptions } from '../request';
+import type { RequestOptions } from '../request';
 import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
@@ -170,7 +170,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * When a request is skipped for some reason, you can use this callback to act on it.
      * This is currently fired only for requests skipped based on robots.txt file.
      */
-    onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
+    onSkippedRequest?: (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
 }
 
 /**
@@ -381,17 +381,24 @@ export async function enqueueLinks(
     let requestOptions = createRequestOptions(urls, options);
 
     if (robotsTxtFile) {
-        const filteredRequests: RequestOptions[] = [];
+        const skippedRequests: RequestOptions[] = [];
 
-        for (const request of requestOptions) {
+        requestOptions = requestOptions.filter((request) => {
             if (robotsTxtFile.isAllowed(request.url)) {
-                filteredRequests.push(request);
-            } else {
-                await onSkippedRequest?.(request, 'robotsTxt');
+                return true;
             }
-        }
 
-        requestOptions = filteredRequests;
+            skippedRequests.push(request);
+            return false;
+        });
+
+        if (onSkippedRequest && skippedRequests.length > 0) {
+            await Promise.all(
+                skippedRequests.map((request) => {
+                    return onSkippedRequest({ url: request.url, reason: 'robotsTxt' });
+                }),
+            );
+        }
     }
 
     if (transformRequestFunction) {

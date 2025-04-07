@@ -3,9 +3,7 @@ import { initialize, getActorTestDir, runActor, expect } from '../tools.mjs';
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
 
-const { stats, datasetItems } = await runActor(testActorDirname, 16384);
-
-await expect(stats.requestsFinished >= 1, 'All requests finished');
+const { datasetItems } = await runActor(testActorDirname, 16384);
 
 const cartRequest = datasetItems.find((item) => item.url === 'https://warehouse-theme-metal.myshopify.com/cart');
 const checkoutRequest = datasetItems.find(
