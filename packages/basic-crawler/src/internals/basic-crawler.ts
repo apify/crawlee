@@ -1300,7 +1300,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: IRequestList | RequestProvider) {
+    protected delayRequest(request: Request, source: IRequestList | RequestProvider | IRequestProvider) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1343,7 +1343,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * then retries them in a case of an error, etc.
      */
     protected async _runTaskFunction() {
-        const source = this.requestQueue || this.requestList || (await this.getRequestQueue());
+        // Ensure we have a request provider
+        if (!this.requestProvider) {
+            this.requestQueue = await this.getRequestQueue();
+            this.requestProvider = this.requestQueue;
+        }
+        
+        const source = this.requestProvider;
 
         let request: Request | null | undefined;
         let session: Session | undefined;
@@ -1549,7 +1555,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: IRequestList | RequestProvider,
+        source: IRequestList | RequestProvider | IRequestProvider,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
