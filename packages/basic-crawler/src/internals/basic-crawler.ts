@@ -21,10 +21,10 @@ import type {
     RouterRoutes,
     Session,
     SessionPoolOptions,
+    SkippedRequestCallback,
     Source,
     StatisticsOptions,
     StatisticState,
-    SkippedRequestCallback,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
