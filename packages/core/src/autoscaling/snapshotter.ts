@@ -1,15 +1,16 @@
-import type { Log } from '@apify/log';
-import type { BetterIntervalID } from '@apify/utilities';
-import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 import type { StorageClient } from '@crawlee/types';
 import { getMemoryInfo } from '@crawlee/utils';
 import ow from 'ow';
 
-import type { SystemInfo } from './system_status';
+import type { Log } from '@apify/log';
+import type { BetterIntervalID } from '@apify/utilities';
+import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
+import type { SystemInfo } from './system_status';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
@@ -39,7 +40,7 @@ export interface SnapshotterOptions {
     /**
      * Defines the maximum ratio of total memory that can be used.
      * Exceeding this limit overloads the memory.
-     * @default 0.7
+     * @default 0.9
      */
     maxUsedMemoryRatio?: number;
 
@@ -194,7 +195,7 @@ export class Snapshotter {
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            const { totalBytes } = await this._getMemoryInfo();
+            const { totalBytes } = await getMemoryInfo();
             this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
             this.log.debug(
                 `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
@@ -221,7 +222,9 @@ export class Snapshotter {
         this.events.off(EventType.SYSTEM_INFO, this._snapshotCpu);
         this.events.off(EventType.SYSTEM_INFO, this._snapshotMemory);
         // Allow microtask queue to unwind before stop returns.
-        await new Promise((resolve) => setImmediate(resolve));
+        await new Promise((resolve) => {
+            setImmediate(resolve);
+        });
     }
 
     /**
@@ -415,12 +418,5 @@ export class Snapshotter {
             else break;
         }
         snapshots.splice(0, oldCount);
-    }
-
-    /**
-     * Helper method for easier mocking.
-     */
-    private async _getMemoryInfo() {
-        return getMemoryInfo();
     }
 }

@@ -1,27 +1,29 @@
-import log from '@apify/log';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
+import log from '@apify/log';
+
+import type { RequestOptions } from '../request';
+import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
-    filterRequestsByPatterns,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
     createRequests,
+    filterRequestsByPatterns,
 } from './shared';
-import type { RequestOptions } from '../request';
-import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
     limit?: number;
 
     /** An array of URLs to enqueue. */
-    urls?: Readonly<string[]>;
+    urls?: readonly string[];
 
     /** A request queue to which the URLs will be enqueued. */
     requestQueue?: RequestProvider;
@@ -60,7 +62,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the function
      * enqueues the links with the same subdomain.
      */
-    globs?: Readonly<GlobInput[]>;
+    globs?: readonly GlobInput[];
 
     /**
      * An array of glob pattern strings, regexp patterns or plain objects
@@ -72,7 +74,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Glob matching is always case-insensitive.
      * If you need case-sensitive matching, provide a regexp.
      */
-    exclude?: Readonly<(GlobInput | RegExpInput)[]>;
+    exclude?: readonly (GlobInput | RegExpInput)[];
 
     /**
      * An array of regular expressions or plain objects
@@ -84,7 +86,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the function
      * enqueues the links with the same subdomain.
      */
-    regexps?: Readonly<RegExpInput[]>;
+    regexps?: readonly RegExpInput[];
 
     /**
      * *NOTE:* In future versions of SDK the options will be removed.
@@ -104,7 +106,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *
      * @deprecated prefer using `globs` or `regexps` instead
      */
-    pseudoUrls?: Readonly<PseudoUrlInput[]>;
+    pseudoUrls?: readonly PseudoUrlInput[];
 
     /**
      * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
@@ -151,6 +153,18 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * @default EnqueueStrategy.SameHostname
      */
     strategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
+
+    /**
+     * By default, only the first batch (1000) of found requests will be added to the queue before resolving the call.
+     * You can use this option to wait for adding all of them.
+     */
+    waitForAllRequestsToBeAdded?: boolean;
+
+    /**
+     * RobotsTxtFile instance for the current request that triggered the `enqueueLinks`.
+     * If provided, disallowed URLs will be ignored.
+     */
+    robotsTxtFile?: RobotsTxtFile;
 }
 
 /**
@@ -239,7 +253,7 @@ export async function enqueueLinks(
         throw new RangeError(
             [
                 'enqueueLinks() was called without the required options. You can only do that when you use the `crawlingContext.enqueueLinks()` method in request handlers.',
-                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/docs/examples/crawl-relative-links',
+                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/js/docs/examples/crawl-relative-links',
             ].join('\n'),
         );
     }
@@ -249,6 +263,7 @@ export async function enqueueLinks(
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
@@ -264,11 +279,23 @@ export async function enqueueLinks(
             regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
             transformRequestFunction: ow.optional.function,
             strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
+            waitForAllRequestsToBeAdded: ow.optional.boolean,
         }),
     );
 
-    const { requestQueue, limit, urls, pseudoUrls, exclude, globs, regexps, transformRequestFunction, forefront } =
-        options;
+    const {
+        requestQueue,
+        limit,
+        urls,
+        pseudoUrls,
+        exclude,
+        globs,
+        regexps,
+        transformRequestFunction,
+        forefront,
+        waitForAllRequestsToBeAdded,
+        robotsTxtFile,
+    } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
@@ -345,6 +372,12 @@ export async function enqueueLinks(
 
     let requestOptions = createRequestOptions(urls, options);
 
+    if (robotsTxtFile) {
+        requestOptions = requestOptions.filter((request) => {
+            return robotsTxtFile.isAllowed(request.url);
+        });
+    }
+
     if (transformRequestFunction) {
         requestOptions = requestOptions
             .map((request) => transformRequestFunction(request))
@@ -371,7 +404,10 @@ export async function enqueueLinks(
     let requests = createFilteredRequests();
     if (limit) requests = requests.slice(0, limit);
 
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+    const { addedRequests } = await requestQueue.addRequestsBatched(requests, {
+        forefront,
+        waitForAllRequestsToBeAdded,
+    });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }

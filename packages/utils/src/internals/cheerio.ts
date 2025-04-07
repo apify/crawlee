@@ -1,6 +1,6 @@
 import type { Dictionary } from '@crawlee/types';
-import type { load, CheerioAPI } from 'cheerio';
-import cheerio from 'cheerio';
+import type { CheerioAPI, load } from 'cheerio';
+import * as cheerio from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls';
 
@@ -32,7 +32,7 @@ const BLOCK_TAGS_REGEX =
  * with the `decodeEntities` option set to `true`. For example:
  *
  * ```javascript
- * import cheerio from 'cheerio';
+ * import * as cheerio from 'cheerio';
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
@@ -57,7 +57,7 @@ export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
                 let compr;
                 if (elem.parent && elem.parent.tagName === 'pre') compr = elem.data;
                 else compr = elem.data.replace(/\s+/g, ' ');
-                // If text is empty or ends with a whitespace, don't add the leading whitepsace
+                // If text is empty or ends with a whitespace, don't add the leading whitespace
                 if (compr.startsWith(' ') && /(^|\s)$/.test(text)) compr = compr.substring(1);
                 text += compr;
             } else if (elem.type === 'comment' || SKIP_TAGS_REGEX.test(elem.tagName)) {
@@ -93,7 +93,7 @@ export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
  * @throws when a relative URL is encountered with no baseUrl set
  * @return An array of absolute URLs
  */
-export function extractUrlsFromCheerio($: CheerioAPI, selector: string = 'a', baseUrl: string = ''): string[] {
+export function extractUrlsFromCheerio($: CheerioAPI, selector = 'a', baseUrl = ''): string[] {
     const base = $('base').attr('href');
     const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
 

@@ -2,15 +2,16 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
 
-import log, { LogLevel } from '@apify/log';
-import { MemoryStorage } from '@crawlee/memory-storage';
 import type { MemoryStorageOptions } from '@crawlee/memory-storage';
+import { MemoryStorage } from '@crawlee/memory-storage';
 import type { Dictionary, StorageClient } from '@crawlee/types';
 import { pathExistsSync, readFileSync } from 'fs-extra';
 
-import { LocalEventManager, type EventManager } from './events';
+import log, { LogLevel } from '@apify/log';
+
+import { type EventManager, LocalEventManager } from './events';
 import type { StorageManager } from './storages';
-import { entries, type Constructor } from './typedefs';
+import { type Constructor, entries } from './typedefs';
 
 export interface ConfigurationOptions {
     /**
@@ -97,7 +98,7 @@ export interface ConfigurationOptions {
 
     /**
      Defines the interval of emitting the `systemInfo` event.
-     @default 60_000
+     @default 1_000
      */
     systemInfoIntervalMillis?: number;
 
@@ -161,6 +162,20 @@ export interface ConfigurationOptions {
      * Alternative to `CRAWLEE_PERSIST_STORAGE` environment variable.
      */
     persistStorage?: boolean;
+
+    /**
+     * Defines whether to use the systemInfoV2 metric collection experiment.
+     *
+     * Alternative to `CRAWLEE_SYSTEM_INFO_V2` environment variable.
+     */
+    systemInfoV2?: boolean;
+
+    /**
+     * Used in place of `isContainerized()` when collecting system metrics.
+     *
+     * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
+     */
+    containerized?: boolean;
 }
 
 /**
@@ -226,6 +241,8 @@ export interface ConfigurationOptions {
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -
  * `disableBrowserSandbox` | `CRAWLEE_DISABLE_BROWSER_SANDBOX` | -
  * `availableMemoryRatio` | `CRAWLEE_AVAILABLE_MEMORY_RATIO` | `0.25`
+ * `systemInfoV2` | `CRAWLEE_SYSTEM_INFO_V2` | false
+ * `containerized | `CRAWLEE_CONTAINERIZED | -
  */
 export class Configuration {
     /**
@@ -247,11 +264,23 @@ export class Configuration {
         CRAWLEE_DISABLE_BROWSER_SANDBOX: 'disableBrowserSandbox',
         CRAWLEE_LOG_LEVEL: 'logLevel',
         CRAWLEE_PERSIST_STORAGE: 'persistStorage',
+        CRAWLEE_SYSTEM_INFO_V2: 'systemInfoV2',
+        CRAWLEE_CONTAINERIZED: 'containerized',
     };
 
-    protected static BOOLEAN_VARS = ['purgeOnStart', 'headless', 'xvfb', 'disableBrowserSandbox', 'persistStorage'];
+    protected static BOOLEAN_VARS = [
+        'purgeOnStart',
+        'headless',
+        'xvfb',
+        'disableBrowserSandbox',
+        'persistStorage',
+        'systemInfoV2',
+        'containerized',
+    ];
 
     protected static INTEGER_VARS = ['memoryMbytes', 'persistStateIntervalMillis', 'systemInfoIntervalMillis'];
+
+    protected static COMMA_SEPARATED_LIST_VARS: string[] = [];
 
     protected static DEFAULTS: Dictionary = {
         defaultKeyValueStoreId: 'default',
@@ -266,6 +295,7 @@ export class Configuration {
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 1_000,
         persistStorage: true,
+        systemInfoV2: false,
     };
 
     /**
@@ -342,6 +372,13 @@ export class Configuration {
         if (Configuration.BOOLEAN_VARS.includes(key)) {
             // 0, false and empty string are considered falsy values
             return !['0', 'false', ''].includes(String(value).toLowerCase());
+        }
+
+        if (Configuration.COMMA_SEPARATED_LIST_VARS.includes(key)) {
+            if (!value) return [];
+            return String(value)
+                .split(',')
+                .map((v) => v.trim());
         }
 
         return value;

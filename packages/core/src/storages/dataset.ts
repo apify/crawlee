@@ -1,16 +1,17 @@
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
+
+import { Configuration } from '../configuration';
+import { type Log, log } from '../log';
+import type { Awaitable } from '../typedefs';
 import { checkStorageAccess } from './access_checking';
 import { KeyValueStore } from './key_value_store';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
-import { Configuration } from '../configuration';
-import { log, type Log } from '../log';
-import type { Awaitable } from '../typedefs';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -274,7 +275,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         // Handle singular Objects
         if (!Array.isArray(data)) {
             const payload = checkAndSerialize(data, limit);
-            return dispatch(payload);
+            await dispatch(payload);
+            return;
         }
 
         // Handle Arrays
@@ -326,7 +328,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             items.push(...value.items);
 
             if (value.total > offset + value.count) {
-                return fetchNextChunk(offset + value.count);
+                await fetchNextChunk(offset + value.count);
             }
         };
 
@@ -347,7 +349,13 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const items = await this.export(options);
 
         if (contentType === 'text/csv') {
-            const value = stringify([Object.keys(items[0]), ...items.map((item) => Object.values(item))]);
+            const keys = Object.keys(items[0]);
+            const value = stringify([
+                keys,
+                ...items.map((item) => {
+                    return keys.map((k) => item[k]);
+                }),
+            ]);
             await kvStore.setValue(key, value, { contentType });
             return items;
         }
@@ -474,7 +482,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         if (newOffset >= total) return;
 
         const newOpts = { ...options, offset: newOffset };
-        return this.forEach(iteratee, newOpts, index);
+        await this.forEach(iteratee, newOpts, index);
     }
 
     /**
@@ -502,31 +510,79 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Reduces a list of values down to a single value.
      *
-     * Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.
-     * The `iteratee()` is passed three arguments: the `memo`, then the `value` and `index` of the iteration.
+     * The first element of the dataset is the initial value, with each successive reductions should
+     * be returned by `iteratee()`. The `iteratee()` is passed three arguments: the `memo`, `value`
+     * and `index` of the current element being folded into the reduction.
      *
-     * If no `memo` is passed to the initial invocation of reduce, the `iteratee()` is not invoked on the first element of the list.
-     * The first element is instead passed as the memo in the invocation of the `iteratee()` on the next element in the list.
+     * The `iteratee` is first invoked on the second element of the list (`index = 1`), with the
+     * first element given as the memo parameter. After that, the rest of the elements in the
+     * dataset is passed to `iteratee`, with the result of the previous invocation as the memo.
+     *
+     * If `iteratee()` returns a `Promise` it's awaited before a next call.
+     *
+     * If the dataset is empty, reduce will return undefined.
+     *
+     * @param iteratee
+     */
+    async reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
+
+    /**
+     * Reduces a list of values down to a single value.
+     *
+     * The first element of the dataset is the initial value, with each successive reductions should
+     * be returned by `iteratee()`. The `iteratee()` is passed three arguments: the `memo`, `value`
+     * and `index` of the current element being folded into the reduction.
+     *
+     * The `iteratee` is first invoked on the second element of the list (`index = 1`), with the
+     * first element given as the memo parameter. After that, the rest of the elements in the
+     * dataset is passed to `iteratee`, with the result of the previous invocation as the memo.
+     *
+     * If `iteratee()` returns a `Promise` it's awaited before a next call.
+     *
+     * If the dataset is empty, reduce will return undefined.
+     *
+     * @param iteratee
+     * @param memo Unset parameter, neccesary to be able to pass options
+     * @param [options] An object containing extra options for `reduce()`
+     */
+    async reduce(
+        iteratee: DatasetReducer<Data, Data>,
+        memo: undefined,
+        options: DatasetIteratorOptions,
+    ): Promise<Data | undefined>;
+
+    /**
+     * Reduces a list of values down to a single value.
+     *
+     * Memo is the initial state of the reduction, and each successive step of it should be returned
+     * by `iteratee()`. The `iteratee()` is passed three arguments: the `memo`, then the `value` and
+     * `index` of the iteration.
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
      * @param iteratee
      * @param memo Initial state of the reduction.
-     * @param [options] All `reduce()` parameters.
+     * @param [options] An object containing extra options for `reduce()`
      */
-    async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options: DatasetIteratorOptions = {}): Promise<T> {
+    async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options?: DatasetIteratorOptions): Promise<T>;
+
+    async reduce<T = Data>(
+        iteratee: DatasetReducer<T, Data>,
+        memo?: T,
+        options: DatasetIteratorOptions = {},
+    ): Promise<T | undefined> {
         checkStorageAccess();
 
-        let currentMemo: T = memo;
+        let currentMemo: T | undefined = memo;
 
         const wrappedFunc: DatasetConsumer<Data> = async (item, index) => {
-            return Promise.resolve()
-                .then(() => {
-                    return !index && currentMemo === undefined ? item : iteratee(currentMemo, item, index);
-                })
-                .then((newMemo) => {
-                    currentMemo = newMemo as T;
-                });
+            if (index === 0 && currentMemo === undefined) {
+                currentMemo = item;
+            } else {
+                // We are guaranteed that currentMemo is instanciated, since we are either not on
+                // the first iteration, or memo was already set by the user.
+                currentMemo = await iteratee(currentMemo as T, item, index);
+            }
         };
 
         await this.forEach(wrappedFunc, options);

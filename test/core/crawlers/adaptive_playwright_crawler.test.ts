@@ -1,7 +1,7 @@
-import type { Server } from 'http';
-import type { AddressInfo } from 'net';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 
-import { KeyValueStore } from '@crawlee/core';
+import { type Dictionary, KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions } from '@crawlee/playwright';
 import { AdaptivePlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
@@ -112,9 +112,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
 
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-                async ({ pushData, querySelector }) => {
+                async ({ pushData, parseWithCheerio }) => {
+                    const $ = await parseWithCheerio('h1');
                     await pushData({
-                        heading: (await querySelector('h1')).text(),
+                        heading: $('h1').text(),
                     });
                 },
             );
@@ -179,7 +180,8 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         const resultChecker: AdaptivePlaywrightCrawlerOptions['resultChecker'] = vi.fn(
             (result) =>
-                result.datasetItems.length > 0 && result.datasetItems.every(({ item }) => item.heading?.length > 0),
+                result.datasetItems.length > 0 &&
+                result.datasetItems.every(({ item }: Dictionary) => item.heading?.length > 0),
         );
 
         const crawler = await makeOneshotCrawler(
@@ -263,7 +265,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
         const state = await localStorageEmulator.getState();
-        expect(state.value).toEqual({ count: 3 });
+        expect(state!.value).toEqual({ count: 3 });
     });
 
     test('should persist key-value store changes', async () => {
@@ -296,9 +298,9 @@ describe('AdaptivePlaywrightCrawler', () => {
         await crawler.run();
         const store = localStorageEmulator.getKeyValueStore();
 
-        expect((await store.getRecord('1')).value).toEqual({ content: 42 });
-        expect((await store.getRecord('2')).value).toEqual({ content: 42 });
-        expect((await store.getRecord('3')).value).toEqual({ content: 42 });
+        expect((await store.getRecord('1'))!.value).toEqual({ content: 42 });
+        expect((await store.getRecord('2'))!.value).toEqual({ content: 42 });
+        expect((await store.getRecord('3'))!.value).toEqual({ content: 42 });
     });
 
     test('should not allow direct key-value store manipulation', async () => {

@@ -44,7 +44,7 @@ const getCookieURL = (cookie) => {
 };
 
 // Rewrite cookies that were programmatically set to tabId instead of openerId.
-// This is requried because we cannot reliably get openerId inside Playwright.
+// This is required because we cannot reliably get openerId inside Playwright.
 chrome.cookies.onChanged.addListener(async (changeInfo) => {
     if (!changeInfo.removed) {
         const { cookie } = changeInfo;
@@ -68,7 +68,6 @@ chrome.cookies.onChanged.addListener(async (changeInfo) => {
         const opener = getOpenerId(tabId);
 
         if (tabId !== opener) {
-            // eslint-disable-next-line no-console
             console.log(`${realCookieName} -> ${keyFromTabId(opener)}`);
 
             await chrome.cookies.remove({
@@ -105,9 +104,8 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
             // Sometimes Chrome makes a request on a ghost tab.
             // We don't want these in order to prevent cluttering cookies.
-            // Yes, `webNavigation.onComitted` is emitted and `webNavigation.onCreatedNavigationTarget` is not.
+            // Yes, `webNavigation.onCommitted` is emitted and `webNavigation.onCreatedNavigationTarget` is not.
             if (header.name.toLowerCase() === 'purpose' && header.value === 'prefetch' && !counter.has(details.tabId)) {
-                // eslint-disable-next-line no-console
                 console.log(details);
                 return {
                     cancel: true,
@@ -116,7 +114,6 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
             // This one is for Firefox
             if (header.name.toLowerCase() === 'x-moz' && header.value === 'prefetch' && !counter.has(details.tabId)) {
-                // eslint-disable-next-line no-console
                 console.log(details);
                 return {
                     cancel: true,
@@ -124,7 +121,6 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
             }
 
             if (['beacon', 'csp_report', 'ping', 'speculative'].includes(details.type)) {
-                // eslint-disable-next-line no-console
                 console.log(details);
                 return {
                     cancel: true,
@@ -132,7 +128,6 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
             }
 
             if (details.tabId === -1) {
-                // eslint-disable-next-line no-console
                 console.log(details);
             }
         }
@@ -367,7 +362,7 @@ const onCompleted = async (details) => {
 chrome.webNavigation.onCompleted.addListener(onCompleted);
 
 // Load content scripts.
-(async () => {
+void (async () => {
     const contentResponse = await fetch(chrome.runtime.getURL('content.js'));
     const contentText = await contentResponse.text();
 

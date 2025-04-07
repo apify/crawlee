@@ -1,12 +1,13 @@
-import type { Server } from 'http';
-import path from 'path';
+import type { Server } from 'node:http';
+import path from 'node:path';
 
-import log from '@apify/log';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 const launchContext = { launchOptions: { headless: true } };
 
@@ -160,8 +161,56 @@ describe('puppeteerUtils', () => {
             }
         });
 
+        test('parseWithCheerio() iframe expansion works', async () => {
+            const browser = await launchPuppeteer(launchContext);
+
+            try {
+                const page = await browser.newPage();
+                await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+
+                const $ = await puppeteerUtils.parseWithCheerio(page);
+
+                const headings = $('h1')
+                    .map((i, el) => $(el).text())
+                    .get();
+                expect(headings).toEqual(['Outside iframe', 'In iframe']);
+            } finally {
+                await browser.close();
+            }
+        });
+
+        describe('parseWithCheerio() shadow root expansion works', () => {
+            let browser: Browser;
+            beforeAll(async () => {
+                browser = await launchPuppeteer(launchContext);
+            });
+            afterAll(async () => {
+                await browser.close();
+            });
+
+            test('no expansion with ignoreShadowRoots: true', async () => {
+                const page = await browser.newPage();
+                await page.goto(`${serverAddress}/special/shadow-root`);
+                const result = await puppeteerUtils.parseWithCheerio(page, true);
+
+                const text = result('body').text().trim();
+                expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(0);
+                expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            });
+
+            test('expansion works', async () => {
+                const page = await browser.newPage();
+                await page.goto(`${serverAddress}/special/shadow-root`);
+                const result = await puppeteerUtils.parseWithCheerio(page);
+
+                const text = result('body').text().trim();
+                expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(2);
+                expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            });
+        });
+
         describe('blockRequests()', () => {
-            let browser: Browser = null;
+            let browser: Browser = null as any;
             beforeAll(async () => {
                 browser = await launchPuppeteer(launchContext);
             });
@@ -277,6 +326,7 @@ describe('puppeteerUtils', () => {
             await testRuleType(0);
             // @ts-expect-error
             await testRuleType(1);
+            // @ts-expect-error
             await testRuleType(null);
             // @ts-expect-error
             await testRuleType([]);
@@ -329,7 +379,7 @@ describe('puppeteerUtils', () => {
 
                 const response = await puppeteerUtils.gotoExtended(page, request, { waitUntil: 'networkidle' });
 
-                const { method, headers, bodyLength } = JSON.parse(await response.text());
+                const { method, headers, bodyLength } = JSON.parse(await response!.text());
                 expect(method).toBe('POST');
                 expect(bodyLength).toBe(16);
                 expect(headers['content-type']).toBe('application/json; charset=utf-8');

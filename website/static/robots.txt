@@ -1,2 +1,3 @@
 User-agent: *
 Sitemap: https://crawlee.dev/sitemap.xml
+Sitemap: https://crawlee.dev/python/sitemap.xml

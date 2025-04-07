@@ -1,13 +1,10 @@
-import fs from 'fs';
-import net from 'net';
-import os from 'os';
-import path from 'path';
+import fs from 'node:fs';
+import net from 'node:net';
+import os from 'node:os';
+import path from 'node:path';
 
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
-import { loadFirefoxAddon } from './load-firefox-addon';
-import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
-import { PlaywrightController } from './playwright-controller';
 import type { BrowserController } from '../abstract-classes/browser-controller';
 import { BrowserPlugin } from '../abstract-classes/browser-plugin';
 import { anonymizeProxySugar } from '../anonymize-proxy';
@@ -16,6 +13,9 @@ import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import { getLocalProxyAddress } from '../proxy-server';
 import type { SafeParameters } from '../utils';
+import { loadFirefoxAddon } from './load-firefox-addon';
+import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
+import { PlaywrightController } from './playwright-controller';
 
 const getFreePort = async () => {
     return new Promise<number>((resolve, reject) => {
@@ -176,7 +176,10 @@ export class PlaywrightPlugin extends BrowserPlugin<
                     });
                 }
 
-                browser = new PlaywrightBrowserWithPersistentContext({ browserContext, version: this._browserVersion });
+                browser = new PlaywrightBrowserWithPersistentContext({
+                    browserContext,
+                    version: this._browserVersion,
+                }) as unknown as PlaywrightBrowser;
             }
         } catch (error) {
             await close();

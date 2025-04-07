@@ -1,5 +1,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { Readable } from 'node:stream';
 
 import { HttpCrawler } from '@crawlee/http';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
@@ -64,8 +65,8 @@ let url: string;
 beforeAll(async () => {
     server = http.createServer((request, response) => {
         try {
-            const requestUrl = new URL(request.url, 'http://localhost');
-            router.get(requestUrl.pathname)(request, response);
+            const requestUrl = new URL(request.url!, 'http://localhost');
+            router.get(requestUrl.pathname)!(request, response);
         } catch (error) {
             response.destroy();
         }
@@ -114,7 +115,7 @@ test('parseWithCheerio works', async () => {
     const crawler = new HttpCrawler({
         maxRequestRetries: 0,
         requestHandler: async ({ parseWithCheerio }) => {
-            const $ = await parseWithCheerio();
+            const $ = await parseWithCheerio('title');
             results.push($('title').text());
         },
     });
@@ -300,7 +301,7 @@ test('should ignore http error status codes set by user', async () => {
 
     await crawler.run([`${url}/500Error`]);
 
-    expect(crawler.autoscaledPool.minConcurrency).toBe(2);
+    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
     expect(failed).toHaveLength(0);
 });
 
@@ -319,7 +320,7 @@ test('should throw an error on http error status codes set by user', async () =>
 
     await crawler.run([`${url}/hello.html`]);
 
-    expect(crawler.autoscaledPool.minConcurrency).toBe(2);
+    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
     expect(failed).toHaveLength(1);
 });
 
@@ -373,4 +374,84 @@ test('should retry on 403 even with disallowed content-type', async () => {
 
     expect(succeeded).toHaveLength(1);
     expect(succeeded[0].retryCount).toBe(1);
+});
+
+test('should work with cacheable-request', async () => {
+    const isFromCache: Record<string, boolean> = {};
+    const cache = new Map();
+    const crawler = new HttpCrawler({
+        maxConcurrency: 1,
+        preNavigationHooks: [
+            async (_, gotOptions) => {
+                gotOptions.cache = cache;
+                gotOptions.headers = {
+                    ...gotOptions.headers,
+                    // to force cache
+                    'cache-control': 'max-stale',
+                };
+            },
+        ],
+        requestHandler: async ({ request, response }) => {
+            isFromCache[request.uniqueKey] = response.isFromCache;
+        },
+    });
+    await crawler.run([
+        { url, uniqueKey: 'first' },
+        { url, uniqueKey: 'second' },
+    ]);
+    expect(isFromCache).toEqual({ first: false, second: true });
+});
+
+test('works with a custom HttpClient', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        requestHandler: async ({ body, sendRequest }) => {
+            results.push(body as string);
+
+            results.push((await sendRequest()).body);
+        },
+        httpClient: {
+            async sendRequest(request) {
+                if (request.responseType !== 'text') {
+                    throw new Error('Not implemented');
+                }
+
+                return {
+                    body: 'Hello from sendRequest()' as any,
+                    request,
+                    url,
+                    redirectUrls: [],
+                    statusCode: 200,
+                    headers: {},
+                    trailers: {},
+                    complete: true,
+                };
+            },
+            async stream(request) {
+                const stream = new Readable();
+                stream.push('<html><head><title>Schmexample Domain</title></head></html>');
+                stream.push(null);
+
+                return {
+                    stream,
+                    downloadProgress: { percent: 100, transferred: 0 },
+                    uploadProgress: { percent: 100, transferred: 0 },
+                    request,
+                    url,
+                    redirectUrls: [],
+                    statusCode: 200,
+                    headers: { 'content-type': 'text/html; charset=utf-8' },
+                    trailers: {},
+                    complete: true,
+                };
+            },
+        },
+    });
+
+    await crawler.run([url]);
+
+    expect(results[0].includes('Schmexample Domain')).toBeTruthy();
+    expect(results[1].includes('Hello')).toBeTruthy();
 });

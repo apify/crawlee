@@ -4,6 +4,7 @@
 			"website/**",
 			"packages/*/dist/**",
 			"package.json",
+			"lerna.json",
 			"scripts/actions/docker-images/state.json"
 		],
 		"formatWithErrors": true
@@ -12,7 +13,7 @@
 		"formatter": {
 			"quoteStyle": "single",
 			"semicolons": "always",
-			"trailingComma": "all",
+			"trailingCommas": "all",
 			"lineWidth": 120,
 			"indentStyle": "space",
 			"indentWidth": 4,

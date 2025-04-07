@@ -1,0 +1,11 @@
+.logoImage {
+    img {
+        display: block !important;
+        height: 28px;
+    }
+
+    /* do not display the other theme logo when loading */
+    img:nth-child(2) {
+        display: none !important;
+    }
+}

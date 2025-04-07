@@ -2,10 +2,11 @@ import type { BinaryLike } from 'node:crypto';
 import crypto from 'node:crypto';
 import util from 'node:util';
 
-import { normalizeUrl } from '@apify/utilities';
 import type { Dictionary } from '@crawlee/types';
 import type { BasePredicate } from 'ow';
 import ow from 'ow';
+
+import { normalizeUrl } from '@apify/utilities';
 
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
 import { log as defaultLog } from './log';
@@ -20,7 +21,7 @@ const requestOptionalPredicates = {
     loadedUrl: ow.optional.string.url,
     uniqueKey: ow.optional.string,
     method: ow.optional.string,
-    payload: ow.optional.any(ow.string, ow.buffer),
+    payload: ow.optional.any(ow.string, ow.uint8Array),
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
     sessionRotationCount: ow.optional.number,

@@ -1,11 +1,12 @@
-import { URL } from 'url';
+import { URL } from 'node:url';
 
-import { purlToRegExp } from '@apify/pseudo_url';
 import { minimatch } from 'minimatch';
 
-import type { EnqueueLinksOptions } from './enqueue_links';
+import { purlToRegExp } from '@apify/pseudo_url';
+
 import type { RequestOptions } from '../request';
 import { Request } from '../request';
+import type { EnqueueLinksOptions } from './enqueue_links';
 
 export { tryAbsoluteURL } from '@crawlee/utils';
 
@@ -64,7 +65,7 @@ export function updateEnqueueLinksPatternCache(
  * to construct RegExps from PseudoUrl strings.
  * @ignore
  */
-export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: Readonly<PseudoUrlInput[]>): RegExpObject[] {
+export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: readonly PseudoUrlInput[]): RegExpObject[] {
     return pseudoUrls.map((item) => {
         // Get pseudoUrl object from cache.
         let regexpObject = enqueueLinksPatternCache.get(item);
@@ -88,7 +89,7 @@ export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: Readonly<Pseudo
  * to construct Glob objects from Glob pattern strings.
  * @ignore
  */
-export function constructGlobObjectsFromGlobs(globs: Readonly<GlobInput[]>): GlobObject[] {
+export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): GlobObject[] {
     return globs
         .filter((glob) => {
             // Skip possibly nullish, empty strings
@@ -139,7 +140,7 @@ export function validateGlobPattern(glob: string): string {
  * to check RegExps input and return valid RegExps.
  * @ignore
  */
-export function constructRegExpObjectsFromRegExps(regexps: Readonly<RegExpInput[]>): RegExpObject[] {
+export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[]): RegExpObject[] {
     return regexps.map((item) => {
         // Get regexp object from cache.
         let regexpObject = enqueueLinksPatternCache.get(item);

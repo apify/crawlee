@@ -1,17 +1,17 @@
-import type { Server } from 'http';
-import http from 'http';
-import type { AddressInfo } from 'net';
-import { promisify } from 'util';
+import type { Server } from 'node:http';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { promisify } from 'node:util';
 
+import type { CommonLibrary, UnwrapPromise } from '@crawlee/browser-pool';
 import {
-    PuppeteerPlugin,
+    LaunchContext,
+    PlaywrightBrowser,
+    PlaywrightController,
     PlaywrightPlugin,
     PuppeteerController,
-    PlaywrightController,
-    PlaywrightBrowser,
-    LaunchContext,
+    PuppeteerPlugin,
 } from '@crawlee/browser-pool';
-import type { UnwrapPromise, CommonLibrary } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
@@ -219,7 +219,7 @@ describe('Plugins', () => {
             const page = await browser.newPage();
             const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
 
-            const text = await response.text();
+            const text = await response!.text();
 
             expect(text).toBe('127.0.0.2');
 
@@ -247,7 +247,7 @@ describe('Plugins', () => {
             const page = await browser.newPage();
             const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
 
-            const text = await response.text();
+            const text = await response!.text();
 
             expect(text).toBe('127.0.0.3');
 
@@ -269,7 +269,7 @@ describe('Plugins', () => {
             const page = await browserController.newPage();
             const browserContext = page.browserContext();
 
-            expect(browserContext.isIncognito()).toBeFalsy();
+            expect(browserContext.id).toBeFalsy();
         });
 
         test('should use incognito pages by option', async () => {
@@ -285,7 +285,7 @@ describe('Plugins', () => {
             const page = await browserController.newPage();
             const browserContext = page.browserContext();
 
-            expect(browserContext.isIncognito()).toBeTruthy();
+            expect(browserContext.id).toBeTruthy();
         });
 
         test('should pass launch options to browser', async () => {
@@ -325,9 +325,7 @@ describe('Plugins', () => {
             const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
             const text = await response!.text();
 
-            // FAILING. It should give 127.0.0.3 for all platforms.
-            // See https://github.com/puppeteer/puppeteer/issues/7698
-            expect(text).toBe(process.platform === 'win32' ? '127.0.0.1' : '127.0.0.3');
+            expect(text).toBe('127.0.0.3');
 
             await page.close();
         });

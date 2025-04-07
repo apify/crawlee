@@ -1,7 +1,8 @@
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
-import { Dataset, checkAndSerialize, chunkBySize, Configuration, KeyValueStore } from '@crawlee/core';
+import { checkAndSerialize, chunkBySize, Configuration, Dataset, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 const localStorageEmulator = new MemoryStorageEmulator();
 
@@ -31,14 +32,14 @@ describe('dataset', () => {
 
             const pushItemSpy = vitest.spyOn(dataset.client, 'pushItems');
 
-            const mockPushItems = pushItemSpy.mockResolvedValueOnce(null);
+            const mockPushItems = pushItemSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData({ foo: 'bar' });
 
             expect(mockPushItems).toBeCalledTimes(1);
             expect(mockPushItems).toBeCalledWith(JSON.stringify({ foo: 'bar' }));
 
-            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(null);
+            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
@@ -62,8 +63,8 @@ describe('dataset', () => {
             });
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(null);
-            mockPushItems.mockResolvedValueOnce(null);
+            mockPushItems.mockResolvedValueOnce(undefined);
+            mockPushItems.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: half }, { bar: half }]);
 
@@ -86,8 +87,8 @@ describe('dataset', () => {
             });
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(null);
-            mockPushItems.mockResolvedValueOnce(null);
+            mockPushItems.mockResolvedValueOnce(undefined);
+            mockPushItems.mockResolvedValueOnce(undefined);
 
             await dataset.pushData(data);
 
@@ -298,7 +299,7 @@ describe('dataset', () => {
 
                     return memo.concat(item);
                 },
-                [],
+                [] as unknown[],
                 {
                     limit: 2,
                 },
@@ -324,7 +325,7 @@ describe('dataset', () => {
 
                     return Promise.resolve(memo.concat(item));
                 },
-                [],
+                [] as unknown[],
                 {
                     limit: 2,
                 },
@@ -387,7 +388,7 @@ describe('dataset', () => {
                 offset: 2,
             });
 
-            expect(result.foo).toBe(5);
+            expect(result!.foo).toBe(5);
             expect(calledForIndexes).toEqual([1, 2, 3]);
         });
     });
@@ -486,10 +487,16 @@ describe('dataset', () => {
         describe('exportToJSON', () => {
             const dataToPush = [
                 {
-                    hello: 'world',
+                    hello: 'world 1',
+                    foo: 'bar 1',
                 },
                 {
-                    foo: 'bar',
+                    foo: 'bar 2',
+                    hello: 'world 2',
+                },
+                {
+                    hello: 'world 3',
+                    foo: 'bar 3',
                 },
             ];
 
@@ -518,8 +525,12 @@ describe('dataset', () => {
                     foo: 'bar 1',
                 },
                 {
-                    hello: 'world 2',
                     foo: 'bar 2',
+                    hello: 'world 2',
+                },
+                {
+                    hello: 'world 3',
+                    foo: 'bar 3',
                 },
             ];
 
@@ -529,7 +540,7 @@ describe('dataset', () => {
                 await dataset.exportToCSV('HELLO-csv');
 
                 const kvData = await KeyValueStore.getValue('HELLO-csv');
-                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\n');
+                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\nworld 3,bar 3\n');
             });
 
             it('Should work as a static method for the default dataset', async () => {
@@ -537,7 +548,7 @@ describe('dataset', () => {
                 await Dataset.exportToCSV('TEST-123-123-csv');
 
                 const kvData = await KeyValueStore.getValue('TEST-123-123-csv');
-                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\n');
+                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\nworld 3,bar 3\n');
             });
         });
     });

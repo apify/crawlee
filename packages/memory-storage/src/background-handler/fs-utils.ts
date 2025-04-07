@@ -3,9 +3,10 @@ import { writeFile as writeFileP } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
-import log from '@apify/log';
 import { ensureDir } from 'fs-extra';
 import { lock } from 'proper-lockfile';
+
+import log from '@apify/log';
 
 import type { BackgroundHandlerReceivedMessage, BackgroundHandlerUpdateMetadataMessage } from '../utils';
 

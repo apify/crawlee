@@ -1,15 +1,7 @@
-/* eslint-disable dot-notation */
 import { MemoryStorage } from '@crawlee/memory-storage';
-import type {
-    ListAndLockHeadResult,
-    ListAndLockOptions,
-    ListOptions,
-    ProlongRequestLockOptions,
-    ProlongRequestLockResult,
-    QueueHead,
-} from '@crawlee/types';
+import type { ListAndLockHeadResult } from '@crawlee/types';
 import { RequestQueueV2 } from 'crawlee';
-import type { SpyInstance } from 'vitest';
+import type { MockInstance } from 'vitest';
 
 const storage = new MemoryStorage({ persistStorage: false, writeMetadata: false });
 
@@ -31,40 +23,36 @@ vitest.setConfig({ restoreMocks: false });
 
 describe('RequestQueueV2#isFinished should use listHead instead of listAndLock', () => {
     let queue: RequestQueueV2;
-    let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;
-    let listHeadCallCount = 0;
-    let clientListAndLockHeadSpy: SpyInstance<[options: ListAndLockOptions], Promise<ListAndLockHeadResult>>;
-    let listAndLockHeadCallCount = 0;
-    let lockResult: ListAndLockHeadResult;
+    let clientListHeadSpy: MockInstance<typeof queue.client.listHead>;
 
     beforeAll(async () => {
         queue = await makeQueue('is-finished', 2);
         clientListHeadSpy = vitest.spyOn(queue.client, 'listHead');
-        clientListAndLockHeadSpy = vitest.spyOn(queue.client, 'listAndLockHead');
     });
 
     test('should return false if there are still requests in the queue', async () => {
         expect(await queue.isFinished()).toBe(false);
-        expect(clientListHeadSpy).toHaveBeenCalledTimes(++listHeadCallCount);
     });
 
     test('should return false even if all requests are locked', async () => {
-        lockResult = await queue.client.listAndLockHead({ lockSecs: 60 });
-
-        expect(lockResult.items.length).toBe(2);
-        expect(clientListAndLockHeadSpy).toHaveBeenCalledTimes(++listAndLockHeadCallCount);
+        queue.client.listAndLockHead = async (options) => ({
+            lockSecs: options.lockSecs,
+            queueModifiedAt: new Date(),
+            limit: 10,
+            items: [],
+            queueHasLockedRequests: true,
+        });
 
         expect(await queue.isFinished()).toBe(false);
-        expect(clientListHeadSpy).toHaveBeenCalledTimes(++listHeadCallCount);
-        expect(clientListAndLockHeadSpy).toHaveBeenCalledTimes(listAndLockHeadCallCount);
+        expect(clientListHeadSpy).not.toHaveBeenCalled();
     });
 });
 
 describe('RequestQueueV2#isFinished should return true once locked requests are handled', () => {
     let queue: RequestQueueV2;
-    let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;
+    let clientListHeadSpy: MockInstance<typeof queue.client.listHead>;
     let listHeadCallCount = 0;
-    let clientListAndLockHeadSpy: SpyInstance<[options: ListAndLockOptions], Promise<ListAndLockHeadResult>>;
+    let clientListAndLockHeadSpy: MockInstance<typeof queue.client.listAndLockHead>;
     let lockResult: ListAndLockHeadResult;
 
     beforeAll(async () => {
@@ -73,7 +61,8 @@ describe('RequestQueueV2#isFinished should return true once locked requests are 
         clientListAndLockHeadSpy = vitest.spyOn(queue.client, 'listAndLockHead');
 
         lockResult = await queue.client.listAndLockHead({ lockSecs: 60 });
-        queue['inProgress'].add(lockResult.items[0].id);
+        // eslint-disable-next-line dot-notation
+        queue['queueHeadIds'].add(lockResult.items[0].id, lockResult.items[0].id);
     });
 
     test('should return true once locked requests are handled', async () => {
@@ -88,18 +77,15 @@ describe('RequestQueueV2#isFinished should return true once locked requests are 
         expect(clientListHeadSpy).toHaveBeenCalledWith({ limit: 2 });
         expect(clientListHeadSpy).toHaveBeenCalledTimes(++listHeadCallCount);
         // One time
-        expect(clientListAndLockHeadSpy).toHaveBeenCalledTimes(1);
+        expect(clientListAndLockHeadSpy).toHaveBeenCalled();
     });
 });
 
 describe('RequestQueueV2#fetchNextRequest should use locking API', () => {
     let queue: RequestQueueV2;
-    let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;
-    let clientListAndLockHeadSpy: SpyInstance<[options: ListAndLockOptions], Promise<ListAndLockHeadResult>>;
-    let clientProlongLockSpy: SpyInstance<
-        [id: string, options: ProlongRequestLockOptions],
-        Promise<ProlongRequestLockResult>
-    >;
+    let clientListHeadSpy: MockInstance<typeof queue.client.listHead>;
+    let clientListAndLockHeadSpy: MockInstance<typeof queue.client.listAndLockHead>;
+    let clientProlongLockSpy: MockInstance<typeof queue.client.prolongRequestLock>;
     let listAndLockHeadCallCount = 0;
 
     beforeAll(async () => {
@@ -135,7 +121,6 @@ describe('RequestQueueV2#isEmpty should return true even if isFinished returns f
     beforeAll(async () => {
         queue = await makeQueue('is-empty-vs-is-finished', 1);
         lockResult = await queue.client.listAndLockHead({ lockSecs: 60 });
-        queue['inProgress'].add(lockResult.items[0].id);
     });
 
     test('should return true when isFinished returns false', async () => {

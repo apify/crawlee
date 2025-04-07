@@ -4,6 +4,7 @@ import type {
     BrowserHook,
     BrowserRequestHandler,
     GetUserDataFromRequest,
+    LoadedContext,
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
@@ -21,7 +22,7 @@ export interface PlaywrightCrawlingContext<UserData extends Dictionary = Diction
     extends BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>,
         PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
-export interface PlaywrightRequestHandler extends BrowserRequestHandler<PlaywrightCrawlingContext> {}
+export interface PlaywrightRequestHandler extends BrowserRequestHandler<LoadedContext<PlaywrightCrawlingContext>> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 
 export interface PlaywrightCrawlerOptions
@@ -219,8 +220,8 @@ export class PlaywrightCrawler extends BrowserCrawler<
             );
         }
 
-        // `browserPlugins` is working when it's not overriden by `launchContext`,
-        // which for crawlers it is always overriden. Hence the error to use the other option.
+        // `browserPlugins` is working when it's not overridden by `launchContext`,
+        // which for crawlers it is always overridden. Hence the error to use the other option.
         if (browserPoolOptions.browserPlugins) {
             throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
         }

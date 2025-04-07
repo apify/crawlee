@@ -1,17 +1,18 @@
 import { resolve } from 'node:path';
 
-import log from '@apify/log';
-import { cryptoRandomObjectId } from '@apify/utilities';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { Configuration } from 'crawlee';
 import { ensureDir } from 'fs-extra';
+
+import log from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { StorageEmulator } from './StorageEmulator';
 
 const LOCAL_EMULATION_DIR = resolve(__dirname, '..', 'tmp', 'memory-emulation-dir');
 
 export class MemoryStorageEmulator extends StorageEmulator {
-    private storage: MemoryStorage;
+    private storage!: MemoryStorage;
 
     override async init({ dirName = cryptoRandomObjectId(10), persistStorage = false }: MemoryEmulatorOptions = {}) {
         await super.init();

@@ -24,6 +24,21 @@ describe('ProxyConfiguration', () => {
         expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
     });
 
+    test('newProxyInfo() works with special characters', async () => {
+        const url = 'http://user%40name:pass%40word@proxy.com:1111';
+        const proxyConfiguration = new ProxyConfiguration({ proxyUrls: [url] });
+
+        const proxyInfo = {
+            sessionId: `${sessionId}`,
+            url,
+            hostname: 'proxy.com',
+            username: 'user@name',
+            password: 'pass@word',
+            port: '1111',
+        };
+        expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
+    });
+
     test('should throw on invalid newUrlFunction', async () => {
         const newUrlFunction = () => {
             return 'http://proxy.com:1111*invalid_url';
@@ -49,7 +64,7 @@ describe('ProxyConfiguration', () => {
             'http://proxy.com:6666',
         ];
         const newUrlFunction = () => {
-            return customUrls.pop();
+            return customUrls.pop() ?? null;
         };
         const proxyConfiguration = new ProxyConfiguration({
             newUrlFunction,
@@ -61,9 +76,9 @@ describe('ProxyConfiguration', () => {
         expect(await proxyConfiguration.newUrl()).toEqual('http://proxy.com:4444');
 
         // through newProxyInfo()
-        expect((await proxyConfiguration.newProxyInfo()).url).toEqual('http://proxy.com:3333');
-        expect((await proxyConfiguration.newProxyInfo()).url).toEqual('http://proxy.com:2222');
-        expect((await proxyConfiguration.newProxyInfo()).url).toEqual('http://proxy.com:1111');
+        expect((await proxyConfiguration.newProxyInfo())!.url).toEqual('http://proxy.com:3333');
+        expect((await proxyConfiguration.newProxyInfo())!.url).toEqual('http://proxy.com:2222');
+        expect((await proxyConfiguration.newProxyInfo())!.url).toEqual('http://proxy.com:1111');
     });
 
     test('async newUrlFunction should work correctly', async () => {
@@ -77,7 +92,7 @@ describe('ProxyConfiguration', () => {
         ];
         const newUrlFunction = async () => {
             await new Promise((r) => setTimeout(r, 5));
-            return customUrls.pop();
+            return customUrls.pop() ?? null;
         };
         const proxyConfiguration = new ProxyConfiguration({
             newUrlFunction,
@@ -89,9 +104,9 @@ describe('ProxyConfiguration', () => {
         expect(await proxyConfiguration.newUrl()).toEqual('http://proxy.com:4444');
 
         // through newProxyInfo()
-        expect((await proxyConfiguration.newProxyInfo()).url).toEqual('http://proxy.com:3333');
-        expect((await proxyConfiguration.newProxyInfo()).url).toEqual('http://proxy.com:2222');
-        expect((await proxyConfiguration.newProxyInfo()).url).toEqual('http://proxy.com:1111');
+        expect((await proxyConfiguration.newProxyInfo())!.url).toEqual('http://proxy.com:3333');
+        expect((await proxyConfiguration.newProxyInfo())!.url).toEqual('http://proxy.com:2222');
+        expect((await proxyConfiguration.newProxyInfo())!.url).toEqual('http://proxy.com:1111');
     });
 
     describe('With proxyUrls options', () => {
@@ -101,7 +116,7 @@ describe('ProxyConfiguration', () => {
             });
 
             // @ts-expect-error private property
-            const { proxyUrls } = proxyConfiguration;
+            const proxyUrls = proxyConfiguration.proxyUrls!;
             expect(await proxyConfiguration.newUrl()).toEqual(proxyUrls[0]);
             expect(await proxyConfiguration.newUrl()).toEqual(proxyUrls[1]);
             expect(await proxyConfiguration.newUrl()).toEqual(proxyUrls[2]);
@@ -116,23 +131,23 @@ describe('ProxyConfiguration', () => {
             });
 
             // @ts-expect-error TODO private property?
-            const { proxyUrls } = proxyConfiguration;
-            expect((await proxyConfiguration.newProxyInfo()).url).toEqual(proxyUrls[0]);
-            expect((await proxyConfiguration.newProxyInfo()).url).toEqual(proxyUrls[1]);
-            expect((await proxyConfiguration.newProxyInfo()).url).toEqual(proxyUrls[2]);
-            expect((await proxyConfiguration.newProxyInfo()).url).toEqual(proxyUrls[0]);
-            expect((await proxyConfiguration.newProxyInfo()).url).toEqual(proxyUrls[1]);
-            expect((await proxyConfiguration.newProxyInfo()).url).toEqual(proxyUrls[2]);
+            const proxyUrls = proxyConfiguration.proxyUrls!;
+            expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[0]);
+            expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[1]);
+            expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[2]);
+            expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[0]);
+            expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[1]);
+            expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[2]);
         });
 
         test('should rotate custom URLs with sessions correctly', async () => {
-            const sessions = ['sesssion_01', 'sesssion_02', 'sesssion_03', 'sesssion_04', 'sesssion_05', 'sesssion_06'];
+            const sessions = ['session_01', 'session_02', 'session_03', 'session_04', 'session_05', 'session_06'];
             const proxyConfiguration = new ProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
 
             // @ts-expect-error TODO private property?
-            const { proxyUrls } = proxyConfiguration;
+            const proxyUrls = proxyConfiguration.proxyUrls!;
             // should use same proxy URL
             expect(await proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
             expect(await proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
@@ -199,7 +214,7 @@ describe('ProxyConfiguration', () => {
             });
 
             // @ts-expect-error protected property
-            const { tieredProxyUrls } = proxyConfiguration;
+            const tieredProxyUrls = proxyConfiguration.tieredProxyUrls!;
             expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][0]);
             expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][1]);
             expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[1][0]);
@@ -217,7 +232,7 @@ describe('ProxyConfiguration', () => {
             });
 
             // @ts-expect-error protected property
-            const { tieredProxyUrls } = proxyConfiguration;
+            const tieredProxyUrls = proxyConfiguration.tieredProxyUrls!;
             expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[0][0]);
             expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[1][0]);
             expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[2][0]);

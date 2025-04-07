@@ -1,29 +1,29 @@
-import { mkdir, mkdtemp } from 'fs/promises';
-import type { Server } from 'http';
-import http from 'http';
-import type { AddressInfo } from 'net';
-import { readFile, rm } from 'node:fs/promises';
-import { join } from 'path';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import type { Server } from 'node:http';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { join } from 'node:path';
 
-import log from '@apify/log';
 import type { CrawlingContext, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import {
-    Request,
-    RequestQueue,
-    RequestList,
-    Configuration,
     BasicCrawler,
-    KeyValueStore,
-    EventType,
-    NonRetryableError,
+    Configuration,
     CriticalError,
+    EventType,
+    KeyValueStore,
     MissingRouteError,
+    NonRetryableError,
+    Request,
+    RequestList,
+    RequestQueue,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper';
 
@@ -102,7 +102,7 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(basicCrawler.autoscaledPool.minConcurrency).toBe(25);
+        expect(basicCrawler.autoscaledPool!.minConcurrency).toBe(25);
         expect(processed).toEqual(sourcesCopy);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
@@ -146,12 +146,12 @@ describe('BasicCrawler', () => {
 
         const collectResults = (crawler: BasicCrawler): typeof shorthandOptions | typeof autoscaledPoolOptions => {
             return {
-                minConcurrency: crawler.autoscaledPool.minConcurrency,
-                maxConcurrency: crawler.autoscaledPool.maxConcurrency,
+                minConcurrency: crawler.autoscaledPool!.minConcurrency,
+                maxConcurrency: crawler.autoscaledPool!.maxConcurrency,
                 // eslint-disable-next-line dot-notation -- accessing a private member
-                maxRequestsPerMinute: crawler.autoscaledPool['maxTasksPerMinute'],
+                maxRequestsPerMinute: crawler.autoscaledPool!['maxTasksPerMinute'],
                 // eslint-disable-next-line dot-notation
-                maxTasksPerMinute: crawler.autoscaledPool['maxTasksPerMinute'],
+                maxTasksPerMinute: crawler.autoscaledPool!['maxTasksPerMinute'],
             };
         };
 
@@ -222,7 +222,7 @@ describe('BasicCrawler', () => {
         async (event) => {
             const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
 
-            let persistResolve: (value?: unknown) => void;
+            let persistResolve!: (value?: unknown) => void;
             const persistPromise = new Promise((res) => {
                 persistResolve = res;
             });
@@ -269,7 +269,7 @@ describe('BasicCrawler', () => {
 
             // clean up
             // @ts-expect-error Accessing private method
-            await basicCrawler.autoscaledPool._destroy();
+            await basicCrawler.autoscaledPool!._destroy();
         },
     );
 
@@ -579,7 +579,7 @@ describe('BasicCrawler', () => {
 
         await crawler.run();
 
-        expect(request.retryCount).toBe(0);
+        expect(request!.retryCount).toBe(0);
     });
 
     test('should crash on CriticalError', async () => {
@@ -769,7 +769,7 @@ describe('BasicCrawler', () => {
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
-        requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop());
+        requestQueue.fetchNextRequest = async () => queue.pop()!;
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
         setTimeout(() => queue.push(request0), 10);
@@ -818,7 +818,7 @@ describe('BasicCrawler', () => {
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
-        requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop());
+        requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
         setTimeout(() => queue.push(request0), 10);
@@ -1019,9 +1019,7 @@ describe('BasicCrawler', () => {
             requestHandler: async () => sleep(1e3),
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1059,9 +1057,7 @@ describe('BasicCrawler', () => {
             },
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1100,9 +1096,7 @@ describe('BasicCrawler', () => {
             requestHandler: async () => sleep(1e3),
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1145,9 +1139,7 @@ describe('BasicCrawler', () => {
             },
         });
 
-        // @ts-expect-error Overriding protected method
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
-        // @ts-expect-error Overriding protected method
         const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
@@ -1192,8 +1184,8 @@ describe('BasicCrawler', () => {
                     persistStateKey: 'POOL',
                 },
                 requestHandler: async ({ session }) => {
-                    expect(session.constructor.name).toEqual('Session');
-                    expect(session.id).toBeDefined();
+                    expect(session!.constructor.name).toEqual('Session');
+                    expect(session!.id).toBeDefined();
                 },
                 failedRequestHandler: async ({ request }) => {
                     results.push(request);
@@ -1397,11 +1389,11 @@ describe('BasicCrawler', () => {
         });
     });
 
-    describe('Dataset helpers, crawler paralellism', () => {
+    describe('Dataset helpers, crawler parallelism', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
-        const tmpDir: string = `${__dirname}/tmp/foo/bar`;
+        const tmpDir = `${__dirname}/tmp/foo/bar`;
 
         beforeAll(async () => {
             await rm(tmpDir, { recursive: true, force: true });

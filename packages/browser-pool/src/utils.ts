@@ -1,6 +1,6 @@
 import type { BrowserPlugin } from './abstract-classes/browser-plugin';
-
-import type { PlaywrightPlugin, PuppeteerPlugin } from '.';
+import type { PlaywrightPlugin } from './playwright/playwright-plugin';
+import type { PuppeteerPlugin } from './puppeteer/puppeteer-plugin';
 
 export type UnwrapPromise<T> = T extends PromiseLike<infer R> ? UnwrapPromise<R> : T;
 

@@ -1,4 +1,4 @@
-import { Dataset, PlaywrightCrawler } from 'crawlee';
+import { PlaywrightCrawler } from 'crawlee';
 
 // For playwright-extra you will need to import the browser type itself that you want to use!
 // By default, PlaywrightCrawler uses chromium, but you can also use firefox or webkit.
@@ -30,7 +30,7 @@ const crawler = new PlaywrightCrawler({
     // The function accepts a single parameter, which is an object with the following fields:
     // - request: an instance of the Request class with information such as URL and HTTP method
     // - page: Puppeteer's Page object (see https://pptr.dev/#show=api-class-page)
-    async requestHandler({ request, page, enqueueLinks, log }) {
+    async requestHandler({ pushData, request, page, enqueueLinks, log }) {
         log.info(`Processing ${request.url}...`);
 
         // A function to be evaluated by Puppeteer within the browser context.
@@ -50,7 +50,7 @@ const crawler = new PlaywrightCrawler({
         });
 
         // Store the results to the default dataset.
-        await Dataset.pushData(data);
+        await pushData(data);
 
         // Find a link to the next page and enqueue it if it exists.
         const infos = await enqueueLinks({

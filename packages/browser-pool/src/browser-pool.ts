@@ -1,4 +1,3 @@
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import type { TieredProxy } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
@@ -9,13 +8,15 @@ import pLimit from 'p-limit';
 import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+
 import type { BrowserController } from './abstract-classes/browser-controller';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin';
 import { BROWSER_POOL_EVENTS } from './events';
 import {
     createFingerprintPreLaunchHook,
-    createPrePageCreateHook,
     createPostPageCreateHook,
+    createPrePageCreateHook,
 } from './fingerprinting/hooks';
 import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 import type { LaunchContext } from './launch-context';
@@ -105,7 +106,7 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
      *
      * Retired browsers are closed after all their pages are closed.
      *
-     * @default 1
+     * @default 10
      */
     retireInactiveBrowserAfterSecs?: number;
     /**
@@ -364,7 +365,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount = 100,
             operationTimeoutSecs = 15,
             closeInactiveBrowserAfterSecs = 300,
-            retireInactiveBrowserAfterSecs = 1,
+            retireInactiveBrowserAfterSecs = 10,
             preLaunchHooks = [],
             postLaunchHooks = [],
             prePageCreateHooks = [],

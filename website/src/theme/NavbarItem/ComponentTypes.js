@@ -6,8 +6,7 @@ import HtmlNavbarItem from '@theme/NavbarItem/HtmlNavbarItem';
 import DocSidebarNavbarItem from '@theme/NavbarItem/DocSidebarNavbarItem';
 import DocsVersionNavbarItem from '@theme/NavbarItem/DocsVersionNavbarItem';
 import DocsVersionDropdownNavbarItem from '@theme/NavbarItem/DocsVersionDropdownNavbarItem';
-import { useActiveDocContext } from '@docusaurus/plugin-content-docs/client';
-import { useDocsVersion, useLayoutDoc } from '@docusaurus/theme-common/internal';
+import { useActiveDocContext, useDocsVersion, useLayoutDoc } from '@docusaurus/plugin-content-docs/client';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import React from 'react';
 
@@ -56,7 +55,7 @@ function ApiNavbarItem(ctx) {
                 exact
                 {...ctx}
                 label={ctx.label}
-                to={`api/${ctx.to}`}
+                to={`js/api/${ctx.to}`}
             />
         );
     }
@@ -66,7 +65,7 @@ function ApiNavbarItem(ctx) {
             exact
             {...ctx}
             label={ctx.label}
-            to={`api/${version.version === 'current' ? 'next' : version.version}/${ctx.to}`}
+            to={`js/api/${version.version === 'current' ? 'next' : version.version}/${ctx.to}`}
         />
     );
 }

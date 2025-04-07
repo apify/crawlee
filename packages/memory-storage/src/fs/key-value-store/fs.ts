@@ -10,7 +10,6 @@ import { lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
 import { memoryStorageLog } from '../../utils';
 import type { StorageImplementation } from '../common';
-
 import type { CreateStorageImplementationOptions } from '.';
 
 export class KeyValueFileSystemEntry implements StorageImplementation<InternalKeyRecord> {
@@ -62,7 +61,12 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
 
     async update(data: InternalKeyRecord) {
         await this.fsQueue.wait();
-        const fileName = mime.contentType(data.key) === data.contentType ? data.key : `${data.key}.${data.extension}`;
+        const contentType = mime.contentType(data.key);
+        const fileName =
+            // the content type might include charset, e.g. `text/html; charset=utf-8`, so we check via `startsWith` instead of `===`
+            contentType && data.contentType && contentType.startsWith(data.contentType)
+                ? data.key
+                : `${data.key}.${data.extension}`;
 
         this.filePath ??= resolve(this.storeDirectory, fileName);
         this.fileMetadataPath ??= resolve(this.storeDirectory, `${data.key}.__metadata__.json`);

@@ -1,28 +1,30 @@
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 
-import { concatStreamToBuffer } from '@apify/utilities';
 import type {
+    EnqueueLinksOptions,
+    ErrorHandler,
+    GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
-    ErrorHandler,
     RequestHandler,
-    EnqueueLinksOptions,
-    GetUserDataFromRequest,
-    RouterRoutes,
     RequestProvider,
+    RouterRoutes,
 } from '@crawlee/http';
 import {
-    HttpCrawler,
     enqueueLinks,
-    Router,
+    HttpCrawler,
     resolveBaseUrlForEnqueueLinksFiltering,
+    Router,
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type * as cheerio from 'cheerio';
+import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
+import * as cheerio from 'cheerio';
 // @ts-expect-error This throws a compilation error due to TypeScript not inferring the module has CJS versions too
 import { DOMParser } from 'linkedom/cached';
+
+import { concatStreamToBuffer } from '@apify/utilities';
 
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -54,7 +56,23 @@ export interface LinkeDOMCrawlingContext<
     document: Document;
 
     /**
+     * Wait for an element matching the selector to appear.
+     * Timeout defaults to 5s.
+     *
+     * **Example usage:**
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
      * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * When provided with the `selector` argument, it will first look for the selector with a 5s timeout.
      *
      * **Example usage:**
      * ```javascript
@@ -64,7 +82,7 @@ export interface LinkeDOMCrawlingContext<
      * });
      * ```
      */
-    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
 export type LinkeDOMRequestHandler<
@@ -169,11 +187,39 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                     options: enqueueOptions,
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
             },
         };
+    }
+
+    override async _runRequestHandler(context: LinkeDOMCrawlingContext) {
+        context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
+            const $ = cheerio.load(context.body);
+
+            if ($(selector).get().length === 0) {
+                if (timeoutMs) {
+                    await sleep(50);
+                    await context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                    return;
+                }
+
+                throw new Error(`Selector '${selector}' not found.`);
+            }
+        };
+        context.parseWithCheerio = async (selector?: string, _timeoutMs = 5_000) => {
+            const $ = cheerio.load(context.body);
+
+            if (selector && $(selector).get().length === 0) {
+                throw new Error(`Selector '${selector}' not found.`);
+            }
+
+            return $;
+        };
+
+        await super._runRequestHandler(context);
     }
 }
 
@@ -181,6 +227,7 @@ interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
     window: Window | null;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsTxtFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -190,6 +237,7 @@ export async function linkedomCrawlerEnqueueLinks({
     options,
     window,
     requestQueue,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -212,6 +260,7 @@ export async function linkedomCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...options,

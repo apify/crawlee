@@ -1,4 +1,4 @@
-import type { Server } from 'http';
+import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Duplex } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -21,7 +21,7 @@ class ReadableStreamGenerator {
         return buffer;
     }
 
-    static getReadableStream(size: number, seed: number, throttle: number = 0): ReadableStream {
+    static getReadableStream(size: number, seed: number, throttle = 0): ReadableStream {
         let bytesRead = 0;
         const stream = new ReadableStream({
             start: async (controller) => {
@@ -105,7 +105,7 @@ test('streamHandler works', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         streamHandler: async ({ stream }) => {
-            for await (const chunk of stream as ReadableStream<any>) {
+            for await (const chunk of stream as unknown as ReadableStream<any>) {
                 result = Buffer.concat([result, chunk]);
             }
         },

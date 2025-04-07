@@ -1,5 +1,5 @@
 # Migration from 2.x.x to 3.0.0
-Check the v3 [upgrading guide](https://crawlee.dev/docs/upgrading/upgrading-to-v3).
+Check the v3 [upgrading guide](https://crawlee.dev/js/docs/upgrading/upgrading-to-v3).
 
 # Migration from 1.x.x to 2.0.0
 There should be no changes needed apart from upgrading your Node.js version to >= 15.10. If you encounter issues with `cheerio`, [read their CHANGELOG](https://github.com/cheeriojs/cheerio/releases). We bumped it from `rc.3` to `rc.10`.
@@ -123,7 +123,7 @@ To prevent bloat and to make access to certain key objects easier, we exposed a 
 property on the handle page arguments.
 
 ```js
-const handePageFunction = async ({ request, page, crawler }) => {
+const handlePageFunction = async ({ request, page, crawler }) => {
     await crawler.requestQueue.addRequest({ url: 'https://example.com' });
     await crawler.autoscaledPool.pause();
 }
@@ -133,7 +133,7 @@ This also means that some shorthands like `puppeteerPool` or `autoscaledPool` we
 no longer necessary.
 
 ```js
-const handePageFunction = async (crawlingContext) => {
+const handlePageFunction = async (crawlingContext) => {
     crawlingContext.autoscaledPool // does NOT exist anymore
     crawlingContext.crawler.autoscaledPool // <= this is correct usage
 }

@@ -1,11 +1,13 @@
 import ow from 'ow';
 
-import { ErrorTracker } from './error_tracker';
+import type { Log } from '@apify/log';
+
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
 import { KeyValueStore } from '../storages/key_value_store';
+import { ErrorTracker } from './error_tracker';
 
 /**
  * @ignore
@@ -99,7 +101,7 @@ export class Statistics {
     private logMessage: string;
     private listener: () => Promise<void>;
     private requestsInProgress = new Map<number | string, Job>();
-    private readonly log = defaultLog.child({ prefix: 'Statistics' });
+    private readonly log: Log;
     private instanceStart!: number;
     private logInterval: unknown;
     private events: EventManager;
@@ -114,6 +116,7 @@ export class Statistics {
             ow.object.exactShape({
                 logIntervalSecs: ow.optional.number,
                 logMessage: ow.optional.string,
+                log: ow.optional.object,
                 keyValueStore: ow.optional.object,
                 config: ow.optional.object,
                 persistenceOptions: ow.optional.object,
@@ -132,6 +135,7 @@ export class Statistics {
             saveErrorSnapshots = false,
         } = options;
 
+        this.log = (options.log ?? defaultLog).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.logIntervalMillis = logIntervalSecs * 1000;
@@ -439,6 +443,12 @@ export interface StatisticsOptions {
      * @default 'Statistics'
      */
     logMessage?: string;
+
+    /**
+     * Parent logger instance, the statistics will create a child logger from this.
+     * @default crawler.log
+     */
+    log?: Log;
 
     /**
      * Key value store instance to persist the statistics.

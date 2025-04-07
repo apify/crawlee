@@ -36,7 +36,9 @@ describe('utils.social', () => {
             // @ts-expect-error invalid input type
             expect(emailsFromText()).toEqual([]);
             testEmailsFromText('', []);
+            // @ts-expect-error invalid input type
             testEmailsFromText(null, []);
+            // @ts-expect-error invalid input type
             testEmailsFromText(undefined, []);
             // @ts-expect-error invalid input type
             testEmailsFromText({}, []);
@@ -141,7 +143,9 @@ describe('utils.social', () => {
             expect(phonesFromText()).toEqual([]);
 
             testPhonesFromText('', []);
+            // @ts-expect-error invalid input type
             testPhonesFromText(null, []);
+            // @ts-expect-error invalid input type
             testPhonesFromText(undefined, []);
             // @ts-expect-error
             testPhonesFromText({}, []);
@@ -365,7 +369,9 @@ describe('utils.social', () => {
         test('handles invalid arg', () => {
             // @ts-expect-error invalid input type
             expect(parseHandlesFromHtml()).toEqual(EMPTY_RESULT);
+            // @ts-expect-error invalid input type
             expect(parseHandlesFromHtml(undefined)).toEqual(EMPTY_RESULT);
+            // @ts-expect-error invalid input type
             expect(parseHandlesFromHtml(null)).toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
             expect(parseHandlesFromHtml({})).toEqual(EMPTY_RESULT);
@@ -419,6 +425,7 @@ describe('utils.social', () => {
                         https://www.linkedin.com/in/first-last-123456a
                         <a href="https://www.linkedin.com/in/jancurn">Profile</a>
                         <a href="https://www.linkedin.com/in/carl-newman-5555555a/detail/recent-activity/">Sub-link</a>
+                        <a href="www.linkedin.com/company/delegatus">Company</a>
 
                         https://www.instagram.com/old_prague/
                         https://www.instagram.com/old_prague/ duplicate
@@ -431,6 +438,8 @@ describe('utils.social', () => {
                         https://www.twitter.com/apify
                         https://www.twitter.com/apify duplicate
                         <a href="twitter.com/cblabla/sub-dir/">link</a>
+                        <a href="x.com/apify">link</a>
+                        <a href="x.com/cblabla/sub-dir/">link</a>
 
                         <a href="facebook.com/carl.username123/sub-dir/">link</a>
                         https://www.facebook.com/bob.username123/
@@ -438,7 +447,10 @@ describe('utils.social', () => {
                         http://www.facebook.com/alice.username123
                         <a href="https://www.facebook.com/profile.php?id=1155802082&xxx=5">link x</a>
                         <a href="https://youtu.be/kM7YfhfkiEE">Youtube</a>
+                        <a href="https://youtube.com/@channel">Youtube Channel</a>
                         <a href="fb.com/dada5678?query=1">link</a>
+                        <a href="https://www.facebook.com/pages/category/category-name/page-name-and-ID/">link</a>
+                        <a href="fb.com/pages/page-name/142434434>link</a>
 
                         https://www.tiktok.com/trending?shareId=1234567890123456789/
                         m.tiktok.com/v/1234567890123456789
@@ -476,6 +488,7 @@ describe('utils.social', () => {
                     'https://www.linkedin.com/in/carl-newman/',
                     'https://www.linkedin.com/in/first-last-123456a',
                     'https://www.linkedin.com/in/jancurn',
+                    'www.linkedin.com/company/delegatus',
                 ],
                 instagrams: [
                     'https://www.instagram.com/newyorkarea/',
@@ -497,15 +510,23 @@ describe('utils.social', () => {
                     'https://www.tiktok.com/trending?shareId=1234567890123456789/',
                     'm.tiktok.com/v/1234567890123456789',
                 ],
-                twitters: ['https://www.twitter.com/apify', 'twitter.com/betasomething', 'twitter.com/cblabla/'],
+                twitters: [
+                    'https://www.twitter.com/apify',
+                    'twitter.com/betasomething',
+                    'twitter.com/cblabla/',
+                    'x.com/apify',
+                    'x.com/cblabla/',
+                ],
                 facebooks: [
                     'facebook.com/carl.username123/',
                     'fb.com/dada5678',
+                    'fb.com/pages/page-name/142434434',
                     'http://www.facebook.com/alice.username123',
                     'https://www.facebook.com/bob.username123/',
+                    'https://www.facebook.com/pages/category/category-name/page-name-and-ID/',
                     'https://www.facebook.com/profile.php?id=1155802082',
                 ],
-                youtubes: ['https://youtu.be/kM7YfhfkiEE'],
+                youtubes: ['https://youtu.be/kM7YfhfkiEE', 'https://youtube.com/@channel'],
             });
         });
 
@@ -585,12 +606,13 @@ describe('utils.social', () => {
             expect(LINKEDIN_REGEX.test('https://www.linkedin.com/in/alan-turing')).toBe(true);
             expect(LINKEDIN_REGEX.test('en.linkedin.com/in/alan-turing')).toBe(true);
             expect(LINKEDIN_REGEX.test('linkedin.com/in/alan-turing')).toBe(true);
+            expect(LINKEDIN_REGEX.test('https://www.linkedin.com/company/delegatus')).toBe(true);
 
             // Test there is just on matching group for the username
-            expect('https://www.linkedin.com/in/bobnewman/'.match(LINKEDIN_REGEX)[1]).toBe('bobnewman');
-            expect('http://www.linkedin.com/in/bobnewman'.match(LINKEDIN_REGEX)[1]).toBe('bobnewman');
-            expect('www.linkedin.com/in/bobnewman/'.match(LINKEDIN_REGEX)[1]).toBe('bobnewman');
-            expect('linkedin.com/in/bobnewman'.match(LINKEDIN_REGEX)[1]).toBe('bobnewman');
+            expect('https://www.linkedin.com/in/bobnewman/'.match(LINKEDIN_REGEX)![1]).toBe('bobnewman');
+            expect('http://www.linkedin.com/in/bobnewman'.match(LINKEDIN_REGEX)![1]).toBe('bobnewman');
+            expect('www.linkedin.com/in/bobnewman/'.match(LINKEDIN_REGEX)![1]).toBe('bobnewman');
+            expect('linkedin.com/in/bobnewman'.match(LINKEDIN_REGEX)![1]).toBe('bobnewman');
 
             expect(LINKEDIN_REGEX.test('')).toBe(false);
             expect(LINKEDIN_REGEX.test('dummy')).toBe(false);
@@ -655,10 +677,10 @@ describe('utils.social', () => {
             expect(INSTAGRAM_REGEX.test('instagr.am/old_prague/')).toBe(true);
 
             // Test there is just on matching group for the username
-            expect('https://www.instagram.com/old_prague/'.match(INSTAGRAM_REGEX)[1]).toBe('old_prague');
-            expect('http://www.instagram.com/old_prague/'.match(INSTAGRAM_REGEX)[1]).toBe('old_prague');
-            expect('www.instagram.com/old_prague'.match(INSTAGRAM_REGEX)[1]).toBe('old_prague');
-            expect('instagram.com/old_prague'.match(INSTAGRAM_REGEX)[1]).toBe('old_prague');
+            expect('https://www.instagram.com/old_prague/'.match(INSTAGRAM_REGEX)![1]).toBe('old_prague');
+            expect('http://www.instagram.com/old_prague/'.match(INSTAGRAM_REGEX)![1]).toBe('old_prague');
+            expect('www.instagram.com/old_prague'.match(INSTAGRAM_REGEX)![1]).toBe('old_prague');
+            expect('instagram.com/old_prague'.match(INSTAGRAM_REGEX)![1]).toBe('old_prague');
 
             expect(INSTAGRAM_REGEX.test('')).toBe(false);
             expect(INSTAGRAM_REGEX.test('dummy')).toBe(false);
@@ -723,11 +745,19 @@ describe('utils.social', () => {
             expect(TWITTER_REGEX.test('www.twitter.com/apify')).toBe(true);
             expect(TWITTER_REGEX.test('twitter.com/apify')).toBe(true);
 
+            expect(TWITTER_REGEX.test('https://www.x.com/apify')).toBe(true);
+            expect(TWITTER_REGEX.test('https://www.x.com/@apify')).toBe(true);
+            expect(TWITTER_REGEX.test('https://www.x.com/aa_bb_123')).toBe(true);
+            expect(TWITTER_REGEX.test('x.com/apify')).toBe(true);
+
             // Test there is just on matching group for the username
-            expect('https://www.twitter.com/apify/'.match(TWITTER_REGEX)[1]).toBe('apify');
-            expect('http://www.twitter.com/apify'.match(TWITTER_REGEX)[1]).toBe('apify');
-            expect('www.twitter.com/apify'.match(TWITTER_REGEX)[1]).toBe('apify');
-            expect('twitter.com/apify'.match(TWITTER_REGEX)[1]).toBe('apify');
+            expect('https://www.twitter.com/apify/'.match(TWITTER_REGEX)![1]).toBe('apify');
+            expect('http://www.twitter.com/apify'.match(TWITTER_REGEX)![1]).toBe('apify');
+            expect('www.twitter.com/apify'.match(TWITTER_REGEX)![1]).toBe('apify');
+            expect('twitter.com/apify'.match(TWITTER_REGEX)![1]).toBe('apify');
+
+            expect('https://www.x.com/apify/'.match(TWITTER_REGEX)![1]).toBe('apify');
+            expect('http://www.x.com/@apify'.match(TWITTER_REGEX)![1]).toBe('apify');
 
             expect(TWITTER_REGEX.test('')).toBe(false);
             expect(TWITTER_REGEX.test('dummy')).toBe(false);
@@ -746,6 +776,18 @@ describe('utils.social', () => {
             expect(TWITTER_REGEX.test('https://www.twitter.com/account')).toBe(false);
             expect(TWITTER_REGEX.test('https://www.twitter.com/privacy/')).toBe(false);
 
+            expect(TWITTER_REGEX_GLOBAL.test('https://x.com/i/flow/login')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://business.x.com/en')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://x.com/privacy')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://help.x.com/en/using-x/download-the-x-app')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://careers.x.com/en')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://developer.x.com/en')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://x.com/i/directory/profiles')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://x.com/settings/account/personalization')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://x.com/explore')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://x.com/i/premium_sign_up')).toBe(false);
+            expect(TWITTER_REGEX_GLOBAL.test('https://x.com/compose/post')).toBe(false);
+
             expect(TWITTER_REGEX_GLOBAL.test('https://www.twitter.com/apify')).toBe(true);
             expect(
                 `
@@ -753,8 +795,14 @@ describe('utils.social', () => {
                     www.twitter.com/jack/sub-dir
                     www.twitter.com/invalidverylongtwitterhandlenotgood
                     twitter.com/bob123?param=1
+                    www.x.com/apify/sub-dir
                     `.match(TWITTER_REGEX_GLOBAL),
-            ).toEqual(['https://www.twitter.com/apify', 'www.twitter.com/jack/', 'twitter.com/bob123']);
+            ).toEqual([
+                'https://www.twitter.com/apify',
+                'www.twitter.com/jack/',
+                'twitter.com/bob123',
+                'www.x.com/apify/',
+            ]);
             expect(
                 `
                     -https://www.twitter.com/apify
@@ -779,6 +827,8 @@ describe('utils.social', () => {
 
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/someusername')).toBe(true);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/someusername/')).toBe(true);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/some-username-1234')).toBe(true);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/some-username-1234/')).toBe(true);
             expect(FACEBOOK_REGEX.test('http://www.facebook.com/some.username123')).toBe(true);
             expect(FACEBOOK_REGEX.test('www.facebook.com/someusername')).toBe(true);
             expect(FACEBOOK_REGEX.test('facebook.com/someusername')).toBe(true);
@@ -794,13 +844,26 @@ describe('utils.social', () => {
             expect(FACEBOOK_REGEX.test('facebook.com/profile.php?id=1155802082')).toBe(true);
             expect(FACEBOOK_REGEX.test('fb.com/profile.php?id=1155802082')).toBe(true);
 
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pageName')).toBe(true);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/KinEssor-Groupe-Conseil/208264345877578')).toBe(
+                true,
+            );
+            expect(
+                FACEBOOK_REGEX.test(
+                    'https://www.facebook.com/pages/category/Lawyer---Law-Firm/Delegatus-services-juridiques-inc-131011223614905/',
+                ),
+            ).toBe(true);
+
             // Test there is just on matching group for the username
-            expect('https://www.facebook.com/someusername/'.match(FACEBOOK_REGEX)[1]).toBe('someusername');
-            expect('https://www.facebook.com/someusername'.match(FACEBOOK_REGEX)[1]).toBe('someusername');
-            expect('https://www.facebook.com/profile.php?id=1155802082'.match(FACEBOOK_REGEX)[1]).toBe(
+            expect('https://www.facebook.com/someusername/'.match(FACEBOOK_REGEX)![1]).toBe('someusername');
+            expect('https://www.facebook.com/someusername'.match(FACEBOOK_REGEX)![1]).toBe('someusername');
+            expect('https://www.facebook.com/profile.php?id=1155802082'.match(FACEBOOK_REGEX)![1]).toBe(
                 'profile.php?id=1155802082',
             );
-            expect('fb.com/someusername'.match(FACEBOOK_REGEX)[1]).toBe('someusername');
+            expect('fb.com/someusername'.match(FACEBOOK_REGEX)![1]).toBe('someusername');
+            expect('facebook.com/pages/KinEssor-Groupe-Conseil/208264345877578'.match(FACEBOOK_REGEX)![1]).toBe(
+                'pages/KinEssor-Groupe-Conseil/208264345877578',
+            );
 
             expect(FACEBOOK_REGEX.test('')).toBe(false);
             expect(FACEBOOK_REGEX.test('dummy')).toBe(false);
@@ -824,15 +887,30 @@ describe('utils.social', () => {
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/events')).toBe(false);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/policies/')).toBe(false);
 
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages')).toBe(false);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/')).toBe(false);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/?category=liked&ref=bookmarks')).toBe(false);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/merge')).toBe(false);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/search')).toBe(false);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/create')).toBe(false);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/createCustomWebsiteName')).toBe(true);
+
             expect(FACEBOOK_REGEX_GLOBAL.test('https://www.facebook.com/someusername')).toBe(true);
             expect(
                 `
                     https://www.facebook.com/someusername?param=123
                     www.facebook.com/another123/sub-dir
+                    www.facebook.com/pages/
+                    facebook.com/pages/some-page
                     https://www.facebook.com/waytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusername
                     fb.com/bob123
                     `.match(FACEBOOK_REGEX_GLOBAL),
-            ).toEqual(['https://www.facebook.com/someusername', 'www.facebook.com/another123/', 'fb.com/bob123']);
+            ).toEqual([
+                'https://www.facebook.com/someusername',
+                'www.facebook.com/another123/',
+                'facebook.com/pages/some-page',
+                'fb.com/bob123',
+            ]);
             expect(
                 `
                     -https://www.facebook.com/someusername/
@@ -862,6 +940,14 @@ describe('utils.social', () => {
             expect(YOUTUBE_REGEX.test('https://www.youtube.com/c/TrapNation')).toBe(true);
             expect(YOUTUBE_REGEX.test('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA')).toBe(true);
             expect(YOUTUBE_REGEX.test('https://www.youtube.com/user/pewdiepie')).toBe(true);
+            expect(YOUTUBE_REGEX.test('https://www.youtube.com/linkinpark')).toBe(true);
+
+            expect(YOUTUBE_REGEX.test('https://www.youtube.com/@LinkinPark')).toBe(true);
+            expect(YOUTUBE_REGEX.test('https://www.youtube.com/c/@TrapNation')).toBe(true);
+
+            expect(YOUTUBE_REGEX.test('https://www.youtube.com/user/@PewDiePie')).toBe(false);
+            expect(YOUTUBE_REGEX.test('https://www.youtube.com/channel/@TrapNation')).toBe(false);
+            expect(YOUTUBE_REGEX.test('https://youtu.be/@kM7YfhfkiEE')).toBe(false);
 
             expect(YOUTUBE_REGEX.test('://www.youtube.com/c/TrapNation')).toBe(false);
             expect(YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE https://www.youtube.com/user/pewdiepie')).toBe(
@@ -871,13 +957,13 @@ describe('utils.social', () => {
             expect(YOUTUBE_REGEX.test('-https://www.youtube.com/user/pewdiepie')).toBe(false);
 
             // Test there is just on matching group for the channel, video or username
-            expect('https://www.youtube.com/watch?v=kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)[1]).toBe('kM7YfhfkiEE');
-            expect('https://youtu.be/kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)[1]).toBe('kM7YfhfkiEE');
-            expect('https://www.youtube.com/c/TrapNation'.match(social.YOUTUBE_REGEX)[1]).toBe('TrapNation');
-            expect('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA'.match(social.YOUTUBE_REGEX)[1]).toBe(
+            expect('https://www.youtube.com/watch?v=kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)![1]).toBe('kM7YfhfkiEE');
+            expect('https://youtu.be/kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)![1]).toBe('kM7YfhfkiEE');
+            expect('https://www.youtube.com/c/TrapNation'.match(social.YOUTUBE_REGEX)![1]).toBe('TrapNation');
+            expect('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA'.match(social.YOUTUBE_REGEX)![1]).toBe(
                 'UCklie6BM0fhFvzWYqQVoCTA',
             );
-            expect('https://www.youtube.com/user/pewdiepie'.match(social.YOUTUBE_REGEX)[1]).toBe('pewdiepie');
+            expect('https://www.youtube.com/user/pewdiepie'.match(social.YOUTUBE_REGEX)![1]).toBe('pewdiepie');
 
             expect(
                 `
@@ -891,6 +977,8 @@ describe('utils.social', () => {
                     www.youtube.com/c/TrapNation
                     https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA
                     youtube.com/user/pewdiepie
+                    www.youtube.com/@LinkinPark
+                    youtube.com/linkinpark
                     `.match(YOUTUBE_REGEX_GLOBAL),
             ).toEqual([
                 'https://www.youtube.com/apify',
@@ -900,6 +988,8 @@ describe('utils.social', () => {
                 'www.youtube.com/c/TrapNation',
                 'https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA',
                 'youtube.com/user/pewdiepie',
+                'www.youtube.com/@LinkinPark',
+                'youtube.com/linkinpark',
             ]);
         });
     });
@@ -926,12 +1016,12 @@ describe('utils.social', () => {
             expect(TIKTOK_REGEX.test('0https://www.tiktok.com/trending?shareId=123456789')).toBe(false);
 
             // Test there is just one matching group for video id or username
-            expect('https://www.tiktok.com/trending?shareId=123456789'.match(TIKTOK_REGEX)[1]).toBe(
+            expect('https://www.tiktok.com/trending?shareId=123456789'.match(TIKTOK_REGEX)![1]).toBe(
                 'trending?shareId=123456789',
             );
-            expect('www.tiktok.com/embed/123456789/'.match(TIKTOK_REGEX)[1]).toBe('embed/123456789');
-            expect('tiktok.com/@jack'.match(TIKTOK_REGEX)[1]).toBe('@jack');
-            expect('https://www.tiktok.com/@username/video/123456789'.match(TIKTOK_REGEX)[1]).toBe(
+            expect('www.tiktok.com/embed/123456789/'.match(TIKTOK_REGEX)![1]).toBe('embed/123456789');
+            expect('tiktok.com/@jack'.match(TIKTOK_REGEX)![1]).toBe('@jack');
+            expect('https://www.tiktok.com/@username/video/123456789'.match(TIKTOK_REGEX)![1]).toBe(
                 '@username/video/123456789',
             );
 
@@ -987,10 +1077,10 @@ describe('utils.social', () => {
             expect(PINTEREST_REGEX.test('0pinterest.com/someusername')).toBe(false);
 
             // Test there is just on matching group for the pin, board or username
-            expect('https://pinterest.com/pin/123456789'.match(PINTEREST_REGEX)[1]).toBe('pin/123456789');
-            expect('https://www.pinterest.com/username'.match(PINTEREST_REGEX)[1]).toBe('username');
-            expect('pinterest.com/user_name.gold'.match(PINTEREST_REGEX)[1]).toBe('user_name.gold');
-            expect('https://cz.pinterest.com/username/board'.match(PINTEREST_REGEX)[1]).toBe('username/board');
+            expect('https://pinterest.com/pin/123456789'.match(PINTEREST_REGEX)![1]).toBe('pin/123456789');
+            expect('https://www.pinterest.com/username'.match(PINTEREST_REGEX)![1]).toBe('username');
+            expect('pinterest.com/user_name.gold'.match(PINTEREST_REGEX)![1]).toBe('user_name.gold');
+            expect('https://cz.pinterest.com/username/board'.match(PINTEREST_REGEX)![1]).toBe('username/board');
 
             expect(
                 `
@@ -1045,16 +1135,16 @@ describe('utils.social', () => {
             expect(DISCORD_REGEX.test('-discordapp.com/channels/231496023303957476/')).toBe(false);
 
             // Test there is just on matching group for the channel or invite (matches discord.* / discordapp.* prefix as well as they differ)
-            expect('https://discord.gg/discord-developers'.match(DISCORD_REGEX)[1]).toBe(
+            expect('https://discord.gg/discord-developers'.match(DISCORD_REGEX)![1]).toBe(
                 'discord.gg/discord-developers',
             );
-            expect('https://discord.com/invite/jyEM2PRvMU'.match(DISCORD_REGEX)[1]).toBe(
+            expect('https://discord.com/invite/jyEM2PRvMU'.match(DISCORD_REGEX)![1]).toBe(
                 'discord.com/invite/jyEM2PRvMU',
             );
-            expect('https://discordapp.com/channels/231496023303957476'.match(DISCORD_REGEX)[1]).toBe(
+            expect('https://discordapp.com/channels/231496023303957476'.match(DISCORD_REGEX)![1]).toBe(
                 'discordapp.com/channels/231496023303957476',
             );
-            expect('https://discord.com/channels/231496023303957476/2332823543826404586'.match(DISCORD_REGEX)[1]).toBe(
+            expect('https://discord.com/channels/231496023303957476/2332823543826404586'.match(DISCORD_REGEX)![1]).toBe(
                 'discord.com/channels/231496023303957476/2332823543826404586',
             );
 

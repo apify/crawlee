@@ -1,4 +1,3 @@
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import type {
     Awaitable,
     BasicCrawlerOptions,
@@ -6,6 +5,7 @@ import type {
     Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
+    LoadedContext,
     ProxyConfiguration,
     ProxyInfo,
     RequestHandler,
@@ -15,17 +15,17 @@ import type {
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
+    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
-    tryAbsoluteURL,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
-    validators,
     SessionError,
-    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
+    tryAbsoluteURL,
+    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -38,9 +38,12 @@ import type {
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
+import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
+
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
@@ -111,7 +114,7 @@ export interface BrowserCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: BrowserRequestHandler<Context>;
+    requestHandler?: BrowserRequestHandler<LoadedContext<Context>>;
 
     /**
      * Function that is called to process each request.
@@ -143,7 +146,7 @@ export interface BrowserCrawlerOptions<
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
      * @ignore
      */
-    handlePageFunction?: BrowserRequestHandler<Context>;
+    handlePageFunction?: BrowserRequestHandler<LoadedContext<Context>>;
 
     /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
@@ -259,6 +262,12 @@ export interface BrowserCrawlerOptions<
      * By default, they are expanded automatically. Use this option to disable this behavior.
      */
     ignoreShadowRoots?: boolean;
+
+    /**
+     * Whether to ignore `iframes` when processing the page content via `parseWithCheerio` helper.
+     * By default, `iframes` are expanded automatically. Use this option to disable this behavior.
+     */
+    ignoreIframes?: boolean;
 }
 
 /**
@@ -341,6 +350,8 @@ export abstract class BrowserCrawler<
         persistCookiesPerSession: ow.optional.boolean,
         useSessionPool: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        ignoreShadowRoots: ow.optional.boolean,
+        ignoreIframes: ow.optional.boolean,
     };
 
     /**
@@ -369,13 +380,15 @@ export abstract class BrowserCrawler<
             failedRequestHandler,
             handleFailedRequestFunction,
             headless,
+            ignoreShadowRoots,
+            ignoreIframes,
             ...basicCrawlerOptions
         } = options;
 
         super(
             {
                 ...basicCrawlerOptions,
-                requestHandler: async (...args) => this._runRequestHandler(...args),
+                requestHandler: async (...args) => this._runRequestHandler(...(args as [Context])),
                 requestHandlerTimeoutSecs:
                     navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
             },
@@ -519,6 +532,7 @@ export abstract class BrowserCrawler<
                  */
                 newPageOptions.pageOptions = {
                     ignoreHTTPSErrors: true,
+                    acceptInsecureCerts: true,
                 };
             }
         }
@@ -569,7 +583,7 @@ export abstract class BrowserCrawler<
         request.state = RequestState.REQUEST_HANDLER;
         try {
             await addTimeoutToPromise(
-                async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
+                async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
                 this.requestHandlerTimeoutInnerMillis,
                 `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
             );
@@ -580,8 +594,6 @@ export abstract class BrowserCrawler<
             throw e;
         }
         tryCancel();
-
-        if (session) session.markGood();
     }
 
     protected _enhanceCrawlingContextWithPageInfo(
@@ -613,6 +625,7 @@ export abstract class BrowserCrawler<
                 options: enqueueOptions,
                 page,
                 requestQueue: await this.getRequestQueue(),
+                robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                 originalRequestUrl: crawlingContext.request.url,
                 finalRequestUrl: crawlingContext.request.loadedUrl,
             });
@@ -736,6 +749,7 @@ export abstract class BrowserCrawler<
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
                  */
                 (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
+                (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
             }
         }
 
@@ -777,6 +791,7 @@ interface EnqueueLinksInternalOptions {
     options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsTxtFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -786,6 +801,7 @@ export async function browserCrawlerEnqueueLinks({
     options,
     page,
     requestQueue,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -804,9 +820,10 @@ export async function browserCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsTxtFile,
         urls,
         baseUrl,
-        ...options,
+        ...(options as EnqueueLinksOptions),
     });
 }
 
@@ -815,7 +832,7 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 export async function extractUrlsFromPage(
-    // eslint-disable-next-line @typescript-eslint/ban-types
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     page: { $$eval: Function },
     selector: string,
     baseUrl: string,

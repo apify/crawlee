@@ -1,25 +1,26 @@
-import { URL } from 'url';
+import { URL } from 'node:url';
 
-import log_ from '@apify/log';
 import type {
     GlobInput,
     PseudoUrlInput,
     RegExpInput,
-    RequestTransform,
-    UrlPatternObject,
     RequestOptions,
     RequestProvider,
+    RequestTransform,
+    UrlPatternObject,
 } from '@crawlee/browser';
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
-    createRequests,
     createRequestOptions,
+    createRequests,
 } from '@crawlee/browser';
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
-import type { Page, Frame, Request, Route } from 'playwright';
+import type { Frame, Page, Request, Route } from 'playwright';
+
+import log_ from '@apify/log';
 
 const STARTING_Z_INDEX = 2147400000;
 const log = log_.child({ prefix: 'Playwright Click Elements' });

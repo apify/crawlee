@@ -1,4 +1,4 @@
-import { Statistics, Configuration, EventType } from '@crawlee/core';
+import { Configuration, EventType, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
@@ -22,7 +22,7 @@ describe('Statistics', () => {
 
     afterEach(async () => {
         events.off(EventType.PERSIST_STATE);
-        stats = null;
+        stats = null as any;
     });
 
     afterAll(async () => {
@@ -281,11 +281,11 @@ describe('Statistics', () => {
     });
 
     test('should regularly log stats', async () => {
-        const logged: [string, Dictionary?][] = [];
+        const logged: [string, Dictionary | undefined | null][] = [];
         // @ts-expect-error Accessing private prop
         const infoSpy = vitest.spyOn(stats.log, 'info');
-        infoSpy.mockImplementation((...args: [message: string, data?: Record<string, any>]) => {
-            logged.push(args);
+        infoSpy.mockImplementation((message: string, data?: Record<string, any> | null) => {
+            logged.push([message, data]);
         });
 
         stats.startJob(0);

@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 
-import { LinkeDOMCrawler, Dataset } from '@crawlee/linkedom';
+import { Dataset, LinkeDOMCrawler } from '@crawlee/linkedom';
 import { Actor } from 'apify';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
@@ -15,16 +15,16 @@ const crawler = new LinkeDOMCrawler();
 crawler.router.addDefaultHandler(async ({ document, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
-        globs: ['https://crawlee.dev/docs/**'],
+        globs: ['https://crawlee.dev/js/docs/**'],
     });
 
-    const pageTitle = document.title;
+    const pageTitle = document.querySelector('title')?.textContent ?? '';
     assert.notEqual(pageTitle, '');
     log.info(`URL: ${url} TITLE: ${pageTitle}`);
 
     await Dataset.pushData({ url, pageTitle });
 });
 
-await crawler.run(['https://crawlee.dev/docs/quick-start']);
+await crawler.run(['https://crawlee.dev/js/docs/quick-start']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

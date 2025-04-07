@@ -1,18 +1,19 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
-import { jsonStringifyExtended } from '@apify/utilities';
 import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
+import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
+import { jsonStringifyExtended } from '@apify/utilities';
+
+import { Configuration } from '../configuration';
+import type { Awaitable } from '../typedefs';
 import { checkStorageAccess } from './access_checking';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
-import { Configuration } from '../configuration';
-import type { Awaitable } from '../typedefs';
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -30,7 +31,7 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
         } catch (e) {
             const error = e as Error;
             // Give more meaningful error message
-            if (error.message?.indexOf('Invalid string length') >= 0) {
+            if (error.message?.includes('Invalid string length')) {
                 error.message = 'Object is too large';
             }
             throw new Error(`The "value" parameter cannot be stringified to JSON: ${error.message}`);
@@ -106,6 +107,7 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
+    readonly storageObject?: Record<string, unknown>;
     private readonly client: KeyValueStoreClient;
     private persistStateEventStarted = false;
 
@@ -121,6 +123,7 @@ export class KeyValueStore {
     ) {
         this.id = options.id;
         this.name = options.name;
+        this.storageObject = options.storageObject;
         this.client = options.client.keyValueStore(this.id);
     }
 
@@ -336,7 +339,7 @@ export class KeyValueStore {
         if (
             options.contentType &&
             !(
-                ow.isValid(value, ow.any(ow.string, ow.buffer)) ||
+                ow.isValid(value, ow.any(ow.string, ow.uint8Array)) ||
                 (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')
             )
         ) {
@@ -708,6 +711,7 @@ export interface KeyValueStoreOptions {
     id: string;
     name?: string;
     client: StorageClient;
+    storageObject?: Record<string, unknown>;
 }
 
 export interface RecordOptions {

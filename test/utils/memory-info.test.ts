@@ -1,9 +1,8 @@
-import { readFile, access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';
-import { getMemoryInfo } from '@crawlee/utils';
-import { isDocker } from '@crawlee/utils/src/internals/general';
+import { getMemoryInfo, isDocker } from '@crawlee/utils';
 
 vitest.mock('node:os', async (importActual) => {
     const originalOs: typeof import('node:os') = await importActual();
@@ -15,7 +14,7 @@ vitest.mock('node:os', async (importActual) => {
 });
 
 vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {
-    const original: typeof import('@crawlee/utils/src/internals/general') = await importActual();
+    const original: typeof import('@crawlee/utils') = await importActual();
 
     return {
         ...original,
@@ -94,7 +93,8 @@ describe('getMemoryInfo()', () => {
         freememSpy.mockReturnValueOnce(222);
         totalmemSpy.mockReturnValueOnce(333);
 
-        let browser: Awaited<ReturnType<typeof launchPuppeteer>>;
+        let browser!: Awaited<ReturnType<typeof launchPuppeteer>>;
+
         try {
             browser = await launchPuppeteer();
             const data = await getMemoryInfo();
@@ -133,7 +133,7 @@ describe('getMemoryInfo()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        let browser: Awaited<ReturnType<typeof launchPuppeteer>>;
+        let browser!: Awaited<ReturnType<typeof launchPuppeteer>>;
         try {
             browser = await launchPuppeteer();
             const data = await getMemoryInfo();

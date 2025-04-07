@@ -1,30 +1,30 @@
-import { readFile } from 'fs/promises';
+import { readFile } from 'node:fs/promises';
 
 import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
 
-import type { PuppeteerNewPageOptions } from './puppeteer-controller';
-import { PuppeteerController } from './puppeteer-controller';
 import type { BrowserController } from '../abstract-classes/browser-controller';
 import { BrowserPlugin } from '../abstract-classes/browser-plugin';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import { noop } from '../utils';
+import type { PuppeteerNewPageOptions } from './puppeteer-controller';
+import { PuppeteerController } from './puppeteer-controller';
 
 const PROXY_SERVER_ARG = '--proxy-server=';
 
 export class PuppeteerPlugin extends BrowserPlugin<
     typeof Puppeteer,
-    PuppeteerTypes.PuppeteerLaunchOptions,
+    PuppeteerTypes.LaunchOptions,
     PuppeteerTypes.Browser,
     PuppeteerNewPageOptions
 > {
     protected async _launch(
         launchContext: LaunchContext<
             typeof Puppeteer,
-            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.LaunchOptions,
             PuppeteerTypes.Browser,
             PuppeteerNewPageOptions
         >,
@@ -190,7 +190,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
     protected _createController(): BrowserController<
         typeof Puppeteer,
-        PuppeteerTypes.PuppeteerLaunchOptions,
+        PuppeteerTypes.LaunchOptions,
         PuppeteerTypes.Browser,
         PuppeteerNewPageOptions
     > {
@@ -200,7 +200,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
     protected async _addProxyToLaunchOptions(
         _launchContext: LaunchContext<
             typeof Puppeteer,
-            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.LaunchOptions,
             PuppeteerTypes.Browser,
             PuppeteerNewPageOptions
         >,
@@ -235,7 +235,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
     protected _isChromiumBasedBrowser(
         _launchContext: LaunchContext<
             typeof Puppeteer,
-            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.LaunchOptions,
             PuppeteerTypes.Browser,
             PuppeteerNewPageOptions
         >,

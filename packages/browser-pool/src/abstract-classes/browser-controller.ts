@@ -1,13 +1,14 @@
-import { tryCancel } from '@apify/timeout';
 import type { Cookie, Dictionary } from '@crawlee/types';
 import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
-import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
+import { tryCancel } from '@apify/timeout';
+
 import { BROWSER_CONTROLLER_EVENTS } from '../events';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import type { UnwrapPromise } from '../utils';
+import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 

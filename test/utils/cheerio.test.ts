@@ -1,6 +1,6 @@
 import type { CheerioRoot } from '@crawlee/utils';
 import { htmlToText } from '@crawlee/utils';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 
 import * as htmlToTextData from '../shared/data/html_to_text_test_data';
 
@@ -32,10 +32,12 @@ const checkHtmlToText = (html: string | CheerioRoot, expectedText: string, hasBo
 
 describe('htmlToText()', () => {
     test('handles invalid args', () => {
+        // @ts-expect-error invalid input type
         checkHtmlToText(null, '');
         checkHtmlToText('', '');
-        // @ts-expect-error
+        // @ts-expect-error invalid input type
         checkHtmlToText(0, '');
+        // @ts-expect-error invalid input type
         checkHtmlToText(undefined, '');
     });
 

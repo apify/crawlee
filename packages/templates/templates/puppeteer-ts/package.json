@@ -10,8 +10,8 @@
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
         "tsx": "^4.4.0",
-        "typescript": "~5.4.0",
-        "@types/node": "^20.0.0"
+        "typescript": "~5.8.0",
+        "@types/node": "^22.0.0"
     },
     "scripts": {
         "start": "npm run start:dev",

@@ -1,16 +1,17 @@
+import ow from 'ow';
+
 import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
-import ow from 'ow';
 
+import { Configuration } from '../configuration';
+import { CriticalError } from '../errors';
+import { log as defaultLog } from '../log';
 import type { SnapshotterOptions } from './snapshotter';
 import { Snapshotter } from './snapshotter';
 import type { SystemInfo, SystemStatusOptions } from './system_status';
 import { SystemStatus } from './system_status';
-import { Configuration } from '../configuration';
-import { CriticalError } from '../errors';
-import { log as defaultLog } from '../log';
 
 export interface AutoscaledPoolOptions {
     /**
@@ -245,8 +246,8 @@ export class AutoscaledPool {
             minConcurrency = 1,
             desiredConcurrency,
             desiredConcurrencyRatio = 0.9,
-            scaleUpStepRatio = 0.1,
-            scaleDownStepRatio = 0.1,
+            scaleUpStepRatio = 0.05,
+            scaleDownStepRatio = 0.05,
             maybeRunIntervalSecs = 0.5,
             loggingIntervalSecs = 60,
             taskTimeoutSecs = 0,
@@ -348,7 +349,7 @@ export class AutoscaledPool {
     }
 
     /**
-     * Gets the the number of parallel tasks currently running in the pool.
+     * Gets the number of parallel tasks currently running in the pool.
      */
     get currentConcurrency(): number {
         return this._currentConcurrency;
@@ -420,7 +421,7 @@ export class AutoscaledPool {
     async pause(timeoutSecs?: number): Promise<void> {
         if (this.isStopped) return;
         this.isStopped = true;
-        return new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             let timeout: NodeJS.Timeout;
             if (timeoutSecs) {
                 timeout = setTimeout(() => {
@@ -573,6 +574,8 @@ export class AutoscaledPool {
                 this.reject(err);
             }
         }
+
+        return undefined;
     }
 
     /**
@@ -624,7 +627,7 @@ export class AutoscaledPool {
         }
 
         // Start a new interval cycle.
-        intervalCallback();
+        return intervalCallback();
     }
 
     /**

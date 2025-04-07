@@ -1,12 +1,12 @@
-import fs from 'fs';
-import type { Server } from 'http';
-import path from 'path';
-import { setTimeout } from 'timers/promises';
+import fs from 'node:fs';
+import type { Server } from 'node:http';
+import path from 'node:path';
+import { setTimeout } from 'node:timers/promises';
 
 import bodyParser from 'body-parser';
 import { entries } from 'crawlee';
-import express from 'express';
 import type { Application } from 'express';
+import express from 'express';
 
 export const startExpressAppPromise = async (app: Application, port: number) => {
     return new Promise<Server>((resolve) => {
@@ -172,6 +172,53 @@ console.log('Hello world!');
     </div>
 </body>
 </html>`,
+    outsideIframe: `
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>Outside iframe</title>
+        </head>
+        <body>
+            <h1>Outside iframe</h1>
+            <iframe src="./inside-iframe"></iframe>
+        </body>
+    </html>`,
+    insideIframe: `
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>In iframe</title>
+        </head>
+        <body>
+            <h1>In iframe</h1>
+            <p>Some content from inside of an iframe.</p>
+        </body>
+    </html>`,
+    shadowRoots: `
+    <html>
+    <body>
+        <div id="open-container">
+            <template shadowrootmode="open">
+                <p>[GOOD] This is inside the OPEN shadow DOM.</p>
+                <div>
+                    <template shadowrootmode="open">
+                        <p>[GOOD] This is inside of inside of the OPEN shadow DOM.</p>
+                    </template>
+                </div>
+            </template>
+        </div>
+        <div id="closed-container">
+            <template shadowrootmode="closed">
+                <p>[BAD] This is inside the CLOSED shadow DOM.</p>
+                <div>
+                    <template shadowrootmode="open">
+                        <p>[BAD] This is inside of inside of the CLOSED shadow DOM.</p>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </body>
+    </html>`,
 };
 
 export async function runExampleComServer(): Promise<[Server, number]> {
@@ -197,7 +244,7 @@ export async function runExampleComServer(): Promise<[Server, number]> {
             res.json({
                 headers: req.headers,
                 method: req.method,
-                bodyLength: +req.headers['content-length'] || 0,
+                bodyLength: +(req.headers['content-length'] ?? 0),
             });
         });
 
@@ -267,6 +314,22 @@ export async function runExampleComServer(): Promise<[Server, number]> {
 
         special.get('/cloudflareBlocking', async (_req, res) => {
             res.type('html').status(403).send(responseSamples.cloudflareBlocking);
+        });
+
+        special.get('/outside-iframe', (_req, res) => {
+            res.type('html').send(responseSamples.outsideIframe);
+        });
+
+        special.get('/inside-iframe', (_req, res) => {
+            res.type('html').send(responseSamples.insideIframe);
+        });
+
+        special.get('/shadow-root', (_req, res) => {
+            res.type('html').send(responseSamples.shadowRoots);
+        });
+
+        special.get('/html-entities', (_req, res) => {
+            res.type('html').send('&quot;&lt;&gt;"<>');
         });
     })();
 

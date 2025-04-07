@@ -2,15 +2,15 @@ import type { Dictionary } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
-import { KeyValueStore } from './key_value_store';
-import { purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events';
 import { EventType } from '../events';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
-import { type InternalSource, type RequestOptions, Request, type Source } from '../request';
+import { type InternalSource, Request, type RequestOptions, type Source } from '../request';
 import { createDeserialize, serializeArray } from '../serialization';
+import { KeyValueStore } from './key_value_store';
+import { purgeDefaultStorages } from './utils';
 
 /** @internal */
 export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
@@ -19,6 +19,80 @@ export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
+
+/**
+ * Represents a static list of URLs to crawl.
+ */
+export interface IRequestList {
+    /**
+     * Returns the total number of unique requests present in the list.
+     */
+    length(): number;
+
+    /**
+     * Returns `true` if all requests were already handled and there are no more left.
+     */
+    isFinished(): Promise<boolean>;
+
+    /**
+     * Resolves to `true` if the next call to {@apilink IRequestList.fetchNextRequest} function
+     * would return `null`, otherwise it resolves to `false`.
+     * Note that even if the list is empty, there might be some pending requests currently being processed.
+     */
+    isEmpty(): Promise<boolean>;
+
+    /**
+     * Returns number of handled requests.
+     */
+    handledCount(): number;
+
+    /**
+     * Persists the current state of the `IRequestList` into the default {@apilink KeyValueStore}.
+     * The state is persisted automatically in regular intervals, but calling this method manually
+     * is useful in cases where you want to have the most current state available after you pause
+     * or stop fetching its requests. For example after you pause or abort a crawl. Or just before
+     * a server migration.
+     */
+    persistState(): Promise<void>;
+
+    /**
+     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
+     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
+     * Otherwise it gets the next request from sources.
+     *
+     * The function's `Promise` resolves to `null` if there are no more
+     * requests to process.
+     */
+    fetchNextRequest(): Promise<Request | null>;
+
+    /**
+     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
+     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
+     * Otherwise it gets the next request from sources.
+     *
+     * The function resolves to `null` if there are no more requests to process.
+     *
+     * Can be used to iterate over the `RequestList` instance in a `for await .. of` loop.
+     * Provides an alternative for the repeated use of `fetchNextRequest`.
+     */
+    [Symbol.asyncIterator](): AsyncGenerator<Request>;
+
+    /**
+     * Reclaims request to the list if its processing failed.
+     * The request will become available in the next `this.fetchNextRequest()`.
+     */
+    reclaimRequest(request: Request): Promise<void>;
+
+    /**
+     * Marks request as handled after successful processing.
+     */
+    markRequestHandled(request: Request): Promise<void>;
+
+    /**
+     * @internal
+     */
+    inProgress: Set<string>;
+}
 
 export interface RequestListOptions {
     /**
@@ -50,7 +124,7 @@ export interface RequestListOptions {
      *
      *     // Get list of URLs from a Google Sheets document. Just add "/gviz/tq?tqx=out:csv" to the Google Sheet URL.
      *     // For details, see https://help.apify.com/en/articles/2906022-scraping-a-list-of-urls-from-a-google-sheets-document
-     *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
+     *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1-2mUcRAiBbCTVA5KcpFdEYWflLMLp9DDU3iJutvES4w/gviz/tq?tqx=out:csv' }
      * ]
      * ```
      */
@@ -229,7 +303,7 @@ export interface RequestListOptions {
  * ```
  * @category Sources
  */
-export class RequestList {
+export class RequestList implements IRequestList {
     private log = log.child({ prefix: 'RequestList' });
 
     /**
@@ -431,11 +505,7 @@ export class RequestList {
     }
 
     /**
-     * Persists the current state of the `RequestList` into the default {@apilink KeyValueStore}.
-     * The state is persisted automatically in regular intervals, but calling this method manually
-     * is useful in cases where you want to have the most current state available after you pause
-     * or stop fetching its requests. For example after you pause or abort a crawl. Or just before
-     * a server migration.
+     * @inheritDoc
      */
     async persistState(): Promise<void> {
         if (!this.persistStateKey) {
@@ -570,9 +640,7 @@ export class RequestList {
     }
 
     /**
-     * Resolves to `true` if the next call to {@apilink RequestList.fetchNextRequest} function
-     * would return `null`, otherwise it resolves to `false`.
-     * Note that even if the list is empty, there might be some pending requests currently being processed.
+     * @inheritDoc
      */
     async isEmpty(): Promise<boolean> {
         this._ensureIsInitialized();
@@ -581,7 +649,7 @@ export class RequestList {
     }
 
     /**
-     * Returns `true` if all requests were already handled and there are no more left.
+     * @inheritDoc
      */
     async isFinished(): Promise<boolean> {
         this._ensureIsInitialized();
@@ -590,12 +658,7 @@ export class RequestList {
     }
 
     /**
-     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
-     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
-     * Otherwise it gets the next request from sources.
-     *
-     * The function's `Promise` resolves to `null` if there are no more
-     * requests to process.
+     * @inheritDoc
      */
     async fetchNextRequest(): Promise<Request | null> {
         this._ensureIsInitialized();
@@ -621,6 +684,17 @@ export class RequestList {
         return null;
     }
 
+    /**
+     * @inheritDoc
+     */
+    async *[Symbol.asyncIterator]() {
+        while (true) {
+            const req = await this.fetchNextRequest();
+            if (!req) break;
+            yield req;
+        }
+    }
+
     private ensureRequest(requestLike: Request | RequestOptions, index: number): Request {
         if (requestLike instanceof Request) {
             return requestLike;
@@ -631,7 +705,7 @@ export class RequestList {
     }
 
     /**
-     * Marks request as handled after successful processing.
+     * @inheritDoc
      */
     async markRequestHandled(request: Request): Promise<void> {
         const { uniqueKey } = request;
@@ -645,8 +719,7 @@ export class RequestList {
     }
 
     /**
-     * Reclaims request to the list if its processing failed.
-     * The request will become available in the next `this.fetchNextRequest()`.
+     * @inheritDoc
      */
     async reclaimRequest(request: Request): Promise<void> {
         const { uniqueKey } = request;
@@ -745,7 +818,7 @@ export class RequestList {
         this._ensureUniqueKeyValid(uniqueKey);
 
         // Skip requests with duplicate uniqueKey
-        if (!this.uniqueKeyToIndex.hasOwnProperty(uniqueKey)) {
+        if (!Object.hasOwn(this.uniqueKeyToIndex, uniqueKey)) {
             this.uniqueKeyToIndex[uniqueKey] = this.requests.length;
             this.requests.push(request);
         } else if (this.keepDuplicateUrls) {
@@ -798,7 +871,7 @@ export class RequestList {
     }
 
     /**
-     * Returns number of handled requests.
+     * @inheritDoc
      */
     handledCount(): number {
         this._ensureIsInitialized();

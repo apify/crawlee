@@ -1,21 +1,22 @@
 /* eslint-disable dot-notation -- Accessing private properties */
-import http from 'http';
-import { promisify } from 'util';
+import http from 'node:http';
+import { promisify } from 'node:util';
 
-import { addTimeoutToPromise } from '@apify/timeout';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Page } from 'puppeteer';
 import puppeteer from 'puppeteer';
 
-import { createProxyServer } from './browser-plugins/create-proxy-server';
+import { addTimeoutToPromise } from '@apify/timeout';
+
 import type { BrowserController } from '../../packages/browser-pool/src/abstract-classes/browser-controller';
 import { BrowserPool } from '../../packages/browser-pool/src/browser-pool';
 import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events';
 import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/src/fingerprinting/types';
 import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin';
 import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin';
+import { createProxyServer } from './browser-plugins/create-proxy-server';
 
 const fingerprintingMatrix: [string, PlaywrightPlugin | PuppeteerPlugin][] = [
     [
@@ -592,7 +593,7 @@ describe.each([
                                 fingerprintCacheSize: 1,
                             },
                         });
-                        // cast to any type in order to acces the maxSize property for testing purposes.
+                        // cast to any type in order to access the maxSize property for testing purposes.
                         const cache: any = browserPoolCache!.fingerprintCache!;
                         expect(cache.maxSize).toBe(1);
                     });
@@ -637,11 +638,11 @@ describe.each([
                         ...commonOptions,
                         useFingerprints: true,
                     });
-                    const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
+                    const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
                     const mock = vitest.fn((options) => {
                         return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
                     });
-                    browserPoolConfig.fingerprintGenerator.getFingerprint = mock;
+                    browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
 
                     const page: Page = await browserPoolConfig.newPage();
                     await page.close();
@@ -674,11 +675,11 @@ describe.each([
                             },
                         },
                     });
-                    const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
+                    const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
                     const mock = vitest.fn((options) => {
                         return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
                     });
-                    browserPoolConfig.fingerprintGenerator.getFingerprint = mock;
+                    browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
                     const page: Page = await browserPoolConfig.newPageInNewBrowser();
                     await page.close();
                     const [options] = mock.mock.calls[0];

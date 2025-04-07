@@ -1,11 +1,12 @@
-import { tryCancel } from '@apify/timeout';
 import type { Cookie } from '@crawlee/types';
 import type { Browser, BrowserType, Page } from 'playwright';
 
-import type { PlaywrightPlugin } from './playwright-plugin';
+import { tryCancel } from '@apify/timeout';
+
 import { BrowserController } from '../abstract-classes/browser-controller';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 import type { SafeParameters } from '../utils';
+import type { PlaywrightPlugin } from './playwright-plugin';
 
 const tabIds = new WeakMap<Page, number>();
 const keyFromTabId = (tabId: string | number) => `.${tabId}.`;
@@ -94,20 +95,19 @@ export class PlaywrightController extends BrowserController<
                     const session = await page.context().newCDPSession(page);
                     await session.send('Network.enable');
 
-                    session.on('Network.responseReceived', (responseRecevied) => {
+                    session.on('Network.responseReceived', (responseReceived) => {
                         const logOnly = ['Document', 'XHR', 'Fetch', 'EventSource', 'WebSocket', 'Other'];
-                        if (!logOnly.includes(responseRecevied.type)) {
+                        if (!logOnly.includes(responseReceived.type)) {
                             return;
                         }
 
-                        const { response } = responseRecevied;
+                        const { response } = responseReceived;
                         if (response.fromDiskCache || response.fromPrefetchCache || response.fromServiceWorker) {
                             return;
                         }
 
                         const { remoteIPAddress } = response;
                         if (remoteIPAddress && remoteIPAddress !== proxyip) {
-                            // eslint-disable-next-line no-console
                             console.warn(
                                 `Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`,
                             );

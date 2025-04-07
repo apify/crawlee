@@ -2,7 +2,7 @@
 
 html[data-theme='dark'] {
     --ifm-navbar-background-color: #1a1b23;
-    --ifm-background-color: #1a1b23;
+    --ifm-background-color: #1a1b21;
     --ifm-background-surface-color: #242736;
 
     --ifm-font-color-base: #f2f3fb;
@@ -13,24 +13,50 @@ html[data-theme='dark'] {
     --ifm-link-color: #5d9df1;
     --ifm-heading-color: #f2f3fb;
     --ifm-navbar-link-color: #f2f3fb;
+    --ifm-menu-color-active: #b2b8cc;
 
-    --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
-    --docsearch-text-color: #8d92af;
+    --docsearch-text-color: #8c93a8;
+    --docsearch-highlight-color: #f3f4fa;
+
+    --color-background: #1a1b21;
+    --color-background-subtle: #2a2d39;
+    --color-background-muted: #252832;
+    --color-field-background: #101114;
+    --color-separator: #343847;
+    --color-border: #414758;
+    --color-card-background: #1e2027;
+    --color-card-background-hover: #252832;
+    --color-text: #f3f4fa;
+    --color-text-subtle: #8c93a8;
+    --color-text-muted: #b2b8cc;
+    --color-text-on-primary: #1a1b21;
+    --color-text-placeholder: #6e758a;
+    --color-black-action: #fff;
+    --color-icon: #b2b8cc;
+    --color-hover: #2d313e;
+    --color-primary-action-hover: #d1d5e4;
 }
 
 :root {
     /* use default system font based on https://devhints.io/css-system-font-stack */
-    --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --ifm-font-family-base:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
     --ifm-heading-font-family: 'Lota Grotesque', sans-serif;
     --ifm-font-weight-semibold: 600;
     --ifm-font-color-base: #242736;
 
-    --ifm-navbar-item-padding-horizontal: 1.75rem;
+    --ifm-navbar-item-padding-horizontal: 0;
+    --ifm-navbar-item-padding-vertical: 0;
+
     --ifm-navbar-link-color: #41465d;
     --ifm-navbar-shadow: none;
 
     --ifm-heading-margin-top: var(--ifm-heading-margin-bottom);
     --ifm-hero-background-color: transparent;
+
+    --ifm-navbar-sidebar-width: 100%;
 
     --ifm-code-background: var(--ifm-pre-background) !important;
     --ifm-code-padding-horizontal: 0.4rem;
@@ -52,70 +78,89 @@ html[data-theme='dark'] {
     --ifm-footer-background-color: #272c3d;
     --ifm-footer-title-color: #f2f3fb;
     --ifm-footer-link-color: #f2f3fb;
+    --ifm-menu-color-active: #555d76;
     --max-layout-width: 1680px;
 
-    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+    --docusaurus-highlighted-code-line-bg: rgba(0, 255, 77, 0.1);
+    --docsearch-highlight-color: #242836;
 
     --ifm-heading-color: #242736;
+
+    --docsearch-text-color: #6c7590;
+    --docsearch-highlight-color: #242836;
+
+    --color-background: #fff;
+    --color-background-subtle: #f3f4fa;
+    --color-background-muted: #f8f9fc;
+    --color-field-background: #f8f9fc;
+    --color-separator: #e0e3f2;
+    --color-border: #d0d5e9;
+    --color-card-background: #fff;
+    --color-card-background-hover: #f8f9fc;
+    --color-text: #242836;
+    --color-text-subtle: #6c7590;
+    --color-text-muted: #555d76;
+    --color-text-on-primary: #fff;
+    --color-text-placeholder: #969eb8;
+    --color-black-action: #272d3e;
+    --color-icon: #555d76;
+    --color-hover: #eef0f8;
+    --color-primary-action-hover: #2b3143;
 }
 
 @font-face {
     font-family: 'Lota Grotesque';
-    src: url('/font/lota.woff2') format('woff2'),
-         url('/font/lota.woff') format('woff');
+    src:
+        url('/font/lota.woff2') format('woff2'),
+        url('/font/lota.woff') format('woff');
     font-weight: 600;
 }
 
-.footer__title {
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.footer__bottom a {
-    opacity: 0.75;
-}
-
-.footer__copyright {
-    color: var(--ifm-footer-title-color);
-}
-
-.navbar__title {
-    /* Replaced by SVG */
-    display: none;
-}
-
-.navbar__inner {
-    /* .container */
-    max-width: calc(var(--max-layout-width) - 32px);
-    padding: 0 var(--ifm-spacing-horizontal);
-    width: 100%;
-}
-
-.DocSearch-Button-Placeholder {
-    font-size: 14px !important;
+footer,
+nav {
+    --max-layout-width: 1200px;
 }
 
 html .DocSearch-Button {
     border-radius: 6px !important;
     font-weight: 400 !important;
-    background: #f9fafd;
-    border: 1px solid #c1c6dd;
+    background: var(--color-field-background) !important;
+    border: 1px solid var(--color-border) !important;
+    width: 256px;
+    height: 40px;
+    padding: 0;
+    padding-inline: 4px;
 
     /* Annoying, but needed */
     /* https://stackoverflow.com/questions/26140050/why-is-font-family-not-inherited-in-button-tags-automatically/26140154 */
     font-family: inherit;
+    color: var(--color-text-placeholder);
+
+    &:hover {
+        color: var(--color-text-muted);
+        box-shadow: none !important;
+        background: var(--color-field-background) !important;
+    }
+}
+.DocSearch-Button-Placeholder {
+    display: block !important;
+    font-size: 16px !important;
 }
 
-html .DocSearch-Button .DocSearch-Search-Icon {
-    color: var(--docsearch-muted-color);
+.DocSearch-Search-Icon {
+    display: none;
 }
 
-html[data-theme="dark"] .DocSearch-Button {
+div[class*='navbarSearchContainer'] {
+    position: static;
+}
+
+html[data-theme='dark'] .DocSearch-Button {
     background: none;
     border: 1px solid var(--docsearch-muted-color);
 }
 
-html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
+html[data-theme='dark'] .DocSearch-Button .DocSearch-Search-Icon {
     color: var(--docsearch-muted-color);
 }
 
@@ -123,7 +168,8 @@ html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
     box-shadow: none !important;
 }
 
-.navbar, .main-wrapper {
+.navbar,
+.main-wrapper {
     justify-content: center;
 }
 
@@ -143,19 +189,121 @@ aside > div > a > b {
     display: none;
 }
 
+@media (max-width: 1200px) {
+    .navbar__toggle {
+        display: inherit;
+    }
+    .navbar__item {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .navbar__items--right > div,
+    .navbar__items--right > a {
+        display: none;
+    }
+}
+
+.navbar__toggle {
+    margin: 0;
+    padding: 8px !important;
+
+    svg {
+        color: var(--color-icon);
+        width: 20px;
+        height: 20px;
+    }
+}
+
+.navbar__title {
+    /* Replaced by SVG */
+    display: none;
+}
+
+.navbar__inner {
+    /* .container */
+    max-width: var(--max-layout-width);
+    margin: auto;
+    width: 100%;
+}
+
+.navbar__items {
+    height: 28px;
+    @media (min-width: 768px) {
+        height: 40px;
+    }
+}
+
+.navbar__items--right {
+    gap: 16px;
+}
+
+.navbar__item,
+.navbar__link {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px; /* 150% */
+    color: var(--color-text);
+    border-radius: 12px;
+
+    &:hover,
+    &:focus {
+        color: var(--color-text-muted);
+        background: var(--color-background-muted);
+    }
+}
+
+.navbar__item {
+    padding: 4px 8px;
+}
+
+.navbar__item.dropdown {
+    padding: 4px 16px 4px 8px;
+    a {
+        display: inline-flex;
+    }
+}
+
+.navbar__link--active {
+    color: var(--color-text-muted);
+    background: var(--color-background-muted);
+}
+
 .dropdown > .navbar__link::after {
     border-color: currentColor;
     border-style: solid;
     border-width: 0.1em 0.1em 0 0;
     content: '';
     display: inline-block;
-    height: 0.4em;
+    height: 0.3em;
     left: 0.3em;
     position: relative;
     vertical-align: top;
-    width: 0.4em;
-    top: 9px;
+    width: 0.3em;
+    top: 8px;
     transform: rotate(135deg);
+}
+
+.navbar {
+    border-bottom: 1px solid var(--color-separator);
+    height: auto;
+    background: var(--color-background);
+
+    padding: 16px;
+
+    @media (min-width: 768px) {
+        padding: 20px 40px;
+    }
+    @media (min-width: 1024px) {
+        padding: 20px 64px;
+    }
+}
+
+nav[class*='navbarHidden'] {
+    div[class*='navbarLogo'] {
+        display: none;
+    }
 }
 
 .navbar .icon {
@@ -173,28 +321,28 @@ aside > div > a > b {
     background-size: cover;
 }
 
-.navbar .icon[href*=github]::before {
+.navbar .icon[href*='github']::before {
     background-image: url('/static/img/github-brand.svg');
 }
 
-html[data-theme="dark"] .navbar .navbar__link[href*=github]:before {
+html[data-theme='dark'] .navbar .navbar__link[href*='github']:before {
     background-image: url('/static/img/github-brand-dark.svg');
 }
 
-.navbar .icon[href*=discord]::before {
+.navbar .icon[href*='discord']::before {
     background-image: url('/static/img/discord-brand.svg');
 }
 
-html[data-theme="dark"] .navbar .navbar__link[href*=discord]:before {
+html[data-theme='dark'] .navbar .navbar__link[href*='discord']:before {
     background-image: url('/static/img/discord-brand-dark.svg');
 }
 
-.navbar svg[class*=iconExternalLink],
-aside svg[class*=iconExternalLink] {
+.navbar svg[class*='iconExternalLink'],
+aside svg[class*='iconExternalLink'] {
     display: none;
 }
 
-header.hero div[class^=heroButtons] {
+header.hero div[class^='heroButtons'] {
     justify-content: inherit;
 }
 
@@ -214,6 +362,7 @@ article .card h2 {
 
 .tsd-flag {
     user-select: none;
+    margin-right: 8px;
 }
 
 .menu__caret:before,
@@ -226,7 +375,26 @@ article .card h2 {
 }
 
 nav.navbar .dropdown__menu {
+    top: 32px;
     min-width: 6rem;
+    background: var(--color-card-background);
+    border: 1px solid var(--color-border);
+}
+
+.dropdown__menu .dropdown__link {
+    width: 100%;
+    border-radius: 8px;
+}
+
+.dropdown__menu .dropdown__link--active {
+    color: var(--color-text-muted);
+    background: var(--color-background-muted);
+}
+
+.dropdown__menu .dropdown__link:hover,
+.dropdown__menu .dropdown__link--active:hover {
+    background: var(--color-background-muted);
+    color: var(--color-text-muted);
 }
 
 .navbar__logo {
@@ -242,11 +410,18 @@ nav.navbar .dropdown__menu {
 }
 
 .main-wrapper a[class*='sidebarLogo'] img {
-    height: 3rem;
+    height: 28px;
+    margin-top: 4px;
+    margin-bottom: 24px;
+    margin-left: 24px;
 }
 
 .main-wrapper a[class*='sidebarLogo'] b {
     display: none;
+}
+
+div[class*='sidebarViewport'] {
+    top: 22px;
 }
 
 html.plugin-pages {
@@ -256,7 +431,12 @@ html.plugin-pages {
 
 html.plugin-pages h2 {
     font-size: 36px;
-    line-height: 48px;
+    line-height: 46px;
+
+    @media (min-width: 768px) {
+        font-size: 48px;
+        line-height: 56px;
+    }
 }
 
 html.plugin-docs .theme-doc-markdown {
@@ -316,6 +496,7 @@ html.plugin-docs .theme-doc-markdown h3 {
 
 .theme-doc-sidebar-menu .menu__link--active {
     font-weight: 700;
+    color: var(--color-text-muted);
 }
 
 .theme-doc-sidebar-menu .menu__list-item-collapsible,
@@ -328,12 +509,18 @@ html.plugin-docs .theme-doc-markdown h3 {
 }
 
 html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link,
-html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .toc-highlight {
+html[data-theme='dark']
+    .theme-doc-toc-desktop
+    .table-of-contents
+    .toc-highlight {
     color: #b3b8d2;
 }
 
 html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link--active,
-html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+html[data-theme='dark']
+    .theme-doc-toc-desktop
+    .table-of-contents
+    .table-of-contents__link--active {
     color: #f2f3fb;
 }
 
@@ -350,25 +537,6 @@ html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-cont
 
 .apiItemContainer .tsd-readme h1:first-child {
     display: none;
-}
-
-@media (min-width: 997px) and (max-width: 1250px) {
-    .navbar__items--right a.icon {
-        display: none;
-    }
-}
-
-@media (min-width: 997px) and (max-width: 1130px) {
-    .navbar__link.changelog {
-        display: none;
-    }
-}
-
-@media (min-width: 997px) and (max-width: 1439px) {
-    footer .col--offset-9 {
-        --ifm-col-width: calc(4 / 12 * 100%);
-        margin-left: calc(8 / 12 * 100%);
-    }
 }
 
 html .theme-doc-sidebar-container {
@@ -465,14 +633,340 @@ html[data-theme='dark'] .runnable-code-block svg .apify-logo {
 .prism-code.language-json .token-line::before,
 .prism-code.language-json5 .token-line::before,
 .prism-code.language-XML .token-line::before,
-.prism-code.language-js .token-line::before {
+.prism-code.language-js .token-line::before,
+.prism-code.language-python .token-line::before {
     counter-increment: line-number;
     content: counter(line-number);
     margin-right: calc(var(--ifm-pre-padding) * 0.8);
     text-align: right;
     min-width: 1.5rem;
     display: inline-block;
-    opacity: .3;
-    position: sticky;
+    opacity: 0.3;
     left: var(--ifm-pre-padding);
+}
+
+.crawlee-python {
+    border-radius: 100px;
+    background: #272c3d;
+    color: #f2f3fb;
+    padding: 5px 15px;
+    margin: 0 0 30px 0;
+    display: inline-block;
+    border: 1px solid #b3b8d2;
+}
+
+div[class^='announcementBar_'] {
+    background: #d05c29;
+    color: #fff;
+}
+
+div[class^='announcementBar_'] button {
+    color: #fff;
+}
+
+.markdown blockquote {
+    --ifm-alert-background-color: var(--ifm-color-info-contrast-background);
+    --ifm-alert-background-color-highlight: rgba(84, 199, 236, 0.15);
+    --ifm-alert-foreground-color: var(--ifm-color-info-contrast-foreground);
+    --ifm-alert-border-color: var(--ifm-color-info-dark);
+    --ifm-code-background: var(--ifm-alert-background-color-highlight);
+    --ifm-link-color: var(--ifm-alert-foreground-color);
+    --ifm-link-hover-color: var(--ifm-alert-foreground-color);
+    --ifm-link-decoration: underline;
+    --ifm-tabs-color: var(--ifm-alert-foreground-color);
+    --ifm-tabs-color-active: var(--ifm-alert-foreground-color);
+    --ifm-tabs-color-active-border: var(--ifm-alert-border-color);
+    background-color: var(--ifm-alert-background-color);
+    border: var(--ifm-alert-border-width) solid var(--ifm-alert-border-color);
+    border-left-width: var(--ifm-alert-border-left-width);
+    border-radius: var(--ifm-alert-border-radius);
+    box-shadow: var(--ifm-alert-shadow);
+    padding: var(--ifm-alert-padding-vertical)
+        var(--ifm-alert-padding-horizontal);
+}
+
+.DocSearch-Button-Key {
+    background: var(--color-background-subtle) !important;
+    box-shadow: none !important;
+    border: 1px solid var(--color-border) !important;
+    padding: 0 !important;
+    color: var(--color-text-muted) !important;
+}
+
+.navbar-sidebar__brand {
+    border-bottom: 1px solid var(--color-separator);
+    flex-direction: column;
+    height: auto;
+    padding: 0;
+}
+
+.menu-primary {
+    padding: 0;
+    .menu__list-item {
+        border-bottom: 1px solid var(--color-separator);
+        margin: 0px 24px !important;
+        a {
+            margin: 8px 0px 4px;
+            padding: 8px;
+        }
+        display: flex;
+    }
+    .menu__link {
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 24px;
+    }
+}
+
+.navbar-sidebar__close {
+    margin-left: 16px;
+    svg {
+        g {
+            stroke: var(--color-icon);
+        }
+        width: 32px;
+        height: 32px;
+        padding: 8px;
+    }
+}
+
+.DocSearch-Modal {
+    font-family: var(--ifm-font-family-base);
+
+    border-radius: 8px !important;
+    border: 1px solid var(--color-border) !important;
+    background: var(--color-card-background) !important;
+    box-shadow: none !important;
+
+    button {
+        font-family: var(--ifm-font-family-base);
+    }
+
+    .DocSearch-Logo {
+        display: none;
+    }
+
+    .DocSearch-Footer {
+        flex-direction: row;
+        border-top: 1px solid var(--color-border);
+        background: var(--color-background);
+        box-shadow: none;
+    }
+
+    .DocSearch-Label {
+        color: var(--color-text-subtle);
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 20px;
+    }
+
+    .DocSearch-Commands-Key {
+        border-radius: 4px;
+        border: 1px solid var(--color-border);
+        background: var(--color-background-subtle);
+        box-shadow: none;
+        g {
+            stroke: var(--color-text-subtle);
+        }
+    }
+
+    .DocSearch-Form {
+        border-radius: 6px;
+        border-radius: var(--Radius-6, 6px);
+        border: 1px solid var(--color-border);
+        background: var(--color-background);
+        box-shadow: none;
+        height: 40px;
+        padding: 8px 12px;
+        flex-direction: row-reverse;
+    }
+
+    .DocSearch-Input {
+        color: var(--color-text);
+        font-size: 14px;
+        line-height: 20px;
+        padding: 0;
+    }
+
+    .DocSearch-Input::placeholder {
+        color: var(--color-text-placeholder);
+        font-style: italic;
+    }
+
+    .DocSearch-Search-Icon {
+        width: 16px;
+        height: 16px;
+        path {
+            stroke: var(--color-text-muted);
+        }
+    }
+
+    .DocSearch-Reset {
+        display: none;
+    }
+
+    .DocSearch-Help {
+        color: var(--color-text-subtle);
+    }
+
+    .DocSearch-Hit-source {
+        color: var(--color-text-subtle);
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 20px;
+        padding-bottom: 4px;
+        padding-left: 12px;
+        background: var(--color-card-background);
+    }
+
+    .DocSearch-Hit {
+        background: transparent;
+        a {
+            background: transparent !important;
+            padding: 0;
+            box-shadow: none;
+        }
+        a:hover {
+            background: var(--color-hover) !important;
+        }
+    }
+
+    .DocSearch-Hit[aria-selected='true'] a {
+        background: var(--color-hover) !important;
+    }
+
+    .DocSearch-Hit-Container {
+        background: transparent;
+        height: 50px;
+    }
+
+    .DocSearch-Screen-Icon {
+        display: none;
+    }
+
+    .DocSearch-NoResults {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 16px 8px;
+        gap: 24px;
+
+        .DocSearch-Title {
+            color: var(--color-text);
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+            width: fit-content;
+            margin: 0;
+        }
+    }
+
+    .DocSearch-Hit[aria-selected='true'] .DocSearch-Hit-title,
+    .DocSearch-Hit-title {
+        color: var(--color-text) !important;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 24px; /* 150% */
+    }
+
+    .DocSearch-Hit[aria-selected='true'] .DocSearch-Hit-path,
+    .DocSearch-Hit-path,
+    .DocSearch-Hit[aria-selected='true'] .DocSearch-Hit-action,
+    .DocSearch-Hit-action,
+    .DocSearch-Hit[aria-selected='true'] .DocSearch-Hit-icon,
+    .DocSearch-Hit-icon,
+    .DocSearch-Hit[aria-selected='true'] .DocSearch-Hit-Tree,
+    .DocSearch-Hit-Tree {
+        color: var(--color-text-muted) !important;
+    }
+
+    .DocSearch-Hit[aria-selected='true'] mark,
+    .DocSearch-Hit mark {
+        color: var(--color-text-subtle) !important;
+    }
+
+    .DocSearch-Help {
+        color: var(--color-text-subtle);
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 16px;
+    }
+
+    .DocSearch-NoResults-Prefill-List {
+        padding: 0;
+        li {
+            list-style-type: none;
+            margin-top: 4px;
+        }
+    }
+
+    .DocSearch-Prefill {
+        color: var(--color-text);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 20px;
+        &:hover {
+            color: var(--color-text-subtle);
+            text-decoration: none;
+        }
+    }
+
+    .DocSearch-HitsFooter {
+        color: var(--color-text-subtle);
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 16px;
+
+        a {
+            border: none;
+        }
+
+        a:hover {
+            color: var(--color-text);
+        }
+    }
+
+    .DocSearch-Hit-icon {
+        margin-left: 8px;
+        width: auto;
+        height: auto;
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+    }
+
+    li[id*='recentSearches'] {
+        .DocSearch-Hit-icon {
+            display: none;
+        }
+    }
+
+    .DocSearch-SearchBar {
+        padding: 16px 16px 8px;
+    }
+
+    .DocSearch-Hit-Select-Icon {
+        display: none !important;
+    }
+
+    .DocSearch-Dropdown {
+        padding: 0 8px;
+    }
+
+    .DocSearch-Cancel {
+        color: var(--color-text-subtle);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 20px;
+        &:hover {
+            color: var(--color-text);
+        }
+    }
+
+    .DocSearch-NoResults-Prefill-List ul {
+        padding: 0;
+    }
 }

@@ -1,7 +1,8 @@
-import { Log } from '@apify/log';
-import { SessionPool, Session, KeyValueStore, Configuration, EventType } from '@crawlee/core';
+import { Configuration, EventType, KeyValueStore, Session, SessionPool } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import { Log } from '@apify/log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
@@ -134,7 +135,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool.sessions[0].id === session.id).toBe(true);
 
             // @ts-expect-error Overriding private property
-            session.errorScore += session.maxErrorScore;
+            session._errorScore += session.maxErrorScore;
             await sessionPool.getSession();
 
             // @ts-expect-error private symbol
@@ -166,12 +167,12 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.persistState();
 
         const kvStore = await KeyValueStore.open();
-        // @ts-expect-error private symbol
         const sessionPoolSaved = await kvStore.getValue<ReturnType<SessionPool['getState']>>(
+            // @ts-expect-error private symbol
             sessionPool.persistStateKey,
         );
 
-        entries(sessionPoolSaved).forEach(([key, value]) => {
+        entries(sessionPoolSaved!).forEach(([key, value]) => {
             if (key !== 'sessions') {
                 expect(value).toEqual(sessionPool[key]);
             }
@@ -180,7 +181,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         expect(sessionPoolSaved.sessions.length).toEqual(sessionPool.sessions.length);
 
-        sessionPoolSaved.sessions.forEach((session, index) => {
+        sessionPoolSaved!.sessions.forEach((session, index) => {
             entries(session).forEach(([key, value]) => {
                 // @ts-expect-error private symbol
                 if (sessionPool.sessions[index][key] instanceof Date) {
@@ -273,7 +274,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         const session = sessionPool.sessions[0];
         // @ts-expect-error Overriding private property
-        session.errorScore += session.maxErrorScore;
+        session._errorScore += session.maxErrorScore;
         const { id: retiredSessionId } = session;
 
         await sessionPool.getSession();
@@ -289,7 +290,7 @@ describe('SessionPool - testing session pool', () => {
 
             if (i % 2 === 0) {
                 // @ts-expect-error Overriding private property
-                session.errorScore += session.maxErrorScore;
+                session._errorScore += session.maxErrorScore;
                 invalidSessionsCount += 1;
             }
         }
@@ -314,7 +315,6 @@ describe('SessionPool - testing session pool', () => {
 
         const recreatedSession = await loadedSessionPool.getSession();
 
-        // @ts-expect-error Accessing private property
         expect(recreatedSession.maxUsageCount).toEqual(66);
     });
 
@@ -425,7 +425,7 @@ describe('SessionPool - testing session pool', () => {
             await sessionPool.addSession({ id: `session_${i}` });
             const session = await sessionPool.getSession(`session_${i}`);
             // @ts-expect-error Overriding private property
-            session.errorScore += session.maxErrorScore;
+            session._errorScore += session.maxErrorScore;
         }
 
         await sessionPool.getSession();

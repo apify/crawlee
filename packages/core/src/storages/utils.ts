@@ -2,8 +2,8 @@ import crypto from 'node:crypto';
 
 import type { Dictionary, StorageClient } from '@crawlee/types';
 
-import { KeyValueStore } from './key_value_store';
 import { Configuration } from '../configuration';
+import { KeyValueStore } from './key_value_store';
 
 /**
  * Options for purging default storage.
@@ -53,7 +53,7 @@ export async function purgeDefaultStorages(
                   client,
                   config: configOrOptions,
               }
-            : configOrOptions ?? {};
+            : (configOrOptions ?? {});
     const { config = Configuration.getGlobalConfig(), onlyPurgeOnce = false } = options;
     ({ client = config.getStorageClient() } = options);
 

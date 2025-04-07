@@ -1,15 +1,18 @@
 /* eslint-disable dot-notation */
 
 import {
-    QUERY_HEAD_MIN_LENGTH,
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-    RequestQueueV1 as RequestQueue,
-    Request,
     Configuration,
     ProxyConfiguration,
+    QUERY_HEAD_MIN_LENGTH,
+    Request,
+    RequestQueueV1 as RequestQueue,
+    RequestQueueV2,
+    STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '@crawlee/core';
+import type { gotScraping } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
+import type { MockedFunction } from 'vitest';
 
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
@@ -19,9 +22,13 @@ vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
     };
 });
 
-const { gotScraping } = await import('@crawlee/utils/src/internals/gotScraping');
+let gotScrapingSpy: MockedFunction<typeof gotScraping>;
 
-const gotScrapingSpy = vitest.mocked(gotScraping);
+beforeAll(async () => {
+    // @ts-ignore for some reason, this fails when the project is not built :/
+    const { gotScraping } = await import('@crawlee/utils');
+    gotScrapingSpy = vitest.mocked(gotScraping);
+});
 
 describe('RequestQueue remote', () => {
     const storageClient = Configuration.getStorageClient();
@@ -89,14 +96,6 @@ describe('RequestQueue remote', () => {
 
         // Test validations
         await queue
-            .markRequestHandled(new Request({ id: 'XXX', url: 'https://example.com' }))
-            .catch((err) =>
-                expect(err.message).toMatch(/Cannot mark request XXX as handled, because it is not in progress/),
-            );
-        await queue
-            .reclaimRequest(new Request({ id: 'XXX', url: 'https://example.com' }))
-            .catch((err) => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
-        await queue
             .addRequest(new Request({ id: 'id-already-set', url: 'https://example.com' }))
             .catch((err) =>
                 expect(err.message).toMatch(
@@ -104,8 +103,8 @@ describe('RequestQueue remote', () => {
                 ),
             );
 
-        // getRequest() returns null if object was not found.
-        mockGetRequest.mockResolvedValueOnce(null);
+        // getRequest() returns undefined if object was not found.
+        mockGetRequest.mockResolvedValueOnce(undefined);
 
         const requestXFromQueue = await queue.getRequest('non-existent');
         expect(mockGetRequest).toBeCalledTimes(2);
@@ -123,7 +122,7 @@ describe('RequestQueue remote', () => {
             request: requestBFromQueue,
         });
 
-        await queue.reclaimRequest(requestBFromQueue, { forefront: true });
+        await queue.reclaimRequest(requestBFromQueue!, { forefront: true });
         expect(mockUpdateRequest).toBeCalledTimes(1);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue, { forefront: true });
 
@@ -155,7 +154,7 @@ describe('RequestQueue remote', () => {
             request: requestBFromQueue,
         });
 
-        await queue.markRequestHandled(requestBFromQueue);
+        await queue.markRequestHandled(requestBFromQueue!);
         expect(mockUpdateRequest).toBeCalledTimes(2);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue);
 
@@ -306,6 +305,7 @@ describe('RequestQueue remote', () => {
             uniqueKey: requestA.uniqueKey,
             wasAlreadyPresent: true,
             wasAlreadyHandled: false,
+            forefront: false,
         });
     });
 
@@ -336,6 +336,7 @@ describe('RequestQueue remote', () => {
             uniqueKey: requestX.uniqueKey,
             wasAlreadyPresent: true,
             wasAlreadyHandled: true,
+            forefront: false,
         });
     });
 
@@ -363,6 +364,7 @@ describe('RequestQueue remote', () => {
             uniqueKey: 'aaa',
             wasAlreadyPresent: true,
             wasAlreadyHandled: false,
+            forefront: false,
         });
     });
 
@@ -630,6 +632,42 @@ describe('RequestQueue remote', () => {
         expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
     });
 
+    test('`fetchNextRequest` order respects `forefront` enqueues', async () => {
+        const emulator = new MemoryStorageEmulator();
+
+        await emulator.init();
+        const queue = await RequestQueue.open();
+
+        const retrievedUrls: string[] = [];
+
+        await queue.addRequests([
+            { url: 'http://example.com/1' },
+            { url: 'http://example.com/5' },
+            { url: 'http://example.com/6' },
+        ]);
+
+        retrievedUrls.push((await queue.fetchNextRequest())!.url);
+
+        await queue.addRequest({ url: 'http://example.com/4' }, { forefront: true });
+        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+
+        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
+
+        let req = await queue.fetchNextRequest();
+
+        expect(req!.url).toBe('http://example.com/2');
+
+        await queue.reclaimRequest(req!, { forefront: true });
+
+        while (req) {
+            retrievedUrls.push(req!.url);
+            req = await queue.fetchNextRequest();
+        }
+
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5', '/6']);
+        await emulator.destroy();
+    });
+
     test('getInfo() should work', async () => {
         const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
 
@@ -682,17 +720,17 @@ describe('RequestQueue remote', () => {
             method,
         });
         const desc1 = Object.getOwnPropertyDescriptor(r1.userData, '__crawlee');
-        expect(desc1.enumerable).toBe(false);
+        expect(desc1!.enumerable).toBe(false);
         expect(r1.skipNavigation).toBe(true);
         expect(r1.maxRetries).toBe(10);
         r1.maxRetries = 5;
         expect(r1.userData.__crawlee).toMatchObject({ skipNavigation: true, maxRetries: 5, foo: 123, bar: true });
         const desc2 = Object.getOwnPropertyDescriptor(r2.userData, '__crawlee');
-        expect(desc2.enumerable).toBe(false);
+        expect(desc2!.enumerable).toBe(false);
         expect(r2.maxRetries).toBeUndefined();
         expect(r2.userData.__crawlee).toEqual({});
         const desc3 = Object.getOwnPropertyDescriptor(r3.userData, '__crawlee');
-        expect(desc3.enumerable).toBe(false);
+        expect(desc3!.enumerable).toBe(false);
         expect(r3.maxRetries).toBeUndefined();
         expect(r3.userData.__crawlee).toEqual({});
         r3.maxRetries = 2;
@@ -716,7 +754,7 @@ describe('RequestQueue with requestsFromUrl', () => {
         const spy = vitest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
-        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve(list1) as any, 100)) as any);
+        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
         spy.mockResolvedValueOnce(list2);
 
         const queue = await RequestQueue.open();
@@ -834,9 +872,9 @@ describe('RequestQueue v2', () => {
     }
 
     async function getEmptyQueue(name: string) {
-        const queue = await RequestQueue.open(name);
+        const queue = await RequestQueueV2.open(name);
         await queue.drop();
-        return RequestQueue.open(name);
+        return RequestQueueV2.open(name);
     }
 
     function getUniqueRequests(count: number) {
@@ -910,5 +948,65 @@ describe('RequestQueue v2', () => {
         const { items: secondFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
 
         expect(secondFetch[0]).toEqual(firstFetch[0]);
+    });
+
+    test('`fetchNextRequest` order respects `forefront` enqueues', async () => {
+        const queue = await getEmptyQueue('fetch-next-request-order');
+
+        const retrievedUrls: string[] = [];
+
+        await queue.addRequests([
+            { url: 'http://example.com/1' },
+            ...Array.from({ length: 25 }, (_, i) => ({ url: `http://example.com/${i + 4}` })),
+        ]);
+
+        retrievedUrls.push((await queue.fetchNextRequest())!.url);
+
+        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
+
+        let req = await queue.fetchNextRequest();
+
+        while (req) {
+            retrievedUrls.push(req!.url);
+            req = await queue.fetchNextRequest();
+        }
+
+        // 28 requests exceed the RQv2 batch size limit of 25, so we can examine the request ordering
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(
+            Array.from({ length: 28 }, (_, i) => `/${i + 1}`),
+        );
+    });
+
+    test('`reclaimRequest` with `forefront` respects the request ordering', async () => {
+        const queue = await getEmptyQueue('fetch-next-request-order-reclaim');
+
+        const retrievedUrls: string[] = [];
+
+        await queue.addRequests([
+            { url: 'http://example.com/1' },
+            { url: 'http://example.com/4' },
+            { url: 'http://example.com/5' },
+        ]);
+
+        retrievedUrls.push((await queue.fetchNextRequest())!.url);
+
+        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
+
+        let req = await queue.fetchNextRequest();
+
+        expect(req!.url).toBe('http://example.com/2');
+
+        await queue.reclaimRequest(req!, { forefront: true });
+
+        req = await queue.fetchNextRequest();
+
+        while (req) {
+            retrievedUrls.push(req!.url);
+            req = await queue.fetchNextRequest();
+        }
+
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(Array.from({ length: 5 }, (_, i) => `/${i + 1}`));
     });
 });

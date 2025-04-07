@@ -9,5 +9,5 @@ export { RequestQueue as RequestQueueV2 } from './request_queue_v2';
 export * from './storage_manager';
 export * from './utils';
 export * from './access_checking';
-export * from './sitemap_request_lis';
+export * from './sitemap_request_list';
 export * from './tandem_request_provider';

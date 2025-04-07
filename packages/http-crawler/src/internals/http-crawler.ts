@@ -1,15 +1,15 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import { extname } from 'node:path';
+import type { Readable } from 'node:stream';
 import util from 'node:util';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
+    LoadedContext,
     ProxyConfiguration,
     Request,
     RequestHandler,
@@ -17,36 +17,43 @@ import type {
     Session,
 } from '@crawlee/basic';
 import {
-    BasicCrawler,
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    BasicCrawler,
+    Configuration,
     CrawlerExtension,
     mergeCookies,
-    Router,
-    validators,
-    Configuration,
+    processHttpRequestOptions,
     RequestState,
+    Router,
     SessionError,
+    validators,
 } from '@crawlee/basic';
+import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { RETRY_CSS_SELECTORS, gotScraping } from '@crawlee/utils';
+import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-import type {
-    OptionsInit,
-    Method,
-    Request as GotRequest,
-    Options,
-    PlainResponse,
-    TimeoutError as TimeoutErrorClass,
-    // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-} from 'got-scraping';
+// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
+import type { Method, OptionsInit, TimeoutError as TimeoutErrorClass } from 'got-scraping';
 import iconv from 'iconv-lite';
 import mime from 'mime-types';
-import ow from 'ow';
+import ow, { ObjectPredicate } from 'ow';
 import type { JsonValue } from 'type-fest';
 
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
+
 let TimeoutError: typeof TimeoutErrorClass;
+
+/**
+ * TODO exists for BC within HttpCrawler - replace completely with StreamingHttpResponse in 4.0
+ * @internal
+ */
+export type PlainResponse = Omit<HttpResponse, 'body'> &
+    IncomingMessage & {
+        body?: unknown;
+    };
 
 /**
  * Default mime types, which HttpScraper supports.
@@ -215,7 +222,33 @@ export interface InternalHttpCrawlingContext<
     contentType: { type: string; encoding: BufferEncoding };
     response: PlainResponse;
 
-    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
+    /**
+     * Wait for an element matching the selector to appear. Timeout is ignored.
+     *
+     * **Example usage:**
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
+     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * When provided with the `selector` argument, it will throw if it's not available.
+     *
+     * **Example usage:**
+     * ```ts
+     * async requestHandler({ parseWithCheerio }) {
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
@@ -441,7 +474,7 @@ export class HttpCrawler<
         const extensionOptions = extension.getCrawlerOptions();
 
         for (const [key, value] of Object.entries(extensionOptions)) {
-            const isConfigurable = this.hasOwnProperty(key);
+            const isConfigurable = Object.hasOwn(this, key);
             const originalType = typeof this[key as keyof this];
             const extensionType = typeof value; // What if we want to null something? It is really needed?
             const isSameType = originalType === extensionType || value == null; // fast track for deleting keys
@@ -488,7 +521,22 @@ export class HttpCrawler<
             tryCancel();
 
             // `??=` because descendant classes may already set optimized version
-            crawlingContext.parseWithCheerio ??= async () => cheerio.load(parsed.body!.toString());
+            crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
+                const $ = cheerio.load(parsed.body!.toString());
+
+                if ($(selector).get().length === 0) {
+                    throw new Error(`Selector '${selector}' not found.`);
+                }
+            };
+            crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
+                const $ = cheerio.load(parsed.body!.toString());
+
+                if (selector) {
+                    await crawlingContext.waitForSelector(selector, timeoutMs);
+                }
+
+                return $;
+            };
 
             if (this.useSessionPool) {
                 this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
@@ -531,7 +579,7 @@ export class HttpCrawler<
         request.state = RequestState.REQUEST_HANDLER;
         try {
             await addTimeoutToPromise(
-                async () => Promise.resolve(this.requestHandler(crawlingContext)),
+                async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
                 this.userRequestHandlerTimeoutMillis,
                 `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
             );
@@ -653,6 +701,7 @@ export class HttpCrawler<
         gotOptions,
     }: RequestFunctionOptions): Promise<PlainResponse> {
         if (!TimeoutError) {
+            // @ts-ignore
             ({ TimeoutError } = await import('got-scraping'));
         }
 
@@ -737,7 +786,7 @@ export class HttpCrawler<
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
     protected _getRequestOptions(request: Request, session?: Session, proxyUrl?: string, gotOptions?: OptionsInit) {
-        const requestOptions: OptionsInit & { isStream: true } = {
+        const requestOptions: OptionsInit & Required<Pick<OptionsInit, 'url'>> & { isStream: true } = {
             url: request.url,
             method: request.method as Method,
             proxyUrl,
@@ -846,13 +895,6 @@ export class HttpCrawler<
         const { statusCode } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        if (statusCode === 406) {
-            request.noRetry = true;
-            throw new Error(
-                `Resource ${request.url} is not available in the format requested by the Accept header. Skipping resource.`,
-            );
-        }
-
         // eslint-disable-next-line dot-notation -- accessing private property
         const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
         // if we retry the request, can the Content-Type change?
@@ -870,34 +912,29 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = async (options: OptionsInit & { isStream: true }, session?: Session) => {
-        // eslint-disable-next-line no-async-promise-executor
-        return new Promise<PlainResponse>(async (resolve, reject) => {
-            // This await may not be needed after the initial call, but this is needed to actually get got-scraping loaded
-            // eslint-disable-next-line @typescript-eslint/await-thenable
-            const stream = await gotScraping(options);
-
-            stream.on('redirect', (updatedOptions: Options, redirectResponse: PlainResponse) => {
+    private _requestAsBrowser = async (
+        options: OptionsInit & { url: string | URL; isStream: true },
+        session?: Session,
+    ) => {
+        const response = await this.httpClient.stream(
+            processHttpRequestOptions({
+                ...options,
+                cookieJar: options.cookieJar as any, // HACK - the type of ToughCookieJar in got is wrong
+                responseType: 'text',
+            }),
+            (redirectResponse, updatedRequest) => {
                 if (this.persistCookiesPerSession) {
                     session!.setCookiesFromResponse(redirectResponse);
 
-                    const cookieString = session!.getCookieString(updatedOptions.url!.toString());
+                    const cookieString = session!.getCookieString(updatedRequest.url!.toString());
                     if (cookieString !== '') {
-                        updatedOptions.headers.Cookie = cookieString;
+                        updatedRequest.headers.Cookie = cookieString;
                     }
                 }
-            });
+            },
+        );
 
-            // We need to end the stream for DELETE requests, otherwise it will hang.
-            if (options.method && ['DELETE', 'delete'].includes(options.method)) {
-                stream.end();
-            }
-
-            stream.on('error', reject);
-            stream.on('response', () => {
-                resolve(addResponsePropertiesToStream(stream));
-            });
-        });
+        return addResponsePropertiesToStream(response.stream, response);
     };
 }
 
@@ -916,8 +953,8 @@ interface RequestFunctionOptions {
  * from the response stream to the got stream.
  * @internal
  */
-function addResponsePropertiesToStream(stream: GotRequest) {
-    const properties = [
+function addResponsePropertiesToStream(stream: Readable, response: StreamingHttpResponse) {
+    const properties: (keyof PlainResponse)[] = [
         'statusCode',
         'statusMessage',
         'headers',
@@ -930,13 +967,12 @@ function addResponsePropertiesToStream(stream: GotRequest) {
         'request',
     ];
 
-    const response = stream.response!;
+    stream.on('end', () => {
+        // @ts-expect-error
+        if (stream.rawTrailers) stream.rawTrailers = response.rawTrailers; // TODO BC with got - remove in 4.0
 
-    response.on('end', () => {
         // @ts-expect-error
-        Object.assign(stream.rawTrailers, response.rawTrailers);
-        // @ts-expect-error
-        Object.assign(stream.trailers, response.trailers);
+        if (stream.trailers) stream.trailers = response.trailers;
 
         // @ts-expect-error
         stream.complete = response.complete;
@@ -944,8 +980,7 @@ function addResponsePropertiesToStream(stream: GotRequest) {
 
     for (const prop of properties) {
         if (!(prop in stream)) {
-            // @ts-expect-error
-            stream[prop] = response[prop as keyof PlainResponse];
+            (stream as any)[prop] = (response as any)[prop];
         }
     }
 
@@ -956,12 +991,12 @@ function addResponsePropertiesToStream(stream: GotRequest) {
  * Gets parsed content type from response object
  * @param response HTTP response object
  */
-function parseContentTypeFromResponse(response: IncomingMessage): { type: string; charset: BufferEncoding } {
+function parseContentTypeFromResponse(response: unknown): { type: string; charset: BufferEncoding } {
     ow(
         response,
         ow.object.partialShape({
             url: ow.string.url,
-            headers: ow.object,
+            headers: new ObjectPredicate<Record<string, unknown>>(),
         }),
     );
 
@@ -970,7 +1005,7 @@ function parseContentTypeFromResponse(response: IncomingMessage): { type: string
 
     if (headers['content-type']) {
         try {
-            parsedContentType = contentTypeParser.parse(headers['content-type']);
+            parsedContentType = contentTypeParser.parse(headers['content-type'] as string);
         } catch {
             // Can not parse content type from Content-Type header. Try to parse it from file extension.
         }

@@ -32,53 +32,53 @@ await crawler.run([
     {
         url: 'https://crawlee.dev',
         userData: { label: 'start' },
-        uniqueKey: 'dark-start'
+        uniqueKey: 'dark-start',
     },
     {
-        url: 'https://crawlee.dev/docs/quick-start',
-        uniqueKey: 'dark-1'
+        url: 'https://crawlee.dev/js/docs/quick-start',
+        uniqueKey: 'dark-1',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/setting-up',
-        uniqueKey: 'dark-2'
+        url: 'https://crawlee.dev/js/docs/introduction/setting-up',
+        uniqueKey: 'dark-2',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/first-crawler',
-        uniqueKey: 'dark-3'
+        url: 'https://crawlee.dev/js/docs/introduction/first-crawler',
+        uniqueKey: 'dark-3',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/adding-urls',
-        uniqueKey: 'dark-4'
+        url: 'https://crawlee.dev/js/docs/introduction/adding-urls',
+        uniqueKey: 'dark-4',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/real-world-project',
-        uniqueKey: 'dark-5'
+        url: 'https://crawlee.dev/js/docs/introduction/real-world-project',
+        uniqueKey: 'dark-5',
     },
 
     // Light theme
     {
         url: 'https://crawlee.dev',
         userData: { label: 'start' },
-        uniqueKey: 'light th-start'
+        uniqueKey: 'light th-start',
     },
     {
-        url: 'https://crawlee.dev/docs/quick-start',
-        uniqueKey: 'light th-1'
+        url: 'https://crawlee.dev/js/docs/quick-start',
+        uniqueKey: 'light th-1',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/setting-up',
-        uniqueKey: 'light th-2'
+        url: 'https://crawlee.dev/js/docs/introduction/setting-up',
+        uniqueKey: 'light th-2',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/first-crawler',
-        uniqueKey: 'light th-3'
+        url: 'https://crawlee.dev/js/docs/introduction/first-crawler',
+        uniqueKey: 'light th-3',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/adding-urls',
-        uniqueKey: 'light th-4'
+        url: 'https://crawlee.dev/js/docs/introduction/adding-urls',
+        uniqueKey: 'light th-4',
     },
     {
-        url: 'https://crawlee.dev/docs/introduction/real-world-project',
-        uniqueKey: 'light th-5'
-    }
+        url: 'https://crawlee.dev/js/docs/introduction/real-world-project',
+        uniqueKey: 'light th-5',
+    },
 ]);

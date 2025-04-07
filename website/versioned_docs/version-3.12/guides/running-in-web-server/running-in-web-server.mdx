@@ -1,0 +1,62 @@
+---
+id: running-in-web-server-guide
+title: Running in web server Guide
+sidebar_label: Running in web server
+description: Run Crawlee in web server using a request/response approach
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+
+import WebServerSource from '!!raw-loader!./web-server.mjs';
+
+Most of the time, Crawlee jobs are run as batch jobs. You have a list of URLs you want to scrape every week or you might want to scrape a whole website once per day. After the scrape, you send the data to your warehouse for analytics. Batch jobs are efficient because they can use [Crawlee's built-in autoscaling](https://crawlee.dev/js/docs/guides/scaling-crawlers) to fully utilize the resources you have available. But sometimes you have a use-case where you need to return scrape data as soon as possible. There might be a user waiting on the other end so every millisecond counts. This is where running Crawlee in a web server comes in.
+
+We will build a simple HTTP server that receives a page URL and returns the page title in the response. We will base this guide on the approach used in [Apify's Super Scraper API repository](https://github.com/apify/super-scraper) which maps incoming HTTP requests to Crawlee <ApiLink to="core/class/Request">Request</ApiLink>.
+
+## Set up a web server
+
+There are many popular web server frameworks for Node.js, such as Express, Koa, Fastify, and Hapi but in this guide, we will use the built-in `http` Node.js module to keep things simple.
+
+This will be our core server setup:
+
+```javascript
+import { createServer } from 'http';
+import { log } from 'crawlee';
+
+const server = createServer(async (req, res) => {
+    log.info(`Request received: ${req.method} ${req.url}`);
+
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    // We will return the page title here later instead
+    res.end('Hello World\n');
+});
+
+server.listen(3000, () => {
+    log.info('Server is listening for user requests');
+});
+```
+
+## Create the Crawler
+
+We will create a standard <ApiLink to="cheerio-crawler/class/CheerioCrawler">CheerioCrawler</ApiLink> and use the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#keepAlive">`keepAlive: true`</ApiLink> option to keep the crawler running even if there are no requests currently in the <ApiLink to="core/class/RequestQueue">Request Queue</ApiLink>. This way it will always be waiting for new requests to come in.
+
+```javascript
+import { CheerioCrawler, log } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    keepAlive: true,
+    requestHandler: async ({ request, $ }) => {
+        const title = $('title').text();
+        // We will send the response here later
+        log.info(`Page title: ${title} on ${request.url}`);
+    },
+});
+```
+
+## Glue it together
+
+Now we need to glue the server and the crawler together using the mapping of Crawlee Requests to HTTP responses discussed above. The whole program is actually quite simple. For production-grade service, you will need to improve error handling, logging, and monitoring but this is a good starting point.
+
+<CodeBlock language="js" title="src/web-server.mjs">{WebServerSource}</CodeBlock>
+

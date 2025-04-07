@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 
-import { JSDOMCrawler, Dataset } from '@crawlee/jsdom';
+import { Dataset, JSDOMCrawler } from '@crawlee/jsdom';
 import { Actor } from 'apify';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
@@ -15,7 +15,7 @@ const crawler = new JSDOMCrawler();
 crawler.router.addDefaultHandler(async ({ window, document, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
-        globs: ['https://crawlee.dev/docs/**'],
+        globs: ['https://crawlee.dev/js/docs/**'],
     });
 
     const pageTitle = window.document.title;
@@ -26,6 +26,6 @@ crawler.router.addDefaultHandler(async ({ window, document, enqueueLinks, reques
     await Dataset.pushData({ url, pageTitle });
 });
 
-await crawler.run(['https://crawlee.dev/docs/quick-start']);
+await crawler.run(['https://crawlee.dev/js/docs/quick-start']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

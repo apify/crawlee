@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-var-requires,import/no-dynamic-require,global-require */
+/* eslint-disable import/no-dynamic-require,global-require */
 import { execSync } from 'node:child_process';
 import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -31,7 +31,6 @@ function getRootVersion(bump = true): string {
         return rootVersion;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires,import/no-dynamic-require,global-require
     rootVersion = require(resolve(root, './lerna.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
 
     if (bump) {
@@ -61,7 +60,6 @@ function getNextVersion() {
     const version = getRootVersion();
 
     if (versions.some((v) => v === version)) {
-        // eslint-disable-next-line no-console
         console.error(
             `before-deploy: A release with version ${version} already exists. Please increment version accordingly.`,
         );
@@ -95,7 +93,6 @@ if (options.canary) {
         }
     }
 
-    // eslint-disable-next-line no-console
     console.info(`canary: setting version to ${nextVersion}`);
 
     writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
@@ -111,7 +108,6 @@ if (options['pin-versions']) {
         }
     }
 
-    // eslint-disable-next-line no-console
     console.info(`pin-versions: version ${version}`, pkgJson.dependencies);
 
     writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);

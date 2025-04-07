@@ -4,6 +4,7 @@ export * from './configuration';
 export * from './crawlers';
 export * from './enqueue_links';
 export * from './events';
+export * from './http_clients';
 export * from './log';
 export * from './proxy_configuration';
 export * from './request';

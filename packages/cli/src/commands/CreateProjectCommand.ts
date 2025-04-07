@@ -1,11 +1,9 @@
-/* eslint-disable no-console */
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { get } from 'node:https';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
-import { resolve } from 'path';
 
 import type { Template } from '@crawlee/templates';
 import { fetchManifest } from '@crawlee/templates';

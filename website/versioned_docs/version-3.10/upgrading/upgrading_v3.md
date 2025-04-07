@@ -20,18 +20,18 @@ Up until version 3 of `apify`, the package contained both scraping related tools
 
 The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of several smaller packages, released separately under `@crawlee` namespace:
 
-- [`@crawlee/core`](https://crawlee.dev/api/core): the base for all the crawler implementations, also contains things like `Request`, `RequestQueue`, `RequestList` or `Dataset` classes
-- [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler): exports `CheerioCrawler`
-- [`@crawlee/playwright`](https://crawlee.dev/api/playwright-crawler): exports `PlaywrightCrawler`
-- [`@crawlee/puppeteer`](https://crawlee.dev/api/puppeteer-crawler): exports `PuppeteerCrawler`
-- [`@crawlee/jsdom`](https://crawlee.dev/api/jsdom-crawler): exports `JSDOMCrawler`
-- [`@crawlee/basic`](https://crawlee.dev/api/basic-crawler): exports `BasicCrawler`
-- [`@crawlee/http`](https://crawlee.dev/api/http-crawler): exports `HttpCrawler` (which is used for creating [`@crawlee/jsdom`](https://crawlee.dev/api/jsdom-crawler) and [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler))
-- [`@crawlee/browser`](https://crawlee.dev/api/browser-crawler): exports `BrowserCrawler` (which is used for creating [`@crawlee/playwright`](https://crawlee.dev/api/playwright-crawler) and [`@crawlee/puppeteer`](https://crawlee.dev/api/puppeteer-crawler))
-- [`@crawlee/memory-storage`](https://crawlee.dev/api/memory-storage): [`@apify/storage-local`](https://npmjs.com/package/@apify/storage-local) alternative
-- [`@crawlee/browser-pool`](https://crawlee.dev/api/browser-pool): previously [`browser-pool`](https://npmjs.com/package/browser-pool) package
-- [`@crawlee/utils`](https://crawlee.dev/api/utils): utility methods
-- [`@crawlee/types`](https://crawlee.dev/api/types): holds TS interfaces mainly about the [`StorageClient`](https://crawlee.dev/api/core/interface/StorageClient)
+- [`@crawlee/core`](https://crawlee.dev/js/api/core): the base for all the crawler implementations, also contains things like `Request`, `RequestQueue`, `RequestList` or `Dataset` classes
+- [`@crawlee/cheerio`](https://crawlee.dev/js/api/cheerio-crawler): exports `CheerioCrawler`
+- [`@crawlee/playwright`](https://crawlee.dev/js/api/playwright-crawler): exports `PlaywrightCrawler`
+- [`@crawlee/puppeteer`](https://crawlee.dev/js/api/puppeteer-crawler): exports `PuppeteerCrawler`
+- [`@crawlee/jsdom`](https://crawlee.dev/js/api/jsdom-crawler): exports `JSDOMCrawler`
+- [`@crawlee/basic`](https://crawlee.dev/js/api/basic-crawler): exports `BasicCrawler`
+- [`@crawlee/http`](https://crawlee.dev/js/api/http-crawler): exports `HttpCrawler` (which is used for creating [`@crawlee/jsdom`](https://crawlee.dev/js/api/jsdom-crawler) and [`@crawlee/cheerio`](https://crawlee.dev/js/api/cheerio-crawler))
+- [`@crawlee/browser`](https://crawlee.dev/js/api/browser-crawler): exports `BrowserCrawler` (which is used for creating [`@crawlee/playwright`](https://crawlee.dev/js/api/playwright-crawler) and [`@crawlee/puppeteer`](https://crawlee.dev/js/api/puppeteer-crawler))
+- [`@crawlee/memory-storage`](https://crawlee.dev/js/api/memory-storage): [`@apify/storage-local`](https://npmjs.com/package/@apify/storage-local) alternative
+- [`@crawlee/browser-pool`](https://crawlee.dev/js/api/browser-pool): previously [`browser-pool`](https://npmjs.com/package/browser-pool) package
+- [`@crawlee/utils`](https://crawlee.dev/js/api/utils): utility methods
+- [`@crawlee/types`](https://crawlee.dev/js/api/types): holds TS interfaces mainly about the [`StorageClient`](https://crawlee.dev/js/api/core/interface/StorageClient)
 
 ### Installing Crawlee
 
@@ -87,7 +87,7 @@ For `Dockerfile` we recommend using multi-stage build, so you don't install the 
 
 ```dockerfile title="Dockerfile"
 # using multistage build, as we need dev deps to build the TS source code
-FROM apify/actor-node:16 AS builder
+FROM apify/actor-node:20 AS builder
 
 # copy all files, install all dependencies (including dev deps) and build the project
 COPY . ./
@@ -95,7 +95,7 @@ RUN npm install --include=dev \
     && npm run build
 
 # create final image
-FROM apify/actor-node:16
+FROM apify/actor-node:20
 # copy only necessary files
 COPY --from=builder /usr/src/app/package*.json ./
 COPY --from=builder /usr/src/app/README.md ./

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
-
 /** @ignore */
 export type Constructor<T = unknown> = new (...args: any[]) => T;
 

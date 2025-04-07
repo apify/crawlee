@@ -1,21 +1,22 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import type { Dictionary } from '@crawlee/types';
 
+import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
+
+import { Configuration } from '../configuration';
+import type { Request } from '../request';
 import { checkStorageAccess } from './access_checking';
-import type { RequestProviderOptions } from './request_provider';
+import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
+    getRequestId,
     MAX_QUERIES_FOR_CONSISTENCY,
     QUERY_HEAD_BUFFER,
     QUERY_HEAD_MIN_LENGTH,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
-    getRequestId,
 } from './utils';
-import { Configuration } from '../configuration';
-import type { Request } from '../request';
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 
@@ -83,6 +84,8 @@ class RequestQueue extends RequestProvider {
         hadMultipleClients?: boolean;
     }> | null = null;
 
+    private inProgress = new Set<string>();
+
     /**
      * @internal
      */
@@ -96,6 +99,13 @@ class RequestQueue extends RequestProvider {
             },
             config,
         );
+    }
+
+    /**
+     * @internal
+     */
+    public inProgressCount(): number {
+        return this.inProgress.size;
     }
 
     /**
@@ -227,11 +237,13 @@ class RequestQueue extends RequestProvider {
                             return;
 
                         this.queueHeadIds.add(requestId, requestId, false);
+                        const forefront = this.requestCache.get(getRequestId(uniqueKey))?.forefront ?? false;
                         this._cacheRequest(getRequestId(uniqueKey), {
                             requestId,
                             wasAlreadyHandled: false,
                             wasAlreadyPresent: true,
                             uniqueKey,
+                            forefront,
                         });
                     });
 
@@ -307,6 +319,10 @@ class RequestQueue extends RequestProvider {
             this._reset();
         }
 
+        if (this.inProgressRequestBatchCount > 0) {
+            return false;
+        }
+
         if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
 
         const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
@@ -344,6 +360,23 @@ class RequestQueue extends RequestProvider {
         }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
         return result;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    override async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
+        const res = await super.markRequestHandled(request);
+
+        this.inProgress.delete(request.id!);
+
+        return res;
+    }
+
+    protected override _reset(): void {
+        super._reset();
+
+        this.inProgress.clear();
     }
 
     /**

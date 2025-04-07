@@ -11,7 +11,7 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
-        launchContext: { launchOptions: { ignoreHTTPSErrors: true } },
+        launchContext: { launchOptions: { acceptInsecureCerts: true } },
         preNavigationHooks: [
             (_ctx, goToOptions) => {
                 goToOptions.waitUntil = ['networkidle2'];

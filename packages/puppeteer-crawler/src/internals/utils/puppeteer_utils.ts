@@ -18,26 +18,27 @@
  * @module puppeteerUtils
  */
 
-import { readFile } from 'fs/promises';
-import vm from 'vm';
+import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
 
-import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { KeyValueStore, RequestState, validators, Configuration } from '@crawlee/browser';
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import { Configuration, KeyValueStore, RequestState, validators } from '@crawlee/browser';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import { getInjectableScript } from 'idcac-playwright';
 import ow from 'ow';
-import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
+import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
 
-import type { InterceptHandler } from './puppeteer_request_interception';
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import { LruCache } from '@apify/datastructures';
+import log_ from '@apify/log';
+
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler';
+import type { InterceptHandler } from './puppeteer_request_interception';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 
 const jqueryPath = require.resolve('jquery');
 
@@ -188,8 +189,37 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
+export async function parseWithCheerio(
+    page: Page,
+    ignoreShadowRoots = false,
+    ignoreIframes = false,
+): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
+
+    if (page.frames().length > 1 && !ignoreIframes) {
+        const frames = await page.$$('iframe');
+
+        await Promise.all(
+            frames.map(async (frame) => {
+                try {
+                    const iframe = await frame.contentFrame();
+                    if (iframe) {
+                        const contents = await iframe.content();
+
+                        await frame.evaluate((f, c) => {
+                            const replacementNode = document.createElement('div');
+                            replacementNode.innerHTML = c;
+                            replacementNode.className = 'crawlee-iframe-replacement';
+
+                            f.replaceWith(replacementNode);
+                        }, contents);
+                    }
+                } catch (error) {
+                    log.warning(`Failed to extract iframe content: ${error}`);
+                }
+            }),
+        );
+    }
 
     const html = ignoreShadowRoots
         ? null
@@ -367,8 +397,8 @@ export async function cacheResponses(
                     body: buffer,
                 };
             }
-        } catch (e) {
-            // ignore errors, usualy means that buffer is empty or broken connection
+        } catch {
+            // ignore errors, usually means that buffer is empty or broken connection
         }
     });
 }
@@ -439,7 +469,7 @@ export async function gotoExtended(
             url: ow.string.url,
             method: ow.optional.string,
             headers: ow.optional.object,
-            payload: ow.optional.any(ow.string, ow.buffer),
+            payload: ow.optional.any(ow.string, ow.uint8Array),
         }),
     );
     ow(gotoOptions, ow.object);
@@ -475,6 +505,8 @@ export async function gotoExtended(
             if (!isEmpty(headers)) overrides.headers = headers;
             await removeInterceptRequestHandler(page, interceptRequestHandler);
             await interceptedRequest.continue(overrides);
+
+            return undefined;
         };
 
         await addInterceptRequestHandler(page, interceptRequestHandler);
@@ -781,17 +813,33 @@ export interface PuppeteerContextUtils {
     injectJQuery(): Promise<unknown>;
 
     /**
-     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * Wait for an element matching the selector to appear.
+     * Timeout defaults to 5s.
      *
      * **Example usage:**
-     * ```javascript
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
+     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * When provided with the `selector` argument, it waits for it to be available first.
+     *
+     * **Example usage:**
+     * ```ts
      * async requestHandler({ parseWithCheerio }) {
      *     const $ = await parseWithCheerio();
      *     const title = $('title').text();
      * });
      * ```
      */
-    parseWithCheerio(): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 
     /**
      * The function finds elements matching a specific CSS selector in a Puppeteer page,
@@ -1022,7 +1070,16 @@ export function registerUtilsToContext(
         }
         await injectJQuery(context.page, { surviveNavigations: false });
     };
-    context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
+    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
+        await context.page.waitForSelector(selector, { timeout: timeoutMs });
+    };
+    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
+        if (selector) {
+            await context.waitForSelector(selector, timeoutMs);
+        }
+
+        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
+    };
     context.enqueueLinksByClickingElements = async (
         options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
     ) =>

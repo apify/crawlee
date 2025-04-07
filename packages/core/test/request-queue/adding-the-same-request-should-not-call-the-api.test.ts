@@ -27,7 +27,11 @@ describe('RequestQueue#addRequest should not call the API if the request is alre
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
 
-        await requestQueue.markRequestHandled({ id: requestData.requestId, uniqueKey: requestData.uniqueKey } as any);
+        await requestQueue.markRequestHandled({
+            id: requestData.requestId,
+            url: 'https://example.com',
+            uniqueKey: requestData.uniqueKey,
+        } as any);
 
         await requestQueue.addRequest({ url: 'https://example.com' });
 
@@ -48,6 +52,7 @@ describe('RequestQueue#addRequests should not call the API if the request is alr
         await requestQueue.markRequestHandled({
             id: requestData.processedRequests[0].requestId,
             uniqueKey: requestData.processedRequests[0].uniqueKey,
+            url: 'https://example2.com',
         } as any);
 
         await requestQueue.addRequests([{ url: 'https://example2.com' }]);

@@ -1,5 +1,4 @@
-import log from '@apify/log';
-import { cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
+import { type AddRequestsBatchedOptions, cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
 import {
@@ -13,6 +12,8 @@ import type { CheerioRoot } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
+
+import log from '@apify/log';
 
 const apifyClient = Configuration.getStorageClient();
 
@@ -79,8 +80,8 @@ describe('enqueueLinks()', () => {
 
         afterEach(async () => {
             if (browser) await browser.close();
-            page = null;
-            browser = null;
+            page = null!;
+            browser = null!;
         });
 
         test('works with item limit', async () => {
@@ -389,6 +390,7 @@ describe('enqueueLinks()', () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await expect(
                 browserCrawlerEnqueueLinks({
+                    // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls: null },
                     page,
                     requestQueue,
@@ -431,6 +433,7 @@ describe('enqueueLinks()', () => {
 
             await expect(
                 browserCrawlerEnqueueLinks({
+                    // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls },
                     page,
                     requestQueue,
@@ -538,10 +541,10 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (/example\.com/.test(request.url)) {
+                        if (request.url.includes('example.com')) {
                             request.method = 'POST';
-                        } else if (/cool\.com/.test(request.url)) {
-                            request.userData.foo = 'bar';
+                        } else if (request.url.includes('cool.com')) {
+                            request.userData!.foo = 'bar';
                         }
                         return request;
                     },
@@ -563,7 +566,7 @@ describe('enqueueLinks()', () => {
 
             expect(enqueued[2].url).toBe('http://cool.com/');
             expect(enqueued[2].method).toBe('GET');
-            expect(enqueued[2].userData.foo).toBe('bar');
+            expect(enqueued[2].userData!.foo).toBe('bar');
         });
     });
 
@@ -575,7 +578,7 @@ describe('enqueueLinks()', () => {
         });
 
         afterEach(async () => {
-            $ = null;
+            $ = null!;
         });
 
         test('works with globs', async () => {
@@ -761,6 +764,7 @@ describe('enqueueLinks()', () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await expect(
                 cheerioCrawlerEnqueueLinks({
+                    // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls: null },
                     $,
                     requestQueue,
@@ -803,6 +807,7 @@ describe('enqueueLinks()', () => {
 
             await expect(
                 cheerioCrawlerEnqueueLinks({
+                    // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls },
                     $,
                     requestQueue,
@@ -932,10 +937,10 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (/example\.com/.test(request.url)) {
+                        if (request.url.includes('example.com')) {
                             request.method = 'POST';
-                        } else if (/cool\.com/.test(request.url)) {
-                            request.userData.foo = 'bar';
+                        } else if (request.url.includes('cool.com')) {
+                            request.userData!.foo = 'bar';
                         }
                         return request;
                     },
@@ -957,11 +962,11 @@ describe('enqueueLinks()', () => {
 
             expect(enqueued[2].url).toBe('http://cool.com/');
             expect(enqueued[2].method).toBe('GET');
-            expect(enqueued[2].userData.foo).toBe('bar');
+            expect(enqueued[2].userData!.foo).toBe('bar');
         });
 
         test('accepts forefront option', async () => {
-            const enqueued: { request: Source; options: RequestQueueOperationOptions }[] = [];
+            const enqueued: { request: Source; options?: RequestQueueOperationOptions }[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
             requestQueue.addRequests = async (requests, options) => {
@@ -983,7 +988,34 @@ describe('enqueueLinks()', () => {
             expect(enqueued).toHaveLength(5);
 
             for (let i = 0; i < 5; i++) {
-                expect(enqueued[i].options.forefront).toBe(true);
+                expect(enqueued[i].options!.forefront).toBe(true);
+            }
+        });
+
+        test('accepts waitForAllRequestsToBeAdded option', async () => {
+            const enqueued: { request: string | Source; options?: AddRequestsBatchedOptions }[] = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+            requestQueue.addRequestsBatched = async (requests, options) => {
+                // copy the requests to the enqueued list, along with options that were passed to addRequests,
+                // so that it doesn't matter how many calls were made
+                enqueued.push(...requests.map((request) => ({ request, options })));
+                return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
+            };
+
+            await cheerioCrawlerEnqueueLinks({
+                options: {
+                    waitForAllRequestsToBeAdded: true,
+                },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(5);
+
+            for (let i = 0; i < 5; i++) {
+                expect(enqueued[i].options!.waitForAllRequestsToBeAdded).toBe(true);
             }
         });
     });

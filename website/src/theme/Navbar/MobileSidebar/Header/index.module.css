@@ -1,0 +1,57 @@
+.getStartedButton {
+    color: var(--color-text-on-primary);
+    background: var(--color-black-action);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+    padding: 8px 16px !important;
+    border: none;
+    &:hover {
+        color: var(--color-text-on-primary);
+    }
+    text-align: center;
+}
+
+.navbarHeader {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+
+    @media (min-width: 768px) {
+        padding: 20px 40px;
+    }
+    @media (min-width: 1024px) {
+        padding: 20px 64px;
+    }
+}
+
+.navbarButtonsWrapper {
+    display: flex;
+    gap: 16px;
+    margin-left: auto;
+}
+
+.navbarButtonsWrapperDesktop {
+    display: flex;
+    @media (max-width: 767px) {
+        display: none;
+    }
+}
+.navbarButtonsWrapperMobile {
+    border-top: 1px solid var(--color-separator);
+    display: none;
+    @media (max-width: 767px) {
+        display: flex;
+    }
+    width: 100%;
+    margin: 0;
+    flex-direction: column;
+    gap: 16px;
+    button {
+        width: 100%;
+    }
+    padding: 16px 24px;
+}

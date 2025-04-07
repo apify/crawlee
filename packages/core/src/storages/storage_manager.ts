@@ -84,6 +84,7 @@ export class StorageManager<T extends IStorage = IStorage> {
             storage = new this.StorageConstructor({
                 id: storageObject.id,
                 name: storageObject.name,
+                storageObject,
                 client,
             });
 

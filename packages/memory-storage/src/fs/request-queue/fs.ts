@@ -7,7 +7,6 @@ import { ensureDir } from 'fs-extra';
 import { lockAndCallback, lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalRequest } from '../../resource-clients/request-queue';
 import type { StorageImplementation } from '../common';
-
 import type { CreateStorageImplementationOptions } from '.';
 
 export class RequestQueueFileSystemEntry implements StorageImplementation<InternalRequest> {
@@ -21,6 +20,8 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
      * It exists to ensure that the entry is not kept in memory indefinitely, by sweeping it after 60 seconds of inactivity (in order to keep memory usage low)
      */
     private sweepTimeout?: NodeJS.Timeout;
+
+    public orderNo?: number | null;
 
     constructor(options: CreateStorageImplementationOptions) {
         this.filePath = resolve(options.storeDirectory, `${options.requestId}.json`);
@@ -40,6 +41,8 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
                 const req = JSON.parse(await readFile(this.filePath, 'utf-8'));
                 this.data = req;
 
+                this.orderNo = req.orderNo;
+
                 return req;
             });
         } finally {
@@ -58,6 +61,8 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
             }
 
             await lockAndWrite(this.filePath, data);
+
+            this.orderNo = data.orderNo;
         } finally {
             this.setOrRefreshSweepTimeout();
             this.fsQueue.shift();

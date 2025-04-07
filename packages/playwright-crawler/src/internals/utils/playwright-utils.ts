@@ -19,23 +19,31 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import vm from 'vm';
+import vm from 'node:vm';
 
-import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
-import type { Request } from '@crawlee/browser';
-import { validators, KeyValueStore, RequestState, Configuration } from '@crawlee/browser';
+import {
+    Configuration,
+    KeyValueStore,
+    type Request,
+    RequestState,
+    type Session,
+    SessionError,
+    validators,
+} from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
-import { type CheerioRoot, type Dictionary, expandShadowRoots } from '@crawlee/utils';
+import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright';
 import ow from 'ow';
 import type { Page, Response, Route } from 'playwright';
 
-import { RenderingTypePredictor } from './rendering-type-prediction';
+import { LruCache } from '@apify/datastructures';
+import log_ from '@apify/log';
+
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '../playwright-crawler';
+import { RenderingTypePredictor } from './rendering-type-prediction';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 
@@ -190,7 +198,7 @@ export async function gotoExtended(
             url: ow.string.url,
             method: ow.optional.string,
             headers: ow.optional.object,
-            payload: ow.optional.any(ow.string, ow.buffer),
+            payload: ow.optional.any(ow.string, ow.uint8Array),
         }),
     );
     ow(gotoOptions, ow.object);
@@ -223,6 +231,8 @@ export async function gotoExtended(
             } catch (error) {
                 log.debug('Error inside request interceptor', { error });
             }
+
+            return undefined;
         };
 
         await page.route('**/*', interceptRequestHandler);
@@ -297,7 +307,7 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 
         await client.send('Network.enable');
         await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
-    } catch (error) {
+    } catch {
         log.warning('blockRequests() helper is incompatible with non-Chromium browsers.');
     }
 }
@@ -597,8 +607,38 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
  * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
+export async function parseWithCheerio(
+    page: Page,
+    ignoreShadowRoots = false,
+    ignoreIframes = false,
+): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
+
+    if (page.frames().length > 1 && !ignoreIframes) {
+        const frames = await page.$$('iframe');
+
+        await Promise.all(
+            frames.map(async (frame) => {
+                try {
+                    const iframe = await frame.contentFrame();
+
+                    if (iframe) {
+                        const contents = await iframe.content();
+
+                        await frame.evaluate((f, c) => {
+                            const replacementNode = document.createElement('div');
+                            replacementNode.innerHTML = c;
+                            replacementNode.className = 'crawlee-iframe-replacement';
+
+                            f.replaceWith(replacementNode);
+                        }, contents);
+                    }
+                } catch (error) {
+                    log.warning(`Failed to extract iframe content: ${error}`);
+                }
+            }),
+        );
+    }
 
     const html = ignoreShadowRoots
         ? null
@@ -612,6 +652,145 @@ export async function closeCookieModals(page: Page): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
 
     await page.evaluate(getCookieClosingScript());
+}
+
+interface HandleCloudflareChallengeOptions {
+    /** Logging defaults to the `debug` level, use this flag to log to `info` level instead. */
+    verbose?: boolean;
+    /** How long should we wait after the challenge is completed for the final page to load. */
+    sleepSecs?: number;
+    /** Allows overriding the checkbox clicking. The `boundingBox` gives you approximate coordinates of the checkbox, use this if you need to adjust the click position. */
+    clickCallback?: (page: Page, boundingBox: { x: number; y: number }) => Promise<void>;
+    /** Allows overriding the detection of Cloudflare "challenge page". */
+    isChallengeCallback?: (page: Page) => Promise<boolean>;
+    /** Allows overriding the detection of Cloudflare "blocked page". */
+    isBlockedCallback?: (page: Page) => Promise<boolean>;
+}
+
+/**
+ * This helper tries to solve the Cloudflare challenge automatically by clicking on the checkbox.
+ * It will try to detect the Cloudflare page, click on the checkbox, and wait for 10 seconds (configurable
+ * via `sleepSecs` option) for the page to load. Use this in the `postNavigationHooks`, a failures will
+ * result in a SessionError which will be automatically retried, so only successful requests will get
+ * into the `requestHandler`.
+ *
+ * Works best with camoufox.
+ *
+ * **Example usage**
+ * ```ts
+ * postNavigationHooks: [
+ *     async ({ handleCloudflareChallenge }) => {
+ *         await handleCloudflareChallenge();
+ *     },
+ * ],
+ * ```
+ *
+ * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
+ * @param url current URL for request identification, only used for logging
+ * @param [session] current session object
+ * @param [options]
+ */
+async function handleCloudflareChallenge(
+    page: Page,
+    url: string,
+    session?: Session,
+    options: HandleCloudflareChallengeOptions = {},
+): Promise<void> {
+    // eslint-disable-next-line dot-notation
+    const blockedStatusCodes = session?.['sessionPool']['blockedStatusCodes'] as number[];
+
+    // Cloudflare pages are 403, which are blocked by default
+    if (blockedStatusCodes?.includes(403)) {
+        const idx = blockedStatusCodes.indexOf(403);
+        blockedStatusCodes.splice(idx, 1);
+    }
+
+    options.isBlockedCallback ??= async () => {
+        const isBlocked = await page.evaluate(() => {
+            return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+        });
+        return !!isBlocked;
+    };
+
+    options.isChallengeCallback ??= async () => {
+        return await page.evaluate(async () => {
+            return !!document.querySelector('.footer > .footer-inner > .diagnostic-wrapper > .ray-id');
+        });
+    };
+
+    const retryBlocked = async () => {
+        const isBlocked = await options.isBlockedCallback!(page).catch(() => false);
+
+        if (isBlocked) {
+            throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
+        }
+    };
+
+    // check if we ended up on the CF challenge page
+    const isChallenge = async () => {
+        return options.isChallengeCallback!(page).catch(() => false);
+    };
+
+    if (!(await isChallenge())) {
+        await retryBlocked();
+        return;
+    }
+
+    const logLevel = options.verbose ? 'info' : 'debug';
+    log[logLevel](
+        `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
+    );
+
+    const bb = await page
+        .evaluate(() => {
+            const div = document.querySelector('.main-content div');
+            return div?.getBoundingClientRect();
+        })
+        .catch(() => undefined);
+
+    if (!bb) {
+        return;
+    }
+
+    const randomOffset = (range: number) => {
+        return Math.round(100 * range * Math.random()) / 100;
+    };
+
+    const x = bb.x + 30;
+    const y = bb.y + 25;
+
+    // try to click the checkbox every second
+    for (let i = 0; i < 10; i++) {
+        await sleep(1000);
+
+        // break early if we are no longer on the CF challenge page
+        if (!(await isChallenge())) {
+            break;
+        }
+
+        if (options.clickCallback) {
+            await options.clickCallback(page, { x, y });
+            continue;
+        }
+
+        // we can click on the text too, so X can be a bit larger
+        const xRandomized = x + randomOffset(10);
+        const yRandomized = y + randomOffset(10);
+
+        log[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, { x: xRandomized, y: yRandomized });
+        await page.mouse.click(xRandomized, yRandomized);
+
+        // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)
+        await page.mouse.click(xRandomized, yRandomized + 35);
+    }
+
+    await sleep((options.sleepSecs ?? 10) * 1000);
+
+    if (await isChallenge()) {
+        throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
+    }
+
+    await retryBlocked();
 }
 
 /** @internal */
@@ -691,17 +870,33 @@ export interface PlaywrightContextUtils {
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
 
     /**
-     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * Wait for an element matching the selector to appear.
+     * Timeout defaults to 5s.
      *
      * **Example usage:**
-     * ```javascript
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
+     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * When provided with the `selector` argument, it waits for it to be available first.
+     *
+     * **Example usage:**
+     * ```ts
      * async requestHandler({ parseWithCheerio }) {
      *     const $ = await parseWithCheerio();
      *     const title = $('title').text();
      * });
      * ```
      */
-    parseWithCheerio(): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 
     /**
      * Scrolls to the bottom of a page, or until it times out.
@@ -792,6 +987,28 @@ export interface PlaywrightContextUtils {
      * Tries to close cookie consent modals on the page. Based on the I Don't Care About Cookies browser extension.
      */
     closeCookieModals(): Promise<void>;
+
+    /**
+     * This helper tries to solve the Cloudflare challenge automatically by clicking on the checkbox.
+     * It will try to detect the Cloudflare page, click on the checkbox, and wait for 10 seconds (configurable
+     * via `sleepSecs` option) for the page to load. Use this in the `postNavigationHooks`, a failures will
+     * result in a SessionError which will be automatically retried, so only successful requests will get
+     * into the `requestHandler`.
+     *
+     * Works best with camoufox.
+     *
+     * **Example usage**
+     * ```ts
+     * postNavigationHooks: [
+     *     async ({ handleCloudflareChallenge }) => {
+     *         await handleCloudflareChallenge();
+     *     },
+     * ],
+     * ```
+     *
+     * @param [options]
+     */
+    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
 }
 
 export function registerUtilsToContext(
@@ -811,7 +1028,17 @@ export function registerUtilsToContext(
         await injectJQuery(context.page, { surviveNavigations: false });
     };
     context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
+    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
+        const locator = context.page.locator(selector).first();
+        await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+    };
+    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
+        if (selector) {
+            await context.waitForSelector(selector, timeoutMs);
+        }
+
+        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
+    };
     context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
     context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
         saveSnapshot(context.page, { ...options, config: context.crawler.config });
@@ -825,6 +1052,9 @@ export function registerUtilsToContext(
         });
     context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
     context.closeCookieModals = async () => closeCookieModals(context.page);
+    context.handleCloudflareChallenge = async (options?: HandleCloudflareChallengeOptions) => {
+        return handleCloudflareChallenge(context.page, context.request.url, context.session, options);
+    };
 }
 
 export { enqueueLinksByClickingElements };
@@ -842,4 +1072,5 @@ export const playwrightUtils = {
     compileScript,
     closeCookieModals,
     RenderingTypePredictor,
+    handleCloudflareChallenge,
 };

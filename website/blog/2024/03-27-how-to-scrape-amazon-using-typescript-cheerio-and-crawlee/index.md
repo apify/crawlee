@@ -2,11 +2,8 @@
 slug: how-to-scrape-amazon
 title: 'How to scrape Amazon products'
 description: 'A detailed step-by-step guide to scraping products on Amazon using TypeScript, Cheerio, and Crawlee.'
-image: ./img/how-to-scrape-amazon.png
-author: Lukáš Průša
-authorTitle: Junior Web Automation Engineer
-authorURL: https://github.com/Patai5
-authorImageURL: ./img/lukasp.png
+image: ./img/how-to-scrape-amazon.webp
+authors: [LukasP]
 ---
 
 ## Introduction
@@ -15,9 +12,9 @@ Amazon is one of the largest and most complex websites, which means scraping it 
 
 In this guide, we'll be extracting information from Amazon product pages using the power of [TypeScript](https://www.typescriptlang.org) in combination with the [Cheerio](https://cheerio.js.org) and [Crawlee](https://crawlee.dev) libraries. We'll explore how to retrieve and extract detailed product data such as titles, prices, image URLs, and more from Amazon's vast marketplace. We'll also discuss handling potential blocking issues that may arise during the scraping process.
 
-![How to scrape Amazon using Typescript, Cheerio, and Crawlee](./img/how-to-scrape-amazon.png)
+![How to scrape Amazon using Typescript, Cheerio, and Crawlee](./img/how-to-scrape-amazon.webp)
 
-<!--truncate-->
+<!-- truncate -->
 
 ## Prerequisites
 
@@ -37,7 +34,7 @@ To begin with, let's identify the product fields that we're interested in scrapi
 -   Image URLs
 -   Product Overview Attributes
 
-![Image highlighting the product fields to be scraped on Amazon](./img/fields-to-scrape.png)
+![Image highlighting the product fields to be scraped on Amazon](./img/fields-to-scrape.webp)
 
 For now, our focus will be solely on the scraping part. In a later section, we'll shift our attention to Crawlee, our crawling tool. Let's begin!
 
@@ -46,7 +43,7 @@ For now, our focus will be solely on the scraping part. In a later section, we'l
 Our first step will be to utilize [browser DevTools](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Tools_and_setup/What_are_browser_developer_tools) to inspect the layout and discover the [CSS selectors](https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/Selectors) for the data points we aim to scrape. (by default on [Chrome](https://developer.chrome.com/docs/devtools), press `Ctrl + Shift + C`)
 
 For example, let's take a look at how we find the selector for the product title:
-![Amazon product title selector in DevTools](./img/dev-tools-example.png)
+![Amazon product title selector in DevTools](./img/dev-tools-example.webp)
 
 The product title selector we've deduced is `span#productTitle`. This selector targets all `span` elements with the id of `productTitle`. Luckily, there's only one such element on the page - exactly what we're after.
 
@@ -427,7 +424,7 @@ While Crawlee's browser-like user-agent headers prevent blocking to a certain ex
 
 ### Using proxies
 
-The use of proxies marks another significant tactic in evading blocking. You'll be pleased to know that Crawlee excels in this domain, supporting both [custom proxies](https://crawlee.dev/docs/guides/proxy-management) and [Apify proxies](https://apify.com/proxy).
+The use of proxies marks another significant tactic in evading blocking. You'll be pleased to know that Crawlee excels in this domain, supporting both [custom proxies](https://crawlee.dev/js/docs/guides/proxy-management) and [Apify proxies](https://apify.com/proxy).
 
 Here's an example of how to use Apify's [residential proxies](https://docs.apify.com/platform/proxy/residential-proxy), which are highly effective in preventing blocking:
 
@@ -447,7 +444,7 @@ const crawler = new CheerioCrawler({ requestHandler, proxyConfiguration });
 
 ### Using headless browsers to scrape Amazon
 
-For more advanced scraping, you can use a headless browser like [Playwright](https://crawlee.dev/docs/examples/playwright-crawler) to scrape Amazon. This method is more effective in preventing blocking and can handle websites with complex JavaScript interactions.
+For more advanced scraping, you can use a headless browser like [Playwright](https://crawlee.dev/js/docs/examples/playwright-crawler) to scrape Amazon. This method is more effective in preventing blocking and can handle websites with complex JavaScript interactions.
 
 To use Playwright with Crawlee, we can replace the `CheerioCrawler` with `PlaywrightCrawler`:
 

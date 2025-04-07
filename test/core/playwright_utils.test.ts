@@ -1,12 +1,13 @@
-import type { Server } from 'http';
-import path from 'path';
+import type { Server } from 'node:http';
+import path from 'node:path';
 
-import log from '@apify/log';
-import { KeyValueStore, Request, launchPlaywright, playwrightUtils } from '@crawlee/playwright';
+import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 let serverAddress = 'http://localhost:';
 let port: number;
@@ -159,8 +160,26 @@ describe('playwrightUtils', () => {
         }
     });
 
+    test('parseWithCheerio() iframe expansion works', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            const headings = $('h1')
+                .map((i, el) => $(el).text())
+                .get();
+            expect(headings).toEqual(['Outside iframe', 'In iframe']);
+        } finally {
+            await browser.close();
+        }
+    });
+
     describe('blockRequests()', () => {
-        let browser: Browser = null;
+        let browser: Browser = null as any;
         beforeAll(async () => {
             browser = await launchPlaywright(launchContext);
         });
@@ -217,7 +236,7 @@ describe('playwrightUtils', () => {
 
             const response = await playwrightUtils.gotoExtended(page, request);
 
-            const { method, headers, bodyLength } = JSON.parse(await response.text());
+            const { method, headers, bodyLength } = JSON.parse(await response!.text());
             expect(method).toBe('POST');
             expect(bodyLength).toBe(16);
             expect(headers['content-type']).toBe('application/json; charset=utf-8');
@@ -225,6 +244,36 @@ describe('playwrightUtils', () => {
             await browser.close();
         }
     }, 60_000);
+
+    describe('shadow root expansion', () => {
+        let browser: Browser;
+        beforeAll(async () => {
+            browser = await launchPlaywright(launchContext);
+        });
+        afterAll(async () => {
+            await browser.close();
+        });
+
+        test('no expansion with ignoreShadowRoots: true', async () => {
+            const page = await browser.newPage();
+            await page.goto(`${serverAddress}/special/shadow-root`);
+            const result = await playwrightUtils.parseWithCheerio(page, true);
+
+            const text = result('body').text().trim();
+            expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(0);
+            expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+        });
+
+        test('expansion works', async () => {
+            const page = await browser.newPage();
+            await page.goto(`${serverAddress}/special/shadow-root`);
+            const result = await playwrightUtils.parseWithCheerio(page);
+
+            const text = result('body').text().trim();
+            expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(2);
+            expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+        });
+    });
 
     describe('infiniteScroll()', () => {
         function isAtBottom() {

@@ -7,7 +7,7 @@ import type { Browser } from 'puppeteer';
 /**
  * Apify extends the launch options of Puppeteer.
  * You can use any of the Puppeteer compatible
- * [`LaunchOptions`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
+ * [`LaunchOptions`](https://pptr.dev/api/puppeteer.launchoptions)
  * options by providing the `launchOptions` property.
  *
  * **Example:**
@@ -27,7 +27,7 @@ import type { Browser } from 'puppeteer';
  */
 export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPlugin['launchOptions'], unknown> {
     /**
-     *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v13.5.1&show=api-puppeteerlaunchoptions)
+     *  `puppeteer.launch` [options](https://pptr.dev/api/puppeteer.launchoptions)
      */
     launchOptions?: PuppeteerPlugin['launchOptions'];
 
@@ -111,7 +111,7 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
 /**
  * Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
  * The function has the same argument and the return value as `puppeteer.launch()`.
- * See [Puppeteer documentation](https://github.com/puppeteer/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions) for more details.
+ * See [Puppeteer documentation](https://pptr.dev/api/puppeteer.launchoptions) for more details.
  *
  * The `launchPuppeteer()` function alters the following Puppeteer options:
  *

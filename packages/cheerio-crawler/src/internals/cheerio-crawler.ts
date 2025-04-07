@@ -1,6 +1,8 @@
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
+import { text as readStreamToString } from 'node:stream/consumers';
 
 import type {
+    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -8,16 +10,15 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RouterRoutes,
-    Configuration,
     RequestProvider,
+    RouterRoutes,
 } from '@crawlee/http';
-import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
+import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { extractUrlsFromCheerio } from '@crawlee/utils';
+import { type CheerioRoot, extractUrlsFromCheerio, type RobotsTxtFile } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
-import { DomHandler } from 'htmlparser2';
+import { DomHandler, parseDocument } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 
 export type CheerioErrorHandler<
@@ -46,19 +47,34 @@ export interface CheerioCrawlingContext<
     $: cheerio.CheerioAPI;
 
     /**
+     * Wait for an element matching the selector to appear. Timeout is ignored.
+     *
+     * **Example usage:**
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
      * Returns Cheerio handle, this is here to unify the crawler API, so they all have this handy method.
      * It has the same return type as the `$` context property, use it only if you are abstracting your workflow to
      * support different context types in one handler.
+     * When provided with the `selector` argument, it will throw if it's not available.
      *
      * **Example usage:**
-     * ```javascript
+     * ```ts
      * async requestHandler({ parseWithCheerio }) {
      *     const $ = await parseWithCheerio();
      *     const title = $('title').text();
      * });
      * ```
      */
-    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
 export type CheerioRequestHandler<
@@ -157,30 +173,27 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         isXml: boolean,
         crawlingContext: CheerioCrawlingContext,
     ) {
-        const dom = await this._parseHtmlToDom(response, isXml);
+        const body = await readStreamToString(response);
+        const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
 
-        const $ = cheerio.load(
-            dom as string,
-            {
-                xmlMode: isXml,
-                // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
-                // and not good for scraping. It also does not have a great streaming interface.
-                // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
-                _useHtmlParser2: true,
-            } as CheerioOptions,
-        );
+        const $ = cheerio.load(body, {
+            xmlMode: isXml,
+            // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
+            // and not good for scraping. It also does not have a great streaming interface.
+            // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
+            _useHtmlParser2: true,
+        } as CheerioOptions);
 
         return {
             dom,
             $,
-            get body() {
-                return isXml ? $!.xml() : $!.html({ decodeEntities: false });
-            },
+            body,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
                     $,
                     requestQueue: await this.getRequestQueue(),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -188,6 +201,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         };
     }
 
+    // TODO: unused code - remove in 4.0
     protected async _parseHtmlToDom(response: IncomingMessage, isXml: boolean) {
         return new Promise((resolve, reject) => {
             const domHandler = new DomHandler(
@@ -204,7 +218,19 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
     }
 
     protected override async _runRequestHandler(context: CheerioCrawlingContext) {
-        context.parseWithCheerio = async () => Promise.resolve(context.$);
+        context.waitForSelector = async (selector?: string, _timeoutMs?: number) => {
+            if (context.$(selector).get().length === 0) {
+                throw new Error(`Selector '${selector}' not found.`);
+            }
+        };
+        context.parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
+            if (selector) {
+                await context.waitForSelector(selector, timeoutMs);
+            }
+
+            return context.$;
+        };
+
         await super._runRequestHandler(context);
     }
 }
@@ -213,6 +239,7 @@ interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsTxtFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -222,6 +249,7 @@ export async function cheerioCrawlerEnqueueLinks({
     options,
     $,
     requestQueue,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -244,6 +272,7 @@ export async function cheerioCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...options,

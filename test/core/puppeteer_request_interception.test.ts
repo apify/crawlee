@@ -1,4 +1,4 @@
-import type { Server } from 'http';
+import type { Server } from 'node:http';
 
 import { sleep } from '@crawlee/utils';
 import { launchPuppeteer, utils } from 'crawlee';
@@ -131,7 +131,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
 
             // Check response that it's correct.
             const response = await page.goto(`${serverAddress}/special/getDebug`, { waitUntil: 'networkidle0' });
-            const { method, headers, bodyLength } = JSON.parse(await response.text());
+            const { method, headers, bodyLength } = JSON.parse(await response!.text());
             expect(method).toBe('POST');
             expect(bodyLength).toBe(16);
             expect(headers['content-type']).toBe('application/json; charset=utf-8');
@@ -155,14 +155,14 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
 
             // Check response that it's correct.
             const response = await page.goto(`${serverAddress}/special/getDebug`, { waitUntil: 'networkidle0' });
-            const { method } = JSON.parse(await response.text());
+            const { method } = JSON.parse(await response!.text());
             expect(method).toBe('POST');
         } finally {
             await browser.close();
         }
     });
 
-    describe('internal handleRequest function should return correctly formated headers', () => {
+    describe('internal handleRequest function should return correctly formatted headers', () => {
         test('should correctly capitalize headers', async () => {
             const browser = await launchPuppeteer({ launchOptions: { headless: true } });
 
@@ -181,7 +181,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                 });
 
                 const response = await page.goto(`${serverAddress}/special/getRawHeaders`);
-                const rawHeadersArr = JSON.parse(await response.text()) as string[];
+                const rawHeadersArr = JSON.parse(await response!.text()) as string[];
 
                 const acceptIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Accept');
                 expect(typeof acceptIndex).toBe('number');

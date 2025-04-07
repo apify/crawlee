@@ -1,9 +1,9 @@
-import fs from 'fs';
-import type { Server } from 'http';
-import http from 'http';
-import type { AddressInfo } from 'net';
-import path from 'path';
-import util from 'util';
+import fs from 'node:fs';
+import type { Server } from 'node:http';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import path from 'node:path';
+import util from 'node:util';
 
 import { BrowserLauncher, Configuration, launchPlaywright, PlaywrightLauncher } from '@crawlee/playwright';
 // @ts-expect-error no types
@@ -47,7 +47,8 @@ beforeAll(async () => {
                 if (!auth) {
                     // optimization: don't invoke the child process if no
                     // "Proxy-Authorization" header was given
-                    return fn(null, false);
+                    fn(null, false);
+                    return;
                 }
                 const parsed = basicAuthParser(auth);
                 const isEqual = JSON.stringify(parsed) === JSON.stringify(proxyAuth);
@@ -193,7 +194,7 @@ describe('launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin!.launchOptions.executablePath).toEqual(target);
+            expect(plugin!.launchOptions!.executablePath).toEqual(target);
         });
 
         test('does not use default when using chrome', () => {
@@ -218,7 +219,7 @@ describe('launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin.launchOptions.executablePath).toEqual(newPath);
+            expect(plugin.launchOptions!.executablePath).toEqual(newPath);
         });
 
         test('works without default path', async () => {
