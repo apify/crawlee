@@ -3,12 +3,12 @@ import { gotScraping } from '@crawlee/utils';
 import type { Options, PlainResponse } from 'got-scraping';
 
 import type {
+    BaseHttpClient,
     HttpRequest,
     HttpResponse,
     RedirectHandler,
     ResponseTypes,
     StreamingHttpResponse,
-    BaseHttpClient,
 } from './base-http-client';
 
 /**

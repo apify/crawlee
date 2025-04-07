@@ -53,9 +53,10 @@
         "raw-loader": "^4.0.2",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
+        "react-github-btn": "^1.4.0",
         "react-lite-youtube-embed": "^2.3.52",
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
-    "packageManager": "yarn@4.7.0"
+    "packageManager": "yarn@4.8.1"
 }

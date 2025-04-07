@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 import { execSync } from 'node:child_process';
 
 import ansiColors from 'ansi-colors';

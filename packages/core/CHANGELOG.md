@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.1](https://github.com/apify/crawlee/compare/v3.13.0...v3.13.1) (2025-04-07)
+
+
+### Bug Fixes
+
+* don't double increment session usage count in `BrowserCrawler` ([#2908](https://github.com/apify/crawlee/issues/2908)) ([3107e55](https://github.com/apify/crawlee/commit/3107e5511142a3579adc2348fcb6a9dcadd5c0b9)), closes [#2851](https://github.com/apify/crawlee/issues/2851)
+* rename `RobotsFile` to `RobotsTxtFile` ([#2913](https://github.com/apify/crawlee/issues/2913)) ([3160f71](https://github.com/apify/crawlee/commit/3160f717e865326476d78089d778cbc7d35aa58d)), closes [#2910](https://github.com/apify/crawlee/issues/2910)
+
+
+### Features
+
+* add `respectRobotsTxtFile` crawler option ([#2910](https://github.com/apify/crawlee/issues/2910)) ([0eabed1](https://github.com/apify/crawlee/commit/0eabed1f13070d902c2c67b340621830a7f64464))
+
+
+
+
+
 # [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
 
 
@@ -1043,7 +1060,7 @@ const crawler = new BasicCrawler({
 
 #### How to use `sendRequest()`?
 
-See [the Got Scraping guide](https://crawlee.dev/docs/guides/got-scraping).
+See [the Got Scraping guide](https://crawlee.dev/js/docs/guides/got-scraping).
 
 #### Removed options
 
@@ -1168,7 +1185,7 @@ Previously, you were able to have a browser pool that would mix Puppeteer and Pl
 
 One small feature worth mentioning is the ability to handle requests with browser crawlers outside the browser. To do that, we can use a combination of `Request.skipNavigation` and `context.sendRequest()`.
 
-Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](https://crawlee.dev/docs/examples/skip-navigation) example!
+Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](https://crawlee.dev/js/docs/examples/skip-navigation) example!
 
 ### Logging
 
@@ -1228,14 +1245,14 @@ await Actor.main(async () => {
 
 #### Events
 
-Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by [`EventManager`](https://crawlee.dev/api/core/class/EventManager) class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
+Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by [`EventManager`](https://crawlee.dev/js/api/core/class/EventManager) class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
 
 ```diff
 -Apify.events.on(...);
 +Actor.on(...);
 ```
 
-> We can also get the [`EventManager`](https://crawlee.dev/api/core/class/EventManager) instance via `Configuration.getEventManager()`.
+> We can also get the [`EventManager`](https://crawlee.dev/js/api/core/class/EventManager) instance via `Configuration.getEventManager()`.
 
 In addition to the existing events, we now have an `exit` event fired when calling `Actor.exit()` (which is called at the end of `Actor.main()`). This event allows you to gracefully shut down any resources when `Actor.exit` is called.
 

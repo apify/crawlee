@@ -28,7 +28,7 @@ Crawlee is available as the [`crawlee`](https://www.npmjs.com/package/crawlee) N
 
 ## Installation
 
-We recommend visiting the [Introduction tutorial](https://crawlee.dev/docs/introduction) in Crawlee documentation for more information.
+We recommend visiting the [Introduction tutorial](https://crawlee.dev/js/docs/introduction) in Crawlee documentation for more information.
 
 > Crawlee requires **Node.js 16 or higher**.
 
@@ -78,7 +78,7 @@ const crawler = new PlaywrightCrawler({
 await crawler.run(['https://crawlee.dev']);
 ```
 
-By default, Crawlee stores data to `./storage` in the current working directory. You can override this directory via Crawlee configuration. For details, see [Configuration guide](https://crawlee.dev/docs/guides/configuration), [Request storage](https://crawlee.dev/docs/guides/request-storage) and [Result storage](https://crawlee.dev/docs/guides/result-storage).
+By default, Crawlee stores data to `./storage` in the current working directory. You can override this directory via Crawlee configuration. For details, see [Configuration guide](https://crawlee.dev/js/docs/guides/configuration), [Request storage](https://crawlee.dev/js/docs/guides/request-storage) and [Result storage](https://crawlee.dev/js/docs/guides/result-storage).
 
 ### Installing pre-release versions
 

@@ -19,12 +19,17 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import vm from 'vm';
+import vm from 'node:vm';
 
-import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
-import type { Request, Session } from '@crawlee/browser';
-import { SessionError, validators, KeyValueStore, RequestState, Configuration } from '@crawlee/browser';
+import {
+    Configuration,
+    KeyValueStore,
+    type Request,
+    RequestState,
+    type Session,
+    SessionError,
+    validators,
+} from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -32,10 +37,13 @@ import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright'
 import ow from 'ow';
 import type { Page, Response, Route } from 'playwright';
 
-import { RenderingTypePredictor } from './rendering-type-prediction';
+import { LruCache } from '@apify/datastructures';
+import log_ from '@apify/log';
+
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '../playwright-crawler';
+import { RenderingTypePredictor } from './rendering-type-prediction';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 
@@ -223,6 +231,8 @@ export async function gotoExtended(
             } catch (error) {
                 log.debug('Error inside request interceptor', { error });
             }
+
+            return undefined;
         };
 
         await page.route('**/*', interceptRequestHandler);
@@ -297,7 +307,7 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 
         await client.send('Network.enable');
         await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
-    } catch (error) {
+    } catch {
         log.warning('blockRequests() helper is incompatible with non-Chromium browsers.');
     }
 }

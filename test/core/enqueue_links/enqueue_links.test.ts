@@ -1,4 +1,3 @@
-import log from '@apify/log';
 import { type AddRequestsBatchedOptions, cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
@@ -13,6 +12,8 @@ import type { CheerioRoot } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
+
+import log from '@apify/log';
 
 const apifyClient = Configuration.getStorageClient();
 
@@ -540,9 +541,9 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (/example\.com/.test(request.url)) {
+                        if (request.url.includes('example.com')) {
                             request.method = 'POST';
-                        } else if (/cool\.com/.test(request.url)) {
+                        } else if (request.url.includes('cool.com')) {
                             request.userData!.foo = 'bar';
                         }
                         return request;
@@ -936,9 +937,9 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (/example\.com/.test(request.url)) {
+                        if (request.url.includes('example.com')) {
                             request.method = 'POST';
-                        } else if (/cool\.com/.test(request.url)) {
+                        } else if (request.url.includes('cool.com')) {
                             request.userData!.foo = 'bar';
                         }
                         return request;

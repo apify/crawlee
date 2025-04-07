@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import { handleMessage } from './fs-utils';
 import type { BackgroundHandlerReceivedMessage } from '../utils';
+import { handleMessage } from './fs-utils';
 
 /**
  * A map of promises that are created when a background task is scheduled.

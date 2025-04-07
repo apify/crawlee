@@ -1,4 +1,4 @@
-import { Statistics, Configuration, EventType } from '@crawlee/core';
+import { Configuration, EventType, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 

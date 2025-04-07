@@ -1,20 +1,22 @@
-import log from '@apify/log';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
+import log from '@apify/log';
+
+import type { RequestOptions } from '../request';
+import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
-    filterRequestsByPatterns,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
     createRequests,
+    filterRequestsByPatterns,
 } from './shared';
-import type { RequestOptions } from '../request';
-import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
@@ -157,6 +159,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * You can use this option to wait for adding all of them.
      */
     waitForAllRequestsToBeAdded?: boolean;
+
+    /**
+     * RobotsTxtFile instance for the current request that triggered the `enqueueLinks`.
+     * If provided, disallowed URLs will be ignored.
+     */
+    robotsTxtFile?: RobotsTxtFile;
 }
 
 /**
@@ -245,7 +253,7 @@ export async function enqueueLinks(
         throw new RangeError(
             [
                 'enqueueLinks() was called without the required options. You can only do that when you use the `crawlingContext.enqueueLinks()` method in request handlers.',
-                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/docs/examples/crawl-relative-links',
+                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/js/docs/examples/crawl-relative-links',
             ].join('\n'),
         );
     }
@@ -255,6 +263,7 @@ export async function enqueueLinks(
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
@@ -285,6 +294,7 @@ export async function enqueueLinks(
         transformRequestFunction,
         forefront,
         waitForAllRequestsToBeAdded,
+        robotsTxtFile,
     } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
@@ -361,6 +371,12 @@ export async function enqueueLinks(
     }
 
     let requestOptions = createRequestOptions(urls, options);
+
+    if (robotsTxtFile) {
+        requestOptions = requestOptions.filter((request) => {
+            return robotsTxtFile.isAllowed(request.url);
+        });
+    }
 
     if (transformRequestFunction) {
         requestOptions = requestOptions

@@ -1,5 +1,3 @@
-import type { Log } from '@apify/log';
-import { addTimeoutToPromise } from '@apify/timeout';
 import {
     extractUrlsFromPage,
     type LoadedContext,
@@ -8,22 +6,25 @@ import {
     type RouterHandler,
 } from '@crawlee/browser';
 import type {
-    RestrictedCrawlingContext,
-    StatisticState,
-    StatisticsOptions,
-    StatisticPersistedState,
     GetUserDataFromRequest,
+    RestrictedCrawlingContext,
     RouterRoutes,
+    StatisticPersistedState,
+    StatisticsOptions,
+    StatisticState,
 } from '@crawlee/core';
 import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
-import { load, type Cheerio, type Element } from 'cheerio';
+import { type Cheerio, type Element, load } from 'cheerio';
 import isEqual from 'lodash.isequal';
+
+import type { Log } from '@apify/log';
+import { addTimeoutToPromise } from '@apify/timeout';
 
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
 import { PlaywrightCrawler } from './playwright-crawler';
-import { RenderingTypePredictor, type RenderingType } from './utils/rendering-type-prediction';
+import { type RenderingType, RenderingTypePredictor } from './utils/rendering-type-prediction';
 
 type Result<TResult> =
     | { result: TResult; ok: true; logs?: LogProxyCall[] }

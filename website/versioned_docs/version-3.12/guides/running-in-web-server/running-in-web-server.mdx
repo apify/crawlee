@@ -10,7 +10,7 @@ import ApiLink from '@site/src/components/ApiLink';
 
 import WebServerSource from '!!raw-loader!./web-server.mjs';
 
-Most of the time, Crawlee jobs are run as batch jobs. You have a list of URLs you want to scrape every week or you might want to scrape a whole website once per day. After the scrape, you send the data to your warehouse for analytics. Batch jobs are efficient because they can use [Crawlee's built-in autoscaling](https://crawlee.dev/docs/guides/scaling-crawlers) to fully utilize the resources you have available. But sometimes you have a use-case where you need to return scrape data as soon as possible. There might be a user waiting on the other end so every millisecond counts. This is where running Crawlee in a web server comes in.
+Most of the time, Crawlee jobs are run as batch jobs. You have a list of URLs you want to scrape every week or you might want to scrape a whole website once per day. After the scrape, you send the data to your warehouse for analytics. Batch jobs are efficient because they can use [Crawlee's built-in autoscaling](https://crawlee.dev/js/docs/guides/scaling-crawlers) to fully utilize the resources you have available. But sometimes you have a use-case where you need to return scrape data as soon as possible. There might be a user waiting on the other end so every millisecond counts. This is where running Crawlee in a web server comes in.
 
 We will build a simple HTTP server that receives a page URL and returns the page title in the response. We will base this guide on the approach used in [Apify's Super Scraper API repository](https://github.com/apify/super-scraper) which maps incoming HTTP requests to Crawlee <ApiLink to="core/class/Request">Request</ApiLink>.
 

@@ -1,7 +1,8 @@
-import log from '@apify/log';
-import { cryptoRandomObjectId } from '@apify/utilities';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
+
+import log from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
 
 import type { Request } from './request';
 
@@ -422,12 +423,10 @@ export class ProxyConfiguration {
             }
             return proxyUrl;
         } catch (err) {
-            this._throwNewUrlFunctionInvalid(err as Error);
+            throw new Error(
+                `The provided newUrlFunction did not return a valid URL.\nCause: ${(err as Error).message}`,
+            );
         }
-    }
-
-    protected _throwNewUrlFunctionInvalid(err: Error): never {
-        throw new Error(`The provided newUrlFunction did not return a valid URL.\nCause: ${err.message}`);
     }
 
     protected _throwCannotCombineCustomMethods(): never {

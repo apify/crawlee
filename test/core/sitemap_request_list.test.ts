@@ -1,9 +1,9 @@
-import type { Server } from 'http';
-import type { AddressInfo } from 'net';
-import { Readable } from 'stream';
-import { finished } from 'stream/promises';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { Readable } from 'node:stream';
+import { finished } from 'node:stream/promises';
 
-import { SitemapRequestList, type Request } from '@crawlee/core';
+import { type Request, SitemapRequestList } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper';

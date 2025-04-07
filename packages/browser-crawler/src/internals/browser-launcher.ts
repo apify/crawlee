@@ -3,7 +3,7 @@ import os from 'node:os';
 
 import { Configuration } from '@crawlee/basic';
 import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
-import type { Dictionary, Constructor } from '@crawlee/utils';
+import type { Constructor, Dictionary } from '@crawlee/utils';
 import ow from 'ow';
 
 const DEFAULT_VIEWPORT = {
@@ -77,7 +77,7 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
      * import { firefox } from 'playwright';
      * ```
      *
-     * For more details, check out the [example](https://crawlee.dev/docs/examples/playwright-crawler-firefox).
+     * For more details, check out the [example](https://crawlee.dev/js/docs/examples/playwright-crawler-firefox).
      */
     launcher?: Launcher;
 }

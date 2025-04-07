@@ -1,25 +1,26 @@
-import { URL } from 'url';
+import { URL } from 'node:url';
 
-import log_ from '@apify/log';
 import type {
     GlobInput,
     PseudoUrlInput,
     RegExpInput,
-    RequestTransform,
-    UrlPatternObject,
     RequestOptions,
     RequestProvider,
+    RequestTransform,
+    UrlPatternObject,
 } from '@crawlee/browser';
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
-    createRequests,
     createRequestOptions,
+    createRequests,
 } from '@crawlee/browser';
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
+
+import log_ from '@apify/log';
 
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception';
 
@@ -351,6 +352,8 @@ function createInterceptRequestHandler(page: Page, requests: Set<string>): (req:
         } else {
             await req.abort('aborted'); // Prevents navigation by js
         }
+
+        return undefined;
     };
 }
 

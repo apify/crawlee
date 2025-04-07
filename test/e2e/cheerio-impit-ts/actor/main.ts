@@ -1,5 +1,6 @@
-import { CheerioCrawler, Dictionary } from '@crawlee/cheerio';
-import { ImpitHttpClient, Browser } from '@crawlee/impit-client';
+import type { Dictionary } from '@crawlee/cheerio';
+import { CheerioCrawler } from '@crawlee/cheerio';
+import { Browser, ImpitHttpClient } from '@crawlee/impit-client';
 import { Actor } from 'apify';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {

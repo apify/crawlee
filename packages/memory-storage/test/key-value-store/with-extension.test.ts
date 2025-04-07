@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { existsSync, emptyDirSync } from 'fs-extra';
+import { emptyDirSync, existsSync } from 'fs-extra';
 import { createKeyValueStorageImplementation } from 'packages/memory-storage/src/fs/key-value-store';
 
 describe('KeyValueStore should append extension only when needed', () => {

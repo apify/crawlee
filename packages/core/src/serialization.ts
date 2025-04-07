@@ -1,6 +1,6 @@
+import { pipeline as streamPipeline, Readable, Writable } from 'node:stream';
 import util from 'node:util';
 import zlib from 'node:zlib';
-import { pipeline as streamPipeline, Readable, Writable } from 'stream';
 
 import ow from 'ow';
 import StreamArray from 'stream-json/streamers/StreamArray';

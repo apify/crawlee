@@ -27,28 +27,6 @@ export interface DatasetCollectionData {
     accessedAt: Date;
 }
 
-/**
- * Dataset collection client.
- */
-export interface DatasetCollectionClient {
-    list(): Promise<PaginatedList<Dataset>>;
-    getOrCreate(name?: string): Promise<DatasetCollectionData>;
-}
-
-export interface Dataset extends DatasetCollectionData {
-    itemCount: number;
-}
-
-export interface DatasetClientUpdateOptions {
-    name?: string;
-}
-
-export interface DatasetClientListOptions {
-    desc?: boolean;
-    limit?: number;
-    offset?: number;
-}
-
 export interface PaginatedList<Data> {
     /** Total count of entries in the dataset. */
     total: number;
@@ -62,6 +40,28 @@ export interface PaginatedList<Data> {
     desc?: boolean;
     /** Dataset entries based on chosen format parameter. */
     items: Data[];
+}
+
+export interface Dataset extends DatasetCollectionData {
+    itemCount: number;
+}
+
+/**
+ * Dataset collection client.
+ */
+export interface DatasetCollectionClient {
+    list(): Promise<PaginatedList<Dataset>>;
+    getOrCreate(name?: string): Promise<DatasetCollectionData>;
+}
+
+export interface DatasetClientUpdateOptions {
+    name?: string;
+}
+
+export interface DatasetClientListOptions {
+    desc?: boolean;
+    limit?: number;
+    offset?: number;
 }
 
 export interface DatasetInfo {
@@ -90,6 +90,14 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     pushItems(items: Data | Data[] | string | string[]): Promise<void>;
 }
 
+export interface KeyValueStoreStats {
+    readCount?: number;
+    writeCount?: number;
+    deleteCount?: number;
+    listCount?: number;
+    storageBytes?: number;
+}
+
 export interface KeyValueStoreInfo {
     id: string;
     name?: string;
@@ -100,14 +108,6 @@ export interface KeyValueStoreInfo {
     actId?: string;
     actRunId?: string;
     stats?: KeyValueStoreStats;
-}
-
-export interface KeyValueStoreStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    listCount?: number;
-    storageBytes?: number;
 }
 
 /**
@@ -166,27 +166,12 @@ export interface KeyValueStoreClient {
     deleteRecord(key: string): Promise<void>;
 }
 
-/**
- * Request queue collection client.
- */
-export interface RequestQueueCollectionClient {
-    list(): Promise<PaginatedList<RequestQueueInfo>>;
-    getOrCreate(name: string): Promise<RequestQueueInfo>;
-}
-
-export interface QueueHead {
-    limit: number;
-    queueModifiedAt: Date;
-    hadMultipleClients?: boolean;
-    items: RequestQueueHeadItem[];
-}
-
-export interface RequestQueueHeadItem {
-    id: string;
-    retryCount: number;
-    uniqueKey: string;
-    url: string;
-    method: AllowedHttpMethods;
+export interface RequestQueueStats {
+    readCount?: number;
+    writeCount?: number;
+    deleteCount?: number;
+    headItemReadCount?: number;
+    storageBytes?: number;
 }
 
 export interface RequestQueueInfo {
@@ -206,12 +191,27 @@ export interface RequestQueueInfo {
     stats?: RequestQueueStats;
 }
 
-export interface RequestQueueStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    headItemReadCount?: number;
-    storageBytes?: number;
+/**
+ * Request queue collection client.
+ */
+export interface RequestQueueCollectionClient {
+    list(): Promise<PaginatedList<RequestQueueInfo>>;
+    getOrCreate(name: string): Promise<RequestQueueInfo>;
+}
+
+export interface RequestQueueHeadItem {
+    id: string;
+    retryCount: number;
+    uniqueKey: string;
+    url: string;
+    method: AllowedHttpMethods;
+}
+
+export interface QueueHead {
+    limit: number;
+    queueModifiedAt: Date;
+    hadMultipleClients?: boolean;
+    items: RequestQueueHeadItem[];
 }
 
 export interface ListOptions {

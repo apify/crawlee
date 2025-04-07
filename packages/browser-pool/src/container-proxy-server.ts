@@ -26,7 +26,6 @@ export async function createProxyServerForContainers(fallbackProxyUrl?: string) 
                     };
                 }
 
-                // eslint-disable-next-line no-console
                 console.warn(`Request without proxy ${localAddress} ${request.headers.host}`);
             }
 

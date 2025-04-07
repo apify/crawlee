@@ -69,11 +69,11 @@ pip install crawlee "crawlee[playwright]"
 playwright install
 ```
 
-*If you're new to **Crawlee**, check out its easy-to-follow documentation. It’s available for both [Node.js](https://www.crawlee.dev/docs/quick-start) and [Python](https://www.crawlee.dev/python/docs/quick-start).*
+*If you're new to **Crawlee**, check out its easy-to-follow documentation. It’s available for both [Node.js](https://www.crawlee.dev/js/docs/quick-start) and [Python](https://www.crawlee.dev/python/docs/quick-start).*
 
 :::note
 
-Before going ahead with the project, I'd like to ask you to star Crawlee for Python on [GitHub](https://github.com/apify/crawlee-python/), it helps us to spread the word to fellow scraper developers. 
+Before going ahead with the project, I'd like to ask you to star Crawlee for Python on [GitHub](https://github.com/apify/crawlee-python/), it helps us to spread the word to fellow scraper developers.
 
 :::
 
@@ -397,7 +397,7 @@ async def _scrape_listings(self, context) -> None:
                 break
             if new_items > 0:
                 await self._load_more_items(page)
-                
+
         print(f"\nFinished processing! Total items: {len(self.processed_names)}")
     except Exception as e:
         print(f"Error in scraping: {str(e)}")

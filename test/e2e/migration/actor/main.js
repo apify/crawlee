@@ -47,7 +47,6 @@ if (workerData !== '#actor') {
             },
         });
 
-        // eslint-disable-next-line no-underscore-dangle
         Configuration.getGlobalConfig().getStorageClient().__purged = false;
 
         await crawler.run(['https://crawlee.dev']);

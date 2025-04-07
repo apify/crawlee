@@ -1,11 +1,12 @@
-import { URL } from 'url';
+import { URL } from 'node:url';
 
-import { purlToRegExp } from '@apify/pseudo_url';
 import { minimatch } from 'minimatch';
 
-import type { EnqueueLinksOptions } from './enqueue_links';
+import { purlToRegExp } from '@apify/pseudo_url';
+
 import type { RequestOptions } from '../request';
 import { Request } from '../request';
+import type { EnqueueLinksOptions } from './enqueue_links';
 
 export { tryAbsoluteURL } from '@crawlee/utils';
 

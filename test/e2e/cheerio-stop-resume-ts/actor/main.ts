@@ -14,7 +14,7 @@ const crawler = new CheerioCrawler();
 crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
-        globs: ['https://crawlee.dev/docs/**'],
+        globs: ['https://crawlee.dev/js/docs/**'],
     });
 
     const pageTitle = $('title').first().text();
@@ -24,8 +24,8 @@ crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
     if (requestCount++ > 10) crawler.stop();
 });
 
-await crawler.run(['https://crawlee.dev/docs/quick-start']);
+await crawler.run(['https://crawlee.dev/js/docs/quick-start']);
 
 requestCount = 0;
-await crawler.run(['https://crawlee.dev/docs/quick-start'], { purgeRequestQueue: false });
+await crawler.run(['https://crawlee.dev/js/docs/quick-start'], { purgeRequestQueue: false });
 await Actor.exit({ exit: Actor.isAtHome() });

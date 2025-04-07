@@ -5,6 +5,7 @@ import Link from '@docusaurus/Link';
 import styles from './RunnableCodeBlock.module.css';
 
 const EXAMPLE_RUNNERS = {
+    python: 'HH9rhkFXiZbheuq1V',
     playwright: '6i5QsHBMtm3hKph70',
     puppeteer: '7tWSD8hrYzuc9Lte7',
     cheerio: 'kk67IcZkKSSBTslXI',

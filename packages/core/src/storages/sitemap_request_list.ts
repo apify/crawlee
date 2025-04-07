@@ -1,16 +1,17 @@
 import { Transform } from 'node:stream';
 
-import defaultLog from '@apify/log';
-import { type ParseSitemapOptions, parseSitemap } from '@crawlee/utils';
+import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
 import ow from 'ow';
 
-import { KeyValueStore } from './key_value_store';
-import type { IRequestList } from './request_list';
-import { purgeDefaultStorages } from './utils';
+import defaultLog from '@apify/log';
+
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
 import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
 import { Request } from '../request';
+import { KeyValueStore } from './key_value_store';
+import type { IRequestList } from './request_list';
+import { purgeDefaultStorages } from './utils';
 
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
@@ -158,7 +159,7 @@ export class SitemapRequestList implements IRequestList {
      *
      * If the loading is aborted and all the requests are handled, `isFinished()` will return `true`.
      */
-    private abortLoading: boolean = false;
+    private abortLoading = false;
 
     /** Number of URLs that were marked as handled */
     private handledUrlCount = 0;
@@ -167,7 +168,7 @@ export class SitemapRequestList implements IRequestList {
 
     private store?: KeyValueStore;
 
-    private closed: boolean = false;
+    private closed = false;
 
     /**
      * Proxy URL to be used for sitemap loading.
@@ -278,7 +279,8 @@ export class SitemapRequestList implements IRequestList {
     private async pushNextUrl(url: string | null) {
         return new Promise<void>((resolve) => {
             if (this.closed || (url && !this.isUrlMatchingPatterns(url))) {
-                return resolve();
+                resolve();
+                return;
             }
 
             if (!this.urlQueueStream.push(url)) {
@@ -301,7 +303,8 @@ export class SitemapRequestList implements IRequestList {
     private async readNextUrl(): Promise<string | null> {
         return new Promise((resolve) => {
             if (this.closed) {
-                return resolve(null);
+                resolve(null);
+                return;
             }
 
             const result = this.urlQueueStream.read();

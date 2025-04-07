@@ -1,13 +1,13 @@
 import { EventEmitter } from 'node:events';
 
-import type { Log } from '@apify/log';
-import { cryptoRandomObjectId } from '@apify/utilities';
 import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { Cookie, SerializedCookieJar } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
-import { EVENT_SESSION_RETIRED } from './events';
+import type { Log } from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
+
 import type { ResponseLike } from '../cookie_utils';
 import {
     browserPoolCookieToToughCookie,
@@ -16,6 +16,7 @@ import {
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils';
 import { log as defaultLog } from '../log';
+import { EVENT_SESSION_RETIRED } from './events';
 
 /**
  * Persistable {@apilink Session} state.
@@ -100,16 +101,48 @@ export class Session {
     readonly id: string;
     private maxAgeSecs: number;
     userData: Dictionary;
-    private maxErrorScore: number;
-    private errorScoreDecrement: number;
-    private createdAt: Date;
-    private expiresAt: Date;
-    private usageCount: number;
-    private maxUsageCount: number;
+    private _maxErrorScore: number;
+    private _errorScoreDecrement: number;
+    private _createdAt: Date;
+    private _expiresAt: Date;
+    private _usageCount: number;
+    private _maxUsageCount: number;
     private sessionPool: import('./session_pool').SessionPool;
-    private errorScore: number;
-    private cookieJar: CookieJar;
+    private _errorScore: number;
+    private _cookieJar: CookieJar;
     private log: Log;
+
+    get errorScore() {
+        return this._errorScore;
+    }
+
+    get usageCount() {
+        return this._usageCount;
+    }
+
+    get maxErrorScore() {
+        return this._maxErrorScore;
+    }
+
+    get errorScoreDecrement() {
+        return this._errorScoreDecrement;
+    }
+
+    get expiresAt() {
+        return this._expiresAt;
+    }
+
+    get createdAt() {
+        return this._createdAt;
+    }
+
+    get maxUsageCount() {
+        return this._maxUsageCount;
+    }
+
+    get cookieJar() {
+        return this._cookieJar;
+    }
 
     /**
      * Session configuration.
@@ -153,19 +186,19 @@ export class Session {
 
         this.log = log.child({ prefix: 'Session' });
 
-        this.cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this._cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
-        this.maxErrorScore = maxErrorScore;
-        this.errorScoreDecrement = errorScoreDecrement;
+        this._maxErrorScore = maxErrorScore;
+        this._errorScoreDecrement = errorScoreDecrement;
 
         // Internal
-        this.expiresAt = expiresAt;
-        this.createdAt = createdAt;
-        this.usageCount = usageCount; // indicates how many times the session has been used
-        this.errorScore = errorScore; // indicates number of markBaded request with the session
-        this.maxUsageCount = maxUsageCount;
+        this._expiresAt = expiresAt;
+        this._createdAt = createdAt;
+        this._usageCount = usageCount; // indicates how many times the session has been used
+        this._errorScore = errorScore; // indicates number of markBaded request with the session
+        this._maxUsageCount = maxUsageCount;
         this.sessionPool = sessionPool;
     }
 
@@ -207,10 +240,10 @@ export class Session {
      * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
     markGood() {
-        this.usageCount += 1;
+        this._usageCount += 1;
 
-        if (this.errorScore > 0) {
-            this.errorScore -= this.errorScoreDecrement;
+        if (this._errorScore > 0) {
+            this._errorScore -= this._errorScoreDecrement;
         }
 
         this._maybeSelfRetire();
@@ -244,8 +277,8 @@ export class Session {
      */
     retire() {
         // mark it as an invalid by increasing the error score count.
-        this.errorScore += this.maxErrorScore;
-        this.usageCount += 1;
+        this._errorScore += this._maxErrorScore;
+        this._usageCount += 1;
 
         // emit event so we can retire browser in puppeteer pool
         this.sessionPool.emit(EVENT_SESSION_RETIRED, this);
@@ -256,8 +289,8 @@ export class Session {
      * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
     markBad() {
-        this.errorScore += 1;
-        this.usageCount += 1;
+        this._errorScore += 1;
+        this._usageCount += 1;
 
         this._maybeSelfRetire();
     }

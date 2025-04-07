@@ -1,6 +1,6 @@
 import asyncFs from 'node:fs/promises';
 
-import { getCgroupsVersion, isDocker, isLambda, weightedAvg, sleep, snakeCaseToCamelCase } from '@crawlee/utils';
+import { getCgroupsVersion, isDocker, isLambda, sleep, snakeCaseToCamelCase, weightedAvg } from '@crawlee/utils';
 
 describe('isDocker()', () => {
     test('works for dockerenv && cgroup', async () => {

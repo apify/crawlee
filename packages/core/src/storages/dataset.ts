@@ -1,16 +1,17 @@
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
+
+import { Configuration } from '../configuration';
+import { type Log, log } from '../log';
+import type { Awaitable } from '../typedefs';
 import { checkStorageAccess } from './access_checking';
 import { KeyValueStore } from './key_value_store';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
-import { Configuration } from '../configuration';
-import { log, type Log } from '../log';
-import type { Awaitable } from '../typedefs';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -274,7 +275,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         // Handle singular Objects
         if (!Array.isArray(data)) {
             const payload = checkAndSerialize(data, limit);
-            return dispatch(payload);
+            await dispatch(payload);
+            return;
         }
 
         // Handle Arrays
@@ -326,7 +328,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             items.push(...value.items);
 
             if (value.total > offset + value.count) {
-                return fetchNextChunk(offset + value.count);
+                await fetchNextChunk(offset + value.count);
             }
         };
 
@@ -480,7 +482,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         if (newOffset >= total) return;
 
         const newOpts = { ...options, offset: newOffset };
-        return this.forEach(iteratee, newOpts, index);
+        await this.forEach(iteratee, newOpts, index);
     }
 
     /**

@@ -1,5 +1,5 @@
-import { finished } from 'stream/promises';
-import { isPromise } from 'util/types';
+import { finished } from 'node:stream/promises';
+import { isPromise } from 'node:util/types';
 
 import type { Dictionary } from '@crawlee/types';
 // @ts-expect-error got-scraping is ESM only

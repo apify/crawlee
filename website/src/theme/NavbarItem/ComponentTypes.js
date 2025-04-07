@@ -55,7 +55,7 @@ function ApiNavbarItem(ctx) {
                 exact
                 {...ctx}
                 label={ctx.label}
-                to={`api/${ctx.to}`}
+                to={`js/api/${ctx.to}`}
             />
         );
     }
@@ -65,7 +65,7 @@ function ApiNavbarItem(ctx) {
             exact
             {...ctx}
             label={ctx.label}
-            to={`api/${version.version === 'current' ? 'next' : version.version}/${ctx.to}`}
+            to={`js/api/${version.version === 'current' ? 'next' : version.version}/${ctx.to}`}
         />
     );
 }

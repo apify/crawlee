@@ -1,5 +1,5 @@
 // For more information, see https://crawlee.dev/
-import { PuppeteerCrawler, log } from 'crawlee';
+import { log, PuppeteerCrawler } from 'crawlee';
 
 import { router } from './routes.js';
 

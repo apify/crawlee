@@ -1,9 +1,9 @@
-import fs from 'fs';
-import type { Server } from 'http';
-import http from 'http';
-import type { AddressInfo } from 'net';
-import path from 'path';
-import util from 'util';
+import fs from 'node:fs';
+import type { Server } from 'node:http';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import path from 'node:path';
+import util from 'node:util';
 
 import { BrowserLauncher, launchPuppeteer } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
@@ -53,7 +53,8 @@ beforeAll(() => {
                 if (!auth) {
                     // optimization: don't invoke the child process if no
                     // "Proxy-Authorization" header was given
-                    return fn(null, false);
+                    fn(null, false);
+                    return;
                 }
                 const parsed = basicAuthParser(auth);
                 const isEqual = JSON.stringify(parsed) === JSON.stringify(proxyAuth);

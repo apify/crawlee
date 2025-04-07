@@ -3,10 +3,11 @@ import { access, readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 import util from 'node:util';
 
+import type { Dictionary } from '@crawlee/types';
+
 import log from '@apify/log';
 // @ts-expect-error We need to add typings for @apify/ps-tree
 import psTree from '@apify/ps-tree';
-import type { Dictionary } from '@crawlee/types';
 
 import { isDocker } from './general';
 

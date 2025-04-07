@@ -1,6 +1,6 @@
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { Response as GotResponse, OptionsInit } from 'got-scraping';
+import type { OptionsInit, Response as GotResponse } from 'got-scraping';
 import type { ReadonlyDeep } from 'type-fest';
 
 import type { Configuration } from '../configuration';
@@ -9,7 +9,7 @@ import type { Log } from '../log';
 import type { ProxyInfo } from '../proxy_configuration';
 import type { Request, Source } from '../request';
 import type { Session } from '../session_pool/session';
-import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
+import type { Dataset, RecordOptions, RequestQueueOperationOptions } from '../storages';
 import { KeyValueStore } from '../storages';
 
 /** @internal */
@@ -60,7 +60,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
      * and override settings of the enqueued {@apilink Request} objects.
      *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/docs/examples/crawl-relative-links) example
+     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
      * for more details regarding its usage.
      *
      * **Example usage**
@@ -119,7 +119,7 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
      * and override settings of the enqueued {@apilink Request} objects.
      *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/docs/examples/crawl-relative-links) example
+     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
      * for more details regarding its usage.
      *
      * **Example usage**
@@ -147,11 +147,11 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
     getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>;
 
     /**
-     * Fires HTTP request via [`got-scraping`](https://crawlee.dev/docs/guides/got-scraping), allowing to override the request
+     * Fires HTTP request via [`got-scraping`](https://crawlee.dev/js/docs/guides/got-scraping), allowing to override the request
      * options on the fly.
      *
      * This is handy when you work with a browser crawler but want to execute some requests outside it (e.g. API requests).
-     * Check the [Skipping navigations for certain requests](https://crawlee.dev/docs/examples/skip-navigation) example for
+     * Check the [Skipping navigations for certain requests](https://crawlee.dev/js/docs/examples/skip-navigation) example for
      * more detailed explanation of how to do that.
      *
      * ```ts

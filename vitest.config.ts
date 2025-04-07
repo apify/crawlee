@@ -8,7 +8,6 @@ import { defineConfig } from 'vitest/config';
 let threads: { minThreads: number; maxThreads: number } | undefined;
 
 if (isCI) {
-    // eslint-disable-next-line no-console
     console.log(`Running in CI, throttling threads to 1 test at a time`);
     threads = { minThreads: 1, maxThreads: 1 };
 }

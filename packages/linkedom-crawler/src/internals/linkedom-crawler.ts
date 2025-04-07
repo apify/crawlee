@@ -1,29 +1,30 @@
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 
-import { concatStreamToBuffer } from '@apify/utilities';
 import type {
+    EnqueueLinksOptions,
+    ErrorHandler,
+    GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
-    ErrorHandler,
     RequestHandler,
-    EnqueueLinksOptions,
-    GetUserDataFromRequest,
-    RouterRoutes,
     RequestProvider,
+    RouterRoutes,
 } from '@crawlee/http';
 import {
-    HttpCrawler,
     enqueueLinks,
-    Router,
+    HttpCrawler,
     resolveBaseUrlForEnqueueLinksFiltering,
+    Router,
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, sleep } from '@crawlee/utils';
+import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 // @ts-expect-error This throws a compilation error due to TypeScript not inferring the module has CJS versions too
 import { DOMParser } from 'linkedom/cached';
+
+import { concatStreamToBuffer } from '@apify/utilities';
 
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -186,6 +187,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                     options: enqueueOptions,
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -200,7 +202,8 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
             if ($(selector).get().length === 0) {
                 if (timeoutMs) {
                     await sleep(50);
-                    return context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                    await context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                    return;
                 }
 
                 throw new Error(`Selector '${selector}' not found.`);
@@ -224,6 +227,7 @@ interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
     window: Window | null;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsTxtFile;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -233,6 +237,7 @@ export async function linkedomCrawlerEnqueueLinks({
     options,
     window,
     requestQueue,
+    robotsTxtFile,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -255,6 +260,7 @@ export async function linkedomCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsTxtFile,
         urls,
         baseUrl,
         ...options,

@@ -1,11 +1,12 @@
-import { tryCancel } from '@apify/timeout';
 import type { Cookie } from '@crawlee/types';
 import type { Browser, BrowserType, Page } from 'playwright';
 
-import type { PlaywrightPlugin } from './playwright-plugin';
+import { tryCancel } from '@apify/timeout';
+
 import { BrowserController } from '../abstract-classes/browser-controller';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 import type { SafeParameters } from '../utils';
+import type { PlaywrightPlugin } from './playwright-plugin';
 
 const tabIds = new WeakMap<Page, number>();
 const keyFromTabId = (tabId: string | number) => `.${tabId}.`;
@@ -107,7 +108,6 @@ export class PlaywrightController extends BrowserController<
 
                         const { remoteIPAddress } = response;
                         if (remoteIPAddress && remoteIPAddress !== proxyip) {
-                            // eslint-disable-next-line no-console
                             console.warn(
                                 `Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`,
                             );
