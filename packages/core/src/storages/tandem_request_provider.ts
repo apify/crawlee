@@ -44,7 +44,7 @@ export class TandemRequestProvider implements IRequestProvider {
     private async transferAllListRequestsToQueue(): Promise<void> {
         for await (const request of this.requestList) {
             try {
-                await this.requestQueue.addRequest(request, { forefront: true });
+                await this.requestQueue.addRequest(request);
                 await this.requestList.markRequestHandled(request);
             } catch (err) {
                 this.log.error(
@@ -60,16 +60,16 @@ export class TandemRequestProvider implements IRequestProvider {
      * @inheritdoc
      */
     async isFinished(): Promise<boolean> {
-        const listFinished = await this.requestList.isFinished();
-        return listFinished && (await this.requestQueue.isFinished());
+        const storagesFinished = await Promise.all([this.requestList.isFinished(), this.requestQueue.isFinished()]);
+        return storagesFinished.every(Boolean);
     }
 
     /**
      * @inheritdoc
      */
     async isEmpty(): Promise<boolean> {
-        const listEmpty = await this.requestList.isEmpty();
-        return listEmpty && (await this.requestQueue.isEmpty());
+        const storagesEmpty = await Promise.all([this.requestList.isEmpty(), this.requestQueue.isEmpty()]);
+        return storagesEmpty.every(Boolean);
     }
 
     /**
@@ -88,9 +88,7 @@ export class TandemRequestProvider implements IRequestProvider {
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null> {
         // Start the background transfer if not already started
-        if (!this.listFinishedPromise) {
-            this.startBackgroundTransfer();
-        }
+        this.startBackgroundTransfer();
 
         // Simply forward the request to the queue
         return this.requestQueue.fetchNextRequest<T>(options);
@@ -100,9 +98,7 @@ export class TandemRequestProvider implements IRequestProvider {
      * @inheritdoc
      */
     async *[Symbol.asyncIterator]() {
-        if (!this.listFinishedPromise) {
-            this.startBackgroundTransfer();
-        }
+        this.startBackgroundTransfer();
 
         // Simply iterate through the queue
         for await (const request of this.requestQueue) {
