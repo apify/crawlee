@@ -703,7 +703,28 @@ export abstract class RequestProvider implements IStorage, IRequestProvider {
     }
 
     /**
-     * Gets information about the queue.
+     * Returns an object containing general information about the request queue.
+     *
+     * The function returns the same object as the Apify API Client's
+     * [getQueue](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-requestQueues)
+     * function, which in turn calls the
+     * [Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
+     * API endpoint.
+     *
+     * **Example:**
+     * ```
+     * {
+     *   id: "WkzbQMuFYuamGv3YF",
+     *   name: "my-queue",
+     *   userId: "wRsJZtadYvn4mBZmm",
+     *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
+     *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
+     *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
+     *   totalRequestCount: 25,
+     *   handledRequestCount: 5,
+     *   pendingRequestCount: 20,
+     * }
+     * ```
      */
     async getInfo(): Promise<RequestQueueInfo | undefined> {
         checkStorageAccess();
