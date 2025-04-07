@@ -47,31 +47,13 @@ In fact, this template comes with fully functional code that scrapes the Apify h
 ## 2. Customizing the template
 Now that our project is set up, let’s customize the template to scrape our target website: [Raspberry Pi 5 (8GB RAM) on Central Computer](https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html).
 
-First, on the `src/main.py` file, go to the `start_urls` list and replace the current `url` with the target website, as shown below:
+First, on the `src/main.py` file, go to the `crawler.run(start_urls)` and replace it with the URL for the target website, as shown below:
 
 ```Python
-start_urls = [
-            url.get('url') 
-            for url in actor_input.get(
-                'start_urls',
-                [{'url': 'https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html'}],
-            )
-        ]
+await crawler.run(['https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html'])
 ```
 
-Next, update the URL in the `storage/key_value_stores/INPUT.json` file. The Actor template prioritizes user-provided input and only defaults to the predefined URL if none is given. To ensure our code runs correctly, replace the placeholder `apify.com` with our target website.
-
-```JSON
-{
-    "start_urls": [
-        {
-            "url": "https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html"
-        }
-    ]
-}
-```
-
-![actor-input](./img/actor-input.webp)
+Normally, you could let users specify a URL through the Actor input, and the Actor would prioritize it. However, since we’re scraping a specific page, we’ll just use the hardcoded URL for simplicity. Keep in mind that dynamic input is still an option if you want to make the Actor more flexible later.
 
 ### Extracting the Product’s Name and Price
 
@@ -142,7 +124,7 @@ Here’s how the updated code looks so far:
 # ...previous code
 
 @crawler.router.default_handler
-async def request_handle(context: BeautifulSoupCrawlingContext) -> None:
+async def request_handler(context: BeautifulSoupCrawlingContext) -> None:
     url = context.request.url
     Actor.log.info(f'Scraping {url}...')
 
@@ -186,21 +168,6 @@ async def main() -> None:
 
     # Enter the context of the Actor.
     async with Actor:
-        # Retrieve the Actor input, and use default values if not provided.
-        actor_input = await Actor.get_input() or {}
-        start_urls = [
-            url.get('url')
-            for url in actor_input.get(
-                'start_urls',
-                [{'url': 'https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html'}],
-            )
-        ]
-
-        # Exit if no start URLs are provided.
-        if not start_urls:
-            Actor.log.info('No start URLs specified in Actor input, exiting...')
-            await Actor.exit()
-
         # Create a crawler.
         crawler = BeautifulSoupCrawler(
             # Limit the crawl to max requests. Remove or increase it for crawling all links.
@@ -228,7 +195,7 @@ async def main() -> None:
             await context.push_data(data)
 
         # Run the crawler with the starting requests.
-        await crawler.run(start_urls)
+        await crawler.run(['https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html'])
 ```
                                                                                 
 
@@ -290,21 +257,6 @@ async def main() -> None:
 
     # Enter the context of the Actor.
     async with Actor:
-        # Retrieve the Actor input, and use default values if not provided.
-        actor_input = await Actor.get_input() or {}
-        start_urls = [
-            url.get('url')
-            for url in actor_input.get(
-                'start_urls',
-                [{'url': 'https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html'}],
-            )
-        ]
-
-        # Exit if no start URLs are provided.
-        if not start_urls:
-            Actor.log.info('No start URLs specified in Actor input, exiting...')
-            await Actor.exit()
-
         # Create a crawler.
         crawler = BeautifulSoupCrawler(
             # Limit the crawl to max requests. Remove or increase it for crawling all links.
@@ -345,7 +297,7 @@ async def main() -> None:
             await context.push_data(data)
 
         # Run the crawler with the starting requests.
-        await crawler.run(start_urls)
+        await crawler.run(['https://www.centralcomputer.com/raspberry-pi-5-8gb-ram-board.html'])
 ```
 
 > 🔖 Replace the placeholder email address with your actual email, the one where you want to receive notifications. Make sure it matches the email you used to register your **Apify account**.
