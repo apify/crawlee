@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.1](https://github.com/apify/crawlee/compare/v3.13.0...v3.13.1) (2025-04-07)
+
+
+### Bug Fixes
+
+* don't double increment session usage count in `BrowserCrawler` ([#2908](https://github.com/apify/crawlee/issues/2908)) ([3107e55](https://github.com/apify/crawlee/commit/3107e5511142a3579adc2348fcb6a9dcadd5c0b9)), closes [#2851](https://github.com/apify/crawlee/issues/2851)
+* rename `RobotsFile` to `RobotsTxtFile` ([#2913](https://github.com/apify/crawlee/issues/2913)) ([3160f71](https://github.com/apify/crawlee/commit/3160f717e865326476d78089d778cbc7d35aa58d)), closes [#2910](https://github.com/apify/crawlee/issues/2910)
+* treat `406` as other `4xx` status codes in `HttpCrawler` ([#2907](https://github.com/apify/crawlee/issues/2907)) ([b0e6f6d](https://github.com/apify/crawlee/commit/b0e6f6d3fc4455de467baf666e0f67f8738cc57f)), closes [#2892](https://github.com/apify/crawlee/issues/2892)
+
+
+### Features
+
+* add `respectRobotsTxtFile` crawler option ([#2910](https://github.com/apify/crawlee/issues/2910)) ([0eabed1](https://github.com/apify/crawlee/commit/0eabed1f13070d902c2c67b340621830a7f64464))
+
+
+
+
+
 # [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
 
 
