@@ -18,6 +18,8 @@ import {
     filterRequestsByPatterns,
 } from './shared';
 
+export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
+
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
     limit?: number;
@@ -170,7 +172,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * When a request is skipped for some reason, you can use this callback to act on it.
      * This is currently fired only for requests skipped based on robots.txt file.
      */
-    onSkippedRequest?: (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
+    onSkippedRequest?: SkippedRequestCallback;
 }
 
 /**

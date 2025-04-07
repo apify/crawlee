@@ -24,6 +24,7 @@ import type {
     Source,
     StatisticsOptions,
     StatisticState,
+    SkippedRequestCallback,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -128,8 +129,6 @@ export type StatusMessageCallback<
     Context extends CrawlingContext = BasicCrawlingContext,
     Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
-
-export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
