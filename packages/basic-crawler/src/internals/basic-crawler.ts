@@ -349,6 +349,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     respectRobotsTxtFile?: boolean;
 
+    /**
+     * When a request is skipped for some reason, you can use this callback to act on it.
+     * This is currently fired only for requests skipped based on robots.txt file.
+     */
+    onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
+
     /** @internal */
     log?: Log;
 
@@ -517,6 +523,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean;
+    protected onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
@@ -552,6 +559,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         retryOnBlocked: ow.optional.boolean,
         respectRobotsTxtFile: ow.optional.boolean,
+        onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
 
         // AutoscaledPool shorthands
@@ -595,6 +603,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             retryOnBlocked = false,
             respectRobotsTxtFile = false,
+            onSkippedRequest,
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
@@ -668,6 +677,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         this.retryOnBlocked = retryOnBlocked;
         this.respectRobotsTxtFile = respectRobotsTxtFile;
+        this.onSkippedRequest = onSkippedRequest;
 
         this._handlePropertyNameChange({
             newName: 'requestHandlerTimeoutSecs',
@@ -1059,6 +1069,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 allowedRequests.push(request);
             } else {
                 skipped.add(url);
+                const req = typeof request === 'string' ? { url: request } : request;
+                await this.onSkippedRequest?.(req as RequestOptions, 'robotsTxt');
             }
         }
 
@@ -1355,12 +1367,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
-            this.log.debug(
+            this.log.warning(
                 `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
             );
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await source.markRequestHandled(request);
+            await this.onSkippedRequest?.(request, 'robotsTxt');
             return;
         }
 
@@ -1385,6 +1398,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
+                    onSkippedRequest: this.onSkippedRequest,
                     ...options,
                 });
             },

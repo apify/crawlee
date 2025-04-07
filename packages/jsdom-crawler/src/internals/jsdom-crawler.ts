@@ -8,7 +8,9 @@ import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
+    Request,
     RequestHandler,
+    RequestOptions,
     RequestProvider,
     RouterRoutes,
 } from '@crawlee/http';
@@ -305,6 +307,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
                     window,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
+                    onSkippedRequest: this.onSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -345,6 +348,7 @@ interface EnqueueLinksInternalOptions {
     window: DOMWindow | null;
     requestQueue: RequestProvider;
     robotsTxtFile?: RobotsTxtFile;
+    onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -355,6 +359,7 @@ export async function domCrawlerEnqueueLinks({
     window,
     requestQueue,
     robotsTxtFile,
+    onSkippedRequest,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -378,6 +383,7 @@ export async function domCrawlerEnqueueLinks({
     return enqueueLinks({
         requestQueue,
         robotsTxtFile,
+        onSkippedRequest,
         urls,
         baseUrl,
         ...options,

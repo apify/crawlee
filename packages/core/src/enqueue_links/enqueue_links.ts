@@ -6,7 +6,7 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { RequestOptions } from '../request';
+import type { Request, RequestOptions } from '../request';
 import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
@@ -165,6 +165,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If provided, disallowed URLs will be ignored.
      */
     robotsTxtFile?: RobotsTxtFile;
+
+    /**
+     * When a request is skipped for some reason, you can use this callback to act on it.
+     * This is currently fired only for requests skipped based on robots.txt file.
+     */
+    onSkippedRequest?: (request: Request | RequestOptions, reason: 'robotsTxt') => void | Promise<void>;
 }
 
 /**
@@ -264,6 +270,7 @@ export async function enqueueLinks(
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
             robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
+            onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
@@ -295,6 +302,7 @@ export async function enqueueLinks(
         forefront,
         waitForAllRequestsToBeAdded,
         robotsTxtFile,
+        onSkippedRequest,
     } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
@@ -373,9 +381,17 @@ export async function enqueueLinks(
     let requestOptions = createRequestOptions(urls, options);
 
     if (robotsTxtFile) {
-        requestOptions = requestOptions.filter((request) => {
-            return robotsTxtFile.isAllowed(request.url);
-        });
+        const filteredRequests: RequestOptions[] = [];
+
+        for (const request of requestOptions) {
+            if (robotsTxtFile.isAllowed(request.url)) {
+                filteredRequests.push(request);
+            } else {
+                await onSkippedRequest?.(request, 'robotsTxt');
+            }
+        }
+
+        requestOptions = filteredRequests;
     }
 
     if (transformRequestFunction) {
