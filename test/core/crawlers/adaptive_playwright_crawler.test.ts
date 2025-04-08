@@ -131,8 +131,12 @@ describe('AdaptivePlaywrightCrawler', () => {
             await crawler.run();
 
             // Check the detection result
-            expect(renderingTypePredictor.predict).toHaveBeenCalledWith(url, undefined);
-            expect(renderingTypePredictor.storeResult).toHaveBeenCalledWith(url, undefined, expectedType);
+            expect(renderingTypePredictor.predict).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.predict.mock.lastCall?.[0]).toMatchObject({ url, label: undefined });
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[0]).toMatchObject({ url, label: undefined });
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[1]).toEqual(expectedType);
 
             // Check if the request handler was called twice
             expect(requestHandler).toHaveBeenCalledTimes(2);
@@ -159,7 +163,9 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
 
-        expect(renderingTypePredictor.predict).toHaveBeenCalledWith(url, undefined);
+        expect(renderingTypePredictor.predict).toHaveBeenCalledOnce();
+        expect(renderingTypePredictor.predict.mock.lastCall?.[0]).toMatchObject({ url, label: undefined });
+
         expect(renderingTypePredictor.storeResult).not.toHaveBeenCalled();
     });
 

@@ -508,6 +508,8 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
         const logs: LogProxyCall[] = [];
 
+        const pageGotoOptions = { timeout: this.navigationTimeoutMillis }; // Irrelevant, but required by BrowserCrawler
+
         try {
             await withCheckedStorageAccess(
                 () => {
@@ -528,13 +530,15 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 log: this.createLogProxy(crawlingContext.log, logs),
                             };
 
-                            await this.executePreNavigationHooks(
+                            await this._executeHooks(
+                                this.preNavigationHooks,
                                 {
                                     ...hookContext,
                                     get page(): Page {
                                         throw new Error('Page object was used in HTTP-only pre-navigation hook');
                                     },
                                 } as PlaywrightCrawlingContext, // This is safe because `executePreNavigationHooks` just passes the context to the
+                                pageGotoOptions,
                             );
 
                             const response = await crawlingContext.sendRequest({});
@@ -588,9 +592,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
                             });
 
-                            await this._executeHooks(this.postNavigationHooks, crawlingContext, {
-                                timeout: this.navigationTimeoutMillis,
-                            });
+                            await this._executeHooks(this.postNavigationHooks, crawlingContext, pageGotoOptions);
                         },
                         this.requestHandlerTimeoutInnerMillis,
                         'Request handler timed out',
