@@ -35,7 +35,7 @@ A dropdown list will appear. To follow along with this tutorial, select **`Pytho
 
 ![actor-templates](./img/actor-templates.webp)
 
-Navigate to **`src/main.py`** in your project, and you’ll find that a significant amount of boilerplate code has already been generated for you. If you’re new to Apify or Crawlee, don’t worry, it’s not as complex as it might seem. This pre-written code is designed to save you time and streamline your development process.
+Navigate to **`src/main.py`** in your project, and you’ll find that a significant amount of boilerplate code has already been generated for you. If you’re new to Apify or Crawlee, don’t worry, it’s not as complex as it might seem. This pre-written code is designed to save you time and jumpstart your development process.
 
 ![crawlee-bs4-template](./img/crawlee-bs4-template.webp)
 
@@ -346,7 +346,7 @@ After the run completes, you’ll see a **preview of the results** in the _**Out
  
 Now, a **price monitoring script** wouldn’t be very effective unless it ran on a schedule, automatically checking the product’s price and notifying us when it drops below the threshold.
  
-Since our Actor is already deployed on the **Apify Platform**, scheduling it to run, say, every hour, is incredibly simple.
+Since our Actor is already deployed on **Apify**, scheduling it to run, say, every hour, is incredibly simple.
  
 On your Actor page, click the three dots in the top-right corner of the screen and select **“Schedule Actor.”**
 
