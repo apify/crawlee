@@ -1,4 +1,4 @@
-import {
+import type {
     BrowserHook,
     extractUrlsFromPage,
     type LoadedContext,
