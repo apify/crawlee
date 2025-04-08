@@ -632,18 +632,22 @@ export abstract class BrowserCrawler<
         };
     }
 
-    protected async _handleNavigation(crawlingContext: Context) {
-        const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
-
+    protected async executePreNavigationHooks(crawlingContext: Context) {
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        crawlingContext.request.state = RequestState.BEFORE_NAV;
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+        await this._executeHooks(this.preNavigationHooks, crawlingContext, { timeout: this.navigationTimeoutMillis });
         tryCancel();
 
         const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
         await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+    }
+
+    protected async _handleNavigation(crawlingContext: Context) {
+        const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
+
+        crawlingContext.request.state = RequestState.BEFORE_NAV;
+        await this.executePreNavigationHooks(crawlingContext);
 
         try {
             crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;

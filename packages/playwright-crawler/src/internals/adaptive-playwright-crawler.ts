@@ -1,4 +1,5 @@
 import {
+    BrowserHook,
     extractUrlsFromPage,
     type LoadedContext,
     type LoadedRequest,
@@ -24,7 +25,7 @@ import type { Page } from 'playwright';
 import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
 
-import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
+import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext, PlaywrightGotoOptions } from './playwright-crawler';
 import { PlaywrightCrawler } from './playwright-crawler';
 import { type RenderingType, RenderingTypePredictor } from './utils/rendering-type-prediction';
 
@@ -138,8 +139,17 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
+interface AdaptiveHook
+    extends BrowserHook<
+        Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'request' | 'session' | 'proxyInfo' | 'log'> & { page?: Page },
+        PlaywrightGotoOptions
+    > {}
+
 export interface AdaptivePlaywrightCrawlerOptions
-    extends Omit<PlaywrightCrawlerOptions, 'requestHandler' | 'handlePageFunction'> {
+    extends Omit<
+        PlaywrightCrawlerOptions,
+        'requestHandler' | 'handlePageFunction' | 'preNavigationHooks' | 'postNavigationHooks'
+    > {
     /**
      * Function that is called to process each request.
      *
@@ -152,6 +162,20 @@ export interface AdaptivePlaywrightCrawlerOptions
      * request later, up to `option.maxRequestRetries` times.
      */
     requestHandler?: (crawlingContext: LoadedContext<AdaptivePlaywrightCrawlerContext>) => Awaitable<void>;
+
+    /**
+     * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies.
+     * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
+     * an exception will be thrown. If it's not caught, the request will be transparently retried in a browser.
+     */
+    preNavigationHooks?: AdaptiveHook[];
+
+    /**
+     * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
+     * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
+     * an exception will be thrown. If it's not caught, the request will be transparently retried in a browser.
+     */
+    postNavigationHooks?: AdaptiveHook[];
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -484,11 +508,6 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
         const logs: LogProxyCall[] = [];
 
-        const response = await crawlingContext.sendRequest({});
-        const loadedUrl = response.url;
-        crawlingContext.request.loadedUrl = loadedUrl;
-        const $ = load(response.body);
-
         try {
             await withCheckedStorageAccess(
                 () => {
@@ -500,14 +519,33 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 },
                 async () =>
                     addTimeoutToPromise(
-                        async () =>
-                            this.adaptiveRequestHandler({
+                        async () => {
+                            const hookContext = {
                                 id: crawlingContext.id,
                                 session: crawlingContext.session,
                                 proxyInfo: crawlingContext.proxyInfo,
+                                request: crawlingContext.request,
+                                log: this.createLogProxy(crawlingContext.log, logs),
+                            };
+
+                            await this.executePreNavigationHooks(
+                                {
+                                    ...hookContext,
+                                    get page(): Page {
+                                        throw new Error('Page object was used in HTTP-only pre-navigation hook');
+                                    },
+                                } as PlaywrightCrawlingContext, // This is safe because `executePreNavigationHooks` just passes the context to the
+                            );
+
+                            const response = await crawlingContext.sendRequest({});
+                            const loadedUrl = response.url;
+                            crawlingContext.request.loadedUrl = loadedUrl;
+                            const $ = load(response.body);
+
+                            await this.adaptiveRequestHandler({
+                                ...hookContext,
                                 request: crawlingContext.request as LoadedRequest<Request>,
                                 response,
-                                log: this.createLogProxy(crawlingContext.log, logs),
                                 get page(): Page {
                                     throw new Error('Page object was used in HTTP-only request handler');
                                 },
@@ -548,7 +586,12 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                     return this.allowStorageAccess(result.useState)(defaultValue);
                                 },
                                 getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
-                            }),
+                            });
+
+                            await this._executeHooks(this.postNavigationHooks, crawlingContext, {
+                                timeout: this.navigationTimeoutMillis,
+                            });
+                        },
                         this.requestHandlerTimeoutInnerMillis,
                         'Request handler timed out',
                     ),
