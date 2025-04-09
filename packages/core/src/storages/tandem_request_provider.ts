@@ -24,38 +24,56 @@ export class TandemRequestProvider implements IRequestProvider {
         this.log = log.child({ prefix: 'TandemRequestProvider' });
         this.requestList = requestList;
         this.requestQueue = requestQueue;
+    }
+
+    /**
+     * Fetches the next request from the RequestQueue. If the queue is empty and the RequestList
+     * is not finished, it will transfer a batch of requests from the list to the queue.
+     * @private
+     */
+    private async transferNextBatchToQueue(batchSize = 25): Promise<void> {
+        let transferredCount = 0;
         
-        // Initialize the background transfer immediately
-        this.startBackgroundTransfer();
-    }
-
-    /**
-     * Starts transferring requests from RequestList to RequestQueue in the background.
-     * @private
-     */
-    private startBackgroundTransfer(): void {
-        if (this.listFinishedPromise) return;
-
-        this.listFinishedPromise = this.transferAllListRequestsToQueue();
-    }
-
-    /**
-     * Transfers all requests from the RequestList to the RequestQueue in the background.
-     * @private
-     */
-    private async transferAllListRequestsToQueue(): Promise<void> {
-        for await (const request of this.requestList) {
+        while (transferredCount < batchSize) {
+            const request = await this.requestList.fetchNextRequest();
+            if (!request) break; // RequestList is empty
+            
             try {
                 await this.requestQueue.addRequest(request);
                 await this.requestList.markRequestHandled(request);
+                transferredCount++;
             } catch (err) {
                 this.log.error(
                     'Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.',
                     { request },
                 );
                 await this.requestList.reclaimRequest(request);
+                break; // Stop on error to prevent cascade failures
             }
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null> {
+        // Try to fetch from queue first
+        const request = await this.requestQueue.fetchNextRequest<T>(options);
+        if (request) return request;
+
+        // If queue is empty, check if we can transfer more from list
+        const [listEmpty, listFinished] = await Promise.all([
+            this.requestList.isEmpty(),
+            this.requestList.isFinished()
+        ]);
+
+        if (!listEmpty && !listFinished) {
+            await this.transferNextBatchToQueue();
+            // Try queue again after transfer
+            return this.requestQueue.fetchNextRequest<T>(options);
+        }
+
+        return null;
     }
 
     /**
@@ -83,14 +101,6 @@ export class TandemRequestProvider implements IRequestProvider {
         const listHandled = await this.requestList.handledCount();
         const queueHandled = await this.requestQueue.handledCount();
         return listHandled + queueHandled;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null> {
-        // Simply forward the request to the queue
-        return this.requestQueue.fetchNextRequest<T>(options);
     }
 
     /**

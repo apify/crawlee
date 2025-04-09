@@ -1343,13 +1343,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * then retries them in a case of an error, etc.
      */
     protected async _runTaskFunction() {
-        // Ensure we have a request provider
-        if (!this.requestProvider) {
-            this.requestQueue = await this.getRequestQueue();
-            this.requestProvider = this.requestQueue;
-        }
-        
         const source = this.requestProvider;
+        if (!source) throw new Error('Request provider is not initialized!');
 
         let request: Request | null | undefined;
         let session: Session | undefined;
