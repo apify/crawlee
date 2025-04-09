@@ -1,11 +1,4 @@
-import type {
-    BrowserHook,
-    extractUrlsFromPage,
-    type LoadedContext,
-    type LoadedRequest,
-    type Request,
-    type RouterHandler,
-} from '@crawlee/browser';
+import type { BrowserHook, LoadedContext, LoadedRequest, Request, RouterHandler } from '@crawlee/browser';
 import type {
     BaseHttpResponseData,
     GetUserDataFromRequest,
@@ -16,6 +9,7 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
+import { extractUrlsFromPage } from '@crawlee/browser';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio, type Element, load } from 'cheerio';
