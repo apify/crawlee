@@ -72,7 +72,7 @@ export interface SitemapRequestListOptions extends UrlConstraints {
     /**
      * Persistence-related options to control how and when crawler's data gets persisted.
      */
-    persistenceOptions: {
+    persistenceOptions?: {
         /**
          * Use this flag to disable or enable periodic persistence to key value store.
          * @default true
