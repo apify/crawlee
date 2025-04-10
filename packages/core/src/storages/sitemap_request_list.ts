@@ -6,8 +6,10 @@ import ow from 'ow';
 
 import defaultLog from '@apify/log';
 
+import { Configuration } from '../configuration';
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
 import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
+import { type EventManager, EventType } from '../events/event_manager';
 import { Request } from '../request';
 import { KeyValueStore } from './key_value_store';
 import type { IRequestList } from './request_list';
@@ -68,6 +70,16 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      */
     persistStateKey?: string;
     /**
+     * Persistence-related options to control how and when crawler's data gets persisted.
+     */
+    persistenceOptions: {
+        /**
+         * Use this flag to disable or enable periodic persistence to key value store.
+         * @default true
+         */
+        enable?: boolean;
+    };
+    /**
      * Abort signal to be used for sitemap loading.
      */
     signal?: AbortSignal;
@@ -86,6 +98,10 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      * Advanced options for the underlying `parseSitemap` call.
      */
     parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
+    /**
+     * Crawlee configuration
+     */
+    config?: Configuration;
 }
 
 interface SitemapParsingProgress {
@@ -183,6 +199,11 @@ export class SitemapRequestList implements IRequestList {
     private urlExcludePatternObjects: UrlPatternObject[] = [];
     private urlPatternObjects: UrlPatternObject[] = [];
 
+    /** EventManager used to handle persistence */
+    private events: EventManager;
+
+    private persistenceOptions: SitemapRequestListOptions['persistenceOptions'];
+
     /** @internal */
     private constructor(options: SitemapRequestListOptions) {
         ow(
@@ -200,10 +221,18 @@ export class SitemapRequestList implements IRequestList {
                     ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
                 ),
                 regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+                config: ow.optional.object,
+                persistenceOptions: ow.optional.object,
             }),
         );
 
-        const { globs, exclude, regexps } = options;
+        const {
+            globs,
+            exclude,
+            regexps,
+            persistenceOptions = { enable: true },
+            config = Configuration.getGlobalConfig(),
+        } = options;
 
         if (exclude?.length) {
             for (const excl of exclude) {
@@ -224,11 +253,14 @@ export class SitemapRequestList implements IRequestList {
         }
 
         this.persistStateKey = options.persistStateKey;
+        this.persistenceOptions = persistenceOptions;
+
         this.proxyUrl = options.proxyUrl;
 
         this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
 
         this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
+        this.events = config.getEventManager();
     }
 
     /**
@@ -389,6 +421,10 @@ export class SitemapRequestList implements IRequestList {
         });
         await requestList.restoreState();
         void requestList.load({ parseSitemapOptions: options.parseSitemapOptions });
+
+        if (requestList.persistenceOptions.enable) {
+            requestList.events.on(EventType.PERSIST_STATE, requestList.persistState);
+        }
 
         options?.signal?.addEventListener('abort', () => {
             requestList.abortLoading = true;
@@ -562,6 +598,7 @@ export class SitemapRequestList implements IRequestList {
     async teardown(): Promise<void> {
         this.closed = true;
         this.abortLoading = true;
+        this.events.off(EventType.PERSIST_STATE);
         await this.persistState();
 
         this.urlQueueStream.emit('readdata'); // unblocks the potentially waiting `pushNextUrl` call
