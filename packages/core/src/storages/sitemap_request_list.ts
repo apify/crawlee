@@ -418,7 +418,7 @@ export class SitemapRequestList implements IRequestList {
         void requestList.load({ parseSitemapOptions: options.parseSitemapOptions });
 
         if (requestList.persistenceOptions.enable) {
-            requestList.events.on(EventType.PERSIST_STATE, requestList.persistState);
+            requestList.events.on(EventType.PERSIST_STATE, async () => await requestList.persistState());
         }
 
         options?.signal?.addEventListener('abort', () => {
