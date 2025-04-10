@@ -3,6 +3,7 @@ import { Transform } from 'node:stream';
 import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
 import ow from 'ow';
+import type { RequiredDeep } from 'type-fest';
 
 import defaultLog from '@apify/log';
 
@@ -202,7 +203,7 @@ export class SitemapRequestList implements IRequestList {
     /** EventManager used to handle persistence */
     private events: EventManager;
 
-    private persistenceOptions: SitemapRequestListOptions['persistenceOptions'];
+    private persistenceOptions: RequiredDeep<SitemapRequestListOptions['persistenceOptions']>;
 
     /** @internal */
     private constructor(options: SitemapRequestListOptions) {
@@ -226,13 +227,7 @@ export class SitemapRequestList implements IRequestList {
             }),
         );
 
-        const {
-            globs,
-            exclude,
-            regexps,
-            persistenceOptions = { enable: true },
-            config = Configuration.getGlobalConfig(),
-        } = options;
+        const { globs, exclude, regexps, config = Configuration.getGlobalConfig() } = options;
 
         if (exclude?.length) {
             for (const excl of exclude) {
@@ -253,7 +248,7 @@ export class SitemapRequestList implements IRequestList {
         }
 
         this.persistStateKey = options.persistStateKey;
-        this.persistenceOptions = persistenceOptions;
+        this.persistenceOptions = { enable: true, ...options.persistenceOptions };
 
         this.proxyUrl = options.proxyUrl;
 
@@ -598,7 +593,7 @@ export class SitemapRequestList implements IRequestList {
     async teardown(): Promise<void> {
         this.closed = true;
         this.abortLoading = true;
-        this.events.off(EventType.PERSIST_STATE);
+        this.events.off(EventType.PERSIST_STATE, this.persistState);
         await this.persistState();
 
         this.urlQueueStream.emit('readdata'); // unblocks the potentially waiting `pushNextUrl` call
