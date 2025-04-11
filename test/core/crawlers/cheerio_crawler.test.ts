@@ -502,34 +502,6 @@ describe('CheerioCrawler', () => {
                 expect(errorMessages).toHaveLength(8);
                 errorMessages.forEach((msg) => expect(msg).toMatch('CUSTOM_ERROR'));
             });
-
-            test('when 406 is received', async () => {
-                // Mock Request to respond with a 406.
-                crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock({
-                        headers: {
-                            'content-type': 'text/plain',
-                        },
-                        statusCode: 406,
-                    }),
-                    maxRequestRetries: 1,
-                    requestHandler: () => {
-                        handlePageInvocationCount++;
-                    },
-                    failedRequestHandler: ({ request }) => {
-                        errorMessages = [...errorMessages, ...request.errorMessages];
-                    },
-                });
-                await crawler.run();
-
-                expect(handlePageInvocationCount).toBe(0);
-                expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach((msg) => {
-                    expect(msg).toMatch(
-                        'is not available in the format requested by the Accept header. Skipping resource.',
-                    );
-                });
-            });
         });
     });
 
@@ -937,7 +909,6 @@ describe('CheerioCrawler', () => {
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
-                // @ts-expect-error Accessing private prop
                 if (session.errorScore !== 1) {
                     console.log('SESSIONS:');
 
@@ -978,7 +949,6 @@ describe('CheerioCrawler', () => {
                 // @ts-expect-error private symbol
 
                 crawler.sessionPool.sessions.forEach((session) => {
-                    // @ts-expect-error Accessing private prop
                     expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
                 });
 

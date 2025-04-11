@@ -355,7 +355,7 @@ export class Sitemap {
 
     /**
      * Try to load sitemap from the most common locations - `/sitemap.xml` and `/sitemap.txt`.
-     * For loading based on `Sitemap` entries in `robots.txt`, the {@apilink RobotsFile} class should be used.
+     * For loading based on `Sitemap` entries in `robots.txt`, the {@apilink RobotsTxtFile} class should be used.
      * @param url The domain URL to fetch the sitemap for.
      * @param proxyUrl A proxy to be used for fetching the sitemap file.
      */

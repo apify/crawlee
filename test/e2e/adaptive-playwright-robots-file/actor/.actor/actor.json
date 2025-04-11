@@ -1,0 +1,7 @@
+{
+	"actorSpecification": 1,
+	"name": "test-adaptive-playwright-robots-file",
+	"version": "0.0",
+	"buildTag": "latest",
+	"env": null
+}

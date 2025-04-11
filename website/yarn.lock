@@ -7605,11 +7605,11 @@ __metadata:
   linkType: hard
 
 "estree-util-value-to-estree@npm:^3.0.1":
-  version: 3.3.2
-  resolution: "estree-util-value-to-estree@npm:3.3.2"
+  version: 3.3.3
+  resolution: "estree-util-value-to-estree@npm:3.3.3"
   dependencies:
     "@types/estree": "npm:^1.0.0"
-  checksum: 10c0/ada14d3b50d51b324a301a53f5e9eb4a413f6e2039d631bf3e8bf1ee298c24e33d0f993d37bb2fe8216bc22782a9be3562cc0d2645a0f14808c73efef90f367f
+  checksum: 10c0/cc90e277bff949f49d08dbca28237821506839ab729cafc93105a5a1b02af1a308c1d1f6221ade840351f60ef03faedd2197be454318a16a9e1a7c5af0480c69
   languageName: node
   linkType: hard
 
@@ -9079,13 +9079,13 @@ __metadata:
   linkType: hard
 
 "image-size@npm:^1.0.2":
-  version: 1.2.0
-  resolution: "image-size@npm:1.2.0"
+  version: 1.2.1
+  resolution: "image-size@npm:1.2.1"
   dependencies:
     queue: "npm:6.0.2"
   bin:
     image-size: bin/image-size.js
-  checksum: 10c0/782669b530d9bbdcb334c8451db5f104dfbbcf90940751e6b75ba4e1b86d98bf3127c339eac8fb7a25c7a9ec4ea868d27b4916df3943c269b7419a8cc4459dca
+  checksum: 10c0/f8b3c19d4476513f1d7e55c3e6db80997b315444743e2040d545cbcaee59be03d2eb40c46be949a8372697b7003fdb0c04925d704390a7f606bc8181e25c0ed4
   languageName: node
   linkType: hard
 

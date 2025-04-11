@@ -34,12 +34,8 @@ import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-import type {
-    Method,
-    OptionsInit,
-    TimeoutError as TimeoutErrorClass,
-    // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-} from 'got-scraping';
+// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
+import type { Method, OptionsInit, TimeoutError as TimeoutErrorClass } from 'got-scraping';
 import iconv from 'iconv-lite';
 import mime from 'mime-types';
 import ow, { ObjectPredicate } from 'ow';
@@ -898,13 +894,6 @@ export class HttpCrawler<
     private _abortDownloadOfBody(request: Request, response: IncomingMessage) {
         const { statusCode } = response;
         const { type } = parseContentTypeFromResponse(response);
-
-        if (statusCode === 406) {
-            request.noRetry = true;
-            throw new Error(
-                `Resource ${request.url} is not available in the format requested by the Accept header. Skipping resource.`,
-            );
-        }
 
         // eslint-disable-next-line dot-notation -- accessing private property
         const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];

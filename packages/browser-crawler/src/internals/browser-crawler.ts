@@ -11,6 +11,7 @@ import type {
     RequestHandler,
     RequestProvider,
     Session,
+    SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
@@ -38,6 +39,7 @@ import type {
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
+import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
@@ -593,8 +595,6 @@ export abstract class BrowserCrawler<
             throw e;
         }
         tryCancel();
-
-        if (session) session.markGood();
     }
 
     protected _enhanceCrawlingContextWithPageInfo(
@@ -626,6 +626,8 @@ export abstract class BrowserCrawler<
                 options: enqueueOptions,
                 page,
                 requestQueue: await this.getRequestQueue(),
+                robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
+                onSkippedRequest: this.onSkippedRequest,
                 originalRequestUrl: crawlingContext.request.url,
                 finalRequestUrl: crawlingContext.request.loadedUrl,
             });
@@ -791,6 +793,8 @@ interface EnqueueLinksInternalOptions {
     options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsTxtFile;
+    onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -800,6 +804,8 @@ export async function browserCrawlerEnqueueLinks({
     options,
     page,
     requestQueue,
+    robotsTxtFile,
+    onSkippedRequest,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -818,9 +824,11 @@ export async function browserCrawlerEnqueueLinks({
 
     return enqueueLinks({
         requestQueue,
+        robotsTxtFile,
+        onSkippedRequest,
         urls,
         baseUrl,
-        ...options,
+        ...(options as EnqueueLinksOptions),
     });
 }
 
