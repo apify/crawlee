@@ -303,7 +303,7 @@ export class RequestHandlerResult {
             setValue: async (key, value, options) => {
                 this.setKeyValueStoreChangedValue(idOrName, key, value, options);
             },
-            getPublicUrl: store.getPublicUrl,
+            getPublicUrl: store.getPublicUrl.bind(store),
         };
     };
 

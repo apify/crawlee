@@ -197,6 +197,10 @@ export interface AdaptivePlaywrightCrawlerOptions
      */
     renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult'>;
 
+    /**
+     * Prevent direct access to storage in request handlers (only allow using context helpers).
+     * Defaults to `true`
+     */
     preventDirectStorageAccess?: boolean;
 }
 
