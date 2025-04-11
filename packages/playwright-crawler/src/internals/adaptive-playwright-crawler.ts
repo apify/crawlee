@@ -88,7 +88,7 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
 export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = Dictionary>
     extends RestrictedCrawlingContext<UserData> {
     /**
-     *
+     * The HTTP response, either from the HTTP client or from the initial request from playwright's navigation.
      */
     response: BaseHttpResponseData;
 
@@ -516,7 +516,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 async () =>
                     addTimeoutToPromise(
                         async () => {
-                            const hookContext = {
+                            const hookContext: Parameters<AdaptiveHook>[0] = {
                                 id: crawlingContext.id,
                                 session: crawlingContext.session,
                                 proxyInfo: crawlingContext.proxyInfo,
@@ -531,7 +531,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                     get page(): Page {
                                         throw new Error('Page object was used in HTTP-only pre-navigation hook');
                                     },
-                                } as PlaywrightCrawlingContext, // This is safe because `executePreNavigationHooks` just passes the context to the
+                                } as PlaywrightCrawlingContext, // This is safe because `executeHooks` just passes the context to the hooks which accept the partial context
                                 pageGotoOptions,
                             );
 
