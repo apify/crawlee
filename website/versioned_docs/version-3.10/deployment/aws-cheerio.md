@@ -9,7 +9,7 @@ Locally, we can conveniently create a Crawlee project with `npx crawlee create`.
 
 Whenever we instantiate a new crawler, we have to pass a unique `Configuration` instance to it. By default, all the Crawlee crawler instances share the same storage - this can be convenient, but would also cause “statefulness” of our Lambda, which would lead to hard-to-debug problems.
 
-Also, when creating this Configuration instance, make sure to pass the `persistStorage: false` option. This tells Crawlee to use in-memory storage, as the Lambda filesystem is read-only.
+Also, when creating this Configuration instance, make sure to pass the `persistStorage: false` option. This tells Crawlee to use in-memory storage, which will also prevent Lambda "statefulness" and its potential issues.
     
 ```javascript title="src/main.js"
 // For more information, see https://crawlee.dev/
