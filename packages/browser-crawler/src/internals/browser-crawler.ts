@@ -637,10 +637,10 @@ export abstract class BrowserCrawler<
     protected async _handleNavigation(crawlingContext: Context) {
         const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
 
-        crawlingContext.request.state = RequestState.BEFORE_NAV;
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, { timeout: this.navigationTimeoutMillis });
+        crawlingContext.request.state = RequestState.BEFORE_NAV;
+        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         tryCancel();
 
         const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
