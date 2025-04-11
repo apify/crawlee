@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { type Dictionary, KeyValueStore } from '@crawlee/core';
-import type { AdaptivePlaywrightCrawlerOptions } from '@crawlee/playwright';
+import type { AdaptivePlaywrightCrawlerOptions, Request } from '@crawlee/playwright';
 import { AdaptivePlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper';
@@ -96,8 +96,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         detectionProbabilityRecommendation: number;
         renderingType: 'clientOnly' | 'static';
     }) => ({
-        predict: vi.fn((_url: URL) => prediction),
-        storeResult: vi.fn((_url: URL, _label: string | unknown, _renderingType: string) => {}),
+        predict: vi.fn((_request: Request) => prediction),
+        storeResult: vi.fn((_request: Request, _renderingType: string) => {}),
     });
 
     describe('should detect page rendering type', () => {
@@ -131,8 +131,12 @@ describe('AdaptivePlaywrightCrawler', () => {
             await crawler.run();
 
             // Check the detection result
-            expect(renderingTypePredictor.predict).toHaveBeenCalledWith(url, undefined);
-            expect(renderingTypePredictor.storeResult).toHaveBeenCalledWith(url, undefined, expectedType);
+            expect(renderingTypePredictor.predict).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.predict.mock.lastCall?.[0]).toMatchObject({ url, label: undefined });
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[0]).toMatchObject({ url, label: undefined });
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[1]).toEqual(expectedType);
 
             // Check if the request handler was called twice
             expect(requestHandler).toHaveBeenCalledTimes(2);
@@ -159,7 +163,9 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
 
-        expect(renderingTypePredictor.predict).toHaveBeenCalledWith(url, undefined);
+        expect(renderingTypePredictor.predict).toHaveBeenCalledOnce();
+        expect(renderingTypePredictor.predict.mock.lastCall?.[0]).toMatchObject({ url, label: undefined });
+
         expect(renderingTypePredictor.storeResult).not.toHaveBeenCalled();
     });
 
