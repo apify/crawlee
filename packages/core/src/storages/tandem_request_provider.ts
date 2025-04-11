@@ -10,9 +10,8 @@ import type { RequestQueueOperationInfo, RequestQueueOperationOptions } from './
 
 /**
  * A request provider that combines a RequestList and a RequestQueue.
- * It first reads all requests from the RequestList and then, when the list is empty,
- * it continues reading from the RequestQueue. All requests from the RequestList are
- * enqueued into the RequestQueue in the background to ensure they're not processed twice.
+ * It first reads requests from the RequestList and then, when needed,
+ * transfers them in batches to the RequestQueue.
  */
 export class TandemRequestProvider implements IRequestProvider {
     private log: Log;
@@ -27,40 +26,60 @@ export class TandemRequestProvider implements IRequestProvider {
     }
 
     /**
-     * Fetches the next request from the RequestQueue. If the queue is empty and the RequestList
-     * is not finished, it will transfer a batch of requests from the list to the queue.
+     * Transfers a batch of requests from the RequestList to the RequestQueue.
+     * Handles both successful transfers and failures appropriately.
      * @private
      */
     private async transferNextBatchToQueue(batchSize = 25): Promise<void> {
-        let transferredCount = 0;
+        const requests: Request[] = [];
         
-        while (transferredCount < batchSize) {
+        // First collect up to batchSize requests from the list
+        while (requests.length < batchSize) {
             const request = await this.requestList.fetchNextRequest();
             if (!request) break; // RequestList is empty
+            requests.push(request);
+        }
+
+        if (requests.length === 0) return;
+
+        try {
+            // Add all requests to the queue in a single batch operation
+            const result = await this.requestQueue.addRequests(requests, { forefront: true });
             
-            try {
-                await this.requestQueue.addRequest(request);
-                await this.requestList.markRequestHandled(request);
-                transferredCount++;
-            } catch (err) {
-                this.log.error(
-                    'Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.',
-                    { request },
-                );
-                await this.requestList.reclaimRequest(request);
-                break; // Stop on error to prevent cascade failures
+            // Mark successfully added requests as handled in the list
+            for (let i = 0; i < result.processedRequests.length; i++) {
+                await this.requestList.markRequestHandled(requests[i]);
             }
+
+            // Reclaim any requests that failed to be added
+            if (result.unprocessedRequests?.length) {
+                this.log.error(
+                    'Adding some requests from the RequestList to the RequestQueue failed, reclaiming requests back to the list.',
+                    { unprocessedCount: result.unprocessedRequests.length },
+                );
+                for (const failedRequest of result.unprocessedRequests) {
+                    const originalRequest = requests.find((r) => r.uniqueKey === failedRequest.uniqueKey);
+                    if (originalRequest) {
+                        await this.requestList.reclaimRequest(originalRequest);
+                    }
+                }
+            }
+        } catch (err) {
+            this.log.error(
+                'Batch adding of requests from the RequestList to the RequestQueue failed, reclaiming all requests back to the list.',
+                { requestCount: requests.length },
+            );
+            // If the batch operation fails entirely, reclaim all requests
+            await Promise.all(requests.map((request) => this.requestList.reclaimRequest(request)));
         }
     }
 
     /**
+     * Fetches the next request from the RequestQueue. If the queue is empty and the RequestList
+     * is not finished, it will transfer a batch of requests from the list to the queue first.
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null> {
-        // Try to fetch from queue first
-        const request = await this.requestQueue.fetchNextRequest<T>(options);
-        if (request) return request;
-
         // If queue is empty, check if we can transfer more from list
         const [listEmpty, listFinished] = await Promise.all([
             this.requestList.isEmpty(),
@@ -69,11 +88,10 @@ export class TandemRequestProvider implements IRequestProvider {
 
         if (!listEmpty && !listFinished) {
             await this.transferNextBatchToQueue();
-            // Try queue again after transfer
-            return this.requestQueue.fetchNextRequest<T>(options);
         }
 
-        return null;
+        // Try to fetch from queue after potential transfer
+        return this.requestQueue.fetchNextRequest<T>(options);
     }
 
     /**

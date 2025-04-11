@@ -51,8 +51,8 @@ import {
     validators,
     ProxyConfiguration,
     RequestList,
-    TandemRequestProvider,
     RequestListAdapter,
+    TandemRequestProvider,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
@@ -1168,7 +1168,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         await this._initializeRequestProviders();
         await this._loadHandledRequestCount();
-
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
