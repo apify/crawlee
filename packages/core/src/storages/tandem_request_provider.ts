@@ -4,7 +4,7 @@ import type { Log } from '@apify/log';
 import { log } from '../log';
 import type { Request, RequestOptions } from '../request';
 import type { IRequestList } from './request_list';
-import type { IRequestProvider } from './request_provider';
+import type { IRequestManager } from './request_provider';
 import { RequestProvider } from './request_provider';
 import type { RequestQueueOperationInfo, RequestQueueOperationOptions } from './request_provider';
 
@@ -13,14 +13,14 @@ import type { RequestQueueOperationInfo, RequestQueueOperationOptions } from './
  * It first reads requests from the RequestList and then, when needed,
  * transfers them in batches to the RequestQueue.
  */
-export class TandemRequestProvider implements IRequestProvider {
+export class RequestManagerTandem implements IRequestManager {
     private log: Log;
-    private requestList: IRequestProvider;
+    private requestList: IRequestManager;
     private requestQueue: RequestProvider;
     private listFinishedPromise: Promise<void> | null = null;
 
-    constructor(requestList: IRequestProvider, requestQueue: RequestProvider) {
-        this.log = log.child({ prefix: 'TandemRequestProvider' });
+    constructor(requestList: IRequestManager, requestQueue: RequestProvider) {
+        this.log = log.child({ prefix: 'RequestManagerTandem' });
         this.requestList = requestList;
         this.requestQueue = requestQueue;
     }
@@ -32,7 +32,7 @@ export class TandemRequestProvider implements IRequestProvider {
      */
     private async transferNextBatchToQueue(batchSize = 25): Promise<void> {
         const requests: Request[] = [];
-        
+
         // First collect up to batchSize requests from the list
         while (requests.length < batchSize) {
             const request = await this.requestList.fetchNextRequest();
@@ -45,7 +45,7 @@ export class TandemRequestProvider implements IRequestProvider {
         try {
             // Add all requests to the queue in a single batch operation
             const result = await this.requestQueue.addRequests(requests, { forefront: true });
-            
+
             // Mark successfully added requests as handled in the list
             for (let i = 0; i < result.processedRequests.length; i++) {
                 await this.requestList.markRequestHandled(requests[i]);
@@ -83,7 +83,7 @@ export class TandemRequestProvider implements IRequestProvider {
         // If queue is empty, check if we can transfer more from list
         const [listEmpty, listFinished] = await Promise.all([
             this.requestList.isEmpty(),
-            this.requestList.isFinished()
+            this.requestList.isFinished(),
         ]);
 
         if (!listEmpty && !listFinished) {

@@ -12,7 +12,7 @@ import type {
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
-    IRequestProvider,
+    IRequestManager,
     LoadedContext,
     ProxyInfo,
     Request,
@@ -52,7 +52,7 @@ import {
     ProxyConfiguration,
     RequestList,
     RequestListAdapter,
-    TandemRequestProvider,
+    RequestManagerTandem,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
@@ -479,10 +479,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     /**
      * The main request provider used by the crawler. This is either a RequestList, RequestQueue,
-     * or TandemRequestProvider combining both. It's initialized during the crawler startup.
+     * or RequestManagerTandem combining both. It's initialized during the crawler startup.
      * @internal
      */
-    protected requestProvider?: IRequestProvider;
+    protected requestProvider?: IRequestManager;
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
@@ -731,7 +731,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
             log.warning(
                 `requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}` +
-                    ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`,
+                ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`,
             );
 
             this.requestHandlerTimeoutMillis = maxSignedInteger;
@@ -759,7 +759,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     if (shouldLogMaxPagesExceeded) {
                         log.info(
                             'Crawler reached the maxRequestsPerCrawl limit of ' +
-                                `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
+                            `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
                         );
                         shouldLogMaxPagesExceeded = false;
                     }
@@ -772,8 +772,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 if (isMaxPagesExceeded()) {
                     log.info(
                         `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests ` +
-                            'and all requests that were in progress at that time have now finished. ' +
-                            `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
+                        'and all requests that were in progress at that time have now finished. ' +
+                        `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
                     );
                     return true;
                 }
@@ -859,14 +859,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             let message: string;
 
             if (operationMode === 'ERROR') {
-                message = `Experiencing problems, ${
-                    this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
-                } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
+                message = `Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
+                    } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = this.requestQueue?.getTotalCount() || this.requestList?.length();
-                message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
-                    this.stats.state.requestsFailed
-                } failed requests, desired concurrency ${this.autoscaledPool?.desiredConcurrency ?? 0}.`;
+                message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed
+                    } failed requests, desired concurrency ${this.autoscaledPool?.desiredConcurrency ?? 0}.`;
             }
 
             if (this.statusMessageCallback) {
@@ -994,8 +992,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             periodicLogger.stop();
             await this.setStatusMessage(
-                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                    this.stats.state.requestsFinished
+                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished
                 } succeeded, ${this.stats.state.requestsFailed} failed.`,
                 { isStatusMessageTerminal: true, level: 'INFO' },
             );
@@ -1224,7 +1221,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 if (err.message.includes('running tasks did not finish')) {
                     this.log.error(
                         'The crawler was paused due to migration to another host, ' +
-                            "but some requests did not finish in time. Those requests' results may be duplicated.",
+                        "but some requests did not finish in time. Those requests' results may be duplicated.",
                     );
                 } else {
                     throw err;
@@ -1239,14 +1236,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
                             "The crawler attempted to persist its request list's state and failed due to missing or " +
-                                'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
-                                'constructor to ensure your crawling state is persisted through host migrations and restarts.',
+                            'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
+                            'constructor to ensure your crawling state is persisted through host migrations and restarts.',
                         );
                     } else {
                         this.log.exception(
                             err,
                             'An unexpected error occurred when the crawler ' +
-                                "attempted to persist its request list's state.",
+                            "attempted to persist its request list's state.",
                         );
                     }
                 });
@@ -1258,13 +1255,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     /**
      * Initializes both the RequestList and the RequestQueue and then transfers requests from the RequestList
-     * to the RequestQueue using a TandemRequestProvider. This ensures that each request will be processed only once.
+     * to the RequestQueue using a RequestManagerTandem. This ensures that each request will be processed only once.
      */
     protected async _initializeRequestProviders() {
         if (this.requestList && this.requestQueue) {
-            // Create a TandemRequestProvider if both RequestList and RequestQueue are provided
+            // Create a RequestManagerTandem if both RequestList and RequestQueue are provided
             const requestListAdapter = new RequestListAdapter(this.requestList);
-            const tandemProvider = new TandemRequestProvider(requestListAdapter, this.requestQueue);
+            const tandemProvider = new RequestManagerTandem(requestListAdapter, this.requestQueue);
             // Use this as our main request provider
             this.requestProvider = tandemProvider;
         } else if (this.requestQueue) {
@@ -1272,7 +1269,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.requestProvider = this.requestQueue;
         } else if (this.requestList) {
             // Use RequestList directly if only it is provided
-            // Make it compatible with the IRequestProvider interface
+            // Make it compatible with the IRequestManager interface
             this.requestProvider = new RequestListAdapter(this.requestList);
         } else {
             // Create and use a default RequestQueue if nothing else is provided
@@ -1292,14 +1289,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Executed when `errorHandler` finishes or the request is successful.
      * Can be used to clean up orphaned browser pages.
      */
-    protected async _cleanupContext(_crawlingContext: Context) {}
+    protected async _cleanupContext(_crawlingContext: Context) { }
 
     /**
      * Delays processing of the request based on the `sameDomainDelaySecs` option,
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: IRequestList | RequestProvider | IRequestProvider) {
+    protected delayRequest(request: Request, source: IRequestList | RequestProvider | IRequestManager) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1428,8 +1425,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this._timeoutAndRetry(
                 async () => source.markRequestHandled(request!),
                 this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                    this.internalTimeoutMillis / 1e3
+                `Marking request ${request.url} (${request.id}) as handled timed out after ${this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
 
@@ -1445,8 +1441,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 await addTimeoutToPromise(
                     async () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
                     this.internalTimeoutMillis,
-                    `Handling request failure of ${request.url} (${request.id}) timed out after ${
-                        this.internalTimeoutMillis / 1e3
+                    `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3
                     } seconds.`,
                 );
                 request.state = RequestState.DONE;
@@ -1462,7 +1457,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     this.log.exception(
                         secondaryError as Error,
                         'An exception occurred during handling of failed request. ' +
-                            `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
+                        `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
                     );
                 }
                 request.state = RequestState.ERROR;
@@ -1549,7 +1544,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: IRequestList | RequestProvider | IRequestProvider,
+        source: IRequestList | RequestProvider | IRequestManager,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
@@ -1851,9 +1846,9 @@ export interface CreateContextOptions {
     proxyInfo?: ProxyInfo;
 }
 
-export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions {}
+export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions { }
 
-export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {}
+export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult { }
 
 export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
     /**
