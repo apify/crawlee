@@ -44,7 +44,7 @@ export class RequestManagerTandem implements IRequestManager {
 
         try {
             // Add all requests to the queue in a single batch operation
-            const result = await this.requestQueue.addRequests(requests, { forefront: true });
+            const result = await this.requestQueue.addRequests(requests, { forefront: false });
 
             // Mark successfully added requests as handled in the list
             for (let i = 0; i < result.processedRequests.length; i++) {
@@ -64,13 +64,20 @@ export class RequestManagerTandem implements IRequestManager {
                     }
                 }
             }
-        } catch (err) {
-            this.log.error(
-                'Batch adding of requests from the RequestList to the RequestQueue failed, reclaiming all requests back to the list.',
-                { requestCount: requests.length },
-            );
-            // If the batch operation fails entirely, reclaim all requests
-            await Promise.all(requests.map((request) => this.requestList.reclaimRequest(request)));
+        } catch (error) {
+            // If the batch operation fails, reclaim all the requests back to the list
+            this.log.exception(error as Error, 'Error transferring requests from RequestList to RequestQueue');
+            for (const request of requests) {
+                try {
+                    await this.requestList.reclaimRequest(request);
+                } catch (reclaimError) {
+                    this.log.error('Failed to reclaim request after failed transfer', {
+                        requestId: request.id,
+                        url: request.url,
+                        error: reclaimError,
+                    });
+                }
+            }
         }
     }
 

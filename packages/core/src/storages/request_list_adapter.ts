@@ -8,7 +8,7 @@ import type { IRequestManager, RequestQueueOperationInfo, RequestQueueOperationO
  * This class wraps a RequestList and makes it compatible with the IRequestManager interface.
  */
 export class RequestListAdapter implements IRequestManager {
-    constructor(private requestList: IRequestList) { }
+    constructor(private requestList: IRequestList) {}
 
     /**
      * @inheritdoc

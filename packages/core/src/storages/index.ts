@@ -10,4 +10,4 @@ export * from './storage_manager';
 export * from './utils';
 export * from './access_checking';
 export * from './sitemap_request_list';
-export * from './tandem_request_provider';
+export * from './request_manager_tandem';

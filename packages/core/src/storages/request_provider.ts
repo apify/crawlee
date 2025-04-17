@@ -871,7 +871,7 @@ export interface RequestProviderOptions {
 /**
  * @deprecated Use {@apilink RequestProviderOptions} instead.
  */
-export interface RequestQueueOptions extends RequestProviderOptions { }
+export interface RequestQueueOptions extends RequestProviderOptions {}
 
 /**
  * @internal
