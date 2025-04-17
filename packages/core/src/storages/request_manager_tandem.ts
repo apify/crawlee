@@ -3,7 +3,6 @@ import type { Log } from '@apify/log';
 
 import { log } from '../log';
 import type { Request, RequestOptions } from '../request';
-import type { IRequestList } from './request_list';
 import type { IRequestManager } from './request_provider';
 import { RequestProvider } from './request_provider';
 import type { RequestQueueOperationInfo, RequestQueueOperationOptions } from './request_provider';
@@ -17,7 +16,6 @@ export class RequestManagerTandem implements IRequestManager {
     private log: Log;
     private requestList: IRequestManager;
     private requestQueue: RequestProvider;
-    private listFinishedPromise: Promise<void> | null = null;
 
     constructor(requestList: IRequestManager, requestQueue: RequestProvider) {
         this.log = log.child({ prefix: 'RequestManagerTandem' });
