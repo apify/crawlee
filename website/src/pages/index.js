@@ -1,5 +1,5 @@
 /* eslint-disable max-len */
-import Head from '@docusaurus/Head';
+import { PageMetadata } from '@docusaurus/theme-common';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import CodeBlock from '@theme/CodeBlock';
 import Layout from '@theme/Layout';
@@ -125,10 +125,8 @@ const PAGE_TITLE = 'Crawlee · Build reliable crawlers. Fast.';
 export default function Home() {
     const { siteConfig } = useDocusaurusContext();
     return (
-        <Layout description={siteConfig.description}>
-            <Head>
-                <title>{PAGE_TITLE}</title>
-            </Head>
+        <Layout description={siteConfig.description} title={PAGE_TITLE}>
+            <PageMetadata image="/img/crawlee-og.png" />
             <div id={styles.homepageContainer}>
                 <HomepageHeroSection />
                 <LanguageGetStartedSection />
