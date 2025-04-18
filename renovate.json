@@ -24,10 +24,5 @@
 		}
 	],
 	"schedule": ["every weekday"],
-	"ignoreDeps": [
-		"crawlee",
-		"cheerio",
-		"playwright",
-		"yarn"
-	]
+	"ignoreDeps": ["crawlee", "cheerio", "playwright", "yarn"]
 }
