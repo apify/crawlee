@@ -15,6 +15,9 @@ import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
 
+import { stringify as bigJsonStringify } from 'big-json';  // Importing big-json
+
+
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
  *
@@ -327,7 +330,7 @@ export class KeyValueStore {
      */
     async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
         checkStorageAccess();
-
+    
         ow(key, 'key', ow.string.nonEmpty);
         ow(
             key,
@@ -354,13 +357,13 @@ export class KeyValueStore {
                 contentType: ow.optional.string.nonEmpty,
             }),
         );
-
+    
         // Make copy of options, don't update what user passed.
         const optionsCopy = { ...options };
-
+    
         // If we try to set the value of a cached state to a different reference, we need to update the cache accordingly.
         const cachedValue = this.cache.get(key);
-
+    
         if (cachedValue && cachedValue !== value) {
             if (value === null) {
                 // Cached state can be only object, so a propagation of `null` means removing all its properties.
@@ -374,15 +377,28 @@ export class KeyValueStore {
                 Object.assign(cachedValue, value);
             }
         }
-
+    
         // In this case delete the record.
         if (value === null) return this.client.deleteRecord(key);
-
-        value = maybeStringify(value, optionsCopy);
-
+    
+        // Check if the value is a large object before stringifying it
+        let stringifiedValue: string;
+        try {
+            if (isLargeObject(value)) {
+                // Use big-json to stringify large objects
+                stringifiedValue = await bigJsonStringify(value as object);  // Cast to 'object' to work with big-json
+            } else {
+                // Default stringify for small objects, make sure it returns a string
+                stringifiedValue = JSON.stringify(value);  // We can use JSON.stringify here
+            }
+        } catch (e) {
+            throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
+        }
+    
+        // Now we can safely pass the stringified value
         return this.client.setRecord({
             key,
-            value,
+            value: stringifiedValue,  // This should now always be a string
             contentType: optionsCopy.contentType,
         });
     }
@@ -691,6 +707,17 @@ export class KeyValueStore {
         }
 
         return store.getValue<T>(inputKey);
+    }
+}
+
+// Function to check if an object is large (you can tweak the size threshold as needed)
+function isLargeObject(obj: any): boolean {
+    const sizeLimit = 1e6; // Adjust this limit to your needs (1MB here)
+    try {
+        const jsonSize = JSON.stringify(obj).length;
+        return jsonSize > sizeLimit;
+    } catch (e) {
+        return false;
     }
 }
 
