@@ -1,5 +1,7 @@
 /* eslint-disable max-len */
+import { PageMetadata } from '@docusaurus/theme-common';
 import Head from '@docusaurus/Head';
+
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import CodeBlock from '@theme/CodeBlock';
 import Layout from '@theme/Layout';
@@ -126,6 +128,7 @@ export default function Home() {
     const { siteConfig } = useDocusaurusContext();
     return (
         <Layout description={siteConfig.description}>
+            <PageMetadata image="/img/crawlee-og.png" />
             <Head>
                 <title>{PAGE_TITLE}</title>
             </Head>

@@ -281,7 +281,7 @@ module.exports = {
             // eslint-disable-next-line max-len
             { name: 'og:description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
         ],
-        image: 'img/crawlee-og.png',
+        image: 'img/crawlee-js-og.png',
         footer: {
             links: [
                 {
