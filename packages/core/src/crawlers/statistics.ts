@@ -310,7 +310,7 @@ export class Statistics {
     protected _saveRetryCountForJob(retryCount: number) {
         if (retryCount > 0) this.state.requestsRetries++;
         this.requestRetryHistogram[retryCount] ??= 0;
-        this.requestRetryHistogram[retryCount]++; 
+        this.requestRetryHistogram[retryCount]++;
     }
 
     /**
