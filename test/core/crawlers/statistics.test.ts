@@ -51,7 +51,7 @@ describe('Statistics', () => {
             vitest.advanceTimersByTime(startedAt);
             stats.startJob(0);
             vitest.advanceTimersByTime(100);
-            stats.finishJob(0);
+            stats.finishJob(0, 0);
 
             await stats.startCapturing();
             await stats.persistState();
@@ -172,7 +172,7 @@ describe('Statistics', () => {
         test('on persistState event', async () => {
             stats.startJob(0);
             vitest.advanceTimersByTime(100);
-            stats.finishJob(0);
+            stats.finishJob(0, 0);
 
             await stats.startCapturing(); // keyValueStore is initialized here
 
@@ -194,7 +194,7 @@ describe('Statistics', () => {
     test('should finish a job', () => {
         stats.startJob(0);
         vitest.advanceTimersByTime(1);
-        stats.finishJob(0);
+        stats.finishJob(0, 0);
         vitest.advanceTimersByTime(1);
         const current = stats.calculate();
         expect(current).toEqual({
@@ -211,7 +211,7 @@ describe('Statistics', () => {
     test('should fail a job', () => {
         stats.startJob(0);
         vitest.advanceTimersByTime(0);
-        stats.failJob(0);
+        stats.failJob(0, 0);
         vitest.advanceTimersByTime(1);
         const current = stats.calculate();
         expect(current).toEqual({
@@ -230,12 +230,9 @@ describe('Statistics', () => {
         stats.startJob(0);
         stats.startJob(1);
         stats.startJob(2);
-        stats.finishJob(0);
-        stats.startJob(1);
-        stats.startJob(2);
-        stats.finishJob(1);
-        stats.startJob(2);
-        stats.finishJob(2);
+        stats.finishJob(0, 0);
+        stats.finishJob(1, 1);
+        stats.finishJob(2, 2);
         const current = stats.calculate();
         expect(current).toEqual({
             crawlerRuntimeMillis: 0,
@@ -256,11 +253,11 @@ describe('Statistics', () => {
         vitest.advanceTimersByTime(1);
         stats.startJob(2);
         vitest.advanceTimersByTime(2);
-        stats.finishJob(1); // runtime: 3ms
+        stats.finishJob(1, 0); // runtime: 3ms
         vitest.advanceTimersByTime(1); // since startedAt: 5ms
-        stats.failJob(0); // runtime: irrelevant
+        stats.failJob(0, 0); // runtime: irrelevant
         vitest.advanceTimersByTime(10);
-        stats.finishJob(2); // runtime: 13ms
+        stats.finishJob(2, 0); // runtime: 13ms
         vitest.advanceTimersByTime(10); // since startedAt: 25ms
 
         const current = stats.calculate();
@@ -290,7 +287,7 @@ describe('Statistics', () => {
 
         stats.startJob(0);
         vitest.advanceTimersByTime(1);
-        stats.finishJob(0);
+        stats.finishJob(0, 0);
         await stats.startCapturing();
         vitest.advanceTimersByTime(50000);
         expect(logged).toHaveLength(0);
@@ -327,7 +324,7 @@ describe('Statistics', () => {
         await stats.startCapturing();
         stats.startJob(1);
         vitest.advanceTimersByTime(3);
-        stats.finishJob(1);
+        stats.finishJob(1, 0);
         expect(stats.state.requestsFinished).toEqual(1);
         expect(stats.requestRetryHistogram).toEqual([1]);
         stats.reset();

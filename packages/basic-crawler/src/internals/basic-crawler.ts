@@ -1438,7 +1438,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 } seconds.`,
             );
 
-            this.stats.finishJob(statisticsId);
+            this.stats.finishJob(statisticsId, request.retryCount);
             this.handledRequestsCount++;
 
             // reclaim session if request finishes successfully
@@ -1609,7 +1609,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
-        this.stats.failJob(request.id || request.uniqueKey);
+        this.stats.failJob(request.id || request.uniqueKey, request.retryCount);
 
         await this._handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }
