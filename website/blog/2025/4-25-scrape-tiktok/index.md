@@ -116,9 +116,9 @@ Scrolling pages can take a long time, so we should increase the time limit for p
 from datetime import timedelta
 
 from apify import Actor
+
+from crawlee import ConcurrencySettings, Request
 from crawlee.crawlers import PlaywrightCrawler
-from crawlee import ConcurrencySettings
-from crawlee import Request
 
 from .routes import router
 
@@ -143,9 +143,7 @@ async def main() -> None:
             request_handler_timeout=timedelta(seconds=120),
             browser_type='firefox',
             # Limit any permissions to device data
-            browser_new_context_options={
-                'permissions': []
-            }
+            browser_new_context_options={'permissions': []},
         )
 
         # Run the crawler to collect data from several user pages
@@ -183,17 +181,18 @@ Let's start with a simple function to extract video links. It will help avoid co
 import asyncio
 import json
 
+from playwright.async_api import Page
+
 from crawlee import Request
 from crawlee.crawlers import PlaywrightCrawlingContext
 from crawlee.router import Router
-
-from playwright.async_api import Page
 
 router = Router[PlaywrightCrawlingContext]()
 
 
 # Helper function that extracts all loaded video links
 async def extract_video_links(page: Page) -> list[Request]:
+    """Extract all loaded video links from the page."""
     links = []
     for post in await page.query_selector_all('[data-e2e="user-post-item"] a'):
         post_link = await post.get_attribute('href')
@@ -210,13 +209,13 @@ Now we can move on to the main handler that will process TikTok user pages.
 # Main handler used for TikTok user pages
 @router.default_handler
 async def default_handler(context: PlaywrightCrawlingContext) -> None:
-    """Default request handler."""
+    """Handle request without specific label."""
     context.log.info(f'Processing {context.request.url} ...')
 
     # Get the limit for video elements from `user_data`
     limit = context.request.user_data.get('limit', 10)
     if not isinstance(limit, int):
-        raise ValueError('Limit must be an integer')
+        raise TypeError('Limit must be an integer')
 
     # Wait until the button or at least a video loads, if the connection is slow
     check_locator = context.page.locator('[data-e2e="user-post-item"], main button').first
@@ -227,7 +226,7 @@ async def default_handler(context: PlaywrightCrawlingContext) -> None:
         await button.click()
 
     # Perform interaction with scrolling
-    await context.page.press("body", "PageDown")
+    await context.page.press('body', 'PageDown')
 
     # Start `infinite_scroll` as a background task
     scroll_task: asyncio.Task[None] = asyncio.create_task(context.infinite_scroll())
@@ -239,9 +238,8 @@ async def default_handler(context: PlaywrightCrawlingContext) -> None:
         if len(requests) >= limit:
             scroll_task.cancel()
             break
-        else:
-            # Switch the asynchronous context to allow other tasks to execute
-            await asyncio.sleep(0.2)
+        # Switch the asynchronous context to allow other tasks to execute
+        await asyncio.sleep(0.2)
     else:
         requests = await extract_video_links(context.page)
 
@@ -263,6 +261,7 @@ The final stage is handling the video page.
 
 @router.handler(label='video')
 async def video_handler(context: PlaywrightCrawlingContext) -> None:
+    """Handle request with the label 'video'."""
     context.log.info(f'Processing video {context.request.url} ...')
 
     # Extract the element containing JSON with data
@@ -279,14 +278,14 @@ async def video_handler(context: PlaywrightCrawlingContext) -> None:
             'author': {
                 'nickname': data['author']['nickname'],
                 'id': data['author']['id'],
-                "handle": data['author']['uniqueId'],
-                "signature": data['author']['signature'],
+                'handle': data['author']['uniqueId'],
+                'signature': data['author']['signature'],
                 'followers': data['authorStats']['followerCount'],
                 'following': data['authorStats']['followingCount'],
                 'hearts': data['authorStats']['heart'],
                 'videos': data['authorStats']['videoCount'],
             },
-            "description": data['desc'],
+            'description': data['desc'],
             'tags': [item['hashtagName'] for item in data['textExtra'] if item['hashtagName']],
             'hearts': data['stats']['diggCount'],
             'shares': data['stats']['shareCount'],
@@ -433,7 +432,6 @@ from .routes import router
 async def main() -> None:
     """The crawler entry point."""
     async with Actor:
-
         # highlight-start
         # Accept input parameters passed when starting the Actor
         actor_input = await Actor.get_input()
@@ -450,9 +448,7 @@ async def main() -> None:
             headless=True,
             request_handler_timeout=timedelta(seconds=120),
             browser_type='firefox',
-            browser_new_context_options={
-                'permissions': []
-            }
+            browser_new_context_options={'permissions': []}
         )
 
         await crawler.run(requests)
@@ -500,7 +496,7 @@ If you want to make your Actor public and provide access to other users, potenti
 
 We've created a good foundation for crawling TikTok using Crawlee for Python and Playwright. If you want to improve the project, I would recommend adding error handling and handling cases when you get a CAPTCHA to reduce the likelihood of being blocked by TikTok. However, this is a good foundation to start working with TikTok. It allows you to get data right now.
 
-You can find the complete code in the [repository](soon)
+You can find the complete code in the [repository](https://github.com/Mantisus/tiktok-crawlee)
 
 If you enjoyed this blog, feel free to support Crawlee for Python by starring the [repository](https://github.com/apify/crawlee-python) or joining the maintainer team.
 
