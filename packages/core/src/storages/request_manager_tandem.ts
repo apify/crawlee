@@ -1,11 +1,15 @@
 import type { Dictionary } from '@crawlee/types';
+
 import type { Log } from '@apify/log';
 
 import { log } from '../log';
 import type { Request, RequestOptions } from '../request';
-import type { IRequestManager } from './request_provider';
-import { RequestProvider } from './request_provider';
-import type { RequestQueueOperationInfo, RequestQueueOperationOptions } from './request_provider';
+import type {
+    IRequestManager,
+    RequestProvider,
+    RequestQueueOperationInfo,
+    RequestQueueOperationOptions,
+} from './request_provider';
 
 /**
  * A request provider that combines a RequestList and a RequestQueue.

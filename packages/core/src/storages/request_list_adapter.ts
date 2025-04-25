@@ -1,4 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
+
 import type { Request, RequestOptions } from '../request';
 import type { IRequestList } from './request_list';
 import type { IRequestManager, RequestQueueOperationOptions } from './request_provider';
@@ -8,7 +9,7 @@ import type { IRequestManager, RequestQueueOperationOptions } from './request_pr
  * This class wraps a RequestList and makes it compatible with the IRequestManager interface.
  */
 export class RequestListAdapter implements IRequestManager {
-    constructor(private requestList: IRequestList) { }
+    constructor(private requestList: IRequestList) {}
 
     /**
      * @inheritdoc

@@ -39,6 +39,8 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestListAdapter,
+    RequestManagerTandem,
     RequestProvider,
     RequestQueue,
     RequestQueueV1,
@@ -49,10 +51,6 @@ import {
     SessionPool,
     Statistics,
     validators,
-    ProxyConfiguration,
-    RequestList,
-    RequestListAdapter,
-    RequestManagerTandem,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
