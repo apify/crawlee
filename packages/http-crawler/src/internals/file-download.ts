@@ -23,7 +23,7 @@ export type FileDownloadErrorHandler<
 
 export type StreamHandlerContext = Omit<
     FileDownloadCrawlingContext,
-    'body' | 'response' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
+    'body' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
 > & {
     stream: Request; // TODO BC - remove in v4
 };
@@ -117,7 +117,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 
         this.streamHandler = streamHandler;
         if (this.streamHandler) {
-            this.requestHandler = this.streamRequestHandler;
+            this.requestHandler = this.streamRequestHandler as any;
         }
 
         // The base HttpCrawler class only supports a handful of text based mime types.
@@ -170,6 +170,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 
             try {
                 context.stream = response.stream;
+                context.response = response as any;
                 streamHandlerResult = this.streamHandler!(context as any);
             } catch (e) {
                 cleanUp();

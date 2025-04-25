@@ -8,6 +8,10 @@ const crawler = new PlaywrightCrawler({
             await handleCloudflareChallenge();
         },
     ],
+    browserPoolOptions: {
+        // Disable the default fingerprint spoofing to avoid conflicts with Camoufox.
+        useFingerprints: false,
+    },
     launchContext: {
         launcher: firefox,
         launchOptions: await launchOptions({

@@ -4,6 +4,5 @@
 		"noEmit": true,
 		"incremental": false,
 		"types": ["vitest/globals"]
-	},
-	"include": ["./"]
+	}
 }

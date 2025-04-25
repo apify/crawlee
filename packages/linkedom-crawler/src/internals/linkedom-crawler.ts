@@ -10,6 +10,7 @@ import type {
     RequestHandler,
     RequestProvider,
     RouterRoutes,
+    SkippedRequestCallback,
 } from '@crawlee/http';
 import {
     enqueueLinks,
@@ -188,6 +189,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
+                    onSkippedRequest: this.onSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -228,6 +230,7 @@ interface EnqueueLinksInternalOptions {
     window: Window | null;
     requestQueue: RequestProvider;
     robotsTxtFile?: RobotsTxtFile;
+    onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
@@ -238,6 +241,7 @@ export async function linkedomCrawlerEnqueueLinks({
     window,
     requestQueue,
     robotsTxtFile,
+    onSkippedRequest,
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
@@ -261,6 +265,7 @@ export async function linkedomCrawlerEnqueueLinks({
     return enqueueLinks({
         requestQueue,
         robotsTxtFile,
+        onSkippedRequest,
         urls,
         baseUrl,
         ...options,

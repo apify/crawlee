@@ -12,6 +12,10 @@ const crawler = new PlaywrightCrawler({
     requestHandler: router,
     // Comment this option to scrape the full website.
     maxRequestsPerCrawl: 20,
+    browserPoolOptions: {
+        // Disable the default fingerprint spoofing to avoid conflicts with Camoufox.
+        useFingerprints: false,
+    },
     launchContext: {
         launcher: firefox,
         launchOptions: await launchOptions({

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
+
+
+### Features
+
+* add `onSkippedRequest` option ([#2916](https://github.com/apify/crawlee/issues/2916)) ([764f992](https://github.com/apify/crawlee/commit/764f99203627b6a44d2ee90d623b8b0e6ecbffb5)), closes [#2910](https://github.com/apify/crawlee/issues/2910)
+
+
+
+
+
 ## [3.13.1](https://github.com/apify/crawlee/compare/v3.13.0...v3.13.1) (2025-04-07)
 
 

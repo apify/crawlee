@@ -1,4 +1,4 @@
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { Awaitable, BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
@@ -17,6 +17,8 @@ import {
     createRequests,
     filterRequestsByPatterns,
 } from './shared';
+
+export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
@@ -165,6 +167,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If provided, disallowed URLs will be ignored.
      */
     robotsTxtFile?: RobotsTxtFile;
+
+    /**
+     * When a request is skipped for some reason, you can use this callback to act on it.
+     * This is currently fired only for requests skipped based on robots.txt file.
+     */
+    onSkippedRequest?: SkippedRequestCallback;
 }
 
 /**
@@ -264,6 +272,7 @@ export async function enqueueLinks(
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
             robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
+            onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
             limit: ow.optional.number,
@@ -295,6 +304,7 @@ export async function enqueueLinks(
         forefront,
         waitForAllRequestsToBeAdded,
         robotsTxtFile,
+        onSkippedRequest,
     } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
@@ -373,9 +383,24 @@ export async function enqueueLinks(
     let requestOptions = createRequestOptions(urls, options);
 
     if (robotsTxtFile) {
+        const skippedRequests: RequestOptions[] = [];
+
         requestOptions = requestOptions.filter((request) => {
-            return robotsTxtFile.isAllowed(request.url);
+            if (robotsTxtFile.isAllowed(request.url)) {
+                return true;
+            }
+
+            skippedRequests.push(request);
+            return false;
         });
+
+        if (onSkippedRequest && skippedRequests.length > 0) {
+            await Promise.all(
+                skippedRequests.map((request) => {
+                    return onSkippedRequest({ url: request.url, reason: 'robotsTxt' });
+                }),
+            );
+        }
     }
 
     if (transformRequestFunction) {
