@@ -79,7 +79,7 @@ cd tiktok-crawlee
 
 TikTok uses quite a lot of JavaScript on its site, both for displaying content and for analyzing user behavior, including detecting and blocking crawlers. Therefore, for crawling TikTok, we'll use a headless browser with [Playwright](https://playwright.dev/python/).
 
-To load new elements on a user's page, TikTok uses infinite scrolling. You may already be familiar with this method from this [article](https://crawlee.dev/blog/infinite-scroll-using-python).
+To load new elements on a user's page, TikTok uses infinite scrolling. You may already be familiar with this method from this [article](https://www.crawlee.dev/blog/infinite-scroll-using-python).
 
 Let's look at what happens under the hood when we scroll a TikTok page. I recommend studying network activity in [DevTools](https://developer.chrome.com/docs/devtools) to understand what requests are going to the server.
 
@@ -101,9 +101,9 @@ It seems that the HTML code contains JSON with all the data we're interested in.
 
 Now that we understand our scraping strategy, let's set up Crawlee for scraping TikTok.
 
-Since pages have infinite scrolling, we need to limit the number of elements we want to get. For this, we'll add a `max_items` parameter that will limit the maximum number of elements for each search and pass it in `user_data` when forming a [Request](https://crawlee.dev/python/api/class/Request).
+Since pages have infinite scrolling, we need to limit the number of elements we want to get. For this, we'll add a `max_items` parameter that will limit the maximum number of elements for each search and pass it in `user_data` when forming a [Request](https://www.crawlee.dev/python/api/class/Request).
 
-We'll limit the intensity of scraping by setting `max_tasks_per_minute` in [`ConcurrencySettings`](https://crawlee.dev/python/api/class/ConcurrencySettings). This will help us reduce the likelihood of being blocked by TikTok.
+We'll limit the intensity of scraping by setting `max_tasks_per_minute` in [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings). This will help us reduce the likelihood of being blocked by TikTok.
 
 We'll set `browser_type` to `firefox`, as it performed better for TikTok in my tests.
 TikTok may request permissions to access device data, so we'll explicitly limit all [permissions](https://playwright.dev/python/docs/api/class-browser#browser-new-context-option-permissions) by passing the appropriate parameter to `browser_new_context_options`.
@@ -165,7 +165,7 @@ Depending on your deployment environment, you may need to add a proxy. We'll com
 
 After configuration, let's move on to navigation and data extraction.
 
-For infinite scrolling, we'll use the built-in helper function ['infinite_scroll'](https://crawlee.dev/python/api/class/PlaywrightCrawlingContext#infinite_scroll). But instead of waiting for scrolling to complete, which in some cases can take a really long time, we'll use Python's `asyncio` capabilities to make it a background task.
+For infinite scrolling, we'll use the built-in helper function ['infinite_scroll'](https://www.crawlee.dev/python/api/class/PlaywrightCrawlingContext#infinite_scroll). But instead of waiting for scrolling to complete, which in some cases can take a really long time, we'll use Python's `asyncio` capabilities to make it a background task.
 
 Also, with deeper investigation, you may encounter a TikTok page that doesn't load user videos, but only shows a button and an error message.
 
