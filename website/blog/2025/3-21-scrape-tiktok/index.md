@@ -3,7 +3,7 @@ slug: scrape-tiktok-python
 title: 'How to scrape TikTok using Python'
 tags: [community]
 description: 'Learn how to scrape TikTok using Crawlee for Python'
-image: ""
+image: "./img/main_image.webp"
 authors: [MaxB]
 ---
 
@@ -17,7 +17,7 @@ One of our community members wrote this blog as a contribution to the Crawlee Bl
 
 :::
 
-![SOON](./img)
+![How to scrape TikTok using Python](./img/main_image.webp)
 
 Key steps we'll cover:
 
@@ -338,7 +338,7 @@ Example record:
 }
 ```
 
-## Prepare for [Apify Platform](https://apify.com/)  as an Apify Actor
+## Prepare for [Apify Platform](https://apify.com/) as an Apify Actor
 
 For deployment, we'll use [Apify Platform](https://apify.com/). It's a simple and effective environment for cloud deployment, allowing efficient interaction with your crawler. Call it via [API](https://docs.apify.com/api/v2/), [schedule tasks](https://docs.apify.com/platform/schedules), [integrate](https://docs.apify.com/platform/integrations) with various services, and much more.
 
