@@ -412,7 +412,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         crawlingContext: PlaywrightCrawlingContext,
     ): Promise<{ result: Result<RequestHandlerResult>; initialStateCopy?: Record<string, unknown> }> {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
-        let initialStateCopy: Record<string, unknown> | undefined = undefined;
+        let initialStateCopy: Record<string, unknown> | undefined;
 
         try {
             await super._runRequestHandler.call(
