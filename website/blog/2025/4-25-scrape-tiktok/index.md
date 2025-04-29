@@ -7,13 +7,13 @@ image: "./img/main_image.webp"
 authors: [MaxB]
 ---
 
-[TikTok](https://www.tiktok.com/) is one of the most popular social networks in the world. TikTok users generate vast amounts of data that are valuable for various analyses.
+[TikTok](https://www.tiktok.com/) users generate tons of data that are valuable for analysis.
 
-Which hashtags are trending now? What is an influencer's engagement rate? What topics are important for a content creator? You can find answers to these and many other questions by analyzing TikTok data. But for analysis, you need to extract the data in a convenient format. In this blog, we'll explore how to do this using [Crawlee for Python](https://github.com/apify/crawlee-python).
+Which hashtags are trending now? What is an influencer's engagement rate? What topics are important for a content creator? You can find answers to these and many other questions by analyzing TikTok data. However, for analysis, you need to extract the data in a convenient format. In this blog, we'll explore how to scrape TikTok using [Crawlee for Python](https://github.com/apify/crawlee-python).
 
 :::note
 
-One of our community members wrote this blog as a contribution to the Crawlee Blog. If you'd like to contribute articles like these, please reach out to us on our [discord channel](https://apify.com/discord).
+One of our community members wrote this blog as a contribution to the Crawlee Blog. If you'd like to contribute articles like these, please reach out to us on our [Discord channel](https://apify.com/discord).
 
 :::
 
@@ -21,13 +21,12 @@ One of our community members wrote this blog as a contribution to the Crawlee Bl
 
 Key steps we'll cover:
 
-1. Project setup
-2. Analyzing TikTok and determining a scraping strategy
-3. Configuring Crawlee
-4. Extracting TikTok data
-5. Prepare for [Apify Platform](https://apify.com/) as an Apify Actor
-6. Deploying to Apify Platform
-7. Conclusion
+1. [Project setup](https://www.crawlee.dev/blog/scrape-tiktok-python#1-project-setup)
+2. [Analyzing TikTok and determining a scraping strategy](https://www.crawlee.dev/blog/scrape-tiktok-python#2-analyzing-tiktok-and-determining-a-scraping-strategy)
+3. [Configuring Crawlee](https://www.crawlee.dev/blog/scrape-tiktok-python#3-configuring-crawlee)
+4. [Extracting TikTok data](https://www.crawlee.dev/blog/scrape-tiktok-python#4-extracting-tiktok-data)
+5. [Prepare for the Apify platform as an Apify Actor](https://www.crawlee.dev/blog/scrape-tiktok-python#5-prepare-for-the-apify-platform-as-an-apify-actor)
+6. [Deploying to Apify](https://www.crawlee.dev/blog/scrape-tiktok-python#6-deploying-to-apify)
 
 <!-- truncate -->
 
@@ -35,11 +34,11 @@ Key steps we'll cover:
 
 - Python 3.9 or higher
 - Familiarity with web scraping concepts
-- Crawlee for Python `v0.6.5`
+- Crawlee for Python `v0.6.8`
 - [uv](https://docs.astral.sh/uv/) `v0.6` or higher
-- Apify account
+- An Apify account
 
-## Project setup
+## 1. Project setup
 
 :::note
 
@@ -47,9 +46,9 @@ Before going ahead with the project, I'd like to ask you to star Crawlee for Pyt
 
 :::
 
-In this project, we'll use UV for package management and a specific Python version installed through UV. UV is a fast and modern package manager written in Rust.
+In this project, we'll use UV for package management and a specific Python version will be installed through UV. UV is a fast and modern package manager written in Rust.
 
-If you don't have UV installed yet, follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
+If you don't have UV installed yet, just follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -75,7 +74,7 @@ Creating the project may take a few minutes. After installation is complete, nav
 cd tiktok-crawlee
 ```
 
-## Analyzing TikTok and determining a scraping strategy
+## 2. Analyzing TikTok and determining a scraping strategy
 
 TikTok uses quite a lot of JavaScript on its site, both for displaying content and for analyzing user behavior, including detecting and blocking crawlers. Therefore, for crawling TikTok, we'll use a headless browser with [Playwright](https://playwright.dev/python/).
 
@@ -97,7 +96,7 @@ Let's look at what a video page response looks like to see what data we can extr
 
 It seems that the HTML code contains JSON with all the data we're interested in. Great!
 
-## Configuring Crawlee
+## 3. Configuring Crawlee
 
 Now that we understand our scraping strategy, let's set up Crawlee for scraping TikTok.
 
@@ -159,7 +158,7 @@ Someone might ask, "What about configurations to avoid fingerprint blocking?!!!"
 
 Depending on your deployment environment, you may need to add a proxy. We'll come back to this in the last section.
 
-## Extracting TikTok data
+## 4. Extracting TikTok data
 
 After configuration, let's move on to navigation and data extraction.
 
@@ -337,11 +336,11 @@ Example record:
 }
 ```
 
-## Prepare for [Apify Platform](https://apify.com/) as an Apify Actor
+## 5. Prepare for the [Apify platform](https://apify.com/) as an Apify Actor
 
-For deployment, we'll use [Apify Platform](https://apify.com/). It's a simple and effective environment for cloud deployment, allowing efficient interaction with your crawler. Call it via [API](https://docs.apify.com/api/v2/), [schedule tasks](https://docs.apify.com/platform/schedules), [integrate](https://docs.apify.com/platform/integrations) with various services, and much more.
+For deployment, we'll use the [Apify platform](https://apify.com/). It's a simple and effective environment for cloud deployment, allowing efficient interaction with your crawler. Call it via [API](https://docs.apify.com/api/v2/), [schedule tasks](https://docs.apify.com/platform/schedules), [integrate](https://docs.apify.com/platform/integrations) with various services, and much more.
 
-To deploy to Apify Platform, we need to adapt our project for the [Apify Actor](https://apify.com/actors) structure.
+To deploy to the Apify platform, we need to adapt our project for the [Apify Actor](https://apify.com/actors) structure.
 
 Create an `.actor` folder with the necessary files.
 
@@ -357,7 +356,7 @@ mv Dockerfile .actor
 
 Let's fill in the empty files:
 
-The `actor.json` file contains project metadata for Apify Platform. Follow the [documentation for proper configuration](https://docs.apify.com/platform/actors/development/actor-definition/actor-json):
+The `actor.json` file contains project metadata for the Apify platform. Follow the [documentation for proper configuration](https://docs.apify.com/platform/actors/development/actor-definition/actor-json):
 
 ```json
 {
@@ -456,7 +455,7 @@ async def main() -> None:
 
 That's it, the project is ready for deployment.
 
-## Deploying to Apify Platform
+## 6. Deploying to Apify
 
 Use the official [Apify CLI](https://docs.apify.com/cli/) to upload your code:
 
@@ -474,7 +473,7 @@ Push the project to the platform:
 apify push
 ```
 
-Now you can configure runs on Apify Platform.
+Now you can configure runs on the Apify platform.
 
 Let's perform a test run:
 
