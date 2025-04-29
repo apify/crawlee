@@ -739,6 +739,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
+        // eslint-disable-next-line prefer-const
         let { isFinishedFunction, isTaskReadyFunction } = autoscaledPoolOptions;
 
         // override even if `isFinishedFunction` provided by user - `keepAlive` has higher priority
