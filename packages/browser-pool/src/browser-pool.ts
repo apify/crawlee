@@ -452,7 +452,7 @@ export class BrowserPool<
                 browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
             tryCancel();
 
-            return this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
+            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
         });
     }
 
@@ -472,7 +472,7 @@ export class BrowserPool<
 
         const browserController = await this._launchBrowser(id, { launchOptions, browserPlugin });
         tryCancel();
-        return this._createPageForBrowser(id, browserController, pageOptions);
+        return await this._createPageForBrowser(id, browserController, pageOptions);
     }
 
     /**
