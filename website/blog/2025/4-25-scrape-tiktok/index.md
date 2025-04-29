@@ -34,7 +34,7 @@ Key steps we'll cover:
 
 - Python 3.9 or higher
 - Familiarity with web scraping concepts
-- Crawlee for Python `v0.6.8`
+- Crawlee for Python `v0.6.0` or higher
 - [uv](https://docs.astral.sh/uv/) `v0.6` or higher
 - An Apify account
 
@@ -46,9 +46,9 @@ Before going ahead with the project, I'd like to ask you to star Crawlee for Pyt
 
 :::
 
-In this project, we'll use UV for package management and a specific Python version will be installed through UV. UV is a fast and modern package manager written in Rust.
+In this project, we'll use uv for package management and a specific Python version will be installed through uv. Uv is a fast and modern package manager written in Rust.
 
-If you don't have UV installed yet, just follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
+If you don't have uv installed yet, just follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -57,14 +57,14 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 To create the project, run:
 
 ```bash
-uvx crawlee[cli] create tiktok-crawlee
+uvx crawlee['cli'] create tiktok-crawlee
 ```
 
 In the `cli` menu that opens, select:
 
 1. `Playwright`
 2. `Httpx`
-3. `Uv`
+3. `uv`
 4. Leave the default value - `https://crawlee.dev`
 5. `y`
 
