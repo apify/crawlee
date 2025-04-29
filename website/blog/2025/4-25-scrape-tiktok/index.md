@@ -68,6 +68,12 @@ In the `cli` menu that opens, select:
 4. Leave the default value - `https://crawlee.dev`
 5. `y`
 
+Or, just run the command:
+
+```bash
+uvx crawlee['cli'] create tiktok-crawlee --crawler-type playwright --http-client httpx --package-manager uv --apify --start-url 'https://crawlee.dev'
+```
+
 Creating the project may take a few minutes. After installation is complete, navigate to the project folder:
 
 ```bash
