@@ -346,13 +346,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
         this.stats.trackBrowserRequestHandlerRun();
 
-        // Keep a copy of the `useState` value, we need to use the old state when trying the HTTP handler to have
-        // the same outcome. We don't need to care about its persistence, since we only run this for detection
-        // purposes. We read the value directly instead of using `useState` so there are no side effects.
-        const kvs = await crawlingContext.getKeyValueStore();
-        const oldState = await kvs.getValue(AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
-        const oldStateCopy = JSON.parse(JSON.stringify(oldState));
-        const browserRun = await this.runRequestHandlerInBrowser(crawlingContext);
+        // Run the request handler in a browser. The copy of the crawler state is kept so that we can perform
+        // a rendering type detection if necessary. Without this measure, the HTTP request handler would run
+        // under different conditions, which could change its behavior. Changes done to the crawler state by
+        // the HTTP request handler will not be committed to the actual storage.
+        const { result: browserRun, initialStateCopy } = await this.runRequestHandlerInBrowser(crawlingContext);
 
         if (!browserRun.ok) {
             throw browserRun.error;
@@ -362,7 +360,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
         if (shouldDetectRenderingType) {
             crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
-            const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext, oldStateCopy);
+            const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext, initialStateCopy);
 
             const detectionResult: RenderingType = (() => {
                 if (!plainHTTPRun.ok) {
@@ -412,8 +410,9 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
     protected async runRequestHandlerInBrowser(
         crawlingContext: PlaywrightCrawlingContext,
-    ): Promise<Result<RequestHandlerResult>> {
+    ): Promise<{ result: Result<RequestHandlerResult>; initialStateCopy?: Record<string, unknown> }> {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
+        let initialStateCopy: Record<string, unknown> | undefined;
 
         try {
             await super._runRequestHandler.call(
@@ -483,7 +482,13 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                             },
                                             addRequests: result.addRequests,
                                             pushData: result.pushData,
-                                            useState: this.allowStorageAccess(result.useState),
+                                            useState: this.allowStorageAccess(async (defaultValue) => {
+                                                const state = await result.useState(defaultValue);
+                                                if (initialStateCopy === undefined) {
+                                                    initialStateCopy = JSON.parse(JSON.stringify(state));
+                                                }
+                                                return state;
+                                            }),
                                             getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
                                         }),
                                 );
@@ -493,9 +498,9 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 }),
                 crawlingContext,
             );
-            return { result, ok: true };
+            return { result: { result, ok: true }, initialStateCopy };
         } catch (error) {
-            return { error, ok: false };
+            return { result: { error, ok: false }, initialStateCopy };
         }
     }
 

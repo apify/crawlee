@@ -274,6 +274,46 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(state!.value).toEqual({ count: 3 });
     });
 
+    test('should return deeply equal but not identical state objects across handler runs', async () => {
+        // Force detection to happen
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 1,
+            renderingType: 'clientOnly',
+        });
+
+        // We'll store state references to compare them later
+        const stateReferences: any[] = [];
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ useState }) => {
+            const state = await useState({ data: { nested: { value: 42 } } });
+            stateReferences.push(JSON.parse(JSON.stringify(state)));
+            state.randomNumber = Math.random();
+        });
+
+        // Run the crawler
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        // The request handler should have run twice (once in browser, once in HTTP-only mode for detection)
+        expect(requestHandler).toHaveBeenCalledTimes(2);
+        expect(stateReferences).toHaveLength(2);
+
+        // The state objects should be deeply equal (same values)
+        expect(stateReferences[0]).toEqual(stateReferences[1]);
+
+        // But they should not be the same object instance (different references)
+        // This is important to ensure that state objects are properly cloned between handler runs
+        // and that modifications to one state object don't affect others
+        expect(stateReferences[0]).not.toBe(stateReferences[1]);
+    });
+
     test('should persist key-value store changes', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
             detectionProbabilityRecommendation: 0,
