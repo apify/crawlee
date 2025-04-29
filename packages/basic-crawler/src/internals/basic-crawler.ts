@@ -54,8 +54,6 @@ import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOpt
 import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { GotResponse, Method, OptionsInit } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
@@ -741,7 +739,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
-        let { isFinishedFunction } = autoscaledPoolOptions;
+        // eslint-disable-next-line prefer-const
+        let { isFinishedFunction, isTaskReadyFunction } = autoscaledPoolOptions;
 
         // override even if `isFinishedFunction` provided by user - `keepAlive` has higher priority
         if (keepAlive) {
@@ -765,7 +764,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     return false;
                 }
 
-                return this._isTaskReadyFunction();
+                return isTaskReadyFunction ? await isTaskReadyFunction() : await this._isTaskReadyFunction();
             },
             isFinishedFunction: async () => {
                 if (isMaxPagesExceeded()) {
