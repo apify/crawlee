@@ -485,7 +485,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                             useState: this.allowStorageAccess(async (defaultValue) => {
                                                 const state = await result.useState(defaultValue);
                                                 if (initialStateCopy === undefined) {
-                                                    initialStateCopy = state;
+                                                    initialStateCopy = JSON.parse(JSON.stringify(state));
                                                 }
                                                 return state;
                                             }),
