@@ -25,7 +25,7 @@ Key steps we'll cover:
 2. [Analyzing TikTok and determining a scraping strategy](https://www.crawlee.dev/blog/scrape-tiktok-python#2-analyzing-tiktok-and-determining-a-scraping-strategy)
 3. [Configuring Crawlee](https://www.crawlee.dev/blog/scrape-tiktok-python#3-configuring-crawlee)
 4. [Extracting TikTok data](https://www.crawlee.dev/blog/scrape-tiktok-python#4-extracting-tiktok-data)
-5. [Prepare for the Apify platform as an Apify Actor](https://www.crawlee.dev/blog/scrape-tiktok-python#5-prepare-for-the-apify-platform-as-an-apify-actor)
+5. [Creating TikTok Actor on the Apify platform](https://www.crawlee.dev/blog/scrape-tiktok-python#5-creating-tiktok-actor-on-apify-platform)
 6. [Deploying to Apify](https://www.crawlee.dev/blog/scrape-tiktok-python#6-deploying-to-apify)
 
 <!-- truncate -->
@@ -336,7 +336,7 @@ Example record:
 }
 ```
 
-## 5. Prepare for the [Apify platform](https://apify.com/) as an Apify Actor
+## 5. Creating TikTok Actor on the [Apify platform](https://apify.com/)
 
 For deployment, we'll use the [Apify platform](https://apify.com/). It's a simple and effective environment for cloud deployment, allowing efficient interaction with your crawler. Call it via [API](https://docs.apify.com/api/v2/), [schedule tasks](https://docs.apify.com/platform/schedules), [integrate](https://docs.apify.com/platform/integrations) with various services, and much more.
 
