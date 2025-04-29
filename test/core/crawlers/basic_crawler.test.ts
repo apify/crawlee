@@ -734,11 +734,13 @@ describe('BasicCrawler', () => {
         expect(await crawler._isTaskReadyFunction()).toBe(false);
     });
 
-    test('should be possible to override isFinishedFunction of underlying AutoscaledPool', async () => {
+    test('should be possible to override isFinishedFunction and isTaskReadyFunction of underlying AutoscaledPool', async () => {
         const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
         const processed: Request[] = [];
         const queue: Request[] = [];
         let isFinished = false;
+        let isFinishedFunctionCalled = false;
+        let isTaskReadyFunctionCalled = false;
 
         const basicCrawler = new BasicCrawler({
             requestQueue,
@@ -746,7 +748,12 @@ describe('BasicCrawler', () => {
                 minConcurrency: 1,
                 maxConcurrency: 1,
                 isFinishedFunction: async () => {
+                    isFinishedFunctionCalled = true;
                     return Promise.resolve(isFinished);
+                },
+                isTaskReadyFunction: async () => {
+                    isTaskReadyFunctionCalled = true;
+                    return Promise.resolve(!isFinished);
                 },
             },
             requestHandler: async ({ request }) => {
@@ -783,6 +790,8 @@ describe('BasicCrawler', () => {
         expect(markRequestHandled).toBeCalledWith(request0);
         expect(markRequestHandled).toBeCalledWith(request1);
         expect(isFinishedOrig).not.toBeCalled();
+        expect(isFinishedFunctionCalled).toBe(true);
+        expect(isTaskReadyFunctionCalled).toBe(true);
 
         // TODO: see why the request1 was passed as a second parameter to includes
         expect(processed.includes(request0)).toBe(true);
