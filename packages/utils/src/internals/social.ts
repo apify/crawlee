@@ -681,13 +681,21 @@ export function parseHandlesFromHtml(html: string, data: Record<string, unknown>
     const text = htmlToText($);
     if (data) data.text = text;
 
+    // NOTE: we need to parse each text separately, orherwise we might concatenate unrelated texts
+    // e.g. `<div>6HT<a>eva@example.com</a></div>` would become 6HTeva@example.com
+    const texts = $('*')
+        .contents()
+        .toArray()
+        .filter((node) => node.type === 'text')
+        .map((node) => $(node).text().trim());
+
     // Find all <a> links with href tag
     const linkUrls: string[] = [];
     $('a[href]').each((_index, elem) => {
         if (elem) linkUrls.push($(elem).attr('href')!);
     });
 
-    result.emails = emailsFromUrls(linkUrls).concat(emailsFromText(text));
+    result.emails = emailsFromUrls(linkUrls).concat(texts.flatMap(emailsFromText));
     result.phones = phonesFromUrls(linkUrls);
     result.phonesUncertain = phonesFromText(text);
 
