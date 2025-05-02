@@ -621,7 +621,7 @@ __metadata:
   resolution: "@crawlee/impit-client@workspace:packages/impit-client"
   dependencies:
     "@crawlee/core": "npm:^3.13.2"
-    impit: "npm:^0.3.0"
+    impit: "npm:^0.4.3"
   peerDependencies:
     "@crawlee/core": ^3.12.1
   languageName: unknown
@@ -7408,9 +7408,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-arm64@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-darwin-arm64@npm:0.3.1"
+"impit-darwin-arm64@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-darwin-arm64@npm:0.4.3"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
@@ -7422,23 +7422,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-x64@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-darwin-x64@npm:0.3.1"
+"impit-darwin-x64@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-darwin-x64@npm:0.4.3"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"impit-linux-arm64-gnu@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-linux-arm64-gnu@npm:0.3.1"
+"impit-linux-arm64-gnu@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-linux-arm64-gnu@npm:0.4.3"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"impit-linux-arm64-musl@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-linux-arm64-musl@npm:0.3.1"
+"impit-linux-arm64-musl@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-linux-arm64-musl@npm:0.4.3"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -7450,9 +7450,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-x64-gnu@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-linux-x64-gnu@npm:0.3.1"
+"impit-linux-x64-gnu@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-linux-x64-gnu@npm:0.4.3"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
@@ -7464,9 +7464,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-x64-musl@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-linux-x64-musl@npm:0.3.1"
+"impit-linux-x64-musl@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-linux-x64-musl@npm:0.4.3"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -7478,9 +7478,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-win32-arm64-msvc@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-win32-arm64-msvc@npm:0.3.1"
+"impit-win32-arm64-msvc@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-win32-arm64-msvc@npm:0.4.3"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
@@ -7492,9 +7492,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-win32-x64-msvc@npm:0.3.1":
-  version: 0.3.1
-  resolution: "impit-win32-x64-msvc@npm:0.3.1"
+"impit-win32-x64-msvc@npm:0.4.3":
+  version: 0.4.3
+  resolution: "impit-win32-x64-msvc@npm:0.4.3"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -7526,18 +7526,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit@npm:^0.3.0":
-  version: 0.3.1
-  resolution: "impit@npm:0.3.1"
+"impit@npm:^0.4.3":
+  version: 0.4.3
+  resolution: "impit@npm:0.4.3"
   dependencies:
-    impit-darwin-arm64: "npm:0.3.1"
-    impit-darwin-x64: "npm:0.3.1"
-    impit-linux-arm64-gnu: "npm:0.3.1"
-    impit-linux-arm64-musl: "npm:0.3.1"
-    impit-linux-x64-gnu: "npm:0.3.1"
-    impit-linux-x64-musl: "npm:0.3.1"
-    impit-win32-arm64-msvc: "npm:0.3.1"
-    impit-win32-x64-msvc: "npm:0.3.1"
+    impit-darwin-arm64: "npm:0.4.3"
+    impit-darwin-x64: "npm:0.4.3"
+    impit-linux-arm64-gnu: "npm:0.4.3"
+    impit-linux-arm64-musl: "npm:0.4.3"
+    impit-linux-x64-gnu: "npm:0.4.3"
+    impit-linux-x64-musl: "npm:0.4.3"
+    impit-win32-arm64-msvc: "npm:0.4.3"
+    impit-win32-x64-msvc: "npm:0.4.3"
   dependenciesMeta:
     impit-darwin-arm64:
       optional: true
@@ -7555,7 +7555,7 @@ __metadata:
       optional: true
     impit-win32-x64-msvc:
       optional: true
-  checksum: 10c0/40aa3e60e5274bc1949449d7d55639189dd3756be6308df0dccc5f229eaf7c2872d630b09be1a7ed40d174a3c771e5886e34b9d9d73f9eecc591536f6960e921
+  checksum: 10c0/59b37420493e68fbb14cf3f022ba8c6aa26a44ffd2e87da62a0387a9aa6eaf78314d06856f632f8302d7bfcccdb58c4db1f0a482f2d8bd50194f218f4a62426f
   languageName: node
   linkType: hard
 
