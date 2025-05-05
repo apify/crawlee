@@ -1,9 +1,10 @@
 import { Readable } from 'node:stream';
 import { type ReadableStream } from 'node:stream/web';
+import { isGeneratorObject } from 'node:util/types';
 
 import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
-import { type HttpMethod, Impit, type ImpitOptions, type ImpitResponse, RequestInit } from 'impit';
-import { isGeneratorObject } from 'node:util/types';
+import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
+import { Impit } from 'impit';
 
 export const Browser = {
     'Chrome': 'chrome',
@@ -66,7 +67,8 @@ export class ImpitHttpClient implements BaseHttpClient {
     ): RequestInit['body'] {
         if (this.isGeneratorObject(body)) {
             return Readable.toWeb(Readable.from(body)) as any;
-        } else if (body instanceof Readable) {
+        }
+        if (body instanceof Readable) {
             return Readable.toWeb(body) as any;
         }
 
