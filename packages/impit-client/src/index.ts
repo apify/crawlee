@@ -5,6 +5,7 @@ import { isGeneratorObject } from 'node:util/types';
 import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
+import { LruCache } from '@apify/datastructures';
 
 export const Browser = {
     'Chrome': 'chrome',
@@ -23,6 +24,21 @@ export class ImpitHttpClient implements BaseHttpClient {
     private impitOptions: ImpitOptions;
     private maxRedirects: number;
     private followRedirects: boolean;
+
+    private clientCache: LruCache<Impit> = new LruCache({ maxLength: 10 });
+
+    private getClient(options: ImpitOptions) {
+        const cacheKey = JSON.stringify(options);
+
+        if (this.clientCache.get(cacheKey)) {
+            return this.clientCache.get(cacheKey)!;
+        }
+
+        const client = new Impit(options);
+        this.clientCache.add(cacheKey, client);
+
+        return client;
+    }
 
     constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number }) {
         this.impitOptions = options ?? {};
@@ -93,7 +109,7 @@ export class ImpitHttpClient implements BaseHttpClient {
 
         const url = typeof request.url === 'string' ? request.url : request.url.href;
 
-        const impit = new Impit({
+        const impit = this.getClient({
             ...this.impitOptions,
             proxyUrl: request.proxyUrl,
             followRedirects: false,

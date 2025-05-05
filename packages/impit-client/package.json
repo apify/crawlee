@@ -59,6 +59,7 @@
         "@crawlee/core": "^3.13.3"
     },
     "dependencies": {
+        "@apify/datastructures": "^2.0.3",
         "impit": "^0.4.3"
     },
     "packageManager": "yarn@4.8.1"
