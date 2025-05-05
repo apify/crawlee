@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+
+### Bug Fixes
+
+* await `_createPageForBrowser` in browser pool ([#2950](https://github.com/apify/crawlee/issues/2950)) ([27ba74b](https://github.com/apify/crawlee/commit/27ba74bacfcaa0467e7d97eb27d6a9c1d9cea9be)), closes [#2789](https://github.com/apify/crawlee/issues/2789)
+* convert `[@apilink](https://github.com/apilink)` to `[@link](https://github.com/link)` on build ([#2949](https://github.com/apify/crawlee/issues/2949)) ([abe1dee](https://github.com/apify/crawlee/commit/abe1deeb87adef74ad9cabab97593243fcb29c0b)), closes [#2717](https://github.com/apify/crawlee/issues/2717)
+* disable default fingerprints in the Camoufox template ([#2928](https://github.com/apify/crawlee/issues/2928)) ([6dffa00](https://github.com/apify/crawlee/commit/6dffa00d2b2077e8caece3983ac555d4c629d4fe))
+* Fix trailing slash removal in BrowserPool ([#2921](https://github.com/apify/crawlee/issues/2921)) ([c1fc439](https://github.com/apify/crawlee/commit/c1fc439e8e9cf74808912c66a1915f1bfd345b5f)), closes [#2878](https://github.com/apify/crawlee/issues/2878)
+* Fix useState behavior in adaptive crawler ([#2941](https://github.com/apify/crawlee/issues/2941)) ([5282381](https://github.com/apify/crawlee/commit/52823818bd66995c1512b433e6d82755c487cb58))
+* Persist SitemapRequestList state periodically ([#2923](https://github.com/apify/crawlee/issues/2923)) ([e6e7a9f](https://github.com/apify/crawlee/commit/e6e7a9feed5d8281c36a83fc5edc2f5cb6e783fd)), closes [#2897](https://github.com/apify/crawlee/issues/2897)
+* respect `autoscaledPoolOptions.isTaskReadyFunction` option ([#2948](https://github.com/apify/crawlee/issues/2948)) ([fe2d206](https://github.com/apify/crawlee/commit/fe2d206b46afabb18c83e8af11fa03f085f4cd4e)), closes [#2922](https://github.com/apify/crawlee/issues/2922)
+* **statistics:** track actual request.retryCount in Statistics ([#2940](https://github.com/apify/crawlee/issues/2940)) ([c9f7f54](https://github.com/apify/crawlee/commit/c9f7f5494ac4895a30b283a5defe382db0cdea26))
+
+
+### Features
+
+* pass `response` to `FileDownload.streamHandler` ([#2930](https://github.com/apify/crawlee/issues/2930)) ([008c4c7](https://github.com/apify/crawlee/commit/008c4c7d879195a492bbbdb9dcda23acad4d51e1))
+
+
+
+
+
 ## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+
+### Features
+
+* pass `response` to `FileDownload.streamHandler` ([#2930](https://github.com/apify/crawlee/issues/2930)) ([008c4c7](https://github.com/apify/crawlee/commit/008c4c7d879195a492bbbdb9dcda23acad4d51e1))
+
+
+
+
+
 ## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
 
 **Note:** Version bump only for package @crawlee/http
