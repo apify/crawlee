@@ -2,7 +2,8 @@ import { Readable } from 'node:stream';
 import { type ReadableStream } from 'node:stream/web';
 
 import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
-import { type HttpMethod, Impit, type ImpitOptions, type ImpitResponse } from 'impit';
+import { type HttpMethod, Impit, type ImpitOptions, type ImpitResponse, RequestInit } from 'impit';
+import { isGeneratorObject } from 'node:util/types';
 
 export const Browser = {
     'Chrome': 'chrome',
@@ -56,6 +57,22 @@ export class ImpitHttpClient implements BaseHttpClient {
         return result;
     }
 
+    private isGeneratorObject<T>(value: any): value is Generator<T> | AsyncGenerator<T> {
+        return isGeneratorObject(value);
+    }
+
+    private intoImpitBody<TResponseType extends keyof ResponseTypes>(
+        body?: Exclude<HttpRequest<TResponseType>['body'], undefined>,
+    ): RequestInit['body'] {
+        if (this.isGeneratorObject(body)) {
+            return Readable.toWeb(Readable.from(body)) as any;
+        } else if (body instanceof Readable) {
+            return Readable.toWeb(body) as any;
+        }
+
+        return body as any;
+    }
+
     /**
      * Common implementation for `sendRequest` and `stream` methods.
      * @param request `HttpRequest` object
@@ -83,7 +100,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         const response = await impit.fetch(url, {
             method: request.method as HttpMethod,
             headers: this.intoHeaders(request.headers),
-            body: request.body as string,
+            body: this.intoImpitBody(request.body),
         });
 
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
