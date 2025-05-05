@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+
+### Bug Fixes
+
+* Fix useState behavior in adaptive crawler ([#2941](https://github.com/apify/crawlee/issues/2941)) ([5282381](https://github.com/apify/crawlee/commit/52823818bd66995c1512b433e6d82755c487cb58))
+
+
+
+
+
 ## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
 
 **Note:** Version bump only for package @crawlee/playwright

@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+
+### Bug Fixes
+
+* Fix useState behavior in adaptive crawler ([#2941](https://github.com/apify/crawlee/issues/2941)) ([5282381](https://github.com/apify/crawlee/commit/52823818bd66995c1512b433e6d82755c487cb58))
+* Persist SitemapRequestList state periodically ([#2923](https://github.com/apify/crawlee/issues/2923)) ([e6e7a9f](https://github.com/apify/crawlee/commit/e6e7a9feed5d8281c36a83fc5edc2f5cb6e783fd)), closes [#2897](https://github.com/apify/crawlee/issues/2897)
+* **statistics:** track actual request.retryCount in Statistics ([#2940](https://github.com/apify/crawlee/issues/2940)) ([c9f7f54](https://github.com/apify/crawlee/commit/c9f7f5494ac4895a30b283a5defe382db0cdea26))
+
+
+
+
+
 ## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
 
 

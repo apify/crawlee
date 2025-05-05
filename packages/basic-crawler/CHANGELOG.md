@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+
+### Bug Fixes
+
+* respect `autoscaledPoolOptions.isTaskReadyFunction` option ([#2948](https://github.com/apify/crawlee/issues/2948)) ([fe2d206](https://github.com/apify/crawlee/commit/fe2d206b46afabb18c83e8af11fa03f085f4cd4e)), closes [#2922](https://github.com/apify/crawlee/issues/2922)
+* **statistics:** track actual request.retryCount in Statistics ([#2940](https://github.com/apify/crawlee/issues/2940)) ([c9f7f54](https://github.com/apify/crawlee/commit/c9f7f5494ac4895a30b283a5defe382db0cdea26))
+
+
+
+
+
 ## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
 
 
