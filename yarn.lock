@@ -7632,7 +7632,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-x64-musl@npm:0.2.5, impit-linux-x64-musl@npm:0.4.3":
+"impit-linux-x64-musl@npm:0.2.5":
+  version: 0.2.5
+  resolution: "impit-linux-x64-musl@npm:0.2.5"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-musl@npm:0.4.3":
   version: 0.4.3
   resolution: "impit-linux-x64-musl@npm:0.4.3"
   conditions: os=linux & cpu=x64 & libc=musl
