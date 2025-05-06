@@ -5,6 +5,7 @@ import { isGeneratorObject } from 'node:util/types';
 import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
+
 import { LruCache } from '@apify/datastructures';
 
 export const Browser = {
@@ -123,6 +124,7 @@ export class ImpitHttpClient implements BaseHttpClient {
 
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
             const location = response.headers.get('location');
+            const redirectUrl = new URL(location ?? '', request.url);
 
             if (!location) {
                 throw new Error('Redirect response missing location header.');
@@ -131,11 +133,11 @@ export class ImpitHttpClient implements BaseHttpClient {
             return this.getResponse(
                 {
                     ...request,
-                    url: location,
+                    url: redirectUrl.href,
                 },
                 {
                     redirectCount: (redirects?.redirectCount ?? 0) + 1,
-                    redirectUrls: [...(redirects?.redirectUrls ?? []), new URL(location)],
+                    redirectUrls: [...(redirects?.redirectUrls ?? []), redirectUrl],
                 },
             );
         }
