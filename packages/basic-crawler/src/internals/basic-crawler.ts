@@ -235,7 +235,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     handleFailedRequestFunction?: ErrorHandler<Context>;
 
     /**
-     * Indicates how many times the request is retried if {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`} fails.
+     * Specifies the maximum number of retries allowed for a request if its processing fails.
+     * This includes retries due to navigation errors or errors thrown from user-supplied functions
+     * (`requestHandler`, `preNavigationHooks`, `postNavigationHooks`).
+     *
+     * This limit does not apply to retries triggered by session rotation
+     * (see {@apilink BasicCrawlerOptions.maxSessionRotations|`maxSessionRotations`}).
      * @default 3
      */
     maxRequestRetries?: number;
