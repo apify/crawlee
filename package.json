@@ -86,7 +86,7 @@
         "apify": "*",
         "apify-node-curl-impersonate": "^1.0.15",
         "basic-auth-parser": "^0.0.2",
-        "body-parser": "^1.20.0",
+        "body-parser": "^2.0.0",
         "camoufox-js": "^0.3.0",
         "commitlint": "^19.0.0",
         "cross-env": "^7.0.3",
