@@ -7,6 +7,7 @@ export default ExecutionEnvironment.canUseDOM ? {
         window.analytics.page({
           path: location.pathname,
           url: location.href,
+          search: location.search,
         });
       }
     },
