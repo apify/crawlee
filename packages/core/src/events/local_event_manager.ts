@@ -54,11 +54,7 @@ export class LocalEventManager extends EventManager {
      * @internal
      */
     async isContainerizedWrapper() {
-        const config = this.config.get('containerized');
-        if (config !== undefined) {
-            return config;
-        }
-        return isContainerized();
+        return this.config.get('containerized', await isContainerized());
     }
 
     private getCurrentCpuTicks() {
