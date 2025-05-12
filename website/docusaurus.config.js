@@ -1,3 +1,4 @@
+/* eslint-disable global-require */
 const path = require('path');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
