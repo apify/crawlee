@@ -338,7 +338,7 @@ export class Statistics {
                 doNotRetryTimeouts: true,
             })
             .catch((error) =>
-                this.log.warning(`Failed to persist the statistics value for ${this.persistStateKey}`, { error }),
+                this.log.warning(`Failed to persist the statistics to ${this.persistStateKey}`, { error }),
             );
     }
 

@@ -286,7 +286,7 @@ export class KeyValueStore {
                     this.setValue(key, value, {
                         timeoutSecs,
                         doNotRetryTimeouts: true,
-                    }).catch((error) => log.warning(`Failed to persist the state value for ${key}`, { error })),
+                    }).catch((error) => log.warning(`Failed to persist the state value to ${key}`, { error })),
                 );
             }
 

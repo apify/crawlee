@@ -377,7 +377,7 @@ export class SessionPool extends EventEmitter {
                 doNotRetryTimeouts: true,
             })
             .catch((error) =>
-                this.log.warning(`Failed to persist the statistics value for ${this.persistStateKey}`, { error }),
+                this.log.warning(`Failed to persist the session pool stats to ${this.persistStateKey}`, { error }),
             );
     }
 
