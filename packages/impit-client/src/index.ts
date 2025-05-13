@@ -26,6 +26,12 @@ export class ImpitHttpClient implements BaseHttpClient {
     private maxRedirects: number;
     private followRedirects: boolean;
 
+    /**
+     * Enables reuse of `impit` clients for the same set of options.
+     * This is useful for performance reasons, as creating
+     * a new client for each request breaks TCP connection
+     * (and other resources) reuse.
+     */
     private clientCache: LruCache<Impit> = new LruCache({ maxLength: 10 });
 
     private getClient(options: ImpitOptions) {
@@ -75,14 +81,10 @@ export class ImpitHttpClient implements BaseHttpClient {
         return result;
     }
 
-    private isGeneratorObject<T>(value: any): value is Generator<T> | AsyncGenerator<T> {
-        return isGeneratorObject(value);
-    }
-
     private intoImpitBody<TResponseType extends keyof ResponseTypes>(
         body?: Exclude<HttpRequest<TResponseType>['body'], undefined>,
     ): RequestInit['body'] {
-        if (this.isGeneratorObject(body)) {
+        if (isGeneratorObject(body)) {
             return Readable.toWeb(Readable.from(body)) as any;
         }
         if (body instanceof Readable) {
