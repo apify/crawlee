@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import log from '@apify/log';
 import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
@@ -278,14 +279,16 @@ export class KeyValueStore {
         const timeoutSecs = persistStateIntervalMillis / 2_000;
 
         this.config.getEventManager().on('persistState', async () => {
-            await Promise.all(
-                this.cache.entries().map(([key, value]) => {
-                    return this.setValue(key, value, {
-                        timeoutSecs,
-                        doNotRetryTimeouts: true,
-                    });
-                }),
-            );
+            const promises: Promise<void>[] = [];
+
+            for (const [key, value] of this.cache) {
+                promises.push(this.setValue(key, value, {
+                    timeoutSecs,
+                    doNotRetryTimeouts: true,
+                }).catch(error => log.warning(`Failed to persist the state value for ${key}`, { error })));
+            }
+
+            await Promise.all(promises);
         });
 
         this.persistStateEventStarted = true;

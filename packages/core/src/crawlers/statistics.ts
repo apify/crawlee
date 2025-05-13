@@ -335,7 +335,7 @@ export class Statistics {
         await this.keyValueStore.setValue(this.persistStateKey, this.toJSON(), {
             timeoutSecs,
             doNotRetryTimeouts: true,
-        });
+        }).catch(error => this.log.warning(`Failed to persist the statistics value for ${this.persistStateKey}`, { error }));
     }
 
     /**
