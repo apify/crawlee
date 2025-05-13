@@ -282,10 +282,12 @@ export class KeyValueStore {
             const promises: Promise<void>[] = [];
 
             for (const [key, value] of this.cache) {
-                promises.push(this.setValue(key, value, {
-                    timeoutSecs,
-                    doNotRetryTimeouts: true,
-                }).catch(error => log.warning(`Failed to persist the state value for ${key}`, { error })));
+                promises.push(
+                    this.setValue(key, value, {
+                        timeoutSecs,
+                        doNotRetryTimeouts: true,
+                    }).catch((error) => log.warning(`Failed to persist the state value for ${key}`, { error })),
+                );
             }
 
             await Promise.all(promises);

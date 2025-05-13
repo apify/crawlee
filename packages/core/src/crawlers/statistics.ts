@@ -332,10 +332,14 @@ export class Statistics {
         // use half the interval of `persistState` to avoid race conditions
         const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
-        await this.keyValueStore.setValue(this.persistStateKey, this.toJSON(), {
-            timeoutSecs,
-            doNotRetryTimeouts: true,
-        }).catch(error => this.log.warning(`Failed to persist the statistics value for ${this.persistStateKey}`, { error }));
+        await this.keyValueStore
+            .setValue(this.persistStateKey, this.toJSON(), {
+                timeoutSecs,
+                doNotRetryTimeouts: true,
+            })
+            .catch((error) =>
+                this.log.warning(`Failed to persist the statistics value for ${this.persistStateKey}`, { error }),
+            );
     }
 
     /**
