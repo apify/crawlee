@@ -1,12 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import log from '@apify/log';
 import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
+import log from '@apify/log';
 import { jsonStringifyExtended } from '@apify/utilities';
 
 import { Configuration } from '../configuration';
