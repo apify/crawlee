@@ -186,8 +186,8 @@ describe('Statistics', () => {
             // @ts-expect-error Incorrect types?
             const { retryHistogram, finished, failed, ...rest } = stats.calculate();
 
-            // @ts-expect-error Accessing private prop
             expect(setValueSpy).toBeCalledWith(
+                // @ts-expect-error Accessing private prop
                 stats.persistStateKey,
                 { ...state, ...rest },
                 {
