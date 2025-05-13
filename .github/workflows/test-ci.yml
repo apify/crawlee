@@ -122,6 +122,7 @@ jobs:
                     yarn build
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
+                    SEGMENT_TOKEN: ${{ secrets.SEGMENT_TOKEN }}
 
     lint:
         name: Lint

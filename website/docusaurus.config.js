@@ -1,4 +1,5 @@
 /* eslint-disable global-require */
+const path = require('path');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -209,6 +210,13 @@ module.exports = {
                 },
             };
         },
+        [
+            path.resolve(__dirname, 'src/plugins/docusaurus-plugin-segment'),
+            {
+                writeKey: process.env.SEGMENT_TOKEN,
+                allowedInDev: false,
+            },
+        ],
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({
