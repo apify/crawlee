@@ -278,12 +278,14 @@ export class KeyValueStore {
         const timeoutSecs = persistStateIntervalMillis / 2_000;
 
         this.config.getEventManager().on('persistState', async () => {
-            for (const [key, value] of this.cache) {
-                await this.setValue(key, value, {
-                    timeoutSecs,
-                    doNotRetryTimeouts: true,
-                });
-            }
+            await Promise.all(
+                this.cache.entries().map(([key, value]) => {
+                    return this.setValue(key, value, {
+                        timeoutSecs,
+                        doNotRetryTimeouts: true,
+                    });
+                }),
+            );
         });
 
         this.persistStateEventStarted = true;
