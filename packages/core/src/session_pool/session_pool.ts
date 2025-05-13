@@ -367,7 +367,14 @@ export class SessionPool extends EventEmitter {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
         });
-        await this.keyValueStore.setValue(this.persistStateKey, this.getState());
+
+        // use half the interval of `persistState` to avoid race conditions
+        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const timeoutSecs = persistStateIntervalMillis / 2_000;
+        await this.keyValueStore.setValue(this.persistStateKey, this.getState(), {
+            timeoutSecs,
+            doNotRetryTimeouts: true,
+        });
     }
 
     /**

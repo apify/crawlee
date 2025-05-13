@@ -124,6 +124,11 @@ export interface KeyValueStoreRecord {
     contentType?: string;
 }
 
+export interface KeyValueStoreRecordOptions {
+    timeoutSecs?: number;
+    doNotRetryTimeouts?: boolean;
+}
+
 export interface KeyValueStoreClientUpdateOptions {
     name?: string;
 }
@@ -162,7 +167,7 @@ export interface KeyValueStoreClient {
     listKeys(options?: KeyValueStoreClientListOptions): Promise<KeyValueStoreClientListData>;
     recordExists(key: string): Promise<boolean>;
     getRecord(key: string, options?: KeyValueStoreClientGetRecordOptions): Promise<KeyValueStoreRecord | undefined>;
-    setRecord(record: KeyValueStoreRecord): Promise<void>;
+    setRecord(record: KeyValueStoreRecord, options?: KeyValueStoreRecordOptions): Promise<void>;
     deleteRecord(key: string): Promise<void>;
 }
 
