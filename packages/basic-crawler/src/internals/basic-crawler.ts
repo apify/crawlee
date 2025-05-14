@@ -1425,6 +1425,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         this.crawlingContexts.set(crawlingContext.id, crawlingContext);
+        let isRequestLocked = true;
 
         try {
             request.state = RequestState.REQUEST_HANDLER;
@@ -1441,6 +1442,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
+            isRequestLocked = false; // markRequestHandled succeeded and unlocked the request
 
             this.stats.finishJob(statisticsId, request.retryCount);
             this.handledRequestsCount++;
@@ -1458,6 +1460,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         this.internalTimeoutMillis / 1e3
                     } seconds.`,
                 );
+                if (!(err instanceof CriticalError)) {
+                    isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestHandled or reclaimRequest
+                }
                 request.state = RequestState.DONE;
             } catch (secondaryError: any) {
                 if (
@@ -1484,8 +1489,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             this.crawlingContexts.delete(crawlingContext.id);
 
-            if (source instanceof RequestProvider) {
-                // Always release a lock on a request at the end of the cycle
+            // Safety net - release the lock if nobody managed to do it before
+            if (isRequestLocked && source instanceof RequestProvider) {
                 try {
                     await source.client.deleteRequestLock(request.id!);
                 } catch {

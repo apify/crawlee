@@ -22,6 +22,10 @@ const MAX_CACHED_REQUESTS = 2_000_000;
  */
 const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 
+const LIST_AND_LOCK_HEAD_LIMIT = 25;
+
+const QUEUE_HEAD_REFILL_THRESHOLD = 1;
+
 /**
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
  * where you start with several URLs and then recursively
@@ -310,7 +314,8 @@ export class RequestQueue extends RequestProvider {
         }
 
         // We want to fetch ahead of time to minimize dead time
-        if (this.queueHeadIds.length() > 1 && !this.shouldCheckForForefrontRequests) {
+        // If we need to check for newly added forefront requests, we do it even if we already have some locked requests
+        if (this.queueHeadIds.length() > QUEUE_HEAD_REFILL_THRESHOLD && !this.shouldCheckForForefrontRequests) {
             return;
         }
 
@@ -338,10 +343,11 @@ export class RequestQueue extends RequestProvider {
         // (i.e, it was not set in the middle of the execution of the method)
         const shouldCheckForForefrontRequests = this.shouldCheckForForefrontRequests;
 
-        const limit = 25;
-
+        // NOTE: in theory, if we're not checking for forefront requests, we could fetch just enough requests to fill the local queue head to the limit.
+        // We chose not to do this because 1. it's simpler and 2. the queue is being processed while we're fetching and we want to avoid underruns.
+        // If we are checking for forefront requests, we need to fetch enough requests to be sure that we won't miss any new forefront ones.
         const headData = await this.client.listAndLockHead({
-            limit,
+            limit: LIST_AND_LOCK_HEAD_LIMIT,
             lockSecs: this.requestLockSecs,
         });
 
@@ -350,6 +356,7 @@ export class RequestQueue extends RequestProvider {
         const headIdBuffer = [];
         const forefrontHeadIdBuffer = [];
 
+        // Go through the fetched requests, ensure they are cached locally and sort them into normal and forefront groups
         for (const { id, uniqueKey } of headData.items) {
             if (!id || !uniqueKey) {
                 this.log.warning(
@@ -386,6 +393,7 @@ export class RequestQueue extends RequestProvider {
             });
         }
 
+        // Insert the newly fetched requests into the local queue head
         for (const id of headIdBuffer) {
             this.queueHeadIds.add(id, id, false);
         }
@@ -396,6 +404,9 @@ export class RequestQueue extends RequestProvider {
 
         // Unlock and forget requests that would make the local queue head grow over the limit
         const toUnlock = [];
+        const limit = shouldCheckForForefrontRequests
+            ? LIST_AND_LOCK_HEAD_LIMIT // we may have received up to LIST_AND_LOCK_HEAD_LIMIT newly added forefront requests - we need to make sure that anything we already had in the queue gets unlocked
+            : LIST_AND_LOCK_HEAD_LIMIT + QUEUE_HEAD_REFILL_THRESHOLD; // we tolerate up to QUEUE_HEAD_REFILL_THRESHOLD additional requests to avoid frequent, yet unnecessary unlocks
         while (this.queueHeadIds.length() > limit) {
             toUnlock.push(this.queueHeadIds.removeLast()!);
         }
@@ -404,6 +415,7 @@ export class RequestQueue extends RequestProvider {
             await Promise.all(toUnlock.map(async (id) => await this.giveUpLock(id)));
         }
 
+        // We went through the whole procedure after `this.shouldCheckForForefrontRequests` was set -> we can clear the flag now
         if (shouldCheckForForefrontRequests) {
             this.shouldCheckForForefrontRequests = false;
         }
