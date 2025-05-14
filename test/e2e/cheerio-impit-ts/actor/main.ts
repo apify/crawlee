@@ -10,19 +10,31 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     await Actor.init();
 }
 
+function getHttpBinUrl(path: string): string {
+    let url: URL;
+    if (process.env.APIFY_HTTPBIN_TOKEN) {
+        url = new URL(path, 'https://httpbin.apify.actor');
+        url.searchParams.set('token', process.env.APIFY_HTTPBIN_TOKEN);
+    } else {
+        url = new URL(path, 'https://httpbin.org');
+    }
+
+    return url.href;
+}
+
 const crawler = new CheerioCrawler({
     async requestHandler(context) {
         const { body: text } = await context.sendRequest({
-            url: 'https://httpbin.org/uuid',
+            url: getHttpBinUrl('/uuid'),
         });
 
         const { body: json } = await context.sendRequest({
-            url: 'https://httpbin.org/uuid',
+            url: getHttpBinUrl('/uuid'),
             responseType: 'json',
         });
 
         const { body: ua } = await context.sendRequest<Dictionary>({
-            url: 'https://httpbin.org/user-agent',
+            url: getHttpBinUrl('/user-agent'),
             responseType: 'json',
         });
 
@@ -37,6 +49,6 @@ const crawler = new CheerioCrawler({
     httpClient: new ImpitHttpClient({ browser: Browser.Firefox }),
 });
 
-await crawler.run(['https://httpbin.org/']);
+await crawler.run([getHttpBinUrl('/')]);
 
 await Actor.exit({ exit: Actor.isAtHome() });
