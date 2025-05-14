@@ -107,7 +107,7 @@
         "playwright": "1.51.1",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
-        "puppeteer": "24.6.1",
+        "puppeteer": "24.8.2",
         "rimraf": "^6.0.0",
         "tsx": "^4.4.0",
         "turbo": "^2.1.0",
@@ -118,7 +118,7 @@
     },
     "packageManager": "yarn@4.8.1",
     "volta": {
-        "node": "22.14.0",
+        "node": "22.15.0",
         "yarn": "4.8.1"
     },
     "resolutions": {
