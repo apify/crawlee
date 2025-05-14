@@ -186,8 +186,15 @@ describe('Statistics', () => {
             // @ts-expect-error Incorrect types?
             const { retryHistogram, finished, failed, ...rest } = stats.calculate();
 
-            // @ts-expect-error Accessing private prop
-            expect(setValueSpy).toBeCalledWith(stats.persistStateKey, { ...state, ...rest });
+            expect(setValueSpy).toBeCalledWith(
+                // @ts-expect-error Accessing private prop
+                stats.persistStateKey,
+                { ...state, ...rest },
+                {
+                    doNotRetryTimeouts: true,
+                    timeoutSecs: 30,
+                },
+            );
         }, 2000);
     });
 

@@ -6,6 +6,7 @@ import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
+import log from '@apify/log';
 import { jsonStringifyExtended } from '@apify/utilities';
 
 import { Configuration } from '../configuration';
@@ -273,10 +274,23 @@ export class KeyValueStore {
             return;
         }
 
+        // use half the interval of `persistState` to avoid race conditions
+        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const timeoutSecs = persistStateIntervalMillis / 2_000;
+
         this.config.getEventManager().on('persistState', async () => {
+            const promises: Promise<void>[] = [];
+
             for (const [key, value] of this.cache) {
-                await this.setValue(key, value);
+                promises.push(
+                    this.setValue(key, value, {
+                        timeoutSecs,
+                        doNotRetryTimeouts: true,
+                    }).catch((error) => log.warning(`Failed to persist the state value to ${key}`, { error })),
+                );
             }
+
+            await Promise.all(promises);
         });
 
         this.persistStateEventStarted = true;
@@ -352,6 +366,8 @@ export class KeyValueStore {
             options,
             ow.object.exactShape({
                 contentType: ow.optional.string.nonEmpty,
+                timeoutSecs: ow.optional.number,
+                doNotRetryTimeouts: ow.optional.boolean,
             }),
         );
 
@@ -380,11 +396,17 @@ export class KeyValueStore {
 
         value = maybeStringify(value, optionsCopy);
 
-        return this.client.setRecord({
-            key,
-            value,
-            contentType: optionsCopy.contentType,
-        });
+        return this.client.setRecord(
+            {
+                key,
+                value,
+                contentType: optionsCopy.contentType,
+            },
+            {
+                timeoutSecs: optionsCopy.timeoutSecs,
+                doNotRetryTimeouts: optionsCopy.doNotRetryTimeouts,
+            },
+        );
     }
 
     /**
@@ -719,6 +741,16 @@ export interface RecordOptions {
      * Specifies a custom MIME content type of the record.
      */
     contentType?: string;
+
+    /**
+     * Specifies a custom timeout for the `set-record` API call, in seconds.
+     */
+    timeoutSecs?: number;
+
+    /**
+     * If set to `true`, the `set-record` API call will not be retried if it times out.
+     */
+    doNotRetryTimeouts?: boolean;
 }
 
 export interface KeyValueStoreIteratorOptions {
