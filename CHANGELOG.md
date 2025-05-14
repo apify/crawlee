@@ -10,13 +10,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * **core:** respect `systemInfoV2` in snapshotter ([#2961](https://github.com/apify/crawlee/issues/2961)) ([4100eab](https://github.com/apify/crawlee/commit/4100eabf171d1dfc33ff312cbedf4e178d34ebdf)), closes [#2958](https://github.com/apify/crawlee/issues/2958)
 * **core:** use short timeouts for periodic `KVS.setRecord` calls ([#2962](https://github.com/apify/crawlee/issues/2962)) ([d31d90e](https://github.com/apify/crawlee/commit/d31d90e5288ea80b3ed6ec4a75a4b8f87686a2c4))
-* Optimize request unlocking to get rid of unnecessary unlock calls ([#2963](https://github.com/apify/crawlee/issues/2963)) ([a433037](https://github.com/apify/crawlee/commit/a433037f307ed3490a1ef5df334f1f9a9044510d))
+* **core:** optimize request unlocking to get rid of unnecessary unlock calls ([#2963](https://github.com/apify/crawlee/issues/2963)) ([a433037](https://github.com/apify/crawlee/commit/a433037f307ed3490a1ef5df334f1f9a9044510d))
 * **social:** extract emails from each text node separately ([#2952](https://github.com/apify/crawlee/issues/2952)) ([799afc1](https://github.com/apify/crawlee/commit/799afc1dbb6843efa9d585823674ea75b9b352ea))
 
 
 ### Features
 
-* Add Segment analytics [internal] ([#2960](https://github.com/apify/crawlee/issues/2960)) ([ea35685](https://github.com/apify/crawlee/commit/ea356853711c4daf5bbbfa888a1dc92d13d18a4d))
 * **impit-client:** bump `impit` version to v0.4 ([#2954](https://github.com/apify/crawlee/issues/2954)) ([7a1bf10](https://github.com/apify/crawlee/commit/7a1bf101250757d3a89f17c8bfd07267a46750bb))
 
 
