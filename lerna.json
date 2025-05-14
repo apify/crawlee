@@ -2,7 +2,7 @@
   "packages": [
     "packages/*"
   ],
-  "version": "3.13.3",
+  "version": "3.13.4",
   "command": {
     "version": {
       "conventionalCommits": true,
