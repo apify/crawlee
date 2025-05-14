@@ -38,7 +38,7 @@ export default ExecutionEnvironment.canUseDOM ? {
           path: location.pathname,
           url: location.href,
           search: location.search,
-          ...getOneTrustConsentContext,
+          ...getOneTrustConsentContext(),
         });
       }
     },
