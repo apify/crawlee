@@ -12,7 +12,7 @@ function getOneTrustConsentContext() {
     const consent = { ...DEFAULT_CONSENT };
     // obtain `OptanonConsent` cookie and extract `groups` substring
     const match = document.cookie.match(/(^|;\s*)OptanonConsent=[^;]*&groups=([^;&]*)/);
-    // decode the value and parse it - expected format: [C0001=1, COOO2=0,...]
+    // decode the value and parse it - expected format: [C0001:1, COOO2:0,...]
     const input = decodeURIComponent(match?.[2] ?? '').split(',');
 
     for (const chunk of input) {
