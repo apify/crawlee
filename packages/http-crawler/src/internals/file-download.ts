@@ -1,3 +1,4 @@
+import { Transform } from 'node:stream';
 import { finished } from 'node:stream/promises';
 import { isPromise } from 'node:util/types';
 
@@ -57,6 +58,85 @@ export type FileDownloadRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = RequestHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
+
+/**
+ * Creates a transform stream that throws an error if the source data speed is below the specified minimum speed.
+ * This `Transform` checks the amount of data every `checkProgressInterval` milliseconds.
+ * If the stream has received less than `minSpeedKbps * historyLengthMs / 1000` bytes in the last `historyLengthMs` milliseconds,
+ * it will throw an error.
+ *
+ * Can be used e.g. to abort a download if the network speed is too slow.
+ * @returns Transform stream that monitors the speed of the incoming data.
+ */
+export function MinimumSpeedStream({
+    minSpeedKbps,
+    historyLengthMs = 10e3,
+    checkProgressInterval: checkProgressIntervalMs = 5e3,
+}: {
+    minSpeedKbps: number;
+    historyLengthMs?: number;
+    checkProgressInterval?: number;
+}): Transform {
+    let snapshots: { timestamp: number; bytes: number }[] = [];
+
+    const checkInterval = setInterval(() => {
+        const now = Date.now();
+
+        snapshots = snapshots.filter((snapshot) => now - snapshot.timestamp < historyLengthMs);
+        const totalBytes = snapshots.reduce((acc, snapshot) => acc + snapshot.bytes, 0);
+        const elapsed = (now - (snapshots[0]?.timestamp ?? 0)) / 1000;
+
+        if (totalBytes / 1024 / elapsed < minSpeedKbps) {
+            clearInterval(checkInterval);
+            stream.emit('error', new Error(`Stream speed too slow, aborting...`));
+        }
+    }, checkProgressIntervalMs);
+
+    const stream = new Transform({
+        transform: (chunk, _, callback) => {
+            snapshots.push({ timestamp: Date.now(), bytes: chunk.length });
+            callback(null, chunk);
+        },
+        final: (callback) => {
+            clearInterval(checkInterval);
+            callback();
+        },
+    });
+
+    return stream;
+}
+
+/**
+ * Creates a transform stream that logs the progress of the incoming data.
+ * This `Transform` calls the `logProgress` function every `loggingInterval` milliseconds with the number of bytes received so far.
+ *
+ * Can be used e.g. to log the progress of a download.
+ * @returns Transform stream logging the progress of the incoming data.
+ */
+export function ProgressLoggerStream({
+    logProgress,
+    loggingInterval = 5000,
+}: { logProgress: (transferredBytes: number) => void; loggingInterval?: number }): Transform {
+    let transferredBytes = 0;
+    let lastLogTime = Date.now();
+
+    return new Transform({
+        transform: (chunk, _, callback) => {
+            transferredBytes += chunk.length;
+
+            if (Date.now() - lastLogTime > loggingInterval) {
+                lastLogTime = Date.now();
+                logProgress(transferredBytes);
+            }
+
+            callback(null, chunk);
+        },
+        flush: (callback) => {
+            logProgress(transferredBytes);
+            callback();
+        },
+    });
+}
 
 /**
  * Provides a framework for downloading files in parallel using plain HTTP requests. The URLs to download are fed either from a static list of URLs or they can be added on the fly from another crawler.
