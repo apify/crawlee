@@ -113,10 +113,10 @@ export function MinimumSpeedStream({
  * Can be used e.g. to log the progress of a download.
  * @returns Transform stream logging the progress of the incoming data.
  */
-export function ProgressLoggerStream({
-    logProgress,
+export function ByteCounterStream({
+    logTransferredBytes,
     loggingInterval = 5000,
-}: { logProgress: (transferredBytes: number) => void; loggingInterval?: number }): Transform {
+}: { logTransferredBytes: (transferredBytes: number) => void; loggingInterval?: number }): Transform {
     let transferredBytes = 0;
     let lastLogTime = Date.now();
 
@@ -126,13 +126,13 @@ export function ProgressLoggerStream({
 
             if (Date.now() - lastLogTime > loggingInterval) {
                 lastLogTime = Date.now();
-                logProgress(transferredBytes);
+                logTransferredBytes(transferredBytes);
             }
 
             callback(null, chunk);
         },
         flush: (callback) => {
-            logProgress(transferredBytes);
+            logTransferredBytes(transferredBytes);
             callback();
         },
     });
