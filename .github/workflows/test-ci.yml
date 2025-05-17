@@ -23,7 +23,7 @@ jobs:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
                 os: [ ubuntu-22.04 ]
-                node-version: [ 16, 18, 20, 22 ]
+                node-version: [ 22, 24 ]
 
         steps:
             -   name: Cancel Workflow Action
@@ -88,17 +88,17 @@ jobs:
             -   name: Checkout Source code
                 uses: actions/checkout@v4
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 22
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 22
                 uses: actions/setup-node@v4
                 with:
                     cache: 'yarn'
@@ -132,17 +132,17 @@ jobs:
             -   name: Checkout repository
                 uses: actions/checkout@v4
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 22
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 22
                 uses: actions/setup-node@v4
                 with:
                     cache: 'yarn'
@@ -175,17 +175,17 @@ jobs:
             -   name: Checkout repository
                 uses: actions/checkout@v4
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 22
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 22
                 uses: actions/setup-node@v4
                 with:
                     cache: 'yarn'
@@ -219,7 +219,7 @@ jobs:
                 run: |
                     git config --global user.name 'Apify Release Bot'
                     git config --global user.email 'noreply@apify.com'
-                    yarn turbo copy --force -- --canary --preid=beta
+                    yarn turbo copy --force -- --canary=major --preid=beta
                     git commit -am "chore: bump canary versions [skip ci]"
 
                     echo "access=public" > .npmrc
