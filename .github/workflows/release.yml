@@ -33,7 +33,7 @@ jobs:
             matrix:
                 # We don't test on Windows as the tests are flaky
                 os: [ ubuntu-22.04 ]
-                node-version: [ 18, 20, 22, 24 ]
+                node-version: [ 22, 24 ]
 
         runs-on: ${{ matrix.os }}
 
@@ -95,7 +95,7 @@ jobs:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
@@ -106,7 +106,7 @@ jobs:
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
@@ -189,7 +189,7 @@ jobs:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
@@ -203,7 +203,7 @@ jobs:
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'

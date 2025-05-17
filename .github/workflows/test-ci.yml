@@ -23,7 +23,7 @@ jobs:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
                 os: [ ubuntu-22.04 ]
-                node-version: [ 18, 20, 22, 24 ]
+                node-version: [ 22, 24 ]
 
         steps:
             -   name: Cancel Workflow Action
@@ -97,7 +97,7 @@ jobs:
             -   name: Checkout Source code
                 uses: actions/checkout@v6
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
@@ -108,7 +108,7 @@ jobs:
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
@@ -142,7 +142,7 @@ jobs:
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
@@ -153,7 +153,7 @@ jobs:
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
