@@ -77,7 +77,7 @@ jobs:
             - name: Bump canary versions
               if: inputs.dist-tag == 'next'
               run: |
-                    yarn turbo copy --force -- --canary --preid=beta
+                    yarn turbo copy --force -- --canary=major --preid=beta
 
             - name: Commit changes
               if: inputs.dist-tag == 'next'
