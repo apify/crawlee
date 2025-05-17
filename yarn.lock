@@ -747,7 +747,7 @@ __metadata:
     "@types/domhandler": "npm:^2.4.2"
     "@types/express": "npm:^4.17.13"
     "@types/fs-extra": "npm:^11.0.0"
-    "@types/inquirer": "npm:^8.2.1"
+    "@types/inquirer": "npm:^9.0.0"
     "@types/is-ci": "npm:^3.0.1"
     "@types/lodash.isequal": "npm:^4.5.8"
     "@types/lodash.merge": "npm:^4.6.7"
@@ -2601,13 +2601,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/inquirer@npm:^8.2.1":
-  version: 8.2.11
-  resolution: "@types/inquirer@npm:8.2.11"
+"@types/inquirer@npm:^9.0.0":
+  version: 9.0.8
+  resolution: "@types/inquirer@npm:9.0.8"
   dependencies:
     "@types/through": "npm:*"
     rxjs: "npm:^7.2.0"
-  checksum: 10c0/8f2f259679c77fcd6f3845352e17be307a94adf425457ec6f2f825938dfaa1886a84d6789995b2045850c0cc1fec155cc5c8c2d3f8551b41fd1d439755476fba
+  checksum: 10c0/6b49b12ab1122b3e18d4d0f3be99dd21d67f4d03e0d61c211f1affbc2885b0094569d3e4fd977888fd42b3321842453f52ee6dcae9cc7bb706e77513538c4e09
   languageName: node
   linkType: hard
 
