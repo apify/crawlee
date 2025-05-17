@@ -12,6 +12,7 @@ import type {
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
+    IRequestManager,
     LoadedContext,
     ProxyInfo,
     Request,
@@ -39,6 +40,8 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestListAdapter,
+    RequestManagerTandem,
     RequestProvider,
     RequestQueue,
     RequestQueueV1,
@@ -481,6 +484,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Only available if used by the crawler.
      */
     requestQueue?: RequestProvider;
+
+    /**
+     * The main request provider used by the crawler. This is either a RequestList, RequestQueue,
+     * or RequestManagerTandem combining both. It's initialized during the crawler startup.
+     * @internal
+     */
+    protected requestProvider?: IRequestManager;
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
@@ -1158,6 +1168,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return items;
     }
 
+    /**
+     * Initializes the crawler.
+     */
     protected async _init(): Promise<void> {
         if (!this.events.isInitialized()) {
             await this.events.init();
@@ -1175,6 +1188,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.sessionPool.setMaxListeners(20);
         }
 
+        await this._initializeRequestProviders();
         await this._loadHandledRequestCount();
     }
 
@@ -1265,32 +1279,35 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Fetches request from either RequestList or RequestQueue. If request comes from a RequestList
-     * and RequestQueue is present then enqueues it to the queue first.
+     * Initializes both the RequestList and the RequestQueue and then transfers requests from the RequestList
+     * to the RequestQueue using a RequestManagerTandem. This ensures that each request will be processed only once.
+     */
+    protected async _initializeRequestProviders() {
+        if (this.requestList && this.requestQueue) {
+            // Create a RequestManagerTandem if both RequestList and RequestQueue are provided
+            const requestListAdapter = new RequestListAdapter(this.requestList);
+            const tandemProvider = new RequestManagerTandem(requestListAdapter, this.requestQueue);
+            // Use this as our main request provider
+            this.requestProvider = tandemProvider;
+        } else if (this.requestQueue) {
+            // Use RequestQueue directly if only it is provided
+            this.requestProvider = this.requestQueue;
+        } else if (this.requestList) {
+            // Use RequestList directly if only it is provided
+            // Make it compatible with the IRequestManager interface
+            this.requestProvider = new RequestListAdapter(this.requestList);
+        } else {
+            // Create and use a default RequestQueue if nothing else is provided
+            this.requestQueue = await this._getRequestQueue();
+            this.requestProvider = this.requestQueue;
+        }
+    }
+
+    /**
+     * Fetches the next request to process from the underlying request provider.
      */
     protected async _fetchNextRequest() {
-        if (!this.requestList || (await this.requestList.isFinished())) {
-            return this.requestQueue?.fetchNextRequest();
-        }
-
-        const request = await this.requestList.fetchNextRequest();
-        if (!this.requestQueue) return request;
-        if (!request) return this.requestQueue.fetchNextRequest();
-
-        try {
-            await this.requestQueue.addRequest(request, { forefront: true });
-        } catch (err) {
-            // If requestQueue.addRequest() fails here then we must reclaim it back to
-            // the RequestList because probably it's not yet in the queue!
-            this.log.error(
-                'Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.',
-                { request },
-            );
-            await this.requestList.reclaimRequest(request);
-            return null;
-        }
-        await this.requestList.markRequestHandled(request);
-        return this.requestQueue.fetchNextRequest();
+        return this.requestProvider!.fetchNextRequest();
     }
 
     /**
@@ -1304,7 +1321,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: IRequestList | RequestProvider) {
+    protected delayRequest(request: Request, source: IRequestList | RequestProvider | IRequestManager) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1347,7 +1364,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * then retries them in a case of an error, etc.
      */
     protected async _runTaskFunction() {
-        const source = this.requestQueue || this.requestList || (await this.getRequestQueue());
+        const source = this.requestProvider;
+        if (!source) throw new Error('Request provider is not initialized!');
 
         let request: Request | null | undefined;
         let session: Session | undefined;
@@ -1563,7 +1581,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: IRequestList | RequestProvider,
+        source: IRequestList | RequestProvider | IRequestManager,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
