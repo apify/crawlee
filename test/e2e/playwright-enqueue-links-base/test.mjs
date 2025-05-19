@@ -1,4 +1,4 @@
-import { initialize, getActorTestDir, runActor, expect, skipTest } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, runActor, skipTest } from '../tools.mjs';
 
 // The actor spins up an HTTP server on 127.0.0.1; that works inside the
 // in-process LOCAL/MEMORY worker but is unreachable from the Apify platform

@@ -6,11 +6,10 @@ import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+import { URL_NO_COMMAS_REGEX } from "@crawlee/utils";
 import { Actor, ApifyClient } from 'apify';
 import fs from 'fs-extra';
 import { got } from 'got';
-
-import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
 /**
  * @param {string} command
@@ -203,6 +202,7 @@ export async function runActor(dirName, memory = 4096) {
                     }),
                 );
 
+                // eslint-disable-next-line no-shadow
                 return entries.filter(({ name }) => !isPrivateEntry(name));
             }
 
@@ -460,7 +460,7 @@ export async function skipTest(reason) {
  * @returns {boolean}
  */
 function checkDatasetItem(item, propName) {
-    if (!item.hasOwnProperty(propName)) {
+    if (!Object.hasOwn(item, propName)) {
         return false;
     }
 

@@ -1,17 +1,17 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 
-import { Configuration } from '../configuration';
-import { EventType } from '../events';
-import type { Request, Source } from '../request';
-import { checkStorageAccess } from './access_checking';
+import { Configuration } from '../configuration.js';
+import { EventType } from '../events/event_manager.js';
+import type { Request, Source } from '../request.js';
+import { checkStorageAccess } from './access_checking.js';
 import type {
     RequestProviderOptions,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
     RequestsLike,
-} from './request_provider';
-import { RequestProvider } from './request_provider';
-import { getRequestId } from './utils';
+} from './request_provider.js';
+import { RequestProvider } from './request_provider.js';
+import { getRequestId } from './utils.js';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;

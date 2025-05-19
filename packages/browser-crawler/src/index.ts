@@ -1,3 +1,3 @@
 export * from '@crawlee/basic';
-export * from './internals/browser-crawler';
-export * from './internals/browser-launcher';
+export * from './internals/browser-crawler.js';
+export * from './internals/browser-launcher.js';

@@ -7,7 +7,7 @@ import type { DatasetClient } from '@crawlee/types';
 const elements = Array.from({ length: 10 }, (_, i) => ({ number: i }));
 
 describe('Dataset#listItems respects the desc option', () => {
-    const localDataDirectory = resolve(__dirname, './tmp/desc');
+    const localDataDirectory = resolve(import.meta.dirname, './tmp/desc');
     const storage = new MemoryStorage({
         localDataDirectory,
         persistStorage: false,

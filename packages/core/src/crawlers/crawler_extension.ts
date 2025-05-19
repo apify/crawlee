@@ -1,4 +1,4 @@
-import { type Log, log as defaultLog } from '../log';
+import { type Log, log as defaultLog } from '../log.js';
 
 /**
  * Abstract class with pre-defined method to connect to the Crawlers class by the "use" crawler method.

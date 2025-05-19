@@ -1,3 +1,3 @@
-export * from './storages';
-export * from './utility-types';
-export * from './browser';
+export * from './storages.js';
+export * from './utility-types.js';
+export * from './browser.js';

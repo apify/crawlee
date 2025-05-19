@@ -1,4 +1,4 @@
-import { initialize, getActorTestDir, runActor, expect, skipTest } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, runActor, skipTest } from '../tools.mjs';
 
 // TODO: re-enable on LOCAL/MEMORY once Camoufox supports the repo's Playwright version.
 // Those storage types import the actor in-process against the repo-root node_modules (currently

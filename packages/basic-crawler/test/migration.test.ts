@@ -1,8 +1,8 @@
 import type { Log } from '@apify/log';
 import log from '@apify/log';
 
-import { MemoryStorageEmulator } from '../../../test/shared/MemoryStorageEmulator';
-import { BasicCrawler, RequestList } from '../src/index';
+import { MemoryStorageEmulator } from '../../../test/shared/MemoryStorageEmulator.js';
+import { BasicCrawler, RequestList } from '../src/index.js';
 
 const localStorageEmulator = new MemoryStorageEmulator();
 

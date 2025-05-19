@@ -4,7 +4,7 @@ import ow from 'ow';
 import log from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { Request } from './request';
+import type { Request } from './request.js';
 
 export interface ProxyConfigurationFunction {
     (sessionId: string | number, options?: { request?: Request }): string | null | Promise<string | null>;

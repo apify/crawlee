@@ -1,2 +1,2 @@
-export * from './enqueue_links';
-export * from './shared';
+export * from './enqueue_links.js';
+export * from './shared.js';

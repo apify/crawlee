@@ -1,16 +1,16 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { OptionsInit, Response as GotResponse } from 'got-scraping';
 import type { ReadonlyDeep } from 'type-fest';
 
-import type { Configuration } from '../configuration';
-import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links';
-import type { Log } from '../log';
-import type { ProxyInfo } from '../proxy_configuration';
-import type { Request, Source } from '../request';
-import type { Session } from '../session_pool/session';
-import type { Dataset, RecordOptions, RequestQueueOperationOptions } from '../storages';
-import { KeyValueStore } from '../storages';
+import type { Configuration } from '../configuration.js';
+import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
+import type { Log } from '../log.js';
+import type { ProxyInfo } from '../proxy_configuration.js';
+import type { Request, Source } from '../request.js';
+import type { Session } from '../session_pool/session.js';
+import type { Dataset } from '../storages/dataset.js';
+import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
+import type { RequestQueueOperationOptions } from '../storages/request_provider.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;

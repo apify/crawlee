@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
 
-import { waitTillWrittenToDisk } from './__shared__';
+import { waitTillWrittenToDisk } from './__shared__.js';
 
 describe('writeMetadata option', () => {
-    const tmpLocation = resolve(__dirname, './tmp/write-metadata-tests');
+    const tmpLocation = resolve(import.meta.dirname, './tmp/write-metadata-tests');
 
     afterAll(async () => {
         await rm(tmpLocation, { force: true, recursive: true });

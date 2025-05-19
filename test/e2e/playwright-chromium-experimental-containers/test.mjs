@@ -1,4 +1,4 @@
-import { initialize, getActorTestDir, runActor, expect, skipTest } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, runActor, skipTest } from '../tools.mjs';
 
 await skipTest('on hold');
 

@@ -14,8 +14,7 @@ import {
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser as PPBrowser, Target } from 'puppeteer';
-
-import { runExampleComServer } from '../../shared/_helper';
+import { runExampleComServer } from 'test/shared/_helper.js';
 
 function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowser {
     return (browser as PPBrowser).targets !== undefined;

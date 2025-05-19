@@ -4,15 +4,14 @@ import { PassThrough, pipeline, Readable, Transform } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types
 import type { Delays } from 'got-scraping';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
 import log from '@apify/log';
 
-import { mergeAsyncIterables } from './iterables';
-import { RobotsFile } from './robots';
+import { mergeAsyncIterables } from './iterables.js';
+import { RobotsFile } from './robots.js';
 
 interface SitemapUrlData {
     loc: string;

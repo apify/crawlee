@@ -18,9 +18,9 @@ import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
+import { runExampleComServer } from 'test/shared/_helper.js';
 
-import { runExampleComServer } from '../../shared/_helper';
-import { createProxyServer } from './create-proxy-server';
+import { createProxyServer } from './create-proxy-server.js';
 
 // Firefox browser launch is significantly slower than Chromium/WebKit (~12s vs <1s).
 // Under CPU load from parallel tests, it can exceed 2 minutes. Use 5 minute timeout.

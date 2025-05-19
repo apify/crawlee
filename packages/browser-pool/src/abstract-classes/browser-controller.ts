@@ -4,11 +4,11 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 
 import { tryCancel } from '@apify/timeout';
 
-import { BROWSER_CONTROLLER_EVENTS } from '../events';
-import type { LaunchContext } from '../launch-context';
-import { log } from '../logger';
-import type { UnwrapPromise } from '../utils';
-import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
+import { BROWSER_CONTROLLER_EVENTS } from '../events.js';
+import type { LaunchContext } from '../launch-context.js';
+import { log } from '../logger.js';
+import type { UnwrapPromise } from '../utils.js';
+import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin.js';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 

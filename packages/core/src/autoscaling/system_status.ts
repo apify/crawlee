@@ -1,9 +1,9 @@
 import ow from 'ow';
 
-import type { Configuration } from '../configuration';
-import type { LoadSignal } from './load_signal';
-import { evaluateLoadSignalSample } from './load_signal';
-import { Snapshotter } from './snapshotter';
+import type { Configuration } from '../configuration.js';
+import type { LoadSignal } from './load_signal.js';
+import { evaluateLoadSignalSample } from './load_signal.js';
+import { Snapshotter } from './snapshotter.js';
 
 /**
  * Represents the current status of the system.

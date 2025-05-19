@@ -7,14 +7,14 @@ import type { RequiredDeep } from 'type-fest';
 
 import defaultLog from '@apify/log';
 
-import { Configuration } from '../configuration';
-import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
-import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
-import { type EventManager, EventType } from '../events/event_manager';
-import { Request } from '../request';
-import { KeyValueStore } from './key_value_store';
-import type { IRequestList } from './request_list';
-import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration.js';
+import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
+import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
+import { type EventManager, EventType } from '../events/event_manager.js';
+import { Request } from '../request.js';
+import { KeyValueStore } from './key_value_store.js';
+import type { IRequestList } from './request_list.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';

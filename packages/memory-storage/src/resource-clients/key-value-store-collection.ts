@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { scheduleBackgroundTask } from '../background-handler';
-import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
-import type { MemoryStorage } from '../index';
-import { KeyValueStoreClient } from './key-value-store';
+import { scheduleBackgroundTask } from '../background-handler/index.js';
+import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers.js';
+import type { MemoryStorage } from '../index.js';
+import { KeyValueStoreClient } from './key-value-store.js';
 
 export interface KeyValueStoreCollectionClientOptions {
     baseStorageDirectory: string;
@@ -36,7 +36,7 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
     }
 
     async getOrCreate(name?: string): Promise<storage.KeyValueStoreInfo> {
-        s.string.optional.parse(name);
+        s.string().optional().parse(name);
 
         if (name) {
             const found = await findOrCacheKeyValueStoreByPossibleId(this.client, name);

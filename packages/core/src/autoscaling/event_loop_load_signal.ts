@@ -1,5 +1,5 @@
-import type { LoadSnapshot } from './load_signal';
-import { SnapshotStore } from './load_signal';
+import type { LoadSnapshot } from './load_signal.js';
+import { SnapshotStore } from './load_signal.js';
 
 export interface EventLoopSnapshot extends LoadSnapshot {
     exceededMillis: number;

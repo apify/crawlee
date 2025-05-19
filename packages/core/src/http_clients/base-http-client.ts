@@ -2,7 +2,7 @@ import type { Readable } from 'node:stream';
 
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
-import type { FormDataLike } from './form-data-like';
+import type { FormDataLike } from './form-data-like.js';
 
 type Timeout =
     | {

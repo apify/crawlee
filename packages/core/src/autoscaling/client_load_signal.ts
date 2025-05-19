@@ -1,7 +1,7 @@
 import type { StorageClient } from '@crawlee/types';
 
-import type { LoadSnapshot } from './load_signal';
-import { SnapshotStore } from './load_signal';
+import type { LoadSnapshot } from './load_signal.js';
+import { SnapshotStore } from './load_signal.js';
 
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 
