@@ -1,7 +1,7 @@
 import { anonymizeProxy } from 'proxy-chain';
 import { vi } from 'vitest';
 
-import { anonymizeProxySugar } from '../../packages/browser-pool/src/anonymize-proxy';
+import { anonymizeProxySugar } from '../../packages/browser-pool/src/anonymize-proxy.js';
 
 describe('anonymizeProxySugar', () => {
     // Mock the anonymizeProxy function from proxy-chain

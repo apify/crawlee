@@ -19,6 +19,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import type { Request } from '@crawlee/browser';
@@ -33,12 +34,13 @@ import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRe
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 
-import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
-import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
-import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler';
-import type { InterceptHandler } from './puppeteer_request_interception';
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
+import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
+import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler.js';
+import type { InterceptHandler } from './puppeteer_request_interception.js';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception.js';
 
+const require = createRequire(import.meta.url);
 const jqueryPath = require.resolve('jquery');
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
@@ -202,6 +204,7 @@ export async function parseWithCheerio(
             frames.map(async (frame) => {
                 try {
                     const iframe = await frame.contentFrame();
+
                     if (iframe) {
                         const getIframeHTML = async (): Promise<string> => {
                             try {
@@ -232,6 +235,7 @@ export async function parseWithCheerio(
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
+    console.log(ignoreShadowRoots, pageContent);
 
     return cheerio.load(pageContent);
 }

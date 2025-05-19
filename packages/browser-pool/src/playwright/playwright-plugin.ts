@@ -5,17 +5,16 @@ import path from 'node:path';
 
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
-import type { BrowserController } from '../abstract-classes/browser-controller';
-import { BrowserPlugin } from '../abstract-classes/browser-plugin';
-import { anonymizeProxySugar } from '../anonymize-proxy';
-import { createProxyServerForContainers } from '../container-proxy-server';
-import type { LaunchContext } from '../launch-context';
-import { log } from '../logger';
-import { getLocalProxyAddress } from '../proxy-server';
-import type { SafeParameters } from '../utils';
-import { loadFirefoxAddon } from './load-firefox-addon';
-import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
-import { PlaywrightController } from './playwright-controller';
+import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
+import { anonymizeProxySugar } from '../anonymize-proxy.js';
+import { createProxyServerForContainers } from '../container-proxy-server.js';
+import type { LaunchContext } from '../launch-context.js';
+import { log } from '../logger.js';
+import { getLocalProxyAddress } from '../proxy-server.js';
+import type { SafeParameters } from '../utils.js';
+import { loadFirefoxAddon } from './load-firefox-addon.js';
+import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser.js';
+import { PlaywrightController } from './playwright-controller.js';
 
 const getFreePort = async () => {
     return new Promise<number>((resolve, reject) => {
@@ -29,9 +28,9 @@ const getFreePort = async () => {
     });
 };
 
-// __dirname = browser-pool/dist/playwright
+// import.meta.dirname = browser-pool/dist/playwright
 //  taacPath = browser-pool/dist/tab-as-a-container
-const taacPath = path.join(__dirname, '..', 'tab-as-a-container');
+const taacPath = path.join(import.meta.dirname, '..', 'tab-as-a-container');
 
 export class PlaywrightPlugin extends BrowserPlugin<
     BrowserType,
@@ -199,12 +198,8 @@ export class PlaywrightPlugin extends BrowserPlugin<
         );
     }
 
-    protected _createController(): BrowserController<
-        BrowserType,
-        SafeParameters<BrowserType['launch']>[0],
-        PlaywrightBrowser
-    > {
-        return new PlaywrightController(this);
+    override createController(): PlaywrightController {
+        return new PlaywrightController(this as any);
     }
 
     protected async _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void> {

@@ -1,7 +1,10 @@
-/* eslint-disable import/no-dynamic-require,global-require */
+/* eslint-disable import/no-dynamic-require */
 import { execSync } from 'node:child_process';
 import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+
+const require = createRequire(import.meta.url);
 
 const options = process.argv.slice(2).reduce((args, arg) => {
     const [key, value] = arg.split('=');
@@ -31,11 +34,31 @@ function getRootVersion(bump = true): string {
         return rootVersion;
     }
 
-    rootVersion = require(resolve(root, './lerna.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
+    const pkg = require(resolve(root, './lerna.json'));
+    rootVersion = pkg.version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
 
     if (bump) {
         const parts = rootVersion.split('.');
-        parts[2] = `${+parts[2] + 1}`;
+        const inc = bump ? 1 : 0;
+        const canary = String(options.canary).toLowerCase();
+
+        switch (canary) {
+            case 'major': {
+                parts[0] = `${+parts[0] + inc}`;
+                parts[1] = '0';
+                parts[2] = '0';
+                break;
+            }
+            case 'minor': {
+                parts[1] = `${+parts[0] + inc}`;
+                parts[2] = '0';
+                break;
+            }
+            case 'patch':
+            default:
+                parts[2] = `${+parts[2] + inc}`;
+        }
+
         rootVersion = parts.join('.');
     }
 
@@ -77,7 +100,7 @@ function getNextVersion() {
 
 // as we publish only the dist folder, we need to copy some meta files inside (readme/license/package.json)
 // also changes paths inside the copied `package.json` (`dist/index.js` -> `index.js`)
-const root = resolve(__dirname, '..');
+const root = resolve(import.meta.dirname, '..');
 const target = resolve(process.cwd(), 'dist');
 const pkgPath = resolve(process.cwd(), 'package.json');
 

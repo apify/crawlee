@@ -4,14 +4,14 @@ import ow from 'ow';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
-import { Configuration } from '../configuration';
-import { type Log, log } from '../log';
-import type { Awaitable } from '../typedefs';
-import { checkStorageAccess } from './access_checking';
-import { KeyValueStore } from './key_value_store';
-import type { StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration.js';
+import { type Log, log } from '../log.js';
+import type { Awaitable } from '../typedefs.js';
+import { checkStorageAccess } from './access_checking.js';
+import { KeyValueStore } from './key_value_store.js';
+import type { StorageManagerOptions } from './storage_manager.js';
+import { StorageManager } from './storage_manager.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;

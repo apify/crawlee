@@ -5,15 +5,15 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra';
+import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra/esm';
 
-import { promiseMap } from './background-handler/index';
-import { DatasetClient } from './resource-clients/dataset';
-import { DatasetCollectionClient } from './resource-clients/dataset-collection';
-import { KeyValueStoreClient } from './resource-clients/key-value-store';
-import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection';
-import { RequestQueueClient } from './resource-clients/request-queue';
-import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection';
+import { promiseMap } from './background-handler/index.js';
+import { DatasetClient } from './resource-clients/dataset.js';
+import { DatasetCollectionClient } from './resource-clients/dataset-collection.js';
+import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
+import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection.js';
+import { RequestQueueClient } from './resource-clients/request-queue.js';
+import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection.js';
 
 export interface MemoryStorageOptions {
     /**
@@ -51,9 +51,9 @@ export class MemoryStorage implements storage.StorageClient {
 
     constructor(options: MemoryStorageOptions = {}) {
         s.object({
-            localDataDirectory: s.string.optional,
-            writeMetadata: s.boolean.optional,
-            persistStorage: s.boolean.optional,
+            localDataDirectory: s.string().optional(),
+            writeMetadata: s.boolean().optional(),
+            persistStorage: s.boolean().optional(),
         }).parse(options);
 
         // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
@@ -91,7 +91,7 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     dataset<Data extends Dictionary = Dictionary>(id: string): storage.DatasetClient<Data> {
-        s.string.parse(id);
+        s.string().parse(id);
 
         return new DatasetClient({ id, baseStorageDirectory: this.datasetsDirectory, client: this });
     }
@@ -104,7 +104,7 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     keyValueStore(id: string): storage.KeyValueStoreClient {
-        s.string.parse(id);
+        s.string().parse(id);
 
         return new KeyValueStoreClient({ id, baseStorageDirectory: this.keyValueStoresDirectory, client: this });
     }
@@ -117,10 +117,10 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     requestQueue(id: string, options: storage.RequestQueueOptions = {}): storage.RequestQueueClient {
-        s.string.parse(id);
+        s.string().parse(id);
         s.object({
-            clientKey: s.string.optional,
-            timeoutSecs: s.number.optional,
+            clientKey: s.string().optional(),
+            timeoutSecs: s.number().optional(),
         }).parse(options);
 
         return new RequestQueueClient({
@@ -132,9 +132,9 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
-        s.string.parse(message);
+        s.string().parse(message);
         s.object({
-            isStatusMessageTerminal: s.boolean.optional,
+            isStatusMessageTerminal: s.boolean().optional(),
         }).parse(options);
 
         return Promise.resolve();

@@ -1,4 +1,4 @@
-import type { AllowedHttpMethods, Dictionary } from './utility-types';
+import type { AllowedHttpMethods, Dictionary } from './utility-types.js';
 
 /**
  * A helper class that is used to report results from various

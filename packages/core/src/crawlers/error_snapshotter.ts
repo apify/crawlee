@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 
-import type { CrawlingContext } from '../crawlers/crawler_commons';
-import type { KeyValueStore } from '../storages';
-import type { ErrnoException } from './error_tracker';
+import type { CrawlingContext } from '../crawlers/crawler_commons.js';
+import type { KeyValueStore } from '../storages/key_value_store.js';
+import type { ErrnoException } from './error_tracker.js';
 
 // Define the following types as we cannot import the complete types from the respective packages
 interface BrowserCrawlingContext {

@@ -1,10 +1,9 @@
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { HTTPError as HTTPErrorClass } from 'got-scraping';
+import { gotScraping } from 'got-scraping';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
-import { gotScraping } from './gotScraping';
-import { Sitemap } from './sitemap';
+import { Sitemap } from './sitemap.js';
 
 let HTTPError: typeof HTTPErrorClass;
 
@@ -52,6 +51,7 @@ export class RobotsTxtFile {
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile {
+        // @ts-ignore
         return new RobotsTxtFile(robotsParser(url, content), proxyUrl);
     }
 
@@ -68,6 +68,7 @@ export class RobotsTxtFile {
                 responseType: 'text',
             });
 
+            // @ts-ignore
             return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);
         } catch (e) {
             if (e instanceof HTTPError && e.response.statusCode === 404) {

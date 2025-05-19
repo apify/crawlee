@@ -2,12 +2,12 @@ import ow from 'ow';
 
 import type { Log } from '@apify/log';
 
-import { Configuration } from '../configuration';
-import type { EventManager } from '../events/event_manager';
-import { EventType } from '../events/event_manager';
-import { log as defaultLog } from '../log';
-import { KeyValueStore } from '../storages/key_value_store';
-import { ErrorTracker } from './error_tracker';
+import { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import { log as defaultLog } from '../log.js';
+import { KeyValueStore } from '../storages/key_value_store.js';
+import { ErrorTracker } from './error_tracker.js';
 
 /**
  * @ignore

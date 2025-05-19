@@ -9,12 +9,12 @@ import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import log from '@apify/log';
 import { jsonStringifyExtended } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
-import type { Awaitable } from '../typedefs';
-import { checkStorageAccess } from './access_checking';
-import type { StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration.js';
+import type { Awaitable } from '../typedefs.js';
+import { checkStorageAccess } from './access_checking.js';
+import type { StorageManagerOptions } from './storage_manager.js';
+import { StorageManager } from './storage_manager.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.

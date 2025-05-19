@@ -6,14 +6,14 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { Request, RequestOptions } from '../request';
-import type {
+import type { Request, RequestOptions } from '../request.js';
+import type { 
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    RequestProvider,
-    RequestQueueOperationOptions,
-} from '../storages';
-import type {
+    RequestProvider, 
+    RequestQueueOperationOptions 
+} from '../storages/request_provider.js';
+import type { 
     GlobInput,
     PseudoUrlInput,
     RegExpInput,
@@ -21,7 +21,8 @@ import type {
     SkippedRequestCallback,
     SkippedRequestReason,
     UrlPatternObject,
-} from './shared';
+} from './shared.js';
+
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
@@ -29,7 +30,7 @@ import {
     createRequestOptions,
     createRequests,
     filterRequestsByPatterns,
-} from './shared';
+} from './shared.js';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
@@ -291,7 +292,7 @@ export async function enqueueLinks(
     }
 
     ow(
-        options,
+        options as any,
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('addRequestsBatched'),

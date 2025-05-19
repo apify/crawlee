@@ -1,5 +1,5 @@
-import { RequestQueueFileSystemEntry } from './fs';
-import { RequestQueueMemoryEntry } from './memory';
+import { RequestQueueFileSystemEntry } from './fs.js';
+import { RequestQueueMemoryEntry } from './memory.js';
 
 export function createRequestQueueStorageImplementation(options: CreateStorageImplementationOptions) {
     if (options.persistStorage) {

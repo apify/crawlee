@@ -5,13 +5,13 @@ import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
-import { CriticalError } from '../errors';
-import { log as defaultLog } from '../log';
-import type { SnapshotterOptions } from './snapshotter';
-import { Snapshotter } from './snapshotter';
-import type { SystemInfo, SystemStatusOptions } from './system_status';
-import { SystemStatus } from './system_status';
+import { Configuration } from '../configuration.js';
+import { CriticalError } from '../errors.js';
+import { log as defaultLog } from '../log.js';
+import type { SnapshotterOptions } from './snapshotter.js';
+import { Snapshotter } from './snapshotter.js';
+import type { SystemInfo, SystemStatusOptions } from './system_status.js';
+import { SystemStatus } from './system_status.js';
 
 export interface AutoscaledPoolOptions {
     /**

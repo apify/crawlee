@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 
 import { Configuration } from '@crawlee/basic';
@@ -10,6 +11,8 @@ const DEFAULT_VIEWPORT = {
     width: 1366,
     height: 768,
 };
+
+const require = createRequire(import.meta.url);
 
 export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginOptions<TOptions> {
     /**

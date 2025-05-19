@@ -22,7 +22,7 @@ import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target
 
 import log_ from '@apify/log';
 
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception.js';
 
 const STARTING_Z_INDEX = 2147400000;
 const log = log_.child({ prefix: 'Puppeteer Click Elements' });

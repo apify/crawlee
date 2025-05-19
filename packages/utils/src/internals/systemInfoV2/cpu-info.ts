@@ -4,7 +4,7 @@ import os from 'node:os';
 
 import log from '@apify/log';
 
-import { getCgroupsVersion } from '../general';
+import { getCgroupsVersion } from '../general.js';
 
 const CPU_FILE_PATHS = {
     STAT: {

@@ -1,9 +1,13 @@
 import type { Dictionary } from '@crawlee/types';
 
-import type { CrawlingContext, LoadedRequest, RestrictedCrawlingContext } from './crawlers/crawler_commons';
-import { MissingRouteError } from './errors';
-import type { Request } from './request';
-import type { Awaitable } from './typedefs';
+import type {
+    CrawlingContext,
+    LoadedRequest,
+    RestrictedCrawlingContext,
+} from './crawlers/crawler_commons.js';
+import { MissingRouteError } from './errors.js';
+import type { Request } from './request.js';
+import type { Awaitable } from './typedefs.js';
 
 const defaultRoute = Symbol('default-route');
 

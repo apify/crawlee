@@ -24,8 +24,8 @@ export const responseSamples = {
         '    <title>Web Scraping, Data Extraction and Automation &#xb7; Apify</title>\n' +
         '</item>\n' +
         '</items>',
-    complexXml: fs.readFileSync(path.join(__dirname, 'data/complex.xml'), 'utf-8'),
-    image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
+    complexXml: fs.readFileSync(path.join(import.meta.dirname, 'data/complex.xml'), 'utf-8'),
+    image: fs.readFileSync(path.join(import.meta.dirname, 'data/apify.png')),
     html: `<!doctype html>
     <html>
     <head>
@@ -349,7 +349,7 @@ export async function runExampleComServer(): Promise<[Server, number]> {
     app.use('/special', special);
     app.use('/cacheable', cacheable);
 
-    app.get('**/*', async (req, res) => {
+    app.get('{*splat}', async (req, res) => {
         await setTimeout(50);
         res.send(responseSamples.html);
     });
