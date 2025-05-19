@@ -186,11 +186,17 @@ export interface AdaptivePlaywrightCrawlerOptions
 
     /**
      * An optional callback used in rendering type detection. On each detection, the result of the plain HTTP run is compared to that of the browser one.
-     * If the callback returns true, the results are considered equal and the target site is considered static.
+     * If a callback is provided, the contract is as follows:
+     *   It the callback returns true or 'equal', the results are considered equal and the target site is considered static.
+     *   If it returns false or 'different', the target site is considered client-rendered.
+     *   If it returns 'inconclusive', the detection result won't be used.
      * If no result comparator is specified, but there is a `resultChecker`, any site where the `resultChecker` returns true is considered static.
      * If neither `resultComparator` nor `resultChecker` are specified, a deep comparison of returned dataset items is used as a default.
      */
-    resultComparator?: (resultA: RequestHandlerResult, resultB: RequestHandlerResult) => boolean;
+    resultComparator?: (
+        resultA: RequestHandlerResult,
+        resultB: RequestHandlerResult,
+    ) => boolean | 'equal' | 'different' | 'inconclusive';
 
     /**
      * A custom rendering type predictor
@@ -362,20 +368,28 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
             const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext, initialStateCopy);
 
-            const detectionResult: RenderingType = (() => {
+            const detectionResult: RenderingType | undefined = (() => {
                 if (!plainHTTPRun.ok) {
                     return 'clientOnly';
                 }
 
-                if (this.resultComparator(plainHTTPRun.result, browserRun.result)) {
+                const comparisonResult = this.resultComparator(plainHTTPRun.result, browserRun.result);
+                if (comparisonResult === true || comparisonResult === 'equal') {
                     return 'static';
                 }
 
-                return 'clientOnly';
+                if (comparisonResult === false || comparisonResult === 'different') {
+                    return 'clientOnly';
+                }
+
+                return undefined;
             })();
 
             crawlingContext.log.debug(`Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`);
-            this.renderingTypePredictor.storeResult(crawlingContext.request, detectionResult);
+
+            if (detectionResult !== undefined) {
+                this.renderingTypePredictor.storeResult(crawlingContext.request, detectionResult);
+            }
         }
     }
 
