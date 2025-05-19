@@ -7,7 +7,7 @@ import { setTimeout } from 'node:timers/promises';
 
 import { Configuration, FileDownload } from '@crawlee/http';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper';
+import { startExpressAppPromise } from 'test/shared/_helper.js';
 
 class ReadableStreamGenerator {
     private static async generateRandomData(size: number, seed: number) {

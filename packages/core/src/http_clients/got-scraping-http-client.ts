@@ -1,6 +1,5 @@
-import { gotScraping } from '@crawlee/utils';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { Options, PlainResponse } from 'got-scraping';
+import { gotScraping } from 'got-scraping';
 
 import type {
     BaseHttpClient,
@@ -9,7 +8,7 @@ import type {
     RedirectHandler,
     ResponseTypes,
     StreamingHttpResponse,
-} from './base-http-client';
+} from './base-http-client.js';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
@@ -42,7 +41,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
     async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
-            const stream = await Promise.resolve(gotScraping({ ...request, isStream: true }));
+            const stream = gotScraping({ ...request, isStream: true });
 
             stream.on('redirect', (updatedOptions: Options, redirectResponse: PlainResponse) => {
                 handleRedirect?.(redirectResponse, updatedOptions);

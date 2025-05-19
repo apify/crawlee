@@ -3,17 +3,11 @@
     "version": "3.13.3",
     "description": "Shared types for the crawlee projects",
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=22.0.0"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "type": "module",
     "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
-        },
+        ".": "./dist/index.js",
         "./package.json": "./package.json"
     },
     "keywords": [
@@ -42,13 +36,13 @@
     "scripts": {
         "build": "yarn clean && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
-        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+        "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"
     },
     "publishConfig": {
         "access": "public"
     },
     "dependencies": {
-        "tslib": "^2.4.0"
+        "tslib": "^2.8.1"
     }
 }

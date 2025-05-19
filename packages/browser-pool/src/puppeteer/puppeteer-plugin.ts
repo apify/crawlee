@@ -4,14 +4,13 @@ import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
 
-import type { BrowserController } from '../abstract-classes/browser-controller';
-import { BrowserPlugin } from '../abstract-classes/browser-plugin';
-import { anonymizeProxySugar } from '../anonymize-proxy';
-import type { LaunchContext } from '../launch-context';
-import { log } from '../logger';
-import { noop } from '../utils';
-import type { PuppeteerNewPageOptions } from './puppeteer-controller';
-import { PuppeteerController } from './puppeteer-controller';
+import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
+import { anonymizeProxySugar } from '../anonymize-proxy.js';
+import type { LaunchContext } from '../launch-context.js';
+import { log } from '../logger.js';
+import { noop } from '../utils.js';
+import type { PuppeteerNewPageOptions } from './puppeteer-controller.js';
+import { PuppeteerController } from './puppeteer-controller.js';
 
 const PROXY_SERVER_ARG = '--proxy-server=';
 
@@ -89,7 +88,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                     error,
                     launchContext.launchOptions?.executablePath,
                     '`apify/actor-node-puppeteer-chrome`',
-                    "Try installing a browser, if it's missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)",
+                    'Try installing a browser, if it\'s missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)',
                 );
             }
         }
@@ -188,12 +187,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         return browser;
     }
 
-    protected _createController(): BrowserController<
-        typeof Puppeteer,
-        PuppeteerTypes.LaunchOptions,
-        PuppeteerTypes.Browser,
-        PuppeteerNewPageOptions
-    > {
+    override createController(): PuppeteerController {
         return new PuppeteerController(this);
     }
 

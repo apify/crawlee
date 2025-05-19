@@ -8,7 +8,7 @@ import { MemoryStorage } from '@crawlee/memory-storage';
 import type { KeyValueStoreClient, KeyValueStoreInfo } from '@crawlee/types';
 
 describe('MemoryStorage should not crash when saving a big buffer', () => {
-    const tmpLocation = resolve(__dirname, './tmp/no-buffer-crash');
+    const tmpLocation = resolve(import.meta.dirname, './tmp/no-buffer-crash');
     const storage = new MemoryStorage({
         localDataDirectory: tmpLocation,
         persistStorage: false,

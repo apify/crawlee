@@ -12,16 +12,20 @@ import type {
 import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
-import { type Cheerio, type Element, load } from 'cheerio';
+import { type Cheerio, load } from 'cheerio';
 import isEqual from 'lodash.isequal';
 import type { Page } from 'playwright';
 
 import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
 
-import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext, PlaywrightGotoOptions } from './playwright-crawler';
-import { PlaywrightCrawler } from './playwright-crawler';
-import { type RenderingType, RenderingTypePredictor } from './utils/rendering-type-prediction';
+import type {
+    PlaywrightCrawlerOptions,
+    PlaywrightCrawlingContext,
+    PlaywrightGotoOptions,
+} from './playwright-crawler.js';
+import { PlaywrightCrawler } from './playwright-crawler.js';
+import { type RenderingType, RenderingTypePredictor } from './utils/rendering-type-prediction.js';
 
 type Result<TResult> =
     | { result: TResult; ok: true; logs?: LogProxyCall[] }
@@ -101,7 +105,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
      * Wait for an element matching the selector to appear and return a Cheerio object of matched elements.
      * Timeout defaults to 5s.
      */
-    querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<Element>>;
+    querySelector<T = any>(selector: string, timeoutMs?: number): Promise<Cheerio<T>>;
 
     /**
      * Wait for an element matching the selector to appear.
@@ -449,7 +453,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                                 await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
                                                 const $ = await playwrightContext.parseWithCheerio();
 
-                                                return $(selector) as Cheerio<Element>;
+                                                return $(selector) as Cheerio<any>;
                                             },
                                             async waitForSelector(selector, timeoutMs = 5_000) {
                                                 const locator = playwrightContext.page.locator(selector).first();
@@ -557,7 +561,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                     throw new Error('Page object was used in HTTP-only request handler');
                                 },
                                 async querySelector(selector, _timeoutMs?: number) {
-                                    return $(selector) as Cheerio<Element>;
+                                    return $(selector) as Cheerio<any>;
                                 },
                                 async waitForSelector(selector, _timeoutMs?: number) {
                                     if ($(selector).get().length === 0) {

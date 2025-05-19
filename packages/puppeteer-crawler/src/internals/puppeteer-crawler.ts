@@ -13,10 +13,10 @@ import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 
-import type { PuppeteerLaunchContext } from './puppeteer-launcher';
-import { PuppeteerLauncher } from './puppeteer-launcher';
-import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';
-import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
+import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
+import { PuppeteerLauncher } from './puppeteer-launcher.js';
+import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils.js';
+import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils.js';
 
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
     extends BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>,

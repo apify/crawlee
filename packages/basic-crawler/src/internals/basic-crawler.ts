@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 import type {
@@ -53,7 +54,7 @@ import {
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
-import { ensureDir, writeFile, writeJSON } from 'fs-extra';
+import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
@@ -64,7 +65,7 @@ import defaultLog, { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { createSendRequest } from './send-request';
+import { createSendRequest } from './send-request.js';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
     extends CrawlingContext<BasicCrawler, UserData> {

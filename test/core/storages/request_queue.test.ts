@@ -10,13 +10,13 @@ import {
     RequestQueueV2,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '@crawlee/core';
-import type { gotScraping } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
+import { gotScraping } from 'got-scraping';
 import type { MockedFunction } from 'vitest';
 
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
-vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
+vitest.mock('got-scraping', async () => {
     return {
         gotScraping: vitest.fn(),
     };
@@ -25,8 +25,6 @@ vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
 let gotScrapingSpy: MockedFunction<typeof gotScraping>;
 
 beforeAll(async () => {
-    // @ts-ignore for some reason, this fails when the project is not built :/
-    const { gotScraping } = await import('@crawlee/utils');
     gotScrapingSpy = vitest.mocked(gotScraping);
 });
 

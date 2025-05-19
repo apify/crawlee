@@ -46,7 +46,7 @@ import type { ReadonlyDeep } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
-import type { BrowserLaunchContext } from './browser-launcher';
+import type { BrowserLaunchContext } from './browser-launcher.js';
 
 export interface BrowserCrawlingContext<
     Crawler = unknown,

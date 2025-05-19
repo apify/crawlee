@@ -5,7 +5,7 @@ import { s } from '@sapphire/shapeshift';
 
 import defaultLog from '@apify/log';
 
-import { REQUEST_ID_LENGTH } from './consts';
+import { REQUEST_ID_LENGTH } from './consts.js';
 
 /**
  * Removes all properties with a null value
@@ -35,7 +35,7 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
 
 export function isBuffer(value: unknown): boolean {
     try {
-        s.union(s.instance(Buffer), s.instance(ArrayBuffer), s.typedArray()).parse(value);
+        s.union([s.instance(Buffer), s.instance(ArrayBuffer), s.typedArray()]).parse(value);
 
         return true;
     } catch {

@@ -5,18 +5,18 @@ import { Readable } from 'node:stream';
 
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra';
+import { move } from 'fs-extra/esm';
 import mime from 'mime-types';
 
-import { scheduleBackgroundTask } from '../background-handler';
-import { maybeParseBody } from '../body-parser';
-import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
-import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
-import type { StorageImplementation } from '../fs/common';
-import { createKeyValueStorageImplementation } from '../fs/key-value-store';
-import type { MemoryStorage } from '../index';
-import { isBuffer, isStream } from '../utils';
-import { BaseClient } from './common/base-client';
+import { scheduleBackgroundTask } from '../background-handler/index.js';
+import { maybeParseBody } from '../body-parser.js';
+import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers.js';
+import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts.js';
+import type { StorageImplementation } from '../fs/common.js';
+import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
+import type { MemoryStorage } from '../index.js';
+import { isBuffer, isStream } from '../utils.js';
+import { BaseClient } from './common/base-client.js';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 
@@ -65,7 +65,7 @@ export class KeyValueStoreClient extends BaseClient {
     async update(newFields: storage.KeyValueStoreClientUpdateOptions = {}): Promise<storage.KeyValueStoreInfo> {
         const parsed = s
             .object({
-                name: s.string.lengthGreaterThan(0).optional,
+                name: s.string().lengthGreaterThan(0).optional(),
             })
             .parse(newFields);
 
@@ -121,8 +121,8 @@ export class KeyValueStoreClient extends BaseClient {
     async listKeys(options: storage.KeyValueStoreClientListOptions = {}): Promise<storage.KeyValueStoreClientListData> {
         const { limit = DEFAULT_API_PARAM_LIMIT, exclusiveStartKey } = s
             .object({
-                limit: s.number.greaterThan(0).optional,
-                exclusiveStartKey: s.string.optional,
+                limit: s.number().greaterThan(0).optional(),
+                exclusiveStartKey: s.string().optional(),
             })
             .parse(options);
 
@@ -183,7 +183,7 @@ export class KeyValueStoreClient extends BaseClient {
      * @returns `true` if the record exists, `false` if it does not.
      */
     async recordExists(key: string): Promise<boolean> {
-        s.string.parse(key);
+        s.string().parse(key);
 
         // Check by id
         const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
@@ -199,13 +199,13 @@ export class KeyValueStoreClient extends BaseClient {
         key: string,
         options: storage.KeyValueStoreClientGetRecordOptions = {},
     ): Promise<storage.KeyValueStoreRecord | undefined> {
-        s.string.parse(key);
+        s.string().parse(key);
         s.object({
-            buffer: s.boolean.optional,
+            buffer: s.boolean().optional(),
             // These options are ignored, but kept here
             // for validation consistency with API client.
-            stream: s.boolean.optional,
-            disableRedirect: s.boolean.optional,
+            stream: s.boolean().optional(),
+            disableRedirect: s.boolean().optional(),
         }).parse(options);
 
         // Check by id
@@ -244,11 +244,11 @@ export class KeyValueStoreClient extends BaseClient {
 
     async setRecord(record: storage.KeyValueStoreRecord): Promise<void> {
         s.object({
-            key: s.string.lengthGreaterThan(0),
-            value: s.union(
-                s.null,
-                s.string,
-                s.number,
+            key: s.string().lengthGreaterThan(0),
+            value: s.union([
+                s.null(),
+                s.string(),
+                s.number(),
                 s.instance(Buffer),
                 s.instance(ArrayBuffer),
                 s.typedArray(),
@@ -256,8 +256,8 @@ export class KeyValueStoreClient extends BaseClient {
                 s
                     .object({})
                     .setValidationEnabled(false),
-            ),
-            contentType: s.string.lengthGreaterThan(0).optional,
+            ]),
+            contentType: s.string().lengthGreaterThan(0).optional(),
         }).parse(record);
 
         // Check by id
@@ -322,7 +322,7 @@ export class KeyValueStoreClient extends BaseClient {
     }
 
     async deleteRecord(key: string): Promise<void> {
-        s.string.parse(key);
+        s.string().parse(key);
 
         // Check by id
         const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);

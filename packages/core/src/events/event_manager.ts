@@ -4,7 +4,7 @@ import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
+import { Configuration } from '../configuration.js';
 
 export const enum EventType {
     PERSIST_STATE = 'persistState',

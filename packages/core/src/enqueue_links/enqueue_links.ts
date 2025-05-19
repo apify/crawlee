@@ -6,9 +6,9 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { RequestOptions } from '../request';
-import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
-import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
+import type { RequestOptions } from '../request.js';
+import type { RequestProvider, RequestQueueOperationOptions } from '../storages/request_provider.js';
+import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared.js';
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
@@ -16,7 +16,7 @@ import {
     createRequestOptions,
     createRequests,
     filterRequestsByPatterns,
-} from './shared';
+} from './shared.js';
 
 export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
 
@@ -267,7 +267,7 @@ export async function enqueueLinks(
     }
 
     ow(
-        options,
+        options as any,
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),

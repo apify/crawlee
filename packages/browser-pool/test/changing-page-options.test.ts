@@ -8,7 +8,7 @@ import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import puppeteer from 'puppeteer';
 
-import { createProxyServer } from '../../../test/browser-pool/browser-plugins/create-proxy-server';
+import { createProxyServer } from '../../../test/browser-pool/browser-plugins/create-proxy-server.js';
 
 describe.each([
     ['Puppeteer', new PuppeteerPlugin(puppeteer, { useIncognitoPages: true })],

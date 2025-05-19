@@ -34,7 +34,6 @@ import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { Method, OptionsInit, TimeoutError as TimeoutErrorClass } from 'got-scraping';
 import iconv from 'iconv-lite';
 import mime from 'mime-types';

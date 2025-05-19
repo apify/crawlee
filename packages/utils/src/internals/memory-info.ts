@@ -9,7 +9,7 @@ import log from '@apify/log';
 // @ts-expect-error We need to add typings for @apify/ps-tree
 import psTree from '@apify/ps-tree';
 
-import { isDocker } from './general';
+import { isDocker } from './general.js';
 
 const MEMORY_FILE_PATHS = {
     TOTAL: {

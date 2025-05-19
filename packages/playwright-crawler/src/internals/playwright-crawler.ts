@@ -13,10 +13,10 @@ import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
 
-import type { PlaywrightLaunchContext } from './playwright-launcher';
-import { PlaywrightLauncher } from './playwright-launcher';
-import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';
-import { gotoExtended, registerUtilsToContext } from './utils/playwright-utils';
+import type { PlaywrightLaunchContext } from './playwright-launcher.js';
+import { PlaywrightLauncher } from './playwright-launcher.js';
+import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils.js';
+import { gotoExtended, registerUtilsToContext } from './utils/playwright-utils.js';
 
 export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
     extends BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>,

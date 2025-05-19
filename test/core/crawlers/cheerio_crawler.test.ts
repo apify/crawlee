@@ -16,11 +16,10 @@ import {
 } from '@crawlee/cheerio';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
-// @ts-expect-error type import of ESM only package
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
-import { responseSamples, runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import log, { Log } from '@apify/log';
 
@@ -688,7 +687,7 @@ describe('CheerioCrawler', () => {
 
             context = context as unknown as CheerioCrawlingContext;
             expect(context?.$.html()).toBe('&quot;&lt;&gt;&quot;&lt;&gt;');
-            expect(context?.$.html({ decodeEntities: false })).toBe('"<>"<>');
+            expect(context?.$.html({ xml: { decodeEntities: false, xmlMode: false } })).toBe('"<>"<>');
             expect(context?.body).toBe('&quot;&lt;&gt;"<>');
         });
     });

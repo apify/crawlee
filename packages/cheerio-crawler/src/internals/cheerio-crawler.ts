@@ -19,8 +19,7 @@ import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio, type RobotsTxtFile } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
-import { DomHandler, parseDocument } from 'htmlparser2';
-import { WritableStream } from 'htmlparser2/lib/WritableStream';
+import { parseDocument } from 'htmlparser2';
 
 export type CheerioErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -176,13 +175,8 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
     ) {
         const body = await readStreamToString(response);
         const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
-
-        const $ = cheerio.load(body, {
-            xmlMode: isXml,
-            // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
-            // and not good for scraping. It also does not have a great streaming interface.
-            // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
-            _useHtmlParser2: true,
+        const $ = cheerio.load(dom, {
+            xml: { decodeEntities: true, xmlMode: isXml },
         } as CheerioOptions);
 
         return {
@@ -201,22 +195,6 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
                 });
             },
         };
-    }
-
-    // TODO: unused code - remove in 4.0
-    protected async _parseHtmlToDom(response: IncomingMessage, isXml: boolean) {
-        return new Promise((resolve, reject) => {
-            const domHandler = new DomHandler(
-                (err, dom) => {
-                    if (err) reject(err);
-                    else resolve(dom);
-                },
-                { xmlMode: isXml },
-            );
-            const parser = new WritableStream(domHandler, { decodeEntities: true, xmlMode: isXml });
-            parser.on('error', reject);
-            response.on('error', reject).pipe(parser);
-        });
     }
 
     protected override async _runRequestHandler(context: CheerioCrawlingContext) {

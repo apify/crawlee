@@ -22,7 +22,6 @@ import {
 import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
-// @ts-expect-error This throws a compilation error due to TypeScript not inferring the module has CJS versions too
 import { DOMParser } from 'linkedom/cached';
 
 import { concatStreamToBuffer } from '@apify/utilities';

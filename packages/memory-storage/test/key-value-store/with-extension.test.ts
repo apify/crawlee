@@ -1,7 +1,9 @@
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { emptyDirSync, existsSync } from 'fs-extra';
-import { createKeyValueStorageImplementation } from 'packages/memory-storage/src/fs/key-value-store';
+import { emptyDirSync } from 'fs-extra/esm';
+
+import { createKeyValueStorageImplementation } from '../../src/fs/key-value-store/index.js';
 
 describe('KeyValueStore should append extension only when needed', () => {
     const mockImageBuffer = Buffer.from('This is a test image', 'utf8');

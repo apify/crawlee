@@ -10,13 +10,13 @@ import puppeteer from 'puppeteer';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
-import type { BrowserController } from '../../packages/browser-pool/src/abstract-classes/browser-controller';
-import { BrowserPool } from '../../packages/browser-pool/src/browser-pool';
-import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events';
-import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/src/fingerprinting/types';
-import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin';
-import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin';
-import { createProxyServer } from './browser-plugins/create-proxy-server';
+import type { BrowserController } from '../../packages/browser-pool/src/abstract-classes/browser-controller.js';
+import { BrowserPool } from '../../packages/browser-pool/src/browser-pool.js';
+import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events.js';
+import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/src/fingerprinting/types.js';
+import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin.js';
+import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin.js';
+import { createProxyServer } from './browser-plugins/create-proxy-server.js';
 
 const fingerprintingMatrix: [string, PlaywrightPlugin | PuppeteerPlugin][] = [
     [
@@ -492,7 +492,7 @@ describe.each([
                     });
 
                     test('should hide webdriver', async () => {
-                        await page.goto(`file://${__dirname}/test.html`);
+                        await page.goto(`file://${import.meta.dirname}/test.html`);
                         const webdriver = await page.evaluate(() => {
                             return navigator.webdriver;
                         });
@@ -523,7 +523,7 @@ describe.each([
                     });
 
                     test('should override fingerprint', async () => {
-                        await page.goto(`file://${__dirname}/test.html`);
+                        await page.goto(`file://${import.meta.dirname}/test.html`);
                         // @ts-expect-error mistypings
                         const browserController = browserPoolWithFP.getBrowserControllerByPage(page);
 
@@ -542,7 +542,7 @@ describe.each([
                     });
 
                     test('should hide webdriver', async () => {
-                        await page.goto(`file://${__dirname}/test.html`);
+                        await page.goto(`file://${import.meta.dirname}/test.html`);
                         const webdriver = await page.evaluate(() => {
                             return navigator.webdriver;
                         });

@@ -2,8 +2,8 @@ import crypto from 'node:crypto';
 
 import type { Dictionary, StorageClient } from '@crawlee/types';
 
-import { Configuration } from '../configuration';
-import { KeyValueStore } from './key_value_store';
+import { Configuration } from '../configuration.js';
+import { KeyValueStore } from './key_value_store.js';
 
 /**
  * Options for purging default storage.

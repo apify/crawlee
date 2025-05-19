@@ -3,10 +3,10 @@ import type { Browser, BrowserType, Page } from 'playwright';
 
 import { tryCancel } from '@apify/timeout';
 
-import { BrowserController } from '../abstract-classes/browser-controller';
-import { anonymizeProxySugar } from '../anonymize-proxy';
-import type { SafeParameters } from '../utils';
-import type { PlaywrightPlugin } from './playwright-plugin';
+import { BrowserController } from '../abstract-classes/browser-controller.js';
+import { anonymizeProxySugar } from '../anonymize-proxy.js';
+import type { SafeParameters } from '../utils.js';
+import type { PlaywrightPlugin } from './playwright-plugin.js';
 
 const tabIds = new WeakMap<Page, number>();
 const keyFromTabId = (tabId: string | number) => `.${tabId}.`;

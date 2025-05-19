@@ -1,4 +1,4 @@
-import type { Dictionary } from './utility-types';
+import type { Dictionary } from './utility-types.js';
 
 export interface Cookie {
     /**

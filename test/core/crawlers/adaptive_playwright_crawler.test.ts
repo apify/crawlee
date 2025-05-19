@@ -5,8 +5,8 @@ import { type Dictionary, KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions, Request } from '@crawlee/playwright';
 import { AdaptivePlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages

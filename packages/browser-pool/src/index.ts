@@ -22,19 +22,19 @@
  *
  * @module browser-pool
  */
-export * from './browser-pool';
-export * from './playwright/playwright-plugin';
-export * from './puppeteer/puppeteer-plugin';
-export * from './events';
+export * from './browser-pool.js';
+export * from './playwright/playwright-plugin.js';
+export * from './puppeteer/puppeteer-plugin.js';
+export * from './events.js';
 export {
     BrowserName,
     DeviceCategory,
     OperatingSystemsName,
-} from './fingerprinting/types';
-export { BrowserController, BrowserControllerEvents } from './abstract-classes/browser-controller';
-export { PuppeteerController } from './puppeteer/puppeteer-controller';
-export { PlaywrightController } from './playwright/playwright-controller';
-export { PlaywrightBrowser } from './playwright/playwright-browser';
+} from './fingerprinting/types.js';
+export { BrowserController, BrowserControllerEvents } from './abstract-classes/browser-controller.js';
+export { PuppeteerController } from './puppeteer/puppeteer-controller.js';
+export { PlaywrightController } from './playwright/playwright-controller.js';
+export { PlaywrightBrowser } from './playwright/playwright-browser.js';
 export {
     CommonPage,
     CommonLibrary,
@@ -43,12 +43,12 @@ export {
     CreateLaunchContextOptions,
     BrowserLaunchError,
     DEFAULT_USER_AGENT,
-} from './abstract-classes/browser-plugin';
-export { LaunchContext, LaunchContextOptions } from './launch-context';
+} from './abstract-classes/browser-plugin.js';
+export { LaunchContext, LaunchContextOptions } from './launch-context.js';
 export {
     BrowserSpecification,
     FingerprintGenerator,
     FingerprintGeneratorOptions,
     GetFingerprintReturn,
-} from './fingerprinting/types';
-export { InferBrowserPluginArray, UnwrapPromise } from './utils';
+} from './fingerprinting/types.js';
+export { InferBrowserPluginArray, UnwrapPromise } from './utils.js';

@@ -6,15 +6,15 @@ import { resolve } from 'node:path';
 import type { Dictionary } from '@crawlee/types';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra';
+import { move } from 'fs-extra/esm';
 
-import { scheduleBackgroundTask } from '../background-handler';
-import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
-import { StorageTypes } from '../consts';
-import type { StorageImplementation } from '../fs/common';
-import { createDatasetStorageImplementation } from '../fs/dataset';
-import type { MemoryStorage } from '../index';
-import { BaseClient } from './common/base-client';
+import { scheduleBackgroundTask } from '../background-handler/index.js';
+import { findOrCacheDatasetByPossibleId } from '../cache-helpers.js';
+import { StorageTypes } from '../consts.js';
+import type { StorageImplementation } from '../fs/common.js';
+import { createDatasetStorageImplementation } from '../fs/dataset/index.js';
+import type { MemoryStorage } from '../index.js';
+import { BaseClient } from './common/base-client.js';
 
 /**
  * This is what API returns in the x-apify-pagination-limit
@@ -70,7 +70,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     async update(newFields: storage.DatasetClientUpdateOptions = {}): Promise<storage.DatasetInfo> {
         const parsed = s
             .object({
-                name: s.string.lengthGreaterThan(0).optional,
+                name: s.string().lengthGreaterThan(0).optional(),
             })
             .parse(newFields);
 
@@ -135,9 +135,9 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             desc,
         } = s
             .object({
-                desc: s.boolean.optional,
-                limit: s.number.int.optional,
-                offset: s.number.int.optional,
+                desc: s.boolean().optional(),
+                limit: s.number().int().optional(),
+                offset: s.number().int().optional(),
             })
             .parse(options);
 
@@ -174,11 +174,11 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
 
     async pushItems(items: string | Data | string[] | Data[]): Promise<void> {
         const rawItems = s
-            .union(
-                s.string,
-                s.object<Data>({} as Data).passthrough,
-                s.array(s.union(s.string, s.object<Data>({} as Data).passthrough)),
-            )
+            .union([
+                s.string(),
+                s.object<Data>({} as Data).passthrough(),
+                s.array(s.union([s.string(), s.object<Data>({} as Data).passthrough()])),
+            ])
             .parse(items) as Data[];
 
         // Check by id

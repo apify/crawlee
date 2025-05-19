@@ -2,17 +2,20 @@
 	"extends": "./tsconfig.build.json",
 	"compilerOptions": {
 		"baseUrl": ".",
+        "noErrorTruncation": true,
+        "sourceMap": true,
+        "declaration": true,
 		"paths": {
-			"crawlee": ["packages/crawlee/src"],
-			"@crawlee/basic": ["packages/basic-crawler/src"],
-			"@crawlee/browser": ["packages/browser-crawler/src"],
-			"@crawlee/http": ["packages/http-crawler/src"],
-			"@crawlee/linkedom": ["packages/linkedom-crawler/src"],
-			"@crawlee/jsdom": ["packages/jsdom-crawler/src"],
-			"@crawlee/cheerio": ["packages/cheerio-crawler/src"],
-			"@crawlee/playwright": ["packages/playwright-crawler/src"],
-			"@crawlee/puppeteer": ["packages/puppeteer-crawler/src"],
-			"@crawlee/*": ["packages/*/src"]
+			"crawlee": ["packages/crawlee/src/index.ts"],
+			"@crawlee/basic": ["packages/basic-crawler/src/index.ts"],
+			"@crawlee/browser": ["packages/browser-crawler/src/index.ts"],
+			"@crawlee/http": ["packages/http-crawler/src/index.ts"],
+			"@crawlee/linkedom": ["packages/linkedom-crawler/src/index.ts"],
+			"@crawlee/jsdom": ["packages/jsdom-crawler/src/index.ts"],
+			"@crawlee/cheerio": ["packages/cheerio-crawler/src/index.ts"],
+			"@crawlee/playwright": ["packages/playwright-crawler/src/index.ts"],
+			"@crawlee/puppeteer": ["packages/puppeteer-crawler/src/index.ts"],
+			"@crawlee/*": ["packages/*/src/index.ts"]
 		}
 	}
 }

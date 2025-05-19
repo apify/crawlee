@@ -4,7 +4,7 @@ import { sleep } from '@crawlee/utils';
 import { launchPuppeteer, utils } from 'crawlee';
 import type { HTTPRequest } from 'puppeteer';
 
-import { runExampleComServer } from '../shared/_helper';
+import { runExampleComServer } from '../shared/_helper.js';
 
 const { addInterceptRequestHandler, removeInterceptRequestHandler } = utils.puppeteer;
 

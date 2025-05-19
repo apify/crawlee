@@ -3,7 +3,7 @@ import type { Server } from 'node:http';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 
-import { runExampleComServer } from '../../../test/shared/_helper';
+import { runExampleComServer } from '../../../test/shared/_helper.js';
 
 let serverAddress = 'http://localhost:';
 let port: number;

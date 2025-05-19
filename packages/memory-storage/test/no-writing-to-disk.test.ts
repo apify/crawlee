@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
 
-import { waitTillWrittenToDisk } from './__shared__';
+import { waitTillWrittenToDisk } from './__shared__.js';
 
 describe('persistStorage option', () => {
-    const tmpLocation = resolve(__dirname, './tmp/no-writing-to-disk');
+    const tmpLocation = resolve(import.meta.dirname, './tmp/no-writing-to-disk');
 
     afterAll(async () => {
         await rm(tmpLocation, { force: true, recursive: true });

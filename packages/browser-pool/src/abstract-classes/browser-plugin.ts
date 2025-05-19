@@ -2,10 +2,10 @@ import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
-import type { LaunchContextOptions } from '../launch-context';
-import { LaunchContext } from '../launch-context';
-import type { UnwrapPromise } from '../utils';
-import type { BrowserController } from './browser-controller';
+import type { LaunchContextOptions } from '../launch-context.js';
+import { LaunchContext } from '../launch-context.js';
+import type { UnwrapPromise } from '../utils.js';
+import type { BrowserController } from './browser-controller.js';
 
 /**
  * The default User Agent used by `PlaywrightCrawler`, `launchPlaywright`, 'PuppeteerCrawler' and 'launchPuppeteer'
@@ -178,9 +178,7 @@ export abstract class BrowserPlugin<
         });
     }
 
-    createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> {
-        return this._createController();
-    }
+    abstract createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
 
     /**
      * Launches the browser using provided launch context.
@@ -278,17 +276,6 @@ export abstract class BrowserPlugin<
     protected abstract _launch(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): Promise<LaunchResult>;
-
-    /**
-     * @private
-     */
-    protected abstract _createController(): BrowserController<
-        Library,
-        LibraryOptions,
-        LaunchResult,
-        NewPageOptions,
-        NewPageResult
-    >;
 }
 
 export class BrowserLaunchError extends CriticalError {

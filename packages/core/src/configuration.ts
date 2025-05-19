@@ -1,17 +1,19 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { MemoryStorageOptions } from '@crawlee/memory-storage';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { Dictionary, StorageClient } from '@crawlee/types';
-import { pathExistsSync, readFileSync } from 'fs-extra';
+import { pathExistsSync } from 'fs-extra/esm';
 
 import log, { LogLevel } from '@apify/log';
 
-import { type EventManager, LocalEventManager } from './events';
-import type { StorageManager } from './storages';
-import { type Constructor, entries } from './typedefs';
+import { type EventManager } from './events/event_manager.js';
+import { LocalEventManager } from './events/local_event_manager.js';
+import type { StorageManager } from './storages/storage_manager.js';
+import { type Constructor, entries } from './typedefs.js';
 
 export interface ConfigurationOptions {
     /**

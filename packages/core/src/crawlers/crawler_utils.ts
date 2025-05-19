@@ -1,6 +1,6 @@
 import { TimeoutError } from '@apify/timeout';
 
-import type { Session } from '../session_pool/session';
+import type { Session } from '../session_pool/session.js';
 
 /**
  * Handles timeout request

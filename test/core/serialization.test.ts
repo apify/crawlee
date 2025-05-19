@@ -5,7 +5,7 @@ import zlib from 'node:zlib';
 
 import { createDeserialize, deserializeArray, serializeArray } from '@crawlee/core';
 
-const TEST_JSON_PATH = path.join(__dirname, '..', 'shared', 'data', 'sample.json.gz');
+const TEST_JSON_PATH = path.join(import.meta.dirname, '..', 'shared', 'data', 'sample.json.gz');
 
 const gunzip = util.promisify(zlib.gunzip);
 

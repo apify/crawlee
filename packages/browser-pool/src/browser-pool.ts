@@ -10,18 +10,18 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
-import type { BrowserController } from './abstract-classes/browser-controller';
-import type { BrowserPlugin } from './abstract-classes/browser-plugin';
-import { BROWSER_POOL_EVENTS } from './events';
+import type { BrowserController } from './abstract-classes/browser-controller.js';
+import type { BrowserPlugin } from './abstract-classes/browser-plugin.js';
+import { BROWSER_POOL_EVENTS } from './events.js';
 import {
     createFingerprintPreLaunchHook,
     createPostPageCreateHook,
     createPrePageCreateHook,
-} from './fingerprinting/hooks';
-import type { FingerprintGeneratorOptions } from './fingerprinting/types';
-import type { LaunchContext } from './launch-context';
-import { log } from './logger';
-import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
+} from './fingerprinting/hooks.js';
+import type { FingerprintGeneratorOptions } from './fingerprinting/types.js';
+import type { LaunchContext } from './launch-context.js';
+import { log } from './logger.js';
+import type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;

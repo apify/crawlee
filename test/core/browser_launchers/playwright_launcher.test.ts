@@ -11,9 +11,8 @@ import basicAuthParser from 'basic-auth-parser';
 import type { Browser, BrowserType } from 'playwright';
 // @ts-expect-error no types
 import portastic from 'portastic';
-// @ts-expect-error no types
-import proxy from 'proxy';
-import { runExampleComServer } from 'test/shared/_helper';
+import { createProxy } from 'proxy';
+import { runExampleComServer } from 'test/shared/_helper.js';
 
 let prevEnvHeadless: boolean;
 let proxyServer: Server;
@@ -41,24 +40,23 @@ beforeAll(async () => {
 
             // Setup proxy authorization
             // @ts-expect-error
-            httpServer.authenticate = function (req, fn) {
+            httpServer.authenticate = function (req) {
                 // parse the "Proxy-Authorization" header
                 const auth = req.headers['proxy-authorization'];
                 if (!auth) {
                     // optimization: don't invoke the child process if no
                     // "Proxy-Authorization" header was given
-                    fn(null, false);
-                    return;
+                    return false;
                 }
                 const parsed = basicAuthParser(auth);
                 const isEqual = JSON.stringify(parsed) === JSON.stringify(proxyAuth);
                 if (isEqual) wasProxyCalled = true;
-                fn(null, isEqual);
+                return isEqual;
             };
 
             httpServer.on('error', reject);
 
-            proxyServer = proxy(httpServer);
+            proxyServer = createProxy(httpServer);
             proxyServer.listen(ports[0], () => {
                 proxyPort = (proxyServer.address() as AddressInfo).port;
                 resolve();
@@ -274,7 +272,7 @@ describe('launchPlaywright()', () => {
     });
 
     test('supports userDataDir', async () => {
-        const userDataDir = path.join(__dirname, 'userDataPlaywright');
+        const userDataDir = path.join(import.meta.dirname, 'userDataPlaywright');
 
         let browser;
         try {

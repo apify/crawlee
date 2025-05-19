@@ -1,11 +1,11 @@
 import { exec } from 'node:child_process';
 import path from 'node:path';
 
-import { psTree } from '../../packages/utils/src/internals/systemInfoV2/ps-tree';
+import { psTree } from '../../packages/utils/src/internals/systemInfoV2/ps-tree.js';
 
 const scripts = {
-    parent: path.join(__dirname, 'fixtures', 'parent.js'),
-    child: path.join(__dirname, 'fixtures', 'child.js'),
+    parent: path.join(import.meta.dirname, 'fixtures', 'parent.js'),
+    child: path.join(import.meta.dirname, 'fixtures', 'child.js'),
 };
 
 describe('psTree()', () => {

@@ -3,17 +3,11 @@
     "version": "3.13.3",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=22.0.0"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "type": "module",
     "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
-        },
+        ".": "./dist/index.js",
         "./package.json": "./package.json"
     },
     "keywords": [
@@ -46,21 +40,21 @@
     "scripts": {
         "build": "yarn clean && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
-        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+        "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"
     },
     "publishConfig": {
         "access": "public"
     },
     "dependencies": {
-        "@apify/timeout": "^0.3.0",
+        "@apify/timeout": "^0.3.2",
         "@crawlee/basic": "3.13.3",
         "@crawlee/browser-pool": "3.13.3",
         "@crawlee/types": "3.13.3",
         "@crawlee/utils": "3.13.3",
-        "ow": "^0.28.1",
-        "tslib": "^2.4.0",
-        "type-fest": "^4.0.0"
+        "ow": "^2.0.0",
+        "tslib": "^2.8.1",
+        "type-fest": "^4.41.0"
     },
     "peerDependencies": {
         "playwright": "*",

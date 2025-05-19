@@ -16,17 +16,17 @@ import { ListDictionary, LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
-import { EventType } from '../events';
-import { log } from '../log';
-import type { ProxyConfiguration } from '../proxy_configuration';
-import type { InternalSource, RequestOptions, Source } from '../request';
-import { Request } from '../request';
-import type { Constructor } from '../typedefs';
-import { checkStorageAccess } from './access_checking';
-import type { IStorage, StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils';
+import { Configuration } from '../configuration.js';
+import { EventType } from '../events/event_manager.js';
+import { log } from '../log.js';
+import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { InternalSource, RequestOptions, Source } from '../request.js';
+import { Request } from '../request.js';
+import type { Constructor } from '../typedefs.js';
+import { checkStorageAccess } from './access_checking.js';
+import type { IStorage, StorageManagerOptions } from './storage_manager.js';
+import { StorageManager } from './storage_manager.js';
+import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
 
 export abstract class RequestProvider implements IStorage {
     id: string;

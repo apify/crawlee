@@ -8,15 +8,15 @@ import { CookieJar } from 'tough-cookie';
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { ResponseLike } from '../cookie_utils';
+import type { ResponseLike } from '../cookie_utils.js';
 import {
     browserPoolCookieToToughCookie,
     getCookiesFromResponse,
     getDefaultCookieExpirationDate,
     toughCookieToBrowserPoolCookie,
-} from '../cookie_utils';
-import { log as defaultLog } from '../log';
-import { EVENT_SESSION_RETIRED } from './events';
+} from '../cookie_utils.js';
+import { log as defaultLog } from '../log.js';
+import { EVENT_SESSION_RETIRED } from './events.js';
 
 /**
  * Persistable {@apilink Session} state.
@@ -84,7 +84,7 @@ export interface SessionOptions {
     maxUsageCount?: number;
 
     /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
-    sessionPool?: import('./session_pool').SessionPool;
+    sessionPool?: import('./session_pool.js').SessionPool;
 
     log?: Log;
     errorScore?: number;
@@ -107,7 +107,7 @@ export class Session {
     private _expiresAt: Date;
     private _usageCount: number;
     private _maxUsageCount: number;
-    private sessionPool: import('./session_pool').SessionPool;
+    private sessionPool: import('./session_pool.js').SessionPool;
     private _errorScore: number;
     private _cookieJar: CookieJar;
     private log: Log;

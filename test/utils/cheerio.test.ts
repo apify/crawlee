@@ -2,7 +2,7 @@ import type { CheerioRoot } from '@crawlee/utils';
 import { htmlToText } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 
-import * as htmlToTextData from '../shared/data/html_to_text_test_data';
+import * as htmlToTextData from '../shared/data/html_to_text_test_data.js';
 
 const checkHtmlToText = (html: string | CheerioRoot, expectedText: string, hasBody = false) => {
     const text1 = htmlToText(html);
@@ -106,9 +106,9 @@ describe('htmlToText()', () => {
 
     test('works with Cheerio object', () => {
         const html1 = '<html><body>Some text</body></html>';
-        checkHtmlToText(cheerio.load(html1, { decodeEntities: true }), 'Some text');
+        checkHtmlToText(cheerio.load(html1), 'Some text');
 
         const html2 = '<h1>Text outside of body</h1>';
-        checkHtmlToText(cheerio.load(html2, { decodeEntities: true }), 'Text outside of body');
+        checkHtmlToText(cheerio.load(html2), 'Text outside of body');
     });
 });

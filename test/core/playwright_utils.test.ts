@@ -4,8 +4,8 @@ import path from 'node:path';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { runExampleComServer } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 
@@ -50,7 +50,7 @@ describe('playwrightUtils', () => {
             // @ts-expect-error
             let result = await page.evaluate(() => window.injectedVariable === 42);
             expect(result).toBe(false);
-            await playwrightUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'), {
+            await playwrightUtils.injectFile(page, path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'), {
                 surviveNavigations: true,
             });
             // @ts-expect-error
@@ -75,7 +75,7 @@ describe('playwrightUtils', () => {
             // @ts-expect-error
             result = await page.evaluate(() => window.injectedVariable === 42);
             expect(result).toBe(false);
-            await playwrightUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'));
+            await playwrightUtils.injectFile(page, path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'));
             // @ts-expect-error
             result = await page.evaluate(() => window.injectedVariable);
             expect(result).toBe(42);
@@ -260,8 +260,8 @@ describe('playwrightUtils', () => {
             const result = await playwrightUtils.parseWithCheerio(page, true);
 
             const text = result('body').text().trim();
-            expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(0);
-            expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            expect([...text.matchAll(/\[GOOD]/g)]).toHaveLength(0);
+            expect([...text.matchAll(/\[BAD]/g)]).toHaveLength(0);
         });
 
         test('expansion works', async () => {
@@ -270,8 +270,8 @@ describe('playwrightUtils', () => {
             const result = await playwrightUtils.parseWithCheerio(page);
 
             const text = result('body').text().trim();
-            expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(2);
-            expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            expect([...text.matchAll(/\[GOOD]/g)]).toHaveLength(2);
+            expect([...text.matchAll(/\[BAD]/g)]).toHaveLength(0);
         });
     });
 

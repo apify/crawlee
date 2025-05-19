@@ -1,5 +1,5 @@
-import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
-import type { StorageImplementation } from '../common';
+import type { InternalKeyRecord } from '../../resource-clients/key-value-store.js';
+import type { StorageImplementation } from '../common.js';
 
 export class KeyValueMemoryEntry implements StorageImplementation<InternalKeyRecord> {
     private data!: InternalKeyRecord;

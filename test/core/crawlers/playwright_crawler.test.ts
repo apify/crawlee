@@ -6,11 +6,11 @@ import type { PlaywrightGotoOptions, PlaywrightRequestHandler, Request } from '@
 import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 
-import { startExpressAppPromise } from '../../shared/_helper';
+import { startExpressAppPromise } from '../../shared/_helper.js';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 

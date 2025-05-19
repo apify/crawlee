@@ -1,4 +1,4 @@
-import { initialize, expect, getActorTestDir, runActor } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, runActor } from '../tools.mjs';
 
 /* This test verifies that the storageObject is correctly returned when the KeyValueStore is opened.
  * The storageObject is the result of the KeyValueStoreClient.get() method,

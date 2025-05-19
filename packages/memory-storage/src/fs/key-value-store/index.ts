@@ -1,7 +1,7 @@
-import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
-import type { StorageImplementation } from '../common';
-import { KeyValueFileSystemEntry } from './fs';
-import { KeyValueMemoryEntry } from './memory';
+import type { InternalKeyRecord } from '../../resource-clients/key-value-store.js';
+import type { StorageImplementation } from '../common.js';
+import { KeyValueFileSystemEntry } from './fs.js';
+import { KeyValueMemoryEntry } from './memory.js';
 
 export function createKeyValueStorageImplementation(
     options: CreateStorageImplementationOptions,

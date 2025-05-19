@@ -3,17 +3,11 @@
     "version": "3.13.3",
     "description": "A simple in-memory storage implementation of the Apify API",
     "engines": {
-        "node": ">= 16"
+        "node": ">=22.0.0"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "type": "module",
     "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
-        },
+        ".": "./dist/index.js",
         "./package.json": "./package.json"
     },
     "keywords": [
@@ -41,22 +35,22 @@
     "scripts": {
         "build": "yarn clean && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
-        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+        "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"
     },
     "publishConfig": {
         "access": "public"
     },
     "dependencies": {
-        "@apify/log": "^2.4.0",
+        "@apify/log": "^2.5.18",
         "@crawlee/types": "3.13.3",
-        "@sapphire/async-queue": "^1.5.0",
-        "@sapphire/shapeshift": "^3.0.0",
-        "content-type": "^1.0.4",
-        "fs-extra": "^11.0.0",
+        "@sapphire/async-queue": "^1.5.5",
+        "@sapphire/shapeshift": "^4.0.0",
+        "content-type": "^1.0.5",
+        "fs-extra": "^11.3.0",
         "json5": "^2.2.3",
-        "mime-types": "^2.1.35",
+        "mime-types": "^3.0.1",
         "proper-lockfile": "^4.1.2",
-        "tslib": "^2.4.0"
+        "tslib": "^2.8.1"
     }
 }

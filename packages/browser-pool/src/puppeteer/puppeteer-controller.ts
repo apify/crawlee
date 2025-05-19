@@ -4,9 +4,9 @@ import type * as PuppeteerTypes from 'puppeteer';
 
 import { tryCancel } from '@apify/timeout';
 
-import { BrowserController } from '../abstract-classes/browser-controller';
-import { anonymizeProxySugar } from '../anonymize-proxy';
-import { log } from '../logger';
+import { BrowserController } from '../abstract-classes/browser-controller.js';
+import { anonymizeProxySugar } from '../anonymize-proxy.js';
+import { log } from '../logger.js';
 
 export interface PuppeteerNewPageOptions extends PuppeteerTypes.BrowserContextOptions {
     proxyUsername?: string;

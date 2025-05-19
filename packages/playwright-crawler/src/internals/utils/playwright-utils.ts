@@ -19,6 +19,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import {
@@ -40,13 +41,14 @@ import type { Page, Response, Route } from 'playwright';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 
-import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
-import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
-import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '../playwright-crawler';
-import { RenderingTypePredictor } from './rendering-type-prediction';
+import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
+import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
+import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '../playwright-crawler.js';
+import { RenderingTypePredictor } from './rendering-type-prediction.js';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 
+const require = createRequire(import.meta.url);
 const jqueryPath = require.resolve('jquery');
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
@@ -644,6 +646,7 @@ export async function parseWithCheerio(
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
+    console.log(ignoreShadowRoots, pageContent);
 
     return cheerio.load(pageContent);
 }

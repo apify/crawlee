@@ -1,10 +1,10 @@
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI, load } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
 import * as cheerio from 'cheerio';
 
-import { tryAbsoluteURL } from './extract-urls';
+import { tryAbsoluteURL } from './extract-urls.js';
 
-export type CheerioRoot = ReturnType<typeof load>;
+export type CheerioRoot = CheerioAPI;
 
 // NOTE: We are skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
@@ -28,13 +28,12 @@ const BLOCK_TAGS_REGEX =
  *
  * Note that the function uses [cheerio](https://www.npmjs.com/package/cheerio) to parse the HTML.
  * Optionally, to avoid duplicate parsing of HTML and thus improve performance, you can pass
- * an existing Cheerio object to the function instead of the HTML text. The HTML should be parsed
- * with the `decodeEntities` option set to `true`. For example:
+ * an existing Cheerio object to the function instead of the HTML text.
  *
  * ```javascript
  * import * as cheerio from 'cheerio';
  * const html = '<html><body>Some text</body></html>';
- * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
+ * const text = htmlToText(cheerio.load(html));
  * ```
  * @param htmlOrCheerioElement HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return Plain text
@@ -42,10 +41,7 @@ const BLOCK_TAGS_REGEX =
 export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
     if (!htmlOrCheerioElement) return '';
 
-    const $ =
-        typeof htmlOrCheerioElement === 'function'
-            ? htmlOrCheerioElement
-            : cheerio.load(htmlOrCheerioElement, { decodeEntities: true });
+    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : cheerio.load(htmlOrCheerioElement);
     let text = '';
 
     const process = (elems: Dictionary) => {

@@ -1,8 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
 
-import type { StorageImplementation } from '../common';
-import { DatasetFileSystemEntry } from './fs';
-import { DatasetMemoryEntry } from './memory';
+import type { StorageImplementation } from '../common.js';
+import { DatasetFileSystemEntry } from './fs.js';
+import { DatasetMemoryEntry } from './memory.js';
 
 export function createDatasetStorageImplementation<Data extends Dictionary>(
     options: CreateStorageImplementationOptions,

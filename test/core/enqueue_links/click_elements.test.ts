@@ -13,7 +13,7 @@ import {
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 import type { Browser as PPBrowser, Target } from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper';
+import { runExampleComServer } from 'test/shared/_helper.js';
 
 function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowser {
     return (browser as PPBrowser).targets !== undefined;

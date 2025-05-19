@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 
-import { htmlToText } from './cheerio';
+import { htmlToText } from './cheerio.js';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 const EMAIL_REGEX_STRING =
@@ -675,7 +675,7 @@ export function parseHandlesFromHtml(html: string, data: Record<string, unknown>
 
     if ((typeof html as unknown) !== 'string') return result;
 
-    const $ = cheerio.load(html, { decodeEntities: true });
+    const $ = cheerio.load(html, { xml: { decodeEntities: true } });
     if (data) data.$ = $;
 
     const text = htmlToText($);

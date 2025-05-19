@@ -1,3 +1,3 @@
 export * from '@crawlee/basic';
-export * from './internals/http-crawler';
-export * from './internals/file-download';
+export * from './internals/http-crawler.js';
+export * from './internals/file-download.js';

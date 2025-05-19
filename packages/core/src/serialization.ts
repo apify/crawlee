@@ -3,7 +3,7 @@ import util from 'node:util';
 import zlib from 'node:zlib';
 
 import ow from 'ow';
-import StreamArray from 'stream-json/streamers/StreamArray';
+import StreamArray from 'stream-json/streamers/StreamArray.js';
 
 const pipeline = util.promisify(streamPipeline);
 
@@ -102,12 +102,8 @@ export function createDeserialize(compressedData: Buffer | Uint8Array): Readable
     const streamArray = StreamArray.withParser();
     const destination = pluckValue(streamArray);
 
-    streamPipeline(
-        Readable.from([compressedData]),
-        zlib.createGunzip(),
-        destination,
-        // @ts-expect-error Something's wrong here, the types are wrong but tests fail if we correct the code to make them right
-        (err) => destination.emit(err),
+    streamPipeline(Readable.from([compressedData]), zlib.createGunzip(), destination, (err: any) =>
+        destination.emit(err),
     );
 
     return destination;
