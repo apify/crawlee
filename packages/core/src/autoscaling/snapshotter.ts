@@ -3,19 +3,19 @@ import ow from 'ow';
 
 import type { Log } from '@apify/log';
 
-import { Configuration } from '../configuration';
-import type { EventManager } from '../events/event_manager';
-import { log as defaultLog } from '../log';
-import type { ClientLoadSignal, ClientSnapshot } from './client_load_signal';
-import { createClientLoadSignal } from './client_load_signal';
-import type { CpuLoadSignal, CpuSnapshot } from './cpu_load_signal';
-import { createCpuLoadSignal } from './cpu_load_signal';
-import type { EventLoopLoadSignal, EventLoopSnapshot } from './event_loop_load_signal';
-import { createEventLoopLoadSignal } from './event_loop_load_signal';
-import type { LoadSignal } from './load_signal';
-import type { MemorySnapshot } from './memory_load_signal';
-import { MemoryLoadSignal } from './memory_load_signal';
-import type { SystemInfo } from './system_status';
+import { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
+import { log as defaultLog } from '../log.js';
+import type { ClientLoadSignal, ClientSnapshot } from './client_load_signal.js';
+import { createClientLoadSignal } from './client_load_signal.js';
+import type { CpuLoadSignal, CpuSnapshot } from './cpu_load_signal.js';
+import { createCpuLoadSignal } from './cpu_load_signal.js';
+import type { EventLoopLoadSignal, EventLoopSnapshot } from './event_loop_load_signal.js';
+import { createEventLoopLoadSignal } from './event_loop_load_signal.js';
+import type { LoadSignal } from './load_signal.js';
+import type { MemorySnapshot } from './memory_load_signal.js';
+import { MemoryLoadSignal } from './memory_load_signal.js';
+import type { SystemInfo } from './system_status.js';
 
 export interface SnapshotterOptions {
     /**

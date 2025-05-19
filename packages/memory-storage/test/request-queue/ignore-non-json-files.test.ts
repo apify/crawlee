@@ -5,10 +5,10 @@ import { resolve } from 'node:path';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { InternalRequest } from '@crawlee/memory-storage/src/resource-clients/request-queue';
 import type { RequestSchema } from '@crawlee/types';
-import { ensureDir } from 'fs-extra';
+import { ensureDir } from 'fs-extra/esm';
 
 describe('when falling back to fs, Request queue should ignore non-JSON files', () => {
-    const tmpLocation = resolve(__dirname, './tmp/req-queue-ignore-non-json');
+    const tmpLocation = resolve(import.meta.dirname, './tmp/req-queue-ignore-non-json');
     const storage = new MemoryStorage({
         localDataDirectory: tmpLocation,
     });

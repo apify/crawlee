@@ -19,8 +19,8 @@ import { z } from 'zod';
 
 import log from '@apify/log';
 
-import { startExpressAppPromise } from '../../shared/_helper';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 

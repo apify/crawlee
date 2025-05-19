@@ -6,9 +6,8 @@ import { finished } from 'node:stream/promises';
 import { type Request, SitemapRequestList } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
-
-import { startExpressAppPromise } from '../shared/_helper';
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
+import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 // Express server for serving sitemaps
 let url = 'http://localhost';
@@ -350,8 +349,8 @@ describe('SitemapRequestList', () => {
         }
 
         expect(list.handledCount()).toBe(2);
-        expect(list.isFinished()).resolves.toBe(true);
-        expect(list.fetchNextRequest()).resolves.toBe(null);
+        await expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.fetchNextRequest()).resolves.toBe(null);
     });
 
     test('globs filtering works', async () => {
@@ -430,7 +429,7 @@ describe('SitemapRequestList', () => {
 
         expect(secondBatch).toHaveLength(5);
 
-        expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.isFinished()).resolves.toBe(true);
         expect(list.handledCount()).toBe(7);
     });
 
@@ -444,7 +443,7 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.isFinished()).resolves.toBe(true);
         expect(list.handledCount()).toBe(7);
     });
 
@@ -464,7 +463,7 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.isFinished()).resolves.toBe(true);
         expect(list.isSitemapFullyLoaded()).toBe(false);
         expect(list.handledCount()).toBe(2);
     });
@@ -480,7 +479,7 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.isFinished()).resolves.toBe(true);
         expect(list.isSitemapFullyLoaded()).toBe(false);
         expect(list.handledCount()).toBe(2);
     });
@@ -498,7 +497,7 @@ describe('SitemapRequestList', () => {
 
             await sleep(50);
 
-            expect(list.isEmpty()).resolves.toBe(false);
+            await expect(list.isEmpty()).resolves.toBe(false);
             await list.persistState();
         }
 

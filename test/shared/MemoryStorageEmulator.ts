@@ -7,9 +7,9 @@ import { ensureDir } from 'fs-extra';
 import log from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { StorageEmulator } from './StorageEmulator';
+import { StorageEmulator } from './StorageEmulator.js';
 
-const LOCAL_EMULATION_DIR = resolve(__dirname, '..', 'tmp', 'memory-emulation-dir');
+const LOCAL_EMULATION_DIR = resolve(import.meta.dirname, '..', 'tmp', 'memory-emulation-dir');
 
 export class MemoryStorageEmulator extends StorageEmulator {
     private storage!: MemoryStorage;

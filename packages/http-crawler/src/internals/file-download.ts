@@ -3,7 +3,6 @@ import { finished } from 'node:stream/promises';
 import { isPromise } from 'node:util/types';
 
 import type { Dictionary } from '@crawlee/types';
-// @ts-expect-error got-scraping is ESM only
 import type { Request } from 'got-scraping';
 
 import type {
@@ -17,8 +16,8 @@ import type {
     RouterRoutes,
     RouteSchemas,
     RoutesFromSchemas,
-} from '../index';
-import { HttpCrawler, Router } from '../index';
+} from '../index.js';
+import { HttpCrawler, Router } from '../index.js';
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

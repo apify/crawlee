@@ -11,7 +11,7 @@ import {
     getCurrentCpuTicksV2,
     getSystemCpuUsage,
     sampleCpuUsage,
-} from '../../packages/utils/src/internals/systemInfoV2/cpu-info';
+} from '../../packages/utils/src/internals/systemInfoV2/cpu-info.js';
 
 vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {
     const original: typeof import('@crawlee/utils') = await importActual();

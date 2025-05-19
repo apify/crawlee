@@ -1,7 +1,7 @@
 import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RobotsTxtFile } from '../src/internals/robots';
+import { RobotsTxtFile } from '../src/internals/robots.js';
 
 describe('RobotsTxtFile', () => {
     beforeEach(() => {

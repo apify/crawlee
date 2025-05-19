@@ -7,13 +7,12 @@ import {
     Request,
     RequestList,
 } from '@crawlee/core';
-import type { gotScraping } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
+import { gotScraping } from 'got-scraping';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
 
 import log from '@apify/log';
-
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)
@@ -27,7 +26,7 @@ function shuffle(array: unknown[]): unknown[] {
     return out;
 }
 
-vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
+vitest.mock('got-scraping', async () => {
     return {
         gotScraping: vitest.fn(),
     };
@@ -36,8 +35,6 @@ vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
 let gotScrapingSpy: MockedFunction<typeof gotScraping>;
 
 beforeAll(async () => {
-    // @ts-ignore for some reason, this fails when the project is not built :/
-    const { gotScraping } = await import('@crawlee/utils');
     gotScrapingSpy = vitest.mocked(gotScraping);
 });
 

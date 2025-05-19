@@ -2,13 +2,13 @@ import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils'
 
 import type { Log } from '@apify/log';
 
-import type { Configuration } from '../configuration';
-import type { EventManager } from '../events/event_manager';
-import { EventType } from '../events/event_manager';
-import { log as defaultLog } from '../log';
-import type { LoadSignal, LoadSnapshot } from './load_signal';
-import { SnapshotStore } from './load_signal';
-import type { SystemInfo } from './system_status';
+import type { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import { log as defaultLog } from '../log.js';
+import type { LoadSignal, LoadSnapshot } from './load_signal.js';
+import { SnapshotStore } from './load_signal.js';
+import type { SystemInfo } from './system_status.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10_000;

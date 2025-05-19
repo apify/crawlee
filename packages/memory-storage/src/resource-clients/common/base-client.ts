@@ -1,4 +1,4 @@
-import type { StorageTypes } from '../../consts';
+import type { StorageTypes } from '../../consts.js';
 
 export class BaseClient {
     id: string;

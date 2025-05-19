@@ -2,11 +2,11 @@ import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 import { AsyncQueue } from '@sapphire/async-queue';
-import { ensureDir } from 'fs-extra';
+import { ensureDir } from 'fs-extra/esm';
 
-import { lockAndWrite } from '../../background-handler/fs-utils';
-import type { StorageImplementation } from '../common';
-import type { CreateStorageImplementationOptions } from './index';
+import { lockAndWrite } from '../../background-handler/fs-utils.js';
+import type { StorageImplementation } from '../common.js';
+import type { CreateStorageImplementationOptions } from './index.js';
 
 export class DatasetFileSystemEntry<Data> implements StorageImplementation<Data> {
     private filePath: string;

@@ -4,8 +4,8 @@ import { freemem, totalmem } from 'node:os';
 
 import log from '@apify/log';
 
-import { getCgroupsVersion, isLambda } from '../general';
-import { psTree } from './ps-tree';
+import { getCgroupsVersion, isLambda } from '../general.js';
+import { psTree } from './ps-tree.js';
 
 const MEMORY_FILE_PATHS = {
     TOTAL: {

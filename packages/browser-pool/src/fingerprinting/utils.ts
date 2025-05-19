@@ -1,9 +1,9 @@
-import type { BrowserPlugin } from '../abstract-classes/browser-plugin';
-import type { LaunchContext } from '../launch-context';
-import { PlaywrightPlugin } from '../playwright/playwright-plugin';
-import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin';
-import type { FingerprintGeneratorOptions } from './types';
-import { BrowserName, DeviceCategory, OperatingSystemsName } from './types';
+import type { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
+import type { LaunchContext } from '../launch-context.js';
+import { PlaywrightPlugin } from '../playwright/playwright-plugin.js';
+import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin.js';
+import type { FingerprintGeneratorOptions } from './types.js';
+import { BrowserName, DeviceCategory, OperatingSystemsName } from './types.js';
 
 export const getGeneratorDefaultOptions = (launchContext: LaunchContext): FingerprintGeneratorOptions => {
     const { browserPlugin, launchOptions } = launchContext;
