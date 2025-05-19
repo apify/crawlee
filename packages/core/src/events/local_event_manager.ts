@@ -5,8 +5,8 @@ import { getCurrentCpuTicksV2, getMemoryInfo, getMemoryInfoV2, isContainerized }
 import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import type { SystemInfo } from '../autoscaling';
-import { EventManager, EventType } from './event_manager';
+import type { SystemInfo } from '../autoscaling/system_status.js';
+import { EventManager, EventType } from './event_manager.js';
 
 export class LocalEventManager extends EventManager {
     private previousTicks = { idle: 0, total: 0 };

@@ -6,11 +6,11 @@ import type { Log } from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
-import type { EventManager } from '../events/event_manager';
-import { EventType } from '../events/event_manager';
-import { log as defaultLog } from '../log';
-import type { SystemInfo } from './system_status';
+import { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import { log as defaultLog } from '../log.js';
+import type { SystemInfo } from './system_status.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;

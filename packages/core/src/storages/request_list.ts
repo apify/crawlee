@@ -2,15 +2,15 @@ import type { Dictionary } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
-import { Configuration } from '../configuration';
-import type { EventManager } from '../events';
-import { EventType } from '../events';
-import { log } from '../log';
-import type { ProxyConfiguration } from '../proxy_configuration';
-import { type InternalSource, Request, type RequestOptions, type Source } from '../request';
-import { createDeserialize, serializeArray } from '../serialization';
-import { KeyValueStore } from './key_value_store';
-import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import { log } from '../log.js';
+import type { ProxyConfiguration } from '../proxy_configuration.js';
+import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
+import { createDeserialize, serializeArray } from '../serialization.js';
+import { KeyValueStore } from './key_value_store.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';

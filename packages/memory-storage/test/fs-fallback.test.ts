@@ -4,10 +4,10 @@ import { resolve } from 'node:path';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { KeyValueStoreRecord } from '@crawlee/types';
-import { ensureDir } from 'fs-extra';
+import { ensureDir } from 'fs-extra/esm';
 
 describe('fallback to fs for reading', () => {
-    const tmpLocation = resolve(__dirname, './tmp/fs-fallback');
+    const tmpLocation = resolve(import.meta.dirname, './tmp/fs-fallback');
     const storage = new MemoryStorage({
         localDataDirectory: tmpLocation,
     });

@@ -6,7 +6,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainThread, Worker, workerData } from 'node:worker_threads';
 
-import { colors, getApifyToken, clearPackages, clearStorage, SKIPPED_TEST_CLOSE_CODE } from './tools.mjs';
+import { clearPackages, clearStorage, colors, getApifyToken, SKIPPED_TEST_CLOSE_CODE } from './tools.mjs';
 
 const basePath = dirname(fileURLToPath(import.meta.url));
 
@@ -81,7 +81,7 @@ async function run() {
                         `[${dir.name}]`,
                     )} did not call "initialize(import.meta.url)"!`,
                 );
-                worker.terminate();
+                void worker.terminate();
                 return;
             }
 

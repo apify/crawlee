@@ -1,8 +1,8 @@
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
 
-import { log } from './log';
-import { CookieParseError } from './session_pool/errors';
+import { log } from './log.js';
+import { CookieParseError } from './session_pool/errors.js';
 
 export interface ResponseLike {
     url?: string | (() => string);

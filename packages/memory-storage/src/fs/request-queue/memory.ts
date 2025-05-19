@@ -1,5 +1,5 @@
-import type { InternalRequest } from '../../resource-clients/request-queue';
-import type { StorageImplementation } from '../common';
+import type { InternalRequest } from '../../resource-clients/request-queue.js';
+import type { StorageImplementation } from '../common.js';
 
 export class RequestQueueMemoryEntry implements StorageImplementation<InternalRequest> {
     private data!: InternalRequest;

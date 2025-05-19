@@ -5,9 +5,9 @@ import { Minimatch } from 'minimatch';
 
 import { purlToRegExp } from '@apify/pseudo_url';
 
-import type { RequestOptions } from '../request';
-import { Request } from '../request';
-import type { EnqueueLinksOptions } from './enqueue_links';
+import type { RequestOptions } from '../request.js';
+import { Request } from '../request.js';
+import type { EnqueueLinksOptions } from './enqueue_links.js';
 
 export { tryAbsoluteURL } from '@crawlee/utils';
 
@@ -240,7 +240,7 @@ export function filterRequestsByPatterns(
  * @ignore
  */
 export function createRequestOptions(
-    sources: (string | Record<string, unknown>)[],
+    sources: readonly (string | Record<string, unknown>)[],
     options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'strategy'> = {},
 ): RequestOptions[] {
     return sources

@@ -1,6 +1,6 @@
 import { Configuration, EventType, KeyValueStore, Session, SessionPool } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import { Log } from '@apify/log';
 

@@ -5,33 +5,35 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra';
-import type { RequestQueueFileSystemEntry } from 'packages/memory-storage/src/fs/request-queue/fs';
-import type { RequestQueueMemoryEntry } from 'packages/memory-storage/src/fs/request-queue/memory';
+import { move } from 'fs-extra/esm';
+import type { RequestQueueFileSystemEntry } from 'packages/memory-storage/src/fs/request-queue/fs.js';
+import type { RequestQueueMemoryEntry } from 'packages/memory-storage/src/fs/request-queue/memory.js';
 
-import { scheduleBackgroundTask } from '../background-handler';
-import { findRequestQueueByPossibleId } from '../cache-helpers';
-import { StorageTypes } from '../consts';
-import { createRequestQueueStorageImplementation } from '../fs/request-queue';
-import type { MemoryStorage } from '../index';
-import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
-import { BaseClient } from './common/base-client';
+import { scheduleBackgroundTask } from '../background-handler/index.js';
+import { findRequestQueueByPossibleId } from '../cache-helpers.js';
+import { StorageTypes } from '../consts.js';
+import { createRequestQueueStorageImplementation } from '../fs/request-queue/index.js';
+import type { MemoryStorage } from '../index.js';
+import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
+import { BaseClient } from './common/base-client.js';
 
-const requestShape = s.object({
-    id: s.string,
-    url: s.string.url({ allowedProtocols: ['http:', 'https:'] }),
-    uniqueKey: s.string,
-    method: s.string.optional,
-    retryCount: s.number.int.optional,
-    handledAt: s.union(s.string, s.date.valid).optional,
-}).passthrough;
+const requestShape = s
+    .object({
+        id: s.string(),
+        url: s.string().url({ allowedProtocols: ['http:', 'https:'] }),
+        uniqueKey: s.string(),
+        method: s.string().optional(),
+        retryCount: s.number().int().optional(),
+        handledAt: s.union([s.string(), s.date().valid()]).optional(),
+    })
+    .passthrough();
 
 const requestShapeWithoutId = requestShape.omit(['id']);
 
-const batchRequestShapeWithoutId = requestShapeWithoutId.array;
+const batchRequestShapeWithoutId = requestShapeWithoutId.array();
 
 const requestOptionsShape = s.object({
-    forefront: s.boolean.optional,
+    forefront: s.boolean().optional(),
 });
 
 export interface RequestQueueClientOptions {
@@ -100,9 +102,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         // when swapping to a remote queue in production.
         const parsed = s
             .object({
-                name: s.string.lengthGreaterThan(0).optional,
+                name: s.string().lengthGreaterThan(0).optional(),
             })
-            .passthrough.parse(newFields);
+            .passthrough()
+            .parse(newFields);
 
         const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
@@ -166,7 +169,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     async listHead(options: storage.ListOptions = {}): Promise<storage.QueueHead> {
         const { limit } = s
             .object({
-                limit: s.number.optional.default(100),
+                limit: s.number().optional().default(100),
             })
             .parse(options);
 
@@ -229,8 +232,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     async listAndLockHead(options: storage.ListAndLockOptions): Promise<storage.ListAndLockHeadResult> {
         const { limit, lockSecs } = s
             .object({
-                limit: s.number.lessThanOrEqual(25).optional.default(25),
-                lockSecs: s.number,
+                limit: s.number().lessThanOrEqual(25).optional().default(25),
+                lockSecs: s.number(),
             })
             .parse(options);
 
@@ -302,11 +305,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         id: string,
         options: storage.ProlongRequestLockOptions,
     ): Promise<storage.ProlongRequestLockResult> {
-        s.string.parse(id);
+        s.string().parse(id);
         const { lockSecs, forefront } = s
             .object({
-                lockSecs: s.number,
-                forefront: s.boolean.optional.default(false),
+                lockSecs: s.number(),
+                forefront: s.boolean().optional().default(false),
             })
             .parse(options);
 
@@ -337,10 +340,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}): Promise<void> {
-        s.string.parse(id);
+        s.string().parse(id);
         const { forefront } = s
             .object({
-                forefront: s.boolean.optional.default(false),
+                forefront: s.boolean().optional().default(false),
             })
             .parse(options);
 
@@ -498,7 +501,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async getRequest(id: string): Promise<storage.RequestOptions | undefined> {
-        s.string.parse(id);
+        s.string().parse(id);
         const queue = await this.getQueue();
         const json = (await queue.requests.get(id)?.get())?.json;
         return this._jsonToRequest(json);

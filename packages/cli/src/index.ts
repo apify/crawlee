@@ -1,20 +1,12 @@
 #!/usr/bin/env node
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require('yargonaut') //
-    .style('blue')
-    .style('yellow', 'required')
-    .helpStyle('green')
-    .errorsStyle('red');
+// eslint-disable-next-line
+import { CreateProjectCommand } from './commands/CreateProjectCommand.js';
 
-// eslint-disable-next-line
-import { CreateProjectCommand } from './commands/CreateProjectCommand';
-// eslint-disable-next-line
-import { InstallPlaywrightBrowsersCommand } from './commands/InstallPlaywrightBrowsersCommand';
-// eslint-disable-next-line
-import { RunProjectCommand } from './commands/RunProjectCommand';
+import { InstallPlaywrightBrowsersCommand } from './commands/InstallPlaywrightBrowsersCommand.js';
 
-// eslint-disable-next-line
+import { RunProjectCommand } from './commands/RunProjectCommand.js';
+
 import yargs from 'yargs';
 
 function getCLIVersion(): string {
@@ -29,7 +21,7 @@ function getCLIVersion(): string {
     }
 }
 
-const cli = yargs
+const cli = yargs()
     .scriptName('crawlee')
     .version(getCLIVersion())
     .usage('Usage: $0 <command> [options]')
@@ -43,12 +35,14 @@ const cli = yargs
     .command(new RunProjectCommand())
     .command(new InstallPlaywrightBrowsersCommand())
     .recommendCommands()
+    .showHelpOnFail(true)
+    .demandCommand(1, '')
     .strict();
 
 void (async () => {
     const args = (await cli.parse(process.argv.slice(2))) as { _: string[] };
 
     if (args._.length === 0) {
-        yargs.showHelp();
+        yargs(process.argv.slice(2)).showHelp();
     }
 })();

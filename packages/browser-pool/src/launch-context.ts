@@ -1,8 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 
-import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './abstract-classes/browser-plugin';
-import type { UnwrapPromise } from './utils';
+import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './abstract-classes/browser-plugin.js';
+import type { UnwrapPromise } from './utils.js';
 
 /**
  * `LaunchContext` holds information about the launched browser. It's useful

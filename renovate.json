@@ -26,5 +26,5 @@
 	"schedule": ["every weekday"],
 	"minimumReleaseAge": "1 day",
 	"internalChecksFilter": "strict",
-	"ignoreDeps": ["crawlee", "cheerio", "yarn"]
+	"ignoreDeps": ["crawlee"]
 }

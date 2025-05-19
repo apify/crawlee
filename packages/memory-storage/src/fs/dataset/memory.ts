@@ -1,4 +1,4 @@
-import type { StorageImplementation } from '../common';
+import type { StorageImplementation } from '../common.js';
 
 export class DatasetMemoryEntry<Data> implements StorageImplementation<Data> {
     private data!: Data;

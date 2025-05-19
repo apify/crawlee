@@ -8,11 +8,11 @@ import ow from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
 
-import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
-import type { SkippedRequestReason } from './enqueue_links/shared';
-import { log as defaultLog } from './log';
-import type { AllowedHttpMethods } from './typedefs';
-import { keys } from './typedefs';
+import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
+import type { SkippedRequestReason } from './enqueue_links/shared.js';
+import { log as defaultLog } from './log.js';
+import type { AllowedHttpMethods } from './typedefs.js';
+import { keys } from './typedefs.js';
 
 // new properties on the Request object breaks serialization
 const log = defaultLog.child({ prefix: 'Request' });

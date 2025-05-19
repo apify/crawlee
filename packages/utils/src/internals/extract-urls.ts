@@ -1,7 +1,7 @@
+import { gotScraping } from 'got-scraping';
 import ow from 'ow';
 
-import { URL_NO_COMMAS_REGEX } from './general';
-import { gotScraping } from './gotScraping';
+import { URL_NO_COMMAS_REGEX } from './general.js';
 
 export interface DownloadListOfUrlsOptions {
     /**
@@ -32,7 +32,7 @@ export interface DownloadListOfUrlsOptions {
  */
 export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]> {
     ow(
-        options,
+        options as any,
         ow.object.exactShape({
             url: ow.string.url,
             encoding: ow.optional.string,
@@ -73,7 +73,7 @@ export interface ExtractUrlsOptions {
  */
 export function extractUrls(options: ExtractUrlsOptions): string[] {
     ow(
-        options,
+        options as any,
         ow.object.exactShape({
             string: ow.string,
             urlRegExp: ow.optional.regExp,

@@ -1,12 +1,12 @@
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { FingerprintInjector } from 'fingerprint-injector';
 
-import type { BrowserController } from '../abstract-classes/browser-controller';
-import type { BrowserPool } from '../browser-pool';
-import type { LaunchContext } from '../launch-context';
-import { PlaywrightPlugin } from '../playwright/playwright-plugin';
-import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin';
-import { getGeneratorDefaultOptions } from './utils';
+import type { BrowserController } from '../abstract-classes/browser-controller.js';
+import type { BrowserPool } from '../browser-pool.js';
+import type { LaunchContext } from '../launch-context.js';
+import { PlaywrightPlugin } from '../playwright/playwright-plugin.js';
+import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin.js';
+import { getGeneratorDefaultOptions } from './utils.js';
 
 /**
  * @internal

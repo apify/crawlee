@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import log from '@apify/log';
 
-import type { SitemapUrl } from '../src/internals/sitemap';
-import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap';
+import type { SitemapUrl } from '../src/internals/sitemap.js';
+import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap.js';
 
 describe('Sitemap', () => {
     beforeEach(() => {

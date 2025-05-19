@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 
 import { GotScrapingHttpClient, HttpCrawler } from '@crawlee/http';
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
