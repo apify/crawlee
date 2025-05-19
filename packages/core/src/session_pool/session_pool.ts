@@ -6,15 +6,15 @@ import ow from 'ow';
 
 import type { Log } from '@apify/log';
 
-import { Configuration } from '../configuration';
-import type { PersistenceOptions } from '../crawlers/statistics';
-import type { EventManager } from '../events/event_manager';
-import { EventType } from '../events/event_manager';
-import { log as defaultLog } from '../log';
-import { KeyValueStore } from '../storages/key_value_store';
-import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts';
-import type { SessionOptions } from './session';
-import { Session } from './session';
+import { Configuration } from '../configuration.js';
+import type { PersistenceOptions } from '../crawlers/statistics.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import { log as defaultLog } from '../log.js';
+import { KeyValueStore } from '../storages/key_value_store.js';
+import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
+import type { SessionOptions } from './session.js';
+import { Session } from './session.js';
 
 /**
  * Factory user-function which creates customized {@apilink Session} instances.

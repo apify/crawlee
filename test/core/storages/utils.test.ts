@@ -2,7 +2,7 @@ import type { Dictionary } from '@crawlee/core';
 import { Configuration, KeyValueStore, purgeDefaultStorages, useState } from '@crawlee/core';
 import type { StorageClient } from '@crawlee/types';
 
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 describe('useState', () => {
     const emulator = new MemoryStorageEmulator();

@@ -1,6 +1,6 @@
 import { BasicCrawler } from '@crawlee/basic';
 
-import { MemoryStorageEmulator } from '../../../test/shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from '../../../test/shared/MemoryStorageEmulator.js';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
     const localStorageEmulator = new MemoryStorageEmulator();

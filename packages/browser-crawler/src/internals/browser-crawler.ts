@@ -47,7 +47,7 @@ import type { ReadonlyDeep } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
-import type { BrowserLaunchContext } from './browser-launcher';
+import type { BrowserLaunchContext } from './browser-launcher.js';
 
 const PAGE_CLOSE_TIMEOUT_MILLIS = 5000;
 

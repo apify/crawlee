@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { JSDOMCrawler } from '@crawlee/jsdom';
 import { LinkeDOMCrawler } from '@crawlee/linkedom';
 
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {

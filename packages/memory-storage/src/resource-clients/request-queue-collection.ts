@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { scheduleBackgroundTask } from '../background-handler';
-import { findRequestQueueByPossibleId } from '../cache-helpers';
-import type { MemoryStorage } from '../index';
-import { RequestQueueClient } from './request-queue';
+import { scheduleBackgroundTask } from '../background-handler/index.js';
+import { findRequestQueueByPossibleId } from '../cache-helpers.js';
+import type { MemoryStorage } from '../index.js';
+import { RequestQueueClient } from './request-queue.js';
 
 export interface RequestQueueCollectionClientOptions {
     baseStorageDirectory: string;
@@ -36,7 +36,7 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
     }
 
     async getOrCreate(name?: string): Promise<storage.RequestQueueInfo> {
-        s.string.optional.parse(name);
+        s.string().optional().parse(name);
 
         if (name) {
             const found = await findRequestQueueByPossibleId(this.client, name);

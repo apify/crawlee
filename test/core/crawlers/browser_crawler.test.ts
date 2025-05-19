@@ -17,13 +17,13 @@ import { sleep } from '@crawlee/utils';
 import type { HTTPResponse } from 'puppeteer';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
+import { runExampleComServer } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import { ENV_VARS } from '@apify/consts';
 import log from '@apify/log';
 
-import { runExampleComServer } from '../../shared/_helper';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
-import { BrowserCrawlerTest } from './basic_browser_crawler';
+import { BrowserCrawlerTest } from './basic_browser_crawler.js';
 
 describe('BrowserCrawler', () => {
     let prevEnvHeadless: string;

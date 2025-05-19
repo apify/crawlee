@@ -1,13 +1,12 @@
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { HTTPError as HTTPErrorClass } from 'got-scraping';
+import { gotScraping } from 'got-scraping';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
 import log from '@apify/log';
 
-import { gotScraping } from './gotScraping';
-import { Sitemap } from './sitemap';
-import { type EnqueueStrategy, filterUrl } from './url';
+import { Sitemap } from './sitemap.js';
+import { type EnqueueStrategy, filterUrl } from './url.js';
 
 let HTTPError: typeof HTTPErrorClass;
 

@@ -30,8 +30,8 @@ import { z } from 'zod';
 
 import log from '@apify/log';
 
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
-import { createProxyServer } from '../create-proxy-server';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { createProxyServer } from '../create-proxy-server.js';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless: string;

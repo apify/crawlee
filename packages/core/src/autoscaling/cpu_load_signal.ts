@@ -1,8 +1,8 @@
-import type { Configuration } from '../configuration';
-import { EventType } from '../events/event_manager';
-import type { LoadSnapshot } from './load_signal';
-import { SnapshotStore } from './load_signal';
-import type { SystemInfo } from './system_status';
+import type { Configuration } from '../configuration.js';
+import { EventType } from '../events/event_manager.js';
+import type { LoadSnapshot } from './load_signal.js';
+import { SnapshotStore } from './load_signal.js';
+import type { SystemInfo } from './system_status.js';
 
 export interface CpuSnapshot extends LoadSnapshot {
     usedRatio: number;

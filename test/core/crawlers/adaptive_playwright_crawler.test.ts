@@ -19,8 +19,8 @@ import { sleep } from 'crawlee';
 import express from 'express';
 import { z } from 'zod';
 
-import { startExpressAppPromise } from '../../shared/_helper';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages

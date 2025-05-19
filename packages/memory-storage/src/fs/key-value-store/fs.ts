@@ -2,14 +2,14 @@ import { readFile, rm } from 'node:fs/promises';
 import { basename, dirname } from 'node:path';
 
 import { AsyncQueue } from '@sapphire/async-queue';
-import { ensureDir } from 'fs-extra';
+import { ensureDir } from 'fs-extra/esm';
 import mime from 'mime-types';
 
-import { lockAndWrite } from '../../background-handler/fs-utils';
-import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
-import { memoryStorageLog, resolveWithinDirectory } from '../../utils';
-import type { StorageImplementation } from '../common';
-import type { CreateStorageImplementationOptions } from '.';
+import { lockAndWrite } from '../../background-handler/fs-utils.js';
+import type { InternalKeyRecord } from '../../resource-clients/key-value-store.js';
+import { memoryStorageLog, resolveWithinDirectory } from '../../utils.js';
+import type { StorageImplementation } from '../common.js';
+import type { CreateStorageImplementationOptions } from './index.js';
 
 export class KeyValueFileSystemEntry implements StorageImplementation<InternalKeyRecord> {
     private storeDirectory: string;

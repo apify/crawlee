@@ -1,4 +1,4 @@
-import { ErrorTracker } from '../../core/src/crawlers/error_tracker';
+import { ErrorTracker } from '../../core/src/crawlers/error_tracker.js';
 
 describe('ErrorTracker', () => {
     test('processing a non-error error should not crash', () => {
