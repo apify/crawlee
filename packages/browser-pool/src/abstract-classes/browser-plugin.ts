@@ -66,12 +66,6 @@ export interface BrowserPluginOptions<LibraryOptions> {
      */
     useIncognitoPages?: boolean;
     /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
-    /**
      * Path to a User Data Directory, which stores browser session data like cookies and local storage.
      */
     userDataDir?: string;
@@ -116,19 +110,11 @@ export abstract class BrowserPlugin<
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
     name = this.constructor.name;
-
     library: Library;
-
     launchOptions: LibraryOptions;
-
     proxyUrl?: string;
-
     userDataDir?: string;
-
     useIncognitoPages: boolean;
-
-    experimentalContainers: boolean;
-
     browserPerProxy?: boolean;
 
     ignoreProxyCertificate?: boolean;
@@ -139,7 +125,6 @@ export abstract class BrowserPlugin<
             proxyUrl,
             userDataDir,
             useIncognitoPages = false,
-            experimentalContainers = false,
             browserPerProxy = false,
             ignoreProxyCertificate = false,
         } = options;
@@ -149,7 +134,6 @@ export abstract class BrowserPlugin<
         this.proxyUrl = proxyUrl && new URL(proxyUrl).href.slice(0, -1);
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
-        this.experimentalContainers = experimentalContainers;
         this.browserPerProxy = browserPerProxy;
         this.ignoreProxyCertificate = ignoreProxyCertificate;
     }
@@ -169,7 +153,6 @@ export abstract class BrowserPlugin<
             proxyUrl = this.proxyUrl,
             useIncognitoPages = this.useIncognitoPages,
             userDataDir = this.userDataDir,
-            experimentalContainers = this.experimentalContainers,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
             proxyTier,
@@ -181,7 +164,6 @@ export abstract class BrowserPlugin<
             browserPlugin: this,
             proxyUrl,
             useIncognitoPages,
-            experimentalContainers,
             userDataDir,
             browserPerProxy,
             ignoreProxyCertificate,

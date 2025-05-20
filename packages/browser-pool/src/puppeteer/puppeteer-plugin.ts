@@ -38,6 +38,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         } catch {
             // ignore
         }
+
         const {
             launchOptions,
             userDataDir,
