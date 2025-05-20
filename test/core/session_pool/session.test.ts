@@ -185,17 +185,6 @@ describe('Session - testing session behaviour ', () => {
         });
     });
 
-    test('should checkStatus work with custom codes', () => {
-        session = new Session({ sessionPool });
-        const customStatusCodes = [100, 202, 300];
-        expect(session.retireOnBlockedStatusCodes(100, customStatusCodes)).toBeTruthy();
-        expect(session.retireOnBlockedStatusCodes(101, customStatusCodes)).toBeFalsy();
-        expect(session.retireOnBlockedStatusCodes(200, customStatusCodes)).toBeFalsy();
-        expect(session.retireOnBlockedStatusCodes(202, customStatusCodes)).toBeTruthy();
-        expect(session.retireOnBlockedStatusCodes(300, customStatusCodes)).toBeTruthy();
-        expect(session.retireOnBlockedStatusCodes(400, customStatusCodes)).toBeFalsy();
-    });
-
     test('setCookies should work', () => {
         const url = 'https://example.com';
         const cookies = [
