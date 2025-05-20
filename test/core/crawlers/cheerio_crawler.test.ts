@@ -1119,14 +1119,14 @@ describe('CheerioCrawler', () => {
         });
 
         test('mergeCookies()', async () => {
-            const deprecatedSpy = vitest.spyOn(Log.prototype, 'deprecated');
+            const warningSpy = vitest.spyOn(Log.prototype, 'warningOnce');
             const cookie1 = mergeCookies('https://example.com', [
                 'foo=bar1; other=cookie1 ; coo=kie',
                 'foo=bar2; baz=123',
                 'other=cookie2;foo=bar3',
             ]);
             expect(cookie1).toBe('foo=bar3; other=cookie2; coo=kie; baz=123');
-            expect(deprecatedSpy).not.toBeCalled();
+            expect(warningSpy).not.toBeCalled();
 
             const cookie2 = mergeCookies('https://example.com', [
                 'Foo=bar1; other=cookie1 ; coo=kie',
@@ -1134,14 +1134,14 @@ describe('CheerioCrawler', () => {
                 'Other=cookie2;foo=bar3',
             ]);
             expect(cookie2).toBe('Foo=bar1; other=cookie1; coo=kie; foo=bar3; baz=123; Other=cookie2');
-            expect(deprecatedSpy).toBeCalledTimes(3);
-            expect(deprecatedSpy).toBeCalledWith(
+            expect(warningSpy).toBeCalledTimes(3);
+            expect(warningSpy).toBeCalledWith(
                 `Found cookies with similar name during cookie merging: 'foo' and 'Foo'`,
             );
-            expect(deprecatedSpy).toBeCalledWith(
+            expect(warningSpy).toBeCalledWith(
                 `Found cookies with similar name during cookie merging: 'Other' and 'other'`,
             );
-            deprecatedSpy.mockClear();
+            warningSpy.mockClear();
 
             const cookie3 = mergeCookies('https://example.com', [
                 'foo=bar1; Other=cookie1 ; Coo=kie',
@@ -1149,11 +1149,11 @@ describe('CheerioCrawler', () => {
                 'Other=cookie2;Foo=bar3;coo=kee',
             ]);
             expect(cookie3).toBe('foo=bar2; Other=cookie2; Coo=kie; baz=123; Foo=bar3; coo=kee');
-            expect(deprecatedSpy).toBeCalledTimes(2);
-            expect(deprecatedSpy).toBeCalledWith(
+            expect(warningSpy).toBeCalledTimes(2);
+            expect(warningSpy).toBeCalledWith(
                 `Found cookies with similar name during cookie merging: 'Foo' and 'foo'`,
             );
-            expect(deprecatedSpy).toBeCalledWith(
+            expect(warningSpy).toBeCalledWith(
                 `Found cookies with similar name during cookie merging: 'coo' and 'Coo'`,
             );
         });

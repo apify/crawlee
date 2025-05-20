@@ -646,7 +646,6 @@ export async function parseWithCheerio(
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
-    console.log(ignoreShadowRoots, pageContent);
 
     return cheerio.load(pageContent);
 }

@@ -298,33 +298,14 @@ export class Session {
     /**
      * With certain status codes: `401`, `403` or `429` we can be certain
      * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally the default status
+     * by retiring the session when such code is received. Optionally, the default status
      * codes can be extended in the second parameter.
      * @param statusCode HTTP status code.
      * @returns Whether the session was retired.
      */
-    retireOnBlockedStatusCodes(statusCode: number): boolean;
-
-    /**
-     * With certain status codes: `401`, `403` or `429` we can be certain
-     * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally the default status
-     * codes can be extended in the second parameter.
-     * @param statusCode HTTP status code.
-     * @param [additionalBlockedStatusCodes]
-     *   Custom HTTP status codes that means blocking on particular website.
-     *
-     *   **This parameter is deprecated and will be removed in next major version.**
-     * @returns Whether the session was retired.
-     * @deprecated The parameter `additionalBlockedStatusCodes` is deprecated and will be removed in next major version.
-     */
-    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes?: number[]): boolean;
-
-    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes: number[] = []): boolean {
+    retireOnBlockedStatusCodes(statusCode: number): boolean {
         // eslint-disable-next-line dot-notation -- accessing private property
-        const isBlocked = this.sessionPool['blockedStatusCodes']
-            .concat(additionalBlockedStatusCodes)
-            .includes(statusCode);
+        const isBlocked = this.sessionPool['blockedStatusCodes'].includes(statusCode);
         if (isBlocked) {
             this.retire();
         }

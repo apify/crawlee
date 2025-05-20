@@ -118,15 +118,15 @@ __metadata:
   linkType: hard
 
 "@asamuzakjp/css-color@npm:^3.1.2":
-  version: 3.1.7
-  resolution: "@asamuzakjp/css-color@npm:3.1.7"
+  version: 3.2.0
+  resolution: "@asamuzakjp/css-color@npm:3.2.0"
   dependencies:
     "@csstools/css-calc": "npm:^2.1.3"
     "@csstools/css-color-parser": "npm:^3.0.9"
     "@csstools/css-parser-algorithms": "npm:^3.0.4"
     "@csstools/css-tokenizer": "npm:^3.0.3"
     lru-cache: "npm:^10.4.3"
-  checksum: 10c0/ac70af38c9b9d972941fe9dbed5221118077bc8f217617edbd534d9c7c281fd2c4023d0f0daa349d57b895cb73430d67d509b722226294bad2910a81d9439e91
+  checksum: 10c0/a4bf1c831751b1fae46b437e37e8a38c0b5bd58d23230157ae210bd1e905fe509b89b7c243e63d1522d852668a6292ed730a160e21342772b4e5b7b8ea14c092
   languageName: node
   linkType: hard
 
@@ -3059,8 +3059,8 @@ __metadata:
   linkType: hard
 
 "@vitest/coverage-v8@npm:^3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/coverage-v8@npm:3.1.3"
+  version: 3.1.4
+  resolution: "@vitest/coverage-v8@npm:3.1.4"
   dependencies:
     "@ampproject/remapping": "npm:^2.3.0"
     "@bcoe/v8-coverage": "npm:^1.0.2"
@@ -3075,32 +3075,32 @@ __metadata:
     test-exclude: "npm:^7.0.1"
     tinyrainbow: "npm:^2.0.0"
   peerDependencies:
-    "@vitest/browser": 3.1.3
-    vitest: 3.1.3
+    "@vitest/browser": 3.1.4
+    vitest: 3.1.4
   peerDependenciesMeta:
     "@vitest/browser":
       optional: true
-  checksum: 10c0/82b5c33ae258832d98d42f24402708bc89dcf7e7c21a9e869dca3860040f57dbefc1bcdea0648e1683e6d07a03fe953c17b99981905be7b95a67bceffea52e68
+  checksum: 10c0/e2073c06254772bfcaf00e40b76599aa9a3d66fc84c3d980941c4d216b4cf3db8b6f7f0ebcd4905c4ca08e8d19b505d9c428363e51a80a2d653a4a510b280e41
   languageName: node
   linkType: hard
 
-"@vitest/expect@npm:3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/expect@npm:3.1.3"
+"@vitest/expect@npm:3.1.4":
+  version: 3.1.4
+  resolution: "@vitest/expect@npm:3.1.4"
   dependencies:
-    "@vitest/spy": "npm:3.1.3"
-    "@vitest/utils": "npm:3.1.3"
+    "@vitest/spy": "npm:3.1.4"
+    "@vitest/utils": "npm:3.1.4"
     chai: "npm:^5.2.0"
     tinyrainbow: "npm:^2.0.0"
-  checksum: 10c0/3a61e5526ed57491c9c230cb592849a2c15e6b4376bfaec4f623ac75fdcf5c24c322949cfb5362136fc8be5eb19be88d094917ea5f700bd3da0ea0c68ee4a8d9
+  checksum: 10c0/9cfd7eb6d965a179b4ec0610a9c08b14dc97dbaf81925c8209a054f7a2a3d1eef59fa5e5cd4dd9bf8cb940d85aee5f5102555511a94be9933faf4cc734462a16
   languageName: node
   linkType: hard
 
-"@vitest/mocker@npm:3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/mocker@npm:3.1.3"
+"@vitest/mocker@npm:3.1.4":
+  version: 3.1.4
+  resolution: "@vitest/mocker@npm:3.1.4"
   dependencies:
-    "@vitest/spy": "npm:3.1.3"
+    "@vitest/spy": "npm:3.1.4"
     estree-walker: "npm:^3.0.3"
     magic-string: "npm:^0.30.17"
   peerDependencies:
@@ -3111,57 +3111,57 @@ __metadata:
       optional: true
     vite:
       optional: true
-  checksum: 10c0/6e6a62e27aa6cd146d14ae64eb9acfc0f49e7479ca426af1fb4df362456aa3456abf29731247659032e4bfb7ac9482fca1d1c7e1501e1a186eb211221e1f613a
+  checksum: 10c0/d0b89e3974830d3893e7b8324a77ffeb9436db0969b57c01e2508ebd5b374c9d01f73796c8df8f555a3b1e1b502d40e725f159cd85966eebd3145b2f52e605e2
   languageName: node
   linkType: hard
 
-"@vitest/pretty-format@npm:3.1.3, @vitest/pretty-format@npm:^3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/pretty-format@npm:3.1.3"
+"@vitest/pretty-format@npm:3.1.4, @vitest/pretty-format@npm:^3.1.4":
+  version: 3.1.4
+  resolution: "@vitest/pretty-format@npm:3.1.4"
   dependencies:
     tinyrainbow: "npm:^2.0.0"
-  checksum: 10c0/eba164d2c0b2babbcf6bb054da3b326d08cc3a0289ade3c64309bfe5e7c3124cd4d45a60b2f673cf4f5b3a97381fb7af7009780a5d9665afdf7f8263fa34c068
+  checksum: 10c0/11e133640435822b8b8528be540b3d66c1de27ebc2dcf1de87608b7f01a44d15302c4d4bf8330fa848a435450d88a09d7e9442747a5739ae5f500ccdd1493159
   languageName: node
   linkType: hard
 
-"@vitest/runner@npm:3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/runner@npm:3.1.3"
+"@vitest/runner@npm:3.1.4":
+  version: 3.1.4
+  resolution: "@vitest/runner@npm:3.1.4"
   dependencies:
-    "@vitest/utils": "npm:3.1.3"
+    "@vitest/utils": "npm:3.1.4"
     pathe: "npm:^2.0.3"
-  checksum: 10c0/f03c26e72657242ce68a93b46ee8a4e6fa1a290850be608988622a3efef744ffadc0436123acafe61977608b287b1637f4f781d27107ee0c33937c54f547159d
+  checksum: 10c0/efb7512eebd3d786baa617eab332ec9ca6ce62eb1c9dd3945019f7510d745b3cd0fc2978868d792050905aacbf158eefc132359c83e61f0398b46be566013ee6
   languageName: node
   linkType: hard
 
-"@vitest/snapshot@npm:3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/snapshot@npm:3.1.3"
+"@vitest/snapshot@npm:3.1.4":
+  version: 3.1.4
+  resolution: "@vitest/snapshot@npm:3.1.4"
   dependencies:
-    "@vitest/pretty-format": "npm:3.1.3"
+    "@vitest/pretty-format": "npm:3.1.4"
     magic-string: "npm:^0.30.17"
     pathe: "npm:^2.0.3"
-  checksum: 10c0/60b70c1d878c3d9a4fe3464d14be2318a7a3be24131beb801712735d5dcbc7db7b798f21c98c6fbad4998554992038b29655e1b6e2503242627f203fd89c97c3
+  checksum: 10c0/ce9d51e1b03e4f91ffad160c570991a8a3c603cb7dc2a9020e58c012e62dccbe2c6ee45e1a1d8489e265b4485c6721eb73b5e91404d1c76da08dcd663f4e18d1
   languageName: node
   linkType: hard
 
-"@vitest/spy@npm:3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/spy@npm:3.1.3"
+"@vitest/spy@npm:3.1.4":
+  version: 3.1.4
+  resolution: "@vitest/spy@npm:3.1.4"
   dependencies:
     tinyspy: "npm:^3.0.2"
-  checksum: 10c0/6a8c187069827c56f3492f212ccf76c797fe52392849948af736a0f579e4533fa91041d829e2574b252af4aaadec066ca0714450d6457b31526153978bc55192
+  checksum: 10c0/747914ac18efa82d75349b0fb0ad8a5e2af6e04f5bbb50a980c9270dd8958f9ddf84cee0849a54e1645af088fc1f709add94a35e99cb14aca2cdb322622ba501
   languageName: node
   linkType: hard
 
-"@vitest/utils@npm:3.1.3":
-  version: 3.1.3
-  resolution: "@vitest/utils@npm:3.1.3"
+"@vitest/utils@npm:3.1.4":
+  version: 3.1.4
+  resolution: "@vitest/utils@npm:3.1.4"
   dependencies:
-    "@vitest/pretty-format": "npm:3.1.3"
+    "@vitest/pretty-format": "npm:3.1.4"
     loupe: "npm:^3.1.3"
     tinyrainbow: "npm:^2.0.0"
-  checksum: 10c0/1c4ea711b87a8b2c7dc2da91f20427dccc34c0d1d0e81b8142780d24b6caa3c724e8287f7e01e9e875262b6bb912d55711fb99e66f718ba30cc21706a335829d
+  checksum: 10c0/78f1691a2dd578862b236f4962815e7475e547f006e7303a149dc5f910cc1ce6e0bdcbd7b4fd618122d62ca2dcc28bae464d31543f3898f5d88fa35017e00a95
   languageName: node
   linkType: hard
 
@@ -4106,13 +4106,13 @@ __metadata:
   linkType: hard
 
 "camoufox-js@npm:^0.3.5":
-  version: 0.3.5
-  resolution: "camoufox-js@npm:0.3.5"
+  version: 0.3.6
+  resolution: "camoufox-js@npm:0.3.6"
   dependencies:
     adm-zip: "npm:^0.5.16"
     commander: "npm:^13.1.0"
     fingerprint-generator: "npm:^2.1.66"
-    impit: "npm:^0.2.1"
+    impit: "npm:^0.4.6"
     js-yaml: "npm:^4.1.0"
     language-tags: "npm:^2.0.1"
     maxmind: "npm:^4.3.24"
@@ -4123,7 +4123,7 @@ __metadata:
     xml2js: "npm:^0.6.2"
   bin:
     camoufox-js: dist/__main__.js
-  checksum: 10c0/d35de44d43451963ceeace8d326f072e033e11893395189d271a3ee5502da9ba2595523fcb494f66cb9c805dfcde475e2c25ccc48a839c123cd0c359a74962b9
+  checksum: 10c0/468a88c614bcac0c278c394155c53a3f48dd82fc88e71a31a08c87e081a0e04f9bce892dec54aa6506ce3ac9c2e6e70c63c484e03aadbb74d46559786577f632
   languageName: node
   linkType: hard
 
@@ -5141,9 +5141,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1461159
-  resolution: "devtools-protocol@npm:0.0.1461159"
-  checksum: 10c0/a2ae9e8f64c36574ddbf9cb4c1194d169ab98e0dcf1e91e47fe96b7e4004534bcd5ad2a9adb6c41cc649889f2f0c4b264a09e7a668419c02803bcc96c08f61e4
+  version: 0.0.1462568
+  resolution: "devtools-protocol@npm:0.0.1462568"
+  checksum: 10c0/c2a1d0657abd890ef2f8f5130c7a46463b1caafbbe5688fb22a81d0adf54b3ed1a1a2ea73fb9ef5700d9685b00e5eae508eb7867f7686156e049c1f54da7b524
   languageName: node
   linkType: hard
 
@@ -7355,143 +7355,74 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-arm64@npm:0.2.5":
-  version: 0.2.5
-  resolution: "impit-darwin-arm64@npm:0.2.5"
+"impit-darwin-arm64@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-darwin-arm64@npm:0.4.7"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"impit-darwin-arm64@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-darwin-arm64@npm:0.4.6"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"impit-darwin-x64@npm:0.2.5":
-  version: 0.2.5
-  resolution: "impit-darwin-x64@npm:0.2.5"
+"impit-darwin-x64@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-darwin-x64@npm:0.4.7"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"impit-darwin-x64@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-darwin-x64@npm:0.4.6"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"impit-linux-arm64-gnu@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-linux-arm64-gnu@npm:0.4.6"
+"impit-linux-arm64-gnu@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-linux-arm64-gnu@npm:0.4.7"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"impit-linux-arm64-musl@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-linux-arm64-musl@npm:0.4.6"
+"impit-linux-arm64-musl@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-linux-arm64-musl@npm:0.4.7"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"impit-linux-x64-gnu@npm:0.2.5":
-  version: 0.2.5
-  resolution: "impit-linux-x64-gnu@npm:0.2.5"
+"impit-linux-x64-gnu@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-linux-x64-gnu@npm:0.4.7"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"impit-linux-x64-gnu@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-linux-x64-gnu@npm:0.4.6"
-  conditions: os=linux & cpu=x64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"impit-linux-x64-musl@npm:0.2.5":
-  version: 0.2.5
-  resolution: "impit-linux-x64-musl@npm:0.2.5"
+"impit-linux-x64-musl@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-linux-x64-musl@npm:0.4.7"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"impit-linux-x64-musl@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-linux-x64-musl@npm:0.4.6"
-  conditions: os=linux & cpu=x64 & libc=musl
-  languageName: node
-  linkType: hard
-
-"impit-win32-arm64-msvc@npm:0.2.5":
-  version: 0.2.5
-  resolution: "impit-win32-arm64-msvc@npm:0.2.5"
+"impit-win32-arm64-msvc@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-win32-arm64-msvc@npm:0.4.7"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"impit-win32-arm64-msvc@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-win32-arm64-msvc@npm:0.4.6"
-  conditions: os=win32 & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"impit-win32-x64-msvc@npm:0.2.5":
-  version: 0.2.5
-  resolution: "impit-win32-x64-msvc@npm:0.2.5"
+"impit-win32-x64-msvc@npm:0.4.7":
+  version: 0.4.7
+  resolution: "impit-win32-x64-msvc@npm:0.4.7"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"impit-win32-x64-msvc@npm:0.4.6":
-  version: 0.4.6
-  resolution: "impit-win32-x64-msvc@npm:0.4.6"
-  conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
-"impit@npm:^0.2.1":
-  version: 0.2.5
-  resolution: "impit@npm:0.2.5"
+"impit@npm:^0.4.5, impit@npm:^0.4.6":
+  version: 0.4.7
+  resolution: "impit@npm:0.4.7"
   dependencies:
-    impit-darwin-arm64: "npm:0.2.5"
-    impit-darwin-x64: "npm:0.2.5"
-    impit-linux-x64-gnu: "npm:0.2.5"
-    impit-linux-x64-musl: "npm:0.2.5"
-    impit-win32-arm64-msvc: "npm:0.2.5"
-    impit-win32-x64-msvc: "npm:0.2.5"
-  dependenciesMeta:
-    impit-darwin-arm64:
-      optional: true
-    impit-darwin-x64:
-      optional: true
-    impit-linux-x64-gnu:
-      optional: true
-    impit-linux-x64-musl:
-      optional: true
-    impit-win32-arm64-msvc:
-      optional: true
-    impit-win32-x64-msvc:
-      optional: true
-  checksum: 10c0/01bb579d9b8187d9cf7cadde622d52b157c917f32b387bd99497ab80d6dd30ab2686fe4d9c5de8a2c451663c2af3b69c995a2795e15e01f1ef57e0b2c64e5f85
-  languageName: node
-  linkType: hard
-
-"impit@npm:^0.4.5":
-  version: 0.4.6
-  resolution: "impit@npm:0.4.6"
-  dependencies:
-    impit-darwin-arm64: "npm:0.4.6"
-    impit-darwin-x64: "npm:0.4.6"
-    impit-linux-arm64-gnu: "npm:0.4.6"
-    impit-linux-arm64-musl: "npm:0.4.6"
-    impit-linux-x64-gnu: "npm:0.4.6"
-    impit-linux-x64-musl: "npm:0.4.6"
-    impit-win32-arm64-msvc: "npm:0.4.6"
-    impit-win32-x64-msvc: "npm:0.4.6"
+    impit-darwin-arm64: "npm:0.4.7"
+    impit-darwin-x64: "npm:0.4.7"
+    impit-linux-arm64-gnu: "npm:0.4.7"
+    impit-linux-arm64-musl: "npm:0.4.7"
+    impit-linux-x64-gnu: "npm:0.4.7"
+    impit-linux-x64-musl: "npm:0.4.7"
+    impit-win32-arm64-msvc: "npm:0.4.7"
+    impit-win32-x64-msvc: "npm:0.4.7"
   dependenciesMeta:
     impit-darwin-arm64:
       optional: true
@@ -7509,7 +7440,7 @@ __metadata:
       optional: true
     impit-win32-x64-msvc:
       optional: true
-  checksum: 10c0/66a1d11f3efcd7b6eb6a6eb59831e41e8a14cd6069b993471e29b609517832f9ab454dad3a9ec5b2b1a757e01abd7c55dcbc7ab0b99380de3f294538fdae7ad5
+  checksum: 10c0/d0037f55f6b6d577fb0f2d4474a8b892e48216e9bc5a32bbe9925bc985c32d3074919e6c041266b66b94248dd50ea62b8b2aa96f9b5ab9689b9164ae0fcabff8
   languageName: node
   linkType: hard
 
@@ -13446,9 +13377,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-node@npm:3.1.3":
-  version: 3.1.3
-  resolution: "vite-node@npm:3.1.3"
+"vite-node@npm:3.1.4":
+  version: 3.1.4
+  resolution: "vite-node@npm:3.1.4"
   dependencies:
     cac: "npm:^6.7.14"
     debug: "npm:^4.4.0"
@@ -13457,7 +13388,7 @@ __metadata:
     vite: "npm:^5.0.0 || ^6.0.0"
   bin:
     vite-node: vite-node.mjs
-  checksum: 10c0/d69a1e52361bc0af22d1178db61674ef768cfd3c5610733794bb1e7a36af113da287dd89662a1ad57fd4f6c3360ca99678f5428ba837f239df4091d7891f2e4c
+  checksum: 10c0/2fc71ddadd308b19b0d0dc09f5b9a108ea9bb640ec5fbd6179267994da8fd6c9d6a4c92098af7de73a0fa817055b518b28972452a2f19a1be754e79947e289d2
   languageName: node
   linkType: hard
 
@@ -13533,16 +13464,16 @@ __metadata:
   linkType: hard
 
 "vitest@npm:^3.1.3":
-  version: 3.1.3
-  resolution: "vitest@npm:3.1.3"
+  version: 3.1.4
+  resolution: "vitest@npm:3.1.4"
   dependencies:
-    "@vitest/expect": "npm:3.1.3"
-    "@vitest/mocker": "npm:3.1.3"
-    "@vitest/pretty-format": "npm:^3.1.3"
-    "@vitest/runner": "npm:3.1.3"
-    "@vitest/snapshot": "npm:3.1.3"
-    "@vitest/spy": "npm:3.1.3"
-    "@vitest/utils": "npm:3.1.3"
+    "@vitest/expect": "npm:3.1.4"
+    "@vitest/mocker": "npm:3.1.4"
+    "@vitest/pretty-format": "npm:^3.1.4"
+    "@vitest/runner": "npm:3.1.4"
+    "@vitest/snapshot": "npm:3.1.4"
+    "@vitest/spy": "npm:3.1.4"
+    "@vitest/utils": "npm:3.1.4"
     chai: "npm:^5.2.0"
     debug: "npm:^4.4.0"
     expect-type: "npm:^1.2.1"
@@ -13555,14 +13486,14 @@ __metadata:
     tinypool: "npm:^1.0.2"
     tinyrainbow: "npm:^2.0.0"
     vite: "npm:^5.0.0 || ^6.0.0"
-    vite-node: "npm:3.1.3"
+    vite-node: "npm:3.1.4"
     why-is-node-running: "npm:^2.3.0"
   peerDependencies:
     "@edge-runtime/vm": "*"
     "@types/debug": ^4.1.12
     "@types/node": ^18.0.0 || ^20.0.0 || >=22.0.0
-    "@vitest/browser": 3.1.3
-    "@vitest/ui": 3.1.3
+    "@vitest/browser": 3.1.4
+    "@vitest/ui": 3.1.4
     happy-dom: "*"
     jsdom: "*"
   peerDependenciesMeta:
@@ -13582,7 +13513,7 @@ __metadata:
       optional: true
   bin:
     vitest: vitest.mjs
-  checksum: 10c0/954b3579a2d925606df7f78e367ae64eab52c8c5ba2bb2fed94d335a06c910202a4ce080bb02d8148c8b4782488c6d229e963617be8d0c7da96a1c944dd291d7
+  checksum: 10c0/aec575e3cc6cf9b3cee224ae63569479e3a41fa980e495a73d384e31e273f34b18317a0da23bbd577c60fe5e717fa41cdc390de4049ce224ffdaa266ea0cdc67
   languageName: node
   linkType: hard
 
@@ -14057,8 +13988,8 @@ __metadata:
   linkType: hard
 
 "zod@npm:^3.24.1":
-  version: 3.24.4
-  resolution: "zod@npm:3.24.4"
-  checksum: 10c0/ab3112f017562180a41a0f83d870b333677f7d6b77f106696c56894567051b91154714a088149d8387a4f50806a2520efcb666f108cd384a35c236a191186d91
+  version: 3.25.7
+  resolution: "zod@npm:3.25.7"
+  checksum: 10c0/9bf497ed9b810d30b84ae032ec7882435d0fb9c94db08427592f56b711227726cfb7551ee7ca9f99135dfaff1fcff5ce261e25a6400f62b651ec23880cb41013
   languageName: node
   linkType: hard
