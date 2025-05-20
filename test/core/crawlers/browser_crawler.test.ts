@@ -1,5 +1,6 @@
 import type { Server } from 'node:http';
-
+import { ENV_VARS } from '@apify/consts';
+import log from '@apify/log';
 import { BROWSER_POOL_EVENTS, BrowserPool, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
 import { BLOCKED_STATUS_CODES } from '@crawlee/core';
 import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, PuppeteerRequestHandler } from '@crawlee/puppeteer';
@@ -19,9 +20,6 @@ import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
-
-import { ENV_VARS } from '@apify/consts';
-import log from '@apify/log';
 
 import { BrowserCrawlerTest } from './basic_browser_crawler.js';
 
@@ -1270,7 +1268,6 @@ describe('BrowserCrawler', () => {
                     expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
                     expect(Object.hasOwn(crawlingContext, 'response')).toBe(true);
 
-                    expect(crawlingContext.error).toBeInstanceOf(Error);
                     expect(error).toBeInstanceOf(Error);
                     expect(error.message).toEqual('some error');
                 };

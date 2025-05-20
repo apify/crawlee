@@ -1793,9 +1793,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (shouldRetryRequest) {
             await this.stats.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this._tagUserHandlerError(() =>
-                this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
-            );
+            await this.errorHandler?.(crawlingContext as LoadedContext<Context>, error);
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
@@ -1856,9 +1854,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
         if (this.failedRequestHandler) {
-            await this._tagUserHandlerError(() =>
-                this.failedRequestHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
-            );
+            await this.failedRequestHandler?.(crawlingContext as LoadedContext<Context>, error);
         }
     }
 
@@ -1906,19 +1902,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return request.retryCount < maxRequestRetries;
     }
 
-    protected _augmentContextWithDeprecatedError(context: Context, error: Error) {
-        Object.defineProperty(context, 'error', {
-            get: () => {
-                this.log.deprecated(
-                    "The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.",
-                );
-
-                return error;
-            },
-            configurable: true,
-        });
-
-        return context as LoadedContext<Context>;
+    /**
+     * Updates handledRequestsCount from possibly stored counts, usually after worker migration.
+     */
+    protected async _loadHandledRequestCount(): Promise<void> {
+        if (this.requestManager) {
+            this.handledRequestsCount = await this.requestManager.handledCount();
+        }
     }
 
     protected async _executeHooks<HookLike extends (...args: any[]) => Awaitable<void>>(
