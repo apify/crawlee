@@ -122,7 +122,7 @@ export function mergeCookies(url: string, sourceCookies: string[]): string {
             });
 
             if (similarKeyCookie) {
-                log.deprecated(
+                log.warningOnce(
                     `Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`,
                 );
             }
