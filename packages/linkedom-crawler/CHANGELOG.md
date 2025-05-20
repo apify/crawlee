@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
+
+**Note:** Version bump only for package @crawlee/linkedom
+
+
+
+
+
 ## [3.13.4](https://github.com/apify/crawlee/compare/v3.13.3...v3.13.4) (2025-05-14)
 
 **Note:** Version bump only for package @crawlee/linkedom

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
+
+
+### Features
+
+* Allow the AdaptivePlaywrightCrawler result comparator to signal an inconclusive result ([#2975](https://github.com/apify/crawlee/issues/2975)) ([7ba8906](https://github.com/apify/crawlee/commit/7ba8906158e2dbc474de1b1e89937562abe76877))
+
+
+
+
+
 ## [3.13.4](https://github.com/apify/crawlee/compare/v3.13.3...v3.13.4) (2025-05-14)
 
 **Note:** Version bump only for package @crawlee/playwright
