@@ -80,11 +80,7 @@ export interface BrowserCrawlerOptions<
 > extends Omit<
         BasicCrawlerOptions,
         // Overridden with browser context
-        | 'requestHandler'
-        | 'handleRequestFunction'
-        | 'failedRequestHandler'
-        | 'handleFailedRequestFunction'
-        | 'errorHandler'
+        'requestHandler' | 'failedRequestHandler' | 'errorHandler'
     > {
     launchContext?: BrowserLaunchContext<any, any>;
 
@@ -118,38 +114,6 @@ export interface BrowserCrawlerOptions<
     requestHandler?: BrowserRequestHandler<LoadedContext<Context>>;
 
     /**
-     * Function that is called to process each request.
-     *
-     * The function receives the {@apilink BrowserCrawlingContext}
-     * (actual context will be enhanced with the crawler specific properties) as an argument, where:
-     * - {@apilink BrowserCrawlingContext.request|`request`} is an instance of the {@apilink Request} object
-     * with details about the URL to open, HTTP method etc;
-     * - {@apilink BrowserCrawlingContext.page|`page`} is an instance of the
-     * Puppeteer [Page](https://pptr.dev/api/puppeteer.page) or
-     * Playwright [Page](https://playwright.dev/docs/api/class-page);
-     * - {@apilink BrowserCrawlingContext.browserController|`browserController`} is an instance of the {@apilink BrowserController};
-     * - {@apilink BrowserCrawlingContext.response|`response`} is an instance of the
-     * Puppeteer [Response](https://pptr.dev/api/puppeteer.httpresponse) or
-     * Playwright [Response](https://playwright.dev/docs/api/class-response),
-     * which is the main resource response as returned by the respective `page.goto()` function.
-     *
-     * The function must return a promise, which is then awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to the {@apilink BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the {@apilink BrowserCrawlerOptions.failedRequestHandler|`failedRequestHandler`} parameter.
-     * To make this work, we should **always**
-     * let our function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
-     *
-     * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handlePageFunction?: BrowserRequestHandler<LoadedContext<Context>>;
-
-    /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
      * It's executed before each retry for the requests that failed less than {@apilink BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
      *
@@ -171,20 +135,6 @@ export interface BrowserCrawlerOptions<
      * represents the last error thrown during processing of the request.
      */
     failedRequestHandler?: BrowserErrorHandler<Context>;
-
-    /**
-     * A function to handle requests that failed more than `option.maxRequestRetries` times.
-     *
-     * The function receives the {@apilink BrowserCrawlingContext}
-     * (actual context will be enhanced with the crawler specific properties) as the first argument,
-     * where the {@apilink BrowserCrawlingContext.request|`request`} corresponds to the failed request.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     *
-     * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handleFailedRequestFunction?: BrowserErrorHandler<Context>;
 
     /**
      * Custom options passed to the underlying {@apilink BrowserPool} constructor.
@@ -338,7 +288,6 @@ export abstract class BrowserCrawler<
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
-        handlePageFunction: ow.optional.function,
 
         navigationTimeoutSecs: ow.optional.number.greaterThan(0),
         preNavigationHooks: ow.optional.array,
@@ -372,14 +321,8 @@ export abstract class BrowserCrawler<
             browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
-            // Ignored
-            handleRequestFunction,
-
-            requestHandler: userProvidedRequestHandler,
-            handlePageFunction,
-
+            requestHandler,
             failedRequestHandler,
-            handleFailedRequestFunction,
             headless,
             ignoreShadowRoots,
             ignoreIframes,
@@ -396,27 +339,9 @@ export abstract class BrowserCrawler<
             config,
         );
 
-        this._handlePropertyNameChange({
-            newName: 'requestHandler',
-            oldName: 'handlePageFunction',
-            propertyKey: 'userProvidedRequestHandler',
-            newProperty: userProvidedRequestHandler,
-            oldProperty: handlePageFunction,
-            allowUndefined: true, // fallback to the default router
-        });
-
-        if (!this.userProvidedRequestHandler) {
-            this.userProvidedRequestHandler = this.router;
-        }
-
-        this._handlePropertyNameChange({
-            newName: 'failedRequestHandler',
-            oldName: 'handleFailedRequestFunction',
-            propertyKey: 'failedRequestHandler',
-            newProperty: failedRequestHandler,
-            oldProperty: handleFailedRequestFunction,
-            allowUndefined: true,
-        });
+        // FIXME any
+        this.userProvidedRequestHandler = (requestHandler as any) ?? this.router;
+        this.failedRequestHandler = failedRequestHandler; // FIXME is this even needed?
 
         // Cookies should be persisted per session only if session pool is used
         if (!this.useSessionPool && persistCookiesPerSession) {

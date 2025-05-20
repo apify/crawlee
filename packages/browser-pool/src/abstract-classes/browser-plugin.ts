@@ -178,7 +178,13 @@ export abstract class BrowserPlugin<
         });
     }
 
-    abstract createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
+    abstract createController(): BrowserController<
+        Library,
+        LibraryOptions,
+        LaunchResult,
+        NewPageOptions,
+        NewPageResult
+    >;
 
     /**
      * Launches the browser using provided launch context.

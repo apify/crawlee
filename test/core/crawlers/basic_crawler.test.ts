@@ -974,14 +974,14 @@ describe('BasicCrawler', () => {
         vitest.restoreAllMocks();
     });
 
-    test('should timeout after handleRequestTimeoutSecs', async () => {
+    test('should timeout after requestHandlerTimeoutSecs', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
         const results: Request[] = [];
         const crawler = new BasicCrawler({
             requestList,
-            handleRequestTimeoutSecs: 0.01,
+            requestHandlerTimeoutSecs: 0.01,
             maxRequestRetries: 1,
             requestHandler: async () => sleep(1000),
             failedRequestHandler: async ({ request }) => {
@@ -995,7 +995,7 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
     });
 
-    test('limits handleRequestTimeoutSecs and derived vars to a valid value', async () => {
+    test('limits requestHandlerTimeoutSecs and derived vars to a valid value', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
@@ -1185,7 +1185,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 requestList,
-                handleRequestTimeoutSecs: 0.01,
+                requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
                 useSessionPool: true,
                 sessionPoolOptions: {
@@ -1212,7 +1212,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 requestList,
-                handleRequestTimeoutSecs: 0.01,
+                requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
                 useSessionPool: true,
                 sessionPoolOptions: {
@@ -1235,7 +1235,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 requestList,
-                handleRequestTimeoutSecs: 0.01,
+                requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
                 useSessionPool: true,
                 sessionPoolOptions: {

@@ -214,7 +214,7 @@ test('handles cookies from redirects', async () => {
         sessionPoolOptions: {
             maxPoolSize: 1,
         },
-        handlePageFunction: async ({ body }) => {
+        requestHandler: async ({ body }) => {
             results.push(JSON.parse(body.toString()));
         },
     });
@@ -231,7 +231,7 @@ test('handles cookies from redirects - no empty cookie header', async () => {
         sessionPoolOptions: {
             maxPoolSize: 1,
         },
-        handlePageFunction: async ({ body }) => {
+        requestHandler: async ({ body }) => {
             const str = body.toString();
 
             if (str !== '') {
@@ -252,7 +252,7 @@ test('no empty cookie header', async () => {
         sessionPoolOptions: {
             maxPoolSize: 1,
         },
-        handlePageFunction: async ({ body }) => {
+        requestHandler: async ({ body }) => {
             const str = body.toString();
 
             if (str !== '') {
@@ -270,7 +270,7 @@ test('POST with undefined (empty) payload', async () => {
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        handlePageFunction: async ({ body }) => {
+        requestHandler: async ({ body }) => {
             results.push(body.toString());
         },
     });

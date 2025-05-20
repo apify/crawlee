@@ -3,7 +3,7 @@ import { setTimeout } from 'node:timers/promises';
 import { Actor } from 'apify';
 import { log } from 'crawlee';
 
-import { expect,getActorTestDir, initialize, pushActor, startActorOnPlatform } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, pushActor, startActorOnPlatform } from '../tools.mjs';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
     const testActorDirname = getActorTestDir(import.meta.url);

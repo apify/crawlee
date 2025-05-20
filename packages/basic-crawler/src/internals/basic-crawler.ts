@@ -55,7 +55,7 @@ import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOpt
 import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
-import ow, { ArgumentError } from 'ow';
+import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
@@ -150,28 +150,6 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     requestHandler?: RequestHandler<LoadedContext<Context>>;
 
     /**
-     * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
-     *
-     * The function receives the {@apilink BasicCrawlingContext} as an argument,
-     * where the {@apilink BasicCrawlingContext.request|`request`} represents the URL to crawl.
-     *
-     * The function must return a promise, which is then awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to the {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the {@apilink BasicCrawlerOptions.failedRequestHandler|`failedRequestHandler`} parameter.
-     * To make this work, we should **always**
-     * let our function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
-     *
-     * @deprecated `handleRequestFunction` has been renamed to `requestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handleRequestFunction?: RequestHandler<Context>;
-
-    /**
      * Static list of URLs to be processed.
      * If not provided, the crawler will open the default request queue when the {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} function is called.
      * > Alternatively, `requests` parameter of {@apilink BasicCrawler.run|`crawler.run()`} could be used to enqueue the initial requests -
@@ -194,14 +172,6 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     requestHandlerTimeoutSecs?: number;
 
     /**
-     * Timeout in which the function passed as {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`} needs to finish, in seconds.
-     * @default 60
-     * @deprecated `handleRequestTimeoutSecs` has been renamed to `requestHandlerTimeoutSecs` and will be removed in a future version.
-     * @ignore
-     */
-    handleRequestTimeoutSecs?: number;
-
-    /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
      * It's executed before each retry for the requests that failed less than {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
      *
@@ -221,19 +191,6 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * represents the last error thrown during processing of the request.
      */
     failedRequestHandler?: ErrorHandler<Context>;
-
-    /**
-     * A function to handle requests that failed more than {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
-     *
-     * The function receives the {@apilink BasicCrawlingContext} as the first argument,
-     * where the {@apilink BasicCrawlingContext.request|`request`} corresponds to the failed request.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     *
-     * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handleFailedRequestFunction?: ErrorHandler<Context>;
 
     /**
      * Specifies the maximum number of retries allowed for a request if its processing fails.
@@ -542,15 +499,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // in constructor, so this validation needs to apply only
         // if the user creates an instance of BasicCrawler directly.
         requestHandler: ow.optional.function,
-        // TODO: remove in a future release
-        handleRequestFunction: ow.optional.function,
         requestHandlerTimeoutSecs: ow.optional.number,
-        // TODO: remove in a future release
-        handleRequestTimeoutSecs: ow.optional.number,
         errorHandler: ow.optional.function,
         failedRequestHandler: ow.optional.function,
-        // TODO: remove in a future release
-        handleFailedRequestFunction: ow.optional.function,
         maxRequestRetries: ow.optional.number,
         sameDomainDelaySecs: ow.optional.number,
         maxSessionRotations: ow.optional.number,
@@ -609,28 +560,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             retryOnBlocked = false,
             respectRobotsTxtFile = false,
             onSkippedRequest,
+            requestHandler,
+            requestHandlerTimeoutSecs,
+            errorHandler,
+            failedRequestHandler,
+            statusMessageLoggingInterval = 10,
+            statusMessageCallback,
+            statisticsOptions,
+            httpClient,
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
             experiments = {},
-
-            // Old and new request handler methods
-            handleRequestFunction,
-            requestHandler,
-
-            handleRequestTimeoutSecs,
-            requestHandlerTimeoutSecs,
-
-            errorHandler,
-
-            handleFailedRequestFunction,
-            failedRequestHandler,
-
-            statusMessageLoggingInterval = 10,
-            statusMessageCallback,
-
-            statisticsOptions,
-            httpClient,
         } = options;
 
         this.requestList = requestList;
@@ -644,53 +585,20 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.experiments = experiments;
         this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
 
-        this._handlePropertyNameChange({
-            newName: 'requestHandler',
-            oldName: 'handleRequestFunction',
-            propertyKey: 'requestHandler',
-            newProperty: requestHandler,
-            oldProperty: handleRequestFunction,
-            allowUndefined: true, // fallback to the default router
-        });
-
-        if (!this.requestHandler) {
-            this.requestHandler = this.router;
-        }
-
+        // FIXME any
+        this.requestHandler = (requestHandler as any) ?? this.router;
+        this.failedRequestHandler = failedRequestHandler;
         this.errorHandler = errorHandler;
 
-        this._handlePropertyNameChange({
-            newName: 'failedRequestHandler',
-            oldName: 'handleFailedRequestFunction',
-            propertyKey: 'failedRequestHandler',
-            newProperty: failedRequestHandler,
-            oldProperty: handleFailedRequestFunction,
-            allowUndefined: true,
-        });
-
-        let newRequestHandlerTimeout: number | undefined;
-
-        if (!handleRequestTimeoutSecs) {
-            if (!requestHandlerTimeoutSecs) {
-                newRequestHandlerTimeout = 60_000;
-            } else {
-                newRequestHandlerTimeout = requestHandlerTimeoutSecs * 1000;
-            }
-        } else if (requestHandlerTimeoutSecs) {
-            newRequestHandlerTimeout = requestHandlerTimeoutSecs * 1000;
+        if (requestHandlerTimeoutSecs) {
+            this.requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
+        } else {
+            this.requestHandlerTimeoutMillis = 60_000;
         }
 
         this.retryOnBlocked = retryOnBlocked;
         this.respectRobotsTxtFile = respectRobotsTxtFile;
         this.onSkippedRequest = onSkippedRequest;
-
-        this._handlePropertyNameChange({
-            newName: 'requestHandlerTimeoutSecs',
-            oldName: 'handleRequestTimeoutSecs',
-            propertyKey: 'requestHandlerTimeoutMillis',
-            newProperty: newRequestHandlerTimeout,
-            oldProperty: handleRequestTimeoutSecs ? handleRequestTimeoutSecs * 1000 : undefined,
-        });
 
         const tryEnv = (val?: string) => (val == null ? null : +val);
         // allow at least 5min for internal timeouts
@@ -1751,43 +1659,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this.autoscaledPool?.abort();
     }
 
-    protected _handlePropertyNameChange<New, Old>({
-        newProperty,
-        newName,
-        oldProperty,
-        oldName,
-        propertyKey,
-        allowUndefined = false,
-    }: HandlePropertyNameChangeData<New, Old>) {
-        if (newProperty && oldProperty) {
-            this.log.warning(
-                [
-                    `Both "${newName}" and "${oldName}" were provided in the crawler options.`,
-                    `"${oldName}" has been renamed to "${newName}", and will be removed in a future version.`,
-                    `As such, "${newName}" will be used instead.`,
-                ].join('\n'),
-            );
-
-            // @ts-expect-error Assigning to possibly readonly properties
-            this[propertyKey] = newProperty;
-        } else if (oldProperty) {
-            this.log.warning(
-                [
-                    `"${oldName}" has been renamed to "${newName}", and will be removed in a future version.`,
-                    `The provided value will be used, but you should rename "${oldName}" to "${newName}" in your crawler options.`,
-                ].join('\n'),
-            );
-
-            // @ts-expect-error Assigning to possibly readonly properties
-            this[propertyKey] = oldProperty;
-        } else if (newProperty) {
-            // @ts-expect-error Assigning to possibly readonly properties
-            this[propertyKey] = newProperty;
-        } else if (!allowUndefined) {
-            throw new ArgumentError(`"${newName}" must be provided in the crawler options`, this.constructor);
-        }
-    }
-
     protected _getCookieHeaderFromRequest(request: Request) {
         if (request.headers?.Cookie && request.headers?.cookie) {
             this.log.warning(
@@ -1877,15 +1748,6 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
      * @default true
      */
     purgeRequestQueue?: boolean;
-}
-
-interface HandlePropertyNameChangeData<New, Old> {
-    oldProperty?: Old;
-    newProperty?: New;
-    oldName: string;
-    newName: string;
-    propertyKey: string;
-    allowUndefined?: boolean;
 }
 
 /**
