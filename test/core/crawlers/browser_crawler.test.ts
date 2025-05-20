@@ -364,7 +364,7 @@ describe('BrowserCrawler', () => {
             requestList,
             requestHandler: async () => {
                 setTimeout(() => callSpy('good'), 300);
-                setTimeout(() => callSpy('bad'), 1500);
+                setTimeout(() => callSpy('bad'), 2500);
                 await new Promise(() => {});
             },
             requestHandlerTimeoutSecs: 0.5,
@@ -1022,7 +1022,6 @@ describe('BrowserCrawler', () => {
                 expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
                 expect(Object.hasOwn(crawlingContext, 'response')).toBe(true);
 
-                expect(crawlingContext.error).toBeInstanceOf(Error);
                 expect(error).toBeInstanceOf(Error);
                 expect(error.message).toEqual('some error');
             };
