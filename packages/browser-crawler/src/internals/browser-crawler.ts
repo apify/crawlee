@@ -439,7 +439,6 @@ export abstract class BrowserCrawler<
         };
 
         const useIncognitoPages = this.launchContext?.useIncognitoPages;
-        const experimentalContainers = this.launchContext?.experimentalContainers;
 
         if (this.proxyConfiguration) {
             const { session } = crawlingContext;
@@ -466,7 +465,7 @@ export abstract class BrowserCrawler<
 
         const page = (await this.browserPool.newPage(newPageOptions)) as CommonPage;
         tryCancel();
-        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages || experimentalContainers);
+        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
 
         // DO NOT MOVE THIS LINE ABOVE!
         // `enhanceCrawlingContextWithPageInfo` gives us a valid session.

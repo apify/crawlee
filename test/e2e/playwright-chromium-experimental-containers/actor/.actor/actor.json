@@ -1,7 +1,0 @@
-{
-	"actorSpecification": 1,
-	"name": "test-playwright-chromium-experimental-containers",
-	"version": "0.0",
-	"buildTag": "latest",
-	"env": null
-}

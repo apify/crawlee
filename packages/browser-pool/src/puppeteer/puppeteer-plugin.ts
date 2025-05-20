@@ -38,12 +38,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
         } catch {
             // ignore
         }
-        const { launchOptions, userDataDir, useIncognitoPages, experimentalContainers, proxyUrl } = launchContext;
 
-        if (experimentalContainers) {
-            throw new Error('Experimental containers are only available with Playwright');
-        }
-
+        const { launchOptions, userDataDir, useIncognitoPages, proxyUrl } = launchContext;
         launchOptions!.userDataDir = launchOptions!.userDataDir ?? userDataDir;
 
         if (launchOptions!.headless === false) {
