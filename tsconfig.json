@@ -2,9 +2,9 @@
 	"extends": "./tsconfig.build.json",
 	"compilerOptions": {
 		"baseUrl": ".",
-        "noErrorTruncation": true,
-        "sourceMap": true,
-        "declaration": true,
+		"noErrorTruncation": true,
+		"sourceMap": true,
+		"declaration": true,
 		"paths": {
 			"crawlee": ["packages/crawlee/src/index.ts"],
 			"@crawlee/basic": ["packages/basic-crawler/src/index.ts"],

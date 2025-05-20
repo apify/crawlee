@@ -1,15 +1,15 @@
 {
 	"extends": "@apify/tsconfig",
 	"compilerOptions": {
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
 		"target": "ESNext",
 		"lib": ["DOM", "ES2023"],
 		"baseUrl": ".",
 		"allowJs": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": false,
-		"emitDecoratorMetadata": false,
+		"emitDecoratorMetadata": false
 	},
 	"exclude": ["**/node_modules", "**/dist"]
 }

@@ -79,13 +79,6 @@ export type HttpErrorHandler<
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext>
     extends BasicCrawlerOptions<Context> {
     /**
-     * An alias for {@apilink HttpCrawlerOptions.requestHandler}
-     * Soon to be removed, use `requestHandler` instead.
-     * @deprecated
-     */
-    handlePageFunction?: HttpCrawlerOptions<Context>['requestHandler'];
-
-    /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
      */
     navigationTimeoutSecs?: number;
@@ -350,7 +343,6 @@ export class HttpCrawler<
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
-        handlePageFunction: ow.optional.function,
 
         navigationTimeoutSecs: ow.optional.number,
         ignoreSslErrors: ow.optional.boolean,
@@ -378,8 +370,6 @@ export class HttpCrawler<
 
         const {
             requestHandler,
-            handlePageFunction,
-
             requestHandlerTimeoutSecs = 60,
             navigationTimeoutSecs = 30,
             ignoreSslErrors = true,
@@ -392,9 +382,6 @@ export class HttpCrawler<
             postNavigationHooks = [],
             additionalHttpErrorStatusCodes = [],
             ignoreHttpErrorStatusCodes = [],
-
-            // Ignored
-            handleRequestFunction,
 
             // BasicCrawler
             autoscaledPoolOptions = HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
@@ -414,18 +401,8 @@ export class HttpCrawler<
             config,
         );
 
-        this._handlePropertyNameChange({
-            newName: 'requestHandler',
-            oldName: 'handlePageFunction',
-            propertyKey: 'requestHandler',
-            newProperty: requestHandler,
-            oldProperty: handlePageFunction,
-            allowUndefined: true,
-        });
-
-        if (!this.requestHandler) {
-            this.requestHandler = this.router;
-        }
+        // FIXME any
+        this.requestHandler = (requestHandler as any) ?? this.router;
 
         // Cookies should be persisted per session only if session pool is used
         if (!this.useSessionPool && persistCookiesPerSession) {

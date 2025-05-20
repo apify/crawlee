@@ -1,4 +1,4 @@
-import { expect, getActorTestDir, hasNestedKey,initialize, runActor } from '../tools.mjs';
+import { expect, getActorTestDir, hasNestedKey, initialize, runActor } from '../tools.mjs';
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
