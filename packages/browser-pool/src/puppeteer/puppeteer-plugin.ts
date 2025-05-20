@@ -88,7 +88,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                     error,
                     launchContext.launchOptions?.executablePath,
                     '`apify/actor-node-puppeteer-chrome`',
-                    'Try installing a browser, if it\'s missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)',
+                    "Try installing a browser, if it's missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)",
                 );
             }
         }

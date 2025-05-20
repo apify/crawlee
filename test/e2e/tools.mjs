@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import { URL_NO_COMMAS_REGEX } from "@crawlee/utils";
+import { URL_NO_COMMAS_REGEX } from '@crawlee/utils';
 import { Actor } from 'apify';
 import fs from 'fs-extra';
 import { got } from 'got';
