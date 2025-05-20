@@ -44,7 +44,7 @@
         "test:full": "cross-env CRAWLEE_DIFFICULT_TESTS=1 vitest run --silent",
         "tsc-check-tests": "tsc --noEmit --project test/tsconfig.json",
         "coverage": "vitest --coverage",
-        "publish:next": "lerna publish from-package --contents dist --dist-tag next --force-publish",
+        "publish:next": "lerna publish from-package --contents dist --dist-tag v4 --force-publish",
         "release:next": "yarn build && yarn publish:next",
         "publish:prod": "lerna publish from-package --contents dist --force-publish",
         "release:prod": "yarn build && yarn publish:prod",
