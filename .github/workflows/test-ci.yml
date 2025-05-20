@@ -2,9 +2,9 @@ name: Check
 
 on:
     push:
-        branches: [ master, renovate/** ]
+        branches: [ master, v4, renovate/** ]
     pull_request:
-        branches: [ master ]
+        branches: [ master, v4 ]
 
 env:
     YARN_IGNORE_NODE: 1
