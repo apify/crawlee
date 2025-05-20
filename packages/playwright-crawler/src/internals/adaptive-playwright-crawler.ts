@@ -164,10 +164,7 @@ interface AdaptiveHook
     > {}
 
 export interface AdaptivePlaywrightCrawlerOptions
-    extends Omit<
-        PlaywrightCrawlerOptions,
-        'requestHandler' | 'handlePageFunction' | 'preNavigationHooks' | 'postNavigationHooks'
-    > {
+    extends Omit<PlaywrightCrawlerOptions, 'requestHandler' | 'preNavigationHooks' | 'postNavigationHooks'> {
     /**
      * Function that is called to process each request.
      *

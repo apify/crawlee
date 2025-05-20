@@ -52,9 +52,13 @@ describe('puppeteerUtils', () => {
                 // @ts-expect-error
                 let result = await page.evaluate(() => window.injectedVariable === 42);
                 expect(result).toBe(false);
-                await puppeteerUtils.injectFile(page, path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'), {
-                    surviveNavigations: true,
-                });
+                await puppeteerUtils.injectFile(
+                    page,
+                    path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'),
+                    {
+                        surviveNavigations: true,
+                    },
+                );
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable);
                 expect(result).toBe(42);
@@ -77,7 +81,10 @@ describe('puppeteerUtils', () => {
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable === 42);
                 expect(result).toBe(false);
-                await puppeteerUtils.injectFile(page, path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'));
+                await puppeteerUtils.injectFile(
+                    page,
+                    path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'),
+                );
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable);
                 expect(result).toBe(42);
