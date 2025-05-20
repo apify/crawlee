@@ -43,3 +43,7 @@ Previously, the crawling context extended a `Record` type, allowing to access an
 ## `additionalBlockedStatusCodes` parameter is removed
 
 `additionalBlockedStatusCodes` parameter of `Session.retireOnBlockedStatusCodes` method is removed. Use the `blockedStatusCodes` crawler option instead.
+
+## Remove `experimentalContainers` option
+
+This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.

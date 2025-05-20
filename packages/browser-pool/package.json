@@ -24,7 +24,7 @@
         "url": "https://github.com/apify/crawlee/issues"
     },
     "scripts": {
-        "build": "yarn clean && yarn compile && node copy-definitions.mjs && yarn copy",
+        "build": "yarn clean && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"

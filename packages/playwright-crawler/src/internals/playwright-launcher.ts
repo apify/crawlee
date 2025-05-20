@@ -59,13 +59,6 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
     useIncognitoPages?: boolean;
 
     /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
-
-    /**
      * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
      * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
      * If not specified, a temporary directory is used instead.
