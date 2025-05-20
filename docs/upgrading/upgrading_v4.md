@@ -31,3 +31,11 @@ The crawler following options are removed:
 - `handlePageFunction` -> `requestHandler`
 - `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
 - `handleFailedRequestFunction` -> `failedRequestHandler`
+
+## Crawling context no longer includes Error for failed requests
+
+The crawling context no longer includes the `Error` object for failed requests. Use the second parameter of the `errorHandler` or `failedRequestHandler` callbacks to access the error.
+
+## Crawling context is strictly typed
+
+Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
