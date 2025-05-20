@@ -159,7 +159,7 @@ const runPluginTest = <
                 expect(false).toBe(true);
             } catch (error: any) {
                 expect(error.message).toBe(
-                    'A new page can be created with provided context only when using incognito pages or experimental containers.',
+                    'A new page can be created with provided context only when using incognito pages.',
                 );
             }
         });

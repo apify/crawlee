@@ -1135,9 +1135,7 @@ describe('CheerioCrawler', () => {
             ]);
             expect(cookie2).toBe('Foo=bar1; other=cookie1; coo=kie; foo=bar3; baz=123; Other=cookie2');
             expect(warningSpy).toBeCalledTimes(3);
-            expect(warningSpy).toBeCalledWith(
-                `Found cookies with similar name during cookie merging: 'foo' and 'Foo'`,
-            );
+            expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'foo' and 'Foo'`);
             expect(warningSpy).toBeCalledWith(
                 `Found cookies with similar name during cookie merging: 'Other' and 'other'`,
             );
@@ -1150,12 +1148,8 @@ describe('CheerioCrawler', () => {
             ]);
             expect(cookie3).toBe('foo=bar2; Other=cookie2; Coo=kie; baz=123; Foo=bar3; coo=kee');
             expect(warningSpy).toBeCalledTimes(2);
-            expect(warningSpy).toBeCalledWith(
-                `Found cookies with similar name during cookie merging: 'Foo' and 'foo'`,
-            );
-            expect(warningSpy).toBeCalledWith(
-                `Found cookies with similar name during cookie merging: 'coo' and 'Coo'`,
-            );
+            expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'Foo' and 'foo'`);
+            expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'coo' and 'Coo'`);
         });
 
         test('should use sessionId in proxyUrl when the session pool is enabled', async () => {

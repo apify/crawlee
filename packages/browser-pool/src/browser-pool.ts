@@ -557,10 +557,7 @@ export class BrowserPool<
         await browserController['isActivePromise'];
         tryCancel();
 
-        const finalPageOptions =
-            browserController.launchContext.useIncognitoPages || browserController.launchContext.experimentalContainers
-                ? pageOptions
-                : undefined;
+        const finalPageOptions = browserController.launchContext.useIncognitoPages ? pageOptions : undefined;
 
         if (finalPageOptions) {
             Object.assign(finalPageOptions, browserController.normalizeProxyOptions(proxyUrl, pageOptions));
