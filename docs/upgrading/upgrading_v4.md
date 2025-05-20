@@ -39,3 +39,7 @@ The crawling context no longer includes the `Error` object for failed requests. 
 ## Crawling context is strictly typed
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
+
+## `additionalBlockedStatusCodes` parameter is removed
+
+`additionalBlockedStatusCodes` parameter of `Session.retireOnBlockedStatusCodes` method is removed. Use the `blockedStatusCodes` crawler option instead.
