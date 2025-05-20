@@ -22,3 +22,12 @@ Support for older TypeScript versions was dropped. Older versions might work too
 ## Cheerio v1
 
 Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. Also, we now use the default `parse5` internally.
+
+## Deprecated crawler options are removed
+
+The crawler following options are removed:
+
+- `handleRequestFunction` -> `requestHandler`
+- `handlePageFunction` -> `requestHandler`
+- `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
+- `handleFailedRequestFunction` -> `failedRequestHandler`
