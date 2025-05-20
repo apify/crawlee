@@ -6,10 +6,6 @@ import { tryCancel } from '@apify/timeout';
 import { BrowserController } from '../abstract-classes/browser-controller.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { SafeParameters } from '../utils.js';
-import type { PlaywrightPlugin } from './playwright-plugin.js';
-
-const tabIds = new WeakMap<Page, number>();
-const keyFromTabId = (tabId: string | number) => `.${tabId}.`;
 
 export class PlaywrightController extends BrowserController<
     BrowserType,
