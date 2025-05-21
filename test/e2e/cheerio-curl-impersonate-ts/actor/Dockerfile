@@ -1,4 +1,4 @@
-FROM node:20 AS builder
+FROM node:22 AS builder
 
 COPY /packages ./packages
 COPY /package*.json ./
