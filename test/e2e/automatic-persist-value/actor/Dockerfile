@@ -3,6 +3,7 @@ FROM apify/actor-node:22-beta
 COPY packages ./packages
 COPY package*.json ./
 
+RUN rm -r node_modules
 RUN npm --quiet set progress=false \
 	&& npm install --only=prod --no-optional --no-audit \
 	&& npm update --no-audit \
@@ -11,6 +12,7 @@ RUN npm --quiet set progress=false \
 	&& echo "Node.js version:" \
 	&& node --version \
 	&& echo "NPM version:" \
-	&& npm --version
+	&& npm --version \
+    && npm update
 
 COPY . ./

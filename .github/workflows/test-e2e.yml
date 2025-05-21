@@ -39,7 +39,7 @@ jobs:
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 22
                 uses: actions/setup-node@v4
                 with:
                     cache: 'yarn'
