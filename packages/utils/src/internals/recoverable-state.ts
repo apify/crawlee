@@ -3,10 +3,7 @@ import { Configuration, EventType, KeyValueStore } from '@crawlee/core';
 import type { Log } from '@apify/log';
 import log from '@apify/log';
 
-/**
- * Options for configuring the RecoverableState
- */
-export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> {
+export interface PersistenceOptions {
     /**
      * The key under which the state is stored in the KeyValueStore
      */
@@ -28,6 +25,17 @@ export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> 
      * If neither a name nor an id are supplied, the default store will be used.
      */
     persistStateKvsId?: string;
+}
+
+/**
+ * Options for configuring the RecoverableState
+ */
+export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> extends PersistenceOptions {
+    /**
+     * The default state used if no persisted state is found.
+     * A deep copy is made each time the state is used.
+     */
+    defaultState: TStateModel;
 
     /**
      * A logger instance for logging operations related to state persistence
@@ -79,12 +87,10 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
     /**
      * Initialize a new recoverable state object.
      *
-     * @param defaultState The default state object to use when no persisted state is found.
-     *                     A deep copy is made each time the state is used.
      * @param options Configuration options for the recoverable state
      */
-    constructor(defaultState: TStateModel, options: RecoverableStateOptions<TStateModel>) {
-        this.defaultState = defaultState;
+    constructor(options: RecoverableStateOptions<TStateModel>) {
+        this.defaultState = options.defaultState;
         this.persistStateKey = options.persistStateKey;
         this.persistenceEnabled = options.persistenceEnabled ?? false;
         this.persistStateKvsName = options.persistStateKvsName;

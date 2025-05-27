@@ -27,7 +27,8 @@ describe('RecoverableState', () => {
     };
 
     test('should initialize with default state when persistence is disabled', async () => {
-        const recoverableState = new RecoverableState(defaultState, {
+        const recoverableState = new RecoverableState({
+            defaultState,
             persistStateKey: 'test-key',
             persistenceEnabled: false,
         });
@@ -40,7 +41,8 @@ describe('RecoverableState', () => {
     });
 
     test('should throw error when accessing currentValue before initialization', () => {
-        const recoverableState = new RecoverableState(defaultState, {
+        const recoverableState = new RecoverableState({
+            defaultState,
             persistStateKey: 'test-key',
             persistenceEnabled: false,
         });
@@ -49,7 +51,8 @@ describe('RecoverableState', () => {
     });
 
     test('should allow state modification after initialization', async () => {
-        const recoverableState = new RecoverableState(defaultState, {
+        const recoverableState = new RecoverableState({
+            defaultState,
             persistStateKey: 'test-key',
             persistenceEnabled: false,
         });
@@ -67,7 +70,8 @@ describe('RecoverableState', () => {
     });
 
     test('should reset state to default values', async () => {
-        const recoverableState = new RecoverableState(defaultState, {
+        const recoverableState = new RecoverableState({
+            defaultState,
             persistStateKey: 'test-key',
             persistenceEnabled: false,
         });
@@ -86,7 +90,8 @@ describe('RecoverableState', () => {
     });
 
     test('should handle teardown gracefully when persistence is disabled', async () => {
-        const recoverableState = new RecoverableState(defaultState, {
+        const recoverableState = new RecoverableState({
+            defaultState,
             persistStateKey: 'test-key',
             persistenceEnabled: false,
         });
@@ -100,7 +105,8 @@ describe('RecoverableState', () => {
             items: [1, 2, { nested: 'value' }],
         };
 
-        const recoverableState = new RecoverableState(stateWithArray, {
+        const recoverableState = new RecoverableState({
+            defaultState: stateWithArray,
             persistStateKey: 'test-key',
             persistenceEnabled: false,
         });
@@ -150,7 +156,8 @@ describe('RecoverableState', () => {
             }),
         );
 
-        const recoverableState = new RecoverableState(stateWithCustomClass, {
+        const recoverableState = new RecoverableState({
+            defaultState: stateWithCustomClass,
             persistStateKey: 'test-key',
             persistenceEnabled: true,
             serialize,
