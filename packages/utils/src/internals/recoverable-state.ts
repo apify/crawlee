@@ -1,13 +1,12 @@
-import { KeyValueStore } from '@crawlee/core';
-import { Configuration } from '@crawlee/core';
-import { EventType } from '@crawlee/core';
+import { Configuration, EventType, KeyValueStore } from '@crawlee/core';
+
 import type { Log } from '@apify/log';
 import log from '@apify/log';
 
 /**
  * Options for configuring the RecoverableState
  */
-export interface RecoverableStateOptions {
+export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> {
     /**
      * The key under which the state is stored in the KeyValueStore
      */
@@ -39,6 +38,19 @@ export interface RecoverableStateOptions {
      * Configuration instance to use
      */
     config?: Configuration;
+
+    /**
+     * Optional function to transform the state to a JSON-serializable object before persistence.
+     * If not provided, the state is passed to JSON.stringify as-is.
+     */
+    serialize?: (state: TStateModel) => Record<string, unknown>;
+
+    /**
+     * Optional function to transform the JSON-serialized object back to the state model after loading.
+     * If not provided, the object is used as-is after JSON.parse deserialization.
+     * It is advisable to perform validation in this function and to throw an exception if it fails.
+     */
+    deserialize?: (serializedState: Record<string, unknown>) => TStateModel;
 }
 
 /**
@@ -51,7 +63,7 @@ export interface RecoverableStateOptions {
  * The state is represented by a plain JavaScript object that can be serialized to and deserialized from JSON.
  * The class automatically hooks into the event system to persist state when needed.
  */
-export class RecoverableState<TStateModel extends Record<string, any> = Record<string, any>> {
+export class RecoverableState<TStateModel = Record<string, unknown>> {
     private readonly defaultState: TStateModel;
     private state: TStateModel | null = null;
     private readonly persistenceEnabled: boolean;
@@ -61,6 +73,8 @@ export class RecoverableState<TStateModel extends Record<string, any> = Record<s
     private keyValueStore: KeyValueStore | null = null;
     private readonly log: Log;
     private readonly config: Configuration;
+    private readonly serialize: (state: TStateModel) => Record<string, unknown>;
+    private readonly deserialize: (serializedState: Record<string, unknown>) => TStateModel;
 
     /**
      * Initialize a new recoverable state object.
@@ -69,7 +83,7 @@ export class RecoverableState<TStateModel extends Record<string, any> = Record<s
      *                     A deep copy is made each time the state is used.
      * @param options Configuration options for the recoverable state
      */
-    constructor(defaultState: TStateModel, options: RecoverableStateOptions) {
+    constructor(defaultState: TStateModel, options: RecoverableStateOptions<TStateModel>) {
         this.defaultState = defaultState;
         this.persistStateKey = options.persistStateKey;
         this.persistenceEnabled = options.persistenceEnabled ?? false;
@@ -77,6 +91,8 @@ export class RecoverableState<TStateModel extends Record<string, any> = Record<s
         this.persistStateKvsId = options.persistStateKvsId;
         this.log = options.logger ?? log.child({ prefix: 'RecoverableState' });
         this.config = options.config ?? Configuration.getGlobalConfig();
+        this.serialize = options.serialize ?? ((state) => state as Record<string, unknown>);
+        this.deserialize = options.deserialize ?? ((state) => state as TStateModel);
 
         this.persistState = this.persistState.bind(this);
     }
@@ -91,7 +107,7 @@ export class RecoverableState<TStateModel extends Record<string, any> = Record<s
      */
     async initialize(): Promise<TStateModel> {
         if (!this.persistenceEnabled) {
-            this.state = this.deepCopy(this.defaultState);
+            this.state = this.deserialize(this.deepCopy(this.serialize(this.defaultState)));
             return this.currentValue;
         }
 
@@ -142,7 +158,7 @@ export class RecoverableState<TStateModel extends Record<string, any> = Record<s
      * clears the persisted state from the KeyValueStore.
      */
     async reset(): Promise<void> {
-        this.state = this.deepCopy(this.defaultState);
+        this.state = this.deserialize(this.deepCopy(this.serialize(this.defaultState)));
 
         if (this.persistenceEnabled) {
             if (this.keyValueStore === null) {
@@ -169,7 +185,7 @@ export class RecoverableState<TStateModel extends Record<string, any> = Record<s
         }
 
         if (this.persistenceEnabled) {
-            await this.keyValueStore.setValue(this.persistStateKey, this.state);
+            await this.keyValueStore.setValue(this.persistStateKey, this.serialize(this.state));
         }
     }
 
@@ -181,11 +197,11 @@ export class RecoverableState<TStateModel extends Record<string, any> = Record<s
             throw new Error('Recoverable state has not yet been initialized');
         }
 
-        const storedState = await this.keyValueStore.getValue<TStateModel>(this.persistStateKey);
-        if (storedState === null) {
-            this.state = this.deepCopy(this.defaultState);
+        const storedState = await this.keyValueStore.getValue(this.persistStateKey);
+        if (storedState === null || storedState === undefined) {
+            this.state = this.deserialize(this.deepCopy(this.serialize(this.defaultState)));
         } else {
-            this.state = storedState;
+            this.state = this.deserialize(storedState as Record<string, unknown>);
         }
     }
 

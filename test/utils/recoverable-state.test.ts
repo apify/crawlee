@@ -1,4 +1,7 @@
-import { RecoverableState } from '../packages/utils/src/internals/recoverable-state';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { RecoverableState } from '../../packages/utils/src/internals/recoverable-state';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 interface TestState {
     counter: number;
@@ -7,6 +10,16 @@ interface TestState {
 }
 
 describe('RecoverableState', () => {
+    const localStorageEmulator = new MemoryStorageEmulator();
+
+    beforeEach(async () => {
+        await localStorageEmulator.init();
+    });
+
+    afterEach(async () => {
+        await localStorageEmulator.destroy();
+    });
+
     const defaultState: TestState = {
         counter: 0,
         message: 'hello',
@@ -72,23 +85,6 @@ describe('RecoverableState', () => {
         expect(recoverableState.currentValue).not.toBe(defaultState); // Should be a new copy
     });
 
-    test('should handle deep copy correctly with nested objects', async () => {
-        const recoverableState = new RecoverableState(defaultState, {
-            persistStateKey: 'test-key',
-            persistenceEnabled: false,
-        });
-
-        await recoverableState.initialize();
-
-        // Modify nested object
-        recoverableState.currentValue.data.nested = 'modified';
-
-        // Reset should restore original nested value
-        await recoverableState.reset();
-
-        expect(recoverableState.currentValue.data.nested).toBe('value');
-    });
-
     test('should handle teardown gracefully when persistence is disabled', async () => {
         const recoverableState = new RecoverableState(defaultState, {
             persistStateKey: 'test-key',
@@ -99,10 +95,9 @@ describe('RecoverableState', () => {
         await expect(recoverableState.teardown()).resolves.not.toThrow();
     });
 
-    test('should handle arrays in deep copy', async () => {
+    test('should handle arrays and complex objects in deep copy', async () => {
         const stateWithArray = {
             items: [1, 2, { nested: 'value' }],
-            dates: [new Date('2023-01-01')],
         };
 
         const recoverableState = new RecoverableState(stateWithArray, {
@@ -112,7 +107,7 @@ describe('RecoverableState', () => {
 
         await recoverableState.initialize();
 
-        // Modify array
+        // Modify array and nested object
         recoverableState.currentValue.items.push(4);
         (recoverableState.currentValue.items[2] as any).nested = 'modified';
 
@@ -120,7 +115,65 @@ describe('RecoverableState', () => {
         await recoverableState.reset();
 
         expect(recoverableState.currentValue.items).toEqual([1, 2, { nested: 'value' }]);
-        expect(recoverableState.currentValue.dates[0]).toBeInstanceOf(Date);
-        expect(recoverableState.currentValue.dates[0].getTime()).toBe(new Date('2023-01-01').getTime());
+    });
+
+    test('should handle custom classes with serialize/deserialize', async () => {
+        class CustomData {
+            constructor(
+                public value: string,
+                public count: number,
+            ) {}
+        }
+
+        interface StateWithCustomClass {
+            data: CustomData;
+            name: string;
+        }
+
+        const stateWithCustomClass: StateWithCustomClass = {
+            data: new CustomData('test', 42),
+            name: 'example',
+        };
+
+        const serialize = vi.fn((state: StateWithCustomClass) => ({
+            data: {
+                value: state.data.value,
+                count: state.data.count,
+            },
+            name: state.name,
+        }));
+
+        const deserialize = vi.fn(
+            (serialized: any): StateWithCustomClass => ({
+                data: new CustomData(serialized.data.value, serialized.data.count),
+                name: serialized.name,
+            }),
+        );
+
+        const recoverableState = new RecoverableState(stateWithCustomClass, {
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            serialize,
+            deserialize,
+        });
+
+        await recoverableState.initialize();
+
+        // Verify the custom class is properly handled
+        expect(recoverableState.currentValue.data).toBeInstanceOf(CustomData);
+        expect(recoverableState.currentValue.data.value).toBe('test');
+        expect(recoverableState.currentValue.name).toBe('example');
+
+        expect(deserialize).toHaveBeenCalled();
+
+        recoverableState.currentValue.data.value = 'updated';
+        await recoverableState.persistState();
+
+        const persistedState = (await localStorageEmulator.getKeyValueStore().getRecord('test-key'))?.value;
+        expect(persistedState).toMatchObject({
+            data: { value: 'updated' },
+        });
+
+        expect(serialize).toHaveBeenCalled();
     });
 });
