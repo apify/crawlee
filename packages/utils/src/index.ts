@@ -12,6 +12,7 @@ export * from './internals/gotScraping';
 export * from './internals/robots';
 export * from './internals/sitemap';
 export * from './internals/url';
+export * from './internals/recoverable-state';
 
 export { getCurrentCpuTicksV2 } from './internals/systemInfoV2/cpu-info';
 export { getMemoryInfoV2 } from './internals/systemInfoV2/memory-info';
