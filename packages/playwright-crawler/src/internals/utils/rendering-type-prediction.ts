@@ -1,5 +1,5 @@
 import type { Request } from '@crawlee/core';
-import { type PersistenceOptions, RecoverableState } from '@crawlee/utils';
+import { RecoverableState, type RecoverableStatePersistenceOptions } from '@crawlee/utils';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
@@ -34,7 +34,7 @@ type FeatureVector = [staticResultsSimilarity: number, clientOnlyResultsSimilari
 export interface RenderingTypePredictorOptions {
     /** A number between 0 and 1 that determines the desired ratio of rendering type detections */
     detectionRatio: number;
-    persistenceOptions?: Partial<PersistenceOptions>;
+    persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }
 
 /**

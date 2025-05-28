@@ -3,7 +3,7 @@ import { Configuration, EventType, KeyValueStore } from '@crawlee/core';
 import type { Log } from '@apify/log';
 import log from '@apify/log';
 
-export interface PersistenceOptions {
+export interface RecoverableStatePersistenceOptions {
     /**
      * The key under which the state is stored in the KeyValueStore
      */
@@ -30,7 +30,8 @@ export interface PersistenceOptions {
 /**
  * Options for configuring the RecoverableState
  */
-export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> extends PersistenceOptions {
+export interface RecoverableStateOptions<TStateModel = Record<string, unknown>>
+    extends RecoverableStatePersistenceOptions {
     /**
      * The default state used if no persisted state is found.
      * A deep copy is made each time the state is used.
