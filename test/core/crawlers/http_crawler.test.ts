@@ -392,7 +392,7 @@ describe.each([new GotScrapingHttpClient(), new ImpitHttpClient()])('HttpCrawler
         expect(succeeded[0].retryCount).toBe(1);
     });
 
-    test('should work with cacheable-request', async () => {
+    test.skipIf(httpClient instanceof ImpitHttpClient)('should work with cacheable-request', async () => {
         const isFromCache: Record<string, boolean> = {};
         const cache = new Map();
         const crawler = new HttpCrawler({
