@@ -4,8 +4,8 @@ import { isGeneratorObject } from 'node:util/types';
 
 import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
-import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 import { Impit } from 'impit';
+import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
 
