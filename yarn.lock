@@ -623,6 +623,7 @@ __metadata:
     "@apify/datastructures": "npm:^2.0.3"
     "@crawlee/core": "npm:^3.13.5"
     impit: "npm:^0.4.3"
+    tough-cookie: "npm:^5.1.2"
   peerDependencies:
     "@crawlee/core": ^3.12.1
   languageName: unknown
@@ -12752,7 +12753,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tough-cookie@npm:^5.0.0, tough-cookie@npm:^5.1.1":
+"tough-cookie@npm:^5.0.0, tough-cookie@npm:^5.1.1, tough-cookie@npm:^5.1.2":
   version: 5.1.2
   resolution: "tough-cookie@npm:5.1.2"
   dependencies:
