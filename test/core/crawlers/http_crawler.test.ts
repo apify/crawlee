@@ -95,7 +95,11 @@ afterAll(async () => {
     await localStorageEmulator.destroy();
 });
 
-describe.each([new GotScrapingHttpClient(), new ImpitHttpClient()])('HttpCrawler with %s', (httpClient) => {
+describe.each(
+    process.version.startsWith('v16')
+        ? [new GotScrapingHttpClient()]
+        : [new GotScrapingHttpClient(), new ImpitHttpClient()],
+)('HttpCrawler with %s', (httpClient) => {
     test('works', async () => {
         const results: string[] = [];
 
