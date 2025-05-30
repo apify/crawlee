@@ -1,8 +1,7 @@
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { join } from 'node:path';
 
 import type { CrawlingContext, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import {
@@ -1395,6 +1394,69 @@ describe('BasicCrawler', () => {
             });
 
             expect(crawler).toBeTruthy();
+        });
+    });
+
+    describe('Request enqueuing limits with maxRequestsPerCrawl', () => {
+        test('should not enqueue more requests than maxRequestsPerCrawl allows', async () => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async () => {},
+            });
+
+            crawler['handledRequestsCount'] = 2;
+
+            // Try to add 6 requests - should only add 3 due to limit
+            const requestsToAdd = [
+                'http://example.com/1',
+                'http://example.com/2',
+                'http://example.com/3',
+                'http://example.com/4',
+                'http://example.com/5',
+                'http://example.com/6',
+            ];
+
+            await crawler.addRequests(requestsToAdd);
+
+            // Should only have added the first 3 requests (since 2 were already processed, limit allows 3 more)
+            expect(addRequestsBatchedSpy).toHaveBeenCalledWith(
+                ['http://example.com/1', 'http://example.com/2', 'http://example.com/3'],
+                {},
+            );
+        });
+
+        test('should respect robots.txt when limiting requests', async () => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 2,
+                respectRobotsTxtFile: true,
+                requestHandler: async () => {},
+            });
+
+            crawler['handledRequestsCount'] = 0;
+
+            // Mock robots.txt checking to disallow some URLs
+            vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
+                // Only allow the first URL
+                return url !== 'http://example.com/2';
+            });
+
+            await crawler.addRequests([
+                'http://example.com/1', // Allowed by robots.txt
+                'http://example.com/2', // Blocked by robots.txt
+                'http://example.com/3', // Allowed by robots.txt && within limit
+                'http://example.com/4', // Would exceed limit
+            ]);
+
+            // Should only have added the first request (allowed by robots.txt and within limit)
+            expect(addRequestsBatchedSpy).toHaveBeenCalledWith(['http://example.com/1', 'http://example.com/3'], {});
         });
     });
 

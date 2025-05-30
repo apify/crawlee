@@ -1076,7 +1076,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const skipped = new Set<string>();
 
         for (const request of requests) {
-            if (requests.length >= requestLimit) {
+            if (allowedRequests.length >= requestLimit) {
                 if (this.shouldLogMaxEnqueuedRequestsExceeded) {
                     this.log.info(
                         'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
