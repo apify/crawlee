@@ -185,7 +185,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
             },
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
-                    options: enqueueOptions,
+                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),

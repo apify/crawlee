@@ -1481,11 +1481,10 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
+                    crawler['handledRequestsCount'] = 2;
                     await context.enqueueLinks({ urls: requestsToAdd, label: 'not-undefined' });
                 },
             });
-
-            crawler['handledRequestsCount'] = 2;
 
             await crawler.run(['http://example.com']);
 

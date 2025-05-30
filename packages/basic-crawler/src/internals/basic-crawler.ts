@@ -1050,6 +1050,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
     }
 
+    protected calculateEnqueuedRequestLimit(explicitLimit?: number): number | undefined {
+        if (this.maxRequestsPerCrawl === undefined) {
+            return explicitLimit;
+        }
+
+        const limit = Math.max(0, this.maxRequestsPerCrawl - this.handledRequestsCount);
+
+        return Math.min(limit, explicitLimit ?? Infinity);
+    }
+
     /**
      * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
      * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
@@ -1067,16 +1077,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
 
-        const requestLimit =
-            this.maxRequestsPerCrawl !== undefined
-                ? Math.max(0, this.maxRequestsPerCrawl - this.handledRequestsCount)
-                : Infinity;
+        const requestLimit = this.calculateEnqueuedRequestLimit();
 
         const allowedRequests: (string | Source)[] = [];
         const skipped = new Set<string>();
 
         for (const request of requests) {
-            if (allowedRequests.length >= requestLimit) {
+            if (requestLimit !== undefined && allowedRequests.length >= requestLimit) {
                 if (this.shouldLogMaxEnqueuedRequestsExceeded) {
                     this.log.info(
                         'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
@@ -1438,6 +1445,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     onSkippedRequest: this.onSkippedRequest,
+                    limit: this.calculateEnqueuedRequestLimit(options.limit),
                     ...options,
                 });
             },
