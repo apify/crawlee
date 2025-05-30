@@ -791,6 +791,7 @@ export class HttpCrawler<
             method: request.method as Method,
             proxyUrl,
             timeout: { request: this.navigationTimeoutMillis },
+            cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
             sessionToken: session,
             ...gotOptions,
             headers: { ...request.headers, ...gotOptions?.headers },

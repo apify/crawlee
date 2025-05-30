@@ -2,7 +2,8 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
-import { HttpCrawler } from '@crawlee/http';
+import { GotScrapingHttpClient, HttpCrawler } from '@crawlee/http';
+import { ImpitHttpClient } from '@crawlee/impit-client';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 const router = new Map<string, http.RequestListener>();
@@ -94,364 +95,385 @@ afterAll(async () => {
     await localStorageEmulator.destroy();
 });
 
-test('works', async () => {
-    const results: string[] = [];
+describe.each(
+    process.version.startsWith('v16')
+        ? [new GotScrapingHttpClient()]
+        : [new GotScrapingHttpClient(), new ImpitHttpClient()],
+)('HttpCrawler with %s', (httpClient) => {
+    test('works', async () => {
+        const results: string[] = [];
 
-    const crawler = new HttpCrawler({
-        maxRequestRetries: 0,
-        requestHandler: ({ body }) => {
-            results.push(body as string);
-        },
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxRequestRetries: 0,
+            requestHandler: ({ body }) => {
+                results.push(body as string);
+            },
+        });
+
+        await crawler.run([url]);
+
+        expect(results[0].includes('Example Domain')).toBeTruthy();
     });
 
-    await crawler.run([url]);
+    test('parseWithCheerio works', async () => {
+        const results: string[] = [];
 
-    expect(results[0].includes('Example Domain')).toBeTruthy();
-});
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxRequestRetries: 0,
+            requestHandler: async ({ parseWithCheerio }) => {
+                const $ = await parseWithCheerio('title');
+                results.push($('title').text());
+            },
+        });
 
-test('parseWithCheerio works', async () => {
-    const results: string[] = [];
+        await crawler.run([`${url}/hello.html`]);
 
-    const crawler = new HttpCrawler({
-        maxRequestRetries: 0,
-        requestHandler: async ({ parseWithCheerio }) => {
-            const $ = await parseWithCheerio('title');
-            results.push($('title').text());
-        },
+        expect(results).toStrictEqual(['Example Domain']);
     });
 
-    await crawler.run([`${url}/hello.html`]);
+    test('should parse content type from header', async () => {
+        const results: { type: string; encoding: BufferEncoding }[] = [];
 
-    expect(results).toStrictEqual(['Example Domain']);
-});
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxRequestRetries: 0,
+            requestHandler: ({ contentType }) => {
+                results.push(contentType);
+            },
+        });
 
-test('should parse content type from header', async () => {
-    const results: { type: string; encoding: BufferEncoding }[] = [];
+        await crawler.run([url]);
 
-    const crawler = new HttpCrawler({
-        maxRequestRetries: 0,
-        requestHandler: ({ contentType }) => {
-            results.push(contentType);
-        },
+        expect(results).toStrictEqual([
+            {
+                type: 'text/html',
+                encoding: 'utf-8',
+            },
+        ]);
     });
 
-    await crawler.run([url]);
+    test('should parse content type from file extension', async () => {
+        const results: { type: string; encoding: BufferEncoding }[] = [];
 
-    expect(results).toStrictEqual([
-        {
-            type: 'text/html',
-            encoding: 'utf-8',
-        },
-    ]);
-});
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxRequestRetries: 0,
+            requestHandler: ({ contentType }) => {
+                results.push(contentType);
+            },
+        });
 
-test('should parse content type from file extension', async () => {
-    const results: { type: string; encoding: BufferEncoding }[] = [];
+        await crawler.run([`${url}/hello.html`]);
 
-    const crawler = new HttpCrawler({
-        maxRequestRetries: 0,
-        requestHandler: ({ contentType }) => {
-            results.push(contentType);
-        },
+        expect(results).toStrictEqual([
+            {
+                type: 'text/html',
+                encoding: 'utf-8',
+            },
+        ]);
     });
 
-    await crawler.run([`${url}/hello.html`]);
+    test('no content type defaults to octet-stream', async () => {
+        const results: { type: string; encoding: BufferEncoding }[] = [];
 
-    expect(results).toStrictEqual([
-        {
-            type: 'text/html',
-            encoding: 'utf-8',
-        },
-    ]);
-});
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxRequestRetries: 0,
+            additionalMimeTypes: ['*/*'],
+            requestHandler: ({ contentType }) => {
+                results.push(contentType);
+            },
+        });
 
-test('no content type defaults to octet-stream', async () => {
-    const results: { type: string; encoding: BufferEncoding }[] = [];
+        await crawler.run([`${url}/noext`]);
 
-    const crawler = new HttpCrawler({
-        maxRequestRetries: 0,
-        additionalMimeTypes: ['*/*'],
-        requestHandler: ({ contentType }) => {
-            results.push(contentType);
-        },
+        expect(results).toStrictEqual([
+            {
+                type: 'application/octet-stream',
+                encoding: 'utf-8',
+            },
+        ]);
     });
 
-    await crawler.run([`${url}/noext`]);
+    test('invalid content type defaults to octet-stream', async () => {
+        const results: { type: string; encoding: BufferEncoding }[] = [];
 
-    expect(results).toStrictEqual([
-        {
-            type: 'application/octet-stream',
-            encoding: 'utf-8',
-        },
-    ]);
-});
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxRequestRetries: 0,
+            additionalMimeTypes: ['*/*'],
+            requestHandler: ({ contentType }) => {
+                results.push(contentType);
+            },
+        });
 
-test('invalid content type defaults to octet-stream', async () => {
-    const results: { type: string; encoding: BufferEncoding }[] = [];
+        await crawler.run([`${url}/invalidContentType`]);
 
-    const crawler = new HttpCrawler({
-        maxRequestRetries: 0,
-        additionalMimeTypes: ['*/*'],
-        requestHandler: ({ contentType }) => {
-            results.push(contentType);
-        },
+        expect(results).toStrictEqual([
+            {
+                type: 'application/octet-stream',
+                encoding: 'utf-8',
+            },
+        ]);
     });
 
-    await crawler.run([`${url}/invalidContentType`]);
+    test('handles cookies from redirects', async () => {
+        const results: string[] = [];
 
-    expect(results).toStrictEqual([
-        {
-            type: 'application/octet-stream',
-            encoding: 'utf-8',
-        },
-    ]);
-});
+        const crawler = new HttpCrawler({
+            httpClient,
+            sessionPoolOptions: {
+                maxPoolSize: 1,
+            },
+            handlePageFunction: async ({ body }) => {
+                results.push(JSON.parse(body.toString()));
+            },
+        });
 
-test('handles cookies from redirects', async () => {
-    const results: string[] = [];
+        await crawler.run([`${url}/redirectAndCookies`]);
 
-    const crawler = new HttpCrawler({
-        sessionPoolOptions: {
-            maxPoolSize: 1,
-        },
-        handlePageFunction: async ({ body }) => {
-            results.push(JSON.parse(body.toString()));
-        },
+        expect(results).toStrictEqual(['foo=bar']);
     });
 
-    await crawler.run([`${url}/redirectAndCookies`]);
+    test('handles cookies from redirects - no empty cookie header', async () => {
+        const results: string[] = [];
 
-    expect(results).toStrictEqual(['foo=bar']);
-});
+        const crawler = new HttpCrawler({
+            httpClient,
+            sessionPoolOptions: {
+                maxPoolSize: 1,
+            },
+            handlePageFunction: async ({ body }) => {
+                const str = body.toString();
 
-test('handles cookies from redirects - no empty cookie header', async () => {
-    const results: string[] = [];
-
-    const crawler = new HttpCrawler({
-        sessionPoolOptions: {
-            maxPoolSize: 1,
-        },
-        handlePageFunction: async ({ body }) => {
-            const str = body.toString();
-
-            if (str !== '') {
-                results.push(JSON.parse(str));
-            }
-        },
-    });
-
-    await crawler.run([`${url}/redirectWithoutCookies`]);
-
-    expect(results).toStrictEqual([]);
-});
-
-test('no empty cookie header', async () => {
-    const results: string[] = [];
-
-    const crawler = new HttpCrawler({
-        sessionPoolOptions: {
-            maxPoolSize: 1,
-        },
-        handlePageFunction: async ({ body }) => {
-            const str = body.toString();
-
-            if (str !== '') {
-                results.push(JSON.parse(str));
-            }
-        },
-    });
-
-    await crawler.run([`${url}/cookies`]);
-
-    expect(results).toStrictEqual([]);
-});
-
-test('POST with undefined (empty) payload', async () => {
-    const results: string[] = [];
-
-    const crawler = new HttpCrawler({
-        handlePageFunction: async ({ body }) => {
-            results.push(body.toString());
-        },
-    });
-
-    await crawler.run([
-        {
-            url: `${url}/echo`,
-            payload: undefined,
-            method: 'POST',
-        },
-    ]);
-
-    expect(results).toStrictEqual(['']);
-});
-
-test('should ignore http error status codes set by user', async () => {
-    const failed: any[] = [];
-
-    const crawler = new HttpCrawler({
-        minConcurrency: 2,
-        maxConcurrency: 2,
-        ignoreHttpErrorStatusCodes: [500],
-        requestHandler: () => {},
-        failedRequestHandler: ({ request }) => {
-            failed.push(request);
-        },
-    });
-
-    await crawler.run([`${url}/500Error`]);
-
-    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
-    expect(failed).toHaveLength(0);
-});
-
-test('should throw an error on http error status codes set by user', async () => {
-    const failed: any[] = [];
-
-    const crawler = new HttpCrawler({
-        minConcurrency: 2,
-        maxConcurrency: 2,
-        additionalHttpErrorStatusCodes: [200],
-        requestHandler: () => {},
-        failedRequestHandler: ({ request }) => {
-            failed.push(request);
-        },
-    });
-
-    await crawler.run([`${url}/hello.html`]);
-
-    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
-    expect(failed).toHaveLength(1);
-});
-
-test('should work with delete requests', async () => {
-    const failed: any[] = [];
-
-    const cheerioCrawler = new HttpCrawler({
-        maxConcurrency: 1,
-        maxRequestRetries: 0,
-        navigationTimeoutSecs: 5,
-        requestHandlerTimeoutSecs: 5,
-        requestHandler: async () => {},
-        failedRequestHandler: async ({ request }) => {
-            failed.push(request);
-        },
-    });
-
-    await cheerioCrawler.run([
-        {
-            url: `${url}`,
-            method: 'DELETE',
-        },
-    ]);
-
-    expect(failed).toHaveLength(0);
-});
-
-test('should retry on 403 even with disallowed content-type', async () => {
-    const succeeded: any[] = [];
-
-    const crawler = new HttpCrawler({
-        maxConcurrency: 1,
-        maxRequestRetries: 1,
-        preNavigationHooks: [
-            async ({ request }) => {
-                // mock 403 response with octet stream on first request attempt, but not on
-                // subsequent retries, so the request should eventually succeed
-                if (request.retryCount === 0) {
-                    request.url = `${url}/403-with-octet-stream`;
-                } else {
-                    request.url = url;
+                if (str !== '') {
+                    results.push(JSON.parse(str));
                 }
             },
-        ],
-        requestHandler: async ({ request }) => {
-            succeeded.push(request);
-        },
+        });
+
+        await crawler.run([`${url}/redirectWithoutCookies`]);
+
+        expect(results).toStrictEqual([]);
     });
 
-    await crawler.run([url]);
+    test('no empty cookie header', async () => {
+        const results: string[] = [];
 
-    expect(succeeded).toHaveLength(1);
-    expect(succeeded[0].retryCount).toBe(1);
-});
-
-test('should work with cacheable-request', async () => {
-    const isFromCache: Record<string, boolean> = {};
-    const cache = new Map();
-    const crawler = new HttpCrawler({
-        maxConcurrency: 1,
-        preNavigationHooks: [
-            async (_, gotOptions) => {
-                gotOptions.cache = cache;
-                gotOptions.headers = {
-                    ...gotOptions.headers,
-                    // to force cache
-                    'cache-control': 'max-stale',
-                };
+        const crawler = new HttpCrawler({
+            httpClient,
+            sessionPoolOptions: {
+                maxPoolSize: 1,
             },
-        ],
-        requestHandler: async ({ request, response }) => {
-            isFromCache[request.uniqueKey] = response.isFromCache;
-        },
-    });
-    await crawler.run([
-        { url, uniqueKey: 'first' },
-        { url, uniqueKey: 'second' },
-    ]);
-    expect(isFromCache).toEqual({ first: false, second: true });
-});
+            handlePageFunction: async ({ body }) => {
+                const str = body.toString();
 
-test('works with a custom HttpClient', async () => {
-    const results: string[] = [];
-
-    const crawler = new HttpCrawler({
-        maxRequestRetries: 0,
-        requestHandler: async ({ body, sendRequest }) => {
-            results.push(body as string);
-
-            results.push((await sendRequest()).body);
-        },
-        httpClient: {
-            async sendRequest(request) {
-                if (request.responseType !== 'text') {
-                    throw new Error('Not implemented');
+                if (str !== '') {
+                    results.push(JSON.parse(str));
                 }
-
-                return {
-                    body: 'Hello from sendRequest()' as any,
-                    request,
-                    url,
-                    redirectUrls: [],
-                    statusCode: 200,
-                    headers: {},
-                    trailers: {},
-                    complete: true,
-                };
             },
-            async stream(request) {
-                const stream = new Readable();
-                stream.push('<html><head><title>Schmexample Domain</title></head></html>');
-                stream.push(null);
+        });
 
-                return {
-                    stream,
-                    downloadProgress: { percent: 100, transferred: 0 },
-                    uploadProgress: { percent: 100, transferred: 0 },
-                    request,
-                    url,
-                    redirectUrls: [],
-                    statusCode: 200,
-                    headers: { 'content-type': 'text/html; charset=utf-8' },
-                    trailers: {},
-                    complete: true,
-                };
-            },
-        },
+        await crawler.run([`${url}/cookies`]);
+
+        expect(results).toStrictEqual([]);
     });
 
-    await crawler.run([url]);
+    test('POST with undefined (empty) payload', async () => {
+        const results: string[] = [];
 
-    expect(results[0].includes('Schmexample Domain')).toBeTruthy();
-    expect(results[1].includes('Hello')).toBeTruthy();
+        const crawler = new HttpCrawler({
+            httpClient,
+            handlePageFunction: async ({ body }) => {
+                results.push(body.toString());
+            },
+        });
+
+        await crawler.run([
+            {
+                url: `${url}/echo`,
+                payload: undefined,
+                method: 'POST',
+            },
+        ]);
+
+        expect(results).toStrictEqual(['']);
+    });
+
+    test('should ignore http error status codes set by user', async () => {
+        const failed: any[] = [];
+
+        const crawler = new HttpCrawler({
+            httpClient,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+            ignoreHttpErrorStatusCodes: [500],
+            requestHandler: () => {},
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await crawler.run([`${url}/500Error`]);
+
+        expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect(failed).toHaveLength(0);
+    });
+
+    test('should throw an error on http error status codes set by user', async () => {
+        const failed: any[] = [];
+
+        const crawler = new HttpCrawler({
+            httpClient,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+            additionalHttpErrorStatusCodes: [200],
+            requestHandler: () => {},
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await crawler.run([`${url}/hello.html`]);
+
+        expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect(failed).toHaveLength(1);
+    });
+
+    test('should work with delete requests', async () => {
+        const failed: any[] = [];
+
+        const cheerioCrawler = new HttpCrawler({
+            httpClient,
+            maxConcurrency: 1,
+            maxRequestRetries: 0,
+            navigationTimeoutSecs: 5,
+            requestHandlerTimeoutSecs: 5,
+            requestHandler: async () => {},
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await cheerioCrawler.run([
+            {
+                url: `${url}`,
+                method: 'DELETE',
+            },
+        ]);
+
+        expect(failed).toHaveLength(0);
+    });
+
+    test('should retry on 403 even with disallowed content-type', async () => {
+        const succeeded: any[] = [];
+
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxConcurrency: 1,
+            maxRequestRetries: 1,
+            preNavigationHooks: [
+                async ({ request }) => {
+                    // mock 403 response with octet stream on first request attempt, but not on
+                    // subsequent retries, so the request should eventually succeed
+                    if (request.retryCount === 0) {
+                        request.url = `${url}/403-with-octet-stream`;
+                    } else {
+                        request.url = url;
+                    }
+                },
+            ],
+            requestHandler: async ({ request }) => {
+                succeeded.push(request);
+            },
+        });
+
+        await crawler.run([url]);
+
+        expect(succeeded).toHaveLength(1);
+        expect(succeeded[0].retryCount).toBe(1);
+    });
+
+    test.skipIf(httpClient instanceof ImpitHttpClient)('should work with cacheable-request', async () => {
+        const isFromCache: Record<string, boolean> = {};
+        const cache = new Map();
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxConcurrency: 1,
+            preNavigationHooks: [
+                async (_, gotOptions) => {
+                    gotOptions.cache = cache;
+                    gotOptions.headers = {
+                        ...gotOptions.headers,
+                        // to force cache
+                        'cache-control': 'max-stale',
+                    };
+                },
+            ],
+            requestHandler: async ({ request, response }) => {
+                isFromCache[request.uniqueKey] = response.isFromCache;
+            },
+        });
+        await crawler.run([
+            { url, uniqueKey: 'first' },
+            { url, uniqueKey: 'second' },
+        ]);
+        expect(isFromCache).toEqual({ first: false, second: true });
+    });
+
+    test('works with a custom HttpClient', async () => {
+        const results: string[] = [];
+
+        const crawler = new HttpCrawler({
+            maxRequestRetries: 0,
+            requestHandler: async ({ body, sendRequest }) => {
+                results.push(body as string);
+
+                results.push((await sendRequest()).body);
+            },
+            httpClient: {
+                async sendRequest(request) {
+                    if (request.responseType !== 'text') {
+                        throw new Error('Not implemented');
+                    }
+
+                    return {
+                        body: 'Hello from sendRequest()' as any,
+                        request,
+                        url,
+                        redirectUrls: [],
+                        statusCode: 200,
+                        headers: {},
+                        trailers: {},
+                        complete: true,
+                    };
+                },
+                async stream(request) {
+                    const stream = new Readable();
+                    stream.push('<html><head><title>Schmexample Domain</title></head></html>');
+                    stream.push(null);
+
+                    return {
+                        stream,
+                        downloadProgress: { percent: 100, transferred: 0 },
+                        uploadProgress: { percent: 100, transferred: 0 },
+                        request,
+                        url,
+                        redirectUrls: [],
+                        statusCode: 200,
+                        headers: { 'content-type': 'text/html; charset=utf-8' },
+                        trailers: {},
+                        complete: true,
+                    };
+                },
+            },
+        });
+
+        await crawler.run([url]);
+
+        expect(results[0].includes('Schmexample Domain')).toBeTruthy();
+        expect(results[1].includes('Hello')).toBeTruthy();
+    });
 });
