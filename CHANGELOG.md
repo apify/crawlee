@@ -3,6 +3,37 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
+
+
+### Features
+
+* add `MinimumSpeedStream` and `ByteCounterStream` helpers ([#2970](https://github.com/apify/crawlee/issues/2970)) ([921c4ee](https://github.com/apify/crawlee/commit/921c4ee3401bd41b8a197b955474bc297152e58b))
+* Allow the AdaptivePlaywrightCrawler result comparator to signal an inconclusive result ([#2975](https://github.com/apify/crawlee/issues/2975)) ([7ba8906](https://github.com/apify/crawlee/commit/7ba8906158e2dbc474de1b1e89937562abe76877))
+
+
+
+
+
+## [3.13.4](https://github.com/apify/crawlee/compare/v3.13.3...v3.13.4) (2025-05-14)
+
+
+### Bug Fixes
+
+* **core:** respect `systemInfoV2` in snapshotter ([#2961](https://github.com/apify/crawlee/issues/2961)) ([4100eab](https://github.com/apify/crawlee/commit/4100eabf171d1dfc33ff312cbedf4e178d34ebdf)), closes [#2958](https://github.com/apify/crawlee/issues/2958)
+* **core:** use short timeouts for periodic `KVS.setRecord` calls ([#2962](https://github.com/apify/crawlee/issues/2962)) ([d31d90e](https://github.com/apify/crawlee/commit/d31d90e5288ea80b3ed6ec4a75a4b8f87686a2c4))
+* **core:** optimize request unlocking to get rid of unnecessary unlock calls ([#2963](https://github.com/apify/crawlee/issues/2963)) ([a433037](https://github.com/apify/crawlee/commit/a433037f307ed3490a1ef5df334f1f9a9044510d))
+* **social:** extract emails from each text node separately ([#2952](https://github.com/apify/crawlee/issues/2952)) ([799afc1](https://github.com/apify/crawlee/commit/799afc1dbb6843efa9d585823674ea75b9b352ea))
+
+
+### Features
+
+* **impit-client:** bump `impit` version to v0.4 ([#2954](https://github.com/apify/crawlee/issues/2954)) ([7a1bf10](https://github.com/apify/crawlee/commit/7a1bf101250757d3a89f17c8bfd07267a46750bb))
+
+
+
+
+
 ## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
 
 

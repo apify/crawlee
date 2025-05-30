@@ -1,11 +1,17 @@
 import { Readable } from 'node:stream';
-import { ReadableStream } from 'node:stream/web';
-import { isTypedArray } from 'node:util/types';
+import { type ReadableStream } from 'node:stream/web';
+import { isGeneratorObject } from 'node:util/types';
 
 import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
-import { type HttpMethod, Impit, type ImpitOptions, type ImpitResponse } from 'impit';
+import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
+import { Impit } from 'impit';
 
-export { Browser } from 'impit';
+import { LruCache } from '@apify/datastructures';
+
+export const Browser = {
+    'Chrome': 'chrome',
+    'Firefox': 'firefox',
+} as const;
 
 interface ResponseWithRedirects {
     response: ImpitResponse;
@@ -20,6 +26,27 @@ export class ImpitHttpClient implements BaseHttpClient {
     private maxRedirects: number;
     private followRedirects: boolean;
 
+    /**
+     * Enables reuse of `impit` clients for the same set of options.
+     * This is useful for performance reasons, as creating
+     * a new client for each request breaks TCP connection
+     * (and other resources) reuse.
+     */
+    private clientCache: LruCache<Impit> = new LruCache({ maxLength: 10 });
+
+    private getClient(options: ImpitOptions) {
+        const cacheKey = JSON.stringify(options);
+
+        if (this.clientCache.get(cacheKey)) {
+            return this.clientCache.get(cacheKey)!;
+        }
+
+        const client = new Impit(options);
+        this.clientCache.add(cacheKey, client);
+
+        return client;
+    }
+
     constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number }) {
         this.impitOptions = options ?? {};
 
@@ -28,55 +55,43 @@ export class ImpitHttpClient implements BaseHttpClient {
     }
 
     /**
-     * Converts the body of a `HttpRequest` to a format that can be passed to `impit`.
-     */
-    private async intoImpitBody<TResponseType extends keyof ResponseTypes>(
-        body: Exclude<HttpRequest<TResponseType>['body'], undefined>,
-    ): Promise<string | Uint8Array> {
-        if (typeof body === 'string' || isTypedArray(body)) {
-            return body;
-        }
-
-        if (body instanceof ReadableStream) {
-            const reader = body.getReader();
-            const buffer = new Uint8Array();
-
-            while (true) {
-                const { done, value } = await reader.read();
-
-                if (done) return buffer;
-
-                buffer.set(value, buffer.length);
-            }
-        }
-
-        throw new Error('Unsupported body type.');
-    }
-
-    /**
      * Flattens the headers of a `HttpRequest` to a format that can be passed to `impit`.
      * @param headers `SimpleHeaders` object
      * @returns `Record<string, string>` object
      */
-    private flattenHeaders<TResponseType extends keyof ResponseTypes>(
-        headers: Exclude<HttpRequest<TResponseType>['headers'], undefined>,
-    ): Record<string, string> {
-        const result: Record<string, string> = {};
+    private intoHeaders<TResponseType extends keyof ResponseTypes>(
+        headers?: Exclude<HttpRequest<TResponseType>['headers'], undefined>,
+    ): Headers | undefined {
+        if (!headers) {
+            return undefined;
+        }
+
+        const result = new Headers();
 
         for (const headerName of Object.keys(headers)) {
             const headerValue = headers[headerName];
 
-            if (headerValue === undefined) continue;
+            for (const value of Array.isArray(headerValue) ? headerValue : [headerValue]) {
+                if (value === undefined) continue;
 
-            if (Array.isArray(headerValue)) {
-                result[headerName] = headerValue[0];
-                continue;
+                result.append(headerName, value);
             }
-
-            result[headerName] = headerValue;
         }
 
         return result;
+    }
+
+    private intoImpitBody<TResponseType extends keyof ResponseTypes>(
+        body?: Exclude<HttpRequest<TResponseType>['body'], undefined>,
+    ): RequestInit['body'] {
+        if (isGeneratorObject(body)) {
+            return Readable.toWeb(Readable.from(body)) as any;
+        }
+        if (body instanceof Readable) {
+            return Readable.toWeb(body) as any;
+        }
+
+        return body as any;
     }
 
     /**
@@ -96,10 +111,8 @@ export class ImpitHttpClient implements BaseHttpClient {
         }
 
         const url = typeof request.url === 'string' ? request.url : request.url.href;
-        const headers = request.headers !== undefined ? this.flattenHeaders(request.headers) : undefined;
-        const body = request.body !== undefined ? await this.intoImpitBody(request.body) : undefined;
 
-        const impit = new Impit({
+        const impit = this.getClient({
             ...this.impitOptions,
             proxyUrl: request.proxyUrl,
             followRedirects: false,
@@ -107,12 +120,13 @@ export class ImpitHttpClient implements BaseHttpClient {
 
         const response = await impit.fetch(url, {
             method: request.method as HttpMethod,
-            headers,
-            body: body as string,
+            headers: this.intoHeaders(request.headers),
+            body: this.intoImpitBody(request.body),
         });
 
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
-            const { location } = response.headers;
+            const location = response.headers.get('location');
+            const redirectUrl = new URL(location ?? '', request.url);
 
             if (!location) {
                 throw new Error('Redirect response missing location header.');
@@ -121,11 +135,11 @@ export class ImpitHttpClient implements BaseHttpClient {
             return this.getResponse(
                 {
                     ...request,
-                    url: location,
+                    url: redirectUrl.href,
                 },
                 {
                     redirectCount: (redirects?.redirectCount ?? 0) + 1,
-                    redirectUrls: [...(redirects?.redirectUrls ?? []), new URL(location)],
+                    redirectUrls: [...(redirects?.redirectUrls ?? []), redirectUrl],
                 },
             );
         }
@@ -161,7 +175,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         }
 
         return {
-            headers: response.headers,
+            headers: Object.fromEntries(response.headers.entries()),
             statusCode: response.status,
             url: response.url,
             request,
@@ -177,7 +191,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     ): [Readable, () => { percent: number; transferred: number; total: number }] {
         const responseStream = Readable.fromWeb(response.body as ReadableStream<any>);
         let transferred = 0;
-        const total = Number(response.headers['content-length'] ?? 0);
+        const total = Number(response.headers.get('content-length') ?? 0);
         responseStream.on('data', (chunk) => {
             transferred += chunk.length;
         });
@@ -211,7 +225,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             },
             uploadProgress: { percent: 100, transferred: 0 },
             redirectUrls,
-            headers: response.headers,
+            headers: Object.fromEntries(response.headers.entries()),
             trailers: {},
         };
     }

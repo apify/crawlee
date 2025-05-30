@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
+
+**Note:** Version bump only for package @crawlee/impit-client
+
+
+
+
+
+## [3.13.4](https://github.com/apify/crawlee/compare/v3.13.3...v3.13.4) (2025-05-14)
+
+
+### Features
+
+* **impit-client:** bump `impit` version to v0.4 ([#2954](https://github.com/apify/crawlee/issues/2954)) ([7a1bf10](https://github.com/apify/crawlee/commit/7a1bf101250757d3a89f17c8bfd07267a46750bb))
+
+
+
+
+
 ## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
 
 **Note:** Version bump only for package @crawlee/impit-client

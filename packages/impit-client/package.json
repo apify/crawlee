@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/impit-client",
-    "version": "3.13.3",
+    "version": "3.13.5",
     "description": "impit-based HTTP client implementation for Crawlee. Impersonates browser requests to avoid bot detection.",
     "engines": {
         "node": ">=20.0.0"
@@ -56,10 +56,11 @@
         "@crawlee/core": "^3.12.1"
     },
     "devDependencies": {
-        "@crawlee/core": "^3.13.3"
+        "@crawlee/core": "^3.13.5"
     },
     "dependencies": {
-        "impit": "^0.3.0"
+        "@apify/datastructures": "^2.0.3",
+        "impit": "^0.4.3"
     },
     "packageManager": "yarn@4.8.1"
 }

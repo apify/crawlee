@@ -623,7 +623,15 @@ export async function parseWithCheerio(
                     const iframe = await frame.contentFrame();
 
                     if (iframe) {
-                        const contents = await iframe.content();
+                        const getIframeHTML = async (): Promise<string> => {
+                            try {
+                                return iframe.locator('body').first().innerHTML();
+                            } catch {
+                                return iframe.content();
+                            }
+                        };
+
+                        const contents = await getIframeHTML();
 
                         await frame.evaluate((f, c) => {
                             const replacementNode = document.createElement('div');
