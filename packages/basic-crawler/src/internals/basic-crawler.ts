@@ -516,6 +516,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected sameDomainDelayMillis: number;
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
+    protected maxRequestsPerCrawl?: number;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
@@ -529,7 +530,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected respectRobotsTxtFile: boolean;
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
-
+    private shouldLogMaxProcessedRequestsExceeded = true;
+    private shouldLogMaxEnqueuedRequestsExceeded = true;
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
@@ -741,8 +743,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         this.internalTimeoutMillis = Math.min(this.internalTimeoutMillis, maxSignedInteger);
 
-        let shouldLogMaxPagesExceeded = true;
-        const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
+        this.maxRequestsPerCrawl = maxRequestsPerCrawl;
+
+        const isMaxPagesExceeded = () =>
+            this.maxRequestsPerCrawl && this.maxRequestsPerCrawl <= this.handledRequestsCount;
 
         // eslint-disable-next-line prefer-const
         let { isFinishedFunction, isTaskReadyFunction } = autoscaledPoolOptions;
@@ -759,12 +763,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    if (shouldLogMaxPagesExceeded) {
+                    if (this.shouldLogMaxProcessedRequestsExceeded) {
                         log.info(
                             'Crawler reached the maxRequestsPerCrawl limit of ' +
-                                `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
+                                `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
                         );
-                        shouldLogMaxPagesExceeded = false;
+                        this.shouldLogMaxProcessedRequestsExceeded = false;
                     }
                     return false;
                 }
@@ -774,7 +778,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             isFinishedFunction: async () => {
                 if (isMaxPagesExceeded()) {
                     log.info(
-                        `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests ` +
+                        `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.maxRequestsPerCrawl} requests ` +
                             'and all requests that were in progress at that time have now finished. ' +
                             `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
                     );
@@ -905,6 +909,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
             );
         }
+
+        this.shouldLogMaxEnqueuedRequestsExceeded = true;
+        this.shouldLogMaxProcessedRequestsExceeded = true;
 
         const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
 
@@ -1043,6 +1050,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
     }
 
+    protected calculateEnqueuedRequestLimit(explicitLimit?: number): number | undefined {
+        if (this.maxRequestsPerCrawl === undefined) {
+            return explicitLimit;
+        }
+
+        const limit = Math.max(0, this.maxRequestsPerCrawl - this.handledRequestsCount);
+
+        return Math.min(limit, explicitLimit ?? Infinity);
+    }
+
     /**
      * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
      * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
@@ -1060,14 +1077,28 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
 
-        if (!this.respectRobotsTxtFile) {
-            return requestQueue.addRequestsBatched(requests, options);
-        }
+        const requestLimit = this.calculateEnqueuedRequestLimit();
 
         const allowedRequests: (string | Source)[] = [];
         const skipped = new Set<string>();
 
         for (const request of requests) {
+            if (requestLimit !== undefined && allowedRequests.length >= requestLimit) {
+                if (this.shouldLogMaxEnqueuedRequestsExceeded) {
+                    this.log.info(
+                        'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
+                            `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
+                    );
+                    this.shouldLogMaxEnqueuedRequestsExceeded = false;
+                }
+                break;
+            }
+
+            if (!this.respectRobotsTxtFile) {
+                allowedRequests.push(request);
+                continue;
+            }
+
             const url = typeof request === 'string' ? request : request.url!;
 
             if (await this.isAllowedBasedOnRobotsTxtFile(url)) {
@@ -1414,6 +1445,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     onSkippedRequest: this.onSkippedRequest,
+                    limit: this.calculateEnqueuedRequestLimit(options.limit),
                     ...options,
                 });
             },
