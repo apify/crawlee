@@ -21,7 +21,7 @@ import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
-import { vi, describe, test, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
 import log from '@apify/log';
 
@@ -1409,7 +1409,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler['handledRequestsCount'] = 2;
+            crawler['handledRequestsCount'] = 2; // eslint-disable-line dot-notation
 
             // Try to add 6 requests - should only add 3 due to limit
             const requestsToAdd = [
@@ -1441,7 +1441,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler['handledRequestsCount'] = 0;
+            crawler['handledRequestsCount'] = 0; // eslint-disable-line dot-notation
 
             // Mock robots.txt checking to disallow some URLs
             vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
@@ -1481,7 +1481,8 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler['handledRequestsCount'] = 2;
+                    crawler['handledRequestsCount'] = 2; // eslint-disable-line dot-notation
+
                     await context.enqueueLinks({ urls: requestsToAdd, label: 'not-undefined' });
                 },
             });
