@@ -566,6 +566,10 @@ export class SitemapRequestList implements IRequestList {
         return this.requestData.get(nextUrl)!;
     }
 
+    chain() {
+        return this;
+    }
+
     /**
      * @inheritDoc
      */
