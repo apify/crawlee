@@ -195,7 +195,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
                     $,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                    onSkippedRequest: this.onSkippedRequest,
+                    onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });

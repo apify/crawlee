@@ -1060,6 +1060,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return Math.min(limit, explicitLimit ?? Infinity);
     }
 
+    protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
+        if (options.reason === 'limit' && this.shouldLogMaxEnqueuedRequestsExceeded) {
+            this.log.info(
+                'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
+                    `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
+            );
+            this.shouldLogMaxEnqueuedRequestsExceeded = false;
+        }
+
+        this.onSkippedRequest?.(options);
+    }
+
     /**
      * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
      * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
@@ -1080,18 +1092,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const requestLimit = this.calculateEnqueuedRequestLimit();
 
         const allowedRequests: (string | Source)[] = [];
-        const skipped = new Set<string>();
+        const skippedBecauseOfRobots = new Set<string>();
+        const skippedBecauseOfLimit = new Set<string>();
 
         for (const request of requests) {
+            const url = typeof request === 'string' ? request : request.url!;
+
             if (requestLimit !== undefined && allowedRequests.length >= requestLimit) {
-                if (this.shouldLogMaxEnqueuedRequestsExceeded) {
-                    this.log.info(
-                        'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
-                            `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
-                    );
-                    this.shouldLogMaxEnqueuedRequestsExceeded = false;
-                }
-                break;
+                skippedBecauseOfLimit.add(url);
+                continue;
             }
 
             if (!this.respectRobotsTxtFile) {
@@ -1099,28 +1108,32 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 continue;
             }
 
-            const url = typeof request === 'string' ? request : request.url!;
-
             if (await this.isAllowedBasedOnRobotsTxtFile(url)) {
                 allowedRequests.push(request);
             } else {
-                skipped.add(url);
-                await this.onSkippedRequest?.({ url, reason: 'robotsTxt' });
+                skippedBecauseOfRobots.add(url);
+                await this.handleSkippedRequest({ url, reason: 'robotsTxt' });
             }
         }
 
-        if (skipped.size > 0) {
+        if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
-                skipped: [...skipped],
+                skipped: [...skippedBecauseOfRobots],
             });
+        }
 
-            if (this.onSkippedRequest) {
-                await Promise.all(
-                    [...skipped].map((url) => {
-                        return this.onSkippedRequest!({ url, reason: 'robotsTxt' });
-                    }),
-                );
-            }
+        if (skippedBecauseOfRobots.size > 0 || skippedBecauseOfLimit.size > 0) {
+            await Promise.all(
+                [...skippedBecauseOfRobots]
+                    .map((url) => {
+                        return this.handleSkippedRequest({ url, reason: 'robotsTxt' });
+                    })
+                    .concat(
+                        [...skippedBecauseOfLimit].map((url) => {
+                            return this.handleSkippedRequest({ url, reason: 'limit' });
+                        }),
+                    ),
+            );
         }
 
         return requestQueue.addRequestsBatched(allowedRequests, options);
@@ -1416,7 +1429,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await source.markRequestHandled(request);
-            await this.onSkippedRequest?.({
+            await this.handleSkippedRequest({
                 url: request.url,
                 reason: 'robotsTxt',
             });
@@ -1444,7 +1457,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-                    onSkippedRequest: this.onSkippedRequest,
+                    onSkippedRequest: this.handleSkippedRequest,
                     limit: this.calculateEnqueuedRequestLimit(options.limit),
                     ...options,
                 });

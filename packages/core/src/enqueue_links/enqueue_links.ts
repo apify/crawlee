@@ -18,7 +18,7 @@ import {
     filterRequestsByPatterns,
 } from './shared';
 
-export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' }) => Awaitable<void>;
+export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' | 'limit' }) => Awaitable<void>;
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
@@ -427,7 +427,15 @@ export async function enqueueLinks(
     }
 
     let requests = createFilteredRequests();
-    if (limit) requests = requests.slice(0, limit);
+    if (limit && limit < requests.length) {
+        if (onSkippedRequest) {
+            for (const request of requests.slice(limit)) {
+                onSkippedRequest({ url: request.url, reason: 'limit' });
+            }
+        }
+
+        requests = requests.slice(0, limit);
+    }
 
     const { addedRequests } = await requestQueue.addRequestsBatched(requests, {
         forefront,
