@@ -644,6 +644,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
         this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
+        this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
