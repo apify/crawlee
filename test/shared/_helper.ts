@@ -176,7 +176,7 @@ console.log('Hello world!');
     <!DOCTYPE html>
     <html>
         <head>
-            <title>Outside iframe</title>
+            <title>Outside iframe title</title>
         </head>
         <body>
             <h1>Outside iframe</h1>
