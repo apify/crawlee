@@ -517,7 +517,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
     protected maxRequestsPerCrawl?: number;
-    protected handledRequestsCount: number;
+    protected handledRequestsCount: number = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
@@ -710,7 +710,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.maxRequestRetries = maxRequestRetries;
         this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
-        this.handledRequestsCount = 0;
         this.stats = new Statistics({
             logMessage: `${log.getOptions().prefix} request statistics:`,
             log,
@@ -910,9 +909,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
             );
         }
-
-        this.shouldLogMaxEnqueuedRequestsExceeded = true;
-        this.shouldLogMaxProcessedRequestsExceeded = true;
 
         const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
 
@@ -1117,11 +1113,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             if (requestLimit !== undefined && allowedRequests.length >= requestLimit) {
                 skippedBecauseOfLimit.add(url);
-                continue;
-            }
-
-            if (!this.respectRobotsTxtFile) {
-                allowedRequests.push(request);
                 continue;
             }
 
