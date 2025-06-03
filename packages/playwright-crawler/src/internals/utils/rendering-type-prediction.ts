@@ -1,5 +1,5 @@
-import type { Request } from '@crawlee/core';
-import { RecoverableState, type RecoverableStatePersistenceOptions } from '@crawlee/core';
+import type { RecoverableStatePersistenceOptions, Request } from '@crawlee/core';
+import { RecoverableState } from '@crawlee/core';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
