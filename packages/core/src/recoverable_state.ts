@@ -113,6 +113,10 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * @returns The loaded state object
      */
     async initialize(): Promise<TStateModel> {
+        if (this.state !== undefined) {
+            return this.currentValue;
+        }
+
         if (!this.persistenceEnabled) {
             this.state = this.deserialize(this.deepCopy(this.serialize(this.defaultState)));
             return this.currentValue;

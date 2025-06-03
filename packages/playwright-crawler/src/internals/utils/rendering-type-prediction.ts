@@ -64,6 +64,13 @@ export class RenderingTypePredictor {
     }
 
     /**
+     * Initialize the predictor by restoring persisted state.
+     */
+    async initialize(): Promise<void> {
+        await this.state.initialize();
+    }
+
+    /**
      * Predict the rendering type for a given URL and request label.
      */
     public predict({ url, loadedUrl, label }: Request): {
