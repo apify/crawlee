@@ -1430,6 +1430,39 @@ describe('BasicCrawler', () => {
             );
         });
 
+        test('should not enqueue more requests than maxRequestsPerCrawl allows across multiple addRequests calls', async () => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async () => {},
+            });
+
+            crawler['handledRequestsCount'] = 1; // eslint-disable-line dot-notation
+
+            // First call - should add 2 requests (2 more slots to go)
+            await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
+
+            // Second call - should add only 2 more requests
+            await crawler.addRequests([
+                'http://example.com/3',
+                'http://example.com/4',
+                'http://example.com/5', // This should be ignored
+                'http://example.com/6', // This should be ignored
+            ]);
+
+            // Third call - should add no requests (limit already reached)
+            await crawler.addRequests(['http://example.com/7', 'http://example.com/8']);
+
+            expect(addRequestsBatchedSpy).toHaveBeenCalledTimes(2); // Third call shouldn't trigger addRequestsBatched
+            expect(addRequestsBatchedSpy.mock.calls).toEqual([
+                [['http://example.com/1', 'http://example.com/2'], {}],
+                [['http://example.com/3', 'http://example.com/4'], {}],
+            ]);
+        });
+
         test('should respect robots.txt when limiting requests', async () => {
             const requestQueue = await RequestQueue.open();
             const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
@@ -1489,14 +1522,11 @@ describe('BasicCrawler', () => {
 
             await crawler.run(['http://example.com']);
 
-            // Should only have added the first 3 requests (since 2 were already processed, limit allows 3 more)
+            // Should only have added the first 2 requests (since 2 were already processed and 1 is in progress, limit allows 2 more)
             expect(addRequestsBatchedSpy).toHaveBeenCalledTimes(2);
             expect(addRequestsBatchedSpy.mock.calls).toMatchObject([
-                [['http://example.com'], {}],
-                [
-                    [{ url: 'http://example.com/1' }, { url: 'http://example.com/2' }, { url: 'http://example.com/3' }],
-                    {},
-                ],
+                [['http://example.com'], {}], // added by crawler.run()
+                [[{ url: 'http://example.com/1' }, { url: 'http://example.com/2' }], {}],
             ]);
         });
     });

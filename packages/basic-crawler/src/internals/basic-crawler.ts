@@ -1051,12 +1051,28 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
     }
 
+    protected get pendingRequestCountApproximation(): number {
+        let result = 0;
+
+        if (this.requestQueue) {
+            result += this.requestQueue.getPendingCount();
+        }
+        if (this.requestList) {
+            result += this.requestList.length() - this.requestList.handledCount();
+        }
+
+        return result;
+    }
+
     protected calculateEnqueuedRequestLimit(explicitLimit?: number): number | undefined {
         if (this.maxRequestsPerCrawl === undefined) {
             return explicitLimit;
         }
 
-        const limit = Math.max(0, this.maxRequestsPerCrawl - this.handledRequestsCount);
+        const limit = Math.max(
+            0,
+            this.maxRequestsPerCrawl - this.handledRequestsCount - this.pendingRequestCountApproximation,
+        );
 
         return Math.min(limit, explicitLimit ?? Infinity);
     }
@@ -1135,6 +1151,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         }),
                     ),
             );
+        }
+
+        if (!allowedRequests.length) {
+            return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
         }
 
         return requestQueue.addRequestsBatched(allowedRequests, options);
