@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { RecoverableState } from '../../packages/utils/src/internals/recoverable-state';
+import { RecoverableState } from '../../packages/core/src/recoverable_state';
 import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 interface TestState {
