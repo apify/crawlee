@@ -151,7 +151,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<LoadedContext<Context>>;
+    requestHandler?: RequestHandler<Context>;
 
     /**
      * Static list of URLs to be processed.
@@ -634,8 +634,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
         this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
-        // FIXME any
-        this.requestHandler = (requestHandler as any) ?? this.router;
+        this.requestHandler = requestHandler ?? this.router;
         this.failedRequestHandler = failedRequestHandler;
         this.errorHandler = errorHandler;
 
