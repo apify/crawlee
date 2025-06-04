@@ -622,7 +622,7 @@ __metadata:
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
     "@crawlee/core": "npm:^3.13.5"
-    impit: "npm:^0.4.3"
+    impit: "npm:^0.5.0"
   peerDependencies:
     "@crawlee/core": ^3.12.1
   languageName: unknown
@@ -7408,9 +7408,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"impit-darwin-arm64@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-darwin-arm64@npm:0.5.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "impit-darwin-x64@npm:0.4.7":
   version: 0.4.7
   resolution: "impit-darwin-x64@npm:0.4.7"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit-darwin-x64@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-darwin-x64@npm:0.5.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -7422,9 +7436,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"impit-linux-arm64-gnu@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-linux-arm64-gnu@npm:0.5.0"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
 "impit-linux-arm64-musl@npm:0.4.7":
   version: 0.4.7
   resolution: "impit-linux-arm64-musl@npm:0.4.7"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"impit-linux-arm64-musl@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-linux-arm64-musl@npm:0.5.0"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -7436,9 +7464,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"impit-linux-x64-gnu@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-linux-x64-gnu@npm:0.5.0"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
 "impit-linux-x64-musl@npm:0.4.7":
   version: 0.4.7
   resolution: "impit-linux-x64-musl@npm:0.4.7"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-musl@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-linux-x64-musl@npm:0.5.0"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -7450,6 +7492,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"impit-win32-arm64-msvc@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-win32-arm64-msvc@npm:0.5.0"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "impit-win32-x64-msvc@npm:0.4.7":
   version: 0.4.7
   resolution: "impit-win32-x64-msvc@npm:0.4.7"
@@ -7457,7 +7506,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit@npm:^0.4.3, impit@npm:^0.4.6":
+"impit-win32-x64-msvc@npm:0.5.0":
+  version: 0.5.0
+  resolution: "impit-win32-x64-msvc@npm:0.5.0"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit@npm:^0.4.6":
   version: 0.4.7
   resolution: "impit@npm:0.4.7"
   dependencies:
@@ -7487,6 +7543,39 @@ __metadata:
     impit-win32-x64-msvc:
       optional: true
   checksum: 10c0/d0037f55f6b6d577fb0f2d4474a8b892e48216e9bc5a32bbe9925bc985c32d3074919e6c041266b66b94248dd50ea62b8b2aa96f9b5ab9689b9164ae0fcabff8
+  languageName: node
+  linkType: hard
+
+"impit@npm:^0.5.0":
+  version: 0.5.0
+  resolution: "impit@npm:0.5.0"
+  dependencies:
+    impit-darwin-arm64: "npm:0.5.0"
+    impit-darwin-x64: "npm:0.5.0"
+    impit-linux-arm64-gnu: "npm:0.5.0"
+    impit-linux-arm64-musl: "npm:0.5.0"
+    impit-linux-x64-gnu: "npm:0.5.0"
+    impit-linux-x64-musl: "npm:0.5.0"
+    impit-win32-arm64-msvc: "npm:0.5.0"
+    impit-win32-x64-msvc: "npm:0.5.0"
+  dependenciesMeta:
+    impit-darwin-arm64:
+      optional: true
+    impit-darwin-x64:
+      optional: true
+    impit-linux-arm64-gnu:
+      optional: true
+    impit-linux-arm64-musl:
+      optional: true
+    impit-linux-x64-gnu:
+      optional: true
+    impit-linux-x64-musl:
+      optional: true
+    impit-win32-arm64-msvc:
+      optional: true
+    impit-win32-x64-msvc:
+      optional: true
+  checksum: 10c0/d4ded2bab33ffb5593769ac608f297990abb1ccfc3a73b64dd328b35e561eb2b89d8eacf695185914935f36300374ba9a1bda7faf5bbca4a26308711c1eb146f
   languageName: node
   linkType: hard
 
