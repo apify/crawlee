@@ -378,16 +378,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.errorMessages.push(message);
     }
 
-    // TODO: only for better BC, remove in v4
-    protected _computeUniqueKey(options: ComputeUniqueKeyOptions) {
-        return Request.computeUniqueKey(options);
-    }
-
-    // TODO: only for better BC, remove in v4
-    protected _hashPayload(payload: BinaryLike): string {
-        return Request.hashPayload(payload);
-    }
-
     /** @internal */
     static computeUniqueKey({
         url,
