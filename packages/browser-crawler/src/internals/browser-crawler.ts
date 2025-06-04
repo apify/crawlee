@@ -111,7 +111,7 @@ export interface BrowserCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: BrowserRequestHandler<LoadedContext<Context>>;
+    requestHandler?: BrowserRequestHandler<Context>;
 
     /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
@@ -322,7 +322,6 @@ export abstract class BrowserCrawler<
             preNavigationHooks = [],
             postNavigationHooks = [],
             requestHandler,
-            failedRequestHandler,
             headless,
             ignoreShadowRoots,
             ignoreIframes,
@@ -339,9 +338,7 @@ export abstract class BrowserCrawler<
             config,
         );
 
-        // FIXME any
-        this.userProvidedRequestHandler = (requestHandler as any) ?? this.router;
-        this.failedRequestHandler = failedRequestHandler; // FIXME is this even needed?
+        this.userProvidedRequestHandler = requestHandler ?? this.router;
 
         // Cookies should be persisted per session only if session pool is used
         if (!this.useSessionPool && persistCookiesPerSession) {

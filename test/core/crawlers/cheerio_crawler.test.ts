@@ -262,7 +262,8 @@ describe('CheerioCrawler', () => {
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: ({ $, body, request }) => {
-                tmp.push(body, $.html(), request.loadedUrl);
+                // test that `request.loadedUrl` is no longer optional by calling `toLowerCase` on it directly (no optional chaining)
+                tmp.push(body, $.html(), request.loadedUrl.toLowerCase());
             },
         });
 
@@ -271,7 +272,6 @@ describe('CheerioCrawler', () => {
         expect(tmp).toHaveLength(3);
         expect(tmp[0]).toBe(responseSamples.html);
         expect(tmp[1]).toBe(tmp[0]);
-        // test that `request.loadedUrl` is no longer optional
         expect(tmp[2].length).toBe(sources[0].length);
     });
 

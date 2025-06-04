@@ -399,8 +399,7 @@ export class HttpCrawler<
             config,
         );
 
-        // FIXME any
-        this.requestHandler = (requestHandler as any) ?? this.router;
+        this.requestHandler = requestHandler ?? this.router;
 
         // Cookies should be persisted per session only if session pool is used
         if (!this.useSessionPool && persistCookiesPerSession) {
