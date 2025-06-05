@@ -49,17 +49,17 @@ export interface RecoverableStateOptions<TStateModel = Record<string, unknown>>
     config?: Configuration;
 
     /**
-     * Optional function to transform the state to a JSON-serializable object before persistence.
-     * If not provided, the state is passed to JSON.stringify as-is.
+     * Optional function to transform the state to a JSON string before persistence.
+     * If not provided, JSON.stringify will be used.
      */
-    serialize?: (state: TStateModel) => Record<string, unknown>;
+    serialize?: (state: TStateModel) => string;
 
     /**
-     * Optional function to transform the JSON-serialized object back to the state model after loading.
-     * If not provided, the object is used as-is after JSON.parse deserialization.
+     * Optional function to transform a JSON-serialized object back to the state model.
+     * If not provided, JSON.parse is used.
      * It is advisable to perform validation in this function and to throw an exception if it fails.
      */
-    deserialize?: (serializedState: Record<string, unknown>) => TStateModel;
+    deserialize?: (serializedState: string) => TStateModel;
 }
 
 /**
@@ -82,8 +82,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
     private keyValueStore: KeyValueStore | null = null;
     private readonly log: Log;
     private readonly config: Configuration;
-    private readonly serialize: (state: TStateModel) => Record<string, unknown>;
-    private readonly deserialize: (serializedState: Record<string, unknown>) => TStateModel;
+    private readonly serialize: (state: TStateModel) => string;
+    private readonly deserialize: (serializedState: string) => TStateModel;
 
     /**
      * Initialize a new recoverable state object.
@@ -98,8 +98,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
         this.persistStateKvsId = options.persistStateKvsId;
         this.log = options.logger ?? log.child({ prefix: 'RecoverableState' });
         this.config = options.config ?? Configuration.getGlobalConfig();
-        this.serialize = options.serialize ?? ((state) => state as Record<string, unknown>);
-        this.deserialize = options.deserialize ?? ((state) => state as TStateModel);
+        this.serialize = options.serialize ?? JSON.stringify;
+        this.deserialize = options.deserialize ?? JSON.parse;
 
         this.persistState = this.persistState.bind(this);
     }
@@ -113,12 +113,12 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * @returns The loaded state object
      */
     async initialize(): Promise<TStateModel> {
-        if (this.state !== undefined) {
+        if (this.state !== null && this.state !== undefined) {
             return this.currentValue;
         }
 
         if (!this.persistenceEnabled) {
-            this.state = this.deserialize(this.deepCopy(this.serialize(this.defaultState)));
+            this.state = this.deserialize(this.serialize(this.defaultState));
             return this.currentValue;
         }
 
@@ -169,7 +169,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * clears the persisted state from the KeyValueStore.
      */
     async reset(): Promise<void> {
-        this.state = this.deserialize(this.deepCopy(this.serialize(this.defaultState)));
+        this.state = this.deserialize(this.serialize(this.defaultState));
 
         if (this.persistenceEnabled) {
             if (this.keyValueStore === null) {
@@ -196,7 +196,9 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
         }
 
         if (this.persistenceEnabled) {
-            await this.keyValueStore.setValue(this.persistStateKey, this.serialize(this.state));
+            await this.keyValueStore.setValue(this.persistStateKey, this.serialize(this.state), {
+                contentType: 'text/plain', // HACK - the result is expected to be JSON, but we do this to avoid the implicit JSON.parse in `KeyValueStore.getValue`
+            });
         }
     }
 
@@ -210,13 +212,9 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
 
         const storedState = await this.keyValueStore.getValue(this.persistStateKey);
         if (storedState === null || storedState === undefined) {
-            this.state = this.deserialize(this.deepCopy(this.serialize(this.defaultState)));
+            this.state = this.deserialize(this.serialize(this.defaultState));
         } else {
-            this.state = this.deserialize(storedState as Record<string, unknown>);
+            this.state = this.deserialize(storedState as string);
         }
-    }
-
-    private deepCopy<T>(obj: T): T {
-        return JSON.parse(JSON.stringify(obj));
     }
 }

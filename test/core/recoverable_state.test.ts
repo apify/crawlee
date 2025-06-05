@@ -141,20 +141,23 @@ describe('RecoverableState', () => {
             name: 'example',
         };
 
-        const serialize = vi.fn((state: StateWithCustomClass) => ({
-            data: {
-                value: state.data.value,
-                count: state.data.count,
-            },
-            name: state.name,
-        }));
-
-        const deserialize = vi.fn(
-            (serialized: any): StateWithCustomClass => ({
-                data: new CustomData(serialized.data.value, serialized.data.count),
-                name: serialized.name,
+        const serialize = vi.fn((state: StateWithCustomClass) =>
+            JSON.stringify({
+                data: {
+                    value: state.data.value,
+                    count: state.data.count,
+                },
+                name: state.name,
             }),
         );
+
+        const deserialize = vi.fn((serialized: string): StateWithCustomClass => {
+            const parsed = JSON.parse(serialized);
+            return {
+                data: new CustomData(parsed.data.value, parsed.data.count),
+                name: parsed.name,
+            };
+        });
 
         const recoverableState = new RecoverableState({
             defaultState: stateWithCustomClass,
@@ -176,7 +179,7 @@ describe('RecoverableState', () => {
         recoverableState.currentValue.data.value = 'updated';
         await recoverableState.persistState();
 
-        const persistedState = (await localStorageEmulator.getKeyValueStore().getRecord('test-key'))?.value;
+        const persistedState = JSON.parse((await localStorageEmulator.getKeyValueStore().getRecord('test-key'))?.value);
         expect(persistedState).toMatchObject({
             data: { value: 'updated' },
         });
