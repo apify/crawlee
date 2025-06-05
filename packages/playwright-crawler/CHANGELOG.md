@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+
+### Bug Fixes
+
+* ensure `PlaywrightGotoOptions` won't result in `unknown` when playwright is not installed ([#2995](https://github.com/apify/crawlee/issues/2995)) ([93eba38](https://github.com/apify/crawlee/commit/93eba38b9cd88e543717f885b2c5644f63979bc9)), closes [#2994](https://github.com/apify/crawlee/issues/2994)
+* extract only `body` from `iframe` elements ([#2986](https://github.com/apify/crawlee/issues/2986)) ([c36166e](https://github.com/apify/crawlee/commit/c36166e24887ca6de12f0c60ef010256fa830c31)), closes [#2979](https://github.com/apify/crawlee/issues/2979)
+
+
+
+
+
 ## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
 
 

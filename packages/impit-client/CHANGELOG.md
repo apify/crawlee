@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+
+### Bug Fixes
+
+* enable full cookie support for `ImpitHttpClient` ([#2991](https://github.com/apify/crawlee/issues/2991)) ([120f0a7](https://github.com/apify/crawlee/commit/120f0a7968670eaab14d217e12c09b4dba216d7d))
+
+
+
+
+
 ## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
 
 **Note:** Version bump only for package @crawlee/impit-client
