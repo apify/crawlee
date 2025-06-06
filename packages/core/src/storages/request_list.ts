@@ -53,7 +53,7 @@ export interface IRequestList {
      * or stop fetching its requests. For example after you pause or abort a crawl. Or just before
      * a server migration.
      */
-    persistState(): Promise<void>;
+    persistState(automatic?: boolean): Promise<void>;
 
     /**
      * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
@@ -92,6 +92,15 @@ export interface IRequestList {
      * @internal
      */
     inProgress: Set<string>;
+
+    /**
+     * Connects the `RequestList` to another {@apilink IRequestList} instance.
+     * Once all requests from the current list are processed,
+     * the next request will be fetched from the provided `requestList`.
+     * @param requestList The request list to append to the current one.
+     * @returns `this` for chaining.
+     */
+    chain(requestList: IRequestList | IRequestList[]): IRequestList;
 }
 
 export interface RequestListOptions {
@@ -354,6 +363,7 @@ export class RequestList implements IRequestList {
     private sourcesFunction?: RequestListSourcesFunction;
     private proxyConfiguration?: ProxyConfiguration;
     private events: EventManager;
+    private next?: IRequestList;
 
     /**
      * To create new instance of `RequestList` we need to use `RequestList.open()` factory method.
@@ -411,6 +421,23 @@ export class RequestList implements IRequestList {
         this.proxyConfiguration = proxyConfiguration;
     }
 
+    chain(requestList: IRequestList | IRequestList[]): IRequestList {
+        if (Array.isArray(requestList)) {
+            const head = requestList.shift();
+            if (!head) return this;
+
+            return this.chain(head.chain(requestList));
+        }
+
+        if (this.next) {
+            this.next.chain(requestList);
+        } else {
+            this.next = requestList;
+        }
+
+        return this as unknown as IRequestList;
+    }
+
     /**
      * Loads all remote sources of URLs and potentially starts periodic state persistence.
      * This function must be called before you can start using the instance in a meaningful way.
@@ -434,10 +461,19 @@ export class RequestList implements IRequestList {
         }
 
         this._restoreState(state as RequestListState);
+
+        if (state?.next) {
+            // If there's a next request list, we need to chain it.
+            this.next = await RequestList.open({
+                persistStateKey: state.next.persistStateKey,
+                persistRequestsKey: state.next.persistRequestsKey,
+            });
+        }
+
         this.isInitialized = true;
         if (this.persistRequestsKey && !this.areRequestsPersisted) await this._persistRequests();
         if (this.persistStateKey) {
-            this.events.on(EventType.PERSIST_STATE, this.persistState.bind(this));
+            this.events.on(EventType.PERSIST_STATE, () => this.persistState(true));
         }
 
         return this;
@@ -507,7 +543,10 @@ export class RequestList implements IRequestList {
     /**
      * @inheritDoc
      */
-    async persistState(): Promise<void> {
+    async persistState(automatic?: boolean): Promise<void> {
+        if (!automatic) {
+            await this.next?.persistState(automatic);
+        }
         if (!this.persistStateKey) {
             throw new Error('Cannot persist state. options.persistStateKey is not set.');
         }
@@ -636,6 +675,12 @@ export class RequestList implements IRequestList {
             nextIndex: this.nextIndex,
             nextUniqueKey: this.nextIndex < this.requests.length ? this.requests[this.nextIndex].uniqueKey! : null,
             inProgress: [...this.inProgress],
+            next: this.next
+                ? {
+                      persistStateKey: (this.next as any).persistStateKey,
+                      persistRequestsKey: (this.next as any).persistRequestsKey,
+                  }
+                : undefined,
         };
     }
 
@@ -645,7 +690,11 @@ export class RequestList implements IRequestList {
     async isEmpty(): Promise<boolean> {
         this._ensureIsInitialized();
 
-        return this.reclaimed.size === 0 && this.nextIndex >= this.requests.length;
+        return (
+            this.reclaimed.size === 0 &&
+            this.nextIndex >= this.requests.length &&
+            (!this.next || (await this.next.isEmpty()))
+        );
     }
 
     /**
@@ -654,7 +703,11 @@ export class RequestList implements IRequestList {
     async isFinished(): Promise<boolean> {
         this._ensureIsInitialized();
 
-        return this.inProgress.size === 0 && this.nextIndex >= this.requests.length;
+        return (
+            this.inProgress.size === 0 &&
+            this.nextIndex >= this.requests.length &&
+            (!this.next || (await this.next.isFinished()))
+        );
     }
 
     /**
@@ -679,6 +732,11 @@ export class RequestList implements IRequestList {
             this.nextIndex++;
             this.isStatePersisted = false;
             return this.ensureRequest(request, index);
+        }
+
+        // If there are no more requests in the current list, check if there's a chained request list.
+        if (this.next) {
+            return this.next.fetchNextRequest();
         }
 
         return null;
@@ -711,7 +769,13 @@ export class RequestList implements IRequestList {
         const { uniqueKey } = request;
 
         this._ensureUniqueKeyValid(uniqueKey);
+
+        if (this.next && !this.inProgress.has(uniqueKey) && !this.reclaimed.has(uniqueKey)) {
+            await this.next.markRequestHandled(request);
+            return;
+        }
         this._ensureInProgressAndNotReclaimed(uniqueKey);
+
         this._ensureIsInitialized();
 
         this.inProgress.delete(uniqueKey);
@@ -725,6 +789,12 @@ export class RequestList implements IRequestList {
         const { uniqueKey } = request;
 
         this._ensureUniqueKeyValid(uniqueKey);
+
+        if (this.next && !this.inProgress.has(uniqueKey) && !this.reclaimed.has(uniqueKey)) {
+            await this.next.markRequestHandled(request);
+            return;
+        }
+
         this._ensureInProgressAndNotReclaimed(uniqueKey);
         this._ensureIsInitialized();
 
@@ -1000,6 +1070,12 @@ export interface RequestListState {
 
     /** Array of request keys representing those that being processed at the moment. */
     inProgress: string[];
+
+    /** Persistence info on the chained request list */
+    next?: {
+        persistStateKey?: string;
+        persistRequestsKey?: string;
+    };
 }
 
 type RequestListSource = string | Source;
