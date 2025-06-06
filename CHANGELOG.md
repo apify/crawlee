@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+
+### Bug Fixes
+
+* use merged cookies correctly in `GotScrapingHttpClient` ([#3000](https://github.com/apify/crawlee/issues/3000)) ([a2985f2](https://github.com/apify/crawlee/commit/a2985f259f068fbe00aed931a812b8a8755282cb)), closes [#2991](https://github.com/apify/crawlee/issues/2991)
+
+
+
+
+
 ## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
 
 
