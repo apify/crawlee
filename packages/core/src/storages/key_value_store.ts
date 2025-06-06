@@ -477,7 +477,7 @@ export class KeyValueStore {
             await iteratee(item.key, index++, { size: item.size });
         }
         return isTruncated
-            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey, prefix }, index)
+            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey, prefix, collection }, index)
             : undefined; // [].forEach() returns undefined.
     }
 
