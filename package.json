@@ -107,7 +107,7 @@
         "playwright": "1.51.1",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
-        "puppeteer": "24.9.0",
+        "puppeteer": "24.10.0",
         "rimraf": "^6.0.0",
         "tsx": "^4.4.0",
         "turbo": "^2.1.0",
@@ -116,10 +116,10 @@
         "vite-tsconfig-paths": "^4.3.2",
         "vitest": "^3.0.0"
     },
-    "packageManager": "yarn@4.8.1",
+    "packageManager": "yarn@4.9.2",
     "volta": {
         "node": "22.16.0",
-        "yarn": "4.8.1"
+        "yarn": "4.9.2"
     },
     "resolutions": {
         "vite": "5.4.11"
