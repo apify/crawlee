@@ -460,22 +460,24 @@ export class KeyValueStore {
         options: KeyValueStoreIteratorOptions = {},
         index = 0,
     ): Promise<void> {
-        const { exclusiveStartKey } = options;
+        const { exclusiveStartKey, prefix, collection } = options;
         ow(iteratee, ow.function);
         ow(
             options,
             ow.object.exactShape({
                 exclusiveStartKey: ow.optional.string,
+                prefix: ow.optional.string,
+                collection: ow.optional.string,
             }),
         );
 
-        const response = await this.client.listKeys({ exclusiveStartKey });
+        const response = await this.client.listKeys({ exclusiveStartKey, prefix, collection });
         const { nextExclusiveStartKey, isTruncated, items } = response;
         for (const item of items) {
             await iteratee(item.key, index++, { size: item.size });
         }
         return isTruncated
-            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
+            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey, prefix }, index)
             : undefined; // [].forEach() returns undefined.
     }
 
@@ -758,4 +760,12 @@ export interface KeyValueStoreIteratorOptions {
      * All keys up to this one (including) are skipped from the result.
      */
     exclusiveStartKey?: string;
+    /**
+     * If set, only keys that start with this prefix are returned.
+     */
+    prefix?: string;
+    /**
+     * Collection name to use for listing keys.
+     */
+    collection?: string;
 }
