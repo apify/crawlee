@@ -201,7 +201,7 @@ export interface AdaptivePlaywrightCrawlerOptions
     /**
      * A custom rendering type predictor
      */
-    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult'>;
+    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult' | 'initialize'>;
 
     /**
      * Prevent direct access to storage in request handlers (only allow using context helpers).
@@ -312,6 +312,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         });
 
         this.preventDirectStorageAccess = preventDirectStorageAccess;
+    }
+
+    protected override async _init(): Promise<void> {
+        await this.renderingTypePredictor.initialize();
+        return await super._init();
     }
 
     protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext): Promise<void> {

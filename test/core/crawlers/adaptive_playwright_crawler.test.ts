@@ -96,6 +96,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         detectionProbabilityRecommendation: number;
         renderingType: 'clientOnly' | 'static';
     }) => ({
+        initialize: async () => {},
         predict: vi.fn((_request: Request) => prediction),
         storeResult: vi.fn((_request: Request, _renderingType: string) => {}),
     });
