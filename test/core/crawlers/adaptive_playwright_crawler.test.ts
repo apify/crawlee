@@ -215,10 +215,15 @@ describe('AdaptivePlaywrightCrawler', () => {
                 renderingType,
             });
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
+            const enqueuedUrls = new Set<string>();
 
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-                async ({ enqueueLinks }) => {
-                    await enqueueLinks();
+                async ({ enqueueLinks, request }) => {
+                    if (request.label === 'enqueued-url') {
+                        enqueuedUrls.add(request.url);
+                    } else {
+                        await enqueueLinks({ label: 'enqueued-url' });
+                    }
                 },
             );
 
@@ -226,13 +231,13 @@ describe('AdaptivePlaywrightCrawler', () => {
                 {
                     requestHandler,
                     renderingTypePredictor,
+                    maxRequestsPerCrawl: 10,
                 },
                 [url.toString()],
             );
 
             await crawler.run();
 
-            const enqueuedUrls = (await localStorageEmulator.getRequestQueueItems()).map((item) => item.url);
             expect(new Set(enqueuedUrls)).toEqual(
                 new Set([
                     `http://${HOSTNAME}:${port}/static?q=1`,
