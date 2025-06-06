@@ -136,6 +136,8 @@ export interface KeyValueStoreClientUpdateOptions {
 export interface KeyValueStoreClientListOptions {
     limit?: number;
     exclusiveStartKey?: string;
+    collection?: string;
+    prefix?: string;
 }
 
 export interface KeyValueStoreItemData {
