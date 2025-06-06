@@ -44,7 +44,7 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
         }
 
         if (request.cookieJar) {
-            result.headers['set-cookie'] = await (request.cookieJar as any).getCookieString(request.url.toString());
+            result.headers.cookie = (await (request.cookieJar as any)?.getCookieString?.(request.url.toString())) ?? '';
         }
 
         return result;
