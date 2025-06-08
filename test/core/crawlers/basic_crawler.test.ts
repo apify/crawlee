@@ -131,6 +131,45 @@ describe('BasicCrawler', () => {
         expect(processed).toHaveLength(sourcesCopy.length * 3);
     });
 
+    test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
+        const processed: { url: string }[] = [];
+
+        const requestHandler: RequestHandler = async ({ request }) => {
+            await sleep(10);
+            processed.push({ url: request.url });
+        };
+
+        const crawler = new BasicCrawler({
+            maxRequestsPerCrawl: 2,
+            minConcurrency: 1,
+            maxConcurrency: 1,
+            requestHandler,
+        });
+
+        // First run should process 2 requests
+        await crawler.run([...Array(5).keys()].map((index) => `https://example.com/first/${index}`));
+        expect(processed).toHaveLength(2);
+
+        // Make sure no extra requests were enqueued
+        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+
+        // Second run should process 2 more requests
+        await crawler.run([...Array(5).keys()].map((index) => `https://example.com/second/${index}`));
+        expect(processed).toHaveLength(4);
+
+        // Make sure no extra requests were enqueued
+        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+
+        const processedUrls = processed.map((p) => p.url);
+
+        expect(processedUrls).toEqual([
+            'https://example.com/first/0',
+            'https://example.com/first/1',
+            'https://example.com/second/0',
+            'https://example.com/second/1',
+        ]);
+    });
+
     test('should correctly combine shorthand and full length options', async () => {
         const shorthandOptions = {
             minConcurrency: 123,

@@ -920,6 +920,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();
+                this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
             }
 
             this.stats.reset();
@@ -928,6 +929,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.running = true;
+        this.shouldLogMaxProcessedRequestsExceeded = true;
+        this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
