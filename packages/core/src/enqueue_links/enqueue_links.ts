@@ -430,7 +430,7 @@ export async function enqueueLinks(
     if (limit && limit < requests.length) {
         if (onSkippedRequest) {
             for (const request of requests.slice(limit)) {
-                onSkippedRequest({ url: request.url, reason: 'limit' });
+                await onSkippedRequest({ url: request.url, reason: 'limit' });
             }
         }
 

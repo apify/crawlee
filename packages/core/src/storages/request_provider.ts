@@ -778,10 +778,8 @@ export abstract class RequestProvider implements IStorage {
 
         const queueInfo = await queue.client.get();
 
-        // eslint-disable dot-notation
         queue.initialCount = queueInfo?.totalRequestCount ?? 0;
         queue.initialHandledCount = queueInfo?.handledRequestCount ?? 0;
-        // eslint-enable dot-notation
 
         return queue;
     }

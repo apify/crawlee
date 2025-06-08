@@ -517,7 +517,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
     protected maxRequestsPerCrawl?: number;
-    protected handledRequestsCount: number = 0;
+    protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
@@ -1082,7 +1082,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
 
-        this.onSkippedRequest?.(options);
+        await this.onSkippedRequest?.(options);
     }
 
     /**
