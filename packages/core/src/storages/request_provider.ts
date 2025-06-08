@@ -97,7 +97,7 @@ export abstract class RequestProvider implements IStorage {
     /**
      * Returns an offline approximation of the total number of pending requests in the queue.
      *
-     * Survives restarts and actor migrations.
+     * Survives restarts and Actor migrations.
      */
     getPendingCount() {
         return this.getTotalCount() - this.initialHandledCount - this.assumedHandledCount;
