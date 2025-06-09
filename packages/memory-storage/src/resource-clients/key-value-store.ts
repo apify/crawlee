@@ -167,10 +167,10 @@ export class KeyValueStoreClient extends BaseClient {
 
         const limitedItems = truncatedItems.slice(0, limit);
 
-        const lastItemInStore = filteredItems[filteredItems.length - 1];
-        const lastSelectedItem = limitedItems[limitedItems.length - 1];
+        const lastItemInStore = filteredItems.at(-1);
+        const lastSelectedItem = limitedItems.at(-1);
         const isLastSelectedItemAbsolutelyLast = lastItemInStore === lastSelectedItem;
-        const nextExclusiveStartKey = isLastSelectedItemAbsolutelyLast ? undefined : lastSelectedItem.key;
+        const nextExclusiveStartKey = isLastSelectedItemAbsolutelyLast ? undefined : lastSelectedItem?.key;
 
         existingStoreById.updateTimestamps(false);
 
