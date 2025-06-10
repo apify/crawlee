@@ -170,6 +170,7 @@ export interface DatasetIteratorOptions
 export interface DatasetExportToOptions extends DatasetExportOptions {
     fromDataset?: string;
     toKVS?: string;
+    title?: string | (() => string);
 }
 
 /**
@@ -356,7 +357,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
                     return keys.map((k) => item[k]);
                 }),
             ]);
-            await kvStore.setValue(key, value, { contentType });
+            const finalKey = typeof options?.title === 'function' ? options.title() : options?.title ?? key;
+            await kvStore.setValue(finalKey, value, { contentType });
             return items;
         }
 

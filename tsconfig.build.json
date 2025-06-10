@@ -9,7 +9,8 @@
 		"resolveJsonModule": false,
 		"emitDecoratorMetadata": false,
 		"module": "Node16",
-		"moduleResolution": "Node16"
+		"moduleResolution": "Node16",
+		"isolatedModules": true
 	},
 	"include": ["./packages/*/src/**/*"],
 	"exclude": ["**/node_modules", "**/dist"]
