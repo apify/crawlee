@@ -40,13 +40,13 @@ const crawler = new AdaptivePlaywrightCrawler({
         await context.pushData({ url, heading, requestHandlerMode });
 
         await context.enqueueLinks({
-            globs: ['**/3.12/examples/*'],
+            globs: ['**/next/examples/*'],
         });
     },
 });
 
 crawler.log.setLevel(LogLevel.DEBUG);
 
-await crawler.run(['https://crawlee.dev/js/docs/3.12/examples/accept-user-input']);
+await crawler.run(['https://crawlee.dev/js/docs/next/examples/accept-user-input']);
 
 await Actor.exit({ exit: Actor.isAtHome() });
