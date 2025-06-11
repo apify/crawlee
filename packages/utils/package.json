@@ -46,7 +46,7 @@
         "@crawlee/types": "3.13.3",
         "@types/sax": "^1.2.7",
         "cheerio": "^1.0.0",
-        "file-type": "^20.5.0",
+        "file-type": "^21.0.0",
         "got-scraping": "^4.1.1",
         "ow": "^2.0.0",
         "robots-parser": "^3.0.1",
