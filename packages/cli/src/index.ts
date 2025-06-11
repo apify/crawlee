@@ -7,16 +7,17 @@ import { InstallPlaywrightBrowsersCommand } from './commands/InstallPlaywrightBr
 
 import { RunProjectCommand } from './commands/RunProjectCommand.js';
 
+import { createRequire } from 'node:module';
 import yargs from 'yargs';
+
+const require = createRequire(import.meta.url);
 
 function getCLIVersion(): string {
     try {
         // this works during development (where we have `src` folder)
-        // eslint-disable-next-line
         return require('../package.json').version;
     } catch {
         // this works in production build (where we do not have the `src` folder)
-        // eslint-disable-next-line
         return require('./package.json').version;
     }
 }
