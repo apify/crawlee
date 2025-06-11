@@ -263,7 +263,7 @@ export class PlaywrightCrawler extends BrowserCrawler<
         } catch (err: any) {
             if (err.message?.includes('Page closed')) {
                 log.warning(`Page closed unexpectedly during navigation: ${request.url}`);
-                // Mark request as failed (optional)
+                // Mark request as failed
                 request.pushErrorMessage(err);
                 // Return undefined to indicate failure (or throw to retry)
                 return;

@@ -34,11 +34,11 @@ describe('PlaywrightCrawler - page closed handling', () => {
         // Confirm that Crawlee routed the failed request correctly
         expect(failedRequestHandler).toHaveBeenCalledOnce();
 
-        // Optional: Check that the failure was due to the page being closed
+        //Check that the failure was due to the page being closed
         const failedRequest = failedRequestHandler.mock.calls[0][0]?.request;
         const errorMessages = failedRequest?.errorMessages ?? [];
 
-        expect(errorMessages.some(msg => msg.includes('closed'))).toBe(true);
+        expect(errorMessages.some((msg: string | string[]) => msg.includes('closed'))).toBe(true);
     });
 });
 
