@@ -94,7 +94,6 @@ Storage directories are purged by default. If set to `false` - local storage dir
 
 #### `CRAWLEE_CONTAINERIZED`
 
-This variable is only effective when the systemInfoV2 experiment is enabled.
 Changes how crawlee measures its CPU and Memory usage and limits. If unset, crawlee will determine if it is containerised using common features of containerized environments using the `isContainerized` utility function.
  - A file at `/.dockerenv`.
  - A file at `/proc/self/cgroup` containing `docker`.
