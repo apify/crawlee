@@ -1,5 +1,5 @@
 import type { StorageClient } from '@crawlee/types';
-import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
+import { getMemoryInfo, isContainerized } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { Log } from '@apify/log';
@@ -195,16 +195,9 @@ export class Snapshotter {
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            let totalBytes: number;
-
-            if (this.config.get('systemInfoV2')) {
-                const containerized = this.config.get('containerized', await isContainerized());
-                const memInfo = await getMemoryInfoV2(containerized);
-                totalBytes = memInfo.totalBytes;
-            } else {
-                const memInfo = await getMemoryInfo();
-                totalBytes = memInfo.totalBytes;
-            }
+            const containerized = this.config.get('containerized', await isContainerized());
+            const memInfo = await getMemoryInfo(containerized);
+            const totalBytes = memInfo.totalBytes;
 
             this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
             this.log.debug(

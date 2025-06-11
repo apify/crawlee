@@ -166,13 +166,6 @@ export interface ConfigurationOptions {
     persistStorage?: boolean;
 
     /**
-     * Defines whether to use the systemInfoV2 metric collection experiment.
-     *
-     * Alternative to `CRAWLEE_SYSTEM_INFO_V2` environment variable.
-     */
-    systemInfoV2?: boolean;
-
-    /**
      * Used in place of `isContainerized()` when collecting system metrics.
      *
      * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
@@ -243,7 +236,6 @@ export interface ConfigurationOptions {
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -
  * `disableBrowserSandbox` | `CRAWLEE_DISABLE_BROWSER_SANDBOX` | -
  * `availableMemoryRatio` | `CRAWLEE_AVAILABLE_MEMORY_RATIO` | `0.25`
- * `systemInfoV2` | `CRAWLEE_SYSTEM_INFO_V2` | false
  * `containerized | `CRAWLEE_CONTAINERIZED | -
  */
 export class Configuration {
@@ -266,7 +258,6 @@ export class Configuration {
         CRAWLEE_DISABLE_BROWSER_SANDBOX: 'disableBrowserSandbox',
         CRAWLEE_LOG_LEVEL: 'logLevel',
         CRAWLEE_PERSIST_STORAGE: 'persistStorage',
-        CRAWLEE_SYSTEM_INFO_V2: 'systemInfoV2',
         CRAWLEE_CONTAINERIZED: 'containerized',
     };
 
@@ -276,7 +267,6 @@ export class Configuration {
         'xvfb',
         'disableBrowserSandbox',
         'persistStorage',
-        'systemInfoV2',
         'containerized',
     ];
 
@@ -297,7 +287,6 @@ export class Configuration {
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 1_000,
         persistStorage: true,
-        systemInfoV2: false,
     };
 
     /**

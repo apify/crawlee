@@ -2,7 +2,7 @@ import { access, readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';
-import { getCgroupsVersion, getMemoryInfoV2 } from '@crawlee/utils';
+import { getCgroupsVersion, getMemoryInfo } from '@crawlee/utils';
 
 vitest.mock('node:os', async (importActual) => {
     const originalOs: typeof import('node:os') = await importActual();
@@ -43,7 +43,7 @@ describe('getMemoryInfoV2()', () => {
         freememSpy.mockReturnValueOnce(222);
         totalmemSpy.mockReturnValueOnce(333);
 
-        const data = await getMemoryInfoV2();
+        const data = await getMemoryInfo();
 
         expect(freememSpy).toHaveBeenCalled();
         expect(totalmemSpy).toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe('getMemoryInfoV2()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        const data = await getMemoryInfoV2(true);
+        const data = await getMemoryInfo(true);
 
         expect(data).toMatchObject({
             totalBytes: 333,
@@ -93,7 +93,7 @@ describe('getMemoryInfoV2()', () => {
 
         try {
             browser = await launchPuppeteer();
-            const data = await getMemoryInfoV2();
+            const data = await getMemoryInfo();
 
             expect(freememSpy).toHaveBeenCalled();
             expect(totalmemSpy).toHaveBeenCalled();
@@ -130,7 +130,7 @@ describe('getMemoryInfoV2()', () => {
         let browser!: Awaited<ReturnType<typeof launchPuppeteer>>;
         try {
             browser = await launchPuppeteer();
-            const data = await getMemoryInfoV2(true);
+            const data = await getMemoryInfo(true);
 
             expect(data).toMatchObject({
                 totalBytes: 333,
@@ -161,7 +161,7 @@ describe('getMemoryInfoV2()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        const data = await getMemoryInfoV2(true);
+        const data = await getMemoryInfo(true);
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,
@@ -187,7 +187,7 @@ describe('getMemoryInfoV2()', () => {
 
         totalmemSpy.mockReturnValueOnce(333);
 
-        const data = await getMemoryInfoV2(true);
+        const data = await getMemoryInfo(true);
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,
@@ -211,7 +211,7 @@ describe('getMemoryInfoV2()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        const data = await getMemoryInfoV2(true);
+        const data = await getMemoryInfo(true);
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,
@@ -237,7 +237,7 @@ describe('getMemoryInfoV2()', () => {
 
         totalmemSpy.mockReturnValueOnce(333);
 
-        const data = await getMemoryInfoV2(true);
+        const data = await getMemoryInfo(true);
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,

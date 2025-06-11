@@ -47,3 +47,7 @@ Previously, the crawling context extended a `Record` type, allowing to access an
 ## Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
+
+## Available resource detection
+
+In v3, we introduced a new way to detect available resources for the crawler, available via `systemInfoV2` flag. In v4, this is the default way to detect available resources. The old way is removed completely together with the `systemInfoV2` flag.

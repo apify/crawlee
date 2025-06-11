@@ -49,7 +49,7 @@ export interface MemoryInfo {
  * @returns An object containing the free and used memory metrics.
  * @internal
  */
-export async function getMemoryInfoV2(containerized = false): Promise<MemoryInfo> {
+export async function getMemoryInfo(containerized = false): Promise<MemoryInfo> {
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
 
