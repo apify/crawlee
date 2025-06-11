@@ -56,7 +56,20 @@ module.exports = {
     onBrokenMarkdownLinks:
     /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
     future: {
-        experimental_faster: true,
+        experimental_faster: {
+            // ssgWorkerThreads: true,
+            swcJsLoader: true,
+            swcJsMinimizer: true,
+            swcHtmlMinimizer: true,
+            lightningCssMinimizer: true,
+            rspackBundler: true,
+            mdxCrossCompilerCache: true,
+            rspackPersistentCache: true,
+        },
+        v4: {
+            removeLegacyPostBuildHeadAttribute: true,
+            useCssCascadeLayers: false,
+        },
     },
     presets: /** @type {import('@docusaurus/types').PresetConfig[]} */ ([
         [
