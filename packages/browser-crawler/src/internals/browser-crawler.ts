@@ -623,11 +623,11 @@ export abstract class BrowserCrawler<
 
         crawlingContext.enqueueLinks = async (enqueueOptions) => {
             return browserCrawlerEnqueueLinks({
-                options: enqueueOptions,
+                options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                 page,
                 requestQueue: await this.getRequestQueue(),
                 robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                onSkippedRequest: this.onSkippedRequest,
+                onSkippedRequest: this.handleSkippedRequest,
                 originalRequestUrl: crawlingContext.request.url,
                 finalRequestUrl: crawlingContext.request.loadedUrl,
             });

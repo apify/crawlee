@@ -516,7 +516,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected sameDomainDelayMillis: number;
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
-    protected handledRequestsCount: number;
+    protected maxRequestsPerCrawl?: number;
+    protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
@@ -529,7 +530,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected respectRobotsTxtFile: boolean;
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
-
+    private shouldLogMaxProcessedRequestsExceeded = true;
+    private shouldLogMaxEnqueuedRequestsExceeded = true;
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
@@ -642,6 +644,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
         this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
+        this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -707,7 +710,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.maxRequestRetries = maxRequestRetries;
         this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
-        this.handledRequestsCount = 0;
         this.stats = new Statistics({
             logMessage: `${log.getOptions().prefix} request statistics:`,
             log,
@@ -741,8 +743,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         this.internalTimeoutMillis = Math.min(this.internalTimeoutMillis, maxSignedInteger);
 
-        let shouldLogMaxPagesExceeded = true;
-        const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
+        this.maxRequestsPerCrawl = maxRequestsPerCrawl;
+
+        const isMaxPagesExceeded = () =>
+            this.maxRequestsPerCrawl && this.maxRequestsPerCrawl <= this.handledRequestsCount;
 
         // eslint-disable-next-line prefer-const
         let { isFinishedFunction, isTaskReadyFunction } = autoscaledPoolOptions;
@@ -759,12 +763,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    if (shouldLogMaxPagesExceeded) {
+                    if (this.shouldLogMaxProcessedRequestsExceeded) {
                         log.info(
                             'Crawler reached the maxRequestsPerCrawl limit of ' +
-                                `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
+                                `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
                         );
-                        shouldLogMaxPagesExceeded = false;
+                        this.shouldLogMaxProcessedRequestsExceeded = false;
                     }
                     return false;
                 }
@@ -774,7 +778,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             isFinishedFunction: async () => {
                 if (isMaxPagesExceeded()) {
                     log.info(
-                        `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests ` +
+                        `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.maxRequestsPerCrawl} requests ` +
                             'and all requests that were in progress at that time have now finished. ' +
                             `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
                     );
@@ -916,6 +920,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();
+                this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
             }
 
             this.stats.reset();
@@ -924,6 +929,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.running = true;
+        this.shouldLogMaxProcessedRequestsExceeded = true;
+        this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
@@ -1043,6 +1050,44 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
     }
 
+    protected get pendingRequestCountApproximation(): number {
+        let result = 0;
+
+        if (this.requestQueue) {
+            result += this.requestQueue.getPendingCount();
+        }
+        if (this.requestList) {
+            result += this.requestList.length() - this.requestList.handledCount();
+        }
+
+        return result;
+    }
+
+    protected calculateEnqueuedRequestLimit(explicitLimit?: number): number | undefined {
+        if (this.maxRequestsPerCrawl === undefined) {
+            return explicitLimit;
+        }
+
+        const limit = Math.max(
+            0,
+            this.maxRequestsPerCrawl - this.handledRequestsCount - this.pendingRequestCountApproximation,
+        );
+
+        return Math.min(limit, explicitLimit ?? Infinity);
+    }
+
+    protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
+        if (options.reason === 'limit' && this.shouldLogMaxEnqueuedRequestsExceeded) {
+            this.log.info(
+                'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
+                    `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
+            );
+            this.shouldLogMaxEnqueuedRequestsExceeded = false;
+        }
+
+        await this.onSkippedRequest?.(options);
+    }
+
     /**
      * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
      * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
@@ -1060,36 +1105,50 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
 
-        if (!this.respectRobotsTxtFile) {
-            return requestQueue.addRequestsBatched(requests, options);
-        }
+        const requestLimit = this.calculateEnqueuedRequestLimit();
 
         const allowedRequests: (string | Source)[] = [];
-        const skipped = new Set<string>();
+        const skippedBecauseOfRobots = new Set<string>();
+        const skippedBecauseOfLimit = new Set<string>();
 
         for (const request of requests) {
             const url = typeof request === 'string' ? request : request.url!;
 
+            if (requestLimit !== undefined && allowedRequests.length >= requestLimit) {
+                skippedBecauseOfLimit.add(url);
+                continue;
+            }
+
             if (await this.isAllowedBasedOnRobotsTxtFile(url)) {
                 allowedRequests.push(request);
             } else {
-                skipped.add(url);
-                await this.onSkippedRequest?.({ url, reason: 'robotsTxt' });
+                skippedBecauseOfRobots.add(url);
+                await this.handleSkippedRequest({ url, reason: 'robotsTxt' });
             }
         }
 
-        if (skipped.size > 0) {
+        if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
-                skipped: [...skipped],
+                skipped: [...skippedBecauseOfRobots],
             });
+        }
 
-            if (this.onSkippedRequest) {
-                await Promise.all(
-                    [...skipped].map((url) => {
-                        return this.onSkippedRequest!({ url, reason: 'robotsTxt' });
-                    }),
-                );
-            }
+        if (skippedBecauseOfRobots.size > 0 || skippedBecauseOfLimit.size > 0) {
+            await Promise.all(
+                [...skippedBecauseOfRobots]
+                    .map((url) => {
+                        return this.handleSkippedRequest({ url, reason: 'robotsTxt' });
+                    })
+                    .concat(
+                        [...skippedBecauseOfLimit].map((url) => {
+                            return this.handleSkippedRequest({ url, reason: 'limit' });
+                        }),
+                    ),
+            );
+        }
+
+        if (!allowedRequests.length) {
+            return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
         }
 
         return requestQueue.addRequestsBatched(allowedRequests, options);
@@ -1385,7 +1444,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await source.markRequestHandled(request);
-            await this.onSkippedRequest?.({
+            await this.handleSkippedRequest({
                 url: request.url,
                 reason: 'robotsTxt',
             });
@@ -1413,7 +1472,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-                    onSkippedRequest: this.onSkippedRequest,
+                    onSkippedRequest: this.handleSkippedRequest,
+                    limit: this.calculateEnqueuedRequestLimit(options.limit),
                     ...options,
                 });
             },
