@@ -8,11 +8,40 @@ import express from 'express';
 import playwright from 'playwright';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
-import log from '@apify/log';
+import log, { LogLevel } from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper';
 
+import { describe, it, expect, vi } from 'vitest';
+import { Configuration } from '@crawlee/browser';
+
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
+
+describe('PlaywrightCrawler - page closed handling', () => {
+    it('should catch "page closed" errors and call failedRequestHandler', async () => {
+        const failedRequestHandler = vi.fn();
+
+        const crawler = new PlaywrightCrawler({
+            requestHandler: async ({ page }) => {
+                await page.close();           // Simulate page being closed prematurely
+                await page.title();           // This should throw an error
+            },
+            failedRequestHandler,
+        }, new Configuration({ logLevel: LogLevel.ERROR }));
+
+        await crawler.run([{ url: 'https://example.com' }]);
+
+        // Confirm that Crawlee routed the failed request correctly
+        expect(failedRequestHandler).toHaveBeenCalledOnce();
+
+        // Optional: Check that the failure was due to the page being closed
+        const failedRequest = failedRequestHandler.mock.calls[0][0]?.request;
+        const errorMessages = failedRequest?.errorMessages ?? [];
+
+        expect(errorMessages.some(msg => msg.includes('closed'))).toBe(true);
+    });
+});
+
 
 describe('PlaywrightCrawler', () => {
     let prevEnvHeadless: string | undefined;
