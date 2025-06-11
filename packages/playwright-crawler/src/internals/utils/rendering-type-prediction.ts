@@ -1,4 +1,5 @@
-import type { Request } from '@crawlee/core';
+import type { RecoverableStatePersistenceOptions, Request } from '@crawlee/core';
+import { RecoverableState } from '@crawlee/core';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
@@ -33,6 +34,7 @@ type FeatureVector = [staticResultsSimilarity: number, clientOnlyResultsSimilari
 export interface RenderingTypePredictorOptions {
     /** A number between 0 and 1 that determines the desired ratio of rendering type detections */
     detectionRatio: number;
+    persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }
 
 /**
@@ -43,11 +45,25 @@ export interface RenderingTypePredictorOptions {
 export class RenderingTypePredictor {
     private renderingTypeDetectionResults = new Map<RenderingType, Map<string | undefined, URLComponents[]>>();
     private detectionRatio: number;
-    private logreg: LogisticRegression;
+    private state: RecoverableState<{ logreg: LogisticRegression }>;
 
-    constructor({ detectionRatio }: RenderingTypePredictorOptions) {
+    constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
         this.detectionRatio = detectionRatio;
-        this.logreg = new LogisticRegression({ numSteps: 1000, learningRate: 0.05 });
+        this.state = new RecoverableState({
+            defaultState: { logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }) },
+            serialize: (state) => JSON.stringify({ logreg: state.logreg.toJSON() }),
+            deserialize: (serializedState) => ({ logreg: LogisticRegression.load(JSON.parse(serializedState)) }),
+            persistStateKey: 'rendering-type-predictor-state',
+            persistenceEnabled: true,
+            ...persistenceOptions,
+        });
+    }
+
+    /**
+     * Initialize the predictor by restoring persisted state.
+     */
+    async initialize(): Promise<void> {
+        await this.state.initialize();
     }
 
     /**
@@ -57,18 +73,16 @@ export class RenderingTypePredictor {
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;
     } {
-        if (this.logreg.classifiers.length === 0) {
+        const { logreg } = this.state.currentValue;
+        if (logreg.classifiers.length === 0) {
             return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
         }
 
         const predictionUrl = new URL(loadedUrl ?? url);
 
         const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(predictionUrl), label)]);
-        const [prediction] = this.logreg.predict(urlFeature);
-        const scores = [
-            this.logreg.classifiers[0].testScores(urlFeature),
-            this.logreg.classifiers[1].testScores(urlFeature),
-        ];
+        const [prediction] = logreg.predict(urlFeature);
+        const scores = [logreg.classifiers[0].testScores(urlFeature), logreg.classifiers[1].testScores(urlFeature)];
 
         return {
             renderingType: prediction === 1 ? 'static' : 'clientOnly',
@@ -134,6 +148,6 @@ export class RenderingTypePredictor {
             }
         }
 
-        this.logreg.train(new Matrix(X), Matrix.columnVector(Y));
+        this.state.currentValue.logreg.train(new Matrix(X), Matrix.columnVector(Y));
     }
 }
