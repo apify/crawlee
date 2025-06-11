@@ -65,7 +65,6 @@
         "@playwright/browser-firefox": "1.58.1",
         "@playwright/browser-webkit": "1.58.1",
         "@stylistic/eslint-plugin": "^5.0.0",
-        "@stylistic/eslint-plugin-ts": "^4.2.0",
         "@types/content-type": "^1.1.8",
         "@types/deep-equal": "^1.0.4",
         "@types/domhandler": "^3.1.0",
