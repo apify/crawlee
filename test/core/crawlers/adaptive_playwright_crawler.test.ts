@@ -1,9 +1,10 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { type Dictionary, KeyValueStore } from '@crawlee/core';
+import { Configuration, type Dictionary, EventType,KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions, Request } from '@crawlee/playwright';
-import { AdaptivePlaywrightCrawler, RequestList } from '@crawlee/playwright';
+import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
+import { sleep } from 'crawlee';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
@@ -387,5 +388,48 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         const store = localStorageEmulator.getKeyValueStore();
         expect(await store.getRecord('1')).toBeUndefined();
+    });
+
+    test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
+            await pushData({ content: 'test data' });
+        });
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                // Use a real RenderingTypePredictor instead of the mocked one
+                renderingTypePredictor: new RenderingTypePredictor({ detectionRatio: 1 }),
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        // Run the crawler - this will initialize the RenderingTypePredictor and potentially store results
+        await crawler.run();
+
+        // Now emit a PERSIST_STATE event to trigger state persistence
+        const events = Configuration.getEventManager();
+        events.emit(EventType.PERSIST_STATE);
+
+        // Wait a bit for the event to be processed
+        await sleep(100);
+
+        // Verify that the regression model was actually saved to the key-value store
+        const store = await KeyValueStore.open();
+        const storedState = await store.getValue<string>('rendering-type-predictor-state');
+        expect(storedState).not.toBeNull();
+
+        const parsedState = JSON.parse(storedState!);
+        expect(parsedState).toHaveProperty('logreg');
+
+        // Test that the persisted state can be successfully restored
+        // by creating a new RenderingTypePredictor and seeing if it initializes without error
+        const newPredictor = new RenderingTypePredictor({
+            detectionRatio: 0.1,
+            persistenceOptions: { persistStateKey: 'rendering-type-predictor-state' },
+        });
+
+        // This should not throw since we've persisted valid state
+        await expect(newPredictor.initialize()).resolves.not.toThrow();
     });
 });

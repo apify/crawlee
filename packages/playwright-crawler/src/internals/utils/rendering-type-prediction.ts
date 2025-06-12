@@ -52,7 +52,7 @@ export class RenderingTypePredictor {
         this.state = new RecoverableState({
             defaultState: { logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }) },
             serialize: (state) => JSON.stringify({ logreg: state.logreg.toJSON() }),
-            deserialize: (serializedState) => ({ logreg: LogisticRegression.load(JSON.parse(serializedState)) }),
+            deserialize: (serializedState) => ({ logreg: LogisticRegression.load(JSON.parse(serializedState).logreg) }),
             persistStateKey: 'rendering-type-predictor-state',
             persistenceEnabled: true,
             ...persistenceOptions,
