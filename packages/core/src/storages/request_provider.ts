@@ -36,7 +36,7 @@ import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils';
 
-export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | Array<Source | string>;
+export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
 
 export abstract class RequestProvider implements IStorage {
     id: string;
