@@ -9,7 +9,15 @@ import type {
     RequestQueueInfo,
     StorageClient,
 } from '@crawlee/types';
-import { chunk, downloadListOfUrls, sleep } from '@crawlee/utils';
+import {
+    asyncifyIterable,
+    chunkedAsyncIterable,
+    downloadListOfUrls,
+    isAsyncIterable,
+    isIterable,
+    peekableAsyncIterable,
+    sleep,
+} from '@crawlee/utils';
 import ow from 'ow';
 
 import { ListDictionary, LruCache } from '@apify/datastructures';
@@ -27,6 +35,8 @@ import { checkStorageAccess } from './access_checking';
 import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils';
+
+export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | Array<Source | string>;
 
 export abstract class RequestProvider implements IStorage {
     id: string;
@@ -202,14 +212,17 @@ export abstract class RequestProvider implements IStorage {
      * @param [options] Request queue operation options.
      */
     async addRequests(
-        requestsLike: Source[],
+        requestsLike: RequestsLike,
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
         checkStorageAccess();
 
         this.lastActivity = new Date();
 
-        ow(requestsLike, ow.array);
+        ow(
+            requestsLike,
+            ow.object.is((value: unknown) => isIterable(value) || isAsyncIterable(value)),
+        );
         ow(
             options,
             ow.object.exactShape({
@@ -237,18 +250,20 @@ export abstract class RequestProvider implements IStorage {
             unprocessedRequests: [],
         };
 
-        for (const requestLike of requestsLike) {
-            if ('requestsFromUrl' in requestLike) {
-                const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
-                await this._addFetchedRequests(requestLike as InternalSource, requests, options);
+        const requests: Request<Dictionary>[] = [];
+
+        for await (const requestLike of asyncifyIterable(requestsLike)) {
+            if (typeof requestLike === 'string') {
+                requests.push(new Request({ url: requestLike }));
+            } else if ('requestsFromUrl' in requestLike) {
+                const fetchedRequests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
+                await this._addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
+            } else {
+                requests.push(
+                    requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions),
+                );
             }
         }
-
-        const requests = requestsLike
-            .filter((requestLike) => !('requestsFromUrl' in requestLike))
-            .map((requestLike) => {
-                return requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions);
-            });
 
         const requestsToAdd = new Map<string, Request>();
 
@@ -315,7 +330,7 @@ export abstract class RequestProvider implements IStorage {
      * @param options Options for the request queue
      */
     async addRequestsBatched(
-        requests: (string | Source)[],
+        requests: RequestsLike,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
@@ -332,47 +347,45 @@ export abstract class RequestProvider implements IStorage {
             }),
         );
 
-        // The `requests` array can be huge, and `ow` is very slow for anything more complex.
-        // This explicit iteration takes a few milliseconds, while the ow check can take tens of seconds.
+        const addRequest = this.addRequest.bind(this);
 
-        // ow(requests, ow.array.ofType(ow.any(
-        //     ow.string,
-        //     ow.object.partialShape({ url: ow.string, id: ow.undefined }),
-        //     ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
-        // )));
+        async function* generateRequests() {
+            for await (const opts of asyncifyIterable(requests)) {
+                // The `requests` array can be huge, and `ow` is very slow for anything more complex.
+                // This handwritten check takes a few milliseconds, while the ow check can take tens of seconds.
 
-        for (const request of requests) {
-            if (typeof request === 'string') {
-                continue;
-            }
+                if (typeof opts === 'object' && opts !== null) {
+                    if (typeof opts.url !== 'string' || typeof opts.id !== 'undefined') {
+                        throw new Error(
+                            `Request options are not valid, the 'url' property is not a string. Input: ${inspect(opts)}`,
+                        );
+                    }
 
-            if (typeof request === 'object' && request !== null) {
-                if (typeof request.url === 'string' && typeof request.id === 'undefined') {
-                    continue;
+                    if (opts.id !== undefined) {
+                        throw new Error(
+                            `Request options are not valid, the 'id' property must not be present. Input: ${inspect(opts)}`,
+                        );
+                    }
+
+                    if (typeof (opts as any).requestsFromUrl !== 'string') {
+                        throw new Error(
+                            `Request options are not valid, the 'requestsFromUrl' property is not a string. Input: ${inspect(opts)}`,
+                        );
+                    }
+
+                    if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
+                        await addRequest(opts, { forefront: options.forefront });
+                    } else {
+                        yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
+                    }
                 }
-
-                if (typeof (request as any).requestsFromUrl === 'string') {
-                    continue;
-                }
             }
-
-            throw new Error(
-                `Request options are not valid, provide either a URL or an object with 'url' property (but without 'id' property), or an object with 'requestsFromUrl' property. Input: ${inspect(
-                    request,
-                )}`,
-            );
         }
 
         const { batchSize = 1000, waitBetweenBatchesMillis = 1000 } = options;
-        const sources: Source[] = [];
 
-        for (const opts of requests) {
-            if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
-                await this.addRequest(opts, { forefront: options.forefront });
-            } else {
-                sources.push(typeof opts === 'string' ? { url: opts } : (opts as RequestOptions));
-            }
-        }
+        const chunks = peekableAsyncIterable(chunkedAsyncIterable(generateRequests(), batchSize));
+        const chunksIterator = chunks[Symbol.asyncIterator]();
 
         const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
             const resultsToReturn: ProcessedRequest[] = [];
@@ -395,13 +408,17 @@ export abstract class RequestProvider implements IStorage {
             return resultsToReturn;
         };
 
-        const initialChunk = sources.splice(0, batchSize);
-
         // Add initial batch of `batchSize` to process them right away
-        const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
+        const initialChunk = await chunksIterator.peek();
+        if (initialChunk === undefined) {
+            return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
+        }
 
-        // If we have no more requests to add, return early
-        if (!sources.length) {
+        const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
+        await chunksIterator.next();
+
+        // If we have no more requests to add, return immediately
+        if (chunksIterator.peek() === undefined) {
             return {
                 addedRequests,
                 waitForAllRequestsToBeAdded: Promise.resolve([]),
@@ -410,10 +427,9 @@ export abstract class RequestProvider implements IStorage {
 
         // eslint-disable-next-line no-async-promise-executor
         const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            const chunks = chunk(sources, batchSize);
             const finalAddedRequests: ProcessedRequest[] = [];
 
-            for (const requestChunk of chunks) {
+            for await (const requestChunk of chunks) {
                 finalAddedRequests.push(...(await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk, false)));
 
                 await sleep(waitBetweenBatchesMillis);

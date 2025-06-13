@@ -8,6 +8,7 @@ import type {
     RequestProviderOptions,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
+    RequestsLike,
 } from './request_provider';
 import { RequestProvider } from './request_provider';
 import { getRequestId } from './utils';
@@ -124,7 +125,7 @@ export class RequestQueue extends RequestProvider {
      * @inheritDoc
      */
     override async addRequests(
-        requestsLike: Source[],
+        requestsLike: RequestsLike,
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
         const result = await super.addRequests(requestsLike, options);
