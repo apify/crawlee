@@ -170,6 +170,11 @@ export interface DatasetIteratorOptions
 export interface DatasetExportToOptions extends DatasetExportOptions {
     fromDataset?: string;
     toKVS?: string;
+    /**
+     * If true, includes all unique keys from all dataset items in the CSV export.
+     * If omitted or false, only keys from the first item are used.
+     */
+    collectAllKeys?: boolean;
 }
 
 /**
@@ -349,7 +354,16 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const items = await this.export(options);
 
         if (contentType === 'text/csv') {
-            const keys = Object.keys(items[0]);
+            // To handle empty dataset exports gracefully.
+            if (items.length === 0) {
+                await kvStore.setValue(key, '', { contentType });
+                return items;
+            }
+
+            const keys = options?.collectAllKeys
+                ? Array.from(new Set(items.flatMap(Object.keys)))
+                : Object.keys(items[0]);
+
             const value = stringify([
                 keys,
                 ...items.map((item) => {
