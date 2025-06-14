@@ -170,7 +170,11 @@ export interface DatasetIteratorOptions
 export interface DatasetExportToOptions extends DatasetExportOptions {
     fromDataset?: string;
     toKVS?: string;
-    collectAllKeys?: boolean; // If true, includes all unique keys from all items in CSV
+    /**
+     * If true, includes all unique keys from all dataset items in the CSV export.
+     * If omitted or false, only keys from the first item are used.
+     */
+    collectAllKeys?: boolean;
 }
 
 /**
