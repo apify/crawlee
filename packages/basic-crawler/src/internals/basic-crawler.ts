@@ -1550,13 +1550,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.crawlingContexts.delete(crawlingContext.id);
 
             // Safety net - release the lock if nobody managed to do it before
-            if (isRequestLocked && source instanceof RequestProvider) {
-                try {
-                    await source.client.deleteRequestLock(request.id!);
-                } catch {
-                    // We don't have the lock, or the request was never locked. Either way it's fine
-                }
-            }
+            // Removed manual deleteRequestLock as this should be handled by markRequestHandled()
+// See: https://github.com/apify/crawlee/issues/2840
+
         }
     }
 
