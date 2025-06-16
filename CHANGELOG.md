@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
+
+
+### Bug Fixes
+
+* Do not enqueue more links than what the crawler is capable of processing ([#2990](https://github.com/apify/crawlee/issues/2990)) ([ea094c8](https://github.com/apify/crawlee/commit/ea094c819232e0b30bc550270836d10506eb9454)), closes [#2728](https://github.com/apify/crawlee/issues/2728)
+* Persist rendering type detection results in `AdaptivePlaywrightCrawler` ([#2987](https://github.com/apify/crawlee/issues/2987)) ([76431ba](https://github.com/apify/crawlee/commit/76431badf8a55892303d9b53fe23e029fad9cb18)), closes [#2899](https://github.com/apify/crawlee/issues/2899)
+
+
+### Features
+
+* **dataset:** add collectAllKeys option for full CSV export ([#2945](https://github.com/apify/crawlee/issues/2945)) ([#3007](https://github.com/apify/crawlee/issues/3007)) ([3b629da](https://github.com/apify/crawlee/commit/3b629da9418c052419381087d3ab1871a5c8718b))
+* support `KVS.listKeys()` `prefix` and `collection` parameters ([#3001](https://github.com/apify/crawlee/issues/3001)) ([5c4726d](https://github.com/apify/crawlee/commit/5c4726df96e358a9bbf44a0cd2760e4e269f0fae)), closes [#2974](https://github.com/apify/crawlee/issues/2974)
+
+
+
+
+
 ## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
 
 
