@@ -558,10 +558,14 @@ describe('dataset', () => {
                 ]);
 
                 const kvStore = await KeyValueStore.open();
-                await dataset.exportTo('test.csv', {
-                    toKVS: kvStore.name,
-                    collectAllKeys: true,
-                }, 'text/csv');
+                await dataset.exportTo(
+                    'test.csv',
+                    {
+                        toKVS: kvStore.name,
+                        collectAllKeys: true,
+                    },
+                    'text/csv',
+                );
 
                 const exported = await kvStore.getValue('test.csv');
                 expect(exported).toContain('id');
