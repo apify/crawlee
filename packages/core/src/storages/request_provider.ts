@@ -351,9 +351,7 @@ export abstract class RequestProvider implements IStorage {
 
         async function* generateRequests() {
             for await (const opts of asyncifyIterable(requests)) {
-                // The `requests` array can be huge, and `ow` is very slow for anything more complex.
-                // This handwritten check takes a few milliseconds, while the ow check can take tens of seconds.
-
+                // Validate the input
                 if (typeof opts === 'object' && opts !== null) {
                     if (opts.url !== undefined && typeof opts.url !== 'string') {
                         throw new Error(
@@ -378,8 +376,10 @@ export abstract class RequestProvider implements IStorage {
                 }
 
                 if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
+                    // Handle URL lists right away
                     await addRequest(opts, { forefront: options.forefront });
                 } else {
+                    // Yield valid requests
                     yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
                 }
             }
