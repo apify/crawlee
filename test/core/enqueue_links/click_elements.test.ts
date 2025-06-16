@@ -2,7 +2,6 @@ import type { Server } from 'node:http';
 
 import type { RequestQueueOperationOptions, Source } from 'crawlee';
 import {
-    asyncifyIterable,
     Configuration,
     launchPlaywright,
     launchPuppeteer,
@@ -118,7 +117,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
             const addedRequests: { request: Source; options?: RequestQueueOperationOptions }[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
             requestQueue.addRequests = async (requests, options) => {
-                for await (const request of asyncifyIterable(requests)) {
+                for await (const request of requests) {
                     addedRequests.push({ request: typeof request === 'string' ? { url: request } : request, options });
                 }
                 return { processedRequests: [], unprocessedRequests: [] };

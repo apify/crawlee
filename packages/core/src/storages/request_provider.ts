@@ -10,7 +10,6 @@ import type {
     StorageClient,
 } from '@crawlee/types';
 import {
-    asyncifyIterable,
     chunkedAsyncIterable,
     downloadListOfUrls,
     isAsyncIterable,
@@ -252,7 +251,7 @@ export abstract class RequestProvider implements IStorage {
 
         const requests: Request<Dictionary>[] = [];
 
-        for await (const requestLike of asyncifyIterable(requestsLike)) {
+        for await (const requestLike of requestsLike) {
             if (typeof requestLike === 'string') {
                 requests.push(new Request({ url: requestLike }));
             } else if ('requestsFromUrl' in requestLike) {
@@ -350,7 +349,7 @@ export abstract class RequestProvider implements IStorage {
         const addRequest = this.addRequest.bind(this);
 
         async function* generateRequests() {
-            for await (const opts of asyncifyIterable(requests)) {
+            for await (const opts of requests) {
                 // Validate the input
                 if (typeof opts === 'object' && opts !== null) {
                     if (opts.url !== undefined && typeof opts.url !== 'string') {

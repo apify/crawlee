@@ -58,14 +58,7 @@ export function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
  * ```
  */
 export async function* asyncifyIterable<T>(iterable: Iterable<T> | AsyncIterable<T>): AsyncIterable<T> {
-    if (isAsyncIterable(iterable)) {
-        yield* iterable;
-        return;
-    }
-
-    for (const item of iterable) {
-        yield item;
-    }
+    yield* iterable;
 }
 
 /**
@@ -86,7 +79,10 @@ export async function* asyncifyIterable<T>(iterable: Iterable<T> | AsyncIterable
  * }
  * ```
  */
-export async function* chunkedAsyncIterable<T>(iterable: AsyncIterable<T>, chunkSize: number): AsyncIterable<T[]> {
+export async function* chunkedAsyncIterable<T>(
+    iterable: AsyncIterable<T> | Iterable<T>,
+    chunkSize: number,
+): AsyncIterable<T[]> {
     if (typeof chunkSize !== 'number' || chunkSize < 1) {
         throw new Error(`Chunk size must be a positive number (${inspect(chunkSize)}) received`);
     }
@@ -149,8 +145,8 @@ export interface PeekableAsyncIterable<T> extends AsyncIterable<T> {
  * console.log(await iterator.peek()); // 2 (next value)
  * ```
  */
-export function peekableAsyncIterable<T>(iterable: AsyncIterable<T>): PeekableAsyncIterable<T> {
-    const iterator = iterable[Symbol.asyncIterator]();
+export function peekableAsyncIterable<T>(iterable: AsyncIterable<T> | Iterable<T>): PeekableAsyncIterable<T> {
+    const iterator = asyncifyIterable(iterable)[Symbol.asyncIterator]();
     let peekedValue: { done: boolean; value: T } | undefined;
     let isExhausted = false;
 

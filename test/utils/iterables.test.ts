@@ -55,10 +55,8 @@ describe('asyncifyIterable', () => {
 
 describe('chunkedAsyncIterable', () => {
     it('should chunk an async iterable into specified sizes', async () => {
-        const asyncIterable = asyncifyIterable([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-
         const result = [];
-        for await (const chunk of chunkedAsyncIterable(asyncIterable, 3)) {
+        for await (const chunk of chunkedAsyncIterable([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3)) {
             result.push(chunk);
         }
 
@@ -66,10 +64,8 @@ describe('chunkedAsyncIterable', () => {
     });
 
     it('should handle chunk size of 1', async () => {
-        const asyncIterable = asyncifyIterable([1, 2, 3]);
-
         const result = [];
-        for await (const chunk of chunkedAsyncIterable(asyncIterable, 1)) {
+        for await (const chunk of chunkedAsyncIterable([1, 2, 3], 1)) {
             result.push(chunk);
         }
 
@@ -77,8 +73,7 @@ describe('chunkedAsyncIterable', () => {
     });
 
     it('should handle chunk size larger than input', async () => {
-        const asyncIterable = asyncifyIterable([1, 2, 3]);
-        const chunked = chunkedAsyncIterable(asyncIterable, 10);
+        const chunked = chunkedAsyncIterable([1, 2, 3], 10);
 
         const result = [];
         for await (const chunk of chunked) {
@@ -89,10 +84,8 @@ describe('chunkedAsyncIterable', () => {
     });
 
     it('should handle empty async iterable', async () => {
-        const asyncIterable = asyncifyIterable([]);
-
         const result = [];
-        for await (const chunk of chunkedAsyncIterable(asyncIterable, 3)) {
+        for await (const chunk of chunkedAsyncIterable([], 3)) {
             result.push(chunk);
         }
 
@@ -100,19 +93,16 @@ describe('chunkedAsyncIterable', () => {
     });
 
     it('should throw error for invalid chunk size', async () => {
-        const input = [1, 2, 3];
-        const asyncIterable = asyncifyIterable(input);
-
         await expect(
             (async () => {
-                for await (const _ of chunkedAsyncIterable(asyncIterable, 0)) {
+                for await (const _ of chunkedAsyncIterable([1, 2, 3], 0)) {
                     // Empty block
                 }
             })(),
         ).rejects.toThrow();
         await expect(
             (async () => {
-                for await (const _ of chunkedAsyncIterable(asyncIterable, -1)) {
+                for await (const _ of chunkedAsyncIterable([1, 2, 3], -1)) {
                     // Empty block
                 }
             })(),
@@ -122,7 +112,7 @@ describe('chunkedAsyncIterable', () => {
 
 describe('peekableAsyncIterable', () => {
     it('should allow peeking at the next value without advancing', async () => {
-        const iterable = peekableAsyncIterable(asyncifyIterable([1, 2, 3]));
+        const iterable = peekableAsyncIterable([1, 2, 3]);
         const iterator = iterable[Symbol.asyncIterator]();
 
         const peeked = await iterator.peek();
@@ -142,7 +132,7 @@ describe('peekableAsyncIterable', () => {
     });
 
     it('should return undefined when peeking at empty iterable', async () => {
-        const iterable = peekableAsyncIterable(asyncifyIterable([]));
+        const iterable = peekableAsyncIterable([]);
         const iterator = iterable[Symbol.asyncIterator]();
 
         const peeked = await iterator.peek();
@@ -150,7 +140,7 @@ describe('peekableAsyncIterable', () => {
     });
 
     it('should handle peek after exhausting the iterable', async () => {
-        const iterable = peekableAsyncIterable(asyncifyIterable([1]));
+        const iterable = peekableAsyncIterable([1]);
 
         // Consume the iterable
         const results = [];
@@ -166,7 +156,7 @@ describe('peekableAsyncIterable', () => {
     });
 
     it('should work with manual iteration', async () => {
-        const iterable = peekableAsyncIterable(asyncifyIterable([10, 20, 30]));
+        const iterable = peekableAsyncIterable([10, 20, 30]);
         const iterator = iterable[Symbol.asyncIterator]();
 
         // Peek first
@@ -193,7 +183,7 @@ describe('peekableAsyncIterable', () => {
     });
 
     it('should handle peek on single element iterable', async () => {
-        const iterable = peekableAsyncIterable(asyncifyIterable([42]));
+        const iterable = peekableAsyncIterable([42]);
         const iterator = iterable[Symbol.asyncIterator]();
 
         expect(await iterator.peek()).toBe(42);
