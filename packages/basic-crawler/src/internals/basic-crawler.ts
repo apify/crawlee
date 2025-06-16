@@ -1110,7 +1110,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const skippedBecauseOfLimit = new Set<string>();
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
-        const handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
         async function* filteredRequests() {
             let yieldedRequestCount = 0;
@@ -1128,7 +1127,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     yieldedRequestCount += 1;
                 } else {
                     skippedBecauseOfRobots.add(url);
-                    await handleSkippedRequest({ url, reason: 'robotsTxt' });
                 }
             }
         }
