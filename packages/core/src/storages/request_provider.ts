@@ -421,7 +421,7 @@ export abstract class RequestProvider implements IStorage {
         await chunksIterator.next();
 
         // If we have no more requests to add, return immediately
-        if (chunksIterator.peek() === undefined) {
+        if ((await chunksIterator.peek()) === undefined) {
             return {
                 addedRequests,
                 waitForAllRequestsToBeAdded: Promise.resolve([]),
