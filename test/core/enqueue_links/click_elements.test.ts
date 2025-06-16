@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 
 import type { RequestQueueOperationOptions, Source } from 'crawlee';
 import {
+    asyncifyIterable,
     Configuration,
     launchPlaywright,
     launchPuppeteer,
@@ -31,8 +32,12 @@ function createRequestQueueMock() {
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
+        const processedRequests: Source[] = [];
+        for await (const request of requests) {
+            processedRequests.push(typeof request === 'string' ? { url: request } : request);
+        }
+        enqueued.push(...processedRequests);
+        return { processedRequests, unprocessedRequests: [] as never[] };
     };
 
     return { enqueued, requestQueue };
@@ -113,7 +118,9 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
             const addedRequests: { request: Source; options?: RequestQueueOperationOptions }[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
             requestQueue.addRequests = async (requests, options) => {
-                addedRequests.push(...requests.map((request) => ({ request, options })));
+                for await (const request of asyncifyIterable(requests)) {
+                    addedRequests.push({ request: typeof request === 'string' ? { url: request } : request, options });
+                }
                 return { processedRequests: [], unprocessedRequests: [] };
             };
 

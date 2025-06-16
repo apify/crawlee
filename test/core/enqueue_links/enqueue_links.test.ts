@@ -8,7 +8,7 @@ import {
     launchPuppeteer,
     RequestQueue,
 } from '@crawlee/puppeteer';
-import type { CheerioRoot } from '@crawlee/utils';
+import { asyncifyIterable, type CheerioRoot } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
@@ -50,8 +50,12 @@ function createRequestQueueMock() {
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
+        const processedRequests: Source[] = [];
+        for await (const request of asyncifyIterable(requests)) {
+            processedRequests.push(typeof request === 'string' ? { url: request } : request);
+        }
+        enqueued.push(...processedRequests);
+        return { processedRequests, unprocessedRequests: [] as never[] };
     };
 
     return { enqueued, requestQueue };
@@ -972,7 +976,9 @@ describe('enqueueLinks()', () => {
             requestQueue.addRequests = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
                 // so that it doesn't matter how many calls were made
-                enqueued.push(...requests.map((request) => ({ request, options })));
+                for await (const request of asyncifyIterable(requests)) {
+                    enqueued.push({ request: typeof request === 'string' ? { url: request } : request, options });
+                }
                 return { processedRequests: [], unprocessedRequests: [] };
             };
 
@@ -999,7 +1005,9 @@ describe('enqueueLinks()', () => {
             requestQueue.addRequestsBatched = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
                 // so that it doesn't matter how many calls were made
-                enqueued.push(...requests.map((request) => ({ request, options })));
+                for await (const request of asyncifyIterable(requests)) {
+                    enqueued.push({ request: typeof request === 'string' ? { url: request } : request, options });
+                }
                 return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
             };
 
