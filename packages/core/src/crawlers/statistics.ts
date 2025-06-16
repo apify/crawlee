@@ -14,21 +14,15 @@ import { ErrorTracker } from './error_tracker';
  */
 class Job {
     private lastRunAt: number | null = null;
-    private runs = 0;
     private durationMillis?: number;
 
     run() {
         this.lastRunAt = Date.now();
-        return ++this.runs;
     }
 
     finish() {
         this.durationMillis = Date.now() - this.lastRunAt!;
         return this.durationMillis;
-    }
-
-    retryCount() {
-        return Math.max(0, this.runs - 1);
     }
 }
 
@@ -226,13 +220,13 @@ export class Statistics {
      * Mark job as finished and sets the state
      * @ignore
      */
-    finishJob(id: number | string) {
+    finishJob(id: number | string, retryCount: number) {
         const job = this.requestsInProgress.get(id);
         if (!job) return;
         const jobDurationMillis = job.finish();
         this.state.requestsFinished++;
         this.state.requestTotalFinishedDurationMillis += jobDurationMillis;
-        this._saveRetryCountForJob(job);
+        this._saveRetryCountForJob(retryCount);
         if (jobDurationMillis < this.state.requestMinDurationMillis)
             this.state.requestMinDurationMillis = jobDurationMillis;
         if (jobDurationMillis > this.state.requestMaxDurationMillis)
@@ -244,12 +238,12 @@ export class Statistics {
      * Mark job as failed and sets the state
      * @ignore
      */
-    failJob(id: number | string) {
+    failJob(id: number | string, retryCount: number) {
         const job = this.requestsInProgress.get(id);
         if (!job) return;
         this.state.requestTotalFailedDurationMillis += job.finish();
         this.state.requestsFailed++;
-        this._saveRetryCountForJob(job);
+        this._saveRetryCountForJob(retryCount);
         this.requestsInProgress.delete(id);
     }
 
@@ -313,12 +307,10 @@ export class Statistics {
         await this.persistState();
     }
 
-    protected _saveRetryCountForJob(job: Job) {
-        const retryCount = job.retryCount();
+    protected _saveRetryCountForJob(retryCount: number) {
         if (retryCount > 0) this.state.requestsRetries++;
-        this.requestRetryHistogram[retryCount] = this.requestRetryHistogram[retryCount]
-            ? this.requestRetryHistogram[retryCount] + 1
-            : 1;
+        this.requestRetryHistogram[retryCount] ??= 0;
+        this.requestRetryHistogram[retryCount]++;
     }
 
     /**
@@ -337,7 +329,17 @@ export class Statistics {
 
         this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
 
-        await this.keyValueStore.setValue(this.persistStateKey, this.toJSON());
+        // use half the interval of `persistState` to avoid race conditions
+        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const timeoutSecs = persistStateIntervalMillis / 2_000;
+        await this.keyValueStore
+            .setValue(this.persistStateKey, this.toJSON(), {
+                timeoutSecs,
+                doNotRetryTimeouts: true,
+            })
+            .catch((error) =>
+                this.log.warning(`Failed to persist the statistics to ${this.persistStateKey}`, { error }),
+            );
     }
 
     /**

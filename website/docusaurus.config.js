@@ -1,4 +1,5 @@
 /* eslint-disable global-require */
+const path = require('path');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -55,7 +56,20 @@ module.exports = {
     onBrokenMarkdownLinks:
     /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
     future: {
-        experimental_faster: true,
+        experimental_faster: {
+            // ssgWorkerThreads: true,
+            swcJsLoader: true,
+            swcJsMinimizer: true,
+            swcHtmlMinimizer: true,
+            lightningCssMinimizer: true,
+            rspackBundler: true,
+            mdxCrossCompilerCache: true,
+            rspackPersistentCache: true,
+        },
+        v4: {
+            removeLegacyPostBuildHeadAttribute: true,
+            useCssCascadeLayers: false,
+        },
     },
     presets: /** @type {import('@docusaurus/types').PresetConfig[]} */ ([
         [
@@ -209,6 +223,13 @@ module.exports = {
                 },
             };
         },
+        [
+            path.resolve(__dirname, 'src/plugins/docusaurus-plugin-segment'),
+            {
+                writeKey: process.env.SEGMENT_TOKEN,
+                allowedInDev: false,
+            },
+        ],
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({
@@ -281,7 +302,7 @@ module.exports = {
             // eslint-disable-next-line max-len
             { name: 'og:description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
         ],
-        image: 'img/crawlee-og.png',
+        image: 'img/crawlee-js-og.png',
         footer: {
             links: [
                 {

@@ -302,11 +302,11 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             },
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return domCrawlerEnqueueLinks({
-                    options: enqueueOptions,
+                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     window,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                    onSkippedRequest: this.onSkippedRequest,
+                    onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });

@@ -6,6 +6,7 @@
 .logoWithArrows {
     display: flex;
     align-items: center;
+    width: 220px;
 
     svg {
         margin: 0 2px;

@@ -24,15 +24,5 @@
 		}
 	],
 	"schedule": ["every weekday"],
-	"ignoreDeps": [
-		"crawlee",
-		"cheerio",
-		"playwright",
-		"@docusaurus/core",
-		"@docusaurus/mdx-loader",
-		"@docusaurus/module-type-aliases",
-		"@docusaurus/plugin-client-redirects",
-		"@docusaurus/preset-classic",
-		"@docusaurus/types"
-	]
+	"ignoreDeps": ["crawlee", "cheerio", "yarn"]
 }

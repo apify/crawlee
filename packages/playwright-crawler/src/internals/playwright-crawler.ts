@@ -23,7 +23,7 @@ export interface PlaywrightCrawlingContext<UserData extends Dictionary = Diction
         PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export interface PlaywrightRequestHandler extends BrowserRequestHandler<LoadedContext<PlaywrightCrawlingContext>> {}
-export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
+export type PlaywrightGotoOptions = Dictionary & Parameters<Page['goto']>[1];
 
 export interface PlaywrightCrawlerOptions
     extends BrowserCrawlerOptions<PlaywrightCrawlingContext, { browserPlugins: [PlaywrightPlugin] }> {

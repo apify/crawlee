@@ -44,9 +44,7 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
         }
 
         if (request.cookieJar) {
-            result.headers['set-cookie'] = await Promise.resolve(
-                request.cookieJar.getCookieString(request.url.toString(), {}, () => {}),
-            );
+            result.headers.cookie = (await (request.cookieJar as any)?.getCookieString?.(request.url.toString())) ?? '';
         }
 
         return result;
@@ -163,19 +161,31 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
     }
 }
 
+function getHttpBinUrl(path: string): string {
+    let url: URL;
+    if (process.env.APIFY_HTTPBIN_TOKEN) {
+        url = new URL(path, 'https://httpbin.apify.actor');
+        url.searchParams.set('token', process.env.APIFY_HTTPBIN_TOKEN);
+    } else {
+        url = new URL(path, 'https://httpbin.org');
+    }
+
+    return url.href;
+}
+
 const crawler = new CheerioCrawler({
     async requestHandler(context) {
         const { body: text } = await context.sendRequest({
-            url: 'https://httpbin.org/uuid',
+            url: getHttpBinUrl('/uuid'),
         });
 
         const { body: json } = await context.sendRequest({
-            url: 'https://httpbin.org/uuid',
+            url: getHttpBinUrl('/uuid'),
             responseType: 'json',
         });
 
         const { body: ua } = await context.sendRequest<Dictionary>({
-            url: 'https://httpbin.org/user-agent',
+            url: getHttpBinUrl('/user-agent'),
             responseType: 'json',
         });
 
@@ -190,6 +200,6 @@ const crawler = new CheerioCrawler({
     httpClient: new CurlImpersonateHttpClient({ impersonate: 'chrome-116' }),
 });
 
-await crawler.run(['https://httpbin.org/']);
+await crawler.run([getHttpBinUrl('/')]);
 
 await Actor.exit({ exit: Actor.isAtHome() });

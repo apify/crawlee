@@ -70,3 +70,4 @@ jobs:
                 run: yarn test:e2e
                 env:
                     STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
+                    APIFY_HTTPBIN_TOKEN: ${{ secrets.APIFY_HTTPBIN_TOKEN }}

@@ -1,3 +1,5 @@
+import type { RecoverableStatePersistenceOptions, Request } from '@crawlee/core';
+import { RecoverableState } from '@crawlee/core';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
@@ -32,6 +34,7 @@ type FeatureVector = [staticResultsSimilarity: number, clientOnlyResultsSimilari
 export interface RenderingTypePredictorOptions {
     /** A number between 0 and 1 that determines the desired ratio of rendering type detections */
     detectionRatio: number;
+    persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }
 
 /**
@@ -42,30 +45,44 @@ export interface RenderingTypePredictorOptions {
 export class RenderingTypePredictor {
     private renderingTypeDetectionResults = new Map<RenderingType, Map<string | undefined, URLComponents[]>>();
     private detectionRatio: number;
-    private logreg: LogisticRegression;
+    private state: RecoverableState<{ logreg: LogisticRegression }>;
 
-    constructor({ detectionRatio }: RenderingTypePredictorOptions) {
+    constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
         this.detectionRatio = detectionRatio;
-        this.logreg = new LogisticRegression({ numSteps: 1000, learningRate: 0.05 });
+        this.state = new RecoverableState({
+            defaultState: { logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }) },
+            serialize: (state) => JSON.stringify({ logreg: state.logreg.toJSON() }),
+            deserialize: (serializedState) => ({ logreg: LogisticRegression.load(JSON.parse(serializedState).logreg) }),
+            persistStateKey: 'rendering-type-predictor-state',
+            persistenceEnabled: true,
+            ...persistenceOptions,
+        });
+    }
+
+    /**
+     * Initialize the predictor by restoring persisted state.
+     */
+    async initialize(): Promise<void> {
+        await this.state.initialize();
     }
 
     /**
      * Predict the rendering type for a given URL and request label.
      */
-    public predict(
-        url: URL,
-        label: string | undefined,
-    ): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
-        if (this.logreg.classifiers.length === 0) {
+    public predict({ url, loadedUrl, label }: Request): {
+        renderingType: RenderingType;
+        detectionProbabilityRecommendation: number;
+    } {
+        const { logreg } = this.state.currentValue;
+        if (logreg.classifiers.length === 0) {
             return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
         }
 
-        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(url), label)]);
-        const [prediction] = this.logreg.predict(urlFeature);
-        const scores = [
-            this.logreg.classifiers[0].testScores(urlFeature),
-            this.logreg.classifiers[1].testScores(urlFeature),
-        ];
+        const predictionUrl = new URL(loadedUrl ?? url);
+
+        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(predictionUrl), label)]);
+        const [prediction] = logreg.predict(urlFeature);
+        const scores = [logreg.classifiers[0].testScores(urlFeature), logreg.classifiers[1].testScores(urlFeature)];
 
         return {
             renderingType: prediction === 1 ? 'static' : 'clientOnly',
@@ -79,7 +96,9 @@ export class RenderingTypePredictor {
     /**
      * Store the rendering type for a given URL and request label. This updates the underlying prediction model, which may be costly.
      */
-    public storeResult(url: URL, label: string | undefined, renderingType: RenderingType) {
+    public storeResult({ url, loadedUrl, label }: Request, renderingType: RenderingType) {
+        const resultUrl = new URL(loadedUrl ?? url);
+
         if (!this.renderingTypeDetectionResults.has(renderingType)) {
             this.renderingTypeDetectionResults.set(renderingType, new Map());
         }
@@ -88,7 +107,7 @@ export class RenderingTypePredictor {
             this.renderingTypeDetectionResults.get(renderingType)!.set(label, []);
         }
 
-        this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(url));
+        this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(resultUrl));
         this.retrain();
     }
 
@@ -129,6 +148,6 @@ export class RenderingTypePredictor {
             }
         }
 
-        this.logreg.train(new Matrix(X), Matrix.columnVector(Y));
+        this.state.currentValue.logreg.train(new Matrix(X), Matrix.columnVector(Y));
     }
 }

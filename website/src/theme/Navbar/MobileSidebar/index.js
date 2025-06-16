@@ -1,7 +1,9 @@
 import {
+    useWindowSize,
+} from '@docusaurus/theme-common';
+import {
     useLockBodyScroll,
     useNavbarMobileSidebar,
-    useWindowSize,
 } from '@docusaurus/theme-common/internal';
 import NavbarMobileSidebarHeader from '@theme/Navbar/MobileSidebar/Header';
 import NavbarMobileSidebarLayout from '@theme/Navbar/MobileSidebar/Layout';

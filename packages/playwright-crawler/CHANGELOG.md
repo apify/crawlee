@@ -3,6 +3,56 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+**Note:** Version bump only for package @crawlee/playwright
+
+
+
+
+
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+
+### Bug Fixes
+
+* ensure `PlaywrightGotoOptions` won't result in `unknown` when playwright is not installed ([#2995](https://github.com/apify/crawlee/issues/2995)) ([93eba38](https://github.com/apify/crawlee/commit/93eba38b9cd88e543717f885b2c5644f63979bc9)), closes [#2994](https://github.com/apify/crawlee/issues/2994)
+* extract only `body` from `iframe` elements ([#2986](https://github.com/apify/crawlee/issues/2986)) ([c36166e](https://github.com/apify/crawlee/commit/c36166e24887ca6de12f0c60ef010256fa830c31)), closes [#2979](https://github.com/apify/crawlee/issues/2979)
+
+
+
+
+
+## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
+
+
+### Features
+
+* Allow the AdaptivePlaywrightCrawler result comparator to signal an inconclusive result ([#2975](https://github.com/apify/crawlee/issues/2975)) ([7ba8906](https://github.com/apify/crawlee/commit/7ba8906158e2dbc474de1b1e89937562abe76877))
+
+
+
+
+
+## [3.13.4](https://github.com/apify/crawlee/compare/v3.13.3...v3.13.4) (2025-05-14)
+
+**Note:** Version bump only for package @crawlee/playwright
+
+
+
+
+
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+
+### Bug Fixes
+
+* Fix useState behavior in adaptive crawler ([#2941](https://github.com/apify/crawlee/issues/2941)) ([5282381](https://github.com/apify/crawlee/commit/52823818bd66995c1512b433e6d82755c487cb58))
+
+
+
+
+
 ## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
 
 **Note:** Version bump only for package @crawlee/playwright
