@@ -22,7 +22,6 @@ import type {
     Session,
     SessionPoolOptions,
     SkippedRequestCallback,
-    Source,
     StatisticsOptions,
     StatisticState,
 } from '@crawlee/core';

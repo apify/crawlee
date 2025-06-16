@@ -355,7 +355,7 @@ export abstract class RequestProvider implements IStorage {
                 // This handwritten check takes a few milliseconds, while the ow check can take tens of seconds.
 
                 if (typeof opts === 'object' && opts !== null) {
-                    if (typeof opts.url !== 'string' || typeof opts.id !== 'undefined') {
+                    if (opts.url !== undefined && typeof opts.url !== 'string') {
                         throw new Error(
                             `Request options are not valid, the 'url' property is not a string. Input: ${inspect(opts)}`,
                         );
@@ -367,17 +367,20 @@ export abstract class RequestProvider implements IStorage {
                         );
                     }
 
-                    if (typeof (opts as any).requestsFromUrl !== 'string') {
+                    if (
+                        (opts as any).requestsFromUrl !== undefined &&
+                        typeof (opts as any).requestsFromUrl !== 'string'
+                    ) {
                         throw new Error(
                             `Request options are not valid, the 'requestsFromUrl' property is not a string. Input: ${inspect(opts)}`,
                         );
                     }
+                }
 
-                    if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
-                        await addRequest(opts, { forefront: options.forefront });
-                    } else {
-                        yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
-                    }
+                if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
+                    await addRequest(opts, { forefront: options.forefront });
+                } else {
+                    yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
                 }
             }
         }
