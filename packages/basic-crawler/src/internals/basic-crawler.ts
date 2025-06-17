@@ -940,7 +940,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
        await this._init();
 
-// ✅ FIX for Issue #2917: Skip crawling if already finished
 const isFinished = this.isFinishedFunction
     ? await this.isFinishedFunction()
     : await this._defaultIsFinishedFunction();
