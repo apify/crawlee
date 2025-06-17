@@ -306,8 +306,9 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         if (error.type !== 'fetch' || options?.reportNetworkErrors !== false) {
                             throw error.error;
                         }
+                    } else {
+                        break;
                     }
-                    break;
                 } catch (e) {
                     log.warning(
                         `Malformed sitemap content: ${sitemapUrl}, ${retriesLeft === 0 ? 'no retries left.' : 'retrying...'} (${e})`,
