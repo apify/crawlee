@@ -310,7 +310,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                     }
 
                     if (error !== null) {
-                        const shouldIgnoreError = error.type === 'fetch' && reportNetworkErrors;
+                        const shouldIgnoreError = error.type === 'fetch' && !reportNetworkErrors;
                         if (!shouldIgnoreError) {
                             throw error.error;
                         }
