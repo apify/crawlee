@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import log from '@apify/log';
 
 import type { SitemapUrl } from '../src/internals/sitemap';
