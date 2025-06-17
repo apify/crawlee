@@ -58,7 +58,6 @@
         "cheerio": "^1.0.0",
         "idcac-playwright": "^0.1.3",
         "jquery": "^3.7.1",
-        "lodash.isequal": "^4.5.0",
         "ml-logistic-regression": "^2.0.0",
         "ml-matrix": "^6.12.1",
         "ow": "^2.0.0",
