@@ -1461,12 +1461,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // @ts-expect-error
         // All missing properties (that extend CrawlingContext) are set dynamically,
         // but TS does not know that, so otherwise it would throw when compiling.
+    let proxyInfo;
+    if (this.proxyConfiguration) {
+        // Generate a ProxyInfo for this request (possibly tied to session if using SessionPool)
+        proxyInfo = await this.proxyConfiguration.newProxyInfo(session);
+    }
         const crawlingContext: Context = {
             id: cryptoRandomObjectId(10),
             crawler: this,
             log: this.log,
             request,
             session,
+            proxyInfo,
             enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
