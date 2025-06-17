@@ -243,11 +243,35 @@ export class PlaywrightCrawler extends BrowserCrawler<
         await super._runRequestHandler(context);
     }
 
+    /**
+     * Handles the navigation for a single Playwright page. This method is called internally by the crawler
+     * to perform the initial navigation using `gotoExtended`, which wraps Playwright’s `page.goto()`.
+     *
+     * If the page has already been closed (e.g. due to external interruption or force quit), this method
+     * gracefully catches the "Page closed" error, logs a warning, and marks the request with an error message.
+     *
+     * Other navigation-related errors are rethrown and handled by the crawler's retry logic.
+     */
     protected override async _navigationHandler(
         crawlingContext: PlaywrightCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {
-        return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
+        const { page, request, log } = crawlingContext;
+    
+        try {
+            return await gotoExtended(page, request, gotoOptions);
+        } catch (err: any) {
+            if (err.message?.includes('Page closed')) {
+                log.warning(`Page closed unexpectedly during navigation: ${request.url}`);
+                // Mark request as failed
+                request.pushErrorMessage(err);
+                // Return undefined to indicate failure (or throw to retry)
+                return;
+            }
+    
+            // Let other errors bubble up
+            throw err;
+        }
     }
 }
 
