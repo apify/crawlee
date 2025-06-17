@@ -186,6 +186,10 @@ export interface ParseSitemapOptions {
      * Network timeouts for sitemap fetching. See [Got documentation](https://github.com/sindresorhus/got/blob/main/documentation/6-timeout.md) for more details.
      */
     networkTimeouts?: Delays;
+    /**
+     * If not false, the parser will log a warning if it fails to fetch a sitemap due to a network error
+     */
+    reportNetworkErrors?: boolean;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -255,7 +259,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         },
                     );
 
-                    let error: Error | null = null;
+                    let error: { error: Error; type: 'fetch' | 'parser' } | null = null;
 
                     if (sitemapStream.response!.statusCode >= 200 && sitemapStream.response!.statusCode < 300) {
                         let contentType = sitemapStream.response!.headers['content-type'];
@@ -284,19 +288,24 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             isGzipped ? createGunzip() : new PassThrough(),
                             createParser(contentType, sitemapUrl),
                             (e) => {
-                                if (e !== undefined) {
-                                    error = e;
+                                if (e !== undefined && e !== null) {
+                                    error = { type: 'parser', error: e };
                                 }
                             },
                         );
                     } else {
-                        error = new Error(
-                            `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapStream.response!.statusCode}`,
-                        );
+                        error = {
+                            type: 'fetch',
+                            error: new Error(
+                                `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapStream.response!.statusCode}`,
+                            ),
+                        };
                     }
 
                     if (error !== null) {
-                        throw error;
+                        if (error.type !== 'fetch' || options?.reportNetworkErrors !== false) {
+                            throw error.error;
+                        }
                     }
                     break;
                 } catch (e) {
@@ -371,7 +380,7 @@ export class Sitemap {
         sitemapUrl.pathname = '/sitemap.txt';
         sitemapUrls.push(sitemapUrl.toString());
 
-        return Sitemap.load(sitemapUrls, proxyUrl);
+        return Sitemap.load(sitemapUrls, proxyUrl, { reportNetworkErrors: false });
     }
 
     /**
