@@ -187,7 +187,8 @@ export interface ParseSitemapOptions {
      */
     networkTimeouts?: Delays;
     /**
-     * If not false, the parser will log a warning if it fails to fetch a sitemap due to a network error
+     * If true, the parser will log a warning if it fails to fetch a sitemap due to a network error
+     * @default true
      */
     reportNetworkErrors?: boolean;
 }
@@ -199,7 +200,13 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 ): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
     const { gotScraping } = await import('got-scraping');
     const { fileTypeStream } = await import('file-type');
-    const { emitNestedSitemaps = false, maxDepth = Infinity, sitemapRetries = 3, networkTimeouts } = options ?? {};
+    const {
+        emitNestedSitemaps = false,
+        maxDepth = Infinity,
+        sitemapRetries = 3,
+        networkTimeouts,
+        reportNetworkErrors = true,
+    } = options ?? {};
 
     const sources = [...initialSources];
     const visitedSitemapUrls = new Set<string>();
@@ -303,7 +310,8 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                     }
 
                     if (error !== null) {
-                        if (error.type !== 'fetch' || options?.reportNetworkErrors !== false) {
+                        const shouldIgnoreError = error.type === 'fetch' && reportNetworkErrors;
+                        if (!shouldIgnoreError) {
                             throw error.error;
                         }
                     } else {
