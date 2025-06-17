@@ -2,7 +2,6 @@ import { resolve } from 'node:path';
 
 import isCI from 'is-ci';
 import tsconfigPaths from 'vite-tsconfig-paths';
-// @ts-ignore
 import { defineConfig } from 'vitest/config';
 
 let threads: { minThreads: number; maxThreads: number } | undefined;

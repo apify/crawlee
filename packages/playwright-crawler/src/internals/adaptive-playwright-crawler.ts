@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import type { BrowserHook, LoadedContext, LoadedRequest, Request, RouterHandler } from '@crawlee/browser';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type {
@@ -13,7 +15,6 @@ import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedSto
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio, load } from 'cheerio';
-import isEqual from 'lodash.isequal';
 import type { Page } from 'playwright';
 
 import type { Log } from '@apify/log';
@@ -294,7 +295,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                     resultA.datasetItems.length === resultB.datasetItems.length &&
                     resultA.datasetItems.every((itemA, i) => {
                         const itemB = resultB.datasetItems[i];
-                        return isEqual(itemA, itemB);
+                        return isDeepStrictEqual(itemA, itemB);
                     })
                 );
             };
