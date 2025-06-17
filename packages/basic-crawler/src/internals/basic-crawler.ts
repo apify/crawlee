@@ -938,18 +938,37 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this.addRequests(requests, addRequestsOptions);
         }
 
-        await this._init();
-        await this.stats.startCapturing();
-        const periodicLogger = this.getPeriodicLogger();
-        await this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+       await this._init();
 
-        const sigintHandler = async () => {
-            this.log.warning(
-                'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
-            );
-            await this._pauseOnMigration();
-            await this.autoscaledPool!.abort();
-        };
+// ✅ FIX for Issue #2917: Skip crawling if already finished
+const isFinished = this.isFinishedFunction
+    ? await this.isFinishedFunction()
+    : await this._defaultIsFinishedFunction();
+
+if (isFinished) {
+    const reason = this.isFinishedFunction
+        ? "Crawler's custom isFinishedFunction() returned true, the crawler will shut down."
+        : "All requests from the queue have been processed, the crawler will shut down.";
+    this.log.info(reason);
+
+    return {
+        requestsFinished: this.handledRequestsCount,
+        requestsFailed: this.stats.failedRequests,
+        sessionRotations: this.stats.sessionRotations,
+    };
+}
+
+await this.stats.startCapturing();
+const periodicLogger = this.getPeriodicLogger();
+await this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+
+const sigintHandler = async () => {
+    this.log.warning(
+        'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
+    );
+    await this._pauseOnMigration();
+    await this.autoscaledPool!.abort();
+};
 
         // Attach a listener to handle migration and aborting events gracefully.
         const boundPauseOnMigration = this._pauseOnMigration.bind(this);
@@ -1606,6 +1625,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private async _rotateSession(crawlingContext: Context) {
+        
         const { request } = crawlingContext;
 
         request.sessionRotationCount ??= 0;
