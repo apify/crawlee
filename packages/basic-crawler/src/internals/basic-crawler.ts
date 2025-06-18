@@ -1131,7 +1131,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
         }
 
-        const result = requestQueue.addRequestsBatched(filteredRequests(), options);
+        const result = await requestQueue.addRequestsBatched(filteredRequests(), options);
 
         if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
