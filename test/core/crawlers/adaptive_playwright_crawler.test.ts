@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { Configuration, type Dictionary, EventType, KeyValueStore } from '@crawlee/core';
+import { Configuration, type Dictionary, EventType, KeyValueStore, RequestOptions } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions, Request } from '@crawlee/playwright';
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
@@ -62,6 +62,28 @@ describe('AdaptivePlaywrightCrawler', () => {
                 </html>
              `);
             res.status(200);
+        });
+
+        app.get('/external-links', (_req, res) => {
+            res.send(`
+                <html>
+                    <head>
+                        <title>Example Domain</title>
+                    </head>
+                    <body>
+                        <h1>Heading</h1>
+                        <a href="/external-redirect">External redirect</a>
+                        <a href="https://google.com/">Outbound link</a>
+                    </body>
+                </html>
+             `);
+            res.status(200);
+        });
+
+        app.get('/external-redirect', (_req, res) => {
+            res.setHeader('Location', 'https://google.com');
+            res.send('Redirecting...');
+            res.status(302);
         });
     });
     afterAll(async () => {
@@ -251,6 +273,50 @@ describe('AdaptivePlaywrightCrawler', () => {
             );
         });
     });
+
+    test.each([['static'], ['clientOnly']] as const)(
+        'should respect the strategy option for enqueueLinks (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
+            const enqueuedUrls = new Set<string>();
+            const visitedUrls = new Set<string>();
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ enqueueLinks, request }) => {
+                    visitedUrls.add(request.loadedUrl);
+
+                    if (!request.label) {
+                        await enqueueLinks({
+                            label: 'enqueued-url',
+                            strategy: 'same-hostname',
+                            transformRequestFunction(request: RequestOptions) {
+                                enqueuedUrls.add(request.url);
+                                return request;
+                            },
+                        });
+                    }
+                },
+            );
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    maxRequestsPerCrawl: 10,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
+            expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
+        },
+    );
 
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
