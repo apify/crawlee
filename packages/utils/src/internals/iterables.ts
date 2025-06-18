@@ -2,6 +2,7 @@ import { inspect } from 'node:util';
 
 /**
  * Type guard that checks if a value is iterable (has Symbol.iterator).
+ * @internal
  *
  * **Example usage:**
  * ```ts
@@ -26,6 +27,7 @@ export function isIterable<T>(value: unknown): value is Iterable<T> {
 
 /**
  * Type guard that checks if a value is async iterable (has Symbol.asyncIterator).
+ * @internal
  *
  * **Example usage:**
  * ```ts
@@ -46,6 +48,7 @@ export function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
 
 /**
  * Converts any iterable or async iterable to an async iterable.
+ * @internal
  *
  * @yields Each item from the input iterable
  *
@@ -65,6 +68,7 @@ export async function* asyncifyIterable<T>(iterable: Iterable<T> | AsyncIterable
  * Lazily splits the input async iterable into chunks of specified size.
  * The last chunk may contain fewer items if the total number of items
  * is not evenly divisible by the chunk size.
+ * @internal
  *
  * @yields Arrays of items, each containing up to chunkSize items
  *
@@ -106,6 +110,7 @@ export async function* chunkedAsyncIterable<T>(
 /**
  * An async iterator that also supports peeking at the next value without consuming it.
  * Extends both AsyncIterator and AsyncIterable interfaces.
+ * @internal
  */
 export interface PeekableAsyncIterator<T> extends AsyncIterator<T>, AsyncIterable<T> {
     /**
@@ -119,6 +124,7 @@ export interface PeekableAsyncIterator<T> extends AsyncIterator<T>, AsyncIterabl
 
 /**
  * An async iterable that yields peekable async iterators.
+ * @internal
  */
 export interface PeekableAsyncIterable<T> extends AsyncIterable<T> {
     [Symbol.asyncIterator](): PeekableAsyncIterator<T>;
@@ -127,6 +133,7 @@ export interface PeekableAsyncIterable<T> extends AsyncIterable<T> {
 /**
  * Wraps an async iterable to provide peek functionality, allowing you to look at
  * the next value without consuming it from the iterator.
+ * @internal
  *
  * @param iterable - The async iterable to make peekable
  *
