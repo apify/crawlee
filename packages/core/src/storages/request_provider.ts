@@ -113,7 +113,7 @@ export abstract class RequestProvider implements IStorage {
      * To add multiple requests to the queue by extracting links from a webpage,
      * see the {@apilink enqueueLinks} helper function.
      *
-     * @param requestLike {@apilink Request} object or vanilla object with request data.
+     * @param requestsLike An iterable of {@apilink Request} objects or plain request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed Request.
      * @param [options] Request queue operation options.
      */
@@ -201,108 +201,94 @@ export abstract class RequestProvider implements IStorage {
      * Note that the function sets the `uniqueKey` and `id` fields to the passed requests if missing.
      * @param [options] Request queue operation options.
      */
-    async addRequests(
-        requestsLike: Source[],
+    public async addRequests(
+        requestsLike: Iterable<Source>,
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
+        // Materialize the iterable once
+        const requestsArray = Array.from(requestsLike);
+    
         checkStorageAccess();
-
         this.lastActivity = new Date();
-
-        ow(requestsLike, ow.array);
-        ow(
-            options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
-                cache: ow.optional.boolean,
-            }),
-        );
-
+    
+        // Validate options
+        ow(requestsArray, ow.array);
+        ow(options, ow.object.exactShape({
+            forefront: ow.optional.boolean,
+            cache: ow.optional.boolean,
+        }));
         const { forefront = false, cache = true } = options;
-
+    
+        // First handle any "requestsFromUrl"
+        for (const src of requestsArray) {
+            if ('requestsFromUrl' in src) {
+                const fetched = await this._fetchRequestsFromUrl(src as InternalSource);
+                await this._addFetchedRequests(src as InternalSource, fetched, options);
+            }
+        }
+    
+        // Prepare Request instances for the rest
+        const requests: Request[] = requestsArray
+            .filter(src => !('requestsFromUrl' in src))
+            .map(src => src instanceof Request ? src : new Request(src as RequestOptions));
+    
+        // Helper for caching
         const uniqueKeyToCacheKey = new Map<string, string>();
-        const getCachedRequestId = (uniqueKey: string) => {
-            const cached = uniqueKeyToCacheKey.get(uniqueKey);
-
-            if (cached) return cached;
-
-            const newCacheKey = getRequestId(uniqueKey);
-            uniqueKeyToCacheKey.set(uniqueKey, newCacheKey);
-
-            return newCacheKey;
+        const getCacheKey = (uniqueKey: string) => {
+            if (!uniqueKeyToCacheKey.has(uniqueKey)) {
+                uniqueKeyToCacheKey.set(uniqueKey, getRequestId(uniqueKey));
+            }
+            return uniqueKeyToCacheKey.get(uniqueKey)!;
         };
-
-        const results: BatchAddRequestsResult = {
+    
+        const result: BatchAddRequestsResult = {
             processedRequests: [],
             unprocessedRequests: [],
         };
-
-        for (const requestLike of requestsLike) {
-            if ('requestsFromUrl' in requestLike) {
-                const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
-                await this._addFetchedRequests(requestLike as InternalSource, requests, options);
-            }
-        }
-
-        const requests = requestsLike
-            .filter((requestLike) => !('requestsFromUrl' in requestLike))
-            .map((requestLike) => {
-                return requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions);
-            });
-
-        const requestsToAdd = new Map<string, Request>();
-
-        for (const request of requests) {
-            const cacheKey = getCachedRequestId(request.uniqueKey);
-            const cachedInfo = this.requestCache.get(cacheKey);
-
-            if (cachedInfo) {
-                request.id = cachedInfo.id;
-                results.processedRequests.push({
+    
+        // Skip already‐cached requests
+        for (const req of requests) {
+            const cacheKey = getCacheKey(req.uniqueKey);
+            const cached = this.requestCache.get(cacheKey);
+            if (cached) {
+                req.id = cached.id;
+                result.processedRequests.push({
                     wasAlreadyPresent: true,
-                    // We may assume that if request is in local cache then also the information if the
-                    // request was already handled is there because just one client should be using one queue.
-                    wasAlreadyHandled: cachedInfo.isHandled,
-                    requestId: cachedInfo.id,
-                    uniqueKey: cachedInfo.uniqueKey,
+                    wasAlreadyHandled: cached.isHandled,
+                    requestId: cached.id,
+                    uniqueKey: cached.uniqueKey,
                 });
-            } else if (!requestsToAdd.has(request.uniqueKey)) {
-                requestsToAdd.set(request.uniqueKey, request);
             }
         }
-
-        // Early exit if all provided requests were already added
-        if (!requestsToAdd.size) {
-            return results;
-        }
-
-        const apiResults = await this.client.batchAddRequests([...requestsToAdd.values()], { forefront });
-
-        // Report unprocessed requests
-        results.unprocessedRequests = apiResults.unprocessedRequests;
-
-        // Add all new requests to the requestCache
-        for (const newRequest of apiResults.processedRequests) {
-            // Add the new request to the processed list
-            results.processedRequests.push(newRequest);
-
-            const cacheKey = getCachedRequestId(newRequest.uniqueKey);
-
-            const { requestId, wasAlreadyPresent } = newRequest;
-
+    
+        // Determine which to actually add
+        const toAdd = requests.filter(req => {
+            const cacheKey = getCacheKey(req.uniqueKey);
+            return this.requestCache.get(cacheKey) == null;
+        });
+        if (toAdd.length === 0) return result;
+    
+        // Call the underlying client
+        const api = await this.client.batchAddRequests(
+            toAdd.map(r => r),
+            { forefront },
+        );
+        result.unprocessedRequests = api.unprocessedRequests;
+    
+        // Cache and update counts
+        for (const pr of api.processedRequests) {
+            const cacheKey = getCacheKey(pr.uniqueKey);
+            result.processedRequests.push(pr);
             if (cache) {
-                this._cacheRequest(cacheKey, { ...newRequest, forefront });
+                this._cacheRequest(cacheKey, { ...pr, forefront });
             }
-
-            if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
+            if (!pr.wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(pr.requestId)) {
                 this.assumedTotalCount++;
-
-                // Performance optimization: add request straight to head if possible
-                this._maybeAddRequestToQueueHead(requestId, forefront);
+                this._maybeAddRequestToQueueHead(pr.requestId, forefront);
             }
         }
-
-        return results;
+    
+        return result;
     }
 
     /**
@@ -314,129 +300,104 @@ export abstract class RequestProvider implements IStorage {
      * @param requests The requests to add
      * @param options Options for the request queue
      */
-    async addRequestsBatched(
-        requests: (string | Source)[],
+    // In packages/core/src/storages/request_provider.ts, replace your existing addRequestsBatched with:
+
+    
+    public async addRequestsBatched(
+        sourcesLike: Iterable<string | Source>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
-
         this.lastActivity = new Date();
-
-        ow(
-            options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
-                waitForAllRequestsToBeAdded: ow.optional.boolean,
-                batchSize: ow.optional.number,
-                waitBetweenBatchesMillis: ow.optional.number,
-            }),
-        );
-
-        // The `requests` array can be huge, and `ow` is very slow for anything more complex.
-        // This explicit iteration takes a few milliseconds, while the ow check can take tens of seconds.
-
-        // ow(requests, ow.array.ofType(ow.any(
-        //     ow.string,
-        //     ow.object.partialShape({ url: ow.string, id: ow.undefined }),
-        //     ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
-        // )));
-
-        for (const request of requests) {
-            if (typeof request === 'string') {
-                continue;
+    
+        ow(options, ow.object.exactShape({
+            forefront: ow.optional.boolean,
+            waitForAllRequestsToBeAdded: ow.optional.boolean,
+            batchSize: ow.optional.number,
+            waitBetweenBatchesMillis: ow.optional.number,
+        }));
+        const {
+            forefront = false,
+            waitForAllRequestsToBeAdded = false,
+            batchSize = 1000,
+            waitBetweenBatchesMillis = 1000,
+        } = options;
+    
+        // Materialize iterable
+        const items = Array.from(sourcesLike);
+    
+        // Validate each item
+        for (const item of items) {
+            if (typeof item === 'string') continue;
+            if (typeof item === 'object' && item !== null) {
+                if ('requestsFromUrl' in item) continue;
+                if (typeof (item as Source).url === 'string' && (item as any).id === undefined) continue;
             }
-
-            if (typeof request === 'object' && request !== null) {
-                if (typeof request.url === 'string' && typeof request.id === 'undefined') {
-                    continue;
-                }
-
-                if (typeof (request as any).requestsFromUrl === 'string') {
-                    continue;
-                }
-            }
-
-            throw new Error(
-                `Request options are not valid, provide either a URL or an object with 'url' property (but without 'id' property), or an object with 'requestsFromUrl' property. Input: ${inspect(
-                    request,
-                )}`,
-            );
+            throw new Error(`Invalid request item: ${inspect(item)}`);
         }
-
-        const { batchSize = 1000, waitBetweenBatchesMillis = 1000 } = options;
+    
+        // Expand sources and handle any remote lists
         const sources: Source[] = [];
-
-        for (const opts of requests) {
-            if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
-                await this.addRequest(opts, { forefront: options.forefront });
+        for (const item of items) {
+            if (typeof item === 'string') {
+                sources.push({ url: item });
+            } else if ('requestsFromUrl' in item) {
+                await this.addRequest(item as InternalSource, { forefront });
             } else {
-                sources.push(typeof opts === 'string' ? { url: opts } : (opts as RequestOptions));
+                sources.push(item as Source);
             }
         }
-
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
-            const resultsToReturn: ProcessedRequest[] = [];
-            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
-            resultsToReturn.push(...apiResult.processedRequests);
-
-            if (apiResult.unprocessedRequests.length) {
+    
+        // Recursive batch‐adder
+        const addBatch = async (batch: Source[], useCache = true): Promise<ProcessedRequest[]> => {
+            const { processedRequests, unprocessedRequests } = await this.addRequests(batch, {
+                forefront,
+                cache: useCache,
+            });
+            let all = processedRequests;
+            if (unprocessedRequests.length) {
                 await sleep(waitBetweenBatchesMillis);
-
-                resultsToReturn.push(
-                    ...(await attemptToAddToQueueAndAddAnyUnprocessed(
-                        providedRequests.filter(
-                            (r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey),
-                        ),
-                        false,
-                    )),
+                const retry = batch.filter(src =>
+                    !processedRequests.some(pr => pr.uniqueKey === src.uniqueKey),
                 );
+                all = all.concat(await addBatch(retry, false));
             }
-
-            return resultsToReturn;
+            return all;
         };
-
-        const initialChunk = sources.splice(0, batchSize);
-
-        // Add initial batch of `batchSize` to process them right away
-        const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
-
-        // If we have no more requests to add, return early
-        if (!sources.length) {
+    
+        // First batch
+        const first = sources.splice(0, batchSize);
+        const addedRequests = await addBatch(first);
+    
+        // If nothing remains, return
+        if (sources.length === 0) {
             return {
                 addedRequests,
                 waitForAllRequestsToBeAdded: Promise.resolve([]),
             };
         }
-
-        // eslint-disable-next-line no-async-promise-executor
-        const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            const chunks = chunk(sources, batchSize);
-            const finalAddedRequests: ProcessedRequest[] = [];
-
-            for (const requestChunk of chunks) {
-                finalAddedRequests.push(...(await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk, false)));
-
+    
+        // Background continuation
+        const background = (async () => {
+            const rest: ProcessedRequest[] = [];
+            for (let i = 0; i < sources.length; i += batchSize) {
+                const chunk = sources.slice(i, i + batchSize);
+                rest.push(...await addBatch(chunk, false));
                 await sleep(waitBetweenBatchesMillis);
             }
-
-            resolve(finalAddedRequests);
-        });
-
-        this.inProgressRequestBatchCount += 1;
-        void promise.finally(() => {
-            this.inProgressRequestBatchCount -= 1;
-        });
-
-        // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
-        if (options.waitForAllRequestsToBeAdded) {
-            addedRequests.push(...(await promise));
+            return rest;
+        })();
+    
+        if (waitForAllRequestsToBeAdded) {
+            addedRequests.push(...await background);
         }
-
+    
         return {
             addedRequests,
-            waitForAllRequestsToBeAdded: promise,
+            waitForAllRequestsToBeAdded: background,
         };
     }
+
 
     /**
      * Gets the request from the queue specified by ID.
@@ -899,4 +860,9 @@ export interface AddRequestsBatchedResult {
      * ```
      */
     waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>;
+}
+
+export interface RequestQueueOperationOptions {
+    forefront?: boolean;
+    cache?: boolean;
 }

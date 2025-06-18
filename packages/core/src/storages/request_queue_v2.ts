@@ -124,7 +124,7 @@ export class RequestQueue extends RequestProvider {
      * @inheritDoc
      */
     override async addRequests(
-        requestsLike: Source[],
+        requestsLike: Iterable<Source>,
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
         const result = await super.addRequests(requestsLike, options);
