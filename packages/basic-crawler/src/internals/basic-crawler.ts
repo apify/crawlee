@@ -938,18 +938,36 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this.addRequests(requests, addRequestsOptions);
         }
 
-        await this._init();
-        await this.stats.startCapturing();
-        const periodicLogger = this.getPeriodicLogger();
-        await this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+       await this._init();
 
-        const sigintHandler = async () => {
-            this.log.warning(
-                'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
-            );
-            await this._pauseOnMigration();
-            await this.autoscaledPool!.abort();
-        };
+const isFinished = this.isFinishedFunction
+    ? await this.isFinishedFunction()
+    : await this._defaultIsFinishedFunction();
+
+if (isFinished) {
+    const reason = this.isFinishedFunction
+        ? "Crawler's custom isFinishedFunction() returned true, the crawler will shut down."
+        : "All requests from the queue have been processed, the crawler will shut down.";
+    this.log.info(reason);
+
+    return {
+        requestsFinished: this.handledRequestsCount,
+        requestsFailed: this.stats.failedRequests,
+        sessionRotations: this.stats.sessionRotations,
+    };
+}
+
+await this.stats.startCapturing();
+const periodicLogger = this.getPeriodicLogger();
+await this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+
+const sigintHandler = async () => {
+    this.log.warning(
+        'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
+    );
+    await this._pauseOnMigration();
+    await this.autoscaledPool!.abort();
+};
 
         // Attach a listener to handle migration and aborting events gracefully.
         const boundPauseOnMigration = this._pauseOnMigration.bind(this);
@@ -1550,13 +1568,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.crawlingContexts.delete(crawlingContext.id);
 
             // Safety net - release the lock if nobody managed to do it before
-            if (isRequestLocked && source instanceof RequestProvider) {
-                try {
-                    await source.client.deleteRequestLock(request.id!);
-                } catch {
-                    // We don't have the lock, or the request was never locked. Either way it's fine
-                }
-            }
+            // Removed manual deleteRequestLock as this should be handled by markRequestHandled()
+// See: https://github.com/apify/crawlee/issues/2840
+
         }
     }
 
@@ -1610,6 +1624,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private async _rotateSession(crawlingContext: Context) {
+        
         const { request } = crawlingContext;
 
         request.sessionRotationCount ??= 0;
