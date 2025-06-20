@@ -15,14 +15,13 @@ import type {
     LoadedContext,
     ProxyInfo,
     Request,
-    RequestOptions,
+    RequestsLike,
     RestrictedCrawlingContext,
     RouterHandler,
     RouterRoutes,
     Session,
     SessionPoolOptions,
     SkippedRequestCallback,
-    Source,
     StatisticsOptions,
     StatisticState,
 } from '@crawlee/core';
@@ -903,7 +902,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @param [requests] The requests to add.
      * @param [options] Options for the request queue.
      */
-    async run(requests?: (string | Request | RequestOptions)[], options?: CrawlerRunOptions): Promise<FinalStatistics> {
+    async run(requests?: RequestsLike, options?: CrawlerRunOptions): Promise<FinalStatistics> {
         if (this.running) {
             throw new Error(
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
@@ -1100,32 +1099,39 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @param options Options for the request queue
      */
     async addRequests(
-        requests: (string | Source)[],
+        requests: RequestsLike,
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
 
         const requestLimit = this.calculateEnqueuedRequestLimit();
 
-        const allowedRequests: (string | Source)[] = [];
         const skippedBecauseOfRobots = new Set<string>();
         const skippedBecauseOfLimit = new Set<string>();
 
-        for (const request of requests) {
-            const url = typeof request === 'string' ? request : request.url!;
+        const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
 
-            if (requestLimit !== undefined && allowedRequests.length >= requestLimit) {
-                skippedBecauseOfLimit.add(url);
-                continue;
-            }
+        async function* filteredRequests() {
+            let yieldedRequestCount = 0;
 
-            if (await this.isAllowedBasedOnRobotsTxtFile(url)) {
-                allowedRequests.push(request);
-            } else {
-                skippedBecauseOfRobots.add(url);
-                await this.handleSkippedRequest({ url, reason: 'robotsTxt' });
+            for await (const request of requests) {
+                const url = typeof request === 'string' ? request : request.url!;
+
+                if (requestLimit !== undefined && yieldedRequestCount >= requestLimit) {
+                    skippedBecauseOfLimit.add(url);
+                    continue;
+                }
+
+                if (await isAllowedBasedOnRobotsTxtFile(url)) {
+                    yield request;
+                    yieldedRequestCount += 1;
+                } else {
+                    skippedBecauseOfRobots.add(url);
+                }
             }
         }
+
+        const result = await requestQueue.addRequestsBatched(filteredRequests(), options);
 
         if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
@@ -1147,11 +1153,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
         }
 
-        if (!allowedRequests.length) {
-            return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
-        }
-
-        return requestQueue.addRequestsBatched(allowedRequests, options);
+        return result;
     }
 
     /**
