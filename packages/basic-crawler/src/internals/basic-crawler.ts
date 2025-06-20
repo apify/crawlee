@@ -271,8 +271,8 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Custom options passed to the underlying {@apilink AutoscaledPool} constructor.
      * > *NOTE:* The {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`}
      * option is provided by the crawler and cannot be overridden.
-     * However, we can provide a custom implementation of {@apilink AutoscaledPoolOptions.isFinishedFunction|`isFinishedFunction`}
-     * or {@apilink AutoscaledPoolOptions.isTaskReadyFunction|`isTaskReadyFunction`} options.
+     * However, we can provide custom implementations of {@apilink AutoscaledPoolOptions.isFinishedFunction|`isFinishedFunction`}
+     * and {@apilink AutoscaledPoolOptions.isTaskReadyFunction|`isTaskReadyFunction`}.
      */
     autoscaledPoolOptions?: AutoscaledPoolOptions;
 
