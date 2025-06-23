@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { Configuration, type Dictionary, EventType, KeyValueStore, RequestOptions } from '@crawlee/core';
+import { Configuration, type Dictionary, EventType, KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions, Request } from '@crawlee/playwright';
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
