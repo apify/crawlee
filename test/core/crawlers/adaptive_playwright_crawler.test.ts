@@ -21,6 +21,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         port = (server.address() as AddressInfo).port;
 
         app.get('/static', (_req, res) => {
+            res.status(200);
             res.send(`
                 <html>
                     <head>
@@ -36,10 +37,10 @@ describe('AdaptivePlaywrightCrawler', () => {
                     </body>
                 </html>
              `);
-            res.status(200);
         });
 
         app.get('/dynamic', (_req, res) => {
+            res.status(200);
             res.send(`
                 <html>
                     <head>
@@ -61,10 +62,10 @@ describe('AdaptivePlaywrightCrawler', () => {
                     </body>
                 </html>
              `);
-            res.status(200);
         });
 
         app.get('/external-links', (_req, res) => {
+            res.status(200);
             res.send(`
                 <html>
                     <head>
@@ -77,13 +78,12 @@ describe('AdaptivePlaywrightCrawler', () => {
                     </body>
                 </html>
              `);
-            res.status(200);
         });
 
         app.get('/external-redirect', (_req, res) => {
+            res.status(302);
             res.setHeader('Location', 'https://google.com');
             res.send('Redirecting...');
-            res.status(302);
         });
     });
     afterAll(async () => {
@@ -290,14 +290,14 @@ describe('AdaptivePlaywrightCrawler', () => {
                     visitedUrls.add(request.loadedUrl);
 
                     if (!request.label) {
-                        await enqueueLinks({
+                        const result = await enqueueLinks({
                             label: 'enqueued-url',
                             strategy: 'same-hostname',
-                            transformRequestFunction(request: RequestOptions) {
-                                enqueuedUrls.add(request.url);
-                                return request;
-                            },
                         });
+
+                        for (const processedRequest of result.processedRequests) {
+                            enqueuedUrls.add(processedRequest.uniqueKey);
+                        }
                     }
                 },
             );
