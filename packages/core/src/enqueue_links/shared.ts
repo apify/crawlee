@@ -47,9 +47,11 @@ export type RegExpObject = { regexp: RegExp } & Pick<
 
 export type RegExpInput = RegExp | RegExpObject;
 
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'filters';
+
 export type SkippedRequestCallback = (args: {
     url: string;
-    reason: 'robotsTxt' | 'limit' | 'filters';
+    reason: SkippedRequestReason;
 }) => Awaitable<void>;
 
 /**
