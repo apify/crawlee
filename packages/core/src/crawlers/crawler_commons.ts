@@ -179,8 +179,6 @@ export class RequestHandlerResult {
 
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
 
-    private enqueueLinksCalls: Parameters<RestrictedCrawlingContext['enqueueLinks']>[] = [];
-
     constructor(
         private config: Configuration,
         private crawleeStateKey: string,
@@ -192,12 +190,10 @@ export class RequestHandlerResult {
     get calls(): ReadonlyDeep<{
         pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
         addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
-        enqueueLinks: Parameters<RestrictedCrawlingContext['enqueueLinks']>[];
     }> {
         return {
             pushData: this.pushDataCalls,
             addRequests: this.addRequestsCalls,
-            enqueueLinks: this.enqueueLinksCalls,
         };
     }
 
@@ -224,10 +220,6 @@ export class RequestHandlerResult {
      */
     get enqueuedUrls(): ReadonlyDeep<{ url: string; label?: string }[]> {
         const result: { url: string; label?: string }[] = [];
-
-        for (const [options] of this.enqueueLinksCalls) {
-            result.push(...(options?.urls?.map((url) => ({ url, label: options?.label })) ?? []));
-        }
 
         for (const [requests] of this.addRequestsCalls) {
             for (const request of requests) {
@@ -269,10 +261,6 @@ export class RequestHandlerResult {
 
     pushData: RestrictedCrawlingContext['pushData'] = async (data, datasetIdOrName) => {
         this.pushDataCalls.push([data, datasetIdOrName]);
-    };
-
-    enqueueLinks: RestrictedCrawlingContext['enqueueLinks'] = async (options) => {
-        this.enqueueLinksCalls.push([options]);
     };
 
     addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options = {}) => {
