@@ -441,7 +441,7 @@ export async function enqueueLinks(
                 enqueueStrategyPatterns,
                 urlExcludePatternObjects,
                 options.strategy,
-                skippedRequests.push,
+                (url) => skippedRequests.push(url),
             );
         }
 
@@ -451,13 +451,11 @@ export async function enqueueLinks(
             urlPatternObjects,
             urlExcludePatternObjects,
             options.strategy,
-            skippedRequests.push,
+            (url) => skippedRequests.push(url),
         );
         // ...then filter them by the enqueue links strategy (making this an AND check)
-        const filtered = filterRequestsByPatterns(
-            generatedRequestsFromUserFilters,
-            enqueueStrategyPatterns,
-            skippedRequests.push,
+        const filtered = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (url) =>
+            skippedRequests.push(url),
         );
 
         await reportSkippedRequests(
