@@ -14,6 +14,7 @@ import type {
     RegExpInput,
     RequestTransform,
     SkippedRequestCallback,
+    SkippedRequestReason,
     UrlPatternObject,
 } from './shared';
 import {
@@ -385,10 +386,7 @@ export async function enqueueLinks(
         }
     }
 
-    async function reportSkippedRequests(
-        skippedRequests: { url: string }[],
-        reason: Parameters<SkippedRequestCallback>[0]['reason'],
-    ) {
+    async function reportSkippedRequests(skippedRequests: { url: string }[], reason: SkippedRequestReason) {
         if (onSkippedRequest && skippedRequests.length > 0) {
             await Promise.all(
                 skippedRequests.map((request) => {
