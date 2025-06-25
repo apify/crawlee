@@ -47,7 +47,7 @@ export type RegExpObject = { regexp: RegExp } & Pick<
 
 export type RegExpInput = RegExp | RegExpObject;
 
-export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'filters';
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'filters' | 'redirect';
 
 export type SkippedRequestCallback = (args: {
     url: string;

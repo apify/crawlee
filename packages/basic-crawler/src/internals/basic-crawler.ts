@@ -357,7 +357,8 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * This is currently fired for requests skipped
      * 1. based on robots.txt file,
      * 2. because they don't match enqueueLinks filters,
-     * 3. or because the maxRequestsPerCrawl limit has been reached
+     * 3. because they are redirected to a URL that doesn't match the enqueueLinks strategy,
+     * 4. or because the maxRequestsPerCrawl limit has been reached
      */
     onSkippedRequest?: SkippedRequestCallback;
 

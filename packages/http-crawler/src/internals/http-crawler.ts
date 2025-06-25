@@ -557,6 +557,8 @@ export class HttpCrawler<
                 request.noRetry = true;
                 request.state = RequestState.SKIPPED;
 
+                await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
                 return;
             }
 
