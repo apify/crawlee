@@ -176,7 +176,10 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
 
     /**
      * When a request is skipped for some reason, you can use this callback to act on it.
-     * This is currently fired only for requests skipped based on robots.txt file.
+     * This is currently fired for requests skipped
+     * 1. based on robots.txt file,
+     * 2. because they don't match enqueueLinks filters,
+     * 3. or because the maxRequestsPerCrawl limit has been reached
      */
     onSkippedRequest?: SkippedRequestCallback;
 }
