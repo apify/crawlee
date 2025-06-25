@@ -6,8 +6,13 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { RequestOptions } from '../request';
-import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
+import type { Request, RequestOptions } from '../request';
+import type {
+    AddRequestsBatchedOptions,
+    AddRequestsBatchedResult,
+    RequestProvider,
+    RequestQueueOperationOptions,
+} from '../storages';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
     constructGlobObjectsFromGlobs,
@@ -166,7 +171,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * RobotsTxtFile instance for the current request that triggered the `enqueueLinks`.
      * If provided, disallowed URLs will be ignored.
      */
-    robotsTxtFile?: RobotsTxtFile;
+    robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
 
     /**
      * When a request is skipped for some reason, you can use this callback to act on it.
@@ -255,7 +260,14 @@ export enum EnqueueStrategy {
  * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
 export async function enqueueLinks(
-    options: SetRequired<EnqueueLinksOptions, 'requestQueue' | 'urls'>,
+    options: SetRequired<Omit<EnqueueLinksOptions, 'requestQueue'>, 'urls'> & {
+        requestQueue: {
+            addRequestsBatched: (
+                requests: Request<Dictionary>[],
+                options: AddRequestsBatchedOptions,
+            ) => Promise<AddRequestsBatchedResult>;
+        };
+    },
 ): Promise<BatchAddRequestsResult> {
     if (!options || Object.keys(options).length === 0) {
         throw new RangeError(
@@ -270,7 +282,7 @@ export async function enqueueLinks(
         options,
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
-            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            requestQueue: ow.object.hasKeys('addRequestsBatched'),
             robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
             onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
