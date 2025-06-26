@@ -14,6 +14,14 @@ export const enum EventType {
     EXIT = 'exit',
 }
 
+export interface EventTypeToArgs<SystemInfo = Record<string, unknown>> {
+    [EventType.PERSIST_STATE]: [{ isMigrating: boolean; isAborting: boolean }];
+    [EventType.SYSTEM_INFO]: [{ createdAt: Date; cpuCurrentUsage: number; isCpuOverloaded: boolean; memCurrentBytes?: number } & SystemInfo];
+    [EventType.MIGRATING]: [any];
+    [EventType.ABORTING]: [any];
+    [EventType.EXIT]: [any];
+}
+
 export type EventTypeName = EventType | 'systemInfo' | 'persistState' | 'migrating' | 'aborting' | 'exit';
 
 interface Intervals {
@@ -21,8 +29,8 @@ interface Intervals {
     systemInfo?: BetterIntervalID;
 }
 
-export abstract class EventManager {
-    protected events = new AsyncEventEmitter();
+export abstract class EventManager<SystemInfo>{
+    protected events = new AsyncEventEmitter<EventTypeToArgs<SystemInfo>>();
     protected initialized = false;
     protected intervals: Intervals = {};
     protected log = log.child({ prefix: 'Events' });
@@ -42,7 +50,7 @@ export abstract class EventManager {
 
         const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
         this.intervals.persistState = betterSetInterval((intervalCallback: () => unknown) => {
-            this.emit(EventType.PERSIST_STATE, { isMigrating: false });
+            this.emit(EventType.PERSIST_STATE, { isMigrating: false, isAborting: false });
             intervalCallback();
         }, persistStateIntervalMillis);
         this.initialized = true;
@@ -61,26 +69,28 @@ export abstract class EventManager {
         this.initialized = false;
 
         // Emit final PERSIST_STATE event
-        this.emit(EventType.PERSIST_STATE, { isMigrating: false });
+        this.emit(EventType.PERSIST_STATE, { isMigrating: false, isAborting: false });
 
         // Wait for PERSIST_STATE to process
         await this.waitForAllListenersToComplete();
     }
 
-    on(event: EventTypeName, listener: (...args: any[]) => any): void {
+    on(event: EventTypeName, listener: (...args: EventTypeToArgs[EventTypeName]) => any): void {
         this.events.on(event, listener);
     }
 
-    off(event: EventTypeName, listener?: (...args: any[]) => any): void {
+    off<K extends keyof EventTypeToArgs>(event: K, listener?: (...args: EventTypeToArgs[K]) => any): void {
         if (listener) {
-            this.events.removeListener(event, listener);
+            // Casting to 'any' because it shows really cryptic error if we don't
+            this.events.removeListener(event, listener as any);
         } else {
             this.events.removeAllListeners(event);
         }
     }
 
-    emit(event: EventTypeName, ...args: unknown[]): void {
-        this.events.emit(event, ...args);
+    emit<K extends keyof EventTypeToArgs>(event: K, ...args: EventTypeToArgs[K]): void {
+        // Casting to 'any' because it shows really cryptic error if we don't
+        this.events.emit(event, ...args as any);
     }
 
     isInitialized(): boolean {
