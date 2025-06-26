@@ -174,7 +174,7 @@ export function createRequests(
     urlPatternObjects?: UrlPatternObject[],
     excludePatternObjects: UrlPatternObject[] = [],
     strategy?: EnqueueLinksOptions['strategy'],
-    onSkippedRequest?: (url: string) => void,
+    onSkippedUrl?: (url: string) => void,
 ): Request[] {
     return requestOptions
         .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
@@ -185,7 +185,7 @@ export function createRequests(
             });
 
             if (matchesExcludePatterns) {
-                onSkippedRequest?.(url);
+                onSkippedUrl?.(url);
             }
 
             return !matchesExcludePatterns;
@@ -208,7 +208,7 @@ export function createRequests(
             }
 
             // didn't match any positive pattern
-            onSkippedRequest?.(url);
+            onSkippedUrl?.(url);
             return null;
         })
         .filter((request) => request) as Request[];
@@ -217,7 +217,7 @@ export function createRequests(
 export function filterRequestsByPatterns(
     requests: Request[],
     patterns?: UrlPatternObject[],
-    onSkippedRequest?: (url: string) => void,
+    onSkippedUrl?: (url: string) => void,
 ): Request[] {
     if (!patterns?.length) {
         return requests;
@@ -234,7 +234,7 @@ export function filterRequestsByPatterns(
         if (matchingPattern !== undefined) {
             filtered.push(request);
         } else {
-            onSkippedRequest?.(request.url);
+            onSkippedUrl?.(request.url);
         }
     }
 
