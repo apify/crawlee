@@ -14,11 +14,9 @@ export const enum EventType {
     EXIT = 'exit',
 }
 
-export interface EventTypeToArgs<SystemInfo = Record<string, unknown>> {
+export interface EventTypeToArgs<SystemInfo> {
     [EventType.PERSIST_STATE]: [{ isMigrating: boolean; isAborting: boolean }];
-    [EventType.SYSTEM_INFO]: [
-        { createdAt: Date; cpuCurrentUsage: number; isCpuOverloaded: boolean; memCurrentBytes?: number } & SystemInfo,
-    ];
+    [EventType.SYSTEM_INFO]: [SystemInfo];
     [EventType.MIGRATING]: [any];
     [EventType.ABORTING]: [any];
     [EventType.EXIT]: [any];
@@ -77,11 +75,11 @@ export abstract class EventManager<SystemInfo> {
         await this.waitForAllListenersToComplete();
     }
 
-    on(event: EventTypeName, listener: (...args: EventTypeToArgs[EventTypeName]) => any): void {
+    on(event: EventTypeName, listener: (...args: EventTypeToArgs<SystemInfo>[EventTypeName]) => any): void {
         this.events.on(event, listener);
     }
 
-    off(event: EventTypeName, listener?: (...args: EventTypeToArgs[EventTypeName]) => any): void {
+    off(event: EventTypeName, listener?: (...args: EventTypeToArgs<SystemInfo>[EventTypeName]) => any): void {
         if (listener) {
             this.events.removeListener(event, listener);
         } else {
@@ -89,7 +87,7 @@ export abstract class EventManager<SystemInfo> {
         }
     }
 
-    emit(event: EventTypeName, ...args: EventTypeToArgs[EventTypeName]): void {
+    emit(event: EventTypeName, ...args: EventTypeToArgs<SystemInfo>[EventTypeName]): void {
         this.events.emit(event, ...args);
     }
 
