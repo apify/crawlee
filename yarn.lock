@@ -493,8 +493,8 @@ __metadata:
     "@apify/timeout": "npm:^0.3.0"
     "@crawlee/core": "npm:3.13.8"
     "@crawlee/types": "npm:3.13.8"
-    fingerprint-generator: "npm:^2.0.6"
-    fingerprint-injector: "npm:^2.0.5"
+    fingerprint-generator: "npm:^2.1.68"
+    fingerprint-injector: "npm:^2.1.68"
     lodash.merge: "npm:^4.6.2"
     nanoid: "npm:^3.3.4"
     ow: "npm:^0.28.1"
@@ -622,7 +622,7 @@ __metadata:
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
     "@crawlee/core": "npm:^3.13.8"
-    impit: "npm:^0.5.0"
+    impit: "npm:^0.5.2"
     tough-cookie: "npm:^5.1.2"
   peerDependencies:
     "@crawlee/core": ^3.12.1
@@ -6429,7 +6429,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fingerprint-generator@npm:^2.0.6, fingerprint-generator@npm:^2.1.66, fingerprint-generator@npm:^2.1.68":
+"fingerprint-generator@npm:^2.1.66, fingerprint-generator@npm:^2.1.68":
   version: 2.1.68
   resolution: "fingerprint-generator@npm:2.1.68"
   dependencies:
@@ -6440,7 +6440,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fingerprint-injector@npm:^2.0.5":
+"fingerprint-injector@npm:^2.1.68":
   version: 2.1.68
   resolution: "fingerprint-injector@npm:2.1.68"
   dependencies:
@@ -7559,7 +7559,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit@npm:^0.5.0":
+"impit@npm:^0.5.0, impit@npm:^0.5.2":
   version: 0.5.2
   resolution: "impit@npm:0.5.2"
   dependencies:
