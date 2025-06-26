@@ -16,7 +16,9 @@ export const enum EventType {
 
 export interface EventTypeToArgs<SystemInfo = Record<string, unknown>> {
     [EventType.PERSIST_STATE]: [{ isMigrating: boolean; isAborting: boolean }];
-    [EventType.SYSTEM_INFO]: [{ createdAt: Date; cpuCurrentUsage: number; isCpuOverloaded: boolean; memCurrentBytes?: number } & SystemInfo];
+    [EventType.SYSTEM_INFO]: [
+        { createdAt: Date; cpuCurrentUsage: number; isCpuOverloaded: boolean; memCurrentBytes?: number } & SystemInfo,
+    ];
     [EventType.MIGRATING]: [any];
     [EventType.ABORTING]: [any];
     [EventType.EXIT]: [any];
@@ -29,7 +31,7 @@ interface Intervals {
     systemInfo?: BetterIntervalID;
 }
 
-export abstract class EventManager<SystemInfo>{
+export abstract class EventManager<SystemInfo> {
     protected events = new AsyncEventEmitter<EventTypeToArgs<SystemInfo>>();
     protected initialized = false;
     protected intervals: Intervals = {};
@@ -79,18 +81,16 @@ export abstract class EventManager<SystemInfo>{
         this.events.on(event, listener);
     }
 
-    off<K extends keyof EventTypeToArgs>(event: K, listener?: (...args: EventTypeToArgs[K]) => any): void {
+    off(event: EventTypeName, listener?: (...args: EventTypeToArgs[EventTypeName]) => any): void {
         if (listener) {
-            // Casting to 'any' because it shows really cryptic error if we don't
-            this.events.removeListener(event, listener as any);
+            this.events.removeListener(event, listener);
         } else {
             this.events.removeAllListeners(event);
         }
     }
 
-    emit<K extends keyof EventTypeToArgs>(event: K, ...args: EventTypeToArgs[K]): void {
-        // Casting to 'any' because it shows really cryptic error if we don't
-        this.events.emit(event, ...args as any);
+    emit(event: EventTypeName, ...args: EventTypeToArgs[EventTypeName]): void {
+        this.events.emit(event, ...args);
     }
 
     isInitialized(): boolean {
