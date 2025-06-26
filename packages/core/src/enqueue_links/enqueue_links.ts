@@ -1,4 +1,4 @@
-import type { Awaitable, BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
@@ -13,7 +13,15 @@ import type {
     RequestProvider,
     RequestQueueOperationOptions,
 } from '../storages';
-import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
+import type {
+    GlobInput,
+    PseudoUrlInput,
+    RegExpInput,
+    RequestTransform,
+    SkippedRequestCallback,
+    SkippedRequestReason,
+    UrlPatternObject,
+} from './shared';
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
@@ -22,8 +30,6 @@ import {
     createRequests,
     filterRequestsByPatterns,
 } from './shared';
-
-export type SkippedRequestCallback = (args: { url: string; reason: 'robotsTxt' | 'limit' }) => Awaitable<void>;
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
@@ -175,7 +181,10 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
 
     /**
      * When a request is skipped for some reason, you can use this callback to act on it.
-     * This is currently fired only for requests skipped based on robots.txt file.
+     * This is currently fired for requests skipped
+     * 1. based on robots.txt file,
+     * 2. because they don't match enqueueLinks filters,
+     * 3. or because the maxRequestsPerCrawl limit has been reached
      */
     onSkippedRequest?: SkippedRequestCallback;
 }
@@ -392,6 +401,16 @@ export async function enqueueLinks(
         }
     }
 
+    async function reportSkippedRequests(skippedRequests: { url: string }[], reason: SkippedRequestReason) {
+        if (onSkippedRequest && skippedRequests.length > 0) {
+            await Promise.all(
+                skippedRequests.map((request) => {
+                    return onSkippedRequest({ url: request.url, reason });
+                }),
+            );
+        }
+    }
+
     let requestOptions = createRequestOptions(urls, options);
 
     if (robotsTxtFile) {
@@ -406,25 +425,37 @@ export async function enqueueLinks(
             return false;
         });
 
-        if (onSkippedRequest && skippedRequests.length > 0) {
-            await Promise.all(
-                skippedRequests.map((request) => {
-                    return onSkippedRequest({ url: request.url, reason: 'robotsTxt' });
-                }),
-            );
-        }
+        await reportSkippedRequests(skippedRequests, 'robotsTxt');
     }
 
     if (transformRequestFunction) {
+        const skippedRequests: RequestOptions[] = [];
+
         requestOptions = requestOptions
-            .map((request) => transformRequestFunction(request))
-            .filter((r) => !!r) as RequestOptions[];
+            .map((request) => {
+                const transformedRequest = transformRequestFunction(request);
+                if (!transformedRequest) {
+                    skippedRequests.push(request);
+                }
+                return transformedRequest;
+            })
+            .filter((r) => Boolean(r)) as RequestOptions[];
+
+        await reportSkippedRequests(skippedRequests, 'filters');
     }
 
-    function createFilteredRequests() {
+    async function createFilteredRequests() {
+        const skippedRequests: string[] = [];
+
         // No user provided patterns means we can skip an extra filtering step
         if (urlPatternObjects.length === 0) {
-            return createRequests(requestOptions, enqueueStrategyPatterns, urlExcludePatternObjects, options.strategy);
+            return createRequests(
+                requestOptions,
+                enqueueStrategyPatterns,
+                urlExcludePatternObjects,
+                options.strategy,
+                (url) => skippedRequests.push(url),
+            );
         }
 
         // Generate requests based on the user patterns first
@@ -433,19 +464,24 @@ export async function enqueueLinks(
             urlPatternObjects,
             urlExcludePatternObjects,
             options.strategy,
+            (url) => skippedRequests.push(url),
         );
         // ...then filter them by the enqueue links strategy (making this an AND check)
-        return filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns);
+        const filtered = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (url) =>
+            skippedRequests.push(url),
+        );
+
+        await reportSkippedRequests(
+            skippedRequests.map((url) => ({ url })),
+            'filters',
+        );
+
+        return filtered;
     }
 
-    let requests = createFilteredRequests();
+    let requests = await createFilteredRequests();
     if (limit && limit < requests.length) {
-        if (onSkippedRequest) {
-            for (const request of requests.slice(limit)) {
-                await onSkippedRequest({ url: request.url, reason: 'limit' });
-            }
-        }
-
+        await reportSkippedRequests(requests.slice(limit), 'limit');
         requests = requests.slice(0, limit);
     }
 
