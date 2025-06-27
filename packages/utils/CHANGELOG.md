@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+
+### Bug Fixes
+
+* Do not log 'malformed sitemap content' on network errors in `Sitemap.tryCommonNames` ([#3015](https://github.com/apify/crawlee/issues/3015)) ([64a090f](https://github.com/apify/crawlee/commit/64a090ffbba5c69730ec0616e415a1eadf4bc7b3)), closes [#2884](https://github.com/apify/crawlee/issues/2884)
+
+
+### Features
+
+* Accept (Async)Iterables in `addRequests` methods ([#3013](https://github.com/apify/crawlee/issues/3013)) ([a4ab748](https://github.com/apify/crawlee/commit/a4ab74852c3c60bdbc96035f54b16d125220f699)), closes [#2980](https://github.com/apify/crawlee/issues/2980)
+
+
+
+
+
 ## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
 
 

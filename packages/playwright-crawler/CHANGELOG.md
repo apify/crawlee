@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+
+### Bug Fixes
+
+* Fix link filtering in enqueueLinks in AdaptivePlaywrightCrawler ([#3021](https://github.com/apify/crawlee/issues/3021)) ([8a3b6f8](https://github.com/apify/crawlee/commit/8a3b6f8847586eb3b0865fe93053468e1605399c)), closes [#2525](https://github.com/apify/crawlee/issues/2525)
+
+
+### Features
+
+* Report links skipped because of various filter conditions ([#3026](https://github.com/apify/crawlee/issues/3026)) ([5a867bc](https://github.com/apify/crawlee/commit/5a867bc28135803b55c765ec12e6fd04017ce53d)), closes [#3016](https://github.com/apify/crawlee/issues/3016)
+
+
+
+
+
 ## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
 
 
