@@ -766,7 +766,7 @@ __metadata:
     apify-node-curl-impersonate: "npm:^1.0.15"
     basic-auth-parser: "npm:^0.0.2"
     body-parser: "npm:^2.0.0"
-    camoufox-js: "npm:^0.4.0"
+    camoufox-js: "npm:^0.6.0"
     commitlint: "npm:^19.0.0"
     cross-env: "npm:^7.0.3"
     deep-equal: "npm:^2.0.5"
@@ -4177,9 +4177,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"camoufox-js@npm:^0.4.0":
-  version: 0.4.1
-  resolution: "camoufox-js@npm:0.4.1"
+"camoufox-js@npm:^0.6.0":
+  version: 0.6.0
+  resolution: "camoufox-js@npm:0.6.0"
   dependencies:
     adm-zip: "npm:^0.5.16"
     commander: "npm:^13.1.0"
@@ -4196,7 +4196,7 @@ __metadata:
     playwright-core: "*"
   bin:
     camoufox-js: dist/__main__.js
-  checksum: 10c0/6277cc38ef38cdfa4b18fd96c15e92bb4970dd701bc6dcb0e4a163905078bcebfc71e53b9f59dcee6f90f00fef414fb657954637dde876e1567d3da670056bef
+  checksum: 10c0/954c2777434a24858ba787b77bf623cd1319feafaa57323d24e395116688127c1e1204a36770964cea758a3adffa252535261e07caf0afe50cec128c0b05ac0f
   languageName: node
   linkType: hard
 
