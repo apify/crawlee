@@ -20,7 +20,7 @@ docs/api
 docs/typedefs
 .history
 .docusaurus
-tsconfig.tsbuildinfo
+**/*.tsbuildinfo
 apify_storage
 crawlee_storage
 storage
