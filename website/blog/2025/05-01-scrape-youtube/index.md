@@ -25,7 +25,7 @@ Key steps we'll cover:
 2. [Analyzing YouTube and determining a scraping strategy](https://www.crawlee.dev/blog/scrape-youtube-python#2-analyzing-youtube-and-determining-a-scraping-strategy)
 3. [Configuring YouTube](https://www.crawlee.dev/blog/scrape-youtube-python#3-configuring-crawlee)
 4. [Extracting YouTube data](https://www.crawlee.dev/blog/scrape-youtube-python#4-extracting-youtube-data)
-5. [Possible improvements](https://www.crawlee.dev/blog/scrape-youtube-python#5-possible-improvements)
+5. [Enhancing the scraper capabilities](https://www.crawlee.dev/blog/scrape-youtube-python#5-possible-improvements)
 
 <!-- truncate -->
 
