@@ -25,7 +25,9 @@ Key steps we'll cover:
 2. [Analyzing YouTube and determining a scraping strategy](https://www.crawlee.dev/blog/scrape-youtube-python#2-analyzing-youtube-and-determining-a-scraping-strategy)
 3. [Configuring YouTube](https://www.crawlee.dev/blog/scrape-youtube-python#3-configuring-crawlee)
 4. [Extracting YouTube data](https://www.crawlee.dev/blog/scrape-youtube-python#4-extracting-youtube-data)
-5. [Enhancing the scraper capabilities](https://www.crawlee.dev/blog/scrape-youtube-python#5-possible-improvements)
+5. [Enhancing the scraper capabilities](https://www.crawlee.dev/blog/scrape-youtube-python#5-enhancing-the-scraper-capabilities)
+6. [Creating YouTube Actor on the Apify platform](https://www.crawlee.dev/blog/scrape-youtube-python#6-creating-youtube-actor-on-the-apify-platform)
+7. [Deploying to Apify](https://www.crawlee.dev/blog/scrape-youtube-python#7-deploying-to-apify)
 
 <!-- truncate -->
 
@@ -62,18 +64,18 @@ In the `cli` menu that opens, select:
 2. `Httpx`
 3. `uv`
 4. Leave the default value - `https://crawlee.dev`
-5. `n`
+5. `y`
 
 Or, just run the command:
 
 ```bash
-uvx crawlee['cli'] create youtube-crawlee --crawler-type playwright --http-client httpx --package-manager uv --no-apify --start-url 'https://crawlee.dev'
+uvx crawlee['cli'] create youtube-crawlee --crawler-type playwright --http-client httpx --package-manager uv --apify --start-url 'https://crawlee.dev'
 ```
 
 Or, if you prefer to use `pipx`.
 
 ```bash
-pipx run crawlee['cli'] create youtube-crawlee --crawler-type playwright --http-client httpx --package-manager uv --no-apify --start-url 'https://crawlee.dev'
+pipx run crawlee['cli'] create youtube-crawlee --crawler-type playwright --http-client httpx --package-manager uv --apify --start-url 'https://crawlee.dev'
 ```
 
 Creating the project may take a few minutes. After installation is complete, navigate to the project folder:
@@ -90,7 +92,7 @@ If your project requires more data than the API allows, you'll need to use crawl
 
 Let's study the navigation on a YouTube channel page using [Apify channel](https://www.youtube.com/@Apify) as our example to better understand the navigation features and data extraction points.
 
-To load new elements on the page, YouTube uses infinite scrolling, similar to what we discussed in the corresponding [article](https://crawlee.dev/blog/infinite-scroll-using-python) from the [Apify](https://apify.com/) team. Let's look at how this works using [DevTools](https://developer.chrome.com/docs/devtools) and the [Network](https://developer.chrome.com/docs/devtools/network/) tab.
+To load new elements on the page, YouTube uses infinite scrolling, similar to what we discussed in the corresponding [article](https://www.crawlee.dev/blog/infinite-scroll-using-python) from the [Apify](https://apify.com/) team. Let's look at how this works using [DevTools](https://developer.chrome.com/docs/devtools) and the [Network](https://developer.chrome.com/docs/devtools/network/) tab.
 
 ![Load Request](img/load_request.webp)
 
@@ -98,11 +100,11 @@ If we look at the response structure, we can see that YouTube uses [JSON](https:
 
 ![Load Response](img/load_response.webp)
 
-Therefore, we'll use [Playwright](https://playwright.dev/python/docs/intro) for crawling, which will help us avoid parsing complex JSON responses. But if you want to practice crawling complex websites, try implementing a crawler based on an HTTP client, like in this [article](https://crawlee.dev/blog/scraping-dynamic-websites-using-python).
+Therefore, we'll use [Playwright](https://playwright.dev/python/docs/intro) for crawling, which will help us avoid parsing complex JSON responses. But if you want to practice crawling complex websites, try implementing a crawler based on an HTTP client, like in this [article](https://www.crawlee.dev/blog/scraping-dynamic-websites-using-python).
 
 Let's analyze the selectors for getting video links using the [Elements](https://developer.chrome.com/docs/devtools/elements/) tab:
 
-![Selectors](img/load_response.webp)
+![Selectors](img/selectors.webp)
 
 It looks like we're interested in `a` tags with the attribute `id="video-title-link"`!
 
@@ -134,7 +136,7 @@ With this knowledge, we're ready to implement our YouTube scraper using Crawlee 
 
 ## 3. Configuring Crawlee
 
-Configuring Crawlee for YouTube is very similar to configuring it for [TikTok](https://crawlee.dev/blog/scrape-tiktok-python). But it will have some key differences.
+Configuring Crawlee for YouTube is very similar to configuring it for [TikTok](https://www.crawlee.dev/blog/scrape-tiktok-python). But it will have some key differences.
 
 Since pages have infinite scrolling, we need to limit the number of elements we want to get. For this, we'll add a `max_items` parameter that will limit the maximum number of elements for each search and pass it in `user_data` when forming a [Request](https://www.crawlee.dev/python/api/class/Request).
 
@@ -142,15 +144,16 @@ We'll limit the intensity of scraping by setting `max_tasks_per_minute` in [`Con
 
 Scrolling pages can take a long time, so we should increase the time limit for processing a single request using `request_handler_timeout`.
 
-Since we won't be saving images, videos, and similar media content during crawling, we can block requests to them using [`block_requests`](https://crawlee.dev/python/api/class/BlockRequestsFunction) and [`pre_navigation_hook`](https://crawlee.dev/python/api/class/PlaywrightCrawler#pre_navigation_hook).
+Since we won't be saving images, videos, and similar media content during crawling, we can block requests to them using [`block_requests`](https://www.crawlee.dev/python/api/class/BlockRequestsFunction) and [`pre_navigation_hook`](https://www.crawlee.dev/python/api/class/PlaywrightCrawler#pre_navigation_hook).
 
-Also, to handle the `GDPR` page only once, we'll use [`use_state`](https://crawlee.dev/python/api/class/UseStateFunction) to pass the appropriate cookies between sessions, ensuring all requests have the necessary cookies.
+Also, to handle the `GDPR` page only once, we'll use [`use_state`](https://www.crawlee.dev/python/api/class/UseStateFunction) to pass the appropriate cookies between sessions, ensuring all requests have the necessary cookies.
 
 ```python
 # main.py
 
 from datetime import timedelta
 
+from apify import Actor
 from crawlee import ConcurrencySettings, Request
 from crawlee.crawlers import PlaywrightCrawler, PlaywrightPreNavCrawlingContext
 
@@ -159,32 +162,35 @@ from .routes import router
 
 async def main() -> None:
     """The crawler entry point."""
-    # Set the maximum number of items to scrape per YouTube channel
-    max_items = 40
-    # Set the list of channels to scrape
-    channels = ["Apify"]
+    async with Actor:
+        # Create a crawler instance with the router
+        crawler = PlaywrightCrawler(
+            # Limit scraping intensity by setting a limit on requests per minute
+            concurrency_settings=ConcurrencySettings(max_tasks_per_minute=50),
+            # We'll configure the `router` in the next step
+            request_handler=router,
+            # Increase the timeout for the request handling pipeline
+            request_handler_timeout=timedelta(seconds=120),
+            # You can use `False` during development. But for production, it's always `True`
+            headless=True,
+            # Limit requests per crawl for testing purposes
+            max_requests_per_crawl=100,
+        )
 
-    # Create a crawler instance with the router
-    crawler = PlaywrightCrawler(
-        # Limit scraping intensity by setting a limit on requests per minute
-        concurrency_settings=ConcurrencySettings(max_tasks_per_minute=50),
-        # We'll configure the `router` in the next step
-        request_handler=router,
-        # Increase the timeout for the request handling pipeline
-        request_handler_timeout=timedelta(seconds=120),
-        # You can use `False` during development. But for production, it's always `True`
-        headless=True,
-        # Limit requests per crawl for testing purposes
-        max_requests_per_crawl=100,
-    )
+        # Set the maximum number of items to scrape per youtube channel
+        max_items = 1
+        # Set the list of channels to scrape
+        channels = ['Apify']
 
-    # Set hook for prepare context before navigation on each request
-    crawler.pre_navigation_hook(pre_hook)
+        # Set hook for prepare context before navigation on each request
+        crawler.pre_navigation_hook(pre_hook)
 
-    await crawler.run([Request.from_url(f'https://www.youtube.com/@{channel}/videos', user_data={'limit': max_items}) for channel in channels])
-
-    # Export the data from Dataset to JSON format
-    await crawler.export_data_json('youtube.json')
+        await crawler.run(
+            [
+                Request.from_url(f'https://www.youtube.com/@{channel}/videos', user_data={'limit': max_items})
+                for channel in channels
+            ]
+        )
 ```
 
 Let's prepare the `pre_hook` function to block requests and set cookies:
@@ -213,21 +219,28 @@ After configuration, let's move on to navigation and data extraction.
 
 For infinite scrolling, we'll use the built-in helper function ['infinite_scroll'](https://www.crawlee.dev/python/api/class/PlaywrightCrawlingContext#infinite_scroll). But instead of waiting for scrolling to complete, which in some cases can take a really long time, we'll use Python's `asyncio` capabilities to make it a background task.
 
-The `GDPR` page requiring consent for cookie usage is on the domain `consent.youtube.com`, which might cause an error when forming a [Request](https://www.crawlee.dev/python/api/class/Request) for a video page. Therefore, we need to use a helper function for the `transform_request_function` parameter in [`extract_links`](https://crawlee.dev/python/api/class/ExtractLinksFunction).
+The `GDPR` page requiring consent for cookie usage is on the domain `consent.youtube.com`, which might cause an error when forming a [Request](https://www.crawlee.dev/python/api/class/Request) for a video page. Therefore, we need to use a helper function for the `transform_request_function` parameter in [`extract_links`](https://www.crawlee.dev/python/api/class/ExtractLinksFunction).
 
 This function will check each extracted URL, and if it contains 'consent.youtube', we'll replace it with 'www.youtube'. This will allow us to get the correct URL for the video page.
 
 ```python
+# routes.py
+
+from __future__ import annotations
+
 import asyncio
 import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING
 
-from playwright.async_api import Request as PlaywrightRequest
-from playwright.async_api import Route as PlaywrightRoute
 from yarl import URL
 
 from crawlee import Request, RequestOptions, RequestTransformAction
 from crawlee.crawlers import PlaywrightCrawlingContext
 from crawlee.router import Router
+
+if TYPE_CHECKING:
+    from playwright.async_api import Request as PlaywrightRequest
+    from playwright.async_api import Route as PlaywrightRoute
 
 router = Router[PlaywrightCrawlingContext]()
 
@@ -243,6 +256,8 @@ def request_domain_transform(request_param: RequestOptions) -> RequestOptions | 
 Let's implement a function that will intercept transcript requests for later modification and processing in the crawler:
 
 ```python
+# routes.py
+
 async def extract_transcript_url(context: PlaywrightCrawlingContext) -> str | None:
     """Extract the transcript URL from request intercepted by Playwright."""
     transcript_url = None
@@ -338,7 +353,7 @@ async def default_handler(context: PlaywrightCrawlingContext) -> None:
     await context.enqueue_links(requests=requests)
 ```
 
-Let's take a closer look at the parameters used in [`extract_links`](https://crawlee.dev/python/api/class/ExtractLinksFunction#Methods):
+Let's take a closer look at the parameters used in [`extract_links`](https://www.crawlee.dev/python/api/class/ExtractLinksFunction#Methods):
 
 - `selector` - selector for extracting links to videos. We expected that we could use `id="video-title-link"`, but YouTube uses different page formats with different selectors, so the selector `a[href*="watch"]` will be more universal.
 - `label` - pointer for the router that will be used to handle the video page.
@@ -377,9 +392,9 @@ async def video_handler(context: PlaywrightCrawlingContext) -> None:
     except asyncio.TimeoutError:
         transcript_url = None
 
-    # If transcript_url is found, create a link and add it to the queue
-    # otherwise save the data to Dataset as is
     if transcript_url:
+        transcript_url = str(URL(transcript_url).without_query_params('fmt'))
+        context.log.info(f'Found transcript URL: {transcript_url}')
         await context.add_requests(
             [Request.from_url(transcript_url, label='transcript', user_data={'video_data': main_data})]
         )
@@ -387,7 +402,7 @@ async def video_handler(context: PlaywrightCrawlingContext) -> None:
         await context.push_data(main_data)
 ```
 
-Note that if we want to extract the video transcript, we need to get the link to the transcript file and pass the video data to the next handler before it's saved to the [`Dataset`](https://crawlee.dev/python/api/class/Dataset).
+Note that if we want to extract the video transcript, we need to get the link to the transcript file and pass the video data to the next handler before it's saved to the [`Dataset`](https://www.crawlee.dev/python/api/class/Dataset).
 
 The final stage is processing the transcript. YouTube uses [XML](https://www.w3schools.com/xml/) to transmit transcript data, so we need to use a library for parsing XML, such as [`xml.etree.ElementTree`](https://docs.python.org/3/library/xml.etree.elementtree.html).
 
@@ -425,8 +440,6 @@ After collecting the data, we need to save the results to a file. Just add the f
 ```python
 # main.py
 
-await crawler.run([Request.from_url(f'https://www.youtube.com/@{channel}/videos', user_data={'limit': max_items}) for channel in channels])
-
 # Export the data from Dataset to JSON format
 await crawler.export_data_json('youtube.json')
 ```
@@ -434,7 +447,7 @@ await crawler.export_data_json('youtube.json')
 To run the crawler, use the command:
 
 ```bash
-uv run python -m YouTube_crawlee
+uv run python -m youtube_crawlee
 ```
 
 Example result record:
@@ -490,15 +503,154 @@ Example result record:
 As with any project working with a large site like YouTube, you may encounter various issues that need to be resolved.
 Currently, the Crawlee for Python documentation contains many guides and examples to help you with this.
 
-- Use [`Camoufox`](https://camoufox.com/), a project compatible with Playwright, which allows you to get a browser configuration that's more resistant to blocking, and you can easily [integrate it with Crawlee for Python](https://crawlee.dev/python/docs/examples/playwright-crawler-with-camoufox).
+- Use [`Camoufox`](https://camoufox.com/), a project compatible with Playwright, which allows you to get a browser configuration that's more resistant to blocking, and you can easily [integrate it with Crawlee for Python](https://www.crawlee.dev/python/docs/examples/playwright-crawler-with-camoufox).
 
-- Improve error handling and logging for unusual cases so you can easily debug and maintain the project; the guide on [error handling](https://crawlee.dev/python/docs/guides/error-handling) is a good place to start.
+- Improve error handling and logging for unusual cases so you can easily debug and maintain the project; the guide on [error handling](https://www.crawlee.dev/python/docs/guides/error-handling) is a good place to start.
 
-- Add proxy support to avoid blocks from YouTube. You can use [Apify Proxy](https://apify.com/proxy) and [`ProxyConfiguration`](https://crawlee.dev/python/api/class/ProxyConfiguration); you can learn more in this guide in the [documentation](https://crawlee.dev/python/docs/guides/proxy-management#proxy-configuration).
+- Add proxy support to avoid blocks from YouTube. You can use [Apify Proxy](https://apify.com/proxy) and [`ProxyConfiguration`](https://www.crawlee.dev/python/api/class/ProxyConfiguration); you can learn more in this guide in the [documentation](https://www.crawlee.dev/python/docs/guides/proxy-management#proxy-configuration).
 
-- Make your crawler a web service that crawls pages by user request, using [FastAPI](https://fastapi.tiangolo.com/) and following this [guide](https://crawlee.dev/python/docs/guides/running-in-web-server).
+- Make your crawler a web service that crawls pages by user request, using [FastAPI](https://fastapi.tiangolo.com/) and following this [guide](https://www.crawlee.dev/python/docs/guides/running-in-web-server).
 
-- Turn your crawler into an [Apify Actor](https://apify.com/actors), allowing you to easily run it in the cloud on [the Apify Platform](https://docs.apify.com/sdk/js/docs/guides/apify-platform) and integrate it with other services. You can learn how to do this by looking at the example in this [article](https://crawlee.dev/blog/crawlee-python-price-tracker) or following the [documentation](https://docs.apify.com/platform/actors/development/quick-start).
+## 6. Creating YouTube Actor on the Apify platform
+
+For deployment, we'll use the [Apify platform](https://apify.com/). It's a simple and effective environment for cloud deployment, allowing efficient interaction with your crawler. Call it via [API](https://docs.apify.com/api/v2/), [schedule tasks](https://docs.apify.com/platform/schedules), [integrate](https://docs.apify.com/platform/integrations) with various services, and much more.
+
+To deploy to the Apify platform, we need to adapt our project for the [Apify Actor](https://apify.com/actors) structure.
+
+Create an `.actor` folder with the necessary files.
+
+```bash
+mkdir .actor && touch .actor/{actor.json,input_schema.json}
+```
+
+Move the `Dockerfile` from the root folder to `.actor`.
+
+```bash
+mv Dockerfile .actor
+```
+
+Let's fill in the empty files:
+
+The `actor.json` file contains project metadata for the Apify platform. Follow the [documentation for proper configuration](https://docs.apify.com/platform/actors/development/actor-definition/actor-json):
+
+```json
+{
+  "actorSpecification": 1,
+  "name": "YouTube-Crawlee",
+  "title": "YouTube - Crawlee",
+  "minMemoryMbytes": 2048,
+  "description": "Scrape video stats, metadata and transcripts from videos in YouTube channels",
+  "version": "0.1",
+  "meta": {
+    "templateId": "youtube-crawlee"
+  },
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}
+```
+
+Actor input parameters are defined using `input_schema.json`, which is specified [here](https://docs.apify.com/platform/actors/development/actor-definition/input-schema/specification/v1).
+
+Let's define input parameters for our crawler:
+
+- `maxItems` - maximum number of videos per channel for scraping.
+- `channelNames` - these are the YouTube channel names to scrape.
+- `proxySettings` - proxy settings, since without a proxy you'll be using the datacenter IP that Apify uses.
+
+```json
+{
+    "title": "YouTube Crawlee",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "channelNames": {
+            "title": "List Channel Names",
+            "type": "array",
+            "description": "Channel names for extraction video stats, metadata and transcripts.",
+            "editor": "stringList",
+            "prefill": ["Apify"]
+        },
+        "maxItems": {
+            "type": "integer",
+            "editor": "number",
+            "title": "Limit search results",
+            "description": "Limits the maximum number of results, applies to each search separately.",
+            "default": 10
+        },
+        "proxySettings": {
+            "title": "Proxy configuration",
+            "type": "object",
+            "description": "Select proxies to be used by your scraper.",
+            "prefill": { "useApifyProxy": true },
+            "editor": "proxy"
+        }
+    },
+    "required": ["channelNames"]
+}
+```
+
+Let's update the code to accept input parameters.
+
+```python
+# main.py
+
+async def main() -> None:
+    """The crawler entry point."""
+    async with Actor:
+        # highlight-start
+        # Get the input parameters from the Actor
+        actor_input = await Actor.get_input()
+
+        max_items = actor_input.get('maxItems', 0)
+        channels = actor_input.get('channelNames', [])
+        proxy = await Actor.create_proxy_configuration(actor_proxy_input=actor_input.get('proxySettings'))
+        # highlight-end
+
+        crawler = PlaywrightCrawler(
+            concurrency_settings=ConcurrencySettings(max_tasks_per_minute=50),
+            request_handler=router,
+            request_handler_timeout=timedelta(seconds=120),
+            headless=True,
+            max_requests_per_crawl=100,
+            proxy_configuration=proxy
+        )
+```
+
+And delete export to JSON from the `main` function, as the Apify platform will handle data storage in the [Dataset](https://docs.apify.com/platform/storage/dataset).
+
+That's it, the project is ready for deployment.
+
+## 7. Deploying to Apify
+
+Use the official [Apify CLI](https://docs.apify.com/cli/) to upload your code:
+
+Authenticate using your API token from [Apify Console](https://console.apify.com/settings/integrations):
+
+```bash
+apify login
+```
+
+Choose "Enter API token manually" and paste your token.
+
+Push the project to the platform:
+
+```bash
+apify push
+```
+
+Now you can configure runs on the Apify platform.
+
+Let's perform a test run:
+
+Fill in the input parameters:
+
+![Actor Input](img/input_actor.webp)
+
+View results in the dataset:
+
+![Dataset Results](img/actor_results.webp)
+
+If you want to make your Actor public and provide access to other users, potentially to earn income from it, follow this [publishing guide](https://docs.apify.com/platform/actors/publishing) for [Apify Store](https://apify.com/store).
 
 ## Conclusion
 
