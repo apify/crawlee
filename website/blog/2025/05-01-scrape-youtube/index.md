@@ -9,7 +9,7 @@ authors: [MaxB]
 
 [YouTube](https://www.youtube.com/) is the world's largest video platform for original content. Its users generate massive amounts of data daily on various topics, making it an ideal source for training neural networks, data analysis, and much more.
 
-Whatever task you need YouTube data for, it's crucial to obtain it in a convenient format for further processing. In this blog, we'll explore how to efficiently collect data from YouTube using [Crawlee for Python](https://github.com/apify/crawlee-python).
+Whatever task you need YouTube data for, it's crucial to obtain it in a convenient format for further processing. In this blog, we'll explore how to efficiently collect data from YouTube using [Crawlee for Python](https://github.com/apify/crawlee-python). Our scraper will extract video metadata, video statistics, and transcripts - giving you structured data perfect for content analysis, ML training, or trend monitoring.
 
 :::note
 
@@ -33,7 +33,7 @@ Key steps we'll cover:
 
 - Python 3.9 or higher
 - Familiarity with web scraping concepts
-- Crawlee for Python `v0.7.0` or higher
+- Crawlee for Python `v0.6.0` or higher
 - [uv](https://docs.astral.sh/uv/) `v0.7` or higher
 
 ## 1. Project setup
@@ -44,9 +44,7 @@ Before going ahead with the project, I'd like to ask you to star Crawlee for Pyt
 
 :::
 
-In this project, we'll use uv for package management and a specific Python version will be installed through uv. Uv is a fast and modern package manager written in Rust.
-
-If you don't have uv installed yet, just follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
+In this project, we'll use uv for package management and a specific Python version will be installed through uv. If you don't have uv installed yet, just follow the [guide](https://docs.astral.sh/uv/getting-started/installation/) or use this command:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -72,6 +70,12 @@ Or, just run the command:
 uvx crawlee['cli'] create youtube-crawlee --crawler-type playwright --http-client httpx --package-manager uv --no-apify --start-url 'https://crawlee.dev'
 ```
 
+Or, if you prefer to use `pipx`.
+
+```bash
+pipx run crawlee['cli'] create youtube-crawlee --crawler-type playwright --http-client httpx --package-manager uv --no-apify --start-url 'https://crawlee.dev'
+```
+
 Creating the project may take a few minutes. After installation is complete, navigate to the project folder:
 
 ```bash
@@ -80,9 +84,11 @@ cd youtube-crawlee
 
 ## 2. Analyzing YouTube and determining a scraping strategy
 
-If you're working on a small project to extract data from YouTube, you should use the [YouTube API](https://developers.google.com/youtube/v3/docs/search/list) to get the necessary data. However, the API has very strict quotas, no more than [10000 units per day](https://developers.google.com/youtube/v3/determine_quota_cost), which allows you to get no more than 1000 search pages, and you can't increase this limit.
+If you're working on a small project to extract data from YouTube, you should use the [YouTube API](https://developers.google.com/youtube/v3/docs/search/list) to get the necessary data. However, the API has very strict quotas, no more than [10000 units per day](https://developers.google.com/youtube/v3/determine_quota_cost), which allows you to get no more than 100 search pages, and you can't increase this limit.
 
 If your project requires more data than the API allows, you'll need to use crawling. Let's examine the site to develop an optimal crawling strategy.
+
+Let's study the navigation on a YouTube channel page using [Apify channel](https://www.youtube.com/@Apify) as our example to better understand the navigation features and data extraction points.
 
 To load new elements on the page, YouTube uses infinite scrolling, similar to what we discussed in the corresponding [article](https://crawlee.dev/blog/infinite-scroll-using-python) from the [Apify](https://apify.com/) team. Let's look at how this works using [DevTools](https://developer.chrome.com/docs/devtools) and the [Network](https://developer.chrome.com/docs/devtools/network/) tab.
 
@@ -104,9 +110,27 @@ Let's look at the video page to better understand how YouTube transmits data. As
 
 ![Video Response](img/video_json.webp)
 
+Now let's get the transcript link. Click on the subtitles button in the player to trigger the transcript request.
+
+![Transcript Request](img/transcript_request.webp)
+
+Let's verify that we can access the transcript via this link. Remove the `fmt=json3` parameter from the URL and open it in your browser. Removing the `fmt` parameter is necessary to get the data in a convenient XML format instead of the complex JSON3 format.
+
+![Transcript Response](img/transcript_response.webp)
+
 If you live in a country where [GDPR](https://gdpr-info.eu/) applies, you'll need to handle the following popup before you can access the data:
 
 ![GDPR](img/GDPR.webp)
+
+After our analysis, we now understand:
+
+- **Navigation strategy**: How to navigate the channel page to retrieve all videos using infinite scroll
+- **Video metadata extraction**: How to extract video statistics, title, description, publish date, and other metadata from video pages
+- **Transcript access**: How to obtain the correct transcript link
+- **Data formats**: Transcript data is available in XML format, which is easier to parse than JSON3
+- **Regional considerations**: Special handling required for GDPR consent in European countries
+
+With this knowledge, we're ready to implement our YouTube scraper using Crawlee for Python.
 
 ## 3. Configuring Crawlee
 
@@ -177,7 +201,10 @@ async def pre_hook(context: PlaywrightPreNavCrawlingContext) -> None:
         # Set cookies for the session
         context.session.cookies.set_cookies_from_playwright_format(cookies)
     # Block requests to resources that aren't needed for parsing
-    await context.block_requests()
+    # This is similar to the default value, but we don't block `css` as it is needed for Player loading
+    await context.block_requests(
+        url_patterns=['.webp', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip']
+    )
 ```
 
 ## 4. Extracting YouTube data
@@ -194,6 +221,10 @@ This function will check each extracted URL, and if it contains 'consent.youtube
 import asyncio
 import xml.etree.ElementTree as ET
 
+from playwright.async_api import Request as PlaywrightRequest
+from playwright.async_api import Route as PlaywrightRoute
+from yarl import URL
+
 from crawlee import Request, RequestOptions, RequestTransformAction
 from crawlee.crawlers import PlaywrightCrawlingContext
 from crawlee.router import Router
@@ -207,6 +238,37 @@ def request_domain_transform(request_param: RequestOptions) -> RequestOptions | 
         request_param['url'] = request_param['url'].replace('consent.youtube', 'www.youtube')
         return request_param
     return 'unchanged'
+```
+
+Let's implement a function that will intercept transcript requests for later modification and processing in the crawler:
+
+```python
+async def extract_transcript_url(context: PlaywrightCrawlingContext) -> str | None:
+    """Extract the transcript URL from request intercepted by Playwright."""
+    transcript_url = None
+
+    # Define a handler for the transcript request
+    # This will be called when the page requests the transcript
+    async def handle_transcript_request(route: PlaywrightRoute, request: PlaywrightRequest) -> None:
+        nonlocal transcript_url
+
+        transcript_url = request.url
+
+        await route.fulfill(status=200)
+
+    # Set up a route to intercept requests to the transcript API
+    await context.page.route('**/api/timedtext**', handle_transcript_request)
+
+    # Click the subtitles button to trigger the transcript request
+    await context.page.click('.ytp-subtitles-button')
+
+    # Wait for the transcript URL to be set
+    # We use `asyncio.wait_for` to avoid waiting indefinitely
+    while not transcript_url:
+        await asyncio.sleep(1)
+        context.log.info('Waiting for transcript URL...')
+
+    return transcript_url
 ```
 
 Now let's create the main handler that will handle navigating to the channel page, performing infinite scrolling, and extracting links to videos.
@@ -308,11 +370,13 @@ async def video_handler(context: PlaywrightCrawlingContext) -> None:
         'is_shorts': video_data['microformat']['playerMicroformatRenderer']['isShortsEligible'],
         'publish_date': video_data['microformat']['playerMicroformatRenderer']['publishDate'],
     }
-    transcript_url = None
-    for item in video_data['captions']['playerCaptionsTracklistRenderer']['captionTracks']:
-        if item['languageCode'] == 'en':
-            transcript_url = item['baseUrl']
-            break
+
+    # Try to extract the transcript URL
+    try:
+        transcript_url = await asyncio.wait_for(extract_transcript_url(context), timeout=20)
+    except asyncio.TimeoutError:
+        transcript_url = None
+
     # If transcript_url is found, create a link and add it to the queue
     # otherwise save the data to Dataset as is
     if transcript_url:
@@ -338,17 +402,22 @@ async def transcript_handler(context: PlaywrightCrawlingContext) -> None:
     # Get the main video data extracted in `video_handler`
     video_data = context.request.user_data.get('video_data', {})
 
-    # Get XML data from the response
-    root = ET.fromstring(await context.response.text())
+    try:
+        # Get XML data from the response
+        root = ET.fromstring(await context.response.text())
 
-    # Extract text elements from XML
-    transcript_data = [text_element.text.strip() for text_element in root.findall('.//text') if text_element.text]
+        # Extract text elements from XML
+        transcript_data = [text_element.text.strip() for text_element in root.findall('.//text') if text_element.text]
 
-    # Enrich video data by adding the transcript
-    video_data['transcript'] = '\n'.join(transcript_data)
+        # Enrich video data by adding the transcript
+        video_data['transcript'] = '\n'.join(transcript_data)
 
-    # Save the data to Dataset
-    await context.push_data(video_data)
+        # Save the data to Dataset
+        await context.push_data(video_data)
+    except ET.ParseError:
+        context.log.warning('Incorect XML Response')
+        # Save the video data without the transcript
+        await context.push_data(video_data)
 ```
 
 After collecting the data, we need to save the results to a file. Just add the following code to the end of the `main` function in `main.py`:
@@ -416,7 +485,7 @@ Example result record:
 }
 ```
 
-## 5. Possible improvements
+## 5. Enhancing the scraper capabilities
 
 As with any project working with a large site like YouTube, you may encounter various issues that need to be resolved.
 Currently, the Crawlee for Python documentation contains many guides and examples to help you with this.
