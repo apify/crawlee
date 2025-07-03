@@ -678,6 +678,8 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         });
 
         return await enqueueLinks({
+            limit: this.calculateEnqueuedRequestLimit(options.limit),
+            onSkippedRequest: this.handleSkippedRequest,
             ...options,
             baseUrl,
             requestQueue: {
