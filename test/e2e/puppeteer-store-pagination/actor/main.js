@@ -64,7 +64,7 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
     const price = Number(rawPrice.replaceAll(',', ''));
 
     const inStockElement = await page.$('span.product-form__inventory');
-    const inStock = inStockElement?.evaluate((el) => el.textContent.includes('In stock')) ?? false;
+    const inStock = (await inStockElement?.evaluate((el) => el.textContent.includes('In stock'))) ?? false;
 
     const results = {
         url,
