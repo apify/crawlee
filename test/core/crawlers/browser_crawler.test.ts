@@ -1065,4 +1065,25 @@ describe('BrowserCrawler', () => {
         expect(succeeded).toHaveLength(1);
         expect(succeeded[0]).toEqual('Redirecting outside');
     });
+
+    test('enqueueLinks should respect maxCrawlDepth', async () => {
+        const succeeded: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            maxCrawlDepth: 1,
+            maxRequestsPerCrawl: 10, // avoiding accidental runaway
+            requestHandler: async ({ page, enqueueLinks }) => {
+                succeeded.push(await page.title());
+                await enqueueLinks({ strategy: EnqueueStrategy.All });
+            },
+        });
+
+        await crawler.run([`${serverAddress}/special/html-type`]);
+
+        expect(succeeded).toHaveLength(2);
+        expect(succeeded).toEqual(['Example Domain', 'Example Domains']);
+    });
 });

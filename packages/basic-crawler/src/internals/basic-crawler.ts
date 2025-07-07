@@ -1520,12 +1520,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 const newRequestDepth = (request?.crawlDepth ?? -1) + 1;
 
                 async function* injectDepth() {
-                    for await (const request of requests) {
-                        if (typeof request === 'string') {
-                            yield { url: request, crawlDepth: newRequestDepth };
+                    for await (const rq of requests) {
+                        if (typeof rq === 'string') {
+                            yield { url: rq, crawlDepth: newRequestDepth };
                         } else {
-                            request.crawlDepth ??= newRequestDepth;
-                            yield request;
+                            rq.crawlDepth ??= newRequestDepth;
+                            yield rq;
                         }
                     }
                 }

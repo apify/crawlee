@@ -8,7 +8,7 @@ import ow from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
 
-import type { SkippedRequestReason } from './enqueue_links';
+import type { SkippedRequestReason } from './enqueue_links/shared';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
 import { log as defaultLog } from './log';
 import type { AllowedHttpMethods } from './typedefs';
@@ -177,6 +177,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             useExtendedUniqueKey = false,
             skipNavigation,
             enqueueStrategy,
+            crawlDepth = 0,
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
@@ -250,6 +251,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
+        if (crawlDepth != null && this.crawlDepth === undefined) this.crawlDepth ??= crawlDepth;
 
         // If it's already set, don't override it (for instance when fetching from storage)
         if (enqueueStrategy) {
@@ -275,7 +277,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
      * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
      */
     get crawlDepth(): number {
-        return this.userData.__crawlee?.crawlDepth ?? 0;
+        return this.userData.__crawlee?.crawlDepth;
     }
 
     /** Depth of the request in the current crawl tree.
