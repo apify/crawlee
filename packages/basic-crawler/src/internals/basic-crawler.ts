@@ -267,6 +267,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     maxRequestsPerCrawl?: number;
 
     /**
+     * Maximum depth of the crawl. If not set, the crawl will continue until all requests are processed.
+     */
+    maxCrawlDepth?: number;
+
+    /**
      * Custom options passed to the underlying {@apilink AutoscaledPool} constructor.
      * > *NOTE:* The {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`}
      * option is provided by the crawler and cannot be overridden.
@@ -516,6 +521,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
+    protected maxCrawlDepth?: number;
     protected sameDomainDelayMillis: number;
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
@@ -559,6 +565,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         sameDomainDelaySecs: ow.optional.number,
         maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
+        maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
@@ -600,6 +607,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             sameDomainDelaySecs = 0,
             maxSessionRotations = 10,
             maxRequestsPerCrawl,
+            maxCrawlDepth,
             autoscaledPoolOptions = {},
             keepAlive,
             sessionPoolOptions = {},
@@ -711,6 +719,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.maxRequestRetries = maxRequestRetries;
+        this.maxCrawlDepth = maxCrawlDepth;
         this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
         this.stats = new Statistics({
@@ -1112,8 +1121,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const skippedBecauseOfRobots = new Set<string>();
         const skippedBecauseOfLimit = new Set<string>();
+        const skippedBecauseOfMaxCrawlDepth = new Set<string>();
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
+        const maxCrawlDepth = this.maxCrawlDepth;
 
         async function* filteredRequests() {
             let yieldedRequestCount = 0;
@@ -1123,6 +1134,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
                 if (requestLimit !== undefined && yieldedRequestCount >= requestLimit) {
                     skippedBecauseOfLimit.add(url);
+                    continue;
+                }
+
+                if (maxCrawlDepth !== undefined && (request as any).crawlDepth > maxCrawlDepth) {
+                    skippedBecauseOfMaxCrawlDepth.add(url);
                     continue;
                 }
 
@@ -1143,7 +1159,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             });
         }
 
-        if (skippedBecauseOfRobots.size > 0 || skippedBecauseOfLimit.size > 0) {
+        if (
+            skippedBecauseOfRobots.size > 0 ||
+            skippedBecauseOfLimit.size > 0 ||
+            skippedBecauseOfMaxCrawlDepth.size > 0
+        ) {
             await Promise.all(
                 [...skippedBecauseOfRobots]
                     .map((url) => {
@@ -1152,6 +1172,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     .concat(
                         [...skippedBecauseOfLimit].map((url) => {
                             return this.handleSkippedRequest({ url, reason: 'limit' });
+                        }),
+                        [...skippedBecauseOfMaxCrawlDepth].map((url) => {
+                            return this.handleSkippedRequest({ url, reason: 'depth' });
                         }),
                     ),
             );
@@ -1480,10 +1503,35 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     limit: this.calculateEnqueuedRequestLimit(options.limit),
+                    transformRequestFunction: (rq) => {
+                        rq.crawlDepth = (request?.crawlDepth ?? 0) + 1;
+
+                        if (this.maxCrawlDepth !== undefined && rq.crawlDepth > this.maxCrawlDepth) {
+                            rq.skippedReason = 'depth';
+                            return false;
+                        }
+
+                        return options.transformRequestFunction?.(rq) ?? rq;
+                    },
                     ...options,
                 });
             },
-            addRequests: this.addRequests.bind(this),
+            addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
+                const newRequestDepth = (request?.crawlDepth ?? -1) + 1;
+
+                async function* injectDepth() {
+                    for await (const request of requests) {
+                        if (typeof request === 'string') {
+                            yield { url: request, crawlDepth: newRequestDepth };
+                        } else {
+                            request.crawlDepth ??= newRequestDepth;
+                            yield request;
+                        }
+                    }
+                }
+
+                return this.addRequests(injectDepth(), options);
+            },
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
             sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
