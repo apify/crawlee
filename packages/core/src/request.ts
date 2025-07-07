@@ -177,7 +177,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             useExtendedUniqueKey = false,
             skipNavigation,
             enqueueStrategy,
-            crawlDepth = 0,
+            crawlDepth,
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
@@ -251,7 +251,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
-        if (crawlDepth != null && this.crawlDepth === undefined) this.crawlDepth ??= crawlDepth;
+        if (crawlDepth != null) this.userData.__crawlee.crawlDepth ??= crawlDepth;
 
         // If it's already set, don't override it (for instance when fetching from storage)
         if (enqueueStrategy) {
@@ -277,7 +277,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
      * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
      */
     get crawlDepth(): number {
-        return this.userData.__crawlee?.crawlDepth;
+        return this.userData.__crawlee?.crawlDepth ?? 0;
     }
 
     /** Depth of the request in the current crawl tree.
