@@ -58,7 +58,7 @@
         "@apify/eslint-config": "^1.0.0",
         "@apify/log": "^2.4.0",
         "@apify/tsconfig": "^0.1.0",
-        "@biomejs/biome": "^1.7.3",
+        "@biomejs/biome": "^2.0.0",
         "@commitlint/config-conventional": "^19.0.0",
         "@playwright/browser-chromium": "1.53.2",
         "@playwright/browser-firefox": "1.53.2",
