@@ -8,8 +8,8 @@ import ow from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
 
-import type { SkippedRequestReason } from './enqueue_links/shared';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
+import type { SkippedRequestReason } from './enqueue_links/shared';
 import { log as defaultLog } from './log';
 import type { AllowedHttpMethods } from './typedefs';
 import { keys } from './typedefs';
