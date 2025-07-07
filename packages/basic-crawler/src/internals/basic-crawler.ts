@@ -1517,7 +1517,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 });
             },
             addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
-                const newRequestDepth = (request?.crawlDepth ?? -1) + 1;
+                const newRequestDepth = (request?.crawlDepth ?? 0) + 1;
 
                 async function* injectDepth() {
                     for await (const rq of requests) {
