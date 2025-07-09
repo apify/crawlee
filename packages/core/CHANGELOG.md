@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+
+### Bug Fixes
+
+* improve enqueueLinks `limit` checking ([#3038](https://github.com/apify/crawlee/issues/3038)) ([2774124](https://github.com/apify/crawlee/commit/277412468dc00a385080c3570c24faac76e764ca)), closes [#3037](https://github.com/apify/crawlee/issues/3037)
+
+
+
+
+
 ## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
 
 
