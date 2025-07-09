@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 
 import type {
+    BasicCrawlingContext,
     Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -352,40 +353,57 @@ interface EnqueueLinksInternalOptions {
     finalRequestUrl?: string;
 }
 
+interface BoundEnqueueLinksInternalOptions {
+    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
+    options?: EnqueueLinksOptions;
+    window: DOMWindow | null;
+    originalRequestUrl: string;
+    finalRequestUrl?: string;
+}
+
 /** @internal */
-export async function domCrawlerEnqueueLinks({
-    options,
-    window,
-    requestQueue,
-    robotsTxtFile,
-    onSkippedRequest,
-    originalRequestUrl,
-    finalRequestUrl,
-}: EnqueueLinksInternalOptions) {
+function isEnqueueLinksBound(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+): options is BoundEnqueueLinksInternalOptions {
+    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
+}
+
+/** @internal */
+export async function domCrawlerEnqueueLinks(options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions) {
+    const { options: enqueueLinksOptions, window, originalRequestUrl, finalRequestUrl } = options;
+
     if (!window) {
         throw new Error('Cannot enqueue links because the JSDOM is not available.');
     }
 
     const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: options?.strategy,
+        enqueueStrategy: enqueueLinksOptions?.strategy,
         finalRequestUrl,
         originalRequestUrl,
-        userProvidedBaseUrl: options?.baseUrl,
+        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
     });
 
     const urls = extractUrlsFromWindow(
         window,
-        options?.selector ?? 'a',
-        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+        enqueueLinksOptions?.selector ?? 'a',
+        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
+    if (isEnqueueLinksBound(options)) {
+        return options.enqueueLinks({
+            urls,
+            baseUrl,
+            ...enqueueLinksOptions,
+        });
+    }
+
     return enqueueLinks({
-        requestQueue,
-        robotsTxtFile,
-        onSkippedRequest,
+        requestQueue: options.requestQueue,
+        robotsTxtFile: options.robotsTxtFile,
+        onSkippedRequest: options.onSkippedRequest,
         urls,
         baseUrl,
-        ...options,
+        ...enqueueLinksOptions,
     });
 }
 

@@ -401,11 +401,14 @@ export async function enqueueLinks(
         }
     }
 
-    async function reportSkippedRequests(skippedRequests: { url: string }[], reason: SkippedRequestReason) {
+    async function reportSkippedRequests(
+        skippedRequests: { url: string; skippedReason?: SkippedRequestReason }[],
+        reason: SkippedRequestReason,
+    ) {
         if (onSkippedRequest && skippedRequests.length > 0) {
             await Promise.all(
                 skippedRequests.map((request) => {
-                    return onSkippedRequest({ url: request.url, reason });
+                    return onSkippedRequest({ url: request.url, reason: request.skippedReason ?? reason });
                 }),
             );
         }
