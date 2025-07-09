@@ -66,6 +66,7 @@ import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
+import { UserPool } from './user-pool.js';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
     extends CrawlingContext<BasicCrawler, UserData> {
@@ -419,7 +420,7 @@ export interface CrawlerExperiments {
  * ```
  * @category Crawlers
  */
-export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext> {
+export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext, UserContext = any> {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
     /**
@@ -443,6 +444,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
      * Only available if used by the crawler.
+     * @deprecated This property will be removed in a future release.
      */
     sessionPool?: SessionPool;
 
@@ -454,6 +456,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * or to abort it by calling {@apilink AutoscaledPool.abort|`autoscaledPool.abort()`}.
      */
     autoscaledPool?: AutoscaledPool;
+
+    /**
+     * Provides an abstraction for managing resources such as browsers, HTTP clients, or other tools
+     * required for crawling. The `UserPool` class allows the crawler to efficiently reuse and manage these
+     * resources, reducing overhead and improving performance.
+     *
+     * This is not used by the `BasicCrawler` class. `BasicCrawler` subclasses can use it
+     * to manage resources relevant to their crawling tasks.
+     */
+    userPool?: UserPool<UserContext>;
 
     /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
@@ -1437,7 +1449,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      */
     protected async _isTaskReadyFunction() {
-        // First check RequestList, since it's only in memory.
+        // First check if there are any idle users in the user pool.
+        if (this.userPool && !this.userPool.hasIdleUsers()) {
+            return false;
+        }
+        // Then check RequestList, since it's only in memory.
         const isRequestListEmpty = this.requestList ? await this.requestList.isEmpty() : true;
         // If RequestList is not empty, task is ready, no reason to check RequestQueue.
         if (!isRequestListEmpty) return true;

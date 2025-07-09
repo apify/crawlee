@@ -132,6 +132,9 @@ export class Request<UserData extends Dictionary = Dictionary> {
      */
     handledAt?: string;
 
+    /** identifier of the user to be used to process this request. */
+    userId?: string;
+
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
@@ -508,6 +511,9 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
 
     /** @internal */
     enqueueStrategy?: EnqueueLinksOptions['strategy'];
+
+    /** @internal */
+    userId?: string;
 }
 
 export interface PushErrorMessageOptions {
