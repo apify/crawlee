@@ -54,6 +54,6 @@
     },
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
-        "impit": "^0.4.5"
+        "impit": "^0.5.2"
     }
 }

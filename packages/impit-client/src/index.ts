@@ -6,6 +6,8 @@ import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, Streamin
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
 
+export { Impit, ImpitResponse } from 'impit';
+
 import { LruCache } from '@apify/datastructures';
 
 export const Browser = {
@@ -22,6 +24,7 @@ interface ResponseWithRedirects {
  * A HTTP client implementation based on the `impit library.
  */
 export class ImpitHttpClient implements BaseHttpClient {
+    private explicitClient: Impit | undefined = undefined;
     private impitOptions: ImpitOptions;
     private maxRedirects: number;
     private followRedirects: boolean;
@@ -35,6 +38,10 @@ export class ImpitHttpClient implements BaseHttpClient {
     private clientCache: LruCache<Impit> = new LruCache({ maxLength: 10 });
 
     private getClient(options: ImpitOptions) {
+        if (this.explicitClient) {
+            return this.explicitClient;
+        }
+
         const cacheKey = JSON.stringify(options);
 
         if (this.clientCache.get(cacheKey)) {
@@ -47,11 +54,15 @@ export class ImpitHttpClient implements BaseHttpClient {
         return client;
     }
 
-    constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number }) {
+    constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number; explicitImpitInstance?: Impit }) {
         this.impitOptions = options ?? {};
 
         this.maxRedirects = options?.maxRedirects ?? 10;
         this.followRedirects = options?.followRedirects ?? true;
+
+        if (options?.explicitImpitInstance) {
+            this.explicitClient = options.explicitImpitInstance;
+        }
     }
 
     /**

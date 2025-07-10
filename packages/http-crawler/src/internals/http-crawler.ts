@@ -14,7 +14,6 @@ import type {
     Request,
     RequestHandler,
     RouterRoutes,
-    Session,
 } from '@crawlee/basic';
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
@@ -26,9 +25,10 @@ import {
     RequestState,
     Router,
     SessionError,
+    UserPool,
     validators,
 } from '@crawlee/basic';
-import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
+import type { BaseHttpClient, HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -42,6 +42,8 @@ import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
+import { HttpUser, HttpUserContext } from './http-user.js';
+import { CookieJar } from 'tough-cookie';
 
 let TimeoutError: typeof TimeoutErrorClass;
 
@@ -175,6 +177,11 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
      * By default, status codes >= 500 trigger errors.
      */
     additionalHttpErrorStatusCodes?: number[];
+
+    /**
+     * Custom user pool setup to be used by your crawler. By default, the crawler uses a single user with a single HTTP client.
+     */
+    userPool?: UserPool<HttpUserContext>;
 }
 
 /**
@@ -195,6 +202,9 @@ export interface InternalHttpCrawlingContext<
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
     Crawler = HttpCrawler<any>,
 > extends CrawlingContext<Crawler, UserData> {
+    httpClient: BaseHttpClient;
+    cookieJar: CookieJar;
+
     /**
      * The request body of the web page.
      * The type depends on the `Content-Type` header of the web page:
@@ -320,7 +330,7 @@ export type HttpRequestHandler<
  */
 export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any, HttpCrawler<Context>>,
-> extends BasicCrawler<Context> {
+> extends BasicCrawler<Context, HttpUserContext> {
     /**
      * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
@@ -380,6 +390,7 @@ export class HttpCrawler<
             postNavigationHooks = [],
             additionalHttpErrorStatusCodes = [],
             ignoreHttpErrorStatusCodes = [],
+            userPool,
 
             // BasicCrawler
             autoscaledPoolOptions = HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
@@ -434,6 +445,15 @@ export class HttpCrawler<
         } else {
             this.persistCookiesPerSession = false;
         }
+
+        this.userPool =
+            userPool ??
+            new UserPool([
+                // one http user is enough, the http client is stateless
+                new HttpUser({
+                    proxyConfiguration: this.proxyConfiguration,
+                }),
+            ]);
     }
 
     /**
@@ -479,90 +499,92 @@ export class HttpCrawler<
      * Wrapper around requestHandler that opens and closes pages etc.
      */
     protected override async _runRequestHandler(crawlingContext: Context) {
-        const { request, session } = crawlingContext;
+        const { request } = crawlingContext;
+        const user = this.userPool?.getUser({ id: request?.userId })!;
 
-        if (this.proxyConfiguration) {
-            const sessionId = session ? session.id : undefined;
-            crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
-        }
+        await user.runTask(async ({ proxyInfo, httpClient, cookieJar }) => {
+            crawlingContext.proxyInfo = proxyInfo;
+            crawlingContext.httpClient = httpClient;
+            crawlingContext.cookieJar = cookieJar;
 
-        if (!request.skipNavigation) {
-            await this._handleNavigation(crawlingContext);
-            tryCancel();
+            if (!request.skipNavigation) {
+                await this._handleNavigation(crawlingContext);
+                tryCancel();
 
-            const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
-            const response = parsed.response!;
-            const contentType = parsed.contentType!;
-            tryCancel();
+                const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
+                const response = parsed.response!;
+                const contentType = parsed.contentType!;
+                tryCancel();
 
-            // `??=` because descendant classes may already set optimized version
-            crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
-                const $ = cheerio.load(parsed.body!.toString());
+                // `??=` because descendant classes may already set optimized version
+                crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
+                    const $ = cheerio.load(parsed.body!.toString());
 
-                if ($(selector).get().length === 0) {
-                    throw new Error(`Selector '${selector}' not found.`);
+                    if ($(selector).get().length === 0) {
+                        throw new Error(`Selector '${selector}' not found.`);
+                    }
+                };
+                crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
+                    const $ = cheerio.load(parsed.body!.toString());
+
+                    if (selector) {
+                        await crawlingContext.waitForSelector(selector, timeoutMs);
+                    }
+
+                    return $;
+                };
+
+                if (this.useSessionPool) {
+                    this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
                 }
-            };
-            crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
-                const $ = cheerio.load(parsed.body!.toString());
 
-                if (selector) {
-                    await crawlingContext.waitForSelector(selector, timeoutMs);
+                if (this.persistCookiesPerSession) {
+                    crawlingContext.session!.setCookiesFromResponse(response);
                 }
 
-                return $;
-            };
+                request.loadedUrl = response.url;
 
-            if (this.useSessionPool) {
-                this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
+                if (!this.requestMatchesEnqueueStrategy(request)) {
+                    this.log.debug(
+                        // eslint-disable-next-line dot-notation
+                        `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+                    );
+
+                    request.noRetry = true;
+                    request.state = RequestState.SKIPPED;
+
+                    return;
+                }
+
+                Object.assign(crawlingContext, parsed);
+
+                Object.defineProperty(crawlingContext, 'json', {
+                    get() {
+                        if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
+                        const jsonString = parsed.body!.toString(contentType.encoding);
+                        return JSON.parse(jsonString);
+                    },
+                });
             }
 
-            if (this.persistCookiesPerSession) {
-                crawlingContext.session!.setCookiesFromResponse(response);
+            if (this.retryOnBlocked) {
+                const error = await this.isRequestBlocked(crawlingContext);
+                if (error) throw new SessionError(error);
             }
 
-            request.loadedUrl = response.url;
-
-            if (!this.requestMatchesEnqueueStrategy(request)) {
-                this.log.debug(
-                    // eslint-disable-next-line dot-notation
-                    `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+            request.state = RequestState.REQUEST_HANDLER;
+            try {
+                await addTimeoutToPromise(
+                    async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
+                    this.userRequestHandlerTimeoutMillis,
+                    `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
                 );
-
-                request.noRetry = true;
-                request.state = RequestState.SKIPPED;
-
-                return;
+                request.state = RequestState.DONE;
+            } catch (e: any) {
+                request.state = RequestState.ERROR;
+                throw e;
             }
-
-            Object.assign(crawlingContext, parsed);
-
-            Object.defineProperty(crawlingContext, 'json', {
-                get() {
-                    if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
-                    const jsonString = parsed.body!.toString(contentType.encoding);
-                    return JSON.parse(jsonString);
-                },
-            });
-        }
-
-        if (this.retryOnBlocked) {
-            const error = await this.isRequestBlocked(crawlingContext);
-            if (error) throw new SessionError(error);
-        }
-
-        request.state = RequestState.REQUEST_HANDLER;
-        try {
-            await addTimeoutToPromise(
-                async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
-                this.userRequestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
-            );
-            request.state = RequestState.DONE;
-        } catch (e: any) {
-            request.state = RequestState.ERROR;
-            throw e;
-        }
+        });
     }
 
     protected override async isRequestBlocked(crawlingContext: Context): Promise<string | false> {
@@ -580,7 +602,7 @@ export class HttpCrawler<
 
     protected async _handleNavigation(crawlingContext: Context) {
         const gotOptions = {} as OptionsInit;
-        const { request, session } = crawlingContext;
+        const { request } = crawlingContext;
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
         request.state = RequestState.BEFORE_NAV;
@@ -596,7 +618,13 @@ export class HttpCrawler<
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         crawlingContext.response = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
+            async () =>
+                this._requestFunction({
+                    request,
+                    proxyUrl,
+                    gotOptions,
+                    httpClient: crawlingContext.httpClient,
+                }),
             this.navigationTimeoutMillis,
             `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -671,31 +699,16 @@ export class HttpCrawler<
      */
     protected async _requestFunction({
         request,
-        session,
-        proxyUrl,
         gotOptions,
+        httpClient,
     }: RequestFunctionOptions): Promise<PlainResponse> {
         if (!TimeoutError) {
             // @ts-ignore
             ({ TimeoutError } = await import('got-scraping'));
         }
 
-        const opts = this._getRequestOptions(request, session, proxyUrl, gotOptions);
-
-        try {
-            return await this._requestAsBrowser(opts, session);
-        } catch (e) {
-            if (e instanceof TimeoutError) {
-                this._handleRequestTimeout(session);
-                return undefined as unknown as PlainResponse;
-            }
-
-            if (this.isProxyError(e as Error)) {
-                throw new SessionError(this._getMessageFromError(e as Error) as string);
-            } else {
-                throw e;
-            }
-        }
+        const opts = this._getRequestOptions(request, gotOptions);
+        return await this._requestAsBrowser(httpClient, opts);
     }
 
     /**
@@ -760,13 +773,11 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: Request, session?: Session, proxyUrl?: string, gotOptions?: OptionsInit) {
+    protected _getRequestOptions(request: Request, gotOptions?: OptionsInit) {
         const requestOptions: OptionsInit & Required<Pick<OptionsInit, 'url'>> & { isStream: true } = {
             url: request.url,
             method: request.method as Method,
-            proxyUrl,
             timeout: { request: this.navigationTimeoutMillis },
-            sessionToken: session,
             ...gotOptions,
             headers: { ...request.headers, ...gotOptions?.headers },
             https: {
@@ -861,8 +872,7 @@ export class HttpCrawler<
     /**
      * Handles timeout request
      */
-    protected _handleRequestTimeout(session?: Session) {
-        session?.markBad();
+    protected _handleRequestTimeout() {
         throw new Error(`request timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`);
     }
 
@@ -888,25 +898,15 @@ export class HttpCrawler<
      * @internal wraps public utility for mocking purposes
      */
     private _requestAsBrowser = async (
+        httpClient: BaseHttpClient,
         options: OptionsInit & { url: string | URL; isStream: true },
-        session?: Session,
     ) => {
-        const response = await this.httpClient.stream(
+        const response = await httpClient.stream(
             processHttpRequestOptions({
                 ...options,
                 cookieJar: options.cookieJar as any, // HACK - the type of ToughCookieJar in got is wrong
                 responseType: 'text',
             }),
-            (redirectResponse, updatedRequest) => {
-                if (this.persistCookiesPerSession) {
-                    session!.setCookiesFromResponse(redirectResponse);
-
-                    const cookieString = session!.getCookieString(updatedRequest.url!.toString());
-                    if (cookieString !== '') {
-                        updatedRequest.headers.Cookie = cookieString;
-                    }
-                }
-            },
         );
 
         return addResponsePropertiesToStream(response.stream, response);
@@ -915,9 +915,9 @@ export class HttpCrawler<
 
 interface RequestFunctionOptions {
     request: Request;
-    session?: Session;
     proxyUrl?: string;
     gotOptions: OptionsInit;
+    httpClient: BaseHttpClient;
 }
 
 /**

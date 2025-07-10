@@ -132,6 +132,9 @@ export class Request<UserData extends Dictionary = Dictionary> {
      */
     handledAt?: string;
 
+    /** Identifier of the user to be used to process this request. */
+    userId?: string;
+
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
@@ -175,6 +178,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             useExtendedUniqueKey = false,
             skipNavigation,
             enqueueStrategy,
+            userId,
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
@@ -184,6 +188,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
         };
 
         let { method = 'GET' } = options;
+
+        this.userId = userId;
 
         method = method.toUpperCase() as AllowedHttpMethods;
 
@@ -508,6 +514,9 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
 
     /** @internal */
     enqueueStrategy?: EnqueueLinksOptions['strategy'];
+
+    /** @internal */
+    userId?: string;
 }
 
 export interface PushErrorMessageOptions {
