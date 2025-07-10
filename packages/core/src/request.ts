@@ -132,7 +132,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
      */
     handledAt?: string;
 
-    /** identifier of the user to be used to process this request. */
+    /** Identifier of the user to be used to process this request. */
     userId?: string;
 
     /**
@@ -178,6 +178,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             useExtendedUniqueKey = false,
             skipNavigation,
             enqueueStrategy,
+            userId,
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
@@ -187,6 +188,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
         };
 
         let { method = 'GET' } = options;
+
+        this.userId = userId;
 
         method = method.toUpperCase() as AllowedHttpMethods;
 

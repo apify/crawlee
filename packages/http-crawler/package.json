@@ -50,6 +50,7 @@
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
         "@crawlee/basic": "3.13.3",
+        "@crawlee/impit-client": "3.13.3",
         "@crawlee/types": "3.13.3",
         "@crawlee/utils": "3.13.3",
         "@types/content-type": "^1.1.8",
@@ -59,6 +60,7 @@
         "iconv-lite": "^0.6.3",
         "mime-types": "^3.0.1",
         "ow": "^2.0.0",
+        "tough-cookie": "^5.1.2",
         "tslib": "^2.8.1",
         "type-fest": "^4.41.0"
     }

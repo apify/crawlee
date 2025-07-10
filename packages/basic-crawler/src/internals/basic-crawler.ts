@@ -541,6 +541,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
+        userPool: ow.optional.object,
     };
 
     /**
