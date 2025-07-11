@@ -2,6 +2,7 @@ import type { BrowserHook, LoadedContext, LoadedRequest, Request, RouterHandler 
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type {
     BaseHttpResponseData,
+    EnqueueLinksOptions,
     GetUserDataFromRequest,
     RestrictedCrawlingContext,
     RouterRoutes,
@@ -9,12 +10,22 @@ import type {
     StatisticsOptions,
     StatisticState,
 } from '@crawlee/core';
-import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
-import type { Awaitable, Dictionary } from '@crawlee/types';
+import {
+    Configuration,
+    enqueueLinks,
+    RequestHandlerResult,
+    RequestState,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    Router,
+    Statistics,
+    withCheckedStorageAccess,
+} from '@crawlee/core';
+import type { Awaitable, BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio, type Element, load } from 'cheerio';
 import isEqual from 'lodash.isequal';
 import type { Page } from 'playwright';
+import type { SetRequired } from 'type-fest';
 
 import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
@@ -201,7 +212,7 @@ export interface AdaptivePlaywrightCrawlerOptions
     /**
      * A custom rendering type predictor
      */
-    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult'>;
+    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult' | 'initialize'>;
 
     /**
      * Prevent direct access to storage in request handlers (only allow using context helpers).
@@ -314,6 +325,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         this.preventDirectStorageAccess = preventDirectStorageAccess;
     }
 
+    protected override async _init(): Promise<void> {
+        await this.renderingTypePredictor.initialize();
+        return await super._init();
+    }
+
     protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext): Promise<void> {
         const renderingTypePrediction = this.renderingTypePredictor.predict(crawlingContext.request);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
@@ -399,7 +415,6 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     ): Promise<void> {
         await Promise.all([
             ...calls.pushData.map(async (params) => crawlingContext.pushData(...params)),
-            ...calls.enqueueLinks.map(async (params) => await crawlingContext.enqueueLinks(...params)),
             ...calls.addRequests.map(async (params) => crawlingContext.addRequests(...params)),
             ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
                 const store = await crawlingContext.getKeyValueStore(storeIdOrName);
@@ -480,19 +495,30 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
                                                 return playwrightContext.parseWithCheerio();
                                             },
-                                            async enqueueLinks(options = {}, timeoutMs = 5_000) {
-                                                const selector = options.selector ?? 'a';
-                                                const locator = playwrightContext.page.locator(selector).first();
-                                                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                                            enqueueLinks: async (options = {}, timeoutMs = 5_000) => {
+                                                let urls;
 
-                                                const urls = await extractUrlsFromPage(
-                                                    playwrightContext.page,
-                                                    selector,
-                                                    options.baseUrl ??
-                                                        playwrightContext.request.loadedUrl ??
-                                                        playwrightContext.request.url,
+                                                if (options.urls === undefined) {
+                                                    const selector = options.selector ?? 'a';
+                                                    const locator = playwrightContext.page.locator(selector).first();
+                                                    await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+
+                                                    urls = await extractUrlsFromPage(
+                                                        playwrightContext.page,
+                                                        selector,
+                                                        options.baseUrl ??
+                                                            playwrightContext.request.loadedUrl ??
+                                                            playwrightContext.request.url,
+                                                    );
+                                                } else {
+                                                    urls = options.urls;
+                                                }
+
+                                                return await this.enqueueLinks(
+                                                    { ...options, urls },
+                                                    crawlingContext.request,
+                                                    result,
                                                 );
-                                                await result.enqueueLinks({ ...options, urls });
                                             },
                                             addRequests: result.addRequests,
                                             pushData: result.pushData,
@@ -559,8 +585,26 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                             );
 
                             const response = await crawlingContext.sendRequest({});
+
                             const loadedUrl = response.url;
                             crawlingContext.request.loadedUrl = loadedUrl;
+
+                            if (!this.requestMatchesEnqueueStrategy(crawlingContext.request)) {
+                                const request = crawlingContext.request;
+
+                                this.log.debug(
+                                    // eslint-disable-next-line dot-notation
+                                    `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+                                );
+
+                                request.noRetry = true;
+                                request.state = RequestState.SKIPPED;
+
+                                await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
+                                return;
+                            }
+
                             const $ = load(response.body);
 
                             await this.adaptiveRequestHandler({
@@ -585,15 +629,14 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
                                     return $;
                                 },
-                                async enqueueLinks(
+                                enqueueLinks: async (
                                     options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {},
-                                ) {
-                                    const urls = extractUrlsFromCheerio(
-                                        $,
-                                        options.selector,
-                                        options.baseUrl ?? loadedUrl,
-                                    );
-                                    await result.enqueueLinks({ ...options, urls });
+                                ) => {
+                                    const urls =
+                                        options.urls ??
+                                        extractUrlsFromCheerio($, options.selector, options.baseUrl ?? loadedUrl);
+
+                                    return this.enqueueLinks({ ...options, urls }, crawlingContext.request, result);
                                 },
                                 addRequests: result.addRequests,
                                 pushData: result.pushData,
@@ -620,6 +663,40 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         } catch (error) {
             return { error, logs, ok: false };
         }
+    }
+
+    protected async enqueueLinks(
+        options: SetRequired<EnqueueLinksOptions, 'urls'>,
+        request: RestrictedCrawlingContext['request'],
+        result: RequestHandlerResult,
+    ): Promise<BatchAddRequestsResult> {
+        const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
+            enqueueStrategy: options?.strategy,
+            finalRequestUrl: request.loadedUrl,
+            originalRequestUrl: request.url,
+            userProvidedBaseUrl: options?.baseUrl,
+        });
+
+        return await enqueueLinks({
+            limit: this.calculateEnqueuedRequestLimit(options.limit),
+            onSkippedRequest: this.handleSkippedRequest,
+            ...options,
+            baseUrl,
+            requestQueue: {
+                addRequestsBatched: async (requests) => {
+                    await result.addRequests(requests);
+                    return {
+                        addedRequests: requests.map(({ uniqueKey, id }) => ({
+                            uniqueKey,
+                            requestId: id ?? '',
+                            wasAlreadyPresent: false,
+                            wasAlreadyHandled: false,
+                        })),
+                        waitForAllRequestsToBeAdded: Promise.resolve([]),
+                    };
+                },
+            },
+        });
     }
 
     private createLogProxy(log: Log, logs: LogProxyCall[]) {

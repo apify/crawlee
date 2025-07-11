@@ -3,6 +3,52 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+**Note:** Version bump only for package @crawlee/browser
+
+
+
+
+
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+
+### Features
+
+* Report links skipped because of various filter conditions ([#3026](https://github.com/apify/crawlee/issues/3026)) ([5a867bc](https://github.com/apify/crawlee/commit/5a867bc28135803b55c765ec12e6fd04017ce53d)), closes [#3016](https://github.com/apify/crawlee/issues/3016)
+
+
+
+
+
+## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
+
+
+### Bug Fixes
+
+* Do not enqueue more links than what the crawler is capable of processing ([#2990](https://github.com/apify/crawlee/issues/2990)) ([ea094c8](https://github.com/apify/crawlee/commit/ea094c819232e0b30bc550270836d10506eb9454)), closes [#2728](https://github.com/apify/crawlee/issues/2728)
+
+
+
+
+
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+**Note:** Version bump only for package @crawlee/browser
+
+
+
+
+
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+**Note:** Version bump only for package @crawlee/browser
+
+
+
+
+
 ## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
 
 **Note:** Version bump only for package @crawlee/browser

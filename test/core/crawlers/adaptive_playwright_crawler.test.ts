@@ -1,9 +1,10 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { type Dictionary, KeyValueStore } from '@crawlee/core';
+import { Configuration, type Dictionary, EventType, KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions, Request } from '@crawlee/playwright';
-import { AdaptivePlaywrightCrawler, RequestList } from '@crawlee/playwright';
+import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
+import { sleep } from 'crawlee';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
@@ -20,6 +21,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         port = (server.address() as AddressInfo).port;
 
         app.get('/static', (_req, res) => {
+            res.status(200);
             res.send(`
                 <html>
                     <head>
@@ -35,10 +37,10 @@ describe('AdaptivePlaywrightCrawler', () => {
                     </body>
                 </html>
              `);
-            res.status(200);
         });
 
         app.get('/dynamic', (_req, res) => {
+            res.status(200);
             res.send(`
                 <html>
                     <head>
@@ -60,7 +62,28 @@ describe('AdaptivePlaywrightCrawler', () => {
                     </body>
                 </html>
              `);
+        });
+
+        app.get('/external-links', (_req, res) => {
             res.status(200);
+            res.send(`
+                <html>
+                    <head>
+                        <title>Example Domain</title>
+                    </head>
+                    <body>
+                        <h1>Heading</h1>
+                        <a href="/external-redirect">External redirect</a>
+                        <a href="https://google.com/">Outbound link</a>
+                    </body>
+                </html>
+             `);
+        });
+
+        app.get('/external-redirect', (_req, res) => {
+            res.status(302);
+            res.setHeader('Location', 'https://google.com');
+            res.send('Redirecting...');
         });
     });
     afterAll(async () => {
@@ -96,6 +119,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         detectionProbabilityRecommendation: number;
         renderingType: 'clientOnly' | 'static';
     }) => ({
+        initialize: async () => {},
         predict: vi.fn((_request: Request) => prediction),
         storeResult: vi.fn((_request: Request, _renderingType: string) => {}),
     });
@@ -215,10 +239,15 @@ describe('AdaptivePlaywrightCrawler', () => {
                 renderingType,
             });
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
+            const enqueuedUrls = new Set<string>();
 
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-                async ({ enqueueLinks }) => {
-                    await enqueueLinks();
+                async ({ enqueueLinks, request }) => {
+                    if (request.label === 'enqueued-url') {
+                        enqueuedUrls.add(request.url);
+                    } else {
+                        await enqueueLinks({ label: 'enqueued-url' });
+                    }
                 },
             );
 
@@ -226,13 +255,13 @@ describe('AdaptivePlaywrightCrawler', () => {
                 {
                     requestHandler,
                     renderingTypePredictor,
+                    maxRequestsPerCrawl: 10,
                 },
                 [url.toString()],
             );
 
             await crawler.run();
 
-            const enqueuedUrls = (await localStorageEmulator.getRequestQueueItems()).map((item) => item.url);
             expect(new Set(enqueuedUrls)).toEqual(
                 new Set([
                     `http://${HOSTNAME}:${port}/static?q=1`,
@@ -244,6 +273,50 @@ describe('AdaptivePlaywrightCrawler', () => {
             );
         });
     });
+
+    test.each([['static'], ['clientOnly']] as const)(
+        'should respect the strategy option for enqueueLinks (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
+            const enqueuedUrls = new Set<string>();
+            const visitedUrls = new Set<string>();
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ enqueueLinks, request }) => {
+                    visitedUrls.add(request.loadedUrl);
+
+                    if (!request.label) {
+                        const result = await enqueueLinks({
+                            label: 'enqueued-url',
+                            strategy: 'same-hostname',
+                        });
+
+                        for (const processedRequest of result.processedRequests) {
+                            enqueuedUrls.add(processedRequest.uniqueKey);
+                        }
+                    }
+                },
+            );
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    maxRequestsPerCrawl: 10,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
+            expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
+        },
+    );
 
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
@@ -381,5 +454,48 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         const store = localStorageEmulator.getKeyValueStore();
         expect(await store.getRecord('1')).toBeUndefined();
+    });
+
+    test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
+            await pushData({ content: 'test data' });
+        });
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                // Use a real RenderingTypePredictor instead of the mocked one
+                renderingTypePredictor: new RenderingTypePredictor({ detectionRatio: 1 }),
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        // Run the crawler - this will initialize the RenderingTypePredictor and potentially store results
+        await crawler.run();
+
+        // Now emit a PERSIST_STATE event to trigger state persistence
+        const events = Configuration.getEventManager();
+        events.emit(EventType.PERSIST_STATE);
+
+        // Wait a bit for the event to be processed
+        await sleep(100);
+
+        // Verify that the regression model was actually saved to the key-value store
+        const store = await KeyValueStore.open();
+        const storedState = await store.getValue<string>('rendering-type-predictor-state');
+        expect(storedState).not.toBeNull();
+
+        const parsedState = JSON.parse(storedState!);
+        expect(parsedState).toHaveProperty('logreg');
+
+        // Test that the persisted state can be successfully restored
+        // by creating a new RenderingTypePredictor and seeing if it initializes without error
+        const newPredictor = new RenderingTypePredictor({
+            detectionRatio: 0.1,
+            persistenceOptions: { persistStateKey: 'rendering-type-predictor-state' },
+        });
+
+        // This should not throw since we've persisted valid state
+        await expect(newPredictor.initialize()).resolves.not.toThrow();
     });
 });

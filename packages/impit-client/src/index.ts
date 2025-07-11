@@ -5,6 +5,7 @@ import { isGeneratorObject } from 'node:util/types';
 import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
+import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
 
@@ -32,17 +33,20 @@ export class ImpitHttpClient implements BaseHttpClient {
      * a new client for each request breaks TCP connection
      * (and other resources) reuse.
      */
-    private clientCache: LruCache<Impit> = new LruCache({ maxLength: 10 });
+    private clientCache: LruCache<{ client: Impit; cookieJar: ToughCookieJar }> = new LruCache({ maxLength: 10 });
 
     private getClient(options: ImpitOptions) {
-        const cacheKey = JSON.stringify(options);
+        const { cookieJar, ...rest } = options;
 
-        if (this.clientCache.get(cacheKey)) {
-            return this.clientCache.get(cacheKey)!;
+        const cacheKey = JSON.stringify(rest);
+        const existingClient = this.clientCache.get(cacheKey);
+
+        if (existingClient && (!cookieJar || existingClient.cookieJar === cookieJar)) {
+            return existingClient.client;
         }
 
         const client = new Impit(options);
-        this.clientCache.add(cacheKey, client);
+        this.clientCache.add(cacheKey, { client, cookieJar: cookieJar as ToughCookieJar });
 
         return client;
     }
@@ -114,6 +118,7 @@ export class ImpitHttpClient implements BaseHttpClient {
 
         const impit = this.getClient({
             ...this.impitOptions,
+            ...(request?.cookieJar ? { cookieJar: request.cookieJar as ToughCookieJar } : {}),
             proxyUrl: request.proxyUrl,
             followRedirects: false,
         });

@@ -9,8 +9,9 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
 
 const crawler = new PlaywrightCrawler({
     maxRequestsPerCrawl: 10,
-    async requestHandler({ page, enqueueLinks, request }) {
+    async requestHandler({ log, page, enqueueLinks, request }) {
         const { url } = request;
+        log.info(`Processing ${url}...`);
         const pageTitle = await page.title();
         await Dataset.pushData({ url, pageTitle });
         await enqueueLinks({
@@ -19,8 +20,11 @@ const crawler = new PlaywrightCrawler({
     },
 });
 
-await crawler.run(['https://crawlee.dev/js/docs/3.0/examples/']);
-await crawler.run(['https://crawlee.dev/js/docs/3.0/examples/']);
-await crawler.run(['https://crawlee.dev/js/docs/3.0/examples/']);
+crawler.log.info('=== Run 1 ===');
+await crawler.run(['https://crawlee.dev/js/docs/3.0/examples']);
+crawler.log.info('=== Run 2 ===');
+await crawler.run(['https://crawlee.dev/js/docs/3.0/examples']);
+crawler.log.info('=== Run 3 ===');
+await crawler.run(['https://crawlee.dev/js/docs/3.0/examples']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

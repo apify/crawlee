@@ -557,6 +557,8 @@ export class HttpCrawler<
                 request.noRetry = true;
                 request.state = RequestState.SKIPPED;
 
+                await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
                 return;
             }
 
@@ -791,6 +793,7 @@ export class HttpCrawler<
             method: request.method as Method,
             proxyUrl,
             timeout: { request: this.navigationTimeoutMillis },
+            cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
             sessionToken: session,
             ...gotOptions,
             headers: { ...request.headers, ...gotOptions?.headers },

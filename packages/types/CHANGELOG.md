@@ -3,6 +3,49 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+**Note:** Version bump only for package @crawlee/types
+
+
+
+
+
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+**Note:** Version bump only for package @crawlee/types
+
+
+
+
+
+## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
+
+
+### Features
+
+* support `KVS.listKeys()` `prefix` and `collection` parameters ([#3001](https://github.com/apify/crawlee/issues/3001)) ([5c4726d](https://github.com/apify/crawlee/commit/5c4726df96e358a9bbf44a0cd2760e4e269f0fae)), closes [#2974](https://github.com/apify/crawlee/issues/2974)
+
+
+
+
+
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+**Note:** Version bump only for package @crawlee/types
+
+
+
+
+
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+**Note:** Version bump only for package @crawlee/types
+
+
+
+
+
 ## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
 
 **Note:** Version bump only for package @crawlee/types

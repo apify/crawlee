@@ -3,6 +3,64 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+
+### Bug Fixes
+
+* call `onSkippedRequest` for `AdaptivePlaywrightCrawler.enqueueLinks` ([#3043](https://github.com/apify/crawlee/issues/3043)) ([fc23d34](https://github.com/apify/crawlee/commit/fc23d34ba7fa0daded253a0a958fe9b7bb32e5ca)), closes [#3026](https://github.com/apify/crawlee/issues/3026) [#3039](https://github.com/apify/crawlee/issues/3039)
+
+
+
+
+
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+
+### Bug Fixes
+
+* Fix link filtering in enqueueLinks in AdaptivePlaywrightCrawler ([#3021](https://github.com/apify/crawlee/issues/3021)) ([8a3b6f8](https://github.com/apify/crawlee/commit/8a3b6f8847586eb3b0865fe93053468e1605399c)), closes [#2525](https://github.com/apify/crawlee/issues/2525)
+
+
+### Features
+
+* Report links skipped because of various filter conditions ([#3026](https://github.com/apify/crawlee/issues/3026)) ([5a867bc](https://github.com/apify/crawlee/commit/5a867bc28135803b55c765ec12e6fd04017ce53d)), closes [#3016](https://github.com/apify/crawlee/issues/3016)
+
+
+
+
+
+## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
+
+
+### Bug Fixes
+
+* Persist rendering type detection results in `AdaptivePlaywrightCrawler` ([#2987](https://github.com/apify/crawlee/issues/2987)) ([76431ba](https://github.com/apify/crawlee/commit/76431badf8a55892303d9b53fe23e029fad9cb18)), closes [#2899](https://github.com/apify/crawlee/issues/2899)
+
+
+
+
+
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+**Note:** Version bump only for package @crawlee/playwright
+
+
+
+
+
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+
+### Bug Fixes
+
+* ensure `PlaywrightGotoOptions` won't result in `unknown` when playwright is not installed ([#2995](https://github.com/apify/crawlee/issues/2995)) ([93eba38](https://github.com/apify/crawlee/commit/93eba38b9cd88e543717f885b2c5644f63979bc9)), closes [#2994](https://github.com/apify/crawlee/issues/2994)
+* extract only `body` from `iframe` elements ([#2986](https://github.com/apify/crawlee/issues/2986)) ([c36166e](https://github.com/apify/crawlee/commit/c36166e24887ca6de12f0c60ef010256fa830c31)), closes [#2979](https://github.com/apify/crawlee/issues/2979)
+
+
+
+
+
 ## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
 
 

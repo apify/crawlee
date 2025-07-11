@@ -3,6 +3,57 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+
+### Bug Fixes
+
+* Do not log 'malformed sitemap content' on network errors in `Sitemap.tryCommonNames` ([#3015](https://github.com/apify/crawlee/issues/3015)) ([64a090f](https://github.com/apify/crawlee/commit/64a090ffbba5c69730ec0616e415a1eadf4bc7b3)), closes [#2884](https://github.com/apify/crawlee/issues/2884)
+
+
+### Features
+
+* Accept (Async)Iterables in `addRequests` methods ([#3013](https://github.com/apify/crawlee/issues/3013)) ([a4ab748](https://github.com/apify/crawlee/commit/a4ab74852c3c60bdbc96035f54b16d125220f699)), closes [#2980](https://github.com/apify/crawlee/issues/2980)
+
+
+
+
+
+## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
+
+
+### Bug Fixes
+
+* Persist rendering type detection results in `AdaptivePlaywrightCrawler` ([#2987](https://github.com/apify/crawlee/issues/2987)) ([76431ba](https://github.com/apify/crawlee/commit/76431badf8a55892303d9b53fe23e029fad9cb18)), closes [#2899](https://github.com/apify/crawlee/issues/2899)
+
+
+
+
+
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
 ## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
 
 **Note:** Version bump only for package @crawlee/utils
