@@ -28,7 +28,7 @@ module.exports = function (context, options) {
                             src: "https://cdn.cookielaw.org/scripttemplates/otSDKStub.js",
                             type: "text/javascript",
                             charset: "UTF-8",
-                            "data-domain-script": "01965ca1-3b97-77fa-ac37-e8e0ee37187d",
+                            "data-domain-script": "01973a98-9773-77d8-b45b-95386ff12b5e",
                         },
                     },
                     {
