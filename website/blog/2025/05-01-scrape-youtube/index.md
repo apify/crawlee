@@ -1,23 +1,21 @@
 ---
 slug: scrape-youtube-python
-title: 'How to scrape YouTube using Python'
+title: 'How to scrape YouTube using Python [2025 guide]'
 tags: [community]
 description: 'Learn how to scrape YouTube using Crawlee for Python'
-image: ""
+image: "img/youtube_banner.webp"
 authors: [MaxB]
 ---
 
-[YouTube](https://www.youtube.com/) is the world's largest video platform for original content. Its users generate massive amounts of data daily on various topics, making it an ideal source for training neural networks, data analysis, and much more.
-
-Whatever task you need YouTube data for, it's crucial to obtain it in a convenient format for further processing. In this blog, we'll explore how to efficiently collect data from YouTube using [Crawlee for Python](https://github.com/apify/crawlee-python). Our scraper will extract video metadata, video statistics, and transcripts - giving you structured data perfect for content analysis, ML training, or trend monitoring.
+In this guide, we'll explore how to efficiently collect data from YouTube using [Crawlee for Python](https://github.com/apify/crawlee-python). The scraper will extract video metadata, video statistics, and transcripts - giving you structured YouTube data perfect for content analysis, ML training, or trend monitoring.
 
 :::note
 
-One of our community members wrote this blog as a contribution to the Crawlee Blog. If you'd like to contribute articles like these, please reach out to us on our [Discord channel](https://apify.com/discord).
+One of our community members wrote this guide as a contribution to the Crawlee Blog. If you'd like to contribute articles like these, please reach out to us on Apify’s [Discord channel](https://apify.com/discord).
 
 :::
 
-![How to scrape YouTube using Python](SOON)
+![How to scrape YouTube using Python](img/youtube_banner.webp)
 
 Key steps we'll cover:
 
@@ -26,12 +24,12 @@ Key steps we'll cover:
 3. [Configuring YouTube](https://www.crawlee.dev/blog/scrape-youtube-python#3-configuring-crawlee)
 4. [Extracting YouTube data](https://www.crawlee.dev/blog/scrape-youtube-python#4-extracting-youtube-data)
 5. [Enhancing the scraper capabilities](https://www.crawlee.dev/blog/scrape-youtube-python#5-enhancing-the-scraper-capabilities)
-6. [Creating YouTube Actor on the Apify platform](https://www.crawlee.dev/blog/scrape-youtube-python#6-creating-youtube-actor-on-the-apify-platform)
+6. [Creating a YouTube Actor on the Apify platform](https://www.crawlee.dev/blog/scrape-youtube-python#6-creating-a-youtube-actor-on-the-apify-platform)
 7. [Deploying to Apify](https://www.crawlee.dev/blog/scrape-youtube-python#7-deploying-to-apify)
 
 <!-- truncate -->
 
-## Prerequisites
+## What you’ll need to get started
 
 - Python 3.9 or higher
 - Familiarity with web scraping concepts
@@ -42,7 +40,7 @@ Key steps we'll cover:
 
 :::note
 
-Before going ahead with the project, I'd like to ask you to star Crawlee for Python on [GitHub](https://github.com/apify/crawlee-python/), it helps us to spread the word to fellow scraper developers.
+Before starting the project, I'd like to ask you to star Crawlee for Python on [GitHub](https://github.com/apify/crawlee-python/). This will help us spread the word to fellow scraper developers.
 
 :::
 
@@ -86,13 +84,13 @@ cd youtube-crawlee
 
 ## 2. Analyzing YouTube and determining a scraping strategy
 
-If you're working on a small project to extract data from YouTube, you should use the [YouTube API](https://developers.google.com/youtube/v3/docs/search/list) to get the necessary data. However, the API has very strict quotas, no more than [10000 units per day](https://developers.google.com/youtube/v3/determine_quota_cost), which allows you to get no more than 100 search pages, and you can't increase this limit.
+If you're working on a small project to extract data from YouTube, you should use the [YouTube API](https://developers.google.com/youtube/v3/docs/search/list) to get your data. However, the API has very strict quotas, with no more than [10,000 units per day](https://developers.google.com/youtube/v3/determine_quota_cost). This allows you to get just 100 search pages, and you can't increase this limit.
 
 If your project requires more data than the API allows, you'll need to use crawling. Let's examine the site to develop an optimal crawling strategy.
 
-Let's study the navigation on a YouTube channel page using [Apify channel](https://www.youtube.com/@Apify) as our example to better understand the navigation features and data extraction points.
+Let's study YouTube navigation using [Apify's YouTube channel](https://www.youtube.com/@Apify) as an example to better understand the features and data extraction points.
 
-To load new elements on the page, YouTube uses infinite scrolling, similar to what we discussed in the corresponding [article](https://www.crawlee.dev/blog/infinite-scroll-using-python) from the [Apify](https://apify.com/) team. Let's look at how this works using [DevTools](https://developer.chrome.com/docs/devtools) and the [Network](https://developer.chrome.com/docs/devtools/network/) tab.
+YouTube uses infinite scrolling to load new elements on the page, similar to what we discussed in the corresponding [article](https://www.crawlee.dev/blog/infinite-scroll-using-python) from the [Apify](https://apify.com/) team. Let's look at how this works using [DevTools](https://developer.chrome.com/docs/devtools) and the [Network](https://developer.chrome.com/docs/devtools/network/) tab.
 
 ![Load Request](img/load_request.webp)
 
@@ -108,7 +106,7 @@ Let's analyze the selectors for getting video links using the [Elements](https:/
 
 It looks like we're interested in `a` tags with the attribute `id="video-title-link"`!
 
-Let's look at the video page to better understand how YouTube transmits data. As expected, we see data in JSON format.
+Let's look at the video page to understand better how YouTube transmits data. As expected, we see data in JSON format.
 
 ![Video Response](img/video_json.webp)
 
@@ -120,29 +118,29 @@ Let's verify that we can access the transcript via this link. Remove the `fmt=js
 
 ![Transcript Response](img/transcript_response.webp)
 
-If you live in a country where [GDPR](https://gdpr-info.eu/) applies, you'll need to handle the following popup before you can access the data:
+If you live in a country where [GDPR](https://gdpr-info.eu/) applies, you'll need to handle the following pop-up before you can access the data:
 
 ![GDPR](img/GDPR.webp)
 
 After our analysis, we now understand:
 
-- **Navigation strategy**: How to navigate the channel page to retrieve all videos using infinite scroll
-- **Video metadata extraction**: How to extract video statistics, title, description, publish date, and other metadata from video pages
-- **Transcript access**: How to obtain the correct transcript link
+- **Navigation strategy**: How to navigate the channel page to retrieve all videos using infinite scroll.
+- **Video metadata extraction**: How to extract video statistics, title, description, publish date, and other metadata from video pages.
+- **Transcript access**: How to obtain the correct transcript link.
 - **Data formats**: Transcript data is available in XML format, which is easier to parse than JSON3
 - **Regional considerations**: Special handling required for GDPR consent in European countries
 
-With this knowledge, we're ready to implement our YouTube scraper using Crawlee for Python.
+With this knowledge, we're ready to implement the YouTube scraper using Crawlee for Python.
 
 ## 3. Configuring Crawlee
 
-Configuring Crawlee for YouTube is very similar to configuring it for [TikTok](https://www.crawlee.dev/blog/scrape-tiktok-python). But it will have some key differences.
+Configuring Crawlee for YouTube is very similar to configuring it for [TikTok](https://www.crawlee.dev/blog/scrape-tiktok-python), but with some key differences.
 
-Since pages have infinite scrolling, we need to limit the number of elements we want to get. For this, we'll add a `max_items` parameter that will limit the maximum number of elements for each search and pass it in `user_data` when forming a [Request](https://www.crawlee.dev/python/api/class/Request).
+Since pages have infinite scrolling, we need to limit the number of elements we want to get. For this, we'll add a `max_items` parameter that will limit the maximum number of elements for each search, and pass it in `user_data` when forming a [Request](https://www.crawlee.dev/python/api/class/Request).
 
 We'll limit the intensity of scraping by setting `max_tasks_per_minute` in [`ConcurrencySettings`](https://www.crawlee.dev/python/api/class/ConcurrencySettings). This will help us reduce the likelihood of being blocked by YouTube.
 
-Scrolling pages can take a long time, so we should increase the time limit for processing a single request using `request_handler_timeout`.
+Scrolling pages can take a long time, so we’ll increase the time limit for processing a single request using `request_handler_timeout`.
 
 Since we won't be saving images, videos, and similar media content during crawling, we can block requests to them using [`block_requests`](https://www.crawlee.dev/python/api/class/BlockRequestsFunction) and [`pre_navigation_hook`](https://www.crawlee.dev/python/api/class/PlaywrightCrawler#pre_navigation_hook).
 
@@ -221,7 +219,7 @@ For infinite scrolling, we'll use the built-in helper function ['infinite_scroll
 
 The `GDPR` page requiring consent for cookie usage is on the domain `consent.youtube.com`, which might cause an error when forming a [Request](https://www.crawlee.dev/python/api/class/Request) for a video page. Therefore, we need to use a helper function for the `transform_request_function` parameter in [`extract_links`](https://www.crawlee.dev/python/api/class/ExtractLinksFunction).
 
-This function will check each extracted URL, and if it contains 'consent.youtube', we'll replace it with 'www.youtube'. This will allow us to get the correct URL for the video page.
+This function will check each extracted URL. If it contains 'consent.youtube', we'll replace it with 'www.youtube'. This will allow us to get the correct URL for the video page.
 
 ```python
 # routes.py
@@ -286,7 +284,7 @@ async def extract_transcript_url(context: PlaywrightCrawlingContext) -> str | No
     return transcript_url
 ```
 
-Now let's create the main handler that will handle navigating to the channel page, performing infinite scrolling, and extracting links to videos.
+Now, let's create the main handler that will navigate to the channel page, perform infinite scrolling, and extract links to videos.
 
 ```python
 # routes.py
@@ -360,7 +358,7 @@ Let's take a closer look at the parameters used in [`extract_links`](https://www
 - `transform_request_function` - function to transform the request before adding it to the queue. We use it to replace the domain `consent.youtube` with `www.youtube`, which helps avoid errors when processing the video page.
 - `strategy` - strategy for extracting links. We use `same-domain` to extract links to any subdomain of `youtube.com`.
 
-Let's move on to the handler for video pages. In it, we'll extract video data, and also look at how to get and process the video transcript link.
+Let's move on to the handler for video pages. In it, we'll extract video data and also look at how to get and process the video transcript link.
 
 ```python
 # routes.py
@@ -404,7 +402,7 @@ async def video_handler(context: PlaywrightCrawlingContext) -> None:
 
 Note that if we want to extract the video transcript, we need to get the link to the transcript file and pass the video data to the next handler before it's saved to the [`Dataset`](https://www.crawlee.dev/python/api/class/Dataset).
 
-The final stage is processing the transcript. YouTube uses [XML](https://www.w3schools.com/xml/) to transmit transcript data, so we need to use a library for parsing XML, such as [`xml.etree.ElementTree`](https://docs.python.org/3/library/xml.etree.elementtree.html).
+The final stage is processing the transcript. YouTube uses [XML](https://www.w3schools.com/xml/) to transmit transcript data, so we need to use a library to parse XML, such as [`xml.etree.ElementTree`](https://docs.python.org/3/library/xml.etree.elementtree.html).
 
 ```python
 # routes.py
@@ -504,11 +502,8 @@ As with any project working with a large site like YouTube, you may encounter va
 Currently, the Crawlee for Python documentation contains many guides and examples to help you with this.
 
 - Use [`Camoufox`](https://camoufox.com/), a project compatible with Playwright, which allows you to get a browser configuration that's more resistant to blocking, and you can easily [integrate it with Crawlee for Python](https://www.crawlee.dev/python/docs/examples/playwright-crawler-with-camoufox).
-
 - Improve error handling and logging for unusual cases so you can easily debug and maintain the project; the guide on [error handling](https://www.crawlee.dev/python/docs/guides/error-handling) is a good place to start.
-
 - Add proxy support to avoid blocks from YouTube. You can use [Apify Proxy](https://apify.com/proxy) and [`ProxyConfiguration`](https://www.crawlee.dev/python/api/class/ProxyConfiguration); you can learn more in this guide in the [documentation](https://www.crawlee.dev/python/docs/guides/proxy-management#proxy-configuration).
-
 - Make your crawler a web service that crawls pages by user request, using [FastAPI](https://fastapi.tiangolo.com/) and following this [guide](https://www.crawlee.dev/python/docs/guides/running-in-web-server).
 
 ## 6. Creating YouTube Actor on the Apify platform
@@ -555,7 +550,7 @@ Let's define input parameters for our crawler:
 
 - `maxItems` - maximum number of videos per channel for scraping.
 - `channelNames` - these are the YouTube channel names to scrape.
-- `proxySettings` - proxy settings, since without a proxy you'll be using the datacenter IP that Apify uses.
+- `proxySettings` - proxy settings, since without a proxy, you'll be using the datacenter IP that Apify uses.
 
 ```json
 {
@@ -660,4 +655,4 @@ You can find the complete code in the [repository](SOON)
 
 If you enjoyed this blog, feel free to support Crawlee for Python by starring the [repository](https://github.com/apify/crawlee-python) or joining the maintainer team.
 
-Have questions or want to discuss implementation details? Join our [Discord](https://discord.com/invite/jyEM2PRvMU) - our community of 10,000+ developers is there to help.
+Do you have questions or want to discuss the details of the implementation? Join our [Discord](https://discord.com/invite/jyEM2PRvMU)—our community of 11,000+ developers is there to help.
