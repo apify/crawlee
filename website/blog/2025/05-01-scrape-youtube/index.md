@@ -651,7 +651,7 @@ If you want to make your Actor public and provide access to other users, potenti
 
 We've created a good foundation for crawling YouTube using Crawlee for Python and Playwright. If you're just starting your journey in crawling, this will be an excellent project for learning and practice. You can use it as a basis for creating more complex crawlers that will collect data from YouTube. If this is your first project using Crawlee for Python, check out all the documentation links provided in this article; it will help you better understand how Crawlee for Python works and how you can use it for your projects.
 
-You can find the complete code in the [repository](SOON)
+You can find the complete code in the [repository](https://github.com/Mantisus/youtube-crawlee)
 
 If you enjoyed this blog, feel free to support Crawlee for Python by starring the [repository](https://github.com/apify/crawlee-python) or joining the maintainer team.
 
