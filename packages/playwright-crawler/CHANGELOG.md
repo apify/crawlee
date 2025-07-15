@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+
+### Bug Fixes
+
+* call `onSkippedRequest` for `AdaptivePlaywrightCrawler.enqueueLinks` ([#3043](https://github.com/apify/crawlee/issues/3043)) ([fc23d34](https://github.com/apify/crawlee/commit/fc23d34ba7fa0daded253a0a958fe9b7bb32e5ca)), closes [#3026](https://github.com/apify/crawlee/issues/3026) [#3039](https://github.com/apify/crawlee/issues/3039)
+
+
+
+
+
 ## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
 
 
