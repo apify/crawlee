@@ -31,7 +31,7 @@ Key steps we'll cover:
 
 ## What you’ll need to get started
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - Familiarity with web scraping concepts
 - Crawlee for Python `v0.6.0` or higher
 - [uv](https://docs.astral.sh/uv/) `v0.7` or higher
@@ -152,9 +152,11 @@ Also, to handle the `GDPR` page only once, we'll use [`use_state`](https://www.c
 from datetime import timedelta
 
 from apify import Actor
-from crawlee import ConcurrencySettings, Request
-from crawlee.crawlers import PlaywrightCrawler, PlaywrightPreNavCrawlingContext
 
+from crawlee import ConcurrencySettings, Request
+from crawlee.crawlers import PlaywrightCrawler
+
+from .hooks import pre_hook
 from .routes import router
 
 
@@ -169,7 +171,7 @@ async def main() -> None:
             request_handler=router,
             # Increase the timeout for the request handling pipeline
             request_handler_timeout=timedelta(seconds=120),
-            # You can use `False` during development. But for production, it's always `True`
+            # Runs browser without visual interface
             headless=True,
             # Limit requests per crawl for testing purposes
             max_requests_per_crawl=100,
@@ -191,15 +193,18 @@ async def main() -> None:
         )
 ```
 
-Let's prepare the `pre_hook` function to block requests and set cookies:
+Let's prepare the `pre_hook` function to block requests and set cookies (the cookie collection process will be explained in the extraction section):
 
 ```python
-# main.py
+# hooks.py
+
+from crawlee.crawlers import PlaywrightPreNavCrawlingContext
+
 
 async def pre_hook(context: PlaywrightPreNavCrawlingContext) -> None:
     """Prepare context before navigation."""
     crawler_state = await context.use_state()
-    # Check if there are cookies in the crawler state and set them for the session
+    # Check if there are previously collected cookies in the crawler state and set them for the session
     if 'cookies' in crawler_state and context.session:
         cookies = crawler_state['cookies']
         # Set cookies for the session
@@ -258,14 +263,15 @@ Let's implement a function that will intercept transcript requests for later mod
 
 async def extract_transcript_url(context: PlaywrightCrawlingContext) -> str | None:
     """Extract the transcript URL from request intercepted by Playwright."""
-    transcript_url = None
+    # Create a Future to store the transcript URL
+    transcript_future: asyncio.Future[str] = asyncio.Future()
 
     # Define a handler for the transcript request
     # This will be called when the page requests the transcript
     async def handle_transcript_request(route: PlaywrightRoute, request: PlaywrightRequest) -> None:
-        nonlocal transcript_url
-
-        transcript_url = request.url
+        # Set the result of the future with the transcript URL
+        if not transcript_future.done():
+            transcript_future.set_result(request.url)
 
         await route.fulfill(status=200)
 
@@ -275,13 +281,9 @@ async def extract_transcript_url(context: PlaywrightCrawlingContext) -> str | No
     # Click the subtitles button to trigger the transcript request
     await context.page.click('.ytp-subtitles-button')
 
-    # Wait for the transcript URL to be set
-    # We use `asyncio.wait_for` to avoid waiting indefinitely
-    while not transcript_url:
-        await asyncio.sleep(1)
-        context.log.info('Waiting for transcript URL...')
-
-    return transcript_url
+    # Wait for the transcript URL to be captured
+    # The future will resolve when handle_transcript_request is called
+    return await transcript_future
 ```
 
 Now, let's create the main handler that will navigate to the channel page, perform infinite scrolling, and extract links to videos.
@@ -308,6 +310,7 @@ async def default_handler(context: PlaywrightCrawlingContext) -> None:
         await cookies_button.click()
 
         # Save cookies for later use with other sessions
+        # You can learn more about `SOCS` cookies from - https://policies.google.com/technologies/cookies?hl=en-US
         cookies_state = [cookie for cookie in await context.page.context.cookies() if cookie['name'] == 'SOCS']
         crawler_state = await context.use_state()
         crawler_state['cookies'] = cookies_state
