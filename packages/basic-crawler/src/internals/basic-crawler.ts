@@ -268,6 +268,8 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
 
     /**
      * Maximum depth of the crawl. If not set, the crawl will continue until all requests are processed.
+     * Setting this to `0` will only process the initial requests, skipping all links enqueued by `crawlingContext.enqueueLinks` and `crawlingContext.addRequests`.
+     * Passing `1` will process the initial requests and all links enqueued by `crawlingContext.enqueueLinks` and `crawlingContext.addRequests` in the handler for initial requests.
      */
     maxCrawlDepth?: number;
 
@@ -1503,15 +1505,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     limit: this.calculateEnqueuedRequestLimit(options.limit),
-                    transformRequestFunction: (rq) => {
-                        rq.crawlDepth = (request?.crawlDepth ?? 0) + 1;
+                    transformRequestFunction: (newRequest) => {
+                        newRequest.crawlDepth = (request?.crawlDepth ?? 0) + 1;
 
-                        if (this.maxCrawlDepth !== undefined && rq.crawlDepth > this.maxCrawlDepth) {
-                            rq.skippedReason = 'depth';
+                        if (this.maxCrawlDepth !== undefined && newRequest.crawlDepth > this.maxCrawlDepth) {
+                            newRequest.skippedReason = 'depth';
                             return false;
                         }
 
-                        return options.transformRequestFunction?.(rq) ?? rq;
+                        return options.transformRequestFunction?.(newRequest) ?? newRequest;
                     },
                     ...options,
                 });

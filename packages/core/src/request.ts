@@ -273,14 +273,16 @@ export class Request<UserData extends Dictionary = Dictionary> {
         }
     }
 
-    /** Depth of the request in the current crawl tree.
+    /**
+     * Depth of the request in the current crawl tree.
      * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
      */
     get crawlDepth(): number {
         return this.userData.__crawlee?.crawlDepth ?? 0;
     }
 
-    /** Depth of the request in the current crawl tree.
+    /**
+     * Depth of the request in the current crawl tree.
      * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
      */
     set crawlDepth(value: number) {
