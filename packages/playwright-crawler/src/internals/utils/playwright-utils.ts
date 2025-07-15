@@ -35,7 +35,7 @@ import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@cr
 import * as cheerio from 'cheerio';
 import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright';
 import ow from 'ow';
-import type { Page, Response, Route } from 'playwright';
+import type { Locator, Page, Response, Route } from 'playwright';
 
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
@@ -662,6 +662,372 @@ export async function closeCookieModals(page: Page): Promise<void> {
     await page.evaluate(getCookieClosingScript());
 }
 
+export interface LoginOptions {
+    /**
+     * The username/email for login.
+     */
+    username: string;
+
+    /**
+     * The password for login.
+     */
+    password: string;
+
+    /**
+     * Optional custom locators getters for login form elements.
+     * If not provided, default locators will be used.
+     */
+    locators?: {
+        /**
+         * Returns locators for the username/email input field.
+         */
+        getUsernameInput?: (page: Page) => Locator;
+
+        /**
+         * Returns locators for the password input field.
+         */
+        getPasswordInput?: (page: Page) => Locator;
+
+        /**
+         * Returns locators for the submit button.
+         */
+        getSubmitButton?: (page: Page) => Locator;
+
+        /**
+         * Returns locators for the "Next" button in two-step login forms.
+         */
+        getNextButton?: (page: Page) => Locator;
+    };
+
+    /**
+     * Optional custom function to detect if login succeeded.
+     * If not provided, a default heuristic will be used.
+     * @param page The Playwright page
+     * @returns Promise that resolves to true if login succeeded, false otherwise
+     */
+    detectLoginSuccess?: (page: Page) => Promise<boolean>;
+
+    /**
+     * Timeout for login operations in milliseconds.
+     * @default 10_000
+     */
+    timeoutMs?: number;
+
+    /**
+     * Optional custom function to handle captchas during login.
+     * If not provided, captchas will be ignored.
+     * @param page The Playwright page
+     * @returns Promise that resolves when captcha is handled
+     */
+    handleCaptcha?: (page: Page) => Promise<void>;
+
+    /**
+     * Optional timeout (ms) for the captcha handler.
+     * If the handler does not resolve in this time, login will fail.
+     * @default 30000
+     */
+    captchaTimeoutMs?: number;
+}
+
+/**
+ * Attempts to log in to a website using the provided credentials.
+ *
+ * This function can handle both single-step and two-step login forms.
+ * It will automatically detect the type of login form and attempt to fill it out.
+ *
+ * @param page The Playwright page
+ * @param options Login options including username, password, and optional configurations
+ * @returns Promise that resolves when login is complete
+ * @throws Error if login fails or login form is not detected
+ */
+export async function login(page: Page, options: LoginOptions): Promise<void> {
+    ow(page, ow.object.validate(validators.browserPage));
+    ow(
+        options,
+        ow.object.exactShape({
+            username: ow.string.nonEmpty,
+            password: ow.string.nonEmpty,
+            detectLoginForm: ow.optional.function,
+            detectLoginSuccess: ow.optional.function,
+            timeoutMs: ow.optional.number.positive,
+            locators: ow.optional.object,
+            handleCaptcha: ow.optional.function,
+            captchaTimeoutMs: ow.optional.number.positive,
+        }),
+    );
+
+    const {
+        username,
+        password,
+        timeoutMs = 10_000,
+        detectLoginSuccess = getDefaultDetectLoginSuccess({ timeoutMs, page }),
+        locators = {},
+        handleCaptcha,
+        captchaTimeoutMs = 30000,
+    } = options;
+
+    // Merge custom locators with defaults
+    const finalLocators = {
+        usernameInput:
+            locators.getUsernameInput?.(page) ??
+            [
+                page.locator('input[name="username"]'),
+                page.locator('input[name="email"]'),
+                page.locator('input[name="user"]'),
+                page.locator('input[name="login"]'),
+                page.locator('input[type="email"]'),
+                page.locator('input[id*="username"]'),
+                page.locator('input[id*="email"]'),
+                page.locator('input[id*="login"]'),
+                page.locator('input[placeholder*="username" i]'),
+                page.locator('input[placeholder*="email" i]'),
+                page.locator('input[placeholder*="user" i]'),
+                page.locator('input[aria-label*="username" i]'),
+                page.locator('input[aria-label*="email" i]'),
+                page.locator('input[class*="username"]'),
+                page.locator('input[class*="email"]'),
+                page.locator('input[class*="user"]'),
+            ].reduce((acc, locator) => acc.or(locator), page.locator('input[class*="login"]')),
+        passwordInput:
+            locators.getPasswordInput?.(page) ??
+            [
+                page.locator('input[name="password"]'),
+                page.locator('input[type="password"]'),
+                page.locator('input[id*="password"]'),
+                page.locator('input[placeholder*="password" i]'),
+                page.locator('input[aria-label*="password" i]'),
+            ].reduce((acc, locator) => acc.or(locator), page.locator('input[class*="password"]')),
+        submitButton:
+            locators.getSubmitButton?.(page) ??
+            [
+                page.locator('button[type="submit"]'),
+                page.locator('input[type="submit"]'),
+                page.locator('button[name="submit"]'),
+                page.locator('button[id*="submit"]'),
+                page.locator('button[id*="login"]'),
+                page.locator('button[id*="signin"]'),
+                page.locator('button[class*="submit"]'),
+                page.locator('button[class*="login"]'),
+                page.locator('button[class*="signin"]'),
+                page.locator('button:has-text("Log in")'),
+                page.locator('button:has-text("Sign in")'),
+                page.locator('button:has-text("Login")'),
+                page.locator('button:has-text("Submit")'),
+                page.locator('a[role="button"]:has-text("Log in")'),
+                page.locator('a[role="button"]:has-text("Sign in")'),
+            ].reduce((acc, locator) => acc.or(locator), page.locator('a[role="button"]:has-text("Login")')),
+        nextButton:
+            locators.getNextButton?.(page) ??
+            [
+                page.locator('button:has-text("Next")'),
+                page.locator('button:has-text("Continue")'),
+                page.locator('button[id*="next"]'),
+                page.locator('button[class*="next"]'),
+                page.locator('button[class*="continue"]'),
+                page.locator('input[type="submit"][value*="Next"]'),
+            ].reduce((acc, locator) => acc.or(locator), page.locator('input[type="submit"][value*="Continue"]')),
+    };
+
+    // Check if username input is present
+    await finalLocators.usernameInput.first().waitFor({ timeout: timeoutMs });
+    const hasUsernameInput = await finalLocators.usernameInput
+        .first()
+        .isVisible()
+        .catch(() => false);
+    if (!hasUsernameInput) {
+        // No username input detected, assume already logged in or not needed
+        return;
+    }
+
+    // Check if password field is immediately visible (single-step login)
+    const passwordInputVisible = await finalLocators.passwordInput
+        .first()
+        .isVisible()
+        .catch(() => false);
+
+    if (passwordInputVisible) {
+        await performSingleStepLogin({ page, username, password, locators: finalLocators, timeoutMs, handleCaptcha, captchaTimeoutMs });
+    } else {
+        await performTwoStepLogin({ page, username, password, locators: finalLocators, timeoutMs, handleCaptcha, captchaTimeoutMs });
+    }
+
+    // Check if login was successful
+    const loginSuccessful = await detectLoginSuccess(page);
+    if (!loginSuccessful) {
+        throw new Error('Login failed - success detection heuristic indicates login was not successful');
+    }
+}
+
+/**
+ * Default heuristic to detect if login was successful.
+ */
+function getDefaultDetectLoginSuccess({ timeoutMs, page }: { timeoutMs: number; page: Page }): () => Promise<boolean> {
+    return async () => {
+        try {
+            const indicators = {
+                failure: [
+                    page.getByText('Invalid credentials'),
+                    page.getByText('Invalid username or password'),
+                    page.getByText('Login failed'),
+                    page.getByText('Authentication failed'),
+                    page.getByText('Incorrect username or password'),
+                    page.getByText('Wrong username or password'),
+                    page.locator('[class*="error"]'),
+                    page.locator('[class*="alert"]'),
+                    page.locator('[role="alert"]'),
+                    page.locator('.login-error'),
+                    page.locator('.error-message'),
+                    page.locator('#error'),
+                ].reduce((acc, locator) => acc.or(locator), page.locator('.failure')),
+                success: [
+                    page.getByText('Welcome'),
+                    page.getByText('Dashboard'),
+                    page.getByText('Profile'),
+                    page.getByText('Account'),
+                    page.getByText('Logout'),
+                    page.getByText('Sign out'),
+                    page.locator('a[href*="logout"]'),
+                    page.locator('a[href*="signout"]'),
+                    page.locator('button:has-text("Logout")'),
+                    page.locator('button:has-text("Sign out")'),
+                    page.locator('[class*="dashboard"]'),
+                    page.locator('[class*="profile"]'),
+                    page.locator('[class*="account"]'),
+                    page.locator('[data-testid*="user-menu"]'),
+                ].reduce((acc, locator) => acc.or(locator), page.locator('[data-testid*="profile"]')),
+            };
+
+            // Check visibility of any of the indicators
+            const indicatorPromises = Object.entries(indicators).map(async ([key, locator]) => {
+                const locatorFirst = locator.first();
+                await locatorFirst.waitFor({ timeout: timeoutMs });
+                return { type: key as keyof typeof indicators, visible: await locatorFirst.isVisible() };
+            });
+
+            try {
+                // Wait for first indicator to be resolved
+                const visibleIndicator = await Promise.any(indicatorPromises);
+                if (visibleIndicator.visible) {
+                    if (visibleIndicator.type === 'failure') {
+                        return false;
+                    }
+                    return true;
+                }
+            } catch {
+                // continue to next indicator
+            }
+
+            // Check if we're no longer on a login page
+            const currentUrl = page.url();
+            const isLoginPage = /login|signin|auth|sign-in/i.test(currentUrl);
+
+            // If we're not on a login page and no failure indicators, assume success
+            return !isLoginPage;
+        } catch (error) {
+            // If we can't determine success, assume failure for safety
+            return false;
+        }
+    };
+}
+
+// Helper to wait for and fill a field, with error handling
+async function waitAndFill(locator: Locator, value: string, timeoutMs: number, fieldName: string) {
+    try {
+        await locator.waitFor({ timeout: timeoutMs });
+        await locator.fill(value);
+    } catch (err) {
+        throw new Error(`Failed to fill ${fieldName} field: ${(err as Error).message}`);
+    }
+}
+
+// Helper to call handleCaptcha if provided, with error handling and optional timeout
+async function maybeHandleCaptcha(page: Page, handleCaptcha?: (page: Page) => Promise<void>, captchaTimeoutMs = 30000) {
+    if (!handleCaptcha) return;
+    try {
+        await Promise.race([
+            handleCaptcha(page),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Captcha handler timed out')), captchaTimeoutMs)),
+        ]);
+    } catch (err) {
+        throw new Error(`Captcha handler failed: ${(err as Error).message}`);
+    }
+}
+
+async function performSingleStepLogin({
+    page,
+    username,
+    password,
+    locators,
+    timeoutMs = 30_000,
+    handleCaptcha,
+    captchaTimeoutMs = 30000,
+}: {
+    page: Page;
+    username: string;
+    password: string;
+    locators: { usernameInput: Locator; passwordInput: Locator; submitButton: Locator; nextButton: Locator };
+    timeoutMs: number;
+    handleCaptcha?: (page: Page) => Promise<void>;
+    captchaTimeoutMs?: number;
+}): Promise<void> {
+    const usernameField = locators.usernameInput.first();
+    log.debug('Filling username field');
+    await waitAndFill(usernameField, username, timeoutMs, 'username');
+    const passwordField = locators.passwordInput.first();
+    log.debug('Filling password field');
+    await waitAndFill(passwordField, password, timeoutMs, 'password');
+    await maybeHandleCaptcha(page, handleCaptcha, captchaTimeoutMs);
+    try {
+        const submitButton = locators.submitButton.first();
+        await submitButton.waitFor({ timeout: timeoutMs });
+        await submitButton.click();
+    } catch (err) {
+        throw new Error(`Failed to click submit button: ${(err as Error).message}`);
+    }
+    await page.waitForLoadState('networkidle', { timeout: timeoutMs }).catch(() => {});
+}
+
+async function performTwoStepLogin({
+    page,
+    username,
+    password,
+    locators,
+    timeoutMs = 30_000,
+    handleCaptcha,
+    captchaTimeoutMs = 30000,
+}: {
+    page: Page;
+    username: string;
+    password: string;
+    locators: { usernameInput: Locator; passwordInput: Locator; submitButton: Locator; nextButton: Locator };
+    timeoutMs: number;
+    handleCaptcha?: (page: Page) => Promise<void>;
+    captchaTimeoutMs?: number;
+}): Promise<void> {
+    const usernameField = locators.usernameInput.first();
+    log.debug('Filling username field');
+    await waitAndFill(usernameField, username, timeoutMs, 'username');
+    try {
+        const nextButton = locators.nextButton.first();
+        await nextButton.waitFor({ timeout: timeoutMs });
+        await nextButton.click();
+    } catch (err) {
+        throw new Error(`Failed to click next button: ${(err as Error).message}`);
+    }
+    const passwordField = locators.passwordInput.first();
+    log.debug('Filling password field');
+    await waitAndFill(passwordField, password, timeoutMs, 'password');
+    await maybeHandleCaptcha(page, handleCaptcha, captchaTimeoutMs);
+    try {
+        const submitButton = locators.submitButton.first();
+        await submitButton.waitFor({ timeout: timeoutMs });
+        await submitButton.click();
+    } catch (err) {
+        throw new Error(`Failed to click submit button: ${(err as Error).message}`);
+    }
+    await page.waitForLoadState('networkidle', { timeout: timeoutMs }).catch(() => {});
+}
+
 interface HandleCloudflareChallengeOptions {
     /** Logging defaults to the `debug` level, use this flag to log to `info` level instead. */
     verbose?: boolean;
@@ -1017,6 +1383,48 @@ export interface PlaywrightContextUtils {
      * @param [options]
      */
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+
+    /**
+     * Attempts to log in to a website using the provided credentials.
+     *
+     * This function can handle both single-step and two-step login forms.
+     * It will automatically detect the type of login form and attempt to fill it out.
+     * If no login form is detected, the function will resolve without doing anything.
+     *
+     * **Example usage**
+     * ```ts
+     * async requestHandler({ login }) {
+     *     await login({
+     *         username: 'your-username',
+     *         password: 'your-password',
+     *     });
+     * }
+     * ```
+     *
+     * **Custom detection and handling**
+     * ```ts
+     * async requestHandler({ login }) {
+     *     await login({
+     *         username: 'your-username',
+     *         password: 'your-password',
+     *         locators: {
+     *             getUsernameInput: (page) => page.locator('#username'),
+     *             getPasswordInput: (page) => page.locator('#password'),
+     *             getSubmitButton: (page) => page.locator('#submit'),
+     *         },
+     *         detectLoginSuccess: async (page) => {
+     *             // Custom logic to detect successful login
+     *             return page.locator('.user-menu').isVisible();
+     *         },
+     *     });
+     * }
+     * ```
+     *
+     * @param options Login options including username, password, and optional configurations
+     * @returns Promise that resolves when login is complete
+     * @throws Error if login fails
+     */
+    login(options: LoginOptions): Promise<void>;
 }
 
 export function registerUtilsToContext(
@@ -1063,6 +1471,7 @@ export function registerUtilsToContext(
     context.handleCloudflareChallenge = async (options?: HandleCloudflareChallengeOptions) => {
         return handleCloudflareChallenge(context.page, context.request.url, context.session, options);
     };
+    context.login = async (options: LoginOptions) => login(context.page, options);
 }
 
 export { enqueueLinksByClickingElements };
@@ -1081,4 +1490,5 @@ export const playwrightUtils = {
     closeCookieModals,
     RenderingTypePredictor,
     handleCloudflareChallenge,
+    login,
 };
