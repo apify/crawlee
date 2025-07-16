@@ -172,6 +172,12 @@ module.exports = {
                 id: 'GTM-5P7MCS7',
             },
         ],
+        [
+            '@signalwire/docusaurus-plugin-llms-txt',
+            {
+                enableDescriptions: false,
+            }
+        ],
         async function runnableCodeBlock() {
             return {
                 name: 'runnable-code-block',
