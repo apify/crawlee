@@ -725,6 +725,73 @@ export interface SaveSnapshotOptions {
     config?: Configuration;
 }
 
+export interface LoginLocators {
+    /**
+     * Function that returns the username input element.
+     * @default page.locator('input[type="email"], input[name*="username"], input[name*="email"], input[id*="username"], input[id*="email"]')
+     */
+    getUsernameInput?: (page: Page) => Promise<import('puppeteer').ElementHandle<Element> | null>;
+
+    /**
+     * Function that returns the password input element.
+     * @default page.locator('input[type="password"]')
+     */
+    getPasswordInput?: (page: Page) => Promise<import('puppeteer').ElementHandle<Element> | null>;
+
+    /**
+     * Function that returns the submit button element.
+     * @default page.locator('button[type="submit"], input[type="submit"], button:has-text("Sign in"), button:has-text("Login"), button:has-text("Log in")')
+     */
+    getSubmitButton?: (page: Page) => Promise<import('puppeteer').ElementHandle<Element> | null>;
+
+    /**
+     * Function that returns the next button element (for two-step login).
+     * @default page.locator('button:has-text("Next"), button:has-text("Continue"), input[value*="Next"], input[value*="Continue"]')
+     */
+    getNextButton?: (page: Page) => Promise<import('puppeteer').ElementHandle<Element> | null>;
+}
+
+export interface LoginOptions {
+    /**
+     * Username or email to use for login.
+     */
+    username: string;
+
+    /**
+     * Password to use for login.
+     */
+    password: string;
+
+    /**
+     * Custom locators for login form elements.
+     */
+    locators?: LoginLocators;
+
+    /**
+     * Function to detect if login was successful.
+     * @default Detects success by checking if URL changed from login page or if error indicators are not present
+     */
+    detectLoginSuccess?: (page: Page) => Promise<boolean>;
+
+    /**
+     * Timeout for login operations in milliseconds.
+     * @default 10000
+     */
+    timeoutMs?: number;
+
+    /**
+     * Optional function to handle captchas that may appear during login.
+     * Called after filling username/password but before submitting the form.
+     */
+    handleCaptcha?: (page: Page) => Promise<void>;
+
+    /**
+     * Timeout for captcha handling in milliseconds.
+     * @default 30000
+     */
+    captchaTimeoutMs?: number;
+}
+
 /**
  * Saves a full screenshot and HTML of the current page into a Key-Value store.
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
@@ -780,6 +847,243 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
 
 export async function closeCookieModals(page: Page): Promise<void> {
     await page.evaluate(getInjectableScript());
+}
+
+/**
+ * Automatically handles login forms on a page.
+ * Supports both single-step (username & password together) and two-step (username, then password) login flows.
+ * 
+ * @param page Puppeteer Page object
+ * @param options Login configuration options
+ */
+export async function login(page: Page, options: LoginOptions): Promise<void> {
+    const {
+        username,
+        password,
+        locators = {},
+        detectLoginSuccess,
+        timeoutMs = 10_000,
+        handleCaptcha,
+        captchaTimeoutMs = 30_000,
+    } = options;
+
+    // Default locators
+    const defaultLocators: Required<LoginLocators> = {
+        getUsernameInput: async (page) => {
+            const selectors = [
+                'input[type="email"]',
+                'input[name*="username"]',
+                'input[name*="email"]',
+                'input[id*="username"]',
+                'input[id*="email"]',
+                'input[type="text"]',
+            ];
+            for (const selector of selectors) {
+                const element = await page.$(selector);
+                if (element) return element;
+            }
+            return null;
+        },
+        getPasswordInput: async (page) => {
+            return await page.$('input[type="password"]');
+        },
+        getSubmitButton: async (page) => {
+            const selectors = [
+                'button[type="submit"]',
+                'input[type="submit"]',
+                'button:contains("Sign in")',
+                'button:contains("Login")',
+                'button:contains("Log in")',
+                'input[value*="Sign in"]',
+                'input[value*="Login"]',
+                'input[value*="Log in"]',
+            ];
+            for (const selector of selectors) {
+                const element = await page.$(selector);
+                if (element) return element;
+            }
+            return null;
+        },
+        getNextButton: async (page) => {
+            const selectors = [
+                'button:contains("Next")',
+                'button:contains("Continue")',
+                'input[value*="Next"]',
+                'input[value*="Continue"]',
+            ];
+            for (const selector of selectors) {
+                const element = await page.$(selector);
+                if (element) return element;
+            }
+            return null;
+        },
+    };
+
+    const finalLocators = {
+        getUsernameInput: locators.getUsernameInput || defaultLocators.getUsernameInput,
+        getPasswordInput: locators.getPasswordInput || defaultLocators.getPasswordInput,
+        getSubmitButton: locators.getSubmitButton || defaultLocators.getSubmitButton,
+        getNextButton: locators.getNextButton || defaultLocators.getNextButton,
+    };
+
+    // Helper function to fill a field with error handling
+    const waitAndFill = async (getElement: () => Promise<import('puppeteer').ElementHandle<Element> | null>, value: string, fieldName: string) => {
+        const element = await getElement();
+        if (!element) {
+            throw new Error(`Could not find ${fieldName} field`);
+        }
+        try {
+            await element.click({ clickCount: 3 }); // Select all text
+            await element.type(value);
+        } catch (error) {
+            throw new Error(`Failed to fill ${fieldName} field: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    };
+
+    // Helper function to handle captcha if provided
+    const maybeHandleCaptcha = async () => {
+        if (handleCaptcha) {
+            try {
+                await Promise.race([
+                    handleCaptcha(page),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Captcha handling timed out')), captchaTimeoutMs)
+                    ),
+                ]);
+            } catch (error) {
+                throw new Error(`Captcha handling failed: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+    };
+
+    // Check if login form exists
+    const usernameInput = await finalLocators.getUsernameInput(page);
+    if (!usernameInput) {
+        // No login form found, resolve successfully
+        return;
+    }
+
+    const originalUrl = page.url();
+
+    try {
+        // Fill username
+        await waitAndFill(() => finalLocators.getUsernameInput(page), username, 'username');
+
+        // Check if this is a two-step login (password field not visible initially)
+        let passwordInput = await finalLocators.getPasswordInput(page);
+        
+        if (!passwordInput) {
+            // Two-step login: click next/continue button
+            const nextButton = await finalLocators.getNextButton(page);
+            if (!nextButton) {
+                throw new Error('Could not find next/continue button for two-step login');
+            }
+
+            try {
+                await nextButton.click();
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for password field to appear
+            } catch (error) {
+                throw new Error(`Failed to click next button: ${error instanceof Error ? error.message : String(error)}`);
+            }
+
+            // Try to find password field again
+            passwordInput = await finalLocators.getPasswordInput(page);
+            if (!passwordInput) {
+                throw new Error('Password field not found after clicking next button');
+            }
+        }
+
+        // Handle captcha before filling password
+        await maybeHandleCaptcha();
+
+        // Fill password
+        await waitAndFill(() => finalLocators.getPasswordInput(page), password, 'password');
+
+        // Handle captcha after filling password
+        await maybeHandleCaptcha();
+
+        // Submit the form
+        const submitButton = await finalLocators.getSubmitButton(page);
+        if (!submitButton) {
+            throw new Error('Could not find submit button');
+        }
+
+        try {
+            await submitButton.click();
+        } catch (error) {
+            throw new Error(`Failed to click submit button: ${error instanceof Error ? error.message : String(error)}`);
+        }
+
+        // Wait for navigation or form submission
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Check if login was successful
+        const isSuccessful = detectLoginSuccess 
+            ? await detectLoginSuccess(page)
+            : await defaultDetectLoginSuccess(page, originalUrl);
+
+        if (!isSuccessful) {
+            throw new Error('Login failed - success detection returned false');
+        }
+
+    } catch (error) {
+        throw new Error(`Login failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+}
+
+/**
+ * Default login success detection logic.
+ * Checks if URL changed from login page or if error indicators are not present.
+ */
+async function defaultDetectLoginSuccess(page: Page, originalUrl: string): Promise<boolean> {
+    const currentUrl = page.url();
+    
+    // If URL changed, it's likely successful
+    if (currentUrl !== originalUrl) {
+        return true;
+    }
+
+    // Check for common error indicators
+    const errorSelectors = [
+        '.error',
+        '.alert-error',
+        '.alert-danger',
+        '.login-error',
+        '[data-testid="error"]',
+        '.error-message',
+        '.invalid-feedback',
+    ];
+
+    for (const selector of errorSelectors) {
+        const errorElement = await page.$(selector);
+        if (errorElement) {
+            const isVisible = await errorElement.evaluate(el => {
+                const style = window.getComputedStyle(el);
+                return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+            });
+            if (isVisible) {
+                return false;
+            }
+        }
+    }
+
+    // Check if we're still on a login page
+    const loginIndicators = [
+        'input[type="password"]',
+        'form[action*="login"]',
+        'form[action*="signin"]',
+        '.login-form',
+        '.signin-form',
+    ];
+
+    for (const selector of loginIndicators) {
+        const element = await page.$(selector);
+        if (element) {
+            return false; // Still on login page
+        }
+    }
+
+    return true;
 }
 
 /** @internal */
@@ -1059,6 +1363,25 @@ export interface PuppeteerContextUtils {
      * Tries to close cookie consent modals on the page. Based on the I Don't Care About Cookies browser extension.
      */
     closeCookieModals(): Promise<void>;
+
+    /**
+     * Automatically handles login forms on a page.
+     * Supports both single-step (username & password together) and two-step (username, then password) login flows.
+     * 
+     * **Example usage:**
+     * ```javascript
+     * async requestHandler({ login }) {
+     *     await login({
+     *         username: 'your-username',
+     *         password: 'your-password',
+     *         handleCaptcha: async (page) => {
+     *             // Solve captcha here
+     *         },
+     *     });
+     * });
+     * ```
+     */
+    login(options: LoginOptions): Promise<void>;
 }
 
 /** @internal */
@@ -1113,6 +1436,7 @@ export function registerUtilsToContext(
     context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
         saveSnapshot(context.page, { ...options, config: context.crawler.config });
     context.closeCookieModals = async () => closeCookieModals(context.page);
+    context.login = async (options: LoginOptions) => login(context.page, options);
 }
 
 export { enqueueLinksByClickingElements, addInterceptRequestHandler, removeInterceptRequestHandler };
@@ -1133,4 +1457,5 @@ export const puppeteerUtils = {
     saveSnapshot,
     parseWithCheerio,
     closeCookieModals,
+    login,
 };
