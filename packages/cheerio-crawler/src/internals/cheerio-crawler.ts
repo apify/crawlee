@@ -260,7 +260,7 @@ interface BoundEnqueueLinksInternalOptions {
 }
 
 /** @internal */
-function isEnqueueLinksBound(
+function containsEnqueueLinks(
     options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
 ): options is BoundEnqueueLinksInternalOptions {
     return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
@@ -288,7 +288,7 @@ export async function cheerioCrawlerEnqueueLinks(
         enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
-    if (isEnqueueLinksBound(options)) {
+    if (containsEnqueueLinks(options)) {
         return options.enqueueLinks({
             urls,
             baseUrl,

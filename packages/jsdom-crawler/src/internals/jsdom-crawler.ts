@@ -362,7 +362,7 @@ interface BoundEnqueueLinksInternalOptions {
 }
 
 /** @internal */
-function isEnqueueLinksBound(
+function containsEnqueueLinks(
     options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
 ): options is BoundEnqueueLinksInternalOptions {
     return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
@@ -389,7 +389,7 @@ export async function domCrawlerEnqueueLinks(options: EnqueueLinksInternalOption
         enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
-    if (isEnqueueLinksBound(options)) {
+    if (containsEnqueueLinks(options)) {
         return options.enqueueLinks({
             urls,
             baseUrl,
