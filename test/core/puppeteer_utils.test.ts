@@ -8,6 +8,8 @@ import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { login } from '../../packages/puppeteer-crawler/src/internals/utils/puppeteer_utils';
 
 const launchContext = { launchOptions: { headless: true } };
 
@@ -498,6 +500,272 @@ describe('puppeteerUtils', () => {
             } finally {
                 await browser.close();
             }
+        });
+    });
+
+    describe('login()', () => {
+        let page: Page;
+        let usernameInputMock: any;
+        let passwordInputMock: any;
+        let submitButtonMock: any;
+        let nextButtonMock: any;
+
+        beforeEach(() => {
+            // Mock page methods
+            page = {
+                url: vi.fn().mockReturnValue('https://example.com/login'),
+                $: vi.fn(),
+                waitForSelector: vi.fn(),
+            } as any;
+
+            // Mock element handles
+            usernameInputMock = {
+                click: vi.fn(),
+                type: vi.fn(),
+            };
+
+            passwordInputMock = {
+                click: vi.fn(),
+                type: vi.fn(),
+            };
+
+            submitButtonMock = {
+                click: vi.fn(),
+            };
+
+            nextButtonMock = {
+                click: vi.fn(),
+            };
+        });
+
+        test('single-step login success', async () => {
+            // Mock page.$ to return elements
+            (page.$ as any).mockImplementation((selector: string) => {
+                if (selector.includes('email') || selector.includes('username')) {
+                    return Promise.resolve(usernameInputMock);
+                }
+                if (selector.includes('password')) {
+                    return Promise.resolve(passwordInputMock);
+                }
+                if (selector.includes('submit') || selector.includes('Sign in')) {
+                    return Promise.resolve(submitButtonMock);
+                }
+                return Promise.resolve(null);
+            });
+
+            // Mock successful login detection
+            const detectLoginSuccessMock = vi.fn().mockResolvedValue(true);
+
+            await login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                detectLoginSuccess: detectLoginSuccessMock,
+            });
+
+            expect(usernameInputMock.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(usernameInputMock.type).toHaveBeenCalledWith('testuser');
+            expect(passwordInputMock.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(passwordInputMock.type).toHaveBeenCalledWith('testpass');
+            expect(submitButtonMock.click).toHaveBeenCalledTimes(1);
+            expect(detectLoginSuccessMock).toHaveBeenCalledWith(page);
+        });
+
+        test('single-step login failure', async () => {
+            // Mock page.$ to return elements
+            (page.$ as any).mockImplementation((selector: string) => {
+                if (selector.includes('email') || selector.includes('username')) {
+                    return Promise.resolve(usernameInputMock);
+                }
+                if (selector.includes('password')) {
+                    return Promise.resolve(passwordInputMock);
+                }
+                if (selector.includes('submit') || selector.includes('Sign in')) {
+                    return Promise.resolve(submitButtonMock);
+                }
+                return Promise.resolve(null);
+            });
+
+            // Mock failed login detection
+            const detectLoginSuccessMock = vi.fn().mockResolvedValue(false);
+
+            await expect(login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                detectLoginSuccess: detectLoginSuccessMock,
+            })).rejects.toThrow('Login failed - success detection returned false');
+        });
+
+        test('two-step login success', async () => {
+            let passwordCallCount = 0;
+            
+            // Mock page.$ to return elements for two-step flow
+            (page.$ as any).mockImplementation((selector: string) => {
+                if (selector.includes('email') || selector.includes('username')) {
+                    return Promise.resolve(usernameInputMock);
+                }
+                if (selector.includes('password')) {
+                    passwordCallCount++;
+                    // First call returns null (password not visible), second call returns element
+                    return Promise.resolve(passwordCallCount === 1 ? null : passwordInputMock);
+                }
+                if (selector.includes('Next') || selector.includes('Continue')) {
+                    return Promise.resolve(nextButtonMock);
+                }
+                if (selector.includes('submit') || selector.includes('Sign in')) {
+                    return Promise.resolve(submitButtonMock);
+                }
+                return Promise.resolve(null);
+            });
+
+            // Mock successful login detection
+            const detectLoginSuccessMock = vi.fn().mockResolvedValue(true);
+
+            await login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                detectLoginSuccess: detectLoginSuccessMock,
+            });
+
+            expect(usernameInputMock.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(usernameInputMock.type).toHaveBeenCalledWith('testuser');
+            expect(nextButtonMock.click).toHaveBeenCalledTimes(1);
+            expect(passwordInputMock.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(passwordInputMock.type).toHaveBeenCalledWith('testpass');
+            expect(submitButtonMock.click).toHaveBeenCalledTimes(1);
+            expect(detectLoginSuccessMock).toHaveBeenCalledWith(page);
+        });
+
+        test('two-step login failure', async () => {
+            let passwordCallCount = 0;
+            
+            // Mock page.$ to return elements for two-step flow
+            (page.$ as any).mockImplementation((selector: string) => {
+                if (selector.includes('email') || selector.includes('username')) {
+                    return Promise.resolve(usernameInputMock);
+                }
+                if (selector.includes('password')) {
+                    passwordCallCount++;
+                    // First call returns null (password not visible), second call returns element
+                    return Promise.resolve(passwordCallCount === 1 ? null : passwordInputMock);
+                }
+                if (selector.includes('Next') || selector.includes('Continue')) {
+                    return Promise.resolve(nextButtonMock);
+                }
+                if (selector.includes('submit') || selector.includes('Sign in')) {
+                    return Promise.resolve(submitButtonMock);
+                }
+                return Promise.resolve(null);
+            });
+
+            // Mock failed login detection
+            const detectLoginSuccessMock = vi.fn().mockResolvedValue(false);
+
+            await expect(login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                detectLoginSuccess: detectLoginSuccessMock,
+            })).rejects.toThrow('Login failed - success detection returned false');
+        });
+
+        test('default locators usage', async () => {
+            // Mock page.$ to return elements
+            (page.$ as any).mockImplementation((selector: string) => {
+                if (selector.includes('email') || selector.includes('username')) {
+                    return Promise.resolve(usernameInputMock);
+                }
+                if (selector.includes('password')) {
+                    return Promise.resolve(passwordInputMock);
+                }
+                if (selector.includes('submit') || selector.includes('Sign in')) {
+                    return Promise.resolve(submitButtonMock);
+                }
+                return Promise.resolve(null);
+            });
+
+            const detectLoginSuccessMock = vi.fn().mockResolvedValue(true);
+
+            await login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                detectLoginSuccess: detectLoginSuccessMock,
+            });
+
+            expect(usernameInputMock.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(usernameInputMock.type).toHaveBeenCalledWith('testuser');
+            expect(passwordInputMock.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(passwordInputMock.type).toHaveBeenCalledWith('testpass');
+            expect(submitButtonMock.click).toHaveBeenCalledTimes(1);
+            expect(detectLoginSuccessMock).toHaveBeenCalledWith(page);
+        });
+
+        test('login() calls handleCaptcha if provided (single-step)', async () => {
+            // Mock page.$ to return elements
+            (page.$ as any).mockImplementation((selector: string) => {
+                if (selector.includes('email') || selector.includes('username')) {
+                    return Promise.resolve(usernameInputMock);
+                }
+                if (selector.includes('password')) {
+                    return Promise.resolve(passwordInputMock);
+                }
+                if (selector.includes('submit') || selector.includes('Sign in')) {
+                    return Promise.resolve(submitButtonMock);
+                }
+                return Promise.resolve(null);
+            });
+
+            const detectLoginSuccessMock = vi.fn().mockResolvedValue(true);
+            const handleCaptcha = vi.fn().mockResolvedValue(undefined);
+
+            await login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                detectLoginSuccess: detectLoginSuccessMock,
+                handleCaptcha,
+            });
+
+            expect(handleCaptcha).toHaveBeenCalledTimes(2); // Called before and after password fill
+            expect(handleCaptcha).toHaveBeenCalledWith(page);
+            expect(detectLoginSuccessMock).toHaveBeenCalledWith(page);
+        });
+
+        test('no login form found', async () => {
+            // Mock page.$ to return null (no login form)
+            (page.$ as any).mockResolvedValue(null);
+
+            await expect(login(page, {
+                username: 'testuser',
+                password: 'testpass',
+            })).resolves.toBeUndefined();
+        });
+
+        test('custom locators usage', async () => {
+            const customUsernameInput = { click: vi.fn(), type: vi.fn() };
+            const customPasswordInput = { click: vi.fn(), type: vi.fn() };
+            const customSubmitButton = { click: vi.fn() };
+
+            const customLocators = {
+                getUsernameInput: vi.fn().mockResolvedValue(customUsernameInput),
+                getPasswordInput: vi.fn().mockResolvedValue(customPasswordInput),
+                getSubmitButton: vi.fn().mockResolvedValue(customSubmitButton),
+            };
+
+            const detectLoginSuccessMock = vi.fn().mockResolvedValue(true);
+
+            await login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                locators: customLocators,
+                detectLoginSuccess: detectLoginSuccessMock,
+            });
+
+            expect(customLocators.getUsernameInput).toHaveBeenCalledWith(page);
+            expect(customLocators.getPasswordInput).toHaveBeenCalledWith(page);
+            expect(customLocators.getSubmitButton).toHaveBeenCalledWith(page);
+            expect(customUsernameInput.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(customUsernameInput.type).toHaveBeenCalledWith('testuser');
+            expect(customPasswordInput.click).toHaveBeenCalledWith({ clickCount: 3 });
+            expect(customPasswordInput.type).toHaveBeenCalledWith('testpass');
+            expect(customSubmitButton.click).toHaveBeenCalledTimes(1);
         });
     });
 });
