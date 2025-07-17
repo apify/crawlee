@@ -47,7 +47,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Sets {@apilink Request.userData} for newly enqueued requests. */
     userData?: Dictionary;
 
-    /** Sets {@apilink Request.label} for newly enqueued requests. */
+    /**
+     * Sets {@apilink Request.label} for newly enqueued requests.
+     *
+     * Note that the request options specified in `globs`, `regexps`, or `pseudoUrls` objects
+     * have priority over this option.
+     */
     label?: string;
 
     /**
@@ -141,9 +146,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * }
      * ```
      *
-     * Note that `transformRequestFunction` has a priority over request options
-     * specified in `globs`, `regexps`, or `pseudoUrls` objects,
-     * and thus some options could be over-written by `transformRequestFunction`.
+     * Note that the request options specified in `globs`, `regexps`, or `pseudoUrls` objects
+     * have priority over this function. Some request options returned by `transformRequestFunction` may be overwritten by pattern-based options from `globs`, `regexps`, or `pseudoUrls`.
      */
     transformRequestFunction?: RequestTransform;
 
