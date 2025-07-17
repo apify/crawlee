@@ -146,9 +146,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * }
      * ```
      *
-     * Note that the request options specified in `globs`, `regexps`, or `pseudoUrls` objects,
-     * have priority over this function, and thus some request options
-     * could be overwritten by those.
+     * Note that the request options specified in `globs`, `regexps`, or `pseudoUrls` objects
+     * have priority over this function. Some request options set by this function could be overwritten by these options.
      */
     transformRequestFunction?: RequestTransform;
 
