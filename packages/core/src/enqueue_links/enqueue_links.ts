@@ -360,7 +360,7 @@ export async function enqueueLinks(
 
     if (!urlPatternObjects.length) {
         // Defaults to enqueueing links with the same domain if no strategy is provided, regardless of differences in subdomains
-        options.strategy ??= EnqueueStrategy.SameDomain;  
+        options.strategy ??= EnqueueStrategy.SameDomain;
     }
 
     const enqueueStrategyPatterns: UrlPatternObject[] = [];
