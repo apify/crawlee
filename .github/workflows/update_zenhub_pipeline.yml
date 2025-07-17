@@ -10,7 +10,7 @@ on:
       - edited
       - ready_for_review
     branches:
-      - main
+      - master
 
 jobs:
   move_zenhub_cards:
