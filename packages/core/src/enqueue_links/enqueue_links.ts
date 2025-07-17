@@ -167,7 +167,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *          Origin
      *```
      *
-     * @default EnqueueStrategy.SameHostname
+     * @default EnqueueStrategy.SameDomain
      */
     strategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
 
@@ -359,7 +359,8 @@ export async function enqueueLinks(
     }
 
     if (!urlPatternObjects.length) {
-        options.strategy ??= EnqueueStrategy.SameHostname;
+        // Defaults to enqueueing links with the same domain if no strategy is provided, regardless of differences in subdomains
+        options.strategy ??= EnqueueStrategy.SameDomain;  
     }
 
     const enqueueStrategyPatterns: UrlPatternObject[] = [];
