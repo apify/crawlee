@@ -170,6 +170,60 @@ describe('BasicCrawler', () => {
         ]);
     });
 
+    test('addRequests should respect maxCrawlDepth', async () => {
+        const processedUrls: string[] = [];
+
+        const requestHandler: RequestHandler = async ({ request, addRequests }) => {
+            processedUrls.push(request.url);
+            const url = new URL(request.url);
+            url.pathname = `${url.pathname}deep/`;
+
+            await addRequests([url.toString()]);
+        };
+
+        const crawler = new BasicCrawler({
+            maxCrawlDepth: 2,
+            maxRequestsPerCrawl: 10, // safeguard against infinite loops
+            requestHandler,
+        });
+
+        await crawler.run(['https://example.com/']);
+
+        expect(processedUrls).toEqual([
+            'https://example.com/',
+            'https://example.com/deep/',
+            'https://example.com/deep/deep/',
+        ]);
+    });
+
+    test('enqueueLinks should respect maxCrawlDepth', async () => {
+        const processedUrls: string[] = [];
+
+        const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
+            processedUrls.push(request.url);
+            const url = new URL(request.url);
+            url.pathname = `${url.pathname}deep/`;
+
+            await enqueueLinks({
+                urls: [url.toString()],
+            });
+        };
+
+        const crawler = new BasicCrawler({
+            maxCrawlDepth: 2,
+            maxRequestsPerCrawl: 10, // safeguard against infinite loops
+            requestHandler,
+        });
+
+        await crawler.run(['https://example.com/']);
+
+        expect(processedUrls).toEqual([
+            'https://example.com/',
+            'https://example.com/deep/',
+            'https://example.com/deep/deep/',
+        ]);
+    });
+
     test('should correctly combine shorthand and full length options', async () => {
         const shorthandOptions = {
             minConcurrency: 123,
