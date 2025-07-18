@@ -318,6 +318,7 @@ export class BrowserPool<
     pageCounter = 0;
     pages = new Map<string, PageReturn>();
     pageIds = new WeakMap<PageReturn, string>();
+    startingBrowserControllers = new Set<BrowserControllerReturn>();
     activeBrowserControllers = new Set<BrowserControllerReturn>();
     retiredBrowserControllers = new Set<BrowserControllerReturn>();
     pageToBrowserController = new WeakMap<PageReturn, BrowserControllerReturn>();
@@ -610,12 +611,18 @@ export class BrowserPool<
      *
      */
     retireBrowserController(browserController: BrowserControllerReturn): void {
-        const hasBeenRetiredOrKilled = !this.activeBrowserControllers.has(browserController);
+        const isStarting = this.startingBrowserControllers.has(browserController);
+
+        const hasBeenRetiredOrKilled = !isStarting && !this.activeBrowserControllers.has(browserController);
         if (hasBeenRetiredOrKilled) return;
 
         this.retiredBrowserControllers.add(browserController);
         this.emit(BROWSER_POOL_EVENTS.BROWSER_RETIRED, browserController);
-        this.activeBrowserControllers.delete(browserController);
+        if (isStarting) {
+            this.startingBrowserControllers.delete(browserController);
+        } else {
+            this.activeBrowserControllers.delete(browserController);
+        }
     }
 
     /**
@@ -632,7 +639,7 @@ export class BrowserPool<
      * closed after all their pages are closed.
      */
     retireAllBrowsers(): void {
-        this.activeBrowserControllers.forEach((controller) => {
+        [...this.startingBrowserControllers, ...this.activeBrowserControllers].forEach((controller) => {
             this.retireBrowserController(controller);
         });
     }
@@ -665,6 +672,7 @@ export class BrowserPool<
     }
 
     private _teardown() {
+        this.startingBrowserControllers.clear();
         this.activeBrowserControllers.clear();
         this.retiredBrowserControllers.clear();
 
@@ -672,14 +680,18 @@ export class BrowserPool<
     }
 
     private _getAllBrowserControllers() {
-        return new Set([...this.activeBrowserControllers, ...this.retiredBrowserControllers]);
+        return new Set([
+            ...this.startingBrowserControllers,
+            ...this.activeBrowserControllers,
+            ...this.retiredBrowserControllers,
+        ]);
     }
 
     private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
         const { browserPlugin, launchOptions, proxyTier, proxyUrl } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
-        this.activeBrowserControllers.add(browserController);
+        this.startingBrowserControllers.add(browserController);
 
         const launchContext = browserPlugin.createLaunchContext({
             id: pageId,
@@ -697,7 +709,7 @@ export class BrowserPool<
             tryCancel();
             browserController.assignBrowser(browser, launchContext);
         } catch (err) {
-            this.activeBrowserControllers.delete(browserController);
+            this.startingBrowserControllers.delete(browserController);
             throw err;
         }
 
@@ -710,7 +722,7 @@ export class BrowserPool<
             // both the controller and the browser before throwing.
             await this._executeHooks(this.postLaunchHooks, pageId, browserController);
         } catch (err) {
-            this.activeBrowserControllers.delete(browserController);
+            this.startingBrowserControllers.delete(browserController);
             browserController.close().catch((closeErr) => {
                 log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
                     id: browserController.id,
@@ -721,6 +733,8 @@ export class BrowserPool<
 
         tryCancel();
         browserController.activate();
+        this.startingBrowserControllers.delete(browserController);
+        this.activeBrowserControllers.add(browserController);
         this.emit(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, browserController);
 
         return browserController;
