@@ -176,6 +176,14 @@ module.exports = {
             '@signalwire/docusaurus-plugin-llms-txt',
             {
                 enableDescriptions: false,
+                content: {
+                    excludeRoutes: ['/js/api/3.*/**', '/js/api/3.*'],
+                    includeVersionedDocs: false,
+                    enableLlmsFullTxt: true,
+                    includeBlog: true,
+                    includePages: true,
+                    relativePaths: false,
+                },
             }
         ],
         async function runnableCodeBlock() {
