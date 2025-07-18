@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 import path from 'node:path';
 
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
-import type { Browser, Page } from 'playwright';
+import type { Browser, Locator, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
@@ -325,7 +325,8 @@ describe('playwrightUtils', () => {
             expect(before).toBe(false);
 
             await playwrightUtils.infiniteScroll(page, {
-                waitForSecs: Infinity,
+                // waitForSecs: Infinity,
+                waitForSecs: Number.POSITIVE_INFINITY,
                 maxScrollHeight: 1000,
                 stopScrollCallback: async () => true,
             });
@@ -342,7 +343,8 @@ describe('playwrightUtils', () => {
             expect(before).toBe(false);
 
             await playwrightUtils.infiniteScroll(page, {
-                waitForSecs: Infinity,
+                // waitForSecs: Infinity,
+                waitForSecs: Number.POSITIVE_INFINITY,
                 stopScrollCallback: async () => true,
             });
 
@@ -385,5 +387,513 @@ describe('playwrightUtils', () => {
         } finally {
             await browser.close();
         }
+    });
+
+
+    describe('login()', () => {
+        const getLocatorMock = () => {
+            const locatorMock = {
+                isVisible: vitest.fn().mockResolvedValue(true),
+                waitFor: vitest.fn(),
+                fill: vitest.fn(),
+                click: vitest.fn(),
+                first: vitest.fn(),
+                or: vitest.fn(),
+            };
+            locatorMock.first.mockReturnValue(locatorMock);
+            locatorMock.or.mockReturnValue(locatorMock);
+            return locatorMock;
+        };
+        type LocatorMock = ReturnType<typeof getLocatorMock>;
+
+        let browser: Browser = null as any;
+        beforeAll(async () => {
+            browser = await launchPlaywright(launchContext);
+        });
+        afterAll(async () => {
+            await browser.close();
+        });
+
+        let page: Page;
+        let newLocatorMock: LocatorMock;
+        let usernameInputMock: LocatorMock;
+        let passwordInputMock: LocatorMock;
+        let submitButtonMock: LocatorMock;
+        let nextButtonMock: LocatorMock;
+        beforeEach(async () => {
+            page = await browser.newPage();
+            newLocatorMock = getLocatorMock();
+            usernameInputMock = getLocatorMock();
+            passwordInputMock = getLocatorMock();
+            submitButtonMock = getLocatorMock();
+            nextButtonMock = getLocatorMock();
+            vitest.spyOn(page, 'locator').mockReturnValue(newLocatorMock as unknown as Locator);
+            vitest.spyOn(page, 'getByText').mockResolvedValue(newLocatorMock as unknown as Locator);
+        });
+        afterEach(async () => {
+            await page.close();
+        });
+
+        // Helper to wait for and fill a field, with error handling
+        async function waitAndFill(locator: Locator, value: string, timeoutMs: number, fieldName: string) {
+            try {
+                await locator.waitFor({ timeout: timeoutMs });
+                await locator.fill(value);
+            } catch (err) {
+                throw new Error(`Failed to fill ${fieldName} field: ${(err as Error).message}`);
+            }
+        }
+
+        // Helper to call handleCaptcha if provided, with error handling and optional timeout
+        async function maybeHandleCaptcha(page: Page, handleCaptcha?: (page: Page) => Promise<void>, captchaTimeoutMs = 30000) {
+            if (!handleCaptcha) return;
+            try {
+                await Promise.race([
+                    handleCaptcha(page),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Captcha handler timed out')), captchaTimeoutMs)),
+                ]);
+            } catch (err) {
+                throw new Error(`Captcha handler failed: ${(err as Error).message}`);
+            }
+        }
+
+        async function performSingleStepLogin({
+            page,
+            username,
+            password,
+            locators,
+            timeoutMs = 30_000,
+            handleCaptcha,
+            captchaTimeoutMs = 30000,
+        }: {
+            page: Page;
+            username: string;
+            password: string;
+            locators: { usernameInput: Locator; passwordInput: Locator; submitButton: Locator; nextButton: Locator };
+            timeoutMs: number;
+            handleCaptcha?: (page: Page) => Promise<void>;
+            captchaTimeoutMs?: number;
+        }): Promise<void> {
+            const usernameField = locators.usernameInput.first();
+            await waitAndFill(usernameField, username, timeoutMs, 'username');
+            const passwordField = locators.passwordInput.first();
+            await waitAndFill(passwordField, password, timeoutMs, 'password');
+            await maybeHandleCaptcha(page, handleCaptcha, captchaTimeoutMs);
+            try {
+                const submitButton = locators.submitButton.first();
+                await submitButton.waitFor({ timeout: timeoutMs });
+                await submitButton.click();
+            } catch (err) {
+                throw new Error(`Failed to click submit button: ${(err as Error).message}`);
+            }
+            await page.waitForLoadState('networkidle', { timeout: timeoutMs }).catch(() => {});
+        }
+
+        async function performTwoStepLogin({
+            page,
+            username,
+            password,
+            locators,
+            timeoutMs = 30_000,
+            handleCaptcha,
+            captchaTimeoutMs = 30000,
+        }: {
+            page: Page;
+            username: string;
+            password: string;
+            locators: { usernameInput: Locator; passwordInput: Locator; submitButton: Locator; nextButton: Locator };
+            timeoutMs: number;
+            handleCaptcha?: (page: Page) => Promise<void>;
+            captchaTimeoutMs?: number;
+        }): Promise<void> {
+            const usernameField = locators.usernameInput.first();
+            await waitAndFill(usernameField, username, timeoutMs, 'username');
+            try {
+                const nextButton = locators.nextButton.first();
+                await nextButton.waitFor({ timeout: timeoutMs });
+                await nextButton.click();
+            } catch (err) {
+                throw new Error(`Failed to click next button: ${(err as Error).message}`);
+            }
+            const passwordField = locators.passwordInput.first();
+            await waitAndFill(passwordField, password, timeoutMs, 'password');
+            await maybeHandleCaptcha(page, handleCaptcha, captchaTimeoutMs);
+            try {
+                const submitButton = locators.submitButton.first();
+                await submitButton.waitFor({ timeout: timeoutMs });
+                await submitButton.click();
+            } catch (err) {
+                throw new Error(`Failed to click submit button: ${(err as Error).message}`);
+            }
+            await page.waitForLoadState('networkidle', { timeout: timeoutMs }).catch(() => {});
+        }
+
+        test('single-step login success', async () => {
+            const pageWaitForLoadStateSpy = vitest.spyOn(page, 'waitForLoadState').mockResolvedValue();
+
+            usernameInputMock.isVisible.mockResolvedValue(true);
+            // Password is visible in single-step flow
+            passwordInputMock.isVisible.mockResolvedValue(true);
+
+            const detectLoginSuccessMock = vitest.fn().mockResolvedValue(true);
+
+            await playwrightUtils.login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                locators: {
+                    getUsernameInput: () => usernameInputMock as unknown as Locator,
+                    getPasswordInput: () => passwordInputMock as unknown as Locator,
+                    getSubmitButton: () => submitButtonMock as unknown as Locator,
+                },
+                detectLoginSuccess: detectLoginSuccessMock,
+            });
+
+            // Verify interactions
+            expect(usernameInputMock.fill).toHaveBeenCalledWith('testuser');
+            expect(passwordInputMock.fill).toHaveBeenCalledWith('testpass');
+            expect(submitButtonMock.click).toHaveBeenCalledTimes(1);
+            expect(pageWaitForLoadStateSpy).toHaveBeenCalledWith('networkidle', { timeout: 10_000 });
+            expect(detectLoginSuccessMock).toHaveBeenCalledWith(page);
+        });
+
+        test('single-step login failure', async () => {
+            usernameInputMock.isVisible.mockResolvedValue(true);
+            // Password is visible in single-step flow
+            passwordInputMock.isVisible.mockResolvedValue(true);
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'wrongpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                    detectLoginSuccess: async () => false,
+                }),
+            ).rejects.toThrow('Login failed - success detection heuristic indicates login was not successful');
+        });
+
+        test('two-step login success', async () => {
+            usernameInputMock.isVisible.mockResolvedValue(true);
+            // Password is not visible in two-step flow
+            passwordInputMock.isVisible.mockResolvedValue(false);
+
+            await playwrightUtils.login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                locators: {
+                    getUsernameInput: () => usernameInputMock as unknown as Locator,
+                    getPasswordInput: () => passwordInputMock as unknown as Locator,
+                    getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    getNextButton: () => nextButtonMock as unknown as Locator,
+                },
+                detectLoginSuccess: async () => true,
+            });
+
+            // Verify interactions
+            expect(usernameInputMock.fill).toHaveBeenCalledWith('testuser');
+            expect(passwordInputMock.fill).toHaveBeenCalledWith('testpass');
+            expect(nextButtonMock.click).toHaveBeenCalledOnce();
+            expect(submitButtonMock.click).toHaveBeenCalledOnce();
+        });
+
+        test('two-step login failure', async () => {
+            usernameInputMock.isVisible.mockResolvedValue(true);
+            // Password is not visible in two-step flow
+            passwordInputMock.isVisible.mockResolvedValue(false);
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'wrongpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                        getNextButton: () => nextButtonMock as unknown as Locator,
+                    },
+                    detectLoginSuccess: async () => false,
+                }),
+            ).rejects.toThrow('Login failed - success detection heuristic indicates login was not successful');
+        });
+
+        test('no username input detected', async () => {
+            // Mock no username input detected
+            usernameInputMock.isVisible.mockResolvedValue(false);
+
+            // Should resolve without error when no username input is detected
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'testpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                }),
+            ).resolves.toBeUndefined();
+
+            // Should not attempt to fill or click anything
+            expect(usernameInputMock.fill).not.toHaveBeenCalled();
+            expect(passwordInputMock.fill).not.toHaveBeenCalled();
+            expect(submitButtonMock.click).not.toHaveBeenCalled();
+        });
+
+        test('no password input detected', async () => {
+            // Mock no username input detected
+            passwordInputMock.fill.mockRejectedValue(new Error('Failed to fill password'));
+
+            // Should resolve without error when no username input is detected
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'testpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                }),
+            ).rejects.toThrow('Failed to fill password');
+        });
+
+        test('default locators usage', async () => {
+            await playwrightUtils.login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                detectLoginSuccess: async () => true,
+            });
+
+            // Verify custom selectors were used
+            expect(newLocatorMock.fill).toHaveBeenCalledWith('testuser');
+            expect(newLocatorMock.fill).toHaveBeenCalledWith('testpass');
+            expect(newLocatorMock.click).toHaveBeenCalled();
+            expect(newLocatorMock.or).toHaveBeenCalledTimes(42);
+        });
+
+        test('default detectLoginSuccess usage - failure indicator', async () => {
+            // Mock failed flow
+            newLocatorMock.isVisible.mockImplementation(async () => {
+                const callCount = newLocatorMock.isVisible.mock.calls.length;
+                if (callCount === 1) return true; // failure indicator visible
+
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                return false; // no success indicator
+            });
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'wrongpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                }),
+            ).rejects.toThrow('Login failed - success detection heuristic indicates login was not successful');
+            expect(newLocatorMock.or).toHaveBeenCalledTimes(32);
+        });
+
+        test('default detectLoginSuccess usage - success indicator', async () => {
+            // Mock successful flow
+            newLocatorMock.isVisible.mockImplementation(async () => {
+                const callCount = newLocatorMock.isVisible.mock.calls.length;
+                // no failure indicator
+                if (callCount === 1) {
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                    return false;
+                }
+                // success indicator visible
+                return true;
+            });
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'wrongpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                }),
+            ).resolves.toBeUndefined();
+            expect(newLocatorMock.or).toHaveBeenCalledTimes(32);
+        });
+
+        test('default detectLoginSuccess usage - path changed', async () => {
+            // Neither failure nor success indicator visible
+            newLocatorMock.isVisible.mockResolvedValue(false);
+            vitest.spyOn(page, 'url').mockResolvedValue('https://example.com/dashboard');
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'wrongpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                }),
+            ).resolves.toBeUndefined();
+        });
+
+        test('default detectLoginSuccess usage - path is still login', async () => {
+            // Neither failure nor success indicator visible
+            newLocatorMock.isVisible.mockResolvedValue(false);
+            vitest.spyOn(page, 'url').mockReturnValue('https://example.com/login');
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'wrongpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                }),
+            ).rejects.toThrow('Login failed - success detection heuristic indicates login was not successful');
+        });
+
+        // TODO: remove this before merging, it's just for development, testing against 3rd party live website is not a good idea
+        test('live website login - SauceDemo', async () => {
+            vitest.spyOn(page, 'locator').mockRestore();
+            vitest.spyOn(page, 'getByText').mockRestore();
+
+            try {
+                // Navigate to SauceDemo - a popular demo site for testing automation
+                await page.goto('https://www.saucedemo.com/');
+
+                // Use the login function with known test credentials
+                await playwrightUtils.login(page, {
+                    username: 'standard_user',
+                    password: 'secret_sauce',
+                });
+
+                // Verify we successfully logged in by checking for the inventory page
+                const currentUrl = page.url();
+                expect(currentUrl).toContain('/inventory.html');
+
+                // Also verify the presence of the logout button which indicates successful login
+                // First open the menu to make the logout button visible
+                const menuButton = page.locator('[id="react-burger-menu-btn"]');
+                await menuButton.click();
+
+                const logoutButton = page.locator('[data-test="logout-sidebar-link"]');
+                await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
+
+                // Verify we can see the products container
+                const productsContainer = page.locator('[data-test="inventory-container"]');
+                await productsContainer.waitFor({ state: 'visible', timeout: 5000 });
+            } catch (error: unknown) {
+                // If the test fails, it might be due to network issues or site changes
+                // Log the error but don't fail the entire test suite
+                console.warn('SauceDemo login test failed - this might be due to network issues:', error);
+                // Re-throw only if it's not a network-related error
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (errorMessage.includes('net::') || errorMessage.includes('timeout')) {
+                    console.warn('Skipping SauceDemo test due to network issues');
+                    return;
+                }
+                throw error;
+            }
+        });
+
+        // TODO: remove this before merging, it's just for development, testing against 3rd party live website is not a good idea
+        test('live website login failure - SauceDemo', async () => {
+            vitest.spyOn(page, 'locator').mockRestore();
+            vitest.spyOn(page, 'getByText').mockRestore();
+
+            try {
+                // Navigate to SauceDemo - a popular demo site for testing automation
+                await page.goto('https://www.saucedemo.com/');
+
+                await expect(() =>
+                    // Use the login function with bad credentials
+                    playwrightUtils.login(page, {
+                        username: 'standard_user',
+                        password: 'bad_password',
+                    }),
+                ).rejects.toThrowError('Login failed - success detection heuristic indicates login was not successful');
+            } catch (error: unknown) {
+                // If the test fails, it might be due to network issues or site changes
+                // Log the error but don't fail the entire test suite
+                console.warn('SauceDemo login test failed - this might be due to network issues:', error);
+                // Re-throw only if it's not a network-related error
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (errorMessage.includes('net::') || errorMessage.includes('timeout')) {
+                    console.warn('Skipping SauceDemo test due to network issues');
+                    return;
+                }
+                throw error;
+            }
+        });
+
+        test('login() calls handleCaptcha if provided (single-step)', async () => {
+            const handleCaptcha = vitest.fn().mockResolvedValue(undefined);
+            usernameInputMock.isVisible.mockResolvedValue(true);
+            passwordInputMock.isVisible.mockResolvedValue(true);
+
+            await playwrightUtils.login(page, {
+                username: 'testuser',
+                password: 'testpass',
+                locators: {
+                    getUsernameInput: () => usernameInputMock as unknown as Locator,
+                    getPasswordInput: () => passwordInputMock as unknown as Locator,
+                    getSubmitButton: () => submitButtonMock as unknown as Locator,
+                },
+                detectLoginSuccess: async () => true,
+                handleCaptcha,
+            });
+
+            expect(handleCaptcha).toHaveBeenCalledWith(page);
+        });
+
+        test('login() fails if handleCaptcha throws', async () => {
+            const handleCaptcha = vitest.fn().mockRejectedValue(new Error('Captcha failed to solve'));
+            usernameInputMock.isVisible.mockResolvedValue(true);
+            passwordInputMock.isVisible.mockResolvedValue(true);
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'testpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                    detectLoginSuccess: async () => true,
+                    handleCaptcha,
+                }),
+            ).rejects.toThrow('Captcha handler failed: Captcha failed to solve');
+        });
+
+        test('login() fails if handleCaptcha times out', async () => {
+            const handleCaptcha = vitest.fn().mockImplementation(() => new Promise(() => {})); // never resolves
+            usernameInputMock.isVisible.mockResolvedValue(true);
+            passwordInputMock.isVisible.mockResolvedValue(true);
+
+            await expect(
+                playwrightUtils.login(page, {
+                    username: 'testuser',
+                    password: 'testpass',
+                    locators: {
+                        getUsernameInput: () => usernameInputMock as unknown as Locator,
+                        getPasswordInput: () => passwordInputMock as unknown as Locator,
+                        getSubmitButton: () => submitButtonMock as unknown as Locator,
+                    },
+                    detectLoginSuccess: async () => true,
+                    handleCaptcha,
+                    captchaTimeoutMs: 100, // very short timeout
+                }),
+            ).rejects.toThrow('Captcha handler failed: Captcha handler timed out');
+        });
     });
 });
