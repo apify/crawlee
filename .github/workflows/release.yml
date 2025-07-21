@@ -213,6 +213,10 @@ jobs:
                 run: |
                     cd website
                     VERSION=$(jq -r '.version' ../lerna.json)
+                    if [ -z "$VERSION" ]; then
+                        echo "Error: VERSION is empty. Ensure lerna.json exists and contains a valid .version field."
+                        exit 1
+                    fi
                     MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
                     yarn docusaurus docs:version $MAJOR_MINOR
                     yarn docusaurus api:version $MAJOR_MINOR
