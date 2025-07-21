@@ -582,7 +582,6 @@ __metadata:
     "@vladfrangu/async_event_emitter": "npm:^2.2.2"
     csv-stringify: "npm:^6.2.0"
     fs-extra: "npm:^11.0.0"
-    gen-esm-wrapper: "npm:^1.1.3"
     got-scraping: "npm:^4.0.0"
     json5: "npm:^2.2.3"
     minimatch: "npm:^9.0.0"
