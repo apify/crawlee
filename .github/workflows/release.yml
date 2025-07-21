@@ -212,7 +212,7 @@ jobs:
             -   name: Snapshot the current version
                 run: |
                     cd website
-                    VERSION=$(jq -r '.version' lerna.json)
+                    VERSION=$(jq -r '.version' ../lerna.json)
                     MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
                     yarn docusaurus docs:version $MAJOR_MINOR
                     yarn docusaurus api:version $MAJOR_MINOR
