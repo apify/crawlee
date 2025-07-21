@@ -177,7 +177,7 @@ module.exports = {
             {
                 enableDescriptions: false,
                 content: {
-                    excludeRoutes: ['/js/api/3.*/**', '/js/api/3.*', '/js/api/next/**'],
+                    excludeRoutes: ['/js/api/3.*/**', '/js/api/3.*', '/js/api/next/**', '/js/api/next'],
                     includeVersionedDocs: false,
                     enableLlmsFullTxt: true,
                     includeBlog: true,
