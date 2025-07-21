@@ -19,7 +19,7 @@ test('Timeouts are isolated between navigation and request handler', async () =>
             async () => {
                 navStartTime = Date.now();
                 console.log(`Navigation started at ${navStartTime}`);
-            }
+            },
         ],
         requestHandler: async ({ page }) => {
             handlerStartTime = Date.now();
@@ -34,7 +34,7 @@ test('Timeouts are isolated between navigation and request handler', async () =>
                 requestErrors.push(err as Error);
                 throw err;
             } finally {
-                console.log(`Handler completed after ${(Date.now() - handlerStartTime)/1000}s`);
+                console.log(`Handler completed after ${(Date.now() - handlerStartTime) / 1000}s`);
             }
         },
     });
