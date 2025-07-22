@@ -176,6 +176,12 @@ module.exports = {
             '@signalwire/docusaurus-plugin-llms-txt',
             {
                 enableDescriptions: false,
+                optionalLinks: [
+                    {
+                        title: 'Crawlee for Python llms.txt',
+                        url: 'https://crawlee.dev/python/llms.txt',
+                    }
+                ],
                 content: {
                     excludeRoutes: ['/js/api/3.*/**', '/js/api/3.*', '/js/api/next/**', '/js/api/next'],
                     includeVersionedDocs: false,
