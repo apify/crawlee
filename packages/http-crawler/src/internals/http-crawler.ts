@@ -19,6 +19,7 @@ import type {
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
+    BLOCKED_STATUS_CODES,
     Configuration,
     CrawlerExtension,
     mergeCookies,
@@ -602,6 +603,18 @@ export class HttpCrawler<
                 return `Found selectors: ${foundSelectors.join(', ')}`;
             }
         }
+
+        const blockedStatusCodes =
+            // eslint-disable-next-line dot-notation
+            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
+                ? // eslint-disable-next-line dot-notation
+                  this.sessionPool!['blockedStatusCodes']
+                : BLOCKED_STATUS_CODES;
+
+        if (blockedStatusCodes.includes(crawlingContext.response.statusCode!)) {
+            return `Blocked by status code ${crawlingContext.response.statusCode}`;
+        }
+
         return false;
     }
 

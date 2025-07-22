@@ -212,8 +212,14 @@ jobs:
             -   name: Snapshot the current version
                 run: |
                     cd website
-                    yarn docusaurus docs:version $(jq .version ../lerna.json | sed s/\"//g | head -c 3)
-                    yarn docusaurus api:version $(jq .version ../lerna.json | sed s/\"//g | head -c 3)
+                    VERSION=$(jq -r '.version' ../lerna.json)
+                    if [ -z "$VERSION" ]; then
+                        echo "Error: VERSION is empty. Ensure lerna.json exists and contains a valid .version field."
+                        exit 1
+                    fi
+                    MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
+                    yarn docusaurus docs:version $MAJOR_MINOR
+                    yarn docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
                 run: |

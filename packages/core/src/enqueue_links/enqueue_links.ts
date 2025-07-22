@@ -87,7 +87,6 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * containing patterns matching URLs that will **never** be enqueued.
      *
      * The plain objects must include either the `glob` property or the `regexp` property.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
      * Glob matching is always case-insensitive.
      * If you need case-sensitive matching, provide a regexp.
