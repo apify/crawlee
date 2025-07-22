@@ -612,8 +612,9 @@ export class BrowserPool<
      */
     retireBrowserController(browserController: BrowserControllerReturn): void {
         const isStarting = this.startingBrowserControllers.has(browserController);
+        const isActive = this.activeBrowserControllers.has(browserController);
 
-        const hasBeenRetiredOrKilled = !isStarting && !this.activeBrowserControllers.has(browserController);
+        const hasBeenRetiredOrKilled = !isStarting && !isActive;
         if (hasBeenRetiredOrKilled) return;
 
         this.retiredBrowserControllers.add(browserController);
