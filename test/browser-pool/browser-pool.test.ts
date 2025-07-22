@@ -2,6 +2,7 @@
 import http from 'node:http';
 import { promisify } from 'node:util';
 
+import { sleep } from 'crawlee';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
@@ -17,7 +18,6 @@ import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/s
 import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin';
 import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin';
 import { createProxyServer } from './browser-plugins/create-proxy-server';
-import { sleep } from 'crawlee';
 
 const fingerprintingMatrix: [string, PlaywrightPlugin | PuppeteerPlugin][] = [
     [
@@ -290,8 +290,8 @@ describe.each([
             });
 
             test('browser lifecycle works correctly', async () => {
-                let resolvePreLaunchHook: Function | null = null;
-                let resolvePostLaunchHook: Function | null = null;
+                let resolvePreLaunchHook: (() => void) | null = null;
+                let resolvePostLaunchHook: (() => void) | null = null;
 
                 const preLaunchPromise = new Promise<void>((resolve) => {
                     resolvePreLaunchHook = resolve;
