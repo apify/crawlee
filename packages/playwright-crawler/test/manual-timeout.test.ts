@@ -11,16 +11,16 @@ test('Verify full timeout aggregation', async () => {
         preNavigationHooks: [
             async () => {
                 // Simulate slow navigation
-                await new Promise(res => setTimeout(res, 65_000)); // 55s < 60s
-            }
+                await new Promise((res) => setTimeout(res, 65_000)); // 55s < 60s
+            },
         ],
         requestHandler: async () => {
             // Should trigger handler timeout
-            await new Promise(res => setTimeout(res, 65_000)); // 65s > 60s
+            await new Promise((res) => setTimeout(res, 65_000)); // 65s > 60s
         },
         failedRequestHandler: async ({ error }) => {
             console.log('Full Error:', JSON.stringify(error, null, 2));
-        }
+        },
     });
 
     await crawler.run(['http://example.com']);
