@@ -618,11 +618,8 @@ export class BrowserPool<
 
         this.retiredBrowserControllers.add(browserController);
         this.emit(BROWSER_POOL_EVENTS.BROWSER_RETIRED, browserController);
-        if (isStarting) {
-            this.startingBrowserControllers.delete(browserController);
-        } else {
-            this.activeBrowserControllers.delete(browserController);
-        }
+        this.startingBrowserControllers.delete(browserController);
+        this.activeBrowserControllers.delete(browserController);
     }
 
     /**
