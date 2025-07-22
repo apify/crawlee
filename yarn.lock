@@ -582,6 +582,7 @@ __metadata:
     "@vladfrangu/async_event_emitter": "npm:^2.2.2"
     csv-stringify: "npm:^6.2.0"
     fs-extra: "npm:^11.0.0"
+    gen-esm-wrapper: "npm:^1.1.3"
     got-scraping: "npm:^4.0.0"
     json5: "npm:^2.2.3"
     minimatch: "npm:^9.0.0"
@@ -3612,6 +3613,16 @@ __metadata:
   version: 2.0.1
   resolution: "arrify@npm:2.0.1"
   checksum: 10c0/3fb30b5e7c37abea1907a60b28a554d2f0fc088757ca9bf5b684786e583fdf14360721eb12575c1ce6f995282eab936712d3c4389122682eafab0e0b57f78dbb
+  languageName: node
+  linkType: hard
+
+"assert@npm:^1.4.1":
+  version: 1.5.1
+  resolution: "assert@npm:1.5.1"
+  dependencies:
+    object.assign: "npm:^4.1.4"
+    util: "npm:^0.10.4"
+  checksum: 10c0/836688b928b68b7fc5bbc165443e16a62623d57676a1e8a980a0316f9ae86e5e0a102c63470491bf55a8545e75766303640c0c7ad1cf6bfa5450130396043bbd
   languageName: node
   linkType: hard
 
@@ -6646,6 +6657,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"gen-esm-wrapper@npm:^1.1.3":
+  version: 1.1.3
+  resolution: "gen-esm-wrapper@npm:1.1.3"
+  dependencies:
+    is-valid-identifier: "npm:^2.0.2"
+  bin:
+    gen-esm-wrapper: gen-esm-wrapper.js
+  checksum: 10c0/ead755ebc57880d43e6045b85aef972e3620af1e949dd22ea8d3a84d98bff13f6d661316b03a45ee546de440bb4cc19d1453c82dda22b62c699a42a3e88f6b10
+  languageName: node
+  linkType: hard
+
 "generative-bayesian-network@npm:^2.1.69":
   version: 2.1.69
   resolution: "generative-bayesian-network@npm:2.1.69"
@@ -7597,6 +7619,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"inherits@npm:2.0.3":
+  version: 2.0.3
+  resolution: "inherits@npm:2.0.3"
+  checksum: 10c0/6e56402373149ea076a434072671f9982f5fad030c7662be0332122fe6c0fa490acb3cc1010d90b6eff8d640b1167d77674add52dfd1bb85d545cf29e80e73e7
+  languageName: node
+  linkType: hard
+
 "ini@npm:4.1.1":
   version: 4.1.1
   resolution: "ini@npm:4.1.1"
@@ -8091,6 +8120,15 @@ __metadata:
   version: 0.1.0
   resolution: "is-unicode-supported@npm:0.1.0"
   checksum: 10c0/00cbe3455c3756be68d2542c416cab888aebd5012781d6819749fefb15162ff23e38501fe681b3d751c73e8ff561ac09a5293eba6f58fdf0178462ce6dcb3453
+  languageName: node
+  linkType: hard
+
+"is-valid-identifier@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "is-valid-identifier@npm:2.0.2"
+  dependencies:
+    assert: "npm:^1.4.1"
+  checksum: 10c0/0ca140b8cb261471280377cd292a4adb780cb231bcb2e5e9cd992792c021715333f1e7ed6f4dfd6c6f8e005eb0eda6e6ca364b56c95a59f7dd4805c880f1225a
   languageName: node
   linkType: hard
 
@@ -13325,6 +13363,15 @@ __metadata:
   version: 1.0.2
   resolution: "util-deprecate@npm:1.0.2"
   checksum: 10c0/41a5bdd214df2f6c3ecf8622745e4a366c4adced864bc3c833739791aeeeb1838119af7daed4ba36428114b5c67dcda034a79c882e97e43c03e66a4dd7389942
+  languageName: node
+  linkType: hard
+
+"util@npm:^0.10.4":
+  version: 0.10.4
+  resolution: "util@npm:0.10.4"
+  dependencies:
+    inherits: "npm:2.0.3"
+  checksum: 10c0/d29f6893e406b63b088ce9924da03201df89b31490d4d011f1c07a386ea4b3dbe907464c274023c237da470258e1805d806c7e4009a5974cd6b1d474b675852a
   languageName: node
   linkType: hard
 
