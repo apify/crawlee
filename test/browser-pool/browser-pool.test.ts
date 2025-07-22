@@ -17,6 +17,7 @@ import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/s
 import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin';
 import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin';
 import { createProxyServer } from './browser-plugins/create-proxy-server';
+import { sleep } from 'crawlee';
 
 const fingerprintingMatrix: [string, PlaywrightPlugin | PuppeteerPlugin][] = [
     [
@@ -56,6 +57,7 @@ describe.each([
         browserPool = new BrowserPool({
             browserPlugins: [plugin],
             closeInactiveBrowserAfterSecs: 2,
+            retireInactiveBrowserAfterSecs: 2,
         });
     });
 
@@ -92,6 +94,7 @@ describe.each([
             await browserPool.newPage();
 
             browserPool.retireAllBrowsers();
+            expect(browserPool.startingBrowserControllers.size).toBe(0);
             expect(browserPool.activeBrowserControllers.size).toBe(0);
             expect(browserPool.retiredBrowserControllers.size).toBe(1);
         });
@@ -104,6 +107,7 @@ describe.each([
             await browserPool.destroy();
 
             expect(browserController.close).toHaveBeenCalled();
+            expect(browserPool.startingBrowserControllers.size).toBe(0);
             expect(browserPool.activeBrowserControllers.size).toBe(0);
             expect(browserPool.retiredBrowserControllers.size).toBe(0);
             expect(browserPool['browserKillerInterval']).toBeUndefined();
@@ -164,6 +168,7 @@ describe.each([
             await browserPool.newPageInNewBrowser();
             await browserPool.newPageInNewBrowser();
 
+            expect(browserPool.startingBrowserControllers.size).toBe(0);
             expect(browserPool.activeBrowserControllers.size).toBe(3);
             expect(plugin.launch).toHaveBeenCalledTimes(3);
         });
@@ -282,6 +287,44 @@ describe.each([
                 await browserPool['_executeHooks'](hooks);
                 expect(indexArray).toHaveLength(10);
                 indexArray.forEach((v, index) => expect(v).toEqual(index));
+            });
+
+            test('browser lifecycle works correctly', async () => {
+                let resolvePreLaunchHook: Function | null = null;
+                let resolvePostLaunchHook: Function | null = null;
+
+                const preLaunchPromise = new Promise<void>((resolve) => {
+                    resolvePreLaunchHook = resolve;
+                });
+                const postLaunchPromise = new Promise<void>((resolve) => {
+                    resolvePostLaunchHook = resolve;
+                });
+
+                browserPool.preLaunchHooks = [...browserPool.preLaunchHooks, async () => preLaunchPromise];
+
+                browserPool.postLaunchHooks = [...browserPool.postLaunchHooks, async () => postLaunchPromise];
+
+                const newPagePromise = browserPool.newPage();
+
+                await sleep(200);
+
+                expect(browserPool.startingBrowserControllers.size).toBe(1);
+                expect(browserPool.activeBrowserControllers.size).toBe(0);
+                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+
+                await sleep(5e3); // Make the wait longer than the browser pool's retireInactiveBrowserAfterSecs + closeInactiveBrowserAfterSecs
+
+                resolvePreLaunchHook!();
+                resolvePostLaunchHook!();
+
+                const page = await newPagePromise;
+
+                expect(browserPool.startingBrowserControllers.size).toBe(0);
+                expect(browserPool.activeBrowserControllers.size).toBe(1);
+                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+
+                await (page.evaluate as any)('() => {}'); // Make sure the page is usable
+                await page.close();
             });
 
             describe('preLaunchHooks', () => {
