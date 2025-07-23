@@ -50,7 +50,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
@@ -1130,7 +1130,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         ow(
             requests,
-            ow.object.is((value: unknown) => isIterable(value) || isAsyncIterable(value)),
+            ow.object
+                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
+                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
         );
 
         async function* filteredRequests() {

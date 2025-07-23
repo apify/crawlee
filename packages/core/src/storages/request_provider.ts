@@ -12,6 +12,7 @@ import type {
 import {
     chunkedAsyncIterable,
     downloadListOfUrls,
+    getObjectType,
     isAsyncIterable,
     isIterable,
     peekableAsyncIterable,
@@ -220,7 +221,9 @@ export abstract class RequestProvider implements IStorage {
 
         ow(
             requestsLike,
-            ow.object.is((value: unknown) => isIterable(value) || isAsyncIterable(value)),
+            ow.object
+                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
+                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
         );
         ow(
             options,
@@ -337,7 +340,9 @@ export abstract class RequestProvider implements IStorage {
         this.lastActivity = new Date();
         ow(
             requests,
-            ow.object.is((value: unknown) => isIterable(value) || isAsyncIterable(value)),
+            ow.object
+                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
+                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
         );
 
         ow(
