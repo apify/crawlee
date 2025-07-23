@@ -1,7 +1,6 @@
 {
     "scripts": {
         "examples": "docusaurus-examples",
-        "postbuild": "sed -i '' 's/\\.md//g' build/llms.txt build/llms-full.txt",
         "postinstall": "npx patch-package",
         "start": "rimraf .docusaurus && docusaurus start",
         "start:fast": "rimraf .docusaurus && CRAWLEE_DOCS_FAST=1 docusaurus start",
