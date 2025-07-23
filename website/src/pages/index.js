@@ -29,7 +29,7 @@ function LanguageGetStartedSection() {
             <div className={styles.dashedSeparatorVertical} />
             <LanguageInfoWidget
                 language="Python"
-                command="pipx run 'crawlee[cli]' create my-crawler"
+                command="uvx 'crawlee[cli]' create my-crawler"
                 githubUrl="https://github.com/apify/crawlee-python"
                 to="https://crawlee.dev/python"
             />
@@ -115,7 +115,7 @@ function CodeExampleSection() {
                 example={
                     activeOption === 'JavaScript'
                         ? `npx crawlee create my-crawler`
-                        : `pipx run 'crawlee[cli]' create my-crawler`
+                        : `uvx 'crawlee[cli]' create my-crawler`
                 }
             />
         </>

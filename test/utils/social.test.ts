@@ -465,12 +465,19 @@ describe('utils.social', () => {
                         <a href="https://pinterest.com/pin/10084556789">My favourite pin</a> duplicate
                         <a href="https://discord.com/invite/jyEM2PRvMU/">Join us on Discord</a>
                         <a href="discord.gg/discord-developers">Join our Discord community</a>
+                        <div>+4207751111111<a href="mailto:eva@example.com">eva@example.com</a></div>
                     </body>
                 </html>
             `),
             ).toEqual({
                 discords: ['discord.gg/discord-developers', 'https://discord.com/invite/jyEM2PRvMU/'],
-                emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
+                emails: [
+                    'alice@example.com',
+                    'bob@example.com',
+                    'carl@example.com',
+                    'david@example.com',
+                    'eva@example.com',
+                ],
                 phones: ['+42077533333'],
                 phonesUncertain: [
                     '+4207751111111',

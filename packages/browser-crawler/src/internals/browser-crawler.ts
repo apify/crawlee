@@ -1,6 +1,7 @@
 import type {
     Awaitable,
     BasicCrawlerOptions,
+    BasicCrawlingContext,
     CrawlingContext,
     Dictionary,
     EnqueueLinksOptions,
@@ -573,6 +574,8 @@ export abstract class BrowserCrawler<
             request.noRetry = true;
             request.state = RequestState.SKIPPED;
 
+            await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
             return;
         }
 
@@ -621,15 +624,17 @@ export abstract class BrowserCrawler<
             crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo as ProxyInfo;
         }
 
+        const contextEnqueueLinks = crawlingContext.enqueueLinks;
         crawlingContext.enqueueLinks = async (enqueueOptions) => {
             return browserCrawlerEnqueueLinks({
-                options: enqueueOptions,
+                options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                 page,
                 requestQueue: await this.getRequestQueue(),
                 robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                onSkippedRequest: this.onSkippedRequest,
+                onSkippedRequest: this.handleSkippedRequest,
                 originalRequestUrl: crawlingContext.request.url,
                 finalRequestUrl: crawlingContext.request.loadedUrl,
+                enqueueLinks: contextEnqueueLinks,
             });
         };
     }
@@ -800,35 +805,54 @@ interface EnqueueLinksInternalOptions {
 }
 
 /** @internal */
-export async function browserCrawlerEnqueueLinks({
-    options,
-    page,
-    requestQueue,
-    robotsTxtFile,
-    onSkippedRequest,
-    originalRequestUrl,
-    finalRequestUrl,
-}: EnqueueLinksInternalOptions) {
+interface BoundEnqueueLinksInternalOptions {
+    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
+    originalRequestUrl: string;
+    finalRequestUrl?: string;
+    page: CommonPage;
+}
+
+/** @internal */
+function containsEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+): options is BoundEnqueueLinksInternalOptions {
+    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
+}
+
+/** @internal */
+export async function browserCrawlerEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+) {
+    const { options: enqueueLinksOptions, finalRequestUrl, originalRequestUrl, page } = options;
+
     const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: options?.strategy,
+        enqueueStrategy: enqueueLinksOptions?.strategy,
         finalRequestUrl,
         originalRequestUrl,
-        userProvidedBaseUrl: options?.baseUrl,
+        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
     });
 
     const urls = await extractUrlsFromPage(
         page as any,
-        options?.selector ?? 'a',
-        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+        enqueueLinksOptions?.selector ?? 'a',
+        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
+    if (containsEnqueueLinks(options)) {
+        return options.enqueueLinks({
+            urls,
+            baseUrl,
+            ...enqueueLinksOptions,
+        });
+    }
     return enqueueLinks({
-        requestQueue,
-        robotsTxtFile,
-        onSkippedRequest,
+        requestQueue: options.requestQueue,
+        robotsTxtFile: options.robotsTxtFile,
+        onSkippedRequest: options.onSkippedRequest,
         urls,
         baseUrl,
-        ...(options as EnqueueLinksOptions),
+        ...(enqueueLinksOptions as EnqueueLinksOptions),
     });
 }
 

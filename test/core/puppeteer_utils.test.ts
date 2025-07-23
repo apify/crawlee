@@ -171,8 +171,14 @@ describe('puppeteerUtils', () => {
                 const $ = await puppeteerUtils.parseWithCheerio(page);
 
                 const headings = $('h1')
-                    .map((i, el) => $(el).text())
+                    .map((_, el) => $(el).text())
                     .get();
+
+                const titles = $('title')
+                    .map((_, el) => $(el).text())
+                    .get();
+
+                expect(titles).toEqual(['Outside iframe title']);
                 expect(headings).toEqual(['Outside iframe', 'In iframe']);
             } finally {
                 await browser.close();

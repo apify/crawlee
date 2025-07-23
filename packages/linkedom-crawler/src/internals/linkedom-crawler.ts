@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 
 import type {
+    BasicCrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -185,11 +186,11 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
             },
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
-                    options: enqueueOptions,
+                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                    onSkippedRequest: this.onSkippedRequest,
+                    onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
@@ -226,7 +227,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
 }
 
 interface EnqueueLinksInternalOptions {
-    options?: LinkeDOMCrawlerEnqueueLinksOptions;
+    options?: EnqueueLinksOptions;
     window: Window | null;
     requestQueue: RequestProvider;
     robotsTxtFile?: RobotsTxtFile;
@@ -235,40 +236,59 @@ interface EnqueueLinksInternalOptions {
     finalRequestUrl?: string;
 }
 
+interface BoundEnqueueLinksInternalOptions {
+    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
+    options?: EnqueueLinksOptions;
+    window: Window | null;
+    originalRequestUrl: string;
+    finalRequestUrl?: string;
+}
+
 /** @internal */
-export async function linkedomCrawlerEnqueueLinks({
-    options,
-    window,
-    requestQueue,
-    robotsTxtFile,
-    onSkippedRequest,
-    originalRequestUrl,
-    finalRequestUrl,
-}: EnqueueLinksInternalOptions) {
+function containsEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+): options is BoundEnqueueLinksInternalOptions {
+    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
+}
+
+/** @internal */
+export async function linkedomCrawlerEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+) {
+    const { options: enqueueLinksOptions, window, originalRequestUrl, finalRequestUrl } = options;
+
     if (!window) {
         throw new Error('Cannot enqueue links because the DOM is not available.');
     }
 
     const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: options?.strategy,
+        enqueueStrategy: enqueueLinksOptions?.strategy,
         finalRequestUrl,
         originalRequestUrl,
-        userProvidedBaseUrl: options?.baseUrl,
+        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
     });
 
     const urls = extractUrlsFromWindow(
         window,
-        options?.selector ?? 'a',
-        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+        enqueueLinksOptions?.selector ?? 'a',
+        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
+    if (containsEnqueueLinks(options)) {
+        return options.enqueueLinks({
+            urls,
+            baseUrl,
+            ...enqueueLinksOptions,
+        });
+    }
+
     return enqueueLinks({
-        requestQueue,
-        robotsTxtFile,
-        onSkippedRequest,
+        requestQueue: options.requestQueue,
+        robotsTxtFile: options.robotsTxtFile,
+        onSkippedRequest: options.onSkippedRequest,
         urls,
         baseUrl,
-        ...options,
+        ...enqueueLinksOptions,
     });
 }
 

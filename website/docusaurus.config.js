@@ -1,4 +1,5 @@
 /* eslint-disable global-require */
+const path = require('path');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -55,7 +56,20 @@ module.exports = {
     onBrokenMarkdownLinks:
     /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
     future: {
-        experimental_faster: true,
+        experimental_faster: {
+            // ssgWorkerThreads: true,
+            swcJsLoader: true,
+            swcJsMinimizer: true,
+            swcHtmlMinimizer: true,
+            lightningCssMinimizer: true,
+            rspackBundler: true,
+            mdxCrossCompilerCache: true,
+            rspackPersistentCache: true,
+        },
+        v4: {
+            removeLegacyPostBuildHeadAttribute: true,
+            useCssCascadeLayers: false,
+        },
     },
     presets: /** @type {import('@docusaurus/types').PresetConfig[]} */ ([
         [
@@ -158,6 +172,30 @@ module.exports = {
                 id: 'GTM-5P7MCS7',
             },
         ],
+        [
+            '@signalwire/docusaurus-plugin-llms-txt',
+            {
+                enableDescriptions: false,
+                optionalLinks: [
+                    {
+                        title: 'Crawlee for Python llms.txt',
+                        url: 'https://crawlee.dev/python/llms.txt',
+                    },
+                    {
+                        title: 'Crawlee for Python llms-full.txt',
+                        url: 'https://crawlee.dev/python/llms-full.txt',
+                    }
+                ],
+                content: {
+                    excludeRoutes: ['/js/api/3.*/**', '/js/api/3.*', '/js/api/next/**', '/js/api/next'],
+                    includeVersionedDocs: false,
+                    enableLlmsFullTxt: true,
+                    includeBlog: true,
+                    includePages: true,
+                    relativePaths: false,
+                },
+            }
+        ],
         async function runnableCodeBlock() {
             return {
                 name: 'runnable-code-block',
@@ -209,6 +247,13 @@ module.exports = {
                 },
             };
         },
+        [
+            path.resolve(__dirname, 'src/plugins/docusaurus-plugin-segment'),
+            {
+                writeKey: process.env.SEGMENT_TOKEN,
+                allowedInDev: false,
+            },
+        ],
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({

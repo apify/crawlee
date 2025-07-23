@@ -18,5 +18,9 @@ declare module 'ml-logistic-regression' {
         train(X: Matrix, Y: Matrix): void;
 
         predict(Xtest: Matrix): number[];
+
+        static load(model: Record<string, unknown>): LogisticRegression;
+
+        toJSON(): Record<string, unknown>;
     }
 }

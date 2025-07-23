@@ -1,11 +1,11 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 import { globby } from 'globby';
 
-const files = await globby('packages/*/dist/**/*.d.ts');
+const dtsFiles = await globby('packages/*/dist/**/*.d.ts');
 
 // fix types references
-for (const filepath of files) {
+for (const filepath of dtsFiles) {
     const input = readFileSync(filepath, { encoding: 'utf8' }).split('\n');
     const output = [];
     let changed = false;
@@ -33,10 +33,36 @@ for (const filepath of files) {
             output.push('// @ts-ignore optional peer dependency or compatibility with es2022');
             output.push(line);
             changed = true;
+        } else if (line.includes('@apilink')) {
+            output.push(line.replaceAll('@apilink', '@link'));
+            changed = true;
         } else {
             output.push(line);
         }
         /* eslint-enable no-cond-assign */
+    }
+
+    if (changed === true) {
+        console.log('Writing', filepath);
+        writeFileSync(filepath, output.join('\n'));
+    }
+}
+
+const jsFiles = await globby('packages/*/dist/**/*.js');
+
+// convert `@apilink` to `@link` in JS files too
+for (const filepath of jsFiles) {
+    const input = readFileSync(filepath, { encoding: 'utf8' }).split('\n');
+    const output = [];
+    let changed = false;
+
+    for (const line of input) {
+        if (line.includes('@apilink')) {
+            output.push(line.replaceAll('@apilink', '@link'));
+            changed = true;
+        } else {
+            output.push(line);
+        }
     }
 
     if (changed === true) {

@@ -2,6 +2,7 @@ import type { IncomingMessage } from 'node:http';
 import { text as readStreamToString } from 'node:stream/consumers';
 
 import type {
+    BasicCrawlingContext,
     Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -185,19 +186,22 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
             _useHtmlParser2: true,
         } as CheerioOptions);
 
+        const originalEnqueueLinks = crawlingContext.enqueueLinks;
+
         return {
             dom,
             $,
             body,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
-                    options: enqueueOptions,
+                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     $,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                    onSkippedRequest: this.onSkippedRequest,
+                    onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
+                    enqueueLinks: originalEnqueueLinks,
                 });
             },
         };
@@ -247,40 +251,57 @@ interface EnqueueLinksInternalOptions {
     finalRequestUrl?: string;
 }
 
+interface BoundEnqueueLinksInternalOptions {
+    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
+    options?: EnqueueLinksOptions;
+    $: cheerio.CheerioAPI | null;
+    originalRequestUrl: string;
+    finalRequestUrl?: string;
+}
+
 /** @internal */
-export async function cheerioCrawlerEnqueueLinks({
-    options,
-    $,
-    requestQueue,
-    robotsTxtFile,
-    onSkippedRequest,
-    originalRequestUrl,
-    finalRequestUrl,
-}: EnqueueLinksInternalOptions) {
+function containsEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+): options is BoundEnqueueLinksInternalOptions {
+    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
+}
+
+/** @internal */
+export async function cheerioCrawlerEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+) {
+    const { options: enqueueLinksOptions, $, originalRequestUrl, finalRequestUrl } = options;
     if (!$) {
         throw new Error('Cannot enqueue links because the DOM is not available.');
     }
 
     const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: options?.strategy,
+        enqueueStrategy: enqueueLinksOptions?.strategy,
         finalRequestUrl,
         originalRequestUrl,
-        userProvidedBaseUrl: options?.baseUrl,
+        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
     });
 
     const urls = extractUrlsFromCheerio(
         $,
-        options?.selector ?? 'a',
-        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+        enqueueLinksOptions?.selector ?? 'a',
+        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
+    if (containsEnqueueLinks(options)) {
+        return options.enqueueLinks({
+            urls,
+            baseUrl,
+            ...enqueueLinksOptions,
+        });
+    }
     return enqueueLinks({
-        requestQueue,
-        robotsTxtFile,
-        onSkippedRequest,
+        requestQueue: options.requestQueue,
+        robotsTxtFile: options.robotsTxtFile,
+        onSkippedRequest: options.onSkippedRequest,
         urls,
         baseUrl,
-        ...options,
+        ...enqueueLinksOptions,
     });
 }
 
