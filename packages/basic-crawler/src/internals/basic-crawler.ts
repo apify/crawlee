@@ -50,7 +50,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
@@ -1127,6 +1127,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.maxCrawlDepth;
+
+        ow(
+            requests,
+            ow.object.is((value: unknown) => isIterable(value) || isAsyncIterable(value)),
+        );
 
         async function* filteredRequests() {
             let yieldedRequestCount = 0;

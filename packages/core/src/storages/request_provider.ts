@@ -335,6 +335,10 @@ export abstract class RequestProvider implements IStorage {
         checkStorageAccess();
 
         this.lastActivity = new Date();
+        ow(
+            requests,
+            ow.object.is((value: unknown) => isIterable(value) || isAsyncIterable(value)),
+        );
 
         ow(
             options,
