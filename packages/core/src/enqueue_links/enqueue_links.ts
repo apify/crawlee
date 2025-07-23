@@ -560,8 +560,6 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
         // Otherwise, fall back to the original origin (strict subdomain match)
         return originalUrl.origin;
     }
-
-
     // Always enqueue urls that are from the same origin in all other cases, as the filtering happens on the original request url, even if there was a redirect
     // before actually finding the urls
     return originalUrlOrigin;
