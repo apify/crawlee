@@ -180,6 +180,10 @@ module.exports = {
                     {
                         title: 'Crawlee for Python llms.txt',
                         url: 'https://crawlee.dev/python/llms.txt',
+                    },
+                    {
+                        title: 'Crawlee for Python llms-full.txt',
+                        url: 'https://crawlee.dev/python/llms-full.txt',
                     }
                 ],
                 content: {
