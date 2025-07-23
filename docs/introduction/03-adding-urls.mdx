@@ -128,6 +128,23 @@ await enqueueLinks({
 });
 ```
 
+### Enqueue strategies
+
+When using `enqueueLinks()`, you can specify different strategies for filtering which links to enqueue:
+
+- **`EnqueueStrategy.All`** - Enqueues all found links regardless of domain
+- **`EnqueueStrategy.SameHostname`** - Only enqueues links from the same hostname (automatically handles www ↔ non-www redirects)
+- **`EnqueueStrategy.SameDomain`** - Only enqueues links from the same domain (allows different subdomains)
+
+```javascript
+await context.enqueueLinks({
+    selector: 'a',
+    strategy: EnqueueStrategy.SameHostname, // Default strategy
+});
+```
+
+> **Note:** The `SameHostname` strategy automatically treats `www.example.com` and `example.com` as the same hostname to handle common redirect patterns. For strict subdomain matching, consider using custom filtering with globs.
+
 ### Filter URLs with patterns
 
 For even more control, you can use `globs`, `regexps` and `pseudoUrls` to filter the URLs. Each of those arguments is always an `Array`, but the contents can take on many forms. <ApiLink to="core/interface/EnqueueLinksOptions">See the reference</ApiLink> for more information about them as well as other options.
