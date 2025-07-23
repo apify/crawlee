@@ -1651,6 +1651,18 @@ describe('BasicCrawler', () => {
         });
     });
 
+    describe('addRequests input validation', () => {
+        test('should throw error when passed a non-iterable value', async () => {
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+            });
+
+            await expect(crawler.addRequests(new WeakSet() as any)).rejects.toThrow(
+                'Expected an iterable or async iterable, got weakset',
+            );
+        });
+    });
+
     describe('Dataset helpers, crawler parallelism', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
