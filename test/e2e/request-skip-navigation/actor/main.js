@@ -4,19 +4,19 @@ import { CheerioCrawler, Dataset, log, Request } from '@crawlee/cheerio';
 log.setLevel(log.LEVELS.DEBUG);
 
 const r1 = new Request({
-    url: 'https://example.com/?q=1',
+    url: 'https://crawlee.dev/?q=1',
     skipNavigation: true,
     userData: { abc: { def: 'ghi' } },
 });
 
 const r2 = new Request({
-    url: 'https://example.com/?q=2',
+    url: 'https://crawlee.dev/?q=2',
     skipNavigation: true,
 });
 r2.userData = { xyz: { kjl: 'mno' } };
 
 const r3 = new Request({
-    url: 'https://example.com/?q=3',
+    url: 'https://crawlee.dev/?q=3',
 });
 
 const mainOptions = {

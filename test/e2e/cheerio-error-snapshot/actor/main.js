@@ -58,6 +58,6 @@ await Actor.main(async () => {
     });
 
     await crawler.run(
-        Object.values(LABELS).map((label) => ({ url: 'https://example.com', userData: { label }, uniqueKey: label })),
+        Object.values(LABELS).map((label) => ({ url: 'https://crawlee.dev', userData: { label }, uniqueKey: label })),
     );
 }, mainOptions);
