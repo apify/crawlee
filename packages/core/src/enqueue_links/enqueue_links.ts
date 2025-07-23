@@ -539,6 +539,28 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
 
         return undefined;
     }
+    // For SameHostname, treat www. and non-www. as the same hostname.
+    // This logic ensures that automatic redirects between www and non-www subdomains
+    // (e.g., from reddit.com to www.reddit.com) are treated as equivalent for link enqueuing.
+    // If a redirect occurs between these, we use the final URL's origin for filtering.
+    // This matches common web behavior and user expectations, while still falling back
+    // to strict hostname matching for other subdomain changes.
+
+    if (enqueueStrategy === EnqueueStrategy.SameHostname) {
+        const stripWww = (hostname: string) => hostname.replace(/^www\./i, '');
+        const originalUrl = new URL(originalRequestUrl);
+        const finalUrl = new URL(finalRequestUrl ?? originalRequestUrl);
+
+        // If hostnames are equivalent after stripping www, treat as the same site
+        if (stripWww(originalUrl.hostname) === stripWww(finalUrl.hostname)) {
+            // Use the final URL's origin if redirected between www/non-www
+            return finalUrl.origin;
+        }
+
+        // Otherwise, fall back to the original origin (strict subdomain match)
+        return originalUrl.origin;
+    }
+
 
     // Always enqueue urls that are from the same origin in all other cases, as the filtering happens on the original request url, even if there was a redirect
     // before actually finding the urls

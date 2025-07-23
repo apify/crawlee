@@ -45,7 +45,7 @@
     "homepage": "https://crawlee.dev",
     "scripts": {
         "build": "yarn clean && yarn compile && yarn copy",
-        "clean": "rimraf ./dist",
+        "clean": "rimraf packages/core/dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
         "copy": "tsx ../../scripts/copy.ts"
     },
