@@ -13,7 +13,7 @@ const result = datasetItems[0];
 expect(result.body.length > 1000, 'HTML response is not empty');
 expect(result.title.toLowerCase().includes('crawlee'), 'HTML title is correct');
 expect(
-    result.headers.userAgent ===
+    result.userAgent ===
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
     'User agent is chrome',
 );
