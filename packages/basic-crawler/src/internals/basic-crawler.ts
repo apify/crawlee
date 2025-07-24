@@ -189,6 +189,14 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     requestQueue?: RequestProvider;
 
     /**
+     * Allows explicitly configuring a request manager. Mutually exclusive with the `requestQueue` and `requestList` options.
+     *
+     * This enables explicitly configuring the crawler to use `RequestManagerTandem`, for instance.
+     * If using this, the type of `BasicCrawler.requestQueue` may not be fully compatible with the `RequestProvider` class.
+     */
+    requestManager?: IRequestManager;
+
+    /**
      * Timeout in which the function passed as {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`} needs to finish, in seconds.
      * @default 60
      */
@@ -613,6 +621,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const {
             requestList,
             requestQueue,
+            requestManager,
             maxRequestRetries = 3,
             sameDomainDelaySecs = 0,
             maxSessionRotations = 10,
@@ -655,8 +664,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             httpClient,
         } = options;
 
-        this.requestList = requestList;
-        this.requestQueue = requestQueue;
+        if (requestManager !== undefined) {
+            if (requestList !== undefined || requestQueue !== undefined) {
+                throw new Error(
+                    'The `requestManager` option cannot be used in conjunction with `requestList` and/or `requestQueue`',
+                );
+            }
+            this.requestManager = requestManager;
+            this.requestQueue = requestManager as RequestProvider; // TODO(v4) - the cast is not fully legitimate here, but it's fine for internal usage by the BasicCrawler
+        } else {
+            this.requestList = requestList;
+            this.requestQueue = requestQueue;
+        }
+
         this.httpClient = httpClient ?? new GotScrapingHttpClient();
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
