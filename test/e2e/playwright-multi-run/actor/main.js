@@ -15,16 +15,16 @@ const crawler = new PlaywrightCrawler({
         const pageTitle = await page.title();
         await Dataset.pushData({ url, pageTitle });
         await enqueueLinks({
-            globs: ['**/3.0/examples/*'],
+            globs: ['**/3.12/examples/*'],
         });
     },
 });
 
 crawler.log.info('=== Run 1 ===');
-await crawler.run(['https://crawlee.dev/js/docs/3.0/examples']);
+await crawler.run(['https://crawlee.dev/js/docs/3.12/examples']);
 crawler.log.info('=== Run 2 ===');
-await crawler.run(['https://crawlee.dev/js/docs/3.0/examples']);
+await crawler.run(['https://crawlee.dev/js/docs/3.12/examples']);
 crawler.log.info('=== Run 3 ===');
-await crawler.run(['https://crawlee.dev/js/docs/3.0/examples']);
+await crawler.run(['https://crawlee.dev/js/docs/3.12/examples']);
 
 await Actor.exit({ exit: Actor.isAtHome() });
