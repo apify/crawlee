@@ -1,7 +1,7 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
-import { getDomain } from 'tldts';
+import { getDomain, getSubdomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
@@ -66,6 +66,14 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * since the relative URL resolution is done inside the browser automatically.
      */
     baseUrl?: string;
+
+    /**
+     * An array of allowed subdomains to be used for matching URLs.
+     * 
+     * Note that this option is only used when the `strategy` is set to `same-domain`.
+     * @default ["*"]
+     */
+    allowedSubdomains?: readonly string[];
 
     /**
      * An array of glob pattern strings or plain objects
@@ -156,8 +164,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
      *
      * ```md
-     * Protocol          Domain
-     * ┌────┐          ┌─────────┐
+     * Protocol  Sub     Domain
+     * ┌────┐  ┌─────┐ ┌─────────┐
      * https://example.crawlee.dev/...
      * │       └─────────────────┤
      * │             Hostname    │
@@ -198,8 +206,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
  * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
  *
  * ```md
- * Protocol          Domain
- * ┌────┐          ┌─────────┐
+ * Protocol  Sub     Domain
+ * ┌────┐  ┌─────┐ ┌─────────┐
  * https://example.crawlee.dev/...
  * │       └─────────────────┤
  * │             Hostname    │
@@ -232,6 +240,11 @@ export enum EnqueueStrategy {
      * Matches any URLs that have the same domain as the base URL.
      * For example, `https://wow.an.example.com` and `https://example.com` will both be matched for a base url of
      * `https://example.com`.
+     * 
+     * Also matches filtered subdomains if `allowedSubdomains` is provided instead of any subdomain.
+     * For example, if `allowedSubdomains` is set to `['wow', 'nice']` and the base URL is `https://example.com`, then
+     * `https://wow.example.com`, `https://nice.example.com`, and `https://example.com` will be matched, but
+     * `https://bar.example.com` will not.
      *
      * > This strategy will match both `http` and `https` protocols regardless of the base URL protocol.
      */
@@ -313,6 +326,7 @@ export async function enqueueLinks(
             transformRequestFunction: ow.optional.function,
             strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
             waitForAllRequestsToBeAdded: ow.optional.boolean,
+            allowedSubdomains: ow.optional.array.ofType(ow.string),
         }),
     );
 
@@ -329,6 +343,7 @@ export async function enqueueLinks(
         waitForAllRequestsToBeAdded,
         robotsTxtFile,
         onSkippedRequest,
+        allowedSubdomains,
     } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
@@ -374,18 +389,40 @@ export async function enqueueLinks(
                 enqueueStrategyPatterns.push({ glob: ignoreHttpSchema(`${url.origin}/**`) });
                 break;
             case EnqueueStrategy.SameDomain: {
-                // Get the actual hostname from the base url
-                const baseUrlHostname = getDomain(url.hostname, { mixedInputs: false });
+                // Get the actual domain and subdomain from the base url
+                const baseUrlDomain = getDomain(url.hostname, { mixedInputs: false });
+                const baseUrlSubdomain = getSubdomain(url.hostname);
+                const subList = allowedSubdomains ?? ['*'];
 
-                if (baseUrlHostname) {
-                    // We have a hostname, so we can use it to match all links on the page that point to it and any subdomains of it
-                    url.hostname = baseUrlHostname;
-                    enqueueStrategyPatterns.push(
-                        { glob: ignoreHttpSchema(`${url.origin.replace(baseUrlHostname, `*.${baseUrlHostname}`)}/**`) },
-                        { glob: ignoreHttpSchema(`${url.origin}/**`) },
-                    );
+                if (baseUrlDomain) {
+                    // We have a domain, so we can use it to match all links on the page that point to it and any subdomains of it
+                    if (subList.includes('*')) {
+                        url.hostname = baseUrlDomain;
+                        enqueueStrategyPatterns.push(
+                            { glob: ignoreHttpSchema(`${url.origin.replace(baseUrlDomain, `*.${baseUrlDomain}`)}/**`) },
+                            { glob: ignoreHttpSchema(`${url.origin}/**`) }, // Only base URL, no subdomains
+                        );
+                    } else if (subList.length > 0) {
+                        // Defaults to always include subdomain of original URL if it exists.
+                        enqueueStrategyPatterns.push({ glob: ignoreHttpSchema(`${url.origin}/**`) }); // Original URL
+                        // User decides to filter by specific subdomains, so we can match them.
+                        for (const subdomain of subList) {
+                            // Prevents duplicate subdomain from original URL to be pushed as a pattern
+                            if (subdomain && subdomain !== baseUrlSubdomain) {
+                                const filteredSubdomainUrl = new URL(url.origin);
+                                filteredSubdomainUrl.hostname = `${subdomain}.${baseUrlDomain}`;
+                                enqueueStrategyPatterns.push(
+                                    { glob: ignoreHttpSchema(`${filteredSubdomainUrl.origin}/**`) }, // Base URL with filtered subdomain
+                                );
+                            }
+                        }
+                        url.hostname = baseUrlDomain;
+                        enqueueStrategyPatterns.push(
+                            { glob: ignoreHttpSchema(`${url.origin}/**`) }, // Only base URL, no subdomains
+                        );
+                    }
                 } else {
-                    // We don't have a hostname (can happen for ips for instance), so reproduce the same behavior
+                    // We don't have a domain (can happen for ips for instance), so reproduce the same behavior
                     // as SameDomainAndSubdomain
                     enqueueStrategyPatterns.push({ glob: ignoreHttpSchema(`${url.origin}/**`) });
                 }
