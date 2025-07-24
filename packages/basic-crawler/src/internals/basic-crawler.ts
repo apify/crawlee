@@ -496,11 +496,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     requestQueue?: RequestProvider;
 
     /**
-     * The main request provider used by the crawler. This is either a RequestList, RequestQueue,
-     * or RequestManagerTandem combining both. It's initialized during the crawler startup.
-     * @internal
+     * The main request-handling component of the crawler. It's initialized during the crawler startup.
      */
-    protected requestProvider?: IRequestManager;
+    protected requestManager?: IRequestManager;
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
@@ -1057,16 +1055,22 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             });
     }
 
-    async getRequestQueue() {
+    async getRequestQueue(): Promise<RequestProvider> {
         if (!this.requestQueue && this.requestList) {
             this.log.warningOnce(
                 'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
             );
         }
 
-        this.requestQueue ??= await this._getRequestQueue();
+        if (!this.requestQueue) {
+            this.requestQueue = await this._getRequestQueue();
+            this.requestManager =
+                this.requestList === undefined
+                    ? this.requestQueue
+                    : new RequestManagerTandem(this.requestList, this.requestQueue);
+        }
 
-        return this.requestQueue!;
+        return this.requestQueue;
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
@@ -1278,7 +1282,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.sessionPool.setMaxListeners(20);
         }
 
-        await this._initializeRequestProviders();
+        await this._initializeRequestManager();
         await this._loadHandledRequestCount();
     }
 
@@ -1369,35 +1373,37 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Initializes both the RequestList and the RequestQueue and then transfers requests from the RequestList
-     * to the RequestQueue using a RequestManagerTandem. This ensures that each request will be processed only once.
+     * Initializes the RequestManager based on the configured requestList and requestQueue.
      */
-    protected async _initializeRequestProviders() {
+    private async _initializeRequestManager() {
+        if (this.requestManager !== undefined) {
+            return;
+        }
+
         if (this.requestList && this.requestQueue) {
             // Create a RequestManagerTandem if both RequestList and RequestQueue are provided
-            const requestListAdapter = new RequestListAdapter(this.requestList);
-            const tandemProvider = new RequestManagerTandem(requestListAdapter, this.requestQueue);
-            // Use this as our main request provider
-            this.requestProvider = tandemProvider;
+            this.requestManager = new RequestManagerTandem(this.requestList, this.requestQueue);
         } else if (this.requestQueue) {
             // Use RequestQueue directly if only it is provided
-            this.requestProvider = this.requestQueue;
+            this.requestManager = this.requestQueue;
         } else if (this.requestList) {
             // Use RequestList directly if only it is provided
             // Make it compatible with the IRequestManager interface
-            this.requestProvider = new RequestListAdapter(this.requestList);
-        } else {
-            // Create and use a default RequestQueue if nothing else is provided
-            this.requestQueue = await this._getRequestQueue();
-            this.requestProvider = this.requestQueue;
+            this.requestManager = new RequestListAdapter(this.requestList);
         }
+
+        // If neither RequestList nor RequestQueue is provided, leave the requestManager uninitialized until `getRequestQueue` is called
     }
 
     /**
      * Fetches the next request to process from the underlying request provider.
      */
     protected async _fetchNextRequest() {
-        return this.requestProvider!.fetchNextRequest();
+        if (this.requestManager === undefined) {
+            throw new Error(`_fetchNextRequest called on an uninitialized crawler`);
+        }
+
+        return this.requestManager.fetchNextRequest();
     }
 
     /**
@@ -1454,7 +1460,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * then retries them in a case of an error, etc.
      */
     protected async _runTaskFunction() {
-        const source = this.requestProvider;
+        const source = this.requestManager;
         if (!source) throw new Error('Request provider is not initialized!');
 
         let request: Request | null | undefined;

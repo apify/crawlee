@@ -2,11 +2,17 @@ import type { Dictionary } from '@crawlee/types';
 
 import type { Request, RequestOptions } from '../request';
 import type { IRequestList } from './request_list';
-import type { IRequestManager, RequestQueueOperationOptions } from './request_provider';
+import type {
+    AddRequestsBatchedResult,
+    IRequestManager,
+    RequestQueueOperationInfo,
+    RequestQueueOperationOptions,
+} from './request_provider';
 
 /**
  * Adapts the IRequestList interface to the IRequestManager interface.
- * This class wraps a RequestList and makes it compatible with the IRequestManager interface.
+ * It simply throws an exception when inserting requests is attempted.
+ * @internal
  */
 export class RequestListAdapter implements IRequestManager {
     constructor(private requestList: IRequestList) {}
@@ -60,5 +66,19 @@ export class RequestListAdapter implements IRequestManager {
         for await (const request of this.requestList) {
             yield request;
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    addRequestsBatched(): Promise<AddRequestsBatchedResult> {
+        throw new Error('Cannot add requests to a read-only request list');
+    }
+
+    /**
+     * @inheritdoc
+     */
+    addRequest(): Promise<RequestQueueOperationInfo> {
+        throw new Error('Cannot add requests to a read-only request list');
     }
 }

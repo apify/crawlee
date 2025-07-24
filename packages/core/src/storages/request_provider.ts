@@ -79,13 +79,20 @@ export interface IRequestManager {
     /**
      * Marks request as handled after successful processing.
      */
-    markRequestHandled(request: Request): Promise<QueueOperationInfo | void | null>;
+    markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
 
     /**
      * Reclaims request to the provider if its processing failed.
      * The request will become available in the next `fetchNextRequest()`.
      */
-    reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | void | null>;
+    reclaimRequest(
+        request: Request,
+        options?: RequestQueueOperationOptions,
+    ): Promise<RequestQueueOperationInfo | void | null>;
+
+    addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
+
+    addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
 }
 
 export abstract class RequestProvider implements IStorage, IRequestManager {

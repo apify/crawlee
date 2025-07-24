@@ -1,4 +1,4 @@
-import { log, Request, RequestList, RequestListAdapter, RequestManagerTandem, RequestQueue } from '@crawlee/core';
+import { log, Request, RequestList, RequestManagerTandem, RequestQueue } from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
@@ -22,18 +22,6 @@ describe('RequestManagerTandem', () => {
         await emulator.destroy();
     });
 
-    test('properly initializes with both RequestList and RequestQueue', async () => {
-        const requestList = await RequestList.open(null, [
-            { url: 'https://example.com/1' },
-            { url: 'https://example.com/2' },
-        ]);
-        const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
-
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
-        expect(tandem).toBeDefined();
-    });
-
     test('fetchNextRequest transfers from list to queue when queue is empty', async () => {
         // Create sources with 3 URLs
         const requestList = await RequestList.open(null, [
@@ -42,12 +30,11 @@ describe('RequestManagerTandem', () => {
             { url: 'https://example.com/3' },
         ]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
         // Mock the addRequests function of requestQueue to verify it's called
-        const addRequestsSpy = vi.spyOn(requestQueue, 'addRequests');
+        const addRequestsSpy = vi.spyOn(requestQueue, 'addRequest');
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // First fetch should trigger transfer from list to queue
         const request1 = await tandem.fetchNextRequest();
@@ -74,9 +61,8 @@ describe('RequestManagerTandem', () => {
     test('markRequestHandled properly marks request as handled in the queue', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Mock markRequestHandled in requestQueue
         const markHandledSpy = vi.spyOn(requestQueue, 'markRequestHandled');
@@ -95,9 +81,8 @@ describe('RequestManagerTandem', () => {
     test('reclaimRequest properly reclaims request in the queue', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Mock reclaimRequest in requestQueue
         const reclaimSpy = vi.spyOn(requestQueue, 'reclaimRequest');
@@ -119,45 +104,42 @@ describe('RequestManagerTandem', () => {
             { url: 'https://example.com/2' },
         ]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
         // Mock handledCount methods to return fixed values
-        vi.spyOn(requestListAdapter, 'handledCount').mockResolvedValue(2);
+        vi.spyOn(requestList, 'handledCount').mockReturnValue(2);
         vi.spyOn(requestQueue, 'handledCount').mockResolvedValue(3);
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // The total should be the sum of both providers
-        const count = await tandem.handledCount();
-        expect(count).toBe(5);
+        await expect(tandem.handledCount()).resolves.toBe(5);
     });
 
     test('isFinished returns true only when both list and queue are finished', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Mock the isFinished methods
-        vi.spyOn(requestListAdapter, 'isFinished').mockResolvedValue(false);
+        vi.spyOn(requestList, 'isFinished').mockResolvedValue(false);
         vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(false);
 
         // Neither is finished, so tandem should not be finished
         expect(await tandem.isFinished()).toBe(false);
 
         // Only list is finished
-        vi.spyOn(requestListAdapter, 'isFinished').mockResolvedValue(true);
+        vi.spyOn(requestList, 'isFinished').mockResolvedValue(true);
         vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(false);
         expect(await tandem.isFinished()).toBe(false);
 
         // Only queue is finished
-        vi.spyOn(requestListAdapter, 'isFinished').mockResolvedValue(false);
+        vi.spyOn(requestList, 'isFinished').mockResolvedValue(false);
         vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(true);
         expect(await tandem.isFinished()).toBe(false);
 
         // Both are finished
-        vi.spyOn(requestListAdapter, 'isFinished').mockResolvedValue(true);
+        vi.spyOn(requestList, 'isFinished').mockResolvedValue(true);
         vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(true);
         expect(await tandem.isFinished()).toBe(true);
     });
@@ -165,29 +147,28 @@ describe('RequestManagerTandem', () => {
     test('isEmpty returns true only when both list and queue are empty', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Mock the isEmpty methods
-        vi.spyOn(requestListAdapter, 'isEmpty').mockResolvedValue(false);
+        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(false);
         vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(false);
 
         // Neither is empty, so tandem should not be empty
         expect(await tandem.isEmpty()).toBe(false);
 
         // Only list is empty
-        vi.spyOn(requestListAdapter, 'isEmpty').mockResolvedValue(true);
+        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(true);
         vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(false);
         expect(await tandem.isEmpty()).toBe(false);
 
         // Only queue is empty
-        vi.spyOn(requestListAdapter, 'isEmpty').mockResolvedValue(false);
+        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(false);
         vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(true);
         expect(await tandem.isEmpty()).toBe(false);
 
         // Both are empty
-        vi.spyOn(requestListAdapter, 'isEmpty').mockResolvedValue(true);
+        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(true);
         vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(true);
         expect(await tandem.isEmpty()).toBe(true);
     });
@@ -198,15 +179,14 @@ describe('RequestManagerTandem', () => {
             { url: 'https://example.com/2' },
         ]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
         // Mock the queue's addRequests to simulate failure
-        vi.spyOn(requestQueue, 'addRequests').mockRejectedValue(new Error('Batch add failed'));
+        vi.spyOn(requestQueue, 'addRequest').mockRejectedValue(new Error('Batch add failed'));
 
         // Mock the reclaimRequest method to verify it's called
-        const reclaimSpy = vi.spyOn(requestListAdapter, 'reclaimRequest');
+        const reclaimSpy = vi.spyOn(requestList, 'reclaimRequest');
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Attempt to fetch which should trigger the batch transfer
         await tandem.fetchNextRequest();
@@ -215,57 +195,21 @@ describe('RequestManagerTandem', () => {
         expect(reclaimSpy).toHaveBeenCalled();
     });
 
-    test('handles partially failed batch transfer', async () => {
-        const requestList = await RequestList.open(null, [
-            { url: 'https://example.com/1' },
-            { url: 'https://example.com/2' },
-        ]);
-        const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
-
-        // Mock to simulate a partial success
-        vi.spyOn(requestQueue, 'addRequests').mockResolvedValue({
-            processedRequests: [
-                {
-                    requestId: '1',
-                    uniqueKey: 'https://example.com/1',
-                    wasAlreadyPresent: false,
-                    wasAlreadyHandled: false,
-                },
-            ],
-            unprocessedRequests: [{ uniqueKey: 'https://example.com/2', url: 'https://example.com/2' }],
-        });
-
-        // Mock relevant methods to verify they're called
-        const markHandledSpy = vi.spyOn(requestListAdapter, 'markRequestHandled');
-        const reclaimSpy = vi.spyOn(requestListAdapter, 'reclaimRequest');
-
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
-
-        // Attempt to fetch which should trigger the batch transfer
-        await tandem.fetchNextRequest();
-
-        // The first request should be marked as handled, the second should be reclaimed
-        expect(markHandledSpy).toHaveBeenCalled();
-        expect(reclaimSpy).toHaveBeenCalled();
-    });
-
-    test('addRequest forwards to the underlying RequestQueue', async () => {
+    test('added requests are forwarded to the underlying RequestQueue', async () => {
         const requestList = await RequestList.open(null, []);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Mock the addRequest method of the queue
-        const addRequestSpy = vi.spyOn(requestQueue, 'addRequest');
+        const addRequestSpy = vi.spyOn(requestQueue, 'addRequestsBatched');
 
         // Add a new request directly through tandem
         const request = new Request({ url: 'https://example.com/new' });
-        await tandem.addRequest(request);
+        await tandem.addRequestsBatched([request]);
 
         // Verify the request was forwarded to the queue
-        expect(addRequestSpy).toHaveBeenCalledWith(request, undefined);
+        expect(addRequestSpy).toHaveBeenCalledWith([request], undefined);
     });
 
     test('async iterator iterates through all requests', async () => {
@@ -274,7 +218,6 @@ describe('RequestManagerTandem', () => {
             { url: 'https://example.com/2' },
         ]);
         const requestQueue = await RequestQueue.open();
-        const requestListAdapter = new RequestListAdapter(requestList);
 
         // Create a mock implementation that returns a fixed set of requests
         vi.spyOn(requestQueue, Symbol.asyncIterator).mockImplementation(async function* () {
@@ -282,7 +225,7 @@ describe('RequestManagerTandem', () => {
             yield new Request({ url: 'https://example.com/2' });
         });
 
-        const tandem = new RequestManagerTandem(requestListAdapter, requestQueue);
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Iterate through all requests
         const urls: string[] = [];

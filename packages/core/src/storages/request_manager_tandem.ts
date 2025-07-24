@@ -3,25 +3,28 @@ import type { Dictionary } from '@crawlee/types';
 import type { Log } from '@apify/log';
 
 import { log } from '../log';
-import type { Request, RequestOptions } from '../request';
+import type { Request, RequestOptions, Source } from '../request';
+import type { IRequestList } from './request_list';
 import type {
+    AddRequestsBatchedOptions,
+    AddRequestsBatchedResult,
     IRequestManager,
-    RequestProvider,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
+    RequestsLike,
 } from './request_provider';
 
 /**
- * A request provider that combines a RequestList and a RequestQueue.
+ * A request manager that combines a RequestList and a RequestQueue.
  * It first reads requests from the RequestList and then, when needed,
  * transfers them in batches to the RequestQueue.
  */
 export class RequestManagerTandem implements IRequestManager {
     private log: Log;
-    private requestList: IRequestManager;
-    private requestQueue: RequestProvider;
+    private requestList: IRequestList;
+    private requestQueue: IRequestManager;
 
-    constructor(requestList: IRequestManager, requestQueue: RequestProvider) {
+    constructor(requestList: IRequestList, requestQueue: IRequestManager) {
         this.log = log.child({ prefix: 'RequestManagerTandem' });
         this.requestList = requestList;
         this.requestQueue = requestQueue;
@@ -32,55 +35,27 @@ export class RequestManagerTandem implements IRequestManager {
      * Handles both successful transfers and failures appropriately.
      * @private
      */
-    private async transferNextBatchToQueue(batchSize = 25): Promise<void> {
-        const requests: Request[] = [];
+    private async transferNextBatchToQueue(): Promise<void> {
+        const request = await this.requestList.fetchNextRequest();
 
-        // First collect up to batchSize requests from the list
-        while (requests.length < batchSize) {
-            const request = await this.requestList.fetchNextRequest();
-            if (!request) break; // RequestList is empty
-            requests.push(request);
+        if (request === null) {
+            return;
         }
-
-        if (requests.length === 0) return;
 
         try {
-            // Add all requests to the queue in a single batch operation
-            const result = await this.requestQueue.addRequests(requests, { forefront: false });
-
-            // Mark successfully added requests as handled in the list
-            for (let i = 0; i < result.processedRequests.length; i++) {
-                await this.requestList.markRequestHandled(requests[i]);
-            }
-
-            // Reclaim any requests that failed to be added
-            if (result.unprocessedRequests?.length) {
-                this.log.error(
-                    'Adding some requests from the RequestList to the RequestQueue failed, reclaiming requests back to the list.',
-                    { unprocessedCount: result.unprocessedRequests.length },
-                );
-                for (const failedRequest of result.unprocessedRequests) {
-                    const originalRequest = requests.find((r) => r.uniqueKey === failedRequest.uniqueKey);
-                    if (originalRequest) {
-                        await this.requestList.reclaimRequest(originalRequest);
-                    }
-                }
-            }
+            await this.requestQueue.addRequest(request, { forefront: true });
         } catch (error) {
-            // If the batch operation fails, reclaim all the requests back to the list
-            this.log.exception(error as Error, 'Error transferring requests from RequestList to RequestQueue');
-            for (const request of requests) {
-                try {
-                    await this.requestList.reclaimRequest(request);
-                } catch (reclaimError) {
-                    this.log.error('Failed to reclaim request after failed transfer', {
-                        requestId: request.id,
-                        url: request.url,
-                        error: reclaimError,
-                    });
-                }
-            }
+            // If requestQueue.addRequest() fails here then we must reclaim it back to
+            // the RequestList because probably it's not yet in the queue!
+            this.log.error(
+                'Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.',
+                { request },
+            );
+            await this.requestList.reclaimRequest(request);
+            return;
         }
+
+        await this.requestList.markRequestHandled(request);
     }
 
     /**
@@ -125,7 +100,7 @@ export class RequestManagerTandem implements IRequestManager {
     async handledCount(): Promise<number> {
         // Return the sum of both handled counts, although the actual number
         // might be less if the same request was processed in both list and queue
-        const listHandled = await this.requestList.handledCount();
+        const listHandled = this.requestList.handledCount();
         const queueHandled = await this.requestQueue.handledCount();
         return listHandled + queueHandled;
     }
@@ -158,12 +133,19 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
-     * Additional method to add new requests directly to the underlying RequestQueue.
+     * @inheritdoc
      */
-    async addRequest(
-        request: Request | RequestOptions,
-        options?: RequestQueueOperationOptions,
-    ): Promise<RequestQueueOperationInfo | null> {
-        return this.requestQueue.addRequest(request, options);
+    async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
+        return await this.requestQueue.addRequest(requestLike, options);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async addRequestsBatched(
+        requests: RequestsLike,
+        options?: AddRequestsBatchedOptions,
+    ): Promise<AddRequestsBatchedResult> {
+        return await this.requestQueue.addRequestsBatched(requests, options);
     }
 }
