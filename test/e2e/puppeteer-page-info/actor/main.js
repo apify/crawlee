@@ -43,5 +43,5 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run([{ url: 'https://crawlee.dev/docs/3.0/examples', userData: { label: 'START' } }]);
+    await crawler.run([{ url: 'https://crawlee.dev/docs/3.12/examples', userData: { label: 'START' } }]);
 }, mainOptions);
