@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.14.0](https://github.com/apify/crawlee/compare/v3.13.10...v3.14.0) (2025-07-25)
+
+
+### Bug Fixes
+
+* respect `exclude` option in `enqueueLinksByClickingElements` ([#3058](https://github.com/apify/crawlee/issues/3058)) ([013eb02](https://github.com/apify/crawlee/commit/013eb028b6ecf05f83f8790a4a6164b9c4873733))
+
+
+
+
+
 ## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
 
 
