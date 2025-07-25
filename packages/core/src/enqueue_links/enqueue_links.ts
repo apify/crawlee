@@ -402,18 +402,17 @@ export async function enqueueLinks(
                             { glob: ignoreHttpSchema(`${url.origin.replace(baseUrlDomain, `*.${baseUrlDomain}`)}/**`) },
                             { glob: ignoreHttpSchema(`${url.origin}/**`) }, // Only base URL, no subdomains
                         );
-                    } else if (subList.length > 0) {
+                    } else {
                         // Defaults to always include subdomain of original URL if it exists.
                         enqueueStrategyPatterns.push({ glob: ignoreHttpSchema(`${url.origin}/**`) }); // Original URL
                         // User decides to filter by specific subdomains, so we can match them.
                         for (const subdomain of subList) {
-                            // Prevents duplicate subdomain from original URL to be pushed as a pattern
                             if (subdomain && subdomain !== baseUrlSubdomain) {
                                 const filteredSubdomainUrl = new URL(url.origin);
                                 filteredSubdomainUrl.hostname = `${subdomain}.${baseUrlDomain}`;
-                                enqueueStrategyPatterns.push(
-                                    { glob: ignoreHttpSchema(`${filteredSubdomainUrl.origin}/**`) }, // Base URL with filtered subdomain
-                                );
+                                enqueueStrategyPatterns.push({
+                                    glob: ignoreHttpSchema(`${filteredSubdomainUrl.origin}/**`),
+                                });
                             }
                         }
                         url.hostname = baseUrlDomain;
