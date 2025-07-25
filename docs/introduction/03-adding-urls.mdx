@@ -112,6 +112,44 @@ await enqueueLinks({
 });
 ```
 
+### Controlling subdomain access
+
+When using the `same-domain` strategy, you can further control which subdomains are allowed using the `allowedSubdomains` option. By default with `same-domain`, all subdomains are included, but you can specify only certain subdomains:
+
+```ts
+// Allow only specific subdomains with same-domain strategy
+await enqueueLinks({
+    strategy: 'same-domain',
+    allowedSubdomains: ['blog', 'shop', 'support']
+});
+
+// Allow all subdomains (default same-domain behavior)
+await enqueueLinks({
+    strategy: 'same-domain',
+    allowedSubdomains: ['*']
+});
+
+// Allow only the main domain (no subdomains) with same-domain strategy
+await enqueueLinks({
+    strategy: 'same-domain',
+    allowedSubdomains: []
+});
+```
+
+For example, if your base URL is `https://example.com` and you use `strategy: 'same-domain'` with `allowedSubdomains: ['blog', 'shop']`, the crawler will enqueue links from:
+- `https://example.com` (main domain)
+- `https://blog.example.com` (allowed subdomain)
+- `https://shop.example.com` (allowed subdomain)
+
+But it will **not** enqueue links from:
+- `https://api.example.com` (subdomain not in allowed list)
+- `https://docs.example.com` (subdomain not in allowed list)
+
+:::note
+The `allowedSubdomains` option only works when you explicitly set `strategy: 'same-domain'`. It has no effect with the default `same-hostname` strategy or other strategies.
+:::
+
+
 When you run the code, you will see the crawler  log the **title** of the first page, then the **enqueueing** message showing number of URLs, followed by the **title** of the first enqueued page and so on and so on.
 
 ## Skipping duplicate URLs
@@ -141,6 +179,16 @@ If you provide one of those options, the default `same-hostname` strategy will *
 ```ts
 await enqueueLinks({
     globs: ['http?(s)://apify.com/*/*'],
+});
+```
+
+You can also combine the `same-domain` strategy with `allowedSubdomains` for precise control:
+
+```ts
+await enqueueLinks({
+    strategy: 'same-domain',
+    allowedSubdomains: ['www', 'mobile'], // Only allow www and mobile subdomains
+    globs: ['http?(s)://**.example.com/products/*'] // Additional URL filtering
 });
 ```
 
