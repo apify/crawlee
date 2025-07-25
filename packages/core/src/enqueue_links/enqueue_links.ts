@@ -396,7 +396,7 @@ export async function enqueueLinks(
 
                 if (baseUrlDomain) {
                     // We have a domain, so we can use it to match all links on the page that point to it and any subdomains of it
-                    if (subList.includes('*')) {
+                    if (subList.includes('*') || subList.length === 0) {
                         url.hostname = baseUrlDomain;
                         enqueueStrategyPatterns.push(
                             { glob: ignoreHttpSchema(`${url.origin.replace(baseUrlDomain, `*.${baseUrlDomain}`)}/**`) },

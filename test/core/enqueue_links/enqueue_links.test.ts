@@ -600,7 +600,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['www', 'api']
+                    allowedSubdomains: ['www', 'api'],
                 },
                 page,
                 requestQueue,
@@ -625,7 +625,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['']
+                    allowedSubdomains: [''],
                 },
                 page,
                 requestQueue,
@@ -1111,7 +1111,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['*']
+                    allowedSubdomains: ['*'],
                 },
                 $,
                 requestQueue,
@@ -1139,7 +1139,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['www', 'api']
+                    allowedSubdomains: ['www', 'api'],
                 },
                 $,
                 requestQueue,
@@ -1162,7 +1162,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['']
+                    allowedSubdomains: [''],
                 },
                 $,
                 requestQueue,
@@ -1182,7 +1182,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['www', 'api', 'www', 'api', 'blog']
+                    allowedSubdomains: ['www', 'api', 'www', 'api', 'blog'],
                 },
                 $,
                 requestQueue,
@@ -1206,7 +1206,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['www', '', 'api', '   ', 'blog']
+                    allowedSubdomains: ['www', '', 'api', '   ', 'blog'],
                 },
                 $,
                 requestQueue,
@@ -1230,7 +1230,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://api.example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['www', 'blog']
+                    allowedSubdomains: ['www', 'blog'],
                 },
                 $,
                 requestQueue,
@@ -1254,7 +1254,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://www.example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['www', 'api']
+                    allowedSubdomains: ['www', 'api'],
                 },
                 $,
                 requestQueue,
@@ -1277,7 +1277,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameHostname,
-                    allowedSubdomains: ['www', 'api'] 
+                    allowedSubdomains: ['www', 'api'],
                 },
                 $,
                 requestQueue,
@@ -1297,7 +1297,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['www']
+                    allowedSubdomains: ['www'],
                 },
                 $: $mixed,
                 requestQueue,
@@ -1321,7 +1321,7 @@ describe('enqueueLinks()', () => {
                 options: { 
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
-                    allowedSubdomains: ['api-v2', 'user-dashboard']
+                    allowedSubdomains: ['api-v2', 'user-dashboard'],
                 },
                 $: $complex,
                 requestQueue,
@@ -1345,12 +1345,12 @@ describe('enqueueLinks()', () => {
                     options: { 
                         baseUrl: 'https://example.com',
                         strategy: EnqueueStrategy.SameDomain,
-                        allowedSubdomains: ['www', 'api']
+                        allowedSubdomains: ['www', 'api'],
                     },
                     $,
                     requestQueue,
                     originalRequestUrl: 'https://example.com',
-                })
+                }),
             ).resolves.not.toThrow();
         });
     });
