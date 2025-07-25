@@ -69,7 +69,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
 
     /**
      * An array of allowed subdomains to be used for matching URLs.
-     * 
+     *
      * Note that this option is only used when the `strategy` is set to `same-domain`.
      * @default ["*"]
      */
@@ -240,7 +240,7 @@ export enum EnqueueStrategy {
      * Matches any URLs that have the same domain as the base URL.
      * For example, `https://wow.an.example.com` and `https://example.com` will both be matched for a base url of
      * `https://example.com`.
-     * 
+     *
      * Also matches filtered subdomains if `allowedSubdomains` is provided instead of any subdomain.
      * For example, if `allowedSubdomains` is set to `['wow', 'nice']` and the base URL is `https://example.com`, then
      * `https://wow.example.com`, `https://nice.example.com`, and `https://example.com` will be matched, but

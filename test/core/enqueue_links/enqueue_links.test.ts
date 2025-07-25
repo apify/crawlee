@@ -594,10 +594,10 @@ describe('enqueueLinks()', () => {
 
         test('allowedSubdomains works with browser crawler and specific subdomains', async () => {
             await page.setContent(HTML_WITH_SUBDOMAINS);
-            
+
             const { enqueued, requestQueue } = createRequestQueueMock();
             await browserCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['www', 'api'],
@@ -608,7 +608,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(5);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -619,10 +619,10 @@ describe('enqueueLinks()', () => {
 
         test('allowedSubdomains works with browser crawler and empty array', async () => {
             await page.setContent(HTML_WITH_SUBDOMAINS);
-            
+
             const { enqueued, requestQueue } = createRequestQueueMock();
             await browserCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: [''],
@@ -633,10 +633,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(2);
-            expect(enqueued.map(r => r.url)).toEqual([
-                'https://example.com/page1',
-                'http://example.com/page2',
-            ]);
+            expect(enqueued.map((r) => r.url)).toEqual(['https://example.com/page1', 'http://example.com/page2']);
         });
     });
 
@@ -1108,7 +1105,7 @@ describe('enqueueLinks()', () => {
         test('works with explicit wildcard in allowedSubdomains', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['*'],
@@ -1119,7 +1116,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(10);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -1136,7 +1133,7 @@ describe('enqueueLinks()', () => {
         test('works with specific allowed subdomains', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['www', 'api'],
@@ -1147,7 +1144,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(5);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -1159,7 +1156,7 @@ describe('enqueueLinks()', () => {
         test('works with empty allowedSubdomains array', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: [''],
@@ -1170,16 +1167,13 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(2);
-            expect(enqueued.map(r => r.url)).toEqual([
-                'https://example.com/page1',
-                'http://example.com/page2',
-            ]);
+            expect(enqueued.map((r) => r.url)).toEqual(['https://example.com/page1', 'http://example.com/page2']);
         });
 
         test('handles duplicate subdomains in allowedSubdomains', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['www', 'api', 'www', 'api', 'blog'],
@@ -1190,7 +1184,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(6);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -1203,7 +1197,7 @@ describe('enqueueLinks()', () => {
         test('handles empty string subdomains in allowedSubdomains', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['www', '', 'api', '   ', 'blog'],
@@ -1214,7 +1208,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(6);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -1227,7 +1221,7 @@ describe('enqueueLinks()', () => {
         test('works when baseUrl has subdomain and allowedSubdomains filters it', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://api.example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['www', 'blog'],
@@ -1238,7 +1232,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(6);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -1251,7 +1245,7 @@ describe('enqueueLinks()', () => {
         test('works when baseUrl has subdomain that matches allowedSubdomains', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://www.example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['www', 'api'],
@@ -1262,7 +1256,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(5);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -1274,7 +1268,7 @@ describe('enqueueLinks()', () => {
         test('ignores allowedSubdomains when strategy is not same-domain', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameHostname,
                     allowedSubdomains: ['www', 'api'],
@@ -1291,10 +1285,10 @@ describe('enqueueLinks()', () => {
 
         test('works with mixed protocol filtering', async () => {
             const $mixed = load(HTML_WITH_SUBDOMAINS);
-            
+
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['www'],
@@ -1305,7 +1299,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(4);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://www.example.com/page3',
@@ -1315,10 +1309,10 @@ describe('enqueueLinks()', () => {
 
         test('works with complex subdomain names', async () => {
             const $complex = load(HTML_WITH_SUBDOMAINS);
-            
+
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
-                options: { 
+                options: {
                     baseUrl: 'https://example.com',
                     strategy: EnqueueStrategy.SameDomain,
                     allowedSubdomains: ['api-v2', 'user-dashboard'],
@@ -1329,7 +1323,7 @@ describe('enqueueLinks()', () => {
             });
 
             expect(enqueued).toHaveLength(4);
-            expect(enqueued.map(r => r.url)).toEqual([
+            expect(enqueued.map((r) => r.url)).toEqual([
                 'https://example.com/page1',
                 'http://example.com/page2',
                 'https://api-v2.example.com/page9',
@@ -1339,10 +1333,10 @@ describe('enqueueLinks()', () => {
 
         test('validation works with allowedSubdomains parameter', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            
+
             await expect(
                 cheerioCrawlerEnqueueLinks({
-                    options: { 
+                    options: {
                         baseUrl: 'https://example.com',
                         strategy: EnqueueStrategy.SameDomain,
                         allowedSubdomains: ['www', 'api'],
