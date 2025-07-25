@@ -112,6 +112,8 @@ await enqueueLinks({
 });
 ```
 
+When you run the code, you will see the crawler  log the **title** of the first page, then the **enqueueing** message showing number of URLs, followed by the **title** of the first enqueued page and so on and so on.
+
 ### Controlling subdomain access
 
 When using the `same-domain` strategy, you can further control which subdomains are allowed using the `allowedSubdomains` option. By default with `same-domain`, all subdomains are included, but you can specify only certain subdomains:
@@ -148,9 +150,6 @@ But it will **not** enqueue links from:
 :::note
 The `allowedSubdomains` option only works when you explicitly set `strategy: 'same-domain'`. It has no effect with the default `same-hostname` strategy or other strategies.
 :::
-
-
-When you run the code, you will see the crawler  log the **title** of the first page, then the **enqueueing** message showing number of URLs, followed by the **title** of the first enqueued page and so on and so on.
 
 ## Skipping duplicate URLs
 
