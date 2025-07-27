@@ -1,6 +1,6 @@
 import type { Dictionary } from '@crawlee/types';
 
-import type { Request, RequestOptions } from '../request';
+import type { Request } from '../request';
 import type { IRequestList } from './request_list';
 import type {
     AddRequestsBatchedResult,
