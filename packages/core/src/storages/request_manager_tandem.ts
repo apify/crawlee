@@ -98,11 +98,22 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async handledCount(): Promise<number> {
-        // Return the sum of both handled counts, although the actual number
-        // might be less if the same request was processed in both list and queue
-        const listHandled = this.requestList.handledCount();
-        const queueHandled = await this.requestQueue.handledCount();
-        return listHandled + queueHandled;
+        // Since one of the stores needs to have priority when both are present, we query the request queue - the request list will first be dumped into the queue and then left empty.
+        return await this.requestQueue.handledCount();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    getTotalCount(): number {
+        return this.requestQueue.getTotalCount();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    getPendingCount(): number {
+        return this.requestQueue.getPendingCount() + this.requestList.length() - this.requestList.handledCount();
     }
 
     /**

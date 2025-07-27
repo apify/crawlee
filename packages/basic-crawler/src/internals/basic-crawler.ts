@@ -912,7 +912,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
                 } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
-                const total = this.requestQueue?.getTotalCount() || this.requestList?.length();
+                const total = this.requestManager?.getTotalCount();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
                     this.stats.state.requestsFailed
                 } failed requests, desired concurrency ${this.autoscaledPool?.desiredConcurrency ?? 0}.`;
@@ -1099,16 +1099,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     protected get pendingRequestCountApproximation(): number {
-        let result = 0;
-
-        if (this.requestQueue) {
-            result += this.requestQueue.getPendingCount();
-        }
-        if (this.requestList) {
-            result += this.requestList.length() - this.requestList.handledCount();
-        }
-
-        return result;
+        return this.requestManager?.getPendingCount() ?? 0;
     }
 
     protected calculateEnqueuedRequestLimit(explicitLimit?: number): number | undefined {
@@ -1689,24 +1680,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      */
     protected async _isTaskReadyFunction() {
-        // First check RequestList, since it's only in memory.
-        const isRequestListEmpty = this.requestList ? await this.requestList.isEmpty() : true;
-        // If RequestList is not empty, task is ready, no reason to check RequestQueue.
-        if (!isRequestListEmpty) return true;
-        // If RequestQueue is not empty, task is ready, return true, otherwise false.
-        return this.requestQueue ? !(await this.requestQueue.isEmpty()) : false;
+        return this.requestManager !== undefined && !(await this.requestManager.isEmpty());
     }
 
     /**
      * Returns true if both RequestList and RequestQueue have all requests finished.
      */
     protected async _defaultIsFinishedFunction() {
-        const [isRequestListFinished, isRequestQueueFinished] = await Promise.all([
-            this.requestList ? this.requestList.isFinished() : true,
-            this.requestQueue ? this.requestQueue.isFinished() : true,
-        ]);
-        // If both are finished, return true, otherwise return false.
-        return isRequestListFinished && isRequestQueueFinished;
+        return !this.requestManager || (await this.requestManager.isFinished());
     }
 
     private async _rotateSession(crawlingContext: Context) {
@@ -1723,7 +1704,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: IRequestList | RequestProvider | IRequestManager,
+        source: IRequestList | IRequestManager,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
@@ -1866,18 +1847,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Updates handledRequestsCount from possibly stored counts,
-     * usually after worker migration. Since one of the stores
-     * needs to have priority when both are present,
-     * it is the request queue, because generally, the request
-     * list will first be dumped into the queue and then left
-     * empty.
+     * Updates handledRequestsCount from possibly stored counts, usually after worker migration.
      */
     protected async _loadHandledRequestCount(): Promise<void> {
-        if (this.requestQueue) {
-            this.handledRequestsCount = await this.requestQueue.handledCount();
-        } else if (this.requestList) {
-            this.handledRequestsCount = this.requestList.handledCount();
+        if (this.requestManager) {
+            this.handledRequestsCount = await this.requestManager.handledCount();
         }
     }
 

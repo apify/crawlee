@@ -41,6 +41,20 @@ export class RequestListAdapter implements IRequestManager {
     /**
      * @inheritdoc
      */
+    getTotalCount(): number {
+        return this.requestList.length();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    getPendingCount(): number {
+        return this.requestList.length() - this.requestList.handledCount();
+    }
+
+    /**
+     * @inheritdoc
+     */
     async fetchNextRequest<T extends Dictionary = Dictionary>(_options?: RequestOptions): Promise<Request<T> | null> {
         return this.requestList.fetchNextRequest() as Promise<Request<T> | null>;
     }

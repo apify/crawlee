@@ -59,6 +59,16 @@ export interface IRequestManager {
     handledCount(): Promise<number>;
 
     /**
+     * Get the total number of requests known to the request manager.
+     */
+    getTotalCount(): number;
+
+    /**
+     * Get an offline approximation of the number of pending requests.
+     */
+    getPendingCount(): number;
+
+    /**
      * Gets the next {@apilink Request} to process.
      *
      * The function's `Promise` resolves to `null` if there are no more
