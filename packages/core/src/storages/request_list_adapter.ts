@@ -55,8 +55,8 @@ export class RequestListAdapter implements IRequestManager {
     /**
      * @inheritdoc
      */
-    async fetchNextRequest<T extends Dictionary = Dictionary>(_options?: RequestOptions): Promise<Request<T> | null> {
-        return this.requestList.fetchNextRequest() as Promise<Request<T> | null>;
+    async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+        return await this.requestList.fetchNextRequest();
     }
 
     /**

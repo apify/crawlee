@@ -74,7 +74,7 @@ export interface IRequestManager {
      * The function's `Promise` resolves to `null` if there are no more
      * requests to process.
      */
-    fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null>;
+    fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null>;
 
     /**
      * Gets the next {@apilink Request} to process.
@@ -558,7 +558,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.
      */
-    abstract fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null>;
+    abstract fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null>;
 
     /**
      * Marks a request that was previously returned by the
