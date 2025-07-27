@@ -69,8 +69,12 @@ export class RequestListAdapter implements IRequestManager {
     /**
      * @inheritdoc
      */
-    async reclaimRequest(request: Request, _options?: RequestQueueOperationOptions): Promise<void> {
-        return this.requestList.reclaimRequest(request);
+    async reclaimRequest(
+        request: Request,
+        _options?: RequestQueueOperationOptions,
+    ): Promise<RequestQueueOperationInfo | null> {
+        await this.requestList.reclaimRequest(request);
+        return null;
     }
 
     /**

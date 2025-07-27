@@ -77,11 +77,7 @@ export interface IRequestManager {
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null>;
 
     /**
-     * Gets the next {@apilink Request} to process.
-     *
-     * The function resolves to `null` if there are no more requests to process.
-     *
-     * Can be used to iterate over the request provider in a `for await .. of` loop.
+     * Can be used to iterate over the `RequestManager` instance in a `for await .. of` loop.
      * Provides an alternative for the repeated use of `fetchNextRequest`.
      */
     [Symbol.asyncIterator](): AsyncGenerator<Request>;
@@ -95,10 +91,7 @@ export interface IRequestManager {
      * Reclaims request to the provider if its processing failed.
      * The request will become available in the next `fetchNextRequest()`.
      */
-    reclaimRequest(
-        request: Request,
-        options?: RequestQueueOperationOptions,
-    ): Promise<RequestQueueOperationInfo | void | null>;
+    reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
 
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
 
