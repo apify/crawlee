@@ -106,13 +106,13 @@ describe('RequestManagerTandem', () => {
         const requestQueue = await RequestQueue.open();
 
         // Mock handledCount methods to return fixed values
-        vi.spyOn(requestList, 'handledCount').mockReturnValue(2);
-        vi.spyOn(requestQueue, 'handledCount').mockResolvedValue(3);
+        vi.spyOn(requestList, 'handledCount').mockReturnValue(3);
+        vi.spyOn(requestQueue, 'handledCount').mockResolvedValue(2);
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
-        // The total should be the sum of both providers
-        await expect(tandem.handledCount()).resolves.toBe(5);
+        // Only the request queue counts
+        await expect(tandem.handledCount()).resolves.toBe(2);
     });
 
     test('isFinished returns true only when both list and queue are finished', async () => {
