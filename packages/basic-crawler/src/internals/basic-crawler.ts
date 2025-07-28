@@ -962,6 +962,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();
+                this.requestManager = undefined;
+                await this.initializeRequestManager();
                 this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
             }
 
@@ -1296,7 +1298,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.sessionPool.setMaxListeners(20);
         }
 
-        await this._initializeRequestManager();
+        await this.initializeRequestManager();
         await this._loadHandledRequestCount();
     }
 
@@ -1389,7 +1391,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * Initializes the RequestManager based on the configured requestList and requestQueue.
      */
-    private async _initializeRequestManager() {
+    private async initializeRequestManager() {
         if (this.requestManager !== undefined) {
             return;
         }
