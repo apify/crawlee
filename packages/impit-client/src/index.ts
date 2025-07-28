@@ -56,6 +56,7 @@ export class ImpitHttpClient implements BaseHttpClient {
 
         this.maxRedirects = options?.maxRedirects ?? 10;
         this.followRedirects = options?.followRedirects ?? true;
+        this.impitOptions.timeout ??= 60 * 60 * 1000; // 1 hour by default, Crawlee handles the navigation timeout internally
     }
 
     /**
