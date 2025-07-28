@@ -226,5 +226,5 @@ jobs:
                     git config --global user.name "Apify Release Bot"
                     git config --global user.email "noreply@apify.com"
                     git add .
-                    git diff-index --quiet HEAD || git commit -m 'chore(release): update docs for ${{ inputs.version }} version [skip ci]'
+                    git diff-index --quiet HEAD || git commit -m 'docs(release): update docs for ${{ inputs.version }} version'
                     git push
