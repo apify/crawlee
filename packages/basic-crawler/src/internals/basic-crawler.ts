@@ -1086,6 +1086,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (!this.requestQueue) {
             this.requestQueue = await this._getRequestQueue();
+            this.requestManager = undefined;
         }
 
         if (!this.requestManager) {
