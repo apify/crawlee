@@ -140,7 +140,7 @@ export class RequestManagerTandem implements IRequestManager {
         request: Request,
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        return this.requestQueue.reclaimRequest(request, options);
+        return await this.requestQueue.reclaimRequest(request, options);
     }
 
     /**

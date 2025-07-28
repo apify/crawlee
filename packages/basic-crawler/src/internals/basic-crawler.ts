@@ -1084,6 +1084,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (!this.requestQueue) {
             this.requestQueue = await this._getRequestQueue();
+        }
+
+        if (!this.requestManager) {
             this.requestManager =
                 this.requestList === undefined
                     ? this.requestQueue
@@ -1142,7 +1145,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         requests: RequestsLike,
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
-        const requestQueue = await this.getRequestQueue();
+        await this.getRequestQueue();
 
         const requestLimit = this.calculateEnqueuedRequestLimit();
 
@@ -1178,7 +1181,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
         }
 
-        const result = await requestQueue.addRequestsBatched(filteredRequests(), options);
+        const result = await this.requestManager!.addRequestsBatched(filteredRequests(), options);
 
         if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
@@ -1534,9 +1537,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             request,
             session,
             enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
+                await this.getRequestQueue();
+
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
-                    requestQueue: await this.getRequestQueue(),
+                    requestQueue: this.requestManager!,
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     limit: this.calculateEnqueuedRequestLimit(options.limit),
