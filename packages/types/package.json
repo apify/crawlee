@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/types",
-    "version": "3.13.10",
+    "version": "3.14.0",
     "description": "Shared types for the crawlee projects",
     "engines": {
         "node": ">=16.0.0"

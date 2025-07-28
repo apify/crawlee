@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.14.0](https://github.com/apify/crawlee/compare/v3.13.10...v3.14.0) (2025-07-25)
+
+
+### Bug Fixes
+
+* don't retire browsers with long-running `pre|postLaunchHooks` prematurely ([#3062](https://github.com/apify/crawlee/issues/3062)) ([681660e](https://github.com/apify/crawlee/commit/681660e35a1ceaca5e96a7f61d5a7c66ec32bcde))
+* respect `exclude` option in `enqueueLinksByClickingElements` ([#3058](https://github.com/apify/crawlee/issues/3058)) ([013eb02](https://github.com/apify/crawlee/commit/013eb028b6ecf05f83f8790a4a6164b9c4873733))
+* retry on blocked status codes in `HttpCrawler` ([#3060](https://github.com/apify/crawlee/issues/3060)) ([b5fcd79](https://github.com/apify/crawlee/commit/b5fcd79324ed61c6591fbdc9ffba67b35dc54fde)), closes [/github.com/apify/crawlee/blob/f68d2a95d67cc6230122dc1a5226c57ca23d0ae7/packages/browser-crawler/src/internals/browser-crawler.ts#L481-L486](https://github.com//github.com/apify/crawlee/blob/f68d2a95d67cc6230122dc1a5226c57ca23d0ae7/packages/browser-crawler/src/internals/browser-crawler.ts/issues/L481-L486) [#3029](https://github.com/apify/crawlee/issues/3029)
+* validation of iterables when adding requests to the queue ([#3091](https://github.com/apify/crawlee/issues/3091)) ([529a1dd](https://github.com/apify/crawlee/commit/529a1dd57278efef4fb2013e79a09fd1bc8594a5)), closes [#3063](https://github.com/apify/crawlee/issues/3063)
+
+
+### Features
+
+* add `maxCrawlDepth` crawler option ([#3045](https://github.com/apify/crawlee/issues/3045)) ([0090df9](https://github.com/apify/crawlee/commit/0090df93a12df9918d016cf2f1378f1f7d40557d)), closes [#2633](https://github.com/apify/crawlee/issues/2633)
+* Add llms.txt and llms-full.txt generator  ([#3061](https://github.com/apify/crawlee/issues/3061)) ([79f3ba5](https://github.com/apify/crawlee/commit/79f3ba529f03576c72134a75f0772e2652e2a0e2)), closes [#3046](https://github.com/apify/crawlee/issues/3046)
+
+
+
+
+
 ## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
 
 

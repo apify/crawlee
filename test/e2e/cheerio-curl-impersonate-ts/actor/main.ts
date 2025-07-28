@@ -161,45 +161,28 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
     }
 }
 
-function getHttpBinUrl(path: string): string {
-    let url: URL;
-    if (process.env.APIFY_HTTPBIN_TOKEN) {
-        url = new URL(path, 'https://httpbin.apify.actor');
-        url.searchParams.set('token', process.env.APIFY_HTTPBIN_TOKEN);
-    } else {
-        url = new URL(path, 'https://httpbin.org');
-    }
-
-    return url.href;
-}
-
 const crawler = new CheerioCrawler({
     async requestHandler(context) {
         const { body: text } = await context.sendRequest({
-            url: getHttpBinUrl('/uuid'),
+            url: 'https://api.apify.com/v2/browser-info',
         });
 
-        const { body: json } = await context.sendRequest({
-            url: getHttpBinUrl('/uuid'),
-            responseType: 'json',
-        });
-
-        const { body: ua } = await context.sendRequest<Dictionary>({
-            url: getHttpBinUrl('/user-agent'),
+        const { body: json } = await context.sendRequest<Dictionary>({
+            url: 'https://api.apify.com/v2/browser-info',
             responseType: 'json',
         });
 
         await context.pushData({
             body: context.body,
             title: context.$('title').text(),
-            userAgent: ua['user-agent'],
-            uuidTextResponse: text,
-            uuidJsonResponse: json,
+            userAgent: json.headers['user-agent'],
+            clientIpTextResponse: text,
+            clientIpJsonResponse: json,
         });
     },
     httpClient: new CurlImpersonateHttpClient({ impersonate: 'chrome-116' }),
 });
 
-await crawler.run([getHttpBinUrl('/')]);
+await crawler.run(['https://crawlee.dev']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

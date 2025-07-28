@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.14.0](https://github.com/apify/crawlee/compare/v3.13.10...v3.14.0) (2025-07-25)
+
+
+### Bug Fixes
+
+* don't retire browsers with long-running `pre|postLaunchHooks` prematurely ([#3062](https://github.com/apify/crawlee/issues/3062)) ([681660e](https://github.com/apify/crawlee/commit/681660e35a1ceaca5e96a7f61d5a7c66ec32bcde))
+
+
+
+
+
 ## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
 
 **Note:** Version bump only for package @crawlee/browser-pool
