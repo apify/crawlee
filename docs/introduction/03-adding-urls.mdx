@@ -104,11 +104,11 @@ Websites typically contain a lot of links that lead away from the original page.
     </TabItem>
 </Tabs>
 
-The default behavior of `enqueueLinks` is to stay on the same hostname. This **does not include subdomains**. To include subdomains in your crawl, use the `strategy` argument.
+The default behavior of `enqueueLinks` is to stay on the same domain. This **includes different subdomains**. To not include different subdomains in your crawl, use the `strategy` argument.
 
 ```ts
 await enqueueLinks({
-    strategy: 'same-domain'
+    strategy: 'same-hostname'
 });
 ```
 
@@ -120,7 +120,7 @@ Skipping of duplicate URLs is critical, because visiting the same page multiple 
 
 ## Advanced filtering arguments
 
-While the defaults for `enqueueLinks` can be often exactly what you need, it also gives you fine-grained control over which URLs should be enqueued. One way we already mentioned above. It is using the <ApiLink to="core/enum/EnqueueStrategy">`EnqueueStrategy`</ApiLink>. You can use the <ApiLink to="core/enum/EnqueueStrategy#All">`All`</ApiLink> strategy if you want to follow every single link, regardless of its domain, or you can enqueue links that target the same domain name with the <ApiLink to="core/enum/EnqueueStrategy#SameDomain">`SameDomain`</ApiLink> strategy.
+While the defaults for `enqueueLinks` can be often exactly what you need, it also gives you fine-grained control over which URLs should be enqueued. One way we already mentioned above. It is using the <ApiLink to="core/enum/EnqueueStrategy">`EnqueueStrategy`</ApiLink>. You can use the <ApiLink to="core/enum/EnqueueStrategy#All">`All`</ApiLink> strategy if you want to follow every single link, regardless of its domain, or you can enqueue links that target the same domain name with the <ApiLink to="core/enum/EnqueueStrategy#SameDomain">`SameDomain`</ApiLink> strategy, which is also the default strategy. 
 
 ```ts
 await enqueueLinks({
@@ -134,7 +134,7 @@ For even more control, you can use `globs`, `regexps` and `pseudoUrls` to filter
 
 :::caution Defaults override
 
-If you provide one of those options, the default `same-hostname` strategy will **not** be applied unless explicitly set in the options.
+If you provide one of those options, the default `same-domain` strategy will **not** be applied unless explicitly set in the options.
 
 :::
 
