@@ -217,13 +217,9 @@ describe('RequestManagerTandem', () => {
             { url: 'https://example.com/1' },
             { url: 'https://example.com/2' },
         ]);
-        const requestQueue = await RequestQueue.open();
 
-        // Create a mock implementation that returns a fixed set of requests
-        vi.spyOn(requestQueue, Symbol.asyncIterator).mockImplementation(async function* () {
-            yield new Request({ url: 'https://example.com/1' });
-            yield new Request({ url: 'https://example.com/2' });
-        });
+        const requestQueue = await RequestQueue.open();
+        await requestQueue.addRequest({ url: 'https://example.com/3' });
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
@@ -234,6 +230,6 @@ describe('RequestManagerTandem', () => {
         }
 
         // Verify we got both URLs
-        expect(urls).toEqual(['https://example.com/1', 'https://example.com/2']);
+        expect(urls).toEqual(['https://example.com/3', 'https://example.com/1', 'https://example.com/2']);
     });
 });

@@ -65,13 +65,15 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         // If queue is empty, check if we can transfer more from list
-        const [listEmpty, listFinished] = await Promise.all([
-            this.requestList.isEmpty(),
-            this.requestList.isFinished(),
-        ]);
+        if (await this.requestQueue.isEmpty()) {
+            const [listEmpty, listFinished] = await Promise.all([
+                this.requestList.isEmpty(),
+                this.requestList.isFinished(),
+            ]);
 
-        if (!listEmpty && !listFinished) {
-            await this.transferNextBatchToQueue();
+            if (!listEmpty && !listFinished) {
+                await this.transferNextBatchToQueue();
+            }
         }
 
         // Try to fetch from queue after potential transfer
@@ -120,9 +122,10 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async *[Symbol.asyncIterator]() {
-        // Simply iterate through the queue
-        for await (const request of this.requestQueue) {
-            yield request;
+        while (true) {
+            const req = await this.fetchNextRequest();
+            if (!req) break;
+            yield req;
         }
     }
 
