@@ -98,7 +98,7 @@ describe('RequestManagerTandem', () => {
         expect(reclaimSpy).toHaveBeenCalledWith(request, undefined);
     });
 
-    test('handledCount returns the sum of list and queue handledCount', async () => {
+    test('handledCount returns the queue handledCount', async () => {
         const requestList = await RequestList.open(null, [
             { url: 'https://example.com/1' },
             { url: 'https://example.com/2' },
