@@ -31,8 +31,8 @@ describe('RequestManagerTandem', () => {
         ]);
         const requestQueue = await RequestQueue.open();
 
-        // Mock the addRequests function of requestQueue to verify it's called
-        const addRequestsSpy = vi.spyOn(requestQueue, 'addRequest');
+        // Mock the addRequest function of requestQueue to verify it's called
+        const addRequestSpy = vi.spyOn(requestQueue, 'addRequest');
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
@@ -40,7 +40,7 @@ describe('RequestManagerTandem', () => {
         const request1 = await tandem.fetchNextRequest();
 
         // Verify the request was transferred from list to queue
-        expect(addRequestsSpy).toHaveBeenCalled();
+        expect(addRequestSpy).toHaveBeenCalled();
         expect(request1).not.toBeNull();
         expect(request1?.url).toBe('https://example.com/1');
 
