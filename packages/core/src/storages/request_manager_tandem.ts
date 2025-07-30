@@ -64,16 +64,14 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
-        // If queue is empty, check if we can transfer more from list
-        if (await this.requestQueue.isEmpty()) {
-            const [listEmpty, listFinished] = await Promise.all([
-                this.requestList.isEmpty(),
-                this.requestList.isFinished(),
-            ]);
+        // First, try to transfer a request from the requestList
+        const [listEmpty, listFinished] = await Promise.all([
+            this.requestList.isEmpty(),
+            this.requestList.isFinished(),
+        ]);
 
-            if (!listEmpty && !listFinished) {
-                await this.transferNextBatchToQueue();
-            }
+        if (!listEmpty && !listFinished) {
+            await this.transferNextBatchToQueue();
         }
 
         // Try to fetch from queue after potential transfer

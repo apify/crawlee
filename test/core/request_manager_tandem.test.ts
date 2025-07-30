@@ -230,6 +230,6 @@ describe('RequestManagerTandem', () => {
         }
 
         // Verify we got both URLs
-        expect(urls).toEqual(['https://example.com/3', 'https://example.com/1', 'https://example.com/2']);
+        expect(urls).toEqual(['https://example.com/1', 'https://example.com/2', 'https://example.com/3']);
     });
 });
