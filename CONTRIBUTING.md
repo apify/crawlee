@@ -2,6 +2,41 @@
 
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
+## Crawlee Project Pre-requisites
+
+For Crawlee project contributions and changes to the codebase will require some pre-requisites to ensure the project is set up properly. These are the most important dependancies you'll need to set up the project, but here are other dev dependancies you might want to take a look at [package.json](./package.json) file.
+
+- node.js version 22.17.0
+
+- yarn version 4.8.1
+
+
+## Crawlee Installation and Building
+
+This project now uses yarn v4 to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
+
+```shell
+corepack enable
+```
+
+After enabling corepack, you will need to be in the project root directory and install the dependencies before building.
+
+```shell
+yarn install
+```
+
+After installing the dependencies, you can build the Crawlee project.
+
+```shell
+yarn build
+```
+
+### Module not found
+
+
+
+
+
 ## Submission guidelines
 
 ### Submitting an issue
@@ -33,14 +68,6 @@ Before you submit your pull request, consider the following guidelines:
     - Commit them and push. Don't rebase after you get a review, so it is clear what changes you did in the last commit. The PR will be squash merged, so its history is irrelevant.
 
 That's it! Thank you for your contribution!
-
-### Yarn
-
-This project now uses yarn v4 to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
-
-```shell
-corepack enable
-```
 
 ### macOS
 
