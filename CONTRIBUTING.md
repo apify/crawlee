@@ -2,26 +2,29 @@
 
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
-## Crawlee Project Pre-requisites
+## Crawlee Project Prerequisites
 
-For Crawlee project contributions and changes to the codebase will require some pre-requisites to ensure the project is set up properly. These are the most important dependancies you'll need to set up the project, but here are other dev dependancies you might want to take a look at [package.json](./package.json) file.
+To contribute to the Crawlee project, you'll need some prerequisites to ensure the project is set up properly. These are the most important dependencies for development:
 
-- [Node.js](https://nodejs.org/en) v22.17.0
+- [Node.js](https://nodejs.org/en) >=16.0.0 (the project is configured for v22.17.0)
 
-- [yarn](./CONTRIBUTING.md/#installing-yarn) v4.8.1
+- [Yarn](https://yarnpkg.com/) >=4.0.0 (the project uses v4.8.1)
 
 
 ## Crawlee Installation and Building
 
-### Installing yarn
-This project now uses yarn v4 to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
+### Installing Yarn
+This project uses Yarn v4 to manage dependencies. The easiest way to install it is using [`corepack`](https://nodejs.org/api/corepack.html) (distributed with Node.js >=16.10):
 
 ```shell
 corepack enable
+corepack prepare yarn@stable --activate
 ```
 
+Alternatively, if you use [Volta](https://volta.sh/) for Node.js version management, it will automatically use the correct Node.js and Yarn versions specified in the project's `package.json`.
+
 ### Building the Project
-After enabling corepack, you will need to be in the project root directory and install the dependencies before building.
+After enabling corepack, you'll need to be in the project root directory and install the dependencies before building:
 
 ```shell
 yarn install
@@ -35,7 +38,7 @@ yarn build
 
 ### "Module not found" Fix
 
-**Note: Be sure to build the project in its original state first before contributing new code changes and following this.*
+**Note: Be sure to build the project in its original state first before contributing new code changes and following this.**
 
 In case you rebuild the project from the project root directory with new changes by `yarn build` and you run into issues relating to a missing module of `index.js` in the relative `dist` directory, this may be caused by `rimraf` behavior with the current location of relative paths. This can be fixed by the following:
 
@@ -48,7 +51,7 @@ Example:
 ```json
 "clean": "rimraf packages/core/dist",
 ```
-**Note: Do not include this as a commit.*
+**Note: Do not include this as a commit.**
 
 3. If there is a `dist` folder within the relative path, delete it manually.
 
