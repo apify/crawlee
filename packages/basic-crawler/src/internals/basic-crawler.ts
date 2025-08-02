@@ -1240,7 +1240,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const items = await dataset.export(options);
 
         if (format === 'csv') {
-            const value = stringify([Object.keys(items[0]), ...items.map((item) => Object.values(item))]);
+            const value = items.length > 0 ? stringify([Object.keys(items[0]), ...items.map((item) => Object.values(item))]) : '';
             await ensureDir(dirname(path));
             await writeFile(path, value);
             this.log.info(`Export to ${path} finished!`);
