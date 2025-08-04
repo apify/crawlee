@@ -4,11 +4,11 @@ Please note we have a code of conduct, please follow it in all your interactions
 
 ## Crawlee Project Prerequisites
 
-To contribute to the Crawlee project, you'll need some prerequisites to ensure the project is set up properly. These are the most important dependencies for development:
+To contribute to the Crawlee project, you'll need some prerequisites to ensure the project is set up properly. These are the required dependencies for development:
 
-- [Node.js](https://nodejs.org/en) >=16.0.0 (the project is configured for v22.17.0)
+- [Node.js](https://nodejs.org/en) v22.17.0
 
-- [Yarn](https://yarnpkg.com/) >=4.0.0 (the project uses v4.8.1)
+- [Yarn](https://yarnpkg.com/) v4.8.1 
 
 
 ## Crawlee Installation and Building
@@ -18,8 +18,9 @@ This project uses Yarn v4 to manage dependencies. The easiest way to install it 
 
 ```shell
 corepack enable
-corepack prepare yarn@stable --activate
 ```
+
+Once enabled, corepack will automatically use the correct Yarn version specified in the project's `packageManager` field.
 
 Alternatively, if you use [Volta](https://volta.sh/) for Node.js version management, it will automatically use the correct Node.js and Yarn versions specified in the project's `package.json`.
 
