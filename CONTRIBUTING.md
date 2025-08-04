@@ -14,7 +14,7 @@ To contribute to the Crawlee project, you'll need some prerequisites to ensure t
 ## Crawlee Installation and Building
 
 ### Installing Yarn
-This project uses Yarn v4 to manage dependencies. The easiest way to install it is using [`corepack`](https://nodejs.org/api/corepack.html) (distributed with Node.js >=16.10):
+This project uses Yarn v4 to manage dependencies. The easiest way to install it is using [corepack](https://nodejs.org/api/corepack.html) (distributed with Node.js >= 16.10):
 
 ```shell
 corepack enable
@@ -25,7 +25,7 @@ Once enabled, corepack will automatically use the correct Yarn version specified
 Alternatively, if you use [Volta](https://volta.sh/) for Node.js version management, it will automatically use the correct Node.js and Yarn versions specified in the project's `package.json`.
 
 ### Building the Project
-After enabling corepack, you'll need to be in the project root directory and install the dependencies before building:
+After enabling corepack, you will need to be in the project root directory and install the dependencies before building:
 
 ```shell
 yarn install
