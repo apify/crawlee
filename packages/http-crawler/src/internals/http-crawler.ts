@@ -598,7 +598,7 @@ export class HttpCrawler<
         crawlingContext.response = await addTimeoutToPromise(
             async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
             this.navigationTimeoutMillis,
-            `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+            `Navigation request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
         tryCancel();
 
