@@ -37,29 +37,6 @@ After installing the dependencies, you can build the Crawlee project.
 yarn build
 ```
 
-### "Module not found" Fix
-
-**Note: Be sure to build the project in its original state first before contributing new code changes and following this.**
-
-In case you rebuild the project from the project root directory with new changes by `yarn build` and you run into issues relating to a missing module of `index.js` in the relative `dist` directory, this may be caused by `rimraf` behavior with the current location of relative paths. This can be fixed by the following:
-
-1. Navigate into `package.json` under the relevant folder with code changes. 
-(e.g. If your new code changes are in `./packages/core`, go into that `package.json`)
-
-2. Update "scripts" for `yarn clean` and give it the actual relative path.
-
-Example:
-```json
-"clean": "rimraf packages/core/dist",
-```
-**Note: Do not include this as a commit.**
-
-3. If there is a `dist` folder within the relative path, delete it manually.
-
-4. Try rebuilding the Crawlee project again using `yarn build`.
-
-If the fix is successful, you should be able to build the project without any issues. You do not need to manually delete the generated `dist` folder again.
-
 ## Submission guidelines
 
 ### Submitting an issue
