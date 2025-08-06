@@ -89,7 +89,7 @@
         "body-parser": "^2.0.0",
         "camoufox-js": "^0.6.0",
         "commitlint": "^19.0.0",
-        "cross-env": "^7.0.3",
+        "cross-env": "^10.0.0",
         "deep-equal": "^2.0.5",
         "eslint": "^9.23.0",
         "eslint-config-prettier": "^10.1.1",
