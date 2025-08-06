@@ -589,7 +589,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.failedRequestHandler = failedRequestHandler;
         this.errorHandler = errorHandler;
 
-        if (requestHandlerTimeoutSecs) {
+        if (typeof requestHandlerTimeoutSecs === 'number') {
             this.requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
         } else {
             this.requestHandlerTimeoutMillis = 60_000;
@@ -1337,11 +1337,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         try {
             request.state = RequestState.REQUEST_HANDLER;
-            await addTimeoutToPromise(
-                async () => this._runRequestHandler(crawlingContext),
-                this.requestHandlerTimeoutMillis,
-                `BasicCrawler Wrapper(Combined) timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
-            );
+
+            // Only wrap in timeout if requestHandlerTimeoutMillis > 0
+            if (this.requestHandlerTimeoutMillis > 0) {
+                await addTimeoutToPromise(
+                    async () => this._runRequestHandler(crawlingContext),
+                    this.requestHandlerTimeoutMillis,
+                    `BasicCrawler Wrapper(Combined) timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
+                );
+            } else {
+                // No timeout wrapper - run directly
+                await this._runRequestHandler(crawlingContext);
+            }
 
             await this._timeoutAndRetry(
                 async () => source.markRequestHandled(request!),

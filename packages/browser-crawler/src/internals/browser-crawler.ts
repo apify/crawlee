@@ -332,8 +332,7 @@ export abstract class BrowserCrawler<
             {
                 ...basicCrawlerOptions,
                 requestHandler: async (...args) => this._runRequestHandler(...(args as [Context])),
-                requestHandlerTimeoutSecs:
-                    navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+                requestHandlerTimeoutSecs: 0, // Disable request handler timeout after modifying the basic crawler wrapper
             },
             config,
         );
@@ -379,7 +378,7 @@ export abstract class BrowserCrawler<
     }
 
     protected override async _cleanupContext(crawlingContext: Context): Promise<void> {
-        console.log("In clean up");
+        console.log('In clean up');
         const { page } = crawlingContext;
 
         // Page creation may be aborted
@@ -471,7 +470,7 @@ export abstract class BrowserCrawler<
         const { request, session } = crawlingContext;
 
         if (!request.skipNavigation) {
-            console.log("starting Nav");
+            console.log('Starting Navigation');
             await this._handleNavigation(crawlingContext);
             tryCancel();
 
@@ -506,7 +505,7 @@ export abstract class BrowserCrawler<
 
         request.state = RequestState.REQUEST_HANDLER;
         try {
-            console.log("trying user request handler")
+            console.log('Trying user request handler');
             await addTimeoutToPromise(
                 async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
                 this.requestHandlerTimeoutInnerMillis,
@@ -559,7 +558,7 @@ export abstract class BrowserCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        console.log("In nav");
+        console.log('In nav');
 
         try {
             // Wrap the entire navigation phase in one timeout
@@ -582,6 +581,7 @@ export abstract class BrowserCrawler<
                     await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
                 },
                 this.navigationTimeoutMillis,
+                // This message will never be seen, but is required by addTimeoutToPromise
                 `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
             );
         } catch (error) {
