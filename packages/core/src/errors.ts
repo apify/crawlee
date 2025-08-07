@@ -35,3 +35,36 @@ export class SessionError extends RetryRequestError {
         super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
     }
 }
+
+export class ContextPipelineInterruptedError extends Error {
+    constructor(message?: string) {
+        super(`Request handling was interrupted during context initialization ${message ? ` - ${message}` : ''}`);
+    }
+}
+
+export class ContextPipelineInitializationError extends Error {
+    constructor(
+        public error: unknown,
+        public crawlingContext: {},
+    ) {
+        super();
+    }
+}
+
+export class ContextPipelineCleanupError extends Error {
+    constructor(
+        public error: unknown,
+        public crawlingContext: {},
+    ) {
+        super();
+    }
+}
+
+export class RequestHandlerError extends Error {
+    constructor(
+        public error: unknown,
+        public crawlingContext: {},
+    ) {
+        super();
+    }
+}
