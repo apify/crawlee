@@ -14,7 +14,7 @@ import type {
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    // BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
@@ -564,7 +564,7 @@ export abstract class BrowserCrawler<
             // Wrap the entire navigation phase in one timeout
             await addTimeoutToPromise(
                 async () => {
-                    const gotoOptions = {} as unknown as GoToOptions;
+                    const gotoOptions = {timeout: this.navigationTimeoutMillis} as unknown as GoToOptions;
                     const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
                     crawlingContext.request.state = RequestState.BEFORE_NAV;
@@ -574,7 +574,8 @@ export abstract class BrowserCrawler<
                     const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
                     await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
 
-                    crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
+                    crawlingContext.response =
+                        (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
                     tryCancel();
 
                     crawlingContext.request.state = RequestState.AFTER_NAV;
@@ -587,6 +588,9 @@ export abstract class BrowserCrawler<
         } catch (error) {
             // Handle navigation timeout - mark session bad and close page
             await this._handleNavigationTimeout(crawlingContext, error as Error);
+
+            crawlingContext.request.state = RequestState.ERROR;
+            this._throwIfProxyError(error as Error);
             throw error;
         }
     }
