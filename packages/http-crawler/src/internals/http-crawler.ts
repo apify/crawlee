@@ -582,7 +582,7 @@ export class HttpCrawler<
             await addTimeoutToPromise(
                 async () => {
                     const gotOptions = {} as OptionsInit;
-                    const {request, session} = crawlingContext;
+                    const { request, session } = crawlingContext;
                     const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
                     request.state = RequestState.BEFORE_NAV;
@@ -593,12 +593,17 @@ export class HttpCrawler<
 
                     const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
-                    this
-                        ._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
+                    this._applyCookies(
+                        crawlingContext,
+                        gotOptions,
+                        preNavigationHooksCookies,
+                        postNavigationHooksCookies,
+                    );
 
                     const proxyUrl = crawlingContext.proxyInfo?.url;
 
-                    crawlingContext.response = (await this._requestFunction({request, session, proxyUrl, gotOptions })) ?? undefined;
+                    crawlingContext.response =
+                        (await this._requestFunction({ request, session, proxyUrl, gotOptions })) ?? undefined;
                     tryCancel();
 
                     request.state = RequestState.AFTER_NAV;
