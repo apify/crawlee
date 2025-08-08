@@ -5,7 +5,7 @@ import {
     ContextPipelineInterruptedError,
     RequestHandlerError,
 } from '@crawlee/core';
-import { describe, it, vi, expect } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('ContextPipeline', () => {
     it('should call middlewares in a sequence', async () => {

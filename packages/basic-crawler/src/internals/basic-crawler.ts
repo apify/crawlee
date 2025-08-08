@@ -6,6 +6,7 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     BaseHttpClient,
+    ContextPipeline,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,

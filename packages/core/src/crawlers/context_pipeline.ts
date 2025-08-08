@@ -12,7 +12,7 @@ import {
  * @template TCrawlingContext - The input context type for this middleware
  * @template TEnhancedCrawlingContext - The enhanced output context type
  */
-interface ContextMiddleware<TCrawlingContext, TEnhancedCrawlingContext> {
+export interface ContextMiddleware<TCrawlingContext, TEnhancedCrawlingContext> {
     /** The main middleware function that enhances the context */
     action: (context: TCrawlingContext) => Promise<TEnhancedCrawlingContext>;
     /** Optional cleanup function called after the consumer finishes or fails */
@@ -98,7 +98,7 @@ export class ContextPipeline<
         const middlewares = Array.from(this.middlewareChain()).reverse();
         const cleanupStack = [];
         let enhancedContext = crawlingContext;
-        let consumerException: unknown | undefined = undefined;
+        let consumerException: unknown | undefined;
 
         try {
             for (const { action: enhance, cleanup } of middlewares) {
