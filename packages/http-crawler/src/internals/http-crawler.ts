@@ -598,12 +598,7 @@ export class HttpCrawler<
 
                     const proxyUrl = crawlingContext.proxyInfo?.url;
 
-                    crawlingContext.response = (await this._requestFunction({
-                        request,
-                        session,
-                        proxyUrl,
-                        gotOptions,
-                    })) ?? undefined;
+                    crawlingContext.response = (await this._requestFunction({request, session, proxyUrl, gotOptions })) ?? undefined;
                     tryCancel();
 
                     request.state = RequestState.AFTER_NAV;

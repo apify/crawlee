@@ -564,7 +564,7 @@ export abstract class BrowserCrawler<
             // Wrap the entire navigation phase in one timeout
             await addTimeoutToPromise(
                 async () => {
-                    const gotoOptions = {timeout: this.navigationTimeoutMillis} as unknown as GoToOptions;
+                    const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
                     const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
                     crawlingContext.request.state = RequestState.BEFORE_NAV;
