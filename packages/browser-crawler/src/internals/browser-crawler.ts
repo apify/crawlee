@@ -378,7 +378,6 @@ export abstract class BrowserCrawler<
     }
 
     protected override async _cleanupContext(crawlingContext: Context): Promise<void> {
-        console.log('In clean up');
         const { page } = crawlingContext;
 
         // Page creation may be aborted
@@ -470,7 +469,6 @@ export abstract class BrowserCrawler<
         const { request, session } = crawlingContext;
 
         if (!request.skipNavigation) {
-            console.log('Starting Navigation');
             await this._handleNavigation(crawlingContext);
             tryCancel();
 
@@ -505,7 +503,6 @@ export abstract class BrowserCrawler<
 
         request.state = RequestState.REQUEST_HANDLER;
         try {
-            console.log('Trying user request handler');
             await addTimeoutToPromise(
                 async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
                 this.requestHandlerTimeoutInnerMillis,
@@ -558,13 +555,11 @@ export abstract class BrowserCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        console.log('In nav');
-
         try {
             // Wrap the entire navigation phase in one timeout
             await addTimeoutToPromise(
                 async () => {
-                    const gotoOptions = {timeout: this.navigationTimeoutMillis} as unknown as GoToOptions;
+                    const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
                     const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
                     crawlingContext.request.state = RequestState.BEFORE_NAV;
