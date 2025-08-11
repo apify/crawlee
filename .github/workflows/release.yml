@@ -97,7 +97,7 @@ jobs:
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
@@ -186,7 +186,7 @@ jobs:
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Install jq
                 run: sudo apt-get install jq
