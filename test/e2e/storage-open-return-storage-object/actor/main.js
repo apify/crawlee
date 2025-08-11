@@ -1,4 +1,4 @@
-import { Actor, KeyValueStore } from 'apify';
+import { Actor, KeyValueStore, Dataset } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -10,5 +10,9 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const kv = await KeyValueStore.open();
-    await kv.setValue('storageObject', { storeObject: kv.storageObject });
+    const dataset = await Dataset.open();
+    await kv.setValue('storageObject', {
+        keyValueStorageObject: kv.storageObject,
+        datasetStorageObject: dataset.storageObject,
+    });
 }, mainOptions);

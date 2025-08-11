@@ -232,6 +232,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
     client: DatasetClient<Data>;
+    readonly storageObject?: Record<string, unknown>;
     log: Log = log.child({ prefix: 'Dataset' });
 
     /**
@@ -244,6 +245,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.id = options.id;
         this.name = options.name;
         this.client = options.client.dataset(this.id) as DatasetClient<Data>;
+        this.storageObject = options.storageObject;
     }
 
     /**
@@ -733,6 +735,7 @@ export interface DatasetOptions {
     id: string;
     name?: string;
     client: StorageClient;
+    storageObject?: Record<string, unknown>;
 }
 
 export interface DatasetContent<Data> {
