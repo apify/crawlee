@@ -621,7 +621,7 @@ __metadata:
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
     "@crawlee/core": "npm:^3.14.1"
-    impit: "npm:^0.5.2"
+    impit: "npm:^0.5.3"
     tough-cookie: "npm:^5.1.2"
   peerDependencies:
     "@crawlee/core": ^3.12.1
