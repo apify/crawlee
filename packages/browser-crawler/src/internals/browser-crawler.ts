@@ -332,7 +332,7 @@ export abstract class BrowserCrawler<
             {
                 ...basicCrawlerOptions,
                 requestHandler: async (...args) => this._runRequestHandler(...(args as [Context])),
-                requestHandlerTimeoutSecs: 0, // Disable request handler timeout after modifying the basic crawler wrapper
+                requestHandlerTimeoutSecs: 0, // Disable outer request handler timeout after modifying the basic crawler wrapper
             },
             config,
         );

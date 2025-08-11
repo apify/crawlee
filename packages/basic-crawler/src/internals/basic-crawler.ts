@@ -1343,7 +1343,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 await addTimeoutToPromise(
                     async () => this._runRequestHandler(crawlingContext),
                     this.requestHandlerTimeoutMillis,
-                    `BasicCrawler Wrapper(Combined) timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
+                    `Request handler safety timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
                 );
             } else {
                 // No timeout wrapper - run directly
