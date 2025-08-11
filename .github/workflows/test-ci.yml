@@ -32,7 +32,7 @@ jobs:
                     access_token: ${{ github.token }}
 
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js ${{ matrix.node-version }}
                 uses: actions/setup-node@v4
@@ -86,7 +86,7 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
@@ -130,7 +130,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
@@ -173,7 +173,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4

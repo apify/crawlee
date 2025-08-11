@@ -27,7 +27,7 @@ jobs:
                     access_token: ${{ github.token }}
 
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
