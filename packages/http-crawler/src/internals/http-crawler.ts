@@ -391,8 +391,6 @@ export class HttpCrawler<
                 ...basicCrawlerOptions,
                 requestHandler,
                 autoscaledPoolOptions,
-                // We need to add some time for internal functions to finish,
-                // but not too much so that we would stall the crawler.
                 requestHandlerTimeoutSecs: 0, // Disable request handler timeout after modifying the basic crawler wrapper
             },
             config,
@@ -579,10 +577,11 @@ export class HttpCrawler<
 
     protected async _handleNavigation(crawlingContext: Context) {
         try {
+            // Wrapped the navigation hooks and navigation in the same timeout
             await addTimeoutToPromise(
                 async () => {
                     const gotOptions = {} as OptionsInit;
-                    const {request, session} = crawlingContext;
+                    const { request, session } = crawlingContext;
                     const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
                     request.state = RequestState.BEFORE_NAV;
@@ -593,29 +592,34 @@ export class HttpCrawler<
 
                     const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
-                    this
-                        ._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
+                    this._applyCookies(
+                        crawlingContext,
+                        gotOptions,
+                        preNavigationHooksCookies,
+                        postNavigationHooksCookies,
+                    );
 
                     const proxyUrl = crawlingContext.proxyInfo?.url;
 
-                    crawlingContext.response = (await this._requestFunction({
-                        request,
-                        session,
-                        proxyUrl,
-                        gotOptions,
-                    })) ?? undefined;
+                    crawlingContext.response =
+                        (await this._requestFunction({
+                            request,
+                            session,
+                            proxyUrl,
+                            gotOptions,
+                        })) ?? undefined;
                     tryCancel();
 
                     request.state = RequestState.AFTER_NAV;
                     await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
                     tryCancel();
                 },
-                this.navigationTimeoutMillis,
+                this.navigationTimeoutMillis,   // default amount may need to be adjusted to accommodate the hooks
                 `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
             );
-        } catch (error) {
+        } catch (e: any) {
             crawlingContext.request.state = RequestState.ERROR;
-            throw error;
+            throw e;
         }
     }
 
