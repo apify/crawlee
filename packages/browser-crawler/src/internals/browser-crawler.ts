@@ -578,7 +578,7 @@ export abstract class BrowserCrawler<
                 },
                 this.navigationTimeoutMillis,
                 // This message will never be seen, but is required by addTimeoutToPromise
-                `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                `Navigation timed out after ${this.navigationTimeoutMillis} ms`,
             );
         } catch (error) {
             // Handle navigation timeout - mark session bad and close page
