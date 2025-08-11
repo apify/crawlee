@@ -614,7 +614,7 @@ export class HttpCrawler<
                     await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
                     tryCancel();
                 },
-                this.navigationTimeoutMillis,   // default amount may need to be adjusted to accommodate the hooks
+                this.navigationTimeoutMillis, // default amount may need to be adjusted to accommodate the hooks
                 `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
             );
         } catch (e: any) {
