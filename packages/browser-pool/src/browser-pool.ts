@@ -806,11 +806,7 @@ export class BrowserPool<
 
             await this._executeHooks(this.postPageCloseHooks, pageId, browserController);
 
-            // Clean up all page references to prevent memory leaks
             this.pages.delete(pageId);
-            this.pageIds.delete(page);
-            this.pageToBrowserController.delete(page);
-            
             this._closeRetiredBrowserWithNoPages(browserController);
 
             this.emit(BROWSER_POOL_EVENTS.PAGE_CLOSED, page);
