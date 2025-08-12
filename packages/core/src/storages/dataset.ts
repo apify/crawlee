@@ -141,7 +141,13 @@ export interface DatasetDataOptions {
     skipEmpty?: boolean;
 }
 
-export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {}
+export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {
+    /**
+     * If true, includes all unique keys from all dataset items in the CSV export header.
+     * If omitted or false, only keys from the first item are used.
+     */
+    collectAllKeys?: boolean;
+}
 
 export interface DatasetIteratorOptions
     extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
@@ -170,11 +176,6 @@ export interface DatasetIteratorOptions
 export interface DatasetExportToOptions extends DatasetExportOptions {
     fromDataset?: string;
     toKVS?: string;
-    /**
-     * If true, includes all unique keys from all dataset items in the CSV export.
-     * If omitted or false, only keys from the first item are used.
-     */
-    collectAllKeys?: boolean;
 }
 
 /**
