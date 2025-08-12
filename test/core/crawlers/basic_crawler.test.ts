@@ -1716,6 +1716,21 @@ describe('BasicCrawler', () => {
             await rm(`${tmpDir}/result.json`);
         });
 
+        test('exports do not fail on empty dataset', async () => {
+            const crawler = new BasicCrawler();
+
+            await crawler.exportData(`${tmpDir}/result.csv`);
+            await crawler.exportData(`${tmpDir}/result.json`);
+
+            const csv = await readFile(`${tmpDir}/result.csv`);
+            expect(csv.toString()).toBe('');
+            const json = await readFile(`${tmpDir}/result.json`);
+            expect(json.toString()).toBe('[]\n');
+
+            await rm(`${tmpDir}/result.csv`);
+            await rm(`${tmpDir}/result.json`);
+        });
+
         test('should expose pushData helper', async () => {
             const crawler = new BasicCrawler({
                 requestHandler: async ({ pushData }) => pushData(payload),
