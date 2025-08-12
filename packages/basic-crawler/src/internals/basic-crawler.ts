@@ -1244,9 +1244,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             if (items.length === 0) {
                 value = '';
             } else {
-                const keys = options?.collectAllKeys
-                    ? Array.from(new Set(items.flatMap(Object.keys)))
-                    : Object.keys(items[0]);
+                const keys = Object.keys(items[0]);
 
                 value = stringify([
                     keys,
