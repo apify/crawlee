@@ -1240,7 +1240,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const items = await dataset.export(options);
 
         if (format === 'csv') {
-            let value: string | undefined;
+            let value: string;
             if (items.length === 0) {
                 value = '';
             } else {
