@@ -127,6 +127,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             method: request.method as HttpMethod,
             headers: this.intoHeaders(request.headers),
             body: this.intoImpitBody(request.body),
+            timeout: (request.timeout as { request?: number })?.request,
         });
 
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
