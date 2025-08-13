@@ -1745,6 +1745,19 @@ describe('BasicCrawler', () => {
             expect((await crawler.getData()).items).toEqual(payload);
         });
 
+        test('crawler.exportData works with `collectAllKeys`', async () => {
+            const crawler = new BasicCrawler();
+            await crawler.pushData([{ foo: 'bar', baz: 123 }]);
+            await crawler.pushData([{ foo: 'baz', qux: 456 }]);
+
+            await crawler.exportData(`${tmpDir}/result.csv`, 'csv', { collectAllKeys: true });
+
+            const csv = await readFile(`${tmpDir}/result.csv`);
+            expect(csv.toString()).toBe('foo,baz,qux\nbar,123,\nbaz,,456\n');
+
+            await rm(`${tmpDir}/result.csv`);
+        });
+
         test("Crawlers with different Configurations don't share Datasets", async () => {
             const crawlerA = new BasicCrawler({}, new Configuration({ persistStorage: false }));
             const crawlerB = new BasicCrawler({}, new Configuration({ persistStorage: false }));
