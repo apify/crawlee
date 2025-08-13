@@ -121,8 +121,5 @@
     "volta": {
         "node": "22.14.0",
         "yarn": "4.9.1"
-    },
-    "dependencies": {
-        "crawlee": "^3.13.3"
     }
 }
