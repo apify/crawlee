@@ -767,27 +767,16 @@ describe('BasicCrawler', () => {
         const request1 = new Request({ id: 'id-1', ...sources[1] });
         const request2 = new Request({ id: 'id-2', ...sources[2] });
 
-        vitest
-            .spyOn(requestQueue, 'fetchNextRequest')
-            .mockResolvedValueOnce(request0)
-            .mockResolvedValueOnce(request1)
-            .mockResolvedValueOnce(request2)
-            .mockResolvedValueOnce(request1)
-            .mockResolvedValueOnce(request1)
-            .mockResolvedValueOnce(request1);
+        const queueContent = [request0, request1, request2, request1, request1, request1];
+
+        vitest.spyOn(requestQueue, 'fetchNextRequest').mockImplementation(async () => queueContent.shift() ?? null);
 
         const markReqHandled = vitest
             .spyOn(requestQueue, 'markRequestHandled')
             .mockReturnValue(Promise.resolve() as any);
         const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
-        vitest
-            .spyOn(requestQueue, 'isEmpty')
-            .mockResolvedValueOnce(false)
-            .mockResolvedValueOnce(false)
-            .mockResolvedValueOnce(false)
-            .mockResolvedValueOnce(true);
-
+        vitest.spyOn(requestQueue, 'isEmpty').mockImplementation(async () => queueContent.length <= 0);
         vitest.spyOn(requestQueue, 'isFinished').mockResolvedValueOnce(true);
 
         await basicCrawler.run();
