@@ -11,7 +11,6 @@ function getStats(crawler: HttpCrawler<any>) {
     return {};
 }
 
-
 test('Navigation timeout (preNavigationHooks delay)', async () => {
     let handlerCalled = false;
     let failedError: Error | undefined;
@@ -120,7 +119,11 @@ test('Succeeds when under both timeouts', async () => {
         maxRequestRetries: 0,
         navigationTimeoutSecs: 2,
         requestHandlerTimeoutSecs: 2,
-        preNavigationHooks: [async () => { await sleep(300); }],
+        preNavigationHooks: [
+            async () => {
+                await sleep(300);
+            },
+        ],
         requestHandler: async () => {
             handlerRan = true;
             await sleep(400);
@@ -135,6 +138,6 @@ test('Succeeds when under both timeouts', async () => {
 
     expect(handlerRan).toBe(true);
     expect(stats.requestsFinished).toBe(1);
-    expect((stats.requestsFailed || 0)).toBe(0);
+    expect(stats.requestsFailed || 0).toBe(0);
     expect(failedError).toBeUndefined();
 });

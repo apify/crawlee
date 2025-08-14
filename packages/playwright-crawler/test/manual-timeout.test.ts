@@ -45,9 +45,15 @@ test('Navigation timeout via postNavigationHooks delay', async () => {
     const crawler = new PlaywrightCrawler({
         maxRequestRetries: 0,
         navigationTimeoutSecs: 1,
-        postNavigationHooks: [async () => { await sleep(1500); }],
+        postNavigationHooks: [
+            async () => {
+                await sleep(1500);
+            },
+        ],
         requestHandler: async () => {},
-        failedRequestHandler: async (_c, e) => { failedError = e as Error; },
+        failedRequestHandler: async (_c, e) => {
+            failedError = e as Error;
+        },
     });
     await crawler.run([`https://example.com/?post=${Date.now()}`]);
     expect(failedError).toBeInstanceOf(TimeoutError);
@@ -117,6 +123,6 @@ test('Request handler and navigation succeed under timeouts', async () => {
     const stats = getStats(crawler);
     expect(handlerRan).toBe(true);
     expect(stats.requestsFinished).toBe(1);
-    expect((stats.requestsFailed || 0)).toBe(0);
+    expect(stats.requestsFailed || 0).toBe(0);
     expect(failedError).toBeUndefined();
 });
