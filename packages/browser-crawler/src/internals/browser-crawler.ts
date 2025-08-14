@@ -555,36 +555,33 @@ export abstract class BrowserCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
+        const runNavigationPhase = async () => {
+            const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
+
+            const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+            crawlingContext.request.state = RequestState.BEFORE_NAV;
+            await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+            tryCancel();
+
+            const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+            await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+
+            crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
+            tryCancel();
+
+            crawlingContext.request.state = RequestState.AFTER_NAV;
+            await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+        };
         try {
-            // Wrap the entire navigation phase in one timeout
             await addTimeoutToPromise(
-                async () => {
-                    const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
-                    const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
-
-                    crawlingContext.request.state = RequestState.BEFORE_NAV;
-                    await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
-                    tryCancel();
-
-                    const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
-                    await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
-
-                    crawlingContext.response =
-                        (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
-                    tryCancel();
-
-                    crawlingContext.request.state = RequestState.AFTER_NAV;
-                    await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
-                },
+                runNavigationPhase,
                 this.navigationTimeoutMillis,
                 // This message will never be seen, but is required by addTimeoutToPromise
                 `Navigation timed out after ${this.navigationTimeoutMillis} ms`,
             );
         } catch (error) {
-            // Handle navigation timeout - mark session bad and close page
-            await this._handleNavigationTimeout(crawlingContext, error as Error);
-
             crawlingContext.request.state = RequestState.ERROR;
+            await this._handleNavigationTimeout(crawlingContext, error as Error); // marks session bad and closes page
             this._throwIfProxyError(error as Error);
             throw error;
         }
