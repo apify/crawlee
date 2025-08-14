@@ -14,7 +14,7 @@ import type {
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    // BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
@@ -332,8 +332,7 @@ export abstract class BrowserCrawler<
             {
                 ...basicCrawlerOptions,
                 requestHandler: async (...args) => this._runRequestHandler(...(args as [Context])),
-                requestHandlerTimeoutSecs:
-                    navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+                requestHandlerTimeoutSecs: 0, // Disable outer request handler timeout after modifying the basic crawler wrapper
             },
             config,
         );
@@ -556,32 +555,36 @@ export abstract class BrowserCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
+        const runNavigationPhase = async () => {
+            const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
 
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+            const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+            crawlingContext.request.state = RequestState.BEFORE_NAV;
+            await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+            tryCancel();
 
-        crawlingContext.request.state = RequestState.BEFORE_NAV;
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
-        tryCancel();
+            const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+            await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
-
-        await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
-
-        try {
             crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
+            tryCancel();
+
+            crawlingContext.request.state = RequestState.AFTER_NAV;
+            await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+        };
+        try {
+            await addTimeoutToPromise(
+                runNavigationPhase,
+                this.navigationTimeoutMillis,
+                // This message will never be seen, but is required by addTimeoutToPromise
+                `Navigation timed out after ${this.navigationTimeoutMillis} ms`,
+            );
         } catch (error) {
-            await this._handleNavigationTimeout(crawlingContext, error as Error);
-
             crawlingContext.request.state = RequestState.ERROR;
-
+            await this._handleNavigationTimeout(crawlingContext, error as Error); // marks session bad and closes page
             this._throwIfProxyError(error as Error);
             throw error;
         }
-        tryCancel();
-
-        crawlingContext.request.state = RequestState.AFTER_NAV;
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
     }
 
     protected async _applyCookies(

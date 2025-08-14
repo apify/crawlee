@@ -17,7 +17,7 @@ import type {
     Session,
 } from '@crawlee/basic';
 import {
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    // BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
     Configuration,
     CrawlerExtension,
@@ -391,10 +391,7 @@ export class HttpCrawler<
                 ...basicCrawlerOptions,
                 requestHandler,
                 autoscaledPoolOptions,
-                // We need to add some time for internal functions to finish,
-                // but not too much so that we would stall the crawler.
-                requestHandlerTimeoutSecs:
-                    navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+                requestHandlerTimeoutSecs: 0, // Disable request handler timeout after modifying the basic crawler wrapper
             },
             config,
         );
@@ -579,32 +576,51 @@ export class HttpCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        const gotOptions = {} as OptionsInit;
-        const { request, session } = crawlingContext;
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
+        try {
+            // Wrapped the navigation hooks and navigation in the same timeout
+            await addTimeoutToPromise(
+                async () => {
+                    const gotOptions = {} as OptionsInit;
+                    const { request, session } = crawlingContext;
+                    const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
-        request.state = RequestState.BEFORE_NAV;
-        // Execute pre navigation hooks before applying session pool cookies,
-        // as they may also set cookies in the session
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
-        tryCancel();
+                    request.state = RequestState.BEFORE_NAV;
+                    // Execute pre navigation hooks before applying session pool cookies,
+                    // as they may also set cookies in the session
+                    await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
+                    tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
+                    const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
-        this._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
+                    this._applyCookies(
+                        crawlingContext,
+                        gotOptions,
+                        preNavigationHooksCookies,
+                        postNavigationHooksCookies,
+                    );
 
-        const proxyUrl = crawlingContext.proxyInfo?.url;
+                    const proxyUrl = crawlingContext.proxyInfo?.url;
 
-        crawlingContext.response = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
-            this.navigationTimeoutMillis,
-            `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
-        );
-        tryCancel();
+                    crawlingContext.response =
+                        (await this._requestFunction({
+                            request,
+                            session,
+                            proxyUrl,
+                            gotOptions,
+                        })) ?? undefined;
+                    tryCancel();
 
-        request.state = RequestState.AFTER_NAV;
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
-        tryCancel();
+                    request.state = RequestState.AFTER_NAV;
+                    await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
+                    tryCancel();
+                },
+                this.navigationTimeoutMillis, // default amount may need to be adjusted to accommodate the hooks
+                `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+            );
+        } catch (e: any) {
+            crawlingContext.request.state = RequestState.ERROR;
+            throw e;
+        }
     }
 
     /**
