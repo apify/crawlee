@@ -27,17 +27,12 @@ export interface ContextMiddleware<TCrawlingContext, TEnhancedCrawlingContext> {
  * can enhance the context with additional properties or utilities.
  *
  * @template TContextBase - The base context type that serves as the starting point
- * @template TInitialCrawlingContext - The initial context type extending the base context
  * @template TCrawlingContext - The final context type after all middleware transformations
  */
-export class ContextPipeline<
-    TContextBase extends {},
-    TInitialCrawlingContext extends TContextBase,
-    TCrawlingContext extends TInitialCrawlingContext,
-> {
+export class ContextPipeline<TContextBase extends {}, TCrawlingContext extends TContextBase> {
     private constructor(
-        private middleware: ContextMiddleware<TInitialCrawlingContext, TCrawlingContext>,
-        private parent?: ContextPipeline<TContextBase, TContextBase, TInitialCrawlingContext>,
+        private middleware: ContextMiddleware<TContextBase, TCrawlingContext>,
+        private parent?: ContextPipeline<TContextBase, TContextBase>,
     ) {}
 
     /**
@@ -47,7 +42,7 @@ export class ContextPipeline<
      * @returns A new ContextPipeline instance with no transformations
      */
     static create<TContextBase extends {}>() {
-        return new ContextPipeline<TContextBase, TContextBase, TContextBase>({ action: async (context) => context });
+        return new ContextPipeline<TContextBase, TContextBase>({ action: async (context) => context });
     }
 
     /**
@@ -62,12 +57,12 @@ export class ContextPipeline<
      */
     compose<TEnhancedCrawlingContext extends TCrawlingContext>(
         middleware: ContextMiddleware<TCrawlingContext, TEnhancedCrawlingContext>,
-    ): ContextPipeline<TContextBase, TCrawlingContext, TEnhancedCrawlingContext> {
-        return new ContextPipeline<TContextBase, TCrawlingContext, TEnhancedCrawlingContext>(middleware, this as any);
+    ): ContextPipeline<TContextBase, TEnhancedCrawlingContext> {
+        return new ContextPipeline<TContextBase, TEnhancedCrawlingContext>(middleware as any, this as any);
     }
 
     private *middlewareChain() {
-        let step: ContextPipeline<TContextBase, TContextBase, TContextBase> | undefined = this as any;
+        let step: ContextPipeline<TContextBase, TContextBase> | undefined = this as any;
 
         while (step !== undefined) {
             yield step.middleware;
