@@ -588,7 +588,7 @@ __metadata:
     ow: "npm:^0.28.1"
     stream-json: "npm:^1.8.0"
     tldts: "npm:^7.0.0"
-    tough-cookie: "npm:^5.0.0"
+    tough-cookie: "npm:^6.0.0"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
   languageName: unknown
@@ -622,7 +622,7 @@ __metadata:
     "@apify/datastructures": "npm:^2.0.3"
     "@crawlee/core": "npm:^3.14.1"
     impit: "npm:^0.5.3"
-    tough-cookie: "npm:^5.1.2"
+    tough-cookie: "npm:^6.0.0"
   peerDependencies:
     "@crawlee/core": ^3.12.1
   languageName: unknown
@@ -12742,6 +12742,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tldts-core@npm:^7.0.12":
+  version: 7.0.12
+  resolution: "tldts-core@npm:7.0.12"
+  checksum: 10c0/d20daec036be66fb506c395f6c85fa0f99c0fb4d77d0a5d37e9925fbe051d6786a6985a28cc60ab6dbf7e9a599eccd7b152588c5f1facb90da46899eb71664b3
+  languageName: node
+  linkType: hard
+
 "tldts@npm:^6.1.32":
   version: 6.1.86
   resolution: "tldts@npm:6.1.86"
@@ -12761,6 +12768,17 @@ __metadata:
   bin:
     tldts: bin/cli.js
   checksum: 10c0/de132fcc10755381e0224b79612c41933eed0133a02852a45d1d27dab5db18bbf665529309953433c3cc888fad476ebb40130825e6ee924b1026d252ecdbc710
+  languageName: node
+  linkType: hard
+
+"tldts@npm:^7.0.5":
+  version: 7.0.12
+  resolution: "tldts@npm:7.0.12"
+  dependencies:
+    tldts-core: "npm:^7.0.12"
+  bin:
+    tldts: bin/cli.js
+  checksum: 10c0/a869262ab6ba92616c5aa23eb7ae255c79c261e669ad12096769a1e709383b7865f8b63575e16fd9a997ea7e4e4bee1a982f71493b737c73c20305cb2f04b420
   languageName: node
   linkType: hard
 
@@ -12806,12 +12824,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tough-cookie@npm:^5.0.0, tough-cookie@npm:^5.1.1, tough-cookie@npm:^5.1.2":
+"tough-cookie@npm:^5.1.1":
   version: 5.1.2
   resolution: "tough-cookie@npm:5.1.2"
   dependencies:
     tldts: "npm:^6.1.32"
   checksum: 10c0/5f95023a47de0f30a902bba951664b359725597d8adeabc66a0b93a931c3af801e1e697dae4b8c21a012056c0ea88bd2bf4dfe66b2adcf8e2f42cd9796fe0626
+  languageName: node
+  linkType: hard
+
+"tough-cookie@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "tough-cookie@npm:6.0.0"
+  dependencies:
+    tldts: "npm:^7.0.5"
+  checksum: 10c0/7b17a461e9c2ac0d0bea13ab57b93b4346d0b8c00db174c963af1e46e4ea8d04148d2a55f2358fc857db0c0c65208a98e319d0c60693e32e0c559a9d9cf20cb5
   languageName: node
   linkType: hard
 
