@@ -61,7 +61,7 @@
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
         "impit": "^0.5.3",
-        "tough-cookie": "^5.1.2"
+        "tough-cookie": "^6.0.0"
     },
     "packageManager": "yarn@4.8.1"
 }
