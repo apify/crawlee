@@ -1,5 +1,3 @@
-import type { IncomingMessage } from 'node:http';
-
 import type {
     Configuration,
     EnqueueLinksOptions,
@@ -28,7 +26,6 @@ import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';
 
 import { addTimeoutToPromise } from '@apify/timeout';
-import { concatStreamToBuffer } from '@apify/utilities';
 
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -36,9 +33,10 @@ export type JSDOMErrorHandler<
 > = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
 
 export interface JSDOMCrawlerOptions<
+    ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {
+> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ExtendedContext> {
     /**
      * Download and run scripts.
      */
@@ -60,6 +58,8 @@ export interface JSDOMCrawlingContext<
 > extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
     window: DOMWindow;
     document: Document;
+
+    body: string;
 
     /**
      * Wait for an element matching the selector to appear.
@@ -176,7 +176,10 @@ const resources = new ResourceLoader({
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
 });
 
-export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
+export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext> extends HttpCrawler<
+    JSDOMCrawlingContext,
+    ExtendedContext
+> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: ow.optional.boolean,
@@ -187,10 +190,23 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
     protected hideInternalConsole: boolean;
     protected virtualConsole: VirtualConsole | null = null;
 
-    constructor(options: JSDOMCrawlerOptions = {}, config?: Configuration) {
+    constructor(options: JSDOMCrawlerOptions<ExtendedContext> = {}, config?: Configuration) {
         const { runScripts = false, hideInternalConsole = false, ...httpOptions } = options;
 
-        super(httpOptions, config);
+        super(
+            {
+                ...httpOptions,
+                contextPipelineBuilder: () =>
+                    this.buildContextPipeline().compose({
+                        action: async (context) => await this.parseContent(context),
+                        cleanup: async (context) => {
+                            this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
+                            context.window?.close();
+                        },
+                    }),
+            },
+            config,
+        );
 
         this.runScripts = runScripts;
         this.hideInternalConsole = hideInternalConsole;
@@ -228,20 +244,12 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
 
     private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', error);
 
-    protected override async _cleanupContext(context: JSDOMCrawlingContext) {
-        this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
-        context.window?.close();
-    }
+    protected async parseContent(crawlingContext: InternalHttpCrawlingContext) {
+        const isXml = crawlingContext.contentType.type.includes('xml');
 
-    protected override async _parseHTML(
-        response: IncomingMessage,
-        isXml: boolean,
-        crawlingContext: JSDOMCrawlingContext,
-    ) {
-        const body = await concatStreamToBuffer(response);
-
-        const { window } = new JSDOM(body, {
-            url: response.url,
+        // TODO handle non-string
+        const { window } = new JSDOM(crawlingContext.body.toString(), {
+            url: crawlingContext.response.url,
             contentType: isXml ? 'text/xml' : 'text/html',
             runScripts: this.runScripts ? 'dangerously' : undefined,
             resources,
@@ -311,34 +319,29 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
             },
-        };
-    }
+            async waitForSelector(selector: string, timeoutMs = 5_000) {
+                const $ = cheerio.load(this.body);
 
-    override async _runRequestHandler(context: JSDOMCrawlingContext) {
-        context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
-            const $ = cheerio.load(context.body);
+                if ($(selector).get().length === 0) {
+                    if (timeoutMs) {
+                        await sleep(50);
+                        await this.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                        return;
+                    }
 
-            if ($(selector).get().length === 0) {
-                if (timeoutMs) {
-                    await sleep(50);
-                    await context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
-                    return;
+                    throw new Error(`Selector '${selector}' not found.`);
+                }
+            },
+            async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
+                const $ = cheerio.load(this.body);
+
+                if (selector && $(selector).get().length === 0) {
+                    throw new Error(`Selector '${selector}' not found.`);
                 }
 
-                throw new Error(`Selector '${selector}' not found.`);
-            }
+                return $;
+            },
         };
-        context.parseWithCheerio = async (selector?: string, _timeoutMs = 5_000) => {
-            const $ = cheerio.load(context.body);
-
-            if (selector && $(selector).get().length === 0) {
-                throw new Error(`Selector '${selector}' not found.`);
-            }
-
-            return $;
-        };
-
-        await super._runRequestHandler(context);
     }
 }
 

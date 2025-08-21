@@ -6,10 +6,8 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     BaseHttpClient,
-    ContextPipeline,
     CrawlingContext,
     DatasetExportOptions,
-    EnqueueLinksOptions,
     EventManager,
     FinalStatistics,
     GetUserDataFromRequest,
@@ -31,6 +29,8 @@ import type {
 import {
     AutoscaledPool,
     Configuration,
+    ContextPipeline,
+    ContextPipelineInterruptedError,
     CriticalError,
     Dataset,
     enqueueLinks,
@@ -52,13 +52,13 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
-import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
+import type { Awaitable, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow from 'ow';
 import { getDomain } from 'tldts';
-import type { SetRequired } from 'type-fest';
+import type { ReadonlyDeep } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
@@ -69,32 +69,7 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 import { createSendRequest } from './send-request.js';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends CrawlingContext<BasicCrawler, UserData> {
-    /**
-     * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
-     * currently used by the crawler.
-     *
-     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
-     * and override settings of the enqueued {@apilink Request} objects.
-     *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
-     * for more details regarding its usage.
-     *
-     * **Example usage**
-     *
-     * ```ts
-     * async requestHandler({ enqueueLinks }) {
-     *     await enqueueLinks({
-     *       urls: [...],
-     *     });
-     * },
-     * ```
-     *
-     * @param [options] All `enqueueLinks()` parameters are passed via an options object.
-     * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
-     */
-    enqueueLinks(options?: SetRequired<EnqueueLinksOptions, 'urls'>): Promise<BatchAddRequestsResult>;
-}
+    extends CrawlingContext<BasicCrawler, UserData> {}
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -130,7 +105,14 @@ export type StatusMessageCallback<
     Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
-export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
+export type RequireContextPipeline<FinalContextType extends CrawlingContext> = CrawlingContext extends FinalContextType
+    ? { contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, FinalContextType> }
+    : { contextPipelineBuilder: () => ContextPipeline<CrawlingContext, FinalContextType> };
+
+export interface BasicCrawlerOptions<
+    Context extends CrawlingContext = CrawlingContext,
+    ExtendedContext extends Context = Context,
+> {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
      *
@@ -148,7 +130,16 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<Context>;
+    requestHandler?: RequestHandler<ExtendedContext>;
+
+    /**
+     * Allows the user to extend the crawling context passed to the request handler with custom functionality.
+     *
+     * TODO example
+     */
+    contextPipelineEnhancer?: (
+        pipeline: ContextPipeline<CrawlingContext, Context>,
+    ) => ContextPipeline<CrawlingContext, ExtendedContext>;
 
     /**
      * Static list of URLs to be processed.
@@ -181,7 +172,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    errorHandler?: ErrorHandler<Context>;
+    errorHandler?: ErrorHandler<ExtendedContext>;
 
     /**
      * A function to handle requests that failed more than {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
@@ -191,7 +182,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    failedRequestHandler?: ErrorHandler<Context>;
+    failedRequestHandler?: ErrorHandler<ExtendedContext>;
 
     /**
      * Specifies the maximum number of retries allowed for a request if its processing fails.
@@ -420,7 +411,10 @@ export interface CrawlerExperiments {
  * ```
  * @category Crawlers
  */
-export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext> {
+export class BasicCrawler<
+    Context extends CrawlingContext = CrawlingContext,
+    ExtendedContext extends Context = Context,
+> {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
     /**
@@ -462,13 +456,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     readonly router: RouterHandler<LoadedContext<Context>> = Router.create<LoadedContext<Context>>();
 
+    protected contextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
+
     running = false;
     hasFinishedBefore = false;
 
     readonly log: Log;
-    protected requestHandler!: RequestHandler<Context>;
-    protected errorHandler?: ErrorHandler<Context>;
-    protected failedRequestHandler?: ErrorHandler<Context>;
+    protected requestHandler!: RequestHandler<ExtendedContext>;
+    protected errorHandler?: ErrorHandler<ExtendedContext>;
+    protected failedRequestHandler?: ErrorHandler<ExtendedContext>;
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
@@ -480,7 +476,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
-    protected crawlingContexts = new Map<string, Context>();
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
     protected httpClient: BaseHttpClient;
@@ -536,7 +531,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: BasicCrawlerOptions<Context> = {},
+        options: BasicCrawlerOptions<Context, ExtendedContext> & RequireContextPipeline<Context> = {} as any, // TODO explain the cast
         readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
@@ -574,6 +569,34 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             log = defaultLog.child({ prefix: this.constructor.name }),
             experiments = {},
         } = options;
+
+        this.contextPipeline = (() => {
+            const contextPipeline = (options.contextPipelineBuilder?.() ??
+                ContextPipeline.create<CrawlingContext>()) as ContextPipeline<CrawlingContext, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
+
+            if (options.contextPipelineEnhancer === undefined) {
+                return contextPipeline as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
+            }
+
+            return options.contextPipelineEnhancer(contextPipeline);
+        })();
+
+        this.contextPipeline = this.contextPipeline.compose({
+            action: async (context) => {
+                const { request } = context;
+                if (!this.requestMatchesEnqueueStrategy(request)) {
+                    // eslint-disable-next-line dot-notation
+                    const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
+                    this.log.debug(message);
+
+                    request.noRetry = true;
+                    request.state = RequestState.SKIPPED;
+
+                    throw new ContextPipelineInterruptedError(message);
+                }
+                return context;
+            },
+        });
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
@@ -636,7 +659,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
         }
         this.useSessionPool = useSessionPool;
-        this.crawlingContexts = new Map();
 
         const maxSignedInteger = 2 ** 31 - 1;
         if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
@@ -964,7 +986,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @param options Options for the request queue
      */
     async addRequests(
-        requests: (string | Source)[],
+        requests: ReadonlyDeep<(string | Source)[]>,
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
@@ -1087,8 +1109,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this._loadHandledRequestCount();
     }
 
-    protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
-        await this.requestHandler(crawlingContext as LoadedContext<Context>);
+    protected async _runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
+        await this.contextPipeline.call(crawlingContext, this.requestHandler);
     }
 
     /**
@@ -1203,12 +1225,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Executed when `errorHandler` finishes or the request is successful.
-     * Can be used to clean up orphaned browser pages.
-     */
-    protected async _cleanupContext(_crawlingContext: Context) {}
-
-    /**
      * Delays processing of the request based on the `sameDomainDelaySecs` option,
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
@@ -1307,17 +1323,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
 
-        // Shared crawling context
-        // @ts-expect-error
-        // All missing properties (that extend CrawlingContext) are set dynamically,
-        // but TS does not know that, so otherwise it would throw when compiling.
-        const crawlingContext: Context = {
+        const crawlingContext: CrawlingContext = {
             id: cryptoRandomObjectId(10),
-            crawler: this,
             log: this.log,
             request,
             session,
-            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
+            enqueueLinks: async (options) => {
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
@@ -1326,14 +1337,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     ...options,
                 });
             },
-            addRequests: this.addRequests.bind(this),
+            addRequests: async (requests, options) => {
+                await this.addRequests(requests, options);
+            },
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
             sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 
-        this.crawlingContexts.set(crawlingContext.id, crawlingContext);
         let isRequestLocked = true;
 
         try {
@@ -1394,10 +1406,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             // decrease the session score if the request fails (but the error handler did not throw)
             crawlingContext.session?.markBad();
         } finally {
-            await this._cleanupContext(crawlingContext);
-
-            this.crawlingContexts.delete(crawlingContext.id);
-
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && source instanceof RequestProvider) {
                 try {

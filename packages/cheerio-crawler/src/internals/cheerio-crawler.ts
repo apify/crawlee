@@ -1,6 +1,3 @@
-import type { IncomingMessage } from 'node:http';
-import { text as readStreamToString } from 'node:stream/consumers';
-
 import type {
     Configuration,
     EnqueueLinksOptions,
@@ -27,9 +24,10 @@ export type CheerioErrorHandler<
 > = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlerOptions<
+    ExtendedContext extends CheerioCrawlingContext,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>> {}
+> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ExtendedContext> {}
 
 export type CheerioHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -39,7 +37,9 @@ export type CheerioHook<
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData, CheerioCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData> {
+    body: string;
+
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      * Cheerio is available only for HTML and XML content types.
@@ -159,30 +159,36 @@ export type CheerioRequestHandler<
  * ```
  * @category Crawlers
  */
-export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
+export class CheerioCrawler<
+    ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext,
+> extends HttpCrawler<CheerioCrawlingContext, ExtendedContext> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-    constructor(options?: CheerioCrawlerOptions, config?: Configuration) {
-        super(options, config);
+    constructor(options?: CheerioCrawlerOptions<ExtendedContext>, config?: Configuration) {
+        super(
+            {
+                ...options,
+                contextPipelineBuilder: () =>
+                    this.buildContextPipeline().compose({
+                        action: async (context) => await this.parseContent(context),
+                    }),
+            },
+            config,
+        );
     }
 
-    protected override async _parseHTML(
-        response: IncomingMessage,
-        isXml: boolean,
-        crawlingContext: CheerioCrawlingContext,
-    ) {
-        const body = await readStreamToString(response);
-        const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
+    protected async parseContent(crawlingContext: InternalHttpCrawlingContext) {
+        const isXml = crawlingContext.contentType.type.includes('xml');
+        // TODO what if it's not in fact a string
+        const dom = parseDocument(crawlingContext.body as string, { decodeEntities: true, xmlMode: isXml });
         const $ = cheerio.load(dom, {
             xml: { decodeEntities: true, xmlMode: isXml },
         } as CheerioOptions);
 
         return {
-            dom,
             $,
-            body,
+            body: crawlingContext.body as string,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
@@ -194,24 +200,19 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
             },
-        };
-    }
+            waitForSelector: async (selector: string, _timeoutMs?: number) => {
+                if ($(selector).get().length === 0) {
+                    throw new Error(`Selector '${selector}' not found.`);
+                }
+            },
+            parseWithCheerio: async (selector?: string, timeoutMs?: number) => {
+                if (selector) {
+                    await crawlingContext.waitForSelector(selector, timeoutMs);
+                }
 
-    protected override async _runRequestHandler(context: CheerioCrawlingContext) {
-        context.waitForSelector = async (selector?: string, _timeoutMs?: number) => {
-            if (context.$(selector).get().length === 0) {
-                throw new Error(`Selector '${selector}' not found.`);
-            }
+                return $;
+            },
         };
-        context.parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
-            if (selector) {
-                await context.waitForSelector(selector, timeoutMs);
-            }
-
-            return context.$;
-        };
-
-        await super._runRequestHandler(context);
     }
 }
 
