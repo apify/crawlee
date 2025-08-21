@@ -11,10 +11,10 @@ describe('ContextPipeline', () => {
     it('should call middlewares in a sequence', async () => {
         const pipeline = ContextPipeline.create()
             .compose({
-                action: async (context) => ({ ...context, a: 2, b: 1, c: [1] }),
+                action: async () => ({ a: 2, b: 1, c: [1] }),
             })
             .compose({
-                action: async (context) => ({ ...context, a: context.a * 2, c: [...context.c, 2] }),
+                action: async (context) => ({ a: context.a * 2, c: [...context.c, 2] }),
             });
 
         const consumer = vi.fn();
@@ -26,13 +26,13 @@ describe('ContextPipeline', () => {
     it('should call cleanup routines', async () => {
         const pipeline = ContextPipeline.create()
             .compose({
-                action: async (context) => ({ ...context, c: [] as number[] }),
+                action: async () => ({ c: [] as number[] }),
                 cleanup: async (context) => {
                     context.c.push(1);
                 },
             })
             .compose({
-                action: async (context) => context,
+                action: async () => ({}),
                 cleanup: async (context) => {
                     context.c.push(2);
                 },
@@ -47,11 +47,11 @@ describe('ContextPipeline', () => {
     it('should allow interrupting the pipeline in middlewares', async () => {
         const context = { a: 3 };
 
-        const firstAction = vi.fn();
+        const firstAction = vi.fn().mockResolvedValue({});
         const firstCleanup = vi.fn();
         const secondAction = vi.fn().mockRejectedValue(new ContextPipelineInterruptedError());
         const secondCleanup = vi.fn();
-        const thirdAction = vi.fn();
+        const thirdAction = vi.fn().mockResolvedValue({});
         const thirdCleanup = vi.fn();
 
         const pipeline = ContextPipeline.create()
@@ -107,8 +107,7 @@ describe('ContextPipeline', () => {
         const context = { a: 3 };
 
         const pipeline = ContextPipeline.create().compose({
-            action: async (context) => ({
-                ...context,
+            action: async () => ({
                 b: 4,
             }),
         });
@@ -132,8 +131,7 @@ describe('ContextPipeline', () => {
         const cleanup = vi.fn();
 
         const pipeline = ContextPipeline.create().compose({
-            action: async (context) => ({
-                ...context,
+            action: async () => ({
                 b: 4,
             }),
             cleanup,
@@ -149,8 +147,7 @@ describe('ContextPipeline', () => {
         const context = { a: 3 };
 
         const pipeline = ContextPipeline.create().compose({
-            action: async (context) => ({
-                ...context,
+            action: async () => ({
                 b: 4,
             }),
             cleanup: async () => {

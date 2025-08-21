@@ -10,13 +10,13 @@ import {
  * Represents a middleware step in the context pipeline.
  *
  * @template TCrawlingContext - The input context type for this middleware
- * @template TEnhancedCrawlingContext - The enhanced output context type
+ * @template TCrawlingContextExtension - The enhanced output context type
  */
-export interface ContextMiddleware<TCrawlingContext, TEnhancedCrawlingContext> {
+export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
     /** The main middleware function that enhances the context */
-    action: (context: TCrawlingContext) => Promise<TEnhancedCrawlingContext>;
+    action: (context: TCrawlingContext) => Promise<TCrawlingContextExtension>;
     /** Optional cleanup function called after the consumer finishes or fails */
-    cleanup?: (context: TEnhancedCrawlingContext, error?: unknown) => Promise<void>;
+    cleanup?: (context: TCrawlingContext & TCrawlingContextExtension, error?: unknown) => Promise<void>;
 }
 
 /**
@@ -29,12 +29,7 @@ export interface ContextMiddleware<TCrawlingContext, TEnhancedCrawlingContext> {
  * @template TContextBase - The base context type that serves as the starting point
  * @template TCrawlingContext - The final context type after all middleware transformations
  */
-export class ContextPipeline<TContextBase extends {}, TCrawlingContext extends TContextBase> {
-    private constructor(
-        private middleware: ContextMiddleware<TContextBase, TCrawlingContext>,
-        private parent?: ContextPipeline<TContextBase, TContextBase>,
-    ) {}
-
+export abstract class ContextPipeline<TContextBase extends {}, TCrawlingContext extends TContextBase> {
     /**
      * Creates a new empty context pipeline.
      *
@@ -42,7 +37,7 @@ export class ContextPipeline<TContextBase extends {}, TCrawlingContext extends T
      * @returns A new ContextPipeline instance with no transformations
      */
     static create<TContextBase extends {}>() {
-        return new ContextPipeline<TContextBase, TContextBase>({ action: async (context) => context });
+        return new ContextPipelineImpl<TContextBase, TContextBase>({ action: async (context) => context });
     }
 
     /**
@@ -51,24 +46,13 @@ export class ContextPipeline<TContextBase extends {}, TCrawlingContext extends T
      * This method provides a fluent interface for building context transformation pipelines.
      * Each middleware can enhance the context with additional properties or utilities.
      *
-     * @template TEnhancedCrawlingContext - The enhanced context type produced by this middleware
+     * @template TCrawlingContextExtension - The enhanced context type produced by this middleware
      * @param middleware - The middleware to add to the pipeline
      * @returns A new ContextPipeline instance with the added middleware
      */
-    compose<TEnhancedCrawlingContext extends TCrawlingContext>(
-        middleware: ContextMiddleware<TCrawlingContext, TEnhancedCrawlingContext>,
-    ): ContextPipeline<TContextBase, TEnhancedCrawlingContext> {
-        return new ContextPipeline<TContextBase, TEnhancedCrawlingContext>(middleware as any, this as any);
-    }
-
-    private *middlewareChain() {
-        let step: ContextPipeline<TContextBase, TContextBase> | undefined = this as any;
-
-        while (step !== undefined) {
-            yield step.middleware;
-            step = step.parent;
-        }
-    }
+    abstract compose<TCrawlingContextExtension extends {}>(
+        middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>,
+    ): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
 
     /**
      * Executes the middleware pipeline and passes the final context to a consumer function.
@@ -86,19 +70,65 @@ export class ContextPipeline<TContextBase extends {}, TCrawlingContext extends T
      * @throws {ContextPipelineCleanupError} When cleanup operations fail
      * @throws {SessionError} Session errors are re-thrown as-is for special handling
      */
+    abstract call(
+        crawlingContext: TContextBase,
+        finalContextConsumer: (finalContext: TCrawlingContext) => Promise<unknown>,
+    ): Promise<void>;
+}
+
+/**
+ * Implementation of the `ContextPipeline` logic. This hides implementation details such as the `middleware` and `parent`
+ * properties from the `ContextPipeline` interface, making type checking more reliable.
+ */
+class ContextPipelineImpl<TContextBase extends {}, TCrawlingContext extends TContextBase> extends ContextPipeline<
+    TContextBase,
+    TCrawlingContext
+> {
+    constructor(
+        private middleware: ContextMiddleware<TContextBase, TCrawlingContext>,
+        private parent?: ContextPipelineImpl<TContextBase, TContextBase>,
+    ) {
+        super();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    compose<TCrawlingContextExtension extends {}>(
+        middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>,
+    ): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension> {
+        return new ContextPipelineImpl<TContextBase, TCrawlingContext & TCrawlingContextExtension>(
+            middleware as any,
+            this as any,
+        );
+    }
+
+    private *middlewareChain() {
+        let step: ContextPipelineImpl<TContextBase, TContextBase> | undefined = this as any;
+
+        while (step !== undefined) {
+            yield step.middleware;
+            step = step.parent;
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
     async call(
         crawlingContext: TContextBase,
         finalContextConsumer: (finalContext: TCrawlingContext) => Promise<unknown>,
     ): Promise<void> {
         const middlewares = Array.from(this.middlewareChain()).reverse();
         const cleanupStack = [];
-        let enhancedContext = crawlingContext;
         let consumerException: unknown | undefined;
 
         try {
-            for (const { action: enhance, cleanup } of middlewares) {
+            for (const { action, cleanup } of middlewares) {
                 try {
-                    enhancedContext = await enhance(enhancedContext);
+                    const contextExtension = await action(crawlingContext);
+                    Object.defineProperties(crawlingContext, Object.getOwnPropertyDescriptors(contextExtension));
+
                     if (cleanup) {
                         cleanupStack.push(cleanup);
                     }
@@ -110,27 +140,28 @@ export class ContextPipeline<TContextBase extends {}, TCrawlingContext extends T
                         throw exception;
                     }
 
-                    throw new ContextPipelineInitializationError(exception, enhancedContext);
+                    throw new ContextPipelineInitializationError(exception, crawlingContext);
                 }
             }
 
             try {
-                await finalContextConsumer(enhancedContext as TCrawlingContext);
+                await finalContextConsumer(crawlingContext as TCrawlingContext);
             } catch (exception: unknown) {
                 if (exception instanceof SessionError) {
                     consumerException = exception;
                     throw exception; // Session errors are re-thrown as-is
                 }
                 consumerException = exception;
-                throw new RequestHandlerError(exception, enhancedContext);
+                throw new RequestHandlerError(exception, crawlingContext);
             }
         } finally {
             try {
                 for (const cleanup of cleanupStack.reverse()) {
-                    await cleanup(enhancedContext, consumerException);
+                    await cleanup(crawlingContext, consumerException);
                 }
             } catch (exception: unknown) {
-                throw new ContextPipelineCleanupError(exception, enhancedContext);
+                // eslint-disable-next-line no-unsafe-finally
+                throw new ContextPipelineCleanupError(exception, crawlingContext);
             }
         }
     }

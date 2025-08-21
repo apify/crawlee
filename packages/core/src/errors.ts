@@ -51,7 +51,7 @@ export class ContextPipelineInitializationError extends Error {
     }
 }
 
-export class ContextPipelineCleanupError extends Error {
+export class ContextPipelineCleanupError extends CriticalError {
     constructor(
         public error: unknown,
         public crawlingContext: {},
