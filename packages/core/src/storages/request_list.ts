@@ -66,12 +66,6 @@ export interface IRequestList {
     fetchNextRequest(): Promise<Request | null>;
 
     /**
-     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
-     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
-     * Otherwise it gets the next request from sources.
-     *
-     * The function resolves to `null` if there are no more requests to process.
-     *
      * Can be used to iterate over the `RequestList` instance in a `for await .. of` loop.
      * Provides an alternative for the repeated use of `fetchNextRequest`.
      */
