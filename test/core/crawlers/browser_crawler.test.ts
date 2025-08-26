@@ -849,7 +849,7 @@ describe('BrowserCrawler', () => {
             // @ts-expect-error Accessing private property
             const proxiesToUse = proxyConfiguration.proxyUrls!;
             for (const proxyUrl of proxiesToUse) {
-                expect(browserProxies.includes(new URL(proxyUrl).href.slice(0, -1))).toBeTruthy();
+                expect(browserProxies.includes(new URL(proxyUrl!).href.slice(0, -1))).toBeTruthy();
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
