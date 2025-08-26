@@ -1,3 +1,5 @@
+import type { Awaitable } from '@crawlee/types';
+
 import {
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -72,7 +74,7 @@ export abstract class ContextPipeline<TContextBase extends {}, TCrawlingContext 
      */
     abstract call(
         crawlingContext: TContextBase,
-        finalContextConsumer: (finalContext: TCrawlingContext) => Promise<unknown>,
+        finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>,
     ): Promise<void>;
 }
 

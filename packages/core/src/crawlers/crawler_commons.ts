@@ -76,7 +76,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * @param [options] All `enqueueLinks()` parameters are passed via an options object.
      */
     enqueueLinks: (
-        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestQueue'>>,
+        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestQueue' | 'robotsTxtFile'>>,
     ) => Promise<unknown>;
 
     /**
@@ -136,8 +136,8 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinks(
-        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestQueue'>> &
-            Pick<EnqueueLinksOptions, 'requestQueue'>,
+        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestQueue' | 'robotsTxtFile'>> &
+            Pick<EnqueueLinksOptions, 'requestQueue' | 'robotsTxtFile'>,
     ): Promise<BatchAddRequestsResult>;
 
     /**

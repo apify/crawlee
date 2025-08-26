@@ -12,11 +12,9 @@ import type {
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
-    LoadedContext,
     ProxyInfo,
     Request,
     RequestOptions,
-    RestrictedCrawlingContext,
     RouterHandler,
     RouterRoutes,
     Session,
@@ -82,13 +80,12 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
  */
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
-export type RequestHandler<
-    Context extends CrawlingContext = LoadedContext<BasicCrawlingContext & RestrictedCrawlingContext>,
-> = (inputs: LoadedContext<Context>) => Awaitable<void>;
+export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
 export type ErrorHandler<
-    Context extends CrawlingContext = LoadedContext<BasicCrawlingContext & RestrictedCrawlingContext>,
-> = (inputs: LoadedContext<Context>, error: Error) => Awaitable<void>;
+    Context extends CrawlingContext = CrawlingContext,
+    ExtendedContext extends Context = Context,
+> = (inputs: Context & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
@@ -172,7 +169,7 @@ export interface BasicCrawlerOptions<
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    errorHandler?: ErrorHandler<ExtendedContext>;
+    errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
 
     /**
      * A function to handle requests that failed more than {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
@@ -182,7 +179,7 @@ export interface BasicCrawlerOptions<
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    failedRequestHandler?: ErrorHandler<ExtendedContext>;
+    failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
 
     /**
      * Specifies the maximum number of retries allowed for a request if its processing fails.
@@ -454,7 +451,7 @@ export class BasicCrawler<
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
      */
-    readonly router: RouterHandler<LoadedContext<Context>> = Router.create<LoadedContext<Context>>();
+    readonly router: RouterHandler<Context> = Router.create<Context>();
 
     protected contextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
 
@@ -463,8 +460,8 @@ export class BasicCrawler<
 
     readonly log: Log;
     protected requestHandler!: RequestHandler<ExtendedContext>;
-    protected errorHandler?: ErrorHandler<ExtendedContext>;
-    protected failedRequestHandler?: ErrorHandler<ExtendedContext>;
+    protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
@@ -1466,7 +1463,7 @@ export class BasicCrawler<
         return isRequestListFinished && isRequestQueueFinished;
     }
 
-    private async _rotateSession(crawlingContext: Context) {
+    private async _rotateSession(crawlingContext: CrawlingContext) {
         const { request } = crawlingContext;
 
         request.sessionRotationCount ??= 0;
@@ -1479,7 +1476,7 @@ export class BasicCrawler<
      */
     protected async _requestFunctionErrorHandler(
         error: Error,
-        crawlingContext: Context,
+        crawlingContext: CrawlingContext,
         source: IRequestList | RequestProvider,
     ): Promise<void> {
         const { request } = crawlingContext;
@@ -1493,7 +1490,10 @@ export class BasicCrawler<
 
         if (shouldRetryRequest) {
             await this.stats.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this.errorHandler?.(crawlingContext as LoadedContext<Context>, error);
+            await this.errorHandler?.(
+                crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
+                error,
+            );
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
@@ -1547,7 +1547,7 @@ export class BasicCrawler<
         }
     }
 
-    protected async _handleFailedRequestHandler(crawlingContext: Context, error: Error): Promise<void> {
+    protected async _handleFailedRequestHandler(crawlingContext: CrawlingContext, error: Error): Promise<void> {
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
         const message = this._getMessageFromError(error, true);
@@ -1555,7 +1555,10 @@ export class BasicCrawler<
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
         if (this.failedRequestHandler) {
-            await this.failedRequestHandler?.(crawlingContext as LoadedContext<Context>, error);
+            await this.failedRequestHandler?.(
+                crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
+                error,
+            );
         }
     }
 
