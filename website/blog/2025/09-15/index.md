@@ -5,24 +5,23 @@ description: Announcing the Crawlee for Python v1.0.0 release.
 authors: [VladaD]
 ---
 
-We launched Crawlee for Python in beta mode in [July 2024](https://crawlee.dev/blog/launching-crawlee-python). Over a year, we received many early adopters, tremendous interest in the library from the Python community, more than 6000 stars on GitHub, a dozen contributors, and many feature requests.
+We launched Crawlee for Python in beta mode in [July 2024](https://crawlee.dev/blog/launching-crawlee-python). Over the past year, we received many early adopters, tremendous interest in the library from the Python community, more than 6000 stars on GitHub, a dozen contributors, and many feature requests.
 
-After months of development, polishing, and community feedback, the library is leaving beta and entering a production/stable development status. 
+After months of development, polishing, and community feedback, the library is leaving beta and entering a production/stable development status.
 
-**We are happy to announce Crawlee for Python v1.0.0.** 
+**We are happy to announce Crawlee for Python v1.0.0.**
 
 From now on, Crawlee for Python will strictly follow [semantic versioning](https://semver.org/). You can now rely on it as a stable foundation for your crawling and scraping projects, knowing that breaking changes will only occur in major releases.
 
-
 ## What's new in Crawlee for Python v1
 
-[New storage client system](link to section)
-[Adaptive Playwright crawler](link to section)
-[Impit HTTP client](link to section)
-[Sitemap request loader](link to section)
-[Robots exclusion standard](link to section)
-[Fingerprinting](link to section)
-[Open telemetry](link to section)
+- [New storage client system](#new-storage-client-system)
+- [Adaptive Playwright crawler](#adaptive-playwright-crawler)
+- [Impit HTTP client](#impit-http-client)
+- [Sitemap request loader](#sitemap-request-loader)
+- [Robots exclusion standard](#robots-exclusion-standard)
+- [Fingerprinting](#fingerprinting)
+- [Open telemetry](#open-telemetry)
 
 ![Crawlee for Python v1.0.0](./img/crawlee_v100.webp)
 
@@ -415,7 +414,6 @@ if __name__ == '__main__':
 ```
 
 Once configured, your traces and metrics can be exported using standard OpenTelemetry exporters (e.g. OTLP, console, or custom backends). This makes it much easier to integrate Crawlee into existing monitoring pipelines. For more details on available options and examples of exporting traces, see the [Trace and monitor crawlers](https://crawlee.dev/python/docs/guides/trace-and-monitor-crawlers) guide.
-
 
 ## A message from the Crawlee team
 
