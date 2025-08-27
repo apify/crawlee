@@ -416,6 +416,11 @@ if __name__ == '__main__':
 
 Once configured, your traces and metrics can be exported using standard OpenTelemetry exporters (e.g. OTLP, console, or custom backends). This makes it much easier to integrate Crawlee into existing monitoring pipelines. For more details on available options and examples of exporting traces, see the [Trace and monitor crawlers](https://crawlee.dev/python/docs/guides/trace-and-monitor-crawlers) guide.
 
-## Conclusion
 
-We are excited to share that Crawlee v1 is here. If you have any questions or feedback, please open a [GitHub discussion](https://www.github.com/apify/crawlee-python/discussions). If you encounter any bugs, or have an idea for a new feature, please open a [GitHub issue](https://www.github.com/apify/crawlee-python/issues).
+## A message from the Crawlee team
+
+Last but not least, we want to thank our open-source community members who tried Crawlee for Python in its beta version and helped us improve it for the scraping and automation community.
+
+We would appreciate it if you could check out the latest version and [give us a star on GitHub](https://github.com/apify/crawlee-python/) if you like the new features.
+
+If you have any questions or feedback, please open a [GitHub discussion](https://www.github.com/apify/crawlee-python/discussions) or [join our Discord community](https://apify.com/discord/) to get support or talk to fellow Crawlee users. If you encounter any bugs or have an idea for a new feature, please open a [GitHub issue](https://www.github.com/apify/crawlee-python/issues).
