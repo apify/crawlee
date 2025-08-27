@@ -5,7 +5,24 @@ description: Announcing the Crawlee for Python v1.0.0 release.
 authors: [VladaD]
 ---
 
-We are happy to announce that Crawlee for Python v1.0.0 is finally here. After months of development, polishing, and feedback from the community, the library is leaving beta and entering a production/stable development status. This reflects our confidence in the API and the internal architecture. And from now on Crawlee for Python will strictly follow [semantic versioning](https://semver.org/), which means you can rely on it as a stable foundation for your crawling and scraping projects, knowing that breaking changes will only occur in major releases.
+We launched Crawlee for Python in beta mode in [July 2024](https://crawlee.dev/blog/launching-crawlee-python). Over a year, we received many early adopters, tremendous interest in the library from the Python community, more than 6000 stars on GitHub, a dozen contributors, and many feature requests.
+
+After months of development, polishing, and community feedback, the library is leaving beta and entering a production/stable development status. 
+
+**We are happy to announce Crawlee for Python v1.0.0.** 
+
+From now on, Crawlee for Python will strictly follow [semantic versioning](https://semver.org/). You can now rely on it as a stable foundation for your crawling and scraping projects, knowing that breaking changes will only occur in major releases.
+
+
+## What's new in Crawlee for Python v1
+
+[New storage client system](link to section)
+[Adaptive Playwright crawler](link to section)
+[Impit HTTP client](link to section)
+[Sitemap request loader](link to section)
+[Robots exclusion standard](link to section)
+[Fingerprinting](link to section)
+[Open telemetry](link to section)
 
 ![Crawlee for Python v1.0.0](./img/crawlee_v100.webp)
 
