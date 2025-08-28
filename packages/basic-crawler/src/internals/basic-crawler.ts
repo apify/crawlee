@@ -946,7 +946,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.shouldLogMaxProcessedRequestsExceeded = true;
         this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true });
+        await purgeDefaultStorages({
+            onlyPurgeOnce: true,
+            client: this.config.getStorageClient(),
+            config: this.config,
+        });
 
         if (requests) {
             await this.addRequests(requests, addRequestsOptions);
