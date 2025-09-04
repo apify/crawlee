@@ -81,13 +81,15 @@ export class StorageManager<T extends IStorage = IStorage> {
         if (!storage) {
             client ??= this.config.getStorageClient();
             const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
-            storage = new this.StorageConstructor({
-                id: storageObject.id,
-                name: storageObject.name,
-                storageObject,
-                client,
-            });
-
+            storage = new this.StorageConstructor(
+                {
+                    id: storageObject.id,
+                    name: storageObject.name,
+                    storageObject,
+                    client,
+                },
+                this.config,
+            );
             this._addStorageToCache(storage);
         }
 
