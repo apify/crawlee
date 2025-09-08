@@ -1,7 +1,7 @@
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import type {
     Awaitable,
     BasicCrawlerOptions,
+    BasicCrawlingContext,
     CrawlingContext,
     Dictionary,
     EnqueueLinksOptions,
@@ -12,21 +12,22 @@ import type {
     RequestHandler,
     RequestProvider,
     Session,
+    SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
+    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
-    tryAbsoluteURL,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
-    validators,
     SessionError,
-    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
+    tryAbsoluteURL,
+    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -39,9 +40,12 @@ import type {
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
+import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
+
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
@@ -570,6 +574,8 @@ export abstract class BrowserCrawler<
             request.noRetry = true;
             request.state = RequestState.SKIPPED;
 
+            await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
             return;
         }
 
@@ -592,8 +598,6 @@ export abstract class BrowserCrawler<
             throw e;
         }
         tryCancel();
-
-        if (session) session.markGood();
     }
 
     protected _enhanceCrawlingContextWithPageInfo(
@@ -620,13 +624,17 @@ export abstract class BrowserCrawler<
             crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo as ProxyInfo;
         }
 
+        const contextEnqueueLinks = crawlingContext.enqueueLinks;
         crawlingContext.enqueueLinks = async (enqueueOptions) => {
             return browserCrawlerEnqueueLinks({
-                options: enqueueOptions,
+                options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                 page,
                 requestQueue: await this.getRequestQueue(),
+                robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
+                onSkippedRequest: this.handleSkippedRequest,
                 originalRequestUrl: crawlingContext.request.url,
                 finalRequestUrl: crawlingContext.request.loadedUrl,
+                enqueueLinks: contextEnqueueLinks,
             });
         };
     }
@@ -790,36 +798,61 @@ interface EnqueueLinksInternalOptions {
     options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsTxtFile;
+    onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
 
 /** @internal */
-export async function browserCrawlerEnqueueLinks({
-    options,
-    page,
-    requestQueue,
-    originalRequestUrl,
-    finalRequestUrl,
-}: EnqueueLinksInternalOptions) {
+interface BoundEnqueueLinksInternalOptions {
+    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
+    originalRequestUrl: string;
+    finalRequestUrl?: string;
+    page: CommonPage;
+}
+
+/** @internal */
+function containsEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+): options is BoundEnqueueLinksInternalOptions {
+    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
+}
+
+/** @internal */
+export async function browserCrawlerEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+) {
+    const { options: enqueueLinksOptions, finalRequestUrl, originalRequestUrl, page } = options;
+
     const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: options?.strategy,
+        enqueueStrategy: enqueueLinksOptions?.strategy,
         finalRequestUrl,
         originalRequestUrl,
-        userProvidedBaseUrl: options?.baseUrl,
+        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
     });
 
     const urls = await extractUrlsFromPage(
         page as any,
-        options?.selector ?? 'a',
-        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+        enqueueLinksOptions?.selector ?? 'a',
+        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
+    if (containsEnqueueLinks(options)) {
+        return options.enqueueLinks({
+            urls,
+            baseUrl,
+            ...enqueueLinksOptions,
+        });
+    }
     return enqueueLinks({
-        requestQueue,
+        requestQueue: options.requestQueue,
+        robotsTxtFile: options.robotsTxtFile,
+        onSkippedRequest: options.onSkippedRequest,
         urls,
         baseUrl,
-        ...options,
+        ...(enqueueLinksOptions as EnqueueLinksOptions),
     });
 }
 
@@ -828,7 +861,7 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 export async function extractUrlsFromPage(
-    // eslint-disable-next-line @typescript-eslint/ban-types
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     page: { $$eval: Function },
     selector: string,
     baseUrl: string,

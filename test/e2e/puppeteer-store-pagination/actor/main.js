@@ -63,11 +63,8 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
     const rawPrice = rawPriceString.split('$')[1];
     const price = Number(rawPrice.replaceAll(',', ''));
 
-    const inStock = await page
-        .locator('span.product-form__inventory')
-        .filter((el) => el.textContent.includes('In stock'))
-        .map((el) => !!el)
-        .wait();
+    const inStockElement = await page.$('span.product-form__inventory');
+    const inStock = (await inStockElement?.evaluate((el) => el.textContent.includes('In stock'))) ?? false;
 
     const results = {
         url,

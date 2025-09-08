@@ -6,7 +6,6 @@ import { ensureDir } from 'fs-extra';
 
 import { lockAndWrite } from '../../background-handler/fs-utils';
 import type { StorageImplementation } from '../common';
-
 import type { CreateStorageImplementationOptions } from './index';
 
 export class DatasetFileSystemEntry<Data> implements StorageImplementation<Data> {

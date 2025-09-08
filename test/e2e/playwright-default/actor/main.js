@@ -21,10 +21,10 @@ await Actor.main(async () => {
             const pageTitle = await page.title();
             await Dataset.pushData({ url, pageTitle });
             await enqueueLinks({
-                globs: ['**/3.0/examples/*'],
+                globs: ['**/3.12/examples/*'],
             });
         },
     });
 
-    await crawler.run(['https://crawlee.dev/docs/3.0/examples/']);
+    await crawler.run(['https://crawlee.dev/js/docs/3.12/examples/']);
 }, mainOptions);

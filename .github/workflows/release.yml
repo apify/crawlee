@@ -33,7 +33,7 @@ jobs:
             matrix:
                 # We don't test on Windows as the tests are flaky
                 os: [ ubuntu-22.04 ]
-                node-version: [ 16, 18, 20, 22 ]
+                node-version: [ 16, 18, 20, 22, 24 ]
 
         runs-on: ${{ matrix.os }}
 
@@ -44,7 +44,7 @@ jobs:
                     access_token: ${{ github.token }}
 
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js ${{ matrix.node-version }}
                 uses: actions/setup-node@v4
@@ -89,7 +89,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
@@ -97,7 +97,7 @@ jobs:
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
@@ -177,7 +177,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
                 with:
                     ref: ${{ github.event.repository.default_branch }}
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
@@ -186,7 +186,7 @@ jobs:
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Install jq
                 run: sudo apt-get install jq
@@ -212,13 +212,19 @@ jobs:
             -   name: Snapshot the current version
                 run: |
                     cd website
-                    yarn docusaurus docs:version $(jq .version ../lerna.json | sed s/\"//g | head -c 3)
-                    yarn docusaurus api:version $(jq .version ../lerna.json | sed s/\"//g | head -c 3)
+                    VERSION=$(jq -r '.version' ../lerna.json)
+                    if [ -z "$VERSION" ]; then
+                        echo "Error: VERSION is empty. Ensure lerna.json exists and contains a valid .version field."
+                        exit 1
+                    fi
+                    MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
+                    yarn docusaurus docs:version $MAJOR_MINOR
+                    yarn docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
                 run: |
                     git config --global user.name "Apify Release Bot"
                     git config --global user.email "noreply@apify.com"
                     git add .
-                    git diff-index --quiet HEAD || git commit -m 'chore(release): update docs for ${{ inputs.version }} version [skip ci]'
+                    git diff-index --quiet HEAD || git commit -m 'docs: update docs for ${{ inputs.version }} version'
                     git push

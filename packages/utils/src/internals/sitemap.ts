@@ -1,14 +1,15 @@
 import { createHash } from 'node:crypto';
 import type { Duplex } from 'node:stream';
-import { PassThrough, Readable, Transform, pipeline } from 'node:stream';
+import { PassThrough, pipeline, Readable, Transform } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
-import log from '@apify/log';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types
 import type { Delays } from 'got-scraping';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
+
+import log from '@apify/log';
 
 interface SitemapUrlData {
     loc: string;
@@ -31,7 +32,7 @@ type SitemapItem = ({ type: 'url' } & SitemapUrlData) | { type: 'sitemapUrl'; ur
 
 class SitemapTxtParser extends Transform {
     private decoder: StringDecoder = new StringDecoder('utf8');
-    private buffer: string = '';
+    private buffer = '';
 
     constructor() {
         super({
@@ -185,6 +186,11 @@ export interface ParseSitemapOptions {
      * Network timeouts for sitemap fetching. See [Got documentation](https://github.com/sindresorhus/got/blob/main/documentation/6-timeout.md) for more details.
      */
     networkTimeouts?: Delays;
+    /**
+     * If true, the parser will log a warning if it fails to fetch a sitemap due to a network error
+     * @default true
+     */
+    reportNetworkErrors?: boolean;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -194,17 +200,23 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 ): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
     const { gotScraping } = await import('got-scraping');
     const { fileTypeStream } = await import('file-type');
-    const { emitNestedSitemaps = false, maxDepth = Infinity, sitemapRetries = 3, networkTimeouts } = options ?? {};
+    const {
+        emitNestedSitemaps = false,
+        maxDepth = Infinity,
+        sitemapRetries = 3,
+        networkTimeouts,
+        reportNetworkErrors = true,
+    } = options ?? {};
 
     const sources = [...initialSources];
     const visitedSitemapUrls = new Set<string>();
 
-    const createParser = (contentType: string = '', url?: URL): Duplex => {
+    const createParser = (contentType = '', url?: URL): Duplex => {
         let mimeType: MIMEType | null;
 
         try {
             mimeType = new MIMEType(contentType);
-        } catch (e) {
+        } catch {
             mimeType = null;
         }
 
@@ -246,7 +258,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                                 method: 'GET',
                                 timeout: networkTimeouts,
                                 headers: {
-                                    'accept': 'text/plain, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
+                                    accept: 'text/plain, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
                                 },
                             });
                             request.on('response', () => resolve(request));
@@ -254,7 +266,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         },
                     );
 
-                    let error: Error | null = null;
+                    let error: { error: Error; type: 'fetch' | 'parser' } | null = null;
 
                     if (sitemapStream.response!.statusCode >= 200 && sitemapStream.response!.statusCode < 300) {
                         let contentType = sitemapStream.response!.headers['content-type'];
@@ -283,21 +295,28 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             isGzipped ? createGunzip() : new PassThrough(),
                             createParser(contentType, sitemapUrl),
                             (e) => {
-                                if (e !== undefined) {
-                                    error = e;
+                                if (e !== undefined && e !== null) {
+                                    error = { type: 'parser', error: e };
                                 }
                             },
                         );
                     } else {
-                        error = new Error(
-                            `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapStream.response!.statusCode}`,
-                        );
+                        error = {
+                            type: 'fetch',
+                            error: new Error(
+                                `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapStream.response!.statusCode}`,
+                            ),
+                        };
                     }
 
                     if (error !== null) {
-                        throw error;
+                        const shouldIgnoreError = error.type === 'fetch' && !reportNetworkErrors;
+                        if (!shouldIgnoreError) {
+                            throw error.error;
+                        }
+                    } else {
+                        break;
                     }
-                    break;
                 } catch (e) {
                     log.warning(
                         `Malformed sitemap content: ${sitemapUrl}, ${retriesLeft === 0 ? 'no retries left.' : 'retrying...'} (${e})`,
@@ -320,8 +339,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
                 sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
                 if (emitNestedSitemaps) {
-                    // @ts-ignore
-                    yield { loc: item.url, originSitemapUrl: null };
+                    yield { loc: item.url, originSitemapUrl: null } as any;
                 }
             }
 
@@ -355,7 +373,7 @@ export class Sitemap {
 
     /**
      * Try to load sitemap from the most common locations - `/sitemap.xml` and `/sitemap.txt`.
-     * For loading based on `Sitemap` entries in `robots.txt`, the {@apilink RobotsFile} class should be used.
+     * For loading based on `Sitemap` entries in `robots.txt`, the {@apilink RobotsTxtFile} class should be used.
      * @param url The domain URL to fetch the sitemap for.
      * @param proxyUrl A proxy to be used for fetching the sitemap file.
      */
@@ -371,7 +389,7 @@ export class Sitemap {
         sitemapUrl.pathname = '/sitemap.txt';
         sitemapUrls.push(sitemapUrl.toString());
 
-        return Sitemap.load(sitemapUrls, proxyUrl);
+        return Sitemap.load(sitemapUrls, proxyUrl, { reportNetworkErrors: false });
     }
 
     /**
@@ -411,7 +429,7 @@ export class Sitemap {
             for await (const item of parseSitemap(sources, proxyUrl, parseSitemapOptions)) {
                 urls.push(item.loc);
             }
-        } catch (e) {
+        } catch {
             return new Sitemap([]);
         }
 

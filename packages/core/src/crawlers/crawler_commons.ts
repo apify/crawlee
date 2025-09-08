@@ -1,6 +1,6 @@
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { Response as GotResponse, OptionsInit } from 'got-scraping';
+import type { OptionsInit, Response as GotResponse } from 'got-scraping';
 import type { ReadonlyDeep } from 'type-fest';
 
 import type { Configuration } from '../configuration';
@@ -9,7 +9,7 @@ import type { Log } from '../log';
 import type { ProxyInfo } from '../proxy_configuration';
 import type { Request, Source } from '../request';
 import type { Session } from '../session_pool/session';
-import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
+import type { Dataset, RecordOptions, RequestQueueOperationOptions } from '../storages';
 import { KeyValueStore } from '../storages';
 
 /** @internal */
@@ -100,7 +100,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      */
     getKeyValueStore: (
         idOrName?: string,
-    ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue'>>;
+    ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
 
     /**
      * A preconfigured logger for the request handler.
@@ -179,8 +179,6 @@ export class RequestHandlerResult {
 
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
 
-    private enqueueLinksCalls: Parameters<RestrictedCrawlingContext['enqueueLinks']>[] = [];
-
     constructor(
         private config: Configuration,
         private crawleeStateKey: string,
@@ -192,12 +190,10 @@ export class RequestHandlerResult {
     get calls(): ReadonlyDeep<{
         pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
         addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
-        enqueueLinks: Parameters<RestrictedCrawlingContext['enqueueLinks']>[];
     }> {
         return {
             pushData: this.pushDataCalls,
             addRequests: this.addRequestsCalls,
-            enqueueLinks: this.enqueueLinksCalls,
         };
     }
 
@@ -224,10 +220,6 @@ export class RequestHandlerResult {
      */
     get enqueuedUrls(): ReadonlyDeep<{ url: string; label?: string }[]> {
         const result: { url: string; label?: string }[] = [];
-
-        for (const [options] of this.enqueueLinksCalls) {
-            result.push(...(options?.urls?.map((url) => ({ url, label: options?.label })) ?? []));
-        }
 
         for (const [requests] of this.addRequestsCalls) {
             for (const request of requests) {
@@ -271,10 +263,6 @@ export class RequestHandlerResult {
         this.pushDataCalls.push([data, datasetIdOrName]);
     };
 
-    enqueueLinks: RestrictedCrawlingContext['enqueueLinks'] = async (options) => {
-        this.enqueueLinksCalls.push([options]);
-    };
-
     addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options = {}) => {
         this.addRequestsCalls.push([requests, options]);
     };
@@ -291,18 +279,11 @@ export class RequestHandlerResult {
             id: this.idOrDefault(idOrName),
             name: idOrName,
             getValue: async (key) => this.getKeyValueStoreChangedValue(idOrName, key) ?? (await store.getValue(key)),
-            getAutoSavedValue: async <T extends Dictionary = Dictionary>(key: string, defaultValue: T = {} as T) => {
-                let value = this.getKeyValueStoreChangedValue(idOrName, key);
-                if (value === null) {
-                    value = (await store.getValue(key)) ?? defaultValue;
-                    this.setKeyValueStoreChangedValue(idOrName, key, value);
-                }
-
-                return value as T;
-            },
             setValue: async (key, value, options) => {
                 this.setKeyValueStoreChangedValue(idOrName, key, value, options);
             },
+            getAutoSavedValue: store.getAutoSavedValue.bind(store),
+            getPublicUrl: store.getPublicUrl.bind(store),
         };
     };
 

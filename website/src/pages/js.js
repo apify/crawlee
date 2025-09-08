@@ -215,7 +215,7 @@ function OtherFeaturesSection() {
                             title: 'Handy scraping utils',
                             description:
                                 'Sitemaps, infinite scroll, contact extraction, large asset blocking and many more utils included.',
-                            to: '/js/docs/guides/avoid-blocking',
+                            to: '/js/api/utils',
                         },
                         {
                             icon: (

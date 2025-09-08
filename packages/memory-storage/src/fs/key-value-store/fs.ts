@@ -10,7 +10,6 @@ import { lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
 import { memoryStorageLog } from '../../utils';
 import type { StorageImplementation } from '../common';
-
 import type { CreateStorageImplementationOptions } from '.';
 
 export class KeyValueFileSystemEntry implements StorageImplementation<InternalKeyRecord> {

@@ -1,17 +1,18 @@
-import { once } from 'events';
-import type { Server } from 'http';
-import { createServer } from 'http';
-import type { AddressInfo } from 'net';
-import os from 'os';
-import { promisify } from 'util';
+import { once } from 'node:events';
+import type { Server } from 'node:http';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import os from 'node:os';
+import { promisify } from 'node:util';
 
-import log from '@apify/log';
 import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, Request } from '@crawlee/puppeteer';
 import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Session } from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 import { createProxyServer } from '../create-proxy-server';
 

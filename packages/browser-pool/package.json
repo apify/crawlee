@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/browser-pool",
-    "version": "3.13.0",
+    "version": "3.14.1",
     "description": "Rotate multiple browsers using popular automation libraries such as Playwright or Puppeteer.",
     "engines": {
         "node": ">=16.0.0"
@@ -38,10 +38,10 @@
     "dependencies": {
         "@apify/log": "^2.4.0",
         "@apify/timeout": "^0.3.0",
-        "@crawlee/core": "3.13.0",
-        "@crawlee/types": "3.13.0",
-        "fingerprint-generator": "^2.0.6",
-        "fingerprint-injector": "^2.0.5",
+        "@crawlee/core": "3.14.1",
+        "@crawlee/types": "3.14.1",
+        "fingerprint-generator": "^2.1.68",
+        "fingerprint-injector": "^2.1.68",
         "lodash.merge": "^4.6.2",
         "nanoid": "^3.3.4",
         "ow": "^0.28.1",

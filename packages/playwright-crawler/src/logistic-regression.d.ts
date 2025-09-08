@@ -1,5 +1,5 @@
 declare module 'ml-logistic-regression' {
-    import Matrix from 'ml-matrix';
+    import type Matrix from 'ml-matrix';
 
     class LogisticRegressionTwoClasses {
         testScores(Xtest: Matrix): number;
@@ -18,5 +18,9 @@ declare module 'ml-logistic-regression' {
         train(X: Matrix, Y: Matrix): void;
 
         predict(Xtest: Matrix): number[];
+
+        static load(model: Record<string, unknown>): LogisticRegression;
+
+        toJSON(): Record<string, unknown>;
     }
 }

@@ -1,7 +1,5 @@
-import type { Server } from 'http';
+import type { Server } from 'node:http';
 
-import { ENV_VARS } from '@apify/consts';
-import log from '@apify/log';
 import { BROWSER_POOL_EVENTS, BrowserPool, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
 import { BLOCKED_STATUS_CODES } from '@crawlee/core';
 import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, PuppeteerRequestHandler } from '@crawlee/puppeteer';
@@ -15,10 +13,13 @@ import {
     Session,
 } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
-import puppeteer from 'puppeteer';
 import type { HTTPResponse } from 'puppeteer';
+import puppeteer from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import { ENV_VARS } from '@apify/consts';
+import log from '@apify/log';
 
 import { BrowserCrawlerTest } from './basic_browser_crawler';
 
@@ -463,9 +464,9 @@ describe('BrowserCrawler', () => {
             // TODO this test is flaky in CI and we need some more info to debug why.
             if (cookie !== 'TEST=12321312312') {
                 // for some reason, the CI failures report the first cookie to be just empty string
-                // eslint-disable-next-line no-console
+
                 console.log('loadedCookies:');
-                // eslint-disable-next-line no-console
+
                 console.dir(loadedCookies);
             }
 
@@ -665,6 +666,34 @@ describe('BrowserCrawler', () => {
         expect(called).toBeTruthy();
     });
 
+    test('should increment session usage correctly', async () => {
+        const sessionUsageHistory: number[] = [];
+
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            useSessionPool: true,
+            sessionPoolOptions: {
+                maxPoolSize: 1,
+            },
+            requestHandler: async ({ session }) => {
+                sessionUsageHistory.push(session!.usageCount);
+            },
+        });
+
+        await browserCrawler.run([
+            { url: `${serverAddress}/?q=1` },
+            { url: `${serverAddress}/?q=2` },
+            { url: `${serverAddress}/?q=3` },
+            { url: `${serverAddress}/?q=4` },
+            { url: `${serverAddress}/?q=5` },
+            { url: `${serverAddress}/?q=6` },
+        ]);
+
+        expect(sessionUsageHistory).toEqual([0, 1, 2, 3, 4, 5]);
+    });
+
     test('should allow using fingerprints from browser pool', async () => {
         const requestList = await RequestList.open({
             sources: [{ url: `${serverAddress}/?q=1` }],
@@ -820,7 +849,7 @@ describe('BrowserCrawler', () => {
             // @ts-expect-error Accessing private property
             const proxiesToUse = proxyConfiguration.proxyUrls!;
             for (const proxyUrl of proxiesToUse) {
-                expect(browserProxies.includes(new URL(proxyUrl).href.slice(0, -1))).toBeTruthy();
+                expect(browserProxies.includes(new URL(proxyUrl!).href.slice(0, -1))).toBeTruthy();
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
@@ -978,7 +1007,7 @@ describe('BrowserCrawler', () => {
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
                 expect(crawlingContext.crawler).toBeInstanceOf(BrowserCrawlerTest);
-                expect(crawlingContext.hasOwnProperty('response')).toBe(true);
+                expect(Object.hasOwn(crawlingContext, 'response')).toBe(true);
 
                 throw new Error('some error');
             };
@@ -991,7 +1020,7 @@ describe('BrowserCrawler', () => {
                 expect(typeof crawlingContext.page).toBe('object');
                 expect(crawlingContext.crawler).toBeInstanceOf(BrowserCrawlerTest);
                 expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
-                expect(crawlingContext.hasOwnProperty('response')).toBe(true);
+                expect(Object.hasOwn(crawlingContext, 'response')).toBe(true);
 
                 expect(crawlingContext.error).toBeInstanceOf(Error);
                 expect(error).toBeInstanceOf(Error);
@@ -1035,5 +1064,26 @@ describe('BrowserCrawler', () => {
 
         expect(succeeded).toHaveLength(1);
         expect(succeeded[0]).toEqual('Redirecting outside');
+    });
+
+    test('enqueueLinks should respect maxCrawlDepth', async () => {
+        const succeeded: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            maxCrawlDepth: 1,
+            maxRequestsPerCrawl: 10, // avoiding accidental runaway
+            requestHandler: async ({ page, enqueueLinks }) => {
+                succeeded.push(await page.title());
+                await enqueueLinks({ strategy: EnqueueStrategy.All });
+            },
+        });
+
+        await crawler.run([`${serverAddress}/special/html-type`]);
+
+        expect(succeeded).toHaveLength(2);
+        expect(succeeded).toEqual(['Example Domain', 'Example Domains']);
     });
 });

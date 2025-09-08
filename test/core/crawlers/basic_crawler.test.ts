@@ -1,29 +1,29 @@
-import { mkdir, mkdtemp } from 'fs/promises';
-import type { Server } from 'http';
-import http from 'http';
-import type { AddressInfo } from 'net';
 import { readFile, rm } from 'node:fs/promises';
-import { join } from 'path';
+import type { Server } from 'node:http';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 
-import log from '@apify/log';
 import type { CrawlingContext, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import {
-    Request,
-    RequestQueue,
-    RequestList,
-    Configuration,
     BasicCrawler,
-    KeyValueStore,
-    EventType,
-    NonRetryableError,
+    Configuration,
     CriticalError,
+    EventType,
+    KeyValueStore,
     MissingRouteError,
+    NonRetryableError,
+    Request,
+    RequestList,
+    RequestQueue,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+
+import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper';
 
@@ -129,6 +129,99 @@ describe('BasicCrawler', () => {
         await basicCrawler.run(sources);
 
         expect(processed).toHaveLength(sourcesCopy.length * 3);
+    });
+
+    test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
+        const processed: { url: string }[] = [];
+
+        const requestHandler: RequestHandler = async ({ request }) => {
+            await sleep(10);
+            processed.push({ url: request.url });
+        };
+
+        const crawler = new BasicCrawler({
+            maxRequestsPerCrawl: 2,
+            minConcurrency: 1,
+            maxConcurrency: 1,
+            requestHandler,
+        });
+
+        // First run should process 2 requests
+        await crawler.run([...Array(5).keys()].map((index) => `https://example.com/first/${index}`));
+        expect(processed).toHaveLength(2);
+
+        // Make sure no extra requests were enqueued
+        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+
+        // Second run should process 2 more requests
+        await crawler.run([...Array(5).keys()].map((index) => `https://example.com/second/${index}`));
+        expect(processed).toHaveLength(4);
+
+        // Make sure no extra requests were enqueued
+        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+
+        const processedUrls = processed.map((p) => p.url);
+
+        expect(processedUrls).toEqual([
+            'https://example.com/first/0',
+            'https://example.com/first/1',
+            'https://example.com/second/0',
+            'https://example.com/second/1',
+        ]);
+    });
+
+    test('addRequests should respect maxCrawlDepth', async () => {
+        const processedUrls: string[] = [];
+
+        const requestHandler: RequestHandler = async ({ request, addRequests }) => {
+            processedUrls.push(request.url);
+            const url = new URL(request.url);
+            url.pathname = `${url.pathname}deep/`;
+
+            await addRequests([url.toString()]);
+        };
+
+        const crawler = new BasicCrawler({
+            maxCrawlDepth: 2,
+            maxRequestsPerCrawl: 10, // safeguard against infinite loops
+            requestHandler,
+        });
+
+        await crawler.run(['https://example.com/']);
+
+        expect(processedUrls).toEqual([
+            'https://example.com/',
+            'https://example.com/deep/',
+            'https://example.com/deep/deep/',
+        ]);
+    });
+
+    test('enqueueLinks should respect maxCrawlDepth', async () => {
+        const processedUrls: string[] = [];
+
+        const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
+            processedUrls.push(request.url);
+            const url = new URL(request.url);
+            url.pathname = `${url.pathname}deep/`;
+
+            await enqueueLinks({
+                urls: [url.toString()],
+            });
+        };
+
+        const crawler = new BasicCrawler({
+            maxCrawlDepth: 2,
+            maxRequestsPerCrawl: 10, // safeguard against infinite loops
+            requestHandler,
+        });
+
+        await crawler.run(['https://example.com/']);
+
+        expect(processedUrls).toEqual([
+            'https://example.com/',
+            'https://example.com/deep/',
+            'https://example.com/deep/deep/',
+        ]);
     });
 
     test('should correctly combine shorthand and full length options', async () => {
@@ -674,27 +767,16 @@ describe('BasicCrawler', () => {
         const request1 = new Request({ id: 'id-1', ...sources[1] });
         const request2 = new Request({ id: 'id-2', ...sources[2] });
 
-        vitest
-            .spyOn(requestQueue, 'fetchNextRequest')
-            .mockResolvedValueOnce(request0)
-            .mockResolvedValueOnce(request1)
-            .mockResolvedValueOnce(request2)
-            .mockResolvedValueOnce(request1)
-            .mockResolvedValueOnce(request1)
-            .mockResolvedValueOnce(request1);
+        const queueContent = [request0, request1, request2, request1, request1, request1];
+
+        vitest.spyOn(requestQueue, 'fetchNextRequest').mockImplementation(async () => queueContent.shift() ?? null);
 
         const markReqHandled = vitest
             .spyOn(requestQueue, 'markRequestHandled')
             .mockReturnValue(Promise.resolve() as any);
         const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
-        vitest
-            .spyOn(requestQueue, 'isEmpty')
-            .mockResolvedValueOnce(false)
-            .mockResolvedValueOnce(false)
-            .mockResolvedValueOnce(false)
-            .mockResolvedValueOnce(true);
-
+        vitest.spyOn(requestQueue, 'isEmpty').mockImplementation(async () => queueContent.length <= 0);
         vitest.spyOn(requestQueue, 'isFinished').mockResolvedValueOnce(true);
 
         await basicCrawler.run();
@@ -734,11 +816,13 @@ describe('BasicCrawler', () => {
         expect(await crawler._isTaskReadyFunction()).toBe(false);
     });
 
-    test('should be possible to override isFinishedFunction of underlying AutoscaledPool', async () => {
+    test('should be possible to override isFinishedFunction and isTaskReadyFunction of underlying AutoscaledPool', async () => {
         const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
         const processed: Request[] = [];
         const queue: Request[] = [];
         let isFinished = false;
+        let isFinishedFunctionCalled = false;
+        let isTaskReadyFunctionCalled = false;
 
         const basicCrawler = new BasicCrawler({
             requestQueue,
@@ -746,7 +830,12 @@ describe('BasicCrawler', () => {
                 minConcurrency: 1,
                 maxConcurrency: 1,
                 isFinishedFunction: async () => {
+                    isFinishedFunctionCalled = true;
                     return Promise.resolve(isFinished);
+                },
+                isTaskReadyFunction: async () => {
+                    isTaskReadyFunctionCalled = true;
+                    return Promise.resolve(!isFinished);
                 },
             },
             requestHandler: async ({ request }) => {
@@ -783,6 +872,8 @@ describe('BasicCrawler', () => {
         expect(markRequestHandled).toBeCalledWith(request0);
         expect(markRequestHandled).toBeCalledWith(request1);
         expect(isFinishedOrig).not.toBeCalled();
+        expect(isFinishedFunctionCalled).toBe(true);
+        expect(isTaskReadyFunctionCalled).toBe(true);
 
         // TODO: see why the request1 was passed as a second parameter to includes
         expect(processed.includes(request0)).toBe(true);
@@ -1389,11 +1480,183 @@ describe('BasicCrawler', () => {
         });
     });
 
+    describe('Request enqueuing limits with maxRequestsPerCrawl', () => {
+        test('should not enqueue more requests than maxRequestsPerCrawl allows', async () => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async () => {},
+            });
+
+            crawler['handledRequestsCount'] = 2; // eslint-disable-line dot-notation
+
+            // Try to add 6 requests - should only add 3 due to limit
+            const requestsToAdd = [
+                'http://example.com/1',
+                'http://example.com/2',
+                'http://example.com/3',
+                'http://example.com/4',
+                'http://example.com/5',
+                'http://example.com/6',
+            ];
+
+            await crawler.addRequests(requestsToAdd);
+
+            // Should only have added the first 3 requests (since 2 were already processed, limit allows 3 more)
+            expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+                { url: 'http://example.com/1' },
+                { url: 'http://example.com/2' },
+                { url: 'http://example.com/3' },
+            ]);
+        });
+
+        test('should not enqueue more requests than maxRequestsPerCrawl allows across multiple addRequests calls', async () => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async () => {},
+            });
+
+            crawler['handledRequestsCount'] = 1; // eslint-disable-line dot-notation
+
+            // First call - should add 2 requests (2 more slots to go)
+            await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
+
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+                { url: 'http://example.com/1' },
+                { url: 'http://example.com/2' },
+            ]);
+
+            // Second call - should add only 2 more requests
+            await crawler.addRequests([
+                'http://example.com/3',
+                'http://example.com/4',
+                'http://example.com/5', // This should be ignored
+                'http://example.com/6', // This should be ignored
+            ]);
+
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+                { url: 'http://example.com/1' },
+                { url: 'http://example.com/2' },
+                { url: 'http://example.com/3' },
+                { url: 'http://example.com/4' },
+            ]);
+
+            // Third call - should add no requests (limit already reached)
+            await crawler.addRequests(['http://example.com/7', 'http://example.com/8']);
+
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+                { url: 'http://example.com/1' },
+                { url: 'http://example.com/2' },
+                { url: 'http://example.com/3' },
+                { url: 'http://example.com/4' },
+            ]);
+
+            expect(addRequestsBatchedSpy).toHaveBeenCalledTimes(3);
+        });
+
+        test('should respect robots.txt when limiting requests', async () => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 2,
+                respectRobotsTxtFile: true,
+                requestHandler: async () => {},
+            });
+
+            crawler['handledRequestsCount'] = 0; // eslint-disable-line dot-notation
+
+            // Mock robots.txt checking to disallow some URLs
+            vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
+                return url !== 'http://example.com/2';
+            });
+
+            await crawler.addRequests([
+                'http://example.com/1', // Allowed by robots.txt
+                'http://example.com/2', // Blocked by robots.txt
+                'http://example.com/3', // Allowed by robots.txt && within limit
+                'http://example.com/4', // Would exceed limit
+            ]);
+
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+                { url: 'http://example.com/1' },
+                { url: 'http://example.com/3' },
+            ]);
+
+            // Should only have added the first request (allowed by robots.txt and within limit)
+            expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
+        });
+
+        test('enqueueLinks should respect maxRequestsPerCrawl', async () => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            // Will try to add 6 requests - should only add 3 due to limit
+            const requestsToAdd = [
+                'http://example.com/1',
+                'http://example.com/2',
+                'http://example.com/3',
+                'http://example.com/4',
+                'http://example.com/5',
+                'http://example.com/6',
+            ];
+            const visitedUrls: string[] = [];
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async (context) => {
+                    visitedUrls.push(context.request.url);
+
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    crawler['handledRequestsCount'] = 2; // eslint-disable-line dot-notation
+
+                    await context.enqueueLinks({ urls: requestsToAdd, label: 'not-undefined' });
+                },
+            });
+
+            await crawler.run(['http://example.com']);
+
+            expect(visitedUrls).toEqual([
+                'http://example.com', // added by crawler.run()
+                'http://example.com/1',
+                'http://example.com/2',
+            ]);
+
+            // Should only have added the first 2 requests (since 2 were already processed and 1 is in progress, limit allows 2 more)
+            expect(addRequestsBatchedSpy).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('addRequests input validation', () => {
+        test('should throw error when passed a non-iterable value', async () => {
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+            });
+
+            await expect(crawler.addRequests(new WeakSet() as any)).rejects.toThrow(
+                'Expected an iterable or async iterable, got weakset',
+            );
+        });
+    });
+
     describe('Dataset helpers, crawler parallelism', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
-        const tmpDir: string = `${__dirname}/tmp/foo/bar`;
+        const tmpDir = `${__dirname}/tmp/foo/bar`;
 
         beforeAll(async () => {
             await rm(tmpDir, { recursive: true, force: true });
@@ -1442,6 +1705,21 @@ describe('BasicCrawler', () => {
             await rm(`${tmpDir}/result.json`);
         });
 
+        test('exports do not fail on empty dataset', async () => {
+            const crawler = new BasicCrawler();
+
+            await crawler.exportData(`${tmpDir}/result.csv`);
+            await crawler.exportData(`${tmpDir}/result.json`);
+
+            const csv = await readFile(`${tmpDir}/result.csv`);
+            expect(csv.toString()).toBe('');
+            const json = await readFile(`${tmpDir}/result.json`);
+            expect(json.toString()).toBe('[]\n');
+
+            await rm(`${tmpDir}/result.csv`);
+            await rm(`${tmpDir}/result.json`);
+        });
+
         test('should expose pushData helper', async () => {
             const crawler = new BasicCrawler({
                 requestHandler: async ({ pushData }) => pushData(payload),
@@ -1454,6 +1732,19 @@ describe('BasicCrawler', () => {
             ]);
 
             expect((await crawler.getData()).items).toEqual(payload);
+        });
+
+        test('crawler.exportData works with `collectAllKeys`', async () => {
+            const crawler = new BasicCrawler();
+            await crawler.pushData([{ foo: 'bar', baz: 123 }]);
+            await crawler.pushData([{ foo: 'baz', qux: 456 }]);
+
+            await crawler.exportData(`${tmpDir}/result.csv`, 'csv', { collectAllKeys: true });
+
+            const csv = await readFile(`${tmpDir}/result.csv`);
+            expect(csv.toString()).toBe('foo,baz,qux\nbar,123,\nbaz,,456\n');
+
+            await rm(`${tmpDir}/result.csv`);
         });
 
         test("Crawlers with different Configurations don't share Datasets", async () => {

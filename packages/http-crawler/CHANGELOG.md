@@ -3,6 +3,125 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.14.1](https://github.com/apify/crawlee/compare/v3.14.0...v3.14.1) (2025-08-05)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+# [3.14.0](https://github.com/apify/crawlee/compare/v3.13.10...v3.14.0) (2025-07-25)
+
+
+### Bug Fixes
+
+* retry on blocked status codes in `HttpCrawler` ([#3060](https://github.com/apify/crawlee/issues/3060)) ([b5fcd79](https://github.com/apify/crawlee/commit/b5fcd79324ed61c6591fbdc9ffba67b35dc54fde)), closes [/github.com/apify/crawlee/blob/f68d2a95d67cc6230122dc1a5226c57ca23d0ae7/packages/browser-crawler/src/internals/browser-crawler.ts#L481-L486](https://github.com//github.com/apify/crawlee/blob/f68d2a95d67cc6230122dc1a5226c57ca23d0ae7/packages/browser-crawler/src/internals/browser-crawler.ts/issues/L481-L486) [#3029](https://github.com/apify/crawlee/issues/3029)
+
+
+
+
+
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+
+### Features
+
+* Report links skipped because of various filter conditions ([#3026](https://github.com/apify/crawlee/issues/3026)) ([5a867bc](https://github.com/apify/crawlee/commit/5a867bc28135803b55c765ec12e6fd04017ce53d)), closes [#3016](https://github.com/apify/crawlee/issues/3016)
+
+
+
+
+
+## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+
+### Bug Fixes
+
+* enable full cookie support for `ImpitHttpClient` ([#2991](https://github.com/apify/crawlee/issues/2991)) ([120f0a7](https://github.com/apify/crawlee/commit/120f0a7968670eaab14d217e12c09b4dba216d7d))
+
+
+
+
+
+## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
+
+
+### Features
+
+* add `MinimumSpeedStream` and `ByteCounterStream` helpers ([#2970](https://github.com/apify/crawlee/issues/2970)) ([921c4ee](https://github.com/apify/crawlee/commit/921c4ee3401bd41b8a197b955474bc297152e58b))
+
+
+
+
+
+## [3.13.4](https://github.com/apify/crawlee/compare/v3.13.3...v3.13.4) (2025-05-14)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+
+### Features
+
+* pass `response` to `FileDownload.streamHandler` ([#2930](https://github.com/apify/crawlee/issues/2930)) ([008c4c7](https://github.com/apify/crawlee/commit/008c4c7d879195a492bbbdb9dcda23acad4d51e1))
+
+
+
+
+
+## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
+
+**Note:** Version bump only for package @crawlee/http
+
+
+
+
+
+## [3.13.1](https://github.com/apify/crawlee/compare/v3.13.0...v3.13.1) (2025-04-07)
+
+
+### Bug Fixes
+
+* treat `406` as other `4xx` status codes in `HttpCrawler` ([#2907](https://github.com/apify/crawlee/issues/2907)) ([b0e6f6d](https://github.com/apify/crawlee/commit/b0e6f6d3fc4455de467baf666e0f67f8738cc57f)), closes [#2892](https://github.com/apify/crawlee/issues/2892)
+
+
+### Features
+
+* add `respectRobotsTxtFile` crawler option ([#2910](https://github.com/apify/crawlee/issues/2910)) ([0eabed1](https://github.com/apify/crawlee/commit/0eabed1f13070d902c2c67b340621830a7f64464))
+
+
+
+
+
 # [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
 
 **Note:** Version bump only for package @crawlee/http

@@ -1,7 +1,8 @@
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 
-import { CheerioCrawler, Dictionary } from '@crawlee/cheerio';
-import {
+import type { Dictionary } from '@crawlee/cheerio';
+import { CheerioCrawler } from '@crawlee/cheerio';
+import type {
     BaseHttpClient,
     BaseHttpResponseData,
     HttpRequest,
@@ -43,9 +44,7 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
         }
 
         if (request.cookieJar) {
-            result.headers['set-cookie'] = await Promise.resolve(
-                request.cookieJar.getCookieString(request.url.toString(), {}, () => {}),
-            );
+            result.headers.cookie = (await (request.cookieJar as any)?.getCookieString?.(request.url.toString())) ?? '';
         }
 
         return result;
@@ -165,30 +164,25 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
 const crawler = new CheerioCrawler({
     async requestHandler(context) {
         const { body: text } = await context.sendRequest({
-            url: 'https://httpbin.org/uuid',
+            url: 'https://api.apify.com/v2/browser-info',
         });
 
-        const { body: json } = await context.sendRequest({
-            url: 'https://httpbin.org/uuid',
-            responseType: 'json',
-        });
-
-        const { body: ua } = await context.sendRequest<Dictionary>({
-            url: 'https://httpbin.org/user-agent',
+        const { body: json } = await context.sendRequest<Dictionary>({
+            url: 'https://api.apify.com/v2/browser-info',
             responseType: 'json',
         });
 
         await context.pushData({
             body: context.body,
             title: context.$('title').text(),
-            userAgent: ua['user-agent'],
-            uuidTextResponse: text,
-            uuidJsonResponse: json,
+            userAgent: json.headers['user-agent'],
+            clientIpTextResponse: text,
+            clientIpJsonResponse: json,
         });
     },
     httpClient: new CurlImpersonateHttpClient({ impersonate: 'chrome-116' }),
 });
 
-await crawler.run(['https://httpbin.org/']);
+await crawler.run(['https://crawlee.dev']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

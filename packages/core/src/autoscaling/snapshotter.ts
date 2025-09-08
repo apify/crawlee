@@ -1,15 +1,16 @@
+import type { StorageClient } from '@crawlee/types';
+import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
+import ow from 'ow';
+
 import type { Log } from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
-import type { StorageClient } from '@crawlee/types';
-import { getMemoryInfo } from '@crawlee/utils';
-import ow from 'ow';
 
-import type { SystemInfo } from './system_status';
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
+import type { SystemInfo } from './system_status';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
@@ -194,7 +195,17 @@ export class Snapshotter {
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            const { totalBytes } = await getMemoryInfo();
+            let totalBytes: number;
+
+            if (this.config.get('systemInfoV2')) {
+                const containerized = this.config.get('containerized', await isContainerized());
+                const memInfo = await getMemoryInfoV2(containerized);
+                totalBytes = memInfo.totalBytes;
+            } else {
+                const memInfo = await getMemoryInfo();
+                totalBytes = memInfo.totalBytes;
+            }
+
             this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
             this.log.debug(
                 `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
@@ -221,7 +232,9 @@ export class Snapshotter {
         this.events.off(EventType.SYSTEM_INFO, this._snapshotCpu);
         this.events.off(EventType.SYSTEM_INFO, this._snapshotMemory);
         // Allow microtask queue to unwind before stop returns.
-        await new Promise((resolve) => setImmediate(resolve));
+        await new Promise((resolve) => {
+            setImmediate(resolve);
+        });
     }
 
     /**

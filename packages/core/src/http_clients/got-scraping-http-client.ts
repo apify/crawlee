@@ -3,12 +3,12 @@ import { gotScraping } from '@crawlee/utils';
 import type { Options, PlainResponse } from 'got-scraping';
 
 import type {
+    BaseHttpClient,
     HttpRequest,
     HttpResponse,
     RedirectHandler,
     ResponseTypes,
     StreamingHttpResponse,
-    BaseHttpClient,
 } from './base-http-client';
 
 /**
@@ -23,6 +23,9 @@ export class GotScrapingHttpClient implements BaseHttpClient {
     ): Promise<HttpResponse<TResponseType>> {
         const gotResult = await gotScraping({
             ...request,
+            // `HttpCrawler` reads the cookies beforehand and sets them in `request.gotOptions`.
+            // Using the `cookieJar` option directly would override that.
+            cookieJar: undefined,
             retry: {
                 limit: 0,
                 ...(request.retry as Record<string, unknown> | undefined),
@@ -42,7 +45,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
     async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
-            const stream = await Promise.resolve(gotScraping({ ...request, isStream: true }));
+            const stream = await Promise.resolve(gotScraping({ ...request, isStream: true, cookieJar: undefined }));
 
             stream.on('redirect', (updatedOptions: Options, redirectResponse: PlainResponse) => {
                 handleRedirect?.(redirectResponse, updatedOptions);

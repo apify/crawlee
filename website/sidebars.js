@@ -44,6 +44,7 @@ module.exports = {
                 'guides/got-scraping',
                 'guides/typescript-project',
                 'guides/docker-images',
+                'guides/running-in-web-server/running-in-web-server',
                 'guides/parallel-scraping/parallel-scraping-guide',
                 'guides/custom-http-client/custom-http-client'
             ],

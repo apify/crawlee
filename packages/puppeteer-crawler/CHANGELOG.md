@@ -3,6 +3,108 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.14.1](https://github.com/apify/crawlee/compare/v3.14.0...v3.14.1) (2025-08-05)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+# [3.14.0](https://github.com/apify/crawlee/compare/v3.13.10...v3.14.0) (2025-07-25)
+
+
+### Bug Fixes
+
+* respect `exclude` option in `enqueueLinksByClickingElements` ([#3058](https://github.com/apify/crawlee/issues/3058)) ([013eb02](https://github.com/apify/crawlee/commit/013eb028b6ecf05f83f8790a4a6164b9c4873733))
+
+
+
+
+
+## [3.13.10](https://github.com/apify/crawlee/compare/v3.13.9...v3.13.10) (2025-07-09)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.9](https://github.com/apify/crawlee/compare/v3.13.8...v3.13.9) (2025-06-27)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.8](https://github.com/apify/crawlee/compare/v3.13.7...v3.13.8) (2025-06-16)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.7](https://github.com/apify/crawlee/compare/v3.13.6...v3.13.7) (2025-06-06)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.6](https://github.com/apify/crawlee/compare/v3.13.5...v3.13.6) (2025-06-05)
+
+
+### Bug Fixes
+
+* extract only `body` from `iframe` elements ([#2986](https://github.com/apify/crawlee/issues/2986)) ([c36166e](https://github.com/apify/crawlee/commit/c36166e24887ca6de12f0c60ef010256fa830c31)), closes [#2979](https://github.com/apify/crawlee/issues/2979)
+
+
+
+
+
+## [3.13.5](https://github.com/apify/crawlee/compare/v3.13.4...v3.13.5) (2025-05-20)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.4](https://github.com/apify/crawlee/compare/v3.13.3...v3.13.4) (2025-05-14)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.3](https://github.com/apify/crawlee/compare/v3.13.2...v3.13.3) (2025-05-05)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.2](https://github.com/apify/crawlee/compare/v3.13.1...v3.13.2) (2025-04-08)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+## [3.13.1](https://github.com/apify/crawlee/compare/v3.13.0...v3.13.1) (2025-04-07)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
 # [3.13.0](https://github.com/apify/crawlee/compare/v3.12.2...v3.13.0) (2025-03-04)
 
 **Note:** Version bump only for package @crawlee/puppeteer

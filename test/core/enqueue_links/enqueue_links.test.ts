@@ -1,4 +1,3 @@
-import log from '@apify/log';
 import { type AddRequestsBatchedOptions, cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
@@ -9,10 +8,12 @@ import {
     launchPuppeteer,
     RequestQueue,
 } from '@crawlee/puppeteer';
-import type { CheerioRoot } from '@crawlee/utils';
+import { type CheerioRoot } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
+
+import log from '@apify/log';
 
 const apifyClient = Configuration.getStorageClient();
 
@@ -49,8 +50,12 @@ function createRequestQueueMock() {
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
+        const processedRequests: Source[] = [];
+        for await (const request of requests) {
+            processedRequests.push(typeof request === 'string' ? { url: request } : request);
+        }
+        enqueued.push(...processedRequests);
+        return { processedRequests, unprocessedRequests: [] as never[] };
     };
 
     return { enqueued, requestQueue };
@@ -540,9 +545,9 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (/example\.com/.test(request.url)) {
+                        if (request.url.includes('example.com')) {
                             request.method = 'POST';
-                        } else if (/cool\.com/.test(request.url)) {
+                        } else if (request.url.includes('cool.com')) {
                             request.userData!.foo = 'bar';
                         }
                         return request;
@@ -936,9 +941,9 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (/example\.com/.test(request.url)) {
+                        if (request.url.includes('example.com')) {
                             request.method = 'POST';
-                        } else if (/cool\.com/.test(request.url)) {
+                        } else if (request.url.includes('cool.com')) {
                             request.userData!.foo = 'bar';
                         }
                         return request;
@@ -971,7 +976,9 @@ describe('enqueueLinks()', () => {
             requestQueue.addRequests = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
                 // so that it doesn't matter how many calls were made
-                enqueued.push(...requests.map((request) => ({ request, options })));
+                for await (const request of requests) {
+                    enqueued.push({ request: typeof request === 'string' ? { url: request } : request, options });
+                }
                 return { processedRequests: [], unprocessedRequests: [] };
             };
 
@@ -998,7 +1005,9 @@ describe('enqueueLinks()', () => {
             requestQueue.addRequestsBatched = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
                 // so that it doesn't matter how many calls were made
-                enqueued.push(...requests.map((request) => ({ request, options })));
+                for await (const request of requests) {
+                    enqueued.push({ request: typeof request === 'string' ? { url: request } : request, options });
+                }
                 return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
             };
 

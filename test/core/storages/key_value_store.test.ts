@@ -1,6 +1,6 @@
-import { PassThrough } from 'stream';
+import { PassThrough } from 'node:stream';
 
-import { maybeStringify, Configuration, KeyValueStore } from '@crawlee/core';
+import { Configuration, KeyValueStore, maybeStringify } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
@@ -40,11 +40,17 @@ describe('KeyValueStore', () => {
         await store.setValue('key-1', record);
 
         expect(mockSetRecord).toBeCalledTimes(1);
-        expect(mockSetRecord).toBeCalledWith({
-            key: 'key-1',
-            value: recordStr,
-            contentType: 'application/json; charset=utf-8',
-        });
+        expect(mockSetRecord).toBeCalledWith(
+            {
+                key: 'key-1',
+                value: recordStr,
+                contentType: 'application/json; charset=utf-8',
+            },
+            {
+                doNotRetryTimeouts: undefined,
+                timeoutSecs: undefined,
+            },
+        );
 
         // Get Record
         const mockGetRecord = vitest
@@ -281,11 +287,17 @@ describe('KeyValueStore', () => {
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
             expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith({
-                key: 'key-1',
-                value: 'xxxx',
-                contentType: 'text/plain; charset=utf-8',
-            });
+            expect(mockSetRecord).toBeCalledWith(
+                {
+                    key: 'key-1',
+                    value: 'xxxx',
+                    contentType: 'text/plain; charset=utf-8',
+                },
+                {
+                    doNotRetryTimeouts: undefined,
+                    timeoutSecs: undefined,
+                },
+            );
         });
 
         test('correctly passes object values as JSON', async () => {
@@ -305,11 +317,50 @@ describe('KeyValueStore', () => {
             await store.setValue('key-1', record);
 
             expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith({
-                key: 'key-1',
-                value: recordStr,
-                contentType: 'application/json; charset=utf-8',
+            expect(mockSetRecord).toBeCalledWith(
+                {
+                    key: 'key-1',
+                    value: recordStr,
+                    contentType: 'application/json; charset=utf-8',
+                },
+                {
+                    doNotRetryTimeouts: undefined,
+                    timeoutSecs: undefined,
+                },
+            );
+        });
+
+        test('correctly passes timeout options', async () => {
+            const store = new KeyValueStore({
+                id: 'my-store-id-1',
+                client,
             });
+
+            const record = { foo: 'bar' };
+            const recordStr = JSON.stringify(record, null, 2);
+
+            const mockSetRecord = vitest
+                // @ts-expect-error Accessing private property
+                .spyOn(store.client, 'setRecord')
+                .mockResolvedValueOnce(undefined);
+
+            await store.setValue('key-1', record, {
+                timeoutSecs: 1,
+                doNotRetryTimeouts: true,
+            });
+
+            expect(mockSetRecord).toBeCalledTimes(1);
+            expect(mockSetRecord).toBeCalledWith(
+                {
+                    key: 'key-1',
+                    value: recordStr,
+                    contentType: 'application/json; charset=utf-8',
+                },
+                {
+                    doNotRetryTimeouts: true,
+                    timeoutSecs: 1,
+                },
+            );
         });
 
         test('correctly passes raw string values', async () => {
@@ -326,11 +377,17 @@ describe('KeyValueStore', () => {
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
             expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith({
-                key: 'key-1',
-                value: 'xxxx',
-                contentType: 'text/plain; charset=utf-8',
-            });
+            expect(mockSetRecord).toBeCalledWith(
+                {
+                    key: 'key-1',
+                    value: 'xxxx',
+                    contentType: 'text/plain; charset=utf-8',
+                },
+                {
+                    doNotRetryTimeouts: undefined,
+                    timeoutSecs: undefined,
+                },
+            );
         });
 
         test('correctly passes raw Buffer values', async () => {
@@ -348,11 +405,17 @@ describe('KeyValueStore', () => {
             await store.setValue('key-1', value, { contentType: 'image/jpeg; charset=something' });
 
             expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith({
-                key: 'key-1',
-                value,
-                contentType: 'image/jpeg; charset=something',
-            });
+            expect(mockSetRecord).toBeCalledWith(
+                {
+                    key: 'key-1',
+                    value,
+                    contentType: 'image/jpeg; charset=something',
+                },
+                {
+                    doNotRetryTimeouts: undefined,
+                    timeoutSecs: undefined,
+                },
+            );
         });
 
         test('correctly passes a stream', async () => {
@@ -373,11 +436,17 @@ describe('KeyValueStore', () => {
             value.destroy();
 
             expect(mockSetRecord).toHaveBeenCalledTimes(1);
-            expect(mockSetRecord).toHaveBeenCalledWith({
-                key: 'key-1',
-                value,
-                contentType: 'plain/text',
-            });
+            expect(mockSetRecord).toHaveBeenCalledWith(
+                {
+                    key: 'key-1',
+                    value,
+                    contentType: 'plain/text',
+                },
+                {
+                    doNotRetryTimeouts: undefined,
+                    timeoutSecs: undefined,
+                },
+            );
         });
     });
 
@@ -440,6 +509,39 @@ describe('KeyValueStore', () => {
     });
 
     describe('forEachKey', () => {
+        test('should work with prefixes', async () => {
+            const store = await KeyValueStore.open();
+
+            for (const [key, value] of Object.entries({
+                'img-key1': 'PAYLOAD',
+                'img-key2': 'PAYLOAD',
+                'txt-key1': 'PAYLOAD',
+                'txt-key2': 'PAYLOAD',
+            })) {
+                await store.setValue(key, value);
+            }
+
+            const imgKeys: string[] = [];
+            const txtKeys: string[] = [];
+
+            await store.forEachKey(
+                (key) => {
+                    imgKeys.push(key);
+                },
+                { prefix: 'img-' },
+            );
+
+            await store.forEachKey(
+                (key) => {
+                    txtKeys.push(key);
+                },
+                { prefix: 'txt-' },
+            );
+
+            expect(imgKeys).toEqual(['img-key1', 'img-key2']);
+            expect(txtKeys).toEqual(['txt-key1', 'txt-key2']);
+        });
+
         test('should work remotely', async () => {
             const store = new KeyValueStore({
                 id: 'my-store-id-1',
@@ -486,13 +588,13 @@ describe('KeyValueStore', () => {
                 async (key, index, info) => {
                     results.push([key, index, info]);
                 },
-                { exclusiveStartKey: 'key0' },
+                { exclusiveStartKey: 'key0', prefix: 'img/' },
             );
 
             expect(mockListKeys).toBeCalledTimes(3);
-            expect(mockListKeys).toHaveBeenNthCalledWith(1, { exclusiveStartKey: 'key0' });
-            expect(mockListKeys).toHaveBeenNthCalledWith(2, { exclusiveStartKey: 'key2' });
-            expect(mockListKeys).toHaveBeenNthCalledWith(3, { exclusiveStartKey: 'key4' });
+            expect(mockListKeys).toHaveBeenNthCalledWith(1, { exclusiveStartKey: 'key0', prefix: 'img/' });
+            expect(mockListKeys).toHaveBeenNthCalledWith(2, { exclusiveStartKey: 'key2', prefix: 'img/' });
+            expect(mockListKeys).toHaveBeenNthCalledWith(3, { exclusiveStartKey: 'key4', prefix: 'img/' });
 
             expect(results).toHaveLength(5);
             results.forEach((r, i) => {

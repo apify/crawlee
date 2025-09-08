@@ -1,25 +1,26 @@
-import { URL } from 'url';
+import { URL } from 'node:url';
 
-import log_ from '@apify/log';
 import type {
     GlobInput,
     PseudoUrlInput,
     RegExpInput,
-    RequestTransform,
-    UrlPatternObject,
     RequestOptions,
     RequestProvider,
+    RequestTransform,
+    UrlPatternObject,
 } from '@crawlee/browser';
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
-    createRequests,
     createRequestOptions,
+    createRequests,
 } from '@crawlee/browser';
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
-import type { Page, Frame, Request, Route } from 'playwright';
+import type { Frame, Page, Request, Route } from 'playwright';
+
+import log_ from '@apify/log';
 
 const STARTING_Z_INDEX = 2147400000;
 const log = log_.child({ prefix: 'Playwright Click Elements' });
@@ -69,6 +70,17 @@ export interface EnqueueLinksByClickingElementsOptions {
      * after clicking on elements matching the provided CSS selector.
      */
     globs?: GlobInput[];
+
+    /**
+     * An array of glob pattern strings, regexp patterns or plain objects
+     * containing patterns matching URLs that will **never** be enqueued.
+     *
+     * The plain objects must include either the `glob` property or the `regexp` property.
+     *
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, provide a regexp.
+     */
+    exclude?: readonly (GlobInput | RegExpInput)[];
 
     /**
      * An array of regular expressions or plain objects
@@ -224,6 +236,9 @@ export async function enqueueLinksByClickingElements(
             pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
             globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
             regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+            exclude: ow.optional.array.ofType(
+                ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
+            ),
             transformRequestFunction: ow.optional.function,
             waitForPageIdleSecs: ow.optional.number,
             maxWaitForPageIdleSecs: ow.optional.number,
@@ -245,12 +260,24 @@ export async function enqueueLinksByClickingElements(
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
         forefront,
+        exclude,
     } = options;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
 
+    const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
+
+    if (exclude?.length) {
+        for (const excl of exclude) {
+            if (typeof excl === 'string' || 'glob' in excl) {
+                urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
+            } else if (excl instanceof RegExp || 'regexp' in excl) {
+                urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
+            }
+        }
+    }
 
     if (pseudoUrls?.length) {
         log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
@@ -276,7 +303,7 @@ export async function enqueueLinksByClickingElements(
     if (transformRequestFunction) {
         requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r) as RequestOptions[];
     }
-    const requests = createRequests(requestOptions, urlPatternObjects);
+    const requests = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
     const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };

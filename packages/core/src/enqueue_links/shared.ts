@@ -1,11 +1,13 @@
-import { URL } from 'url';
+import { URL } from 'node:url';
 
-import { purlToRegExp } from '@apify/pseudo_url';
+import type { Awaitable } from '@crawlee/types';
 import { minimatch } from 'minimatch';
 
-import type { EnqueueLinksOptions } from './enqueue_links';
+import { purlToRegExp } from '@apify/pseudo_url';
+
 import type { RequestOptions } from '../request';
 import { Request } from '../request';
+import type { EnqueueLinksOptions } from './enqueue_links';
 
 export { tryAbsoluteURL } from '@crawlee/utils';
 
@@ -44,6 +46,13 @@ export type RegExpObject = { regexp: RegExp } & Pick<
 >;
 
 export type RegExpInput = RegExp | RegExpObject;
+
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'filters' | 'redirect' | 'depth';
+
+export type SkippedRequestCallback = (args: {
+    url: string;
+    reason: SkippedRequestReason;
+}) => Awaitable<void>;
 
 /**
  * @ignore
@@ -165,14 +174,21 @@ export function createRequests(
     urlPatternObjects?: UrlPatternObject[],
     excludePatternObjects: UrlPatternObject[] = [],
     strategy?: EnqueueLinksOptions['strategy'],
+    onSkippedUrl?: (url: string) => void,
 ): Request[] {
     return requestOptions
         .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
         .filter(({ url }) => {
-            return !excludePatternObjects.some((excludePatternObject) => {
+            const matchesExcludePatterns = excludePatternObjects.some((excludePatternObject) => {
                 const { regexp, glob } = excludePatternObject;
                 return (regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }));
             });
+
+            if (matchesExcludePatterns) {
+                onSkippedUrl?.(url);
+            }
+
+            return !matchesExcludePatterns;
         })
         .map(({ url, opts }) => {
             if (!urlPatternObjects || !urlPatternObjects.length) {
@@ -192,12 +208,17 @@ export function createRequests(
             }
 
             // didn't match any positive pattern
+            onSkippedUrl?.(url);
             return null;
         })
         .filter((request) => request) as Request[];
 }
 
-export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatternObject[]): Request[] {
+export function filterRequestsByPatterns(
+    requests: Request[],
+    patterns?: UrlPatternObject[],
+    onSkippedUrl?: (url: string) => void,
+): Request[] {
     if (!patterns?.length) {
         return requests;
     }
@@ -205,14 +226,15 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
     const filtered: Request[] = [];
 
     for (const request of requests) {
-        for (const urlPatternObject of patterns) {
-            const { regexp, glob } = urlPatternObject;
+        const matchingPattern = patterns.find(
+            ({ regexp, glob }) =>
+                (regexp && request.url.match(regexp)) || (glob && minimatch(request.url, glob, { nocase: true })),
+        );
 
-            if ((regexp && request.url.match(regexp)) || (glob && minimatch(request.url, glob, { nocase: true }))) {
-                filtered.push(request);
-                // Break the pattern loop, as we already matched this request once
-                break;
-            }
+        if (matchingPattern !== undefined) {
+            filtered.push(request);
+        } else {
+            onSkippedUrl?.(request.url);
         }
     }
 

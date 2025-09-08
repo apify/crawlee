@@ -23,7 +23,7 @@ jobs:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
                 os: [ ubuntu-22.04 ]
-                node-version: [ 16, 18, 20, 22 ]
+                node-version: [ 16, 18, 20, 22, 24 ]
 
         steps:
             -   name: Cancel Workflow Action
@@ -32,7 +32,7 @@ jobs:
                     access_token: ${{ github.token }}
 
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js ${{ matrix.node-version }}
                 uses: actions/setup-node@v4
@@ -86,12 +86,12 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
@@ -122,6 +122,7 @@ jobs:
                     yarn build
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
+                    SEGMENT_TOKEN: ${{ secrets.SEGMENT_TOKEN }}
 
     lint:
         name: Lint
@@ -129,12 +130,12 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
@@ -172,12 +173,12 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |

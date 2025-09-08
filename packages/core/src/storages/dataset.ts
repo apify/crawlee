@@ -1,16 +1,17 @@
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
+
+import { Configuration } from '../configuration';
+import { type Log, log } from '../log';
+import type { Awaitable } from '../typedefs';
 import { checkStorageAccess } from './access_checking';
 import { KeyValueStore } from './key_value_store';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
-import { Configuration } from '../configuration';
-import { log, type Log } from '../log';
-import type { Awaitable } from '../typedefs';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -140,7 +141,13 @@ export interface DatasetDataOptions {
     skipEmpty?: boolean;
 }
 
-export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {}
+export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {
+    /**
+     * If true, includes all unique keys from all dataset items in the CSV export header.
+     * If omitted or false, only keys from the first item are used.
+     */
+    collectAllKeys?: boolean;
+}
 
 export interface DatasetIteratorOptions
     extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
@@ -226,6 +233,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
     client: DatasetClient<Data>;
+    readonly storageObject?: Record<string, unknown>;
     log: Log = log.child({ prefix: 'Dataset' });
 
     /**
@@ -238,6 +246,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.id = options.id;
         this.name = options.name;
         this.client = options.client.dataset(this.id) as DatasetClient<Data>;
+        this.storageObject = options.storageObject;
     }
 
     /**
@@ -274,7 +283,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         // Handle singular Objects
         if (!Array.isArray(data)) {
             const payload = checkAndSerialize(data, limit);
-            return dispatch(payload);
+            await dispatch(payload);
+            return;
         }
 
         // Handle Arrays
@@ -326,7 +336,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             items.push(...value.items);
 
             if (value.total > offset + value.count) {
-                return fetchNextChunk(offset + value.count);
+                await fetchNextChunk(offset + value.count);
             }
         };
 
@@ -347,7 +357,16 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const items = await this.export(options);
 
         if (contentType === 'text/csv') {
-            const keys = Object.keys(items[0]);
+            // To handle empty dataset exports gracefully.
+            if (items.length === 0) {
+                await kvStore.setValue(key, '', { contentType });
+                return items;
+            }
+
+            const keys = options?.collectAllKeys
+                ? Array.from(new Set(items.flatMap(Object.keys)))
+                : Object.keys(items[0]);
+
             const value = stringify([
                 keys,
                 ...items.map((item) => {
@@ -480,7 +499,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         if (newOffset >= total) return;
 
         const newOpts = { ...options, offset: newOffset };
-        return this.forEach(iteratee, newOpts, index);
+        await this.forEach(iteratee, newOpts, index);
     }
 
     /**
@@ -717,6 +736,7 @@ export interface DatasetOptions {
     id: string;
     name?: string;
     client: StorageClient;
+    storageObject?: Record<string, unknown>;
 }
 
 export interface DatasetContent<Data> {

@@ -1,4 +1,4 @@
-import type { Server } from 'http';
+import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Duplex } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -21,7 +21,7 @@ class ReadableStreamGenerator {
         return buffer;
     }
 
-    static getReadableStream(size: number, seed: number, throttle: number = 0): ReadableStream {
+    static getReadableStream(size: number, seed: number, throttle = 0): ReadableStream {
         let bytesRead = 0;
         const stream = new ReadableStream({
             start: async (controller) => {
@@ -117,6 +117,23 @@ test('streamHandler works', async () => {
 
     expect(result.length).toBe(1024);
     expect(result).toEqual(await ReadableStreamGenerator.getBuffer(1024, 456));
+});
+
+test('streamHandler receives response', async () => {
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        streamHandler: async ({ response }) => {
+            expect(response.headers['content-type']).toBe('application/octet-stream');
+            expect(response.rawHeaders[0]).toBe('content-type');
+            expect(response.rawHeaders[1]).toBe('application/octet-stream');
+            expect(response.statusCode).toBe(200);
+            expect(response.statusMessage).toBe('OK');
+        },
+    });
+
+    const fileUrl = new URL('/file?size=1024&seed=456', url).toString();
+
+    await crawler.run([fileUrl]);
 });
 
 test('crawler with streamHandler waits for the stream to finish', async () => {

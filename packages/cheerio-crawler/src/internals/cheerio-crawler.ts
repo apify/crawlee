@@ -1,7 +1,9 @@
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 import { text as readStreamToString } from 'node:stream/consumers';
 
 import type {
+    BasicCrawlingContext,
+    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -9,13 +11,13 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RouterRoutes,
-    Configuration,
     RequestProvider,
+    RouterRoutes,
+    SkippedRequestCallback,
 } from '@crawlee/http';
-import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
+import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
+import { type CheerioRoot, extractUrlsFromCheerio, type RobotsTxtFile } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { DomHandler, parseDocument } from 'htmlparser2';
@@ -184,17 +186,22 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
             _useHtmlParser2: true,
         } as CheerioOptions);
 
+        const originalEnqueueLinks = crawlingContext.enqueueLinks;
+
         return {
             dom,
             $,
             body,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
-                    options: enqueueOptions,
+                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     $,
                     requestQueue: await this.getRequestQueue(),
+                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
+                    onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
+                    enqueueLinks: originalEnqueueLinks,
                 });
             },
         };
@@ -238,40 +245,63 @@ interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
     requestQueue: RequestProvider;
+    robotsTxtFile?: RobotsTxtFile;
+    onSkippedRequest?: SkippedRequestCallback;
+    originalRequestUrl: string;
+    finalRequestUrl?: string;
+}
+
+interface BoundEnqueueLinksInternalOptions {
+    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
+    options?: EnqueueLinksOptions;
+    $: cheerio.CheerioAPI | null;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
 
 /** @internal */
-export async function cheerioCrawlerEnqueueLinks({
-    options,
-    $,
-    requestQueue,
-    originalRequestUrl,
-    finalRequestUrl,
-}: EnqueueLinksInternalOptions) {
+function containsEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+): options is BoundEnqueueLinksInternalOptions {
+    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
+}
+
+/** @internal */
+export async function cheerioCrawlerEnqueueLinks(
+    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
+) {
+    const { options: enqueueLinksOptions, $, originalRequestUrl, finalRequestUrl } = options;
     if (!$) {
         throw new Error('Cannot enqueue links because the DOM is not available.');
     }
 
     const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: options?.strategy,
+        enqueueStrategy: enqueueLinksOptions?.strategy,
         finalRequestUrl,
         originalRequestUrl,
-        userProvidedBaseUrl: options?.baseUrl,
+        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
     });
 
     const urls = extractUrlsFromCheerio(
         $,
-        options?.selector ?? 'a',
-        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+        enqueueLinksOptions?.selector ?? 'a',
+        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
     );
 
+    if (containsEnqueueLinks(options)) {
+        return options.enqueueLinks({
+            urls,
+            baseUrl,
+            ...enqueueLinksOptions,
+        });
+    }
     return enqueueLinks({
-        requestQueue,
+        requestQueue: options.requestQueue,
+        robotsTxtFile: options.robotsTxtFile,
+        onSkippedRequest: options.onSkippedRequest,
         urls,
         baseUrl,
-        ...options,
+        ...enqueueLinksOptions,
     });
 }
 

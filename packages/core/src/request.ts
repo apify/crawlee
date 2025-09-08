@@ -2,12 +2,14 @@ import type { BinaryLike } from 'node:crypto';
 import crypto from 'node:crypto';
 import util from 'node:util';
 
-import { normalizeUrl } from '@apify/utilities';
 import type { Dictionary } from '@crawlee/types';
 import type { BasePredicate } from 'ow';
 import ow from 'ow';
 
+import { normalizeUrl } from '@apify/utilities';
+
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
+import type { SkippedRequestReason } from './enqueue_links/shared';
 import { log as defaultLog } from './log';
 import type { AllowedHttpMethods } from './typedefs';
 import { keys } from './typedefs';
@@ -33,6 +35,7 @@ const requestOptionalPredicates = {
     keepUrlFragment: ow.optional.boolean,
     useExtendedUniqueKey: ow.optional.boolean,
     skipNavigation: ow.optional.boolean,
+    crawlDepth: ow.optional.number.greaterThanOrEqual(0),
     state: ow.optional.number.greaterThanOrEqual(0).lessThanOrEqual(6),
 };
 
@@ -174,6 +177,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             useExtendedUniqueKey = false,
             skipNavigation,
             enqueueStrategy,
+            crawlDepth,
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
@@ -247,6 +251,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
+        if (crawlDepth != null) this.userData.__crawlee.crawlDepth ??= crawlDepth;
 
         // If it's already set, don't override it (for instance when fetching from storage)
         if (enqueueStrategy) {
@@ -266,6 +271,23 @@ export class Request<UserData extends Dictionary = Dictionary> {
         } else {
             this.userData.__crawlee.skipNavigation = value;
         }
+    }
+
+    /**
+     * Depth of the request in the current crawl tree.
+     * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
+     */
+    get crawlDepth(): number {
+        return this.userData.__crawlee?.crawlDepth ?? 0;
+    }
+
+    /**
+     * Depth of the request in the current crawl tree.
+     * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
+     */
+    set crawlDepth(value: number) {
+        (this.userData as Dictionary).__crawlee ??= {};
+        this.userData.__crawlee.crawlDepth = value;
     }
 
     /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
@@ -501,6 +523,20 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
      * @default false
      */
     skipNavigation?: boolean;
+
+    /**
+     * Depth of the request in the current crawl tree.
+     * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
+     * @default 0
+     */
+    crawlDepth?: number;
+
+    /**
+     * Reason for skipping this request.
+     * This is used to provide more information about why the request was skipped.
+     * @internal
+     */
+    skippedReason?: SkippedRequestReason;
 
     /**
      * Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`.

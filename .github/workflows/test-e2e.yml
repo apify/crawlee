@@ -27,12 +27,12 @@ jobs:
                     access_token: ${{ github.token }}
 
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v4
                 with:
-                    node-version: 20
+                    node-version: 22
 
             -   name: Enable corepack
                 run: |
@@ -70,3 +70,4 @@ jobs:
                 run: yarn test:e2e
                 env:
                     STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
+                    APIFY_HTTPBIN_TOKEN: ${{ secrets.APIFY_HTTPBIN_TOKEN }}

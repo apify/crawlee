@@ -17,8 +17,8 @@
     "devDependencies": {
         "@apify/eslint-config-ts": "^0.4.0",
         "@apify/tsconfig": "^0.1.0",
-        "@docusaurus/module-type-aliases": "3.7.0",
-        "@docusaurus/types": "3.7.0",
+        "@docusaurus/module-type-aliases": "3.8.1",
+        "@docusaurus/types": "3.8.1",
         "@types/react": "^19.0.0",
         "@typescript-eslint/eslint-plugin": "^7.0.0",
         "@typescript-eslint/parser": "^7.0.0",
@@ -30,19 +30,22 @@
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^6.0.0",
-        "typescript": "^5.7.2"
+        "typescript": "^5.8.3"
     },
     "dependencies": {
-        "@apify/docusaurus-plugin-typedoc-api": "^4.3.2",
+        "@apify/docusaurus-plugin-typedoc-api": "^4.4.5",
         "@apify/utilities": "^2.8.0",
-        "@docusaurus/core": "3.7.0",
-        "@docusaurus/faster": "3.7.0",
-        "@docusaurus/mdx-loader": "3.7.0",
-        "@docusaurus/plugin-client-redirects": "3.7.0",
-        "@docusaurus/preset-classic": "3.7.0",
+        "@docusaurus/core": "3.8.1",
+        "@docusaurus/faster": "3.8.1",
+        "@docusaurus/mdx-loader": "3.8.1",
+        "@docusaurus/plugin-client-redirects": "3.8.1",
+        "@docusaurus/plugin-content-docs": "3.8.1",
+        "@docusaurus/preset-classic": "3.8.1",
+        "@docusaurus/theme-common": "3.8.1",
         "@giscus/react": "^3.0.0",
         "@mdx-js/react": "^3.0.1",
-        "axios": "^1.5.0",
+        "@signalwire/docusaurus-plugin-llms-txt": "^1.2.1",
+        "axios": "^1.11.0",
         "buffer": "^6.0.3",
         "clsx": "^2.0.0",
         "crypto-browserify": "^3.12.0",
@@ -58,5 +61,17 @@
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
-    "packageManager": "yarn@4.7.0"
+    "browserslist": {
+        "production": [
+            ">0.5%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 3 chrome version",
+            "last 3 firefox version",
+            "last 5 safari version"
+        ]
+    },
+    "packageManager": "yarn@4.8.1"
 }

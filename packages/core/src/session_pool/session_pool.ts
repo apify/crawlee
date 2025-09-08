@@ -1,19 +1,20 @@
 import { EventEmitter } from 'node:events';
 
-import type { Log } from '@apify/log';
 import type { Dictionary } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
-import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts';
-import type { SessionOptions } from './session';
-import { Session } from './session';
+import type { Log } from '@apify/log';
+
 import { Configuration } from '../configuration';
 import type { PersistenceOptions } from '../crawlers/statistics';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
 import { KeyValueStore } from '../storages/key_value_store';
+import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts';
+import type { SessionOptions } from './session';
+import { Session } from './session';
 
 /**
  * Factory user-function which creates customized {@apilink Session} instances.
@@ -366,7 +367,18 @@ export class SessionPool extends EventEmitter {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
         });
-        await this.keyValueStore.setValue(this.persistStateKey, this.getState());
+
+        // use half the interval of `persistState` to avoid race conditions
+        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const timeoutSecs = persistStateIntervalMillis / 2_000;
+        await this.keyValueStore
+            .setValue(this.persistStateKey, this.getState(), {
+                timeoutSecs,
+                doNotRetryTimeouts: true,
+            })
+            .catch((error) =>
+                this.log.warning(`Failed to persist the session pool stats to ${this.persistStateKey}`, { error }),
+            );
     }
 
     /**

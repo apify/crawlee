@@ -1,8 +1,7 @@
-import type { IncomingHttpHeaders, Server } from 'http';
-import { Readable } from 'stream';
+import type { IncomingHttpHeaders, Server } from 'node:http';
+import { Readable } from 'node:stream';
 
-import log, { Log } from '@apify/log';
-import type { CheerioRequestHandler, CheerioCrawlingContext, ProxyInfo, Source } from '@crawlee/cheerio';
+import type { CheerioCrawlingContext, CheerioRequestHandler, ProxyInfo, Source } from '@crawlee/cheerio';
 import {
     AutoscaledPool,
     CheerioCrawler,
@@ -15,13 +14,15 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import { sleep } from '@crawlee/utils';
 import type { Dictionary } from '@crawlee/utils';
+import { sleep } from '@crawlee/utils';
 // @ts-expect-error type import of ESM only package
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
-import { runExampleComServer, responseSamples } from 'test/shared/_helper';
+import { responseSamples, runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log, { Log } from '@apify/log';
 
 let server: Server;
 let port: number;
@@ -501,34 +502,6 @@ describe('CheerioCrawler', () => {
                 expect(errorMessages).toHaveLength(8);
                 errorMessages.forEach((msg) => expect(msg).toMatch('CUSTOM_ERROR'));
             });
-
-            test('when 406 is received', async () => {
-                // Mock Request to respond with a 406.
-                crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock({
-                        headers: {
-                            'content-type': 'text/plain',
-                        },
-                        statusCode: 406,
-                    }),
-                    maxRequestRetries: 1,
-                    requestHandler: () => {
-                        handlePageInvocationCount++;
-                    },
-                    failedRequestHandler: ({ request }) => {
-                        errorMessages = [...errorMessages, ...request.errorMessages];
-                    },
-                });
-                await crawler.run();
-
-                expect(handlePageInvocationCount).toBe(0);
-                expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach((msg) => {
-                    expect(msg).toMatch(
-                        'is not available in the format requested by the Accept header. Skipping resource.',
-                    );
-                });
-            });
         });
     });
 
@@ -936,11 +909,9 @@ describe('CheerioCrawler', () => {
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
-                // @ts-expect-error Accessing private prop
                 if (session.errorScore !== 1) {
-                    // eslint-disable-next-line no-console
                     console.log('SESSIONS:');
-                    // eslint-disable-next-line no-console
+
                     console.dir(sessions);
                 }
 
@@ -978,7 +949,6 @@ describe('CheerioCrawler', () => {
                 // @ts-expect-error private symbol
 
                 crawler.sessionPool.sessions.forEach((session) => {
-                    // @ts-expect-error Accessing private prop
                     expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
                 });
 
@@ -1403,5 +1373,23 @@ describe('CheerioCrawler', () => {
 
         expect(succeeded).toHaveLength(1);
         expect(succeeded[0]).toEqual('Redirecting outside');
+    });
+
+    test('enqueueLinks should respect maxCrawlDepth', async () => {
+        const succeeded: string[] = [];
+
+        const crawler = new CheerioCrawler({
+            maxCrawlDepth: 1,
+            maxRequestsPerCrawl: 10, // to avoid accidental runaway
+            requestHandler: async ({ $, enqueueLinks }) => {
+                succeeded.push($('title').text());
+                await enqueueLinks({ strategy: EnqueueStrategy.All });
+            },
+        });
+
+        await crawler.run([`${serverAddress}/special/html-type`]);
+
+        expect(succeeded).toHaveLength(2);
+        expect(succeeded).toEqual(['Example Domain', 'Example Domains']);
     });
 });

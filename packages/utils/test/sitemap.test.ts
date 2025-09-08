@@ -1,8 +1,10 @@
 import nock from 'nock';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import log from '@apify/log';
 
 import type { SitemapUrl } from '../src/internals/sitemap';
-import { Sitemap, parseSitemap } from '../src/internals/sitemap';
+import { parseSitemap, Sitemap } from '../src/internals/sitemap';
 
 describe('Sitemap', () => {
     beforeEach(() => {
@@ -180,7 +182,7 @@ describe('Sitemap', () => {
                         2005-02-03
                     </lastmod>`,
                     `<changefreq>
-                        
+
                         monthly
                     </changefreq>`,
                     `<priority>
@@ -216,6 +218,12 @@ describe('Sitemap', () => {
                 ].join('\n'),
             )
             .get('*')
+            .reply(404);
+
+        nock('http://not-exists-2.com')
+            .persist()
+            .filteringPath(() => '/')
+            .get('/')
             .reply(404);
     });
 
@@ -306,6 +314,15 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
             ]),
         );
+    });
+
+    it('keeps quiet if autodetection does not find anything', async () => {
+        const spy = vi.spyOn(log, 'warning');
+
+        const sitemap = await Sitemap.tryCommonNames('http://not-exists-2.com/arbitrary_url?search=xyz');
+
+        expect(sitemap.urls).toHaveLength(0);
+        expect(spy).not.toHaveBeenCalled();
     });
 
     it('handles sitemap.txt correctly', async () => {

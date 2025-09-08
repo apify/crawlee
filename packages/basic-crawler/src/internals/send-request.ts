@@ -1,12 +1,12 @@
 import {
-    type Session,
-    type Request,
     type BaseHttpClient,
     type HttpRequestOptions,
     processHttpRequestOptions,
+    type Request,
+    type Session,
 } from '@crawlee/core';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { Method, GotResponse } from 'got-scraping';
+import type { GotResponse, Method } from 'got-scraping';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.

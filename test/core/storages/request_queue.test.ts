@@ -1,17 +1,17 @@
 /* eslint-disable dot-notation */
 
 import {
-    QUERY_HEAD_MIN_LENGTH,
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-    RequestQueueV1 as RequestQueue,
-    RequestQueueV2,
-    Request,
     Configuration,
     ProxyConfiguration,
+    QUERY_HEAD_MIN_LENGTH,
+    Request,
+    RequestQueueV1 as RequestQueue,
+    RequestQueueV2,
+    STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '@crawlee/core';
-import { sleep } from '@crawlee/utils';
 import type { gotScraping } from '@crawlee/utils';
+import { sleep } from '@crawlee/utils';
 import type { MockedFunction } from 'vitest';
 
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
@@ -708,7 +708,7 @@ describe('RequestQueue remote', () => {
         const r1 = new Request({
             url,
             method,
-            userData: { __crawlee: { skipNavigation: true, maxRetries: 10, foo: 123, bar: true } },
+            userData: { __crawlee: { skipNavigation: true, maxRetries: 10, foo: 123, bar: true, crawlDepth: 10 } },
         });
         const r2 = new Request({
             url,
@@ -723,8 +723,15 @@ describe('RequestQueue remote', () => {
         expect(desc1!.enumerable).toBe(false);
         expect(r1.skipNavigation).toBe(true);
         expect(r1.maxRetries).toBe(10);
+        expect(r1.crawlDepth).toBe(10);
         r1.maxRetries = 5;
-        expect(r1.userData.__crawlee).toMatchObject({ skipNavigation: true, maxRetries: 5, foo: 123, bar: true });
+        expect(r1.userData.__crawlee).toMatchObject({
+            skipNavigation: true,
+            maxRetries: 5,
+            foo: 123,
+            bar: true,
+            crawlDepth: 10,
+        });
         const desc2 = Object.getOwnPropertyDescriptor(r2.userData, '__crawlee');
         expect(desc2!.enumerable).toBe(false);
         expect(r2.maxRetries).toBeUndefined();
@@ -754,7 +761,7 @@ describe('RequestQueue with requestsFromUrl', () => {
         const spy = vitest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
-        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve(list1) as any, 100)) as any);
+        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
         spy.mockResolvedValueOnce(list2);
 
         const queue = await RequestQueue.open();

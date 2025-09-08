@@ -1,0 +1,56 @@
+name: Synchronize ZenHub pipeline with Pull Request status
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - converted_to_draft
+      - edited
+      - ready_for_review
+    branches:
+      - master
+
+jobs:
+  move_zenhub_cards:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Get linked issues
+        id: get_linked_issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          GITHUB_API_RESPONSE=$(gh api graphql -F query='query($owner: String!, $repoName: String!, $pr: Int!) { repository(owner: $owner, name: $repoName) { pullRequest(number: $pr) { closingIssuesReferences(first: 10) { nodes { number } } } } }' -F owner=${{ github.repository_owner }} -F repoName=${{ github.event.repository.name }} -F pr=${{ github.event.pull_request.number }} --jq '.data.repository')
+          echo "gh_api_response=$GITHUB_API_RESPONSE" >> $GITHUB_ENV
+
+      - name: Move issues to "In Progress"
+        if: github.event.pull_request.draft == true
+        env:
+          ZENHUB_API_TOKEN: ${{ secrets.PULL_REQUEST_TOOLKIT_ACTION_ZENHUB_TOKEN }}
+        run: |
+          for issue in $(echo '${{ env.gh_api_response }}' | jq -r '.pullRequest.closingIssuesReferences.nodes[].number'); do
+            npx zenhub-issue-manager move --repository-id ${{ github.event.repository.id }} --issue-number $issue --pipeline Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzIyMTA5MzU
+          done
+
+      - name: Move issues to "Pull Request"
+        if: github.event.pull_request.draft == false
+        env:
+          ZENHUB_API_TOKEN: ${{ secrets.PULL_REQUEST_TOOLKIT_ACTION_ZENHUB_TOKEN }}
+        run: |
+          for issue in $(echo '${{ env.gh_api_response }}' | jq -r '.pullRequest.closingIssuesReferences.nodes[].number'); do
+            npx zenhub-issue-manager move --repository-id ${{ github.event.repository.id }} --issue-number $issue --pipeline Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzIyMTA5MzY
+          done

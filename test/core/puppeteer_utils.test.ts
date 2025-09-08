@@ -1,12 +1,13 @@
-import type { Server } from 'http';
-import path from 'path';
+import type { Server } from 'node:http';
+import path from 'node:path';
 
-import log from '@apify/log';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import log from '@apify/log';
 
 const launchContext = { launchOptions: { headless: true } };
 
@@ -170,8 +171,14 @@ describe('puppeteerUtils', () => {
                 const $ = await puppeteerUtils.parseWithCheerio(page);
 
                 const headings = $('h1')
-                    .map((i, el) => $(el).text())
+                    .map((_, el) => $(el).text())
                     .get();
+
+                const titles = $('title')
+                    .map((_, el) => $(el).text())
+                    .get();
+
+                expect(titles).toEqual(['Outside iframe title']);
                 expect(headings).toEqual(['Outside iframe', 'In iframe']);
             } finally {
                 await browser.close();

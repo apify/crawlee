@@ -1,7 +1,8 @@
-import log from '@apify/log';
-import { cryptoRandomObjectId } from '@apify/utilities';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
+
+import log from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
 
 import type { Request } from './request';
 
@@ -9,13 +10,15 @@ export interface ProxyConfigurationFunction {
     (sessionId: string | number, options?: { request?: Request }): string | null | Promise<string | null>;
 }
 
+type UrlList = (string | null)[];
+
 export interface ProxyConfigurationOptions {
     /**
      * An array of custom proxy URLs to be rotated.
      * Custom proxies are not compatible with Apify Proxy and an attempt to use both
      * configuration options will cause an error to be thrown on initialize.
      */
-    proxyUrls?: string[];
+    proxyUrls?: UrlList;
 
     /**
      * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter and an optional parameter with the `Request` object when applicable.
@@ -36,7 +39,7 @@ export interface ProxyConfigurationOptions {
      *
      * Use `null` as a proxy URL to disable the proxy for the given tier.
      */
-    tieredProxyUrls?: (string | null)[][];
+    tieredProxyUrls?: UrlList[];
 }
 
 export interface TieredProxy {
@@ -200,9 +203,9 @@ class ProxyTierTracker {
 export class ProxyConfiguration {
     isManInTheMiddle = false;
     protected nextCustomUrlIndex = 0;
-    protected proxyUrls?: string[];
-    protected tieredProxyUrls?: (string | null)[][];
-    protected usedProxyUrls = new Map<string, string>();
+    protected proxyUrls?: UrlList;
+    protected tieredProxyUrls?: UrlList[];
+    protected usedProxyUrls = new Map<string, string | null>();
     protected newUrlFunction?: ProxyConfigurationFunction;
     protected log = log.child({ prefix: 'ProxyConfiguration' });
     protected domainTiers = new Map<string, ProxyTierTracker>();
@@ -232,7 +235,7 @@ export class ProxyConfiguration {
         ow(
             rest,
             ow.object.exactShape({
-                proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
+                proxyUrls: ow.optional.array.nonEmpty.ofType(ow.any(ow.string.url, ow.null)),
                 newUrlFunction: ow.optional.function,
                 tieredProxyUrls: ow.optional.array.nonEmpty.ofType(
                     ow.array.nonEmpty.ofType(ow.any(ow.string.url, ow.null)),
@@ -388,14 +391,14 @@ export class ProxyConfiguration {
             return this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(6), options).proxyUrl ?? undefined;
         }
 
-        return this._handleCustomUrl(sessionId);
+        return this._handleCustomUrl(sessionId) ?? undefined;
     }
 
     /**
      * Handles custom url rotation with session
      */
-    protected _handleCustomUrl(sessionId?: string): string {
-        let customUrlToUse: string;
+    protected _handleCustomUrl(sessionId?: string): string | null {
+        let customUrlToUse: string | null;
 
         if (!sessionId) {
             return this.proxyUrls![this.nextCustomUrlIndex++ % this.proxyUrls!.length];
@@ -422,12 +425,10 @@ export class ProxyConfiguration {
             }
             return proxyUrl;
         } catch (err) {
-            this._throwNewUrlFunctionInvalid(err as Error);
+            throw new Error(
+                `The provided newUrlFunction did not return a valid URL.\nCause: ${(err as Error).message}`,
+            );
         }
-    }
-
-    protected _throwNewUrlFunctionInvalid(err: Error): never {
-        throw new Error(`The provided newUrlFunction did not return a valid URL.\nCause: ${err.message}`);
     }
 
     protected _throwCannotCombineCustomMethods(): never {
