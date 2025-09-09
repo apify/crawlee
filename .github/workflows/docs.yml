@@ -20,9 +20,10 @@ jobs:
             -   uses: actions/checkout@v5
 
             -   name: Use Node.js 20
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v5
                 with:
                     node-version: 22
+                    package-manager-cache: false
 
             -   name: Enable corepack
                 run: |
