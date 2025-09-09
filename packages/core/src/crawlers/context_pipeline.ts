@@ -14,7 +14,7 @@ import {
  * @template TCrawlingContext - The input context type for this middleware
  * @template TCrawlingContextExtension - The enhanced output context type
  */
-export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
+export interface ContextMiddleware<TCrawlingContext extends {}, TCrawlingContextExtension extends {}> {
     /** The main middleware function that enhances the context */
     action: (context: TCrawlingContext) => Promise<TCrawlingContextExtension>;
     /** Optional cleanup function called after the consumer finishes or fails */
@@ -38,7 +38,7 @@ export abstract class ContextPipeline<TContextBase extends {}, TCrawlingContext 
      * @template TContextBase - The base context type for the pipeline
      * @returns A new ContextPipeline instance with no transformations
      */
-    static create<TContextBase extends {}>() {
+    static create<TContextBase extends {}>(): ContextPipeline<TContextBase, TContextBase> {
         return new ContextPipelineImpl<TContextBase, TContextBase>({ action: async (context) => context });
     }
 
