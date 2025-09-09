@@ -47,9 +47,10 @@ jobs:
                 uses: actions/checkout@v5
 
             -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v5
                 with:
                     node-version: ${{ matrix.node-version }}
+                    package-manager-cache: false
 
             -   name: Enable corepack
                 run: |
@@ -57,7 +58,7 @@ jobs:
                     corepack prepare yarn@stable --activate
 
             -   name: Activate cache for Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v5
                 with:
                     cache: 'yarn'
 
@@ -95,9 +96,10 @@ jobs:
                     fetch-depth: 0
 
             -   name: Use Node.js 20
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v5
                 with:
                     node-version: 22
+                    package-manager-cache: false
 
             -   name: Enable corepack
                 run: |
@@ -105,7 +107,7 @@ jobs:
                     corepack prepare yarn@stable --activate
 
             -   name: Activate cache for Node.js 20
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v5
                 with:
                     cache: 'yarn'
 
@@ -184,9 +186,10 @@ jobs:
                     fetch-depth: 0
 
             -   name: Use Node.js 20
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v5
                 with:
                     node-version: 22
+                    package-manager-cache: false
 
             -   name: Install jq
                 run: sudo apt-get install jq
@@ -197,7 +200,7 @@ jobs:
                     corepack prepare yarn@stable --activate
 
             -   name: Activate cache for Node.js 20
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v5
                 with:
                     cache: 'yarn'
 
