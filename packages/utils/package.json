@@ -54,7 +54,7 @@
         "cheerio": "1.0.0-rc.12",
         "file-type": "^20.0.0",
         "got-scraping": "^4.0.3",
-        "ow": "^0.28.1",
+        "ow": "^3.0.0",
         "robots-parser": "^3.0.1",
         "sax": "^1.4.1",
         "tslib": "^2.4.0",
