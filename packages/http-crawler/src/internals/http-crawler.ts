@@ -1,5 +1,4 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
-import { extname } from 'node:path';
 import type { Readable } from 'node:stream';
 import util from 'node:util';
 
@@ -36,12 +35,12 @@ import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import type { Method, OptionsInit, TimeoutError as TimeoutErrorClass } from 'got-scraping';
 import iconv from 'iconv-lite';
-import mime from 'mime-types';
-import ow, { ObjectPredicate } from 'ow';
+import ow from 'ow';
 import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
+import { parseContentTypeFromResponse } from './utils.js';
 
 let TimeoutError: typeof TimeoutErrorClass;
 
@@ -191,8 +190,7 @@ export type HttpHook<
 
 interface CrawlingContextWithReponse<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    Crawler = HttpCrawler<any>,
-> extends CrawlingContext<Crawler, UserData> {
+> extends CrawlingContext<UserData> {
     request: LoadedRequest<Request<UserData>>;
 
     response: PlainResponse;
@@ -204,8 +202,7 @@ interface CrawlingContextWithReponse<
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    Crawler = HttpCrawler<any>,
-> extends CrawlingContextWithReponse<UserData, Crawler> {
+> extends CrawlingContextWithReponse<UserData> {
     /**
      * The request body of the web page.
      * The type depends on the `Content-Type` header of the web page:
@@ -254,7 +251,7 @@ export interface InternalHttpCrawlingContext<
 }
 
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
-    extends InternalHttpCrawlingContext<UserData, JSONData, HttpCrawler<HttpCrawlingContext<UserData, JSONData>>> {}
+    extends InternalHttpCrawlingContext<UserData, JSONData> {}
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -329,7 +326,7 @@ export type HttpRequestHandler<
  * @category Crawlers
  */
 export class HttpCrawler<
-    Context extends InternalHttpCrawlingContext<any, any, HttpCrawler<Context>> = InternalHttpCrawlingContext,
+    Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext,
     ExtendedContext extends Context = Context,
 > extends BasicCrawler<Context, ExtendedContext> {
     /**
@@ -372,7 +369,8 @@ export class HttpCrawler<
      * All `HttpCrawlerOptions` parameters are passed via an options object.
      */
     constructor(
-        options: HttpCrawlerOptions<Context, ExtendedContext> & RequireContextPipeline<Context> = {} as any,
+        options: HttpCrawlerOptions<Context, ExtendedContext> &
+            RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
@@ -458,11 +456,7 @@ export class HttpCrawler<
 
     private async makeHttpRequest(
         crawlingContext: CrawlingContext,
-    ): Promise<
-        Pick<CrawlingContextWithReponse, Exclude<keyof CrawlingContextWithReponse, keyof CrawlingContext>> &
-            Pick<CrawlingContext, 'proxyInfo'> &
-            Pick<InternalHttpCrawlingContext, 'request'>
-    > {
+    ): Promise<Omit<CrawlingContextWithReponse, keyof CrawlingContext> & Partial<CrawlingContextWithReponse>> {
         const { request, session } = crawlingContext;
 
         let proxyInfo: ProxyInfo | undefined;
@@ -521,11 +515,7 @@ export class HttpCrawler<
     private async processHttpResponse(
         crawlingContext: CrawlingContextWithReponse,
     ): Promise<
-        Pick<
-            InternalHttpCrawlingContext,
-            Exclude<keyof InternalHttpCrawlingContext, keyof CrawlingContextWithReponse>
-        > &
-            Pick<CrawlingContext, 'proxyInfo'>
+        Omit<InternalHttpCrawlingContext, keyof CrawlingContextWithReponse> & Partial<InternalHttpCrawlingContext>
     > {
         if (crawlingContext.request.skipNavigation) {
             return {
@@ -601,7 +591,7 @@ export class HttpCrawler<
         return {};
     }
 
-    protected override async isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false> {
+    protected async isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false> {
         if (HTML_AND_XML_MIME_TYPES.includes(crawlingContext.contentType.type)) {
             const $ = await crawlingContext.parseWithCheerio();
 
@@ -954,44 +944,6 @@ function addResponsePropertiesToStream(stream: Readable, response: StreamingHttp
     }
 
     return stream as unknown as PlainResponse;
-}
-
-/**
- * Gets parsed content type from response object
- * @param response HTTP response object
- */
-function parseContentTypeFromResponse(response: unknown): { type: string; charset: BufferEncoding } {
-    ow(
-        response,
-        ow.object.partialShape({
-            url: ow.string.url,
-            headers: new ObjectPredicate<Record<string, unknown>>(),
-        }),
-    );
-
-    const { url, headers } = response;
-    let parsedContentType;
-
-    if (headers['content-type']) {
-        try {
-            parsedContentType = contentTypeParser.parse(headers['content-type'] as string);
-        } catch {
-            // Can not parse content type from Content-Type header. Try to parse it from file extension.
-        }
-    }
-
-    // Parse content type from file extension as fallback
-    if (!parsedContentType) {
-        const parsedUrl = new URL(url);
-        const contentTypeFromExtname =
-            mime.contentType(extname(parsedUrl.pathname)) || 'application/octet-stream; charset=utf-8'; // Fallback content type, specified in https://tools.ietf.org/html/rfc7231#section-3.1.1.5
-        parsedContentType = contentTypeParser.parse(contentTypeFromExtname);
-    }
-
-    return {
-        type: parsedContentType.type,
-        charset: parsedContentType.parameters.charset as BufferEncoding,
-    };
 }
 
 /**

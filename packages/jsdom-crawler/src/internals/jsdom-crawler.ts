@@ -55,7 +55,7 @@ export type JSDOMHook<
 export interface JSDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData> {
     window: DOMWindow;
     document: Document;
 
