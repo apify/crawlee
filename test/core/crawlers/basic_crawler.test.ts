@@ -3,7 +3,13 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { CrawlingContext, ErrorHandler, RequestHandler } from '@crawlee/basic';
+import type {
+    CrawlingContext,
+    EnqueueLinksOptions,
+    ErrorHandler,
+    RequestHandler,
+    RequestOptions,
+} from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -196,32 +202,47 @@ describe('BasicCrawler', () => {
         ]);
     });
 
-    test('enqueueLinks should respect maxCrawlDepth', async () => {
-        const processedUrls: string[] = [];
+    describe('enqueueLinks should respect maxCrawlDepth', async () => {
+        const testMaxCrawlDepth = async (enqueueLinksOptions?: EnqueueLinksOptions) => {
+            const processedUrls: string[] = [];
 
-        const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
-            processedUrls.push(request.url);
-            const url = new URL(request.url);
-            url.pathname = `${url.pathname}deep/`;
+            const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
+                processedUrls.push(request.url);
+                const url = new URL(request.url);
+                url.pathname = `${url.pathname}deep/`;
 
-            await enqueueLinks({
-                urls: [url.toString()],
+                await enqueueLinks({
+                    urls: [url.toString()],
+                    ...enqueueLinksOptions,
+                });
+            };
+
+            const crawler = new BasicCrawler({
+                maxCrawlDepth: 2,
+                maxRequestsPerCrawl: 10, // safeguard against infinite loops
+                requestHandler,
             });
+
+            await crawler.run(['https://example.com/']);
+
+            expect(processedUrls).toEqual([
+                'https://example.com/',
+                'https://example.com/deep/',
+                'https://example.com/deep/deep/',
+            ]);
         };
 
-        const crawler = new BasicCrawler({
-            maxCrawlDepth: 2,
-            maxRequestsPerCrawl: 10, // safeguard against infinite loops
-            requestHandler,
+        test("without user's transformRequestFunction", async () => {
+            await testMaxCrawlDepth();
         });
 
-        await crawler.run(['https://example.com/']);
+        test('while executing user provided transformRequestFunction', async () => {
+            const transformRequestFunction = vi.fn((request: RequestOptions) => request);
 
-        expect(processedUrls).toEqual([
-            'https://example.com/',
-            'https://example.com/deep/',
-            'https://example.com/deep/deep/',
-        ]);
+            await testMaxCrawlDepth({ transformRequestFunction });
+
+            expect(transformRequestFunction).toHaveBeenCalled();
+        });
     });
 
     test('should correctly combine shorthand and full length options', async () => {
