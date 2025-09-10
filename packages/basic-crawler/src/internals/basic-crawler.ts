@@ -66,8 +66,7 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
 
-export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends CrawlingContext<BasicCrawler, UserData> {}
+export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {}
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -102,7 +101,10 @@ export type StatusMessageCallback<
     Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
-export type RequireContextPipeline<FinalContextType extends CrawlingContext> = CrawlingContext extends FinalContextType
+export type RequireContextPipeline<
+    DefaultContextType extends CrawlingContext,
+    FinalContextType extends DefaultContextType,
+> = DefaultContextType extends FinalContextType
     ? { contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, FinalContextType> }
     : { contextPipelineBuilder: () => ContextPipeline<CrawlingContext, FinalContextType> };
 
@@ -528,7 +530,8 @@ export class BasicCrawler<
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: BasicCrawlerOptions<Context, ExtendedContext> & RequireContextPipeline<Context> = {} as any, // TODO explain the cast
+        options: BasicCrawlerOptions<Context, ExtendedContext> &
+            RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
         readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
@@ -736,15 +739,6 @@ export class BasicCrawler<
      */
     protected isProxyError(error: Error): boolean {
         return ROTATE_PROXY_ERRORS.some((x: string) => (this._getMessageFromError(error) as any)?.includes(x));
-    }
-
-    /**
-     * Checks whether the given crawling context is getting blocked by anti-bot protection using several heuristics.
-     * Returns `false` if the request is not blocked, otherwise returns a string with a description of the block reason.
-     * @param _crawlingContext The crawling context to check.
-     */
-    protected async isRequestBlocked(_crawlingContext: Context): Promise<string | false> {
-        throw new Error('the "isRequestBlocked" method is not implemented in this crawler.');
     }
 
     /**
