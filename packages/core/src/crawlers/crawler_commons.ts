@@ -108,8 +108,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     log: Log;
 }
 
-export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary>
-    extends RestrictedCrawlingContext<UserData> {
+export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
     /**
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
      * currently used by the crawler.

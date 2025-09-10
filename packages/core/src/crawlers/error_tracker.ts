@@ -2,6 +2,7 @@ import { inspect } from 'node:util';
 
 import type { CrawlingContext } from '../crawlers/crawler_commons.js';
 import { ErrorSnapshotter } from './error_snapshotter.js';
+import { SnapshottableProperties } from './internals/types.js';
 
 /**
  * Node.js Error interface
@@ -405,7 +406,11 @@ export class ErrorTracker {
         return result.sort((a, b) => b[0] - a[0]).slice(0, count);
     }
 
-    async captureSnapshot(storage: Record<string, unknown>, error: ErrnoException, context: CrawlingContext) {
+    async captureSnapshot(
+        storage: Record<string, unknown>,
+        error: ErrnoException,
+        context: CrawlingContext & SnapshottableProperties,
+    ) {
         if (!this.errorSnapshotter) {
             return;
         }
