@@ -1570,6 +1570,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     limit: this.calculateEnqueuedRequestLimit(options.limit),
+                    ...options,
+
+                    // Allow all previous option defaults to be overridden by the user, but execute this as a wrapper
+                    // around the original function, to inject `crawlDepth` and check the `maxCrawlDepth` limit.
                     transformRequestFunction: (newRequest) => {
                         newRequest.crawlDepth = (request?.crawlDepth ?? 0) + 1;
 
@@ -1580,7 +1584,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
                         return options.transformRequestFunction?.(newRequest) ?? newRequest;
                     },
-                    ...options,
                 });
             },
             addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
