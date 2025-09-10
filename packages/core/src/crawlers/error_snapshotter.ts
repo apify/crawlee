@@ -3,14 +3,11 @@ import crypto from 'node:crypto';
 import type { CrawlingContext } from '../crawlers/crawler_commons.js';
 import type { KeyValueStore } from '../storages/key_value_store.js';
 import type { ErrnoException } from './error_tracker.js';
+import { SnapshottableProperties } from './internals/types.js';
 
 // Define the following types as we cannot import the complete types from the respective packages
 interface BrowserCrawlingContext {
     saveSnapshot: (options: { key: string }) => Promise<void>;
-}
-
-interface BrowserPage {
-    content: () => Promise<string>;
 }
 
 export interface SnapshotResult {
@@ -49,9 +46,12 @@ export class ErrorSnapshotter {
     /**
      * Capture a snapshot of the error context.
      */
-    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<ErrorSnapshot> {
+    async captureSnapshot(
+        error: ErrnoException,
+        context: CrawlingContext & SnapshottableProperties,
+    ): Promise<ErrorSnapshot> {
         try {
-            const page = context?.page as BrowserPage | undefined;
+            const page = context?.page;
             const body = context?.body;
 
             const keyValueStore = await context?.getKeyValueStore();
