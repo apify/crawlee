@@ -203,7 +203,9 @@ describe('BasicCrawler', () => {
     });
 
     describe('enqueueLinks should respect maxCrawlDepth', async () => {
-        const testMaxCrawlDepth = async (enqueueLinksOptions?: EnqueueLinksOptions) => {
+        const expectedUrls = ['https://example.com/', 'https://example.com/deep/', 'https://example.com/deep/deep/'];
+
+        const runCrawlWithDepthLimit = async (enqueueLinksOptions?: EnqueueLinksOptions): Promise<string[]> => {
             const processedUrls: string[] = [];
 
             const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
@@ -225,21 +227,19 @@ describe('BasicCrawler', () => {
 
             await crawler.run(['https://example.com/']);
 
-            expect(processedUrls).toEqual([
-                'https://example.com/',
-                'https://example.com/deep/',
-                'https://example.com/deep/deep/',
-            ]);
+            return processedUrls;
         };
 
         test("without user's transformRequestFunction", async () => {
-            await testMaxCrawlDepth();
+            const processedUrls = await runCrawlWithDepthLimit();
+            expect(processedUrls).toEqual(expectedUrls);
         });
 
         test('while executing user provided transformRequestFunction', async () => {
             const transformRequestFunction = vi.fn((request: RequestOptions) => request);
 
-            await testMaxCrawlDepth({ transformRequestFunction });
+            const processedUrls = await runCrawlWithDepthLimit({ transformRequestFunction });
+            expect(processedUrls).toEqual(expectedUrls);
 
             expect(transformRequestFunction).toHaveBeenCalled();
         });
