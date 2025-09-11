@@ -12,7 +12,8 @@
         "prettify": "prettier --write --config ./tools/docs-prettier.config.js ../docs/guides/*.md",
         "swizzle": "docusaurus swizzle",
         "deploy": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs deploy",
-        "docusaurus": "docusaurus"
+        "docusaurus": "docusaurus",
+        "postbuild": "node ./tools/joinLlmsFiles.mjs"
     },
     "devDependencies": {
         "@apify/eslint-config-ts": "^0.4.0",
