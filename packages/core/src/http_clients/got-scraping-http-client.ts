@@ -1,14 +1,8 @@
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
-import type {
-    BaseHttpClient,
-    HttpRequest,
-    HttpResponse,
-    RedirectHandler,
-    ResponseTypes,
-    StreamingHttpResponse,
-} from './base-http-client.js';
+import type { BaseHttpClient, HttpRequest, RedirectHandler, ResponseTypes } from './base-http-client.js';
+import { Readable } from 'stream';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
@@ -19,7 +13,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      */
     async sendRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
-    ): Promise<HttpResponse<TResponseType>> {
+    ): Promise<Response> {
         const gotResult = await gotScraping({
             ...request,
             retry: {
@@ -28,17 +22,29 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             },
         });
 
-        return {
-            ...gotResult,
-            body: gotResult.body as ResponseTypes[TResponseType],
-            request: { url: request.url, ...gotResult.request },
-        };
+        const parsedHeaders = Object.entries(gotResult.headers)
+            .map(([key, value]) => {
+                if (value === undefined) return [];
+
+                if (Array.isArray(value)) {
+                    return value.map((v) => [key, v]);
+                }
+
+                return [[key, value]];
+            })
+            .flat() as [string, string][];
+
+        return new Response(new Uint8Array(gotResult.rawBody), {
+            headers: new Headers(parsedHeaders),
+            status: gotResult.statusCode,
+            statusText: gotResult.statusMessage ?? '',
+        });
     }
 
     /**
      * @inheritDoc
      */
-    async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
+    async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<Response> {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
             const stream = gotScraping({ ...request, isStream: true });
@@ -55,37 +61,14 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             stream.on('error', reject);
 
             stream.on('response', (response: PlainResponse) => {
-                const result: StreamingHttpResponse = {
-                    stream,
-                    request,
-                    redirectUrls: response.redirectUrls,
-                    url: response.url,
-                    ip: response.ip,
-                    statusCode: response.statusCode,
-                    headers: response.headers,
-                    trailers: response.trailers,
-                    complete: response.complete,
-                    get downloadProgress() {
-                        return stream.downloadProgress;
-                    },
-                    get uploadProgress() {
-                        return stream.uploadProgress;
-                    },
-                };
-
-                Object.assign(result, response); // TODO BC - remove in 4.0
-
-                resolve(result);
-
-                stream.on('end', () => {
-                    result.complete = response.complete;
-
-                    result.trailers ??= {};
-                    Object.assign(result.trailers, response.trailers);
-
-                    (result as any).rawTrailers ??= []; // TODO BC - remove in 4.0
-                    Object.assign((result as any).rawTrailers, response.rawTrailers);
-                });
+                // Cast shouldn't be needed here, undici might have a different `ReadableStream` type
+                resolve(
+                    new Response(Readable.toWeb(stream) as any, {
+                        status: response.statusCode,
+                        statusText: response.statusMessage ?? '',
+                        headers: response.headers as HeadersInit,
+                    }),
+                );
             });
         });
     }
