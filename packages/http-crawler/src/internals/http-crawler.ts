@@ -1,6 +1,5 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import { extname } from 'node:path';
-import type { Readable } from 'node:stream';
 import util from 'node:util';
 
 import type {
@@ -28,7 +27,7 @@ import {
     SessionError,
     validators,
 } from '@crawlee/basic';
-import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
+import type { HttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -212,7 +211,7 @@ export interface InternalHttpCrawlingContext<
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: BufferEncoding };
-    response: PlainResponse;
+    response?: Response;
 
     /**
      * Wait for an element matching the selector to appear. Timeout is ignored.
@@ -674,7 +673,7 @@ export class HttpCrawler<
         session,
         proxyUrl,
         gotOptions,
-    }: RequestFunctionOptions): Promise<PlainResponse> {
+    }: RequestFunctionOptions): Promise<Response | undefined> {
         if (!TimeoutError) {
             // @ts-ignore
             ({ TimeoutError } = await import('got-scraping'));
@@ -687,7 +686,7 @@ export class HttpCrawler<
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
-                return undefined as unknown as PlainResponse;
+                return undefined;
             }
 
             if (this.isProxyError(e as Error)) {
@@ -701,20 +700,20 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    protected async _parseResponse(request: Request, responseStream: IncomingMessage, crawlingContext: Context) {
-        const { statusCode } = responseStream;
-        const { type, charset } = parseContentTypeFromResponse(responseStream);
-        const { response, encoding } = this._encodeResponse(request, responseStream, charset);
+    protected async _parseResponse(request: Request, response: Response, crawlingContext: Context) {
+        const { status } = response;
+        const { type, charset } = parseContentTypeFromResponse(response);
+        const { response, encoding } = this._encodeResponse(request, response, charset);
         const contentType = { type, encoding };
 
-        if (statusCode! >= 400 && statusCode! <= 599) {
-            this.stats.registerStatusCode(statusCode!);
+        if (status >= 400 && status <= 599) {
+            this.stats.registerStatusCode(status);
         }
 
-        const excludeError = this.ignoreHttpErrorStatusCodes.has(statusCode!);
-        const includeError = this.additionalHttpErrorStatusCodes.has(statusCode!);
+        const excludeError = this.ignoreHttpErrorStatusCodes.has(status);
+        const includeError = this.additionalHttpErrorStatusCodes.has(status);
 
-        if ((statusCode! >= 500 && !excludeError) || includeError) {
+        if ((status >= 500 && !excludeError) || includeError) {
             const body = await readStreamToString(response, encoding);
 
             // Errors are often sent as JSON, so attempt to parse them,
@@ -866,14 +865,14 @@ export class HttpCrawler<
         throw new Error(`request timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`);
     }
 
-    private _abortDownloadOfBody(request: Request, response: IncomingMessage) {
-        const { statusCode } = response;
+    private _abortDownloadOfBody(request: Request, response: Response) {
+        const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
         // eslint-disable-next-line dot-notation -- accessing private property
         const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
         // if we retry the request, can the Content-Type change?
-        const isTransientContentType = statusCode! >= 500 || blockedStatusCodes.includes(statusCode!);
+        const isTransientContentType = status >= 500 || blockedStatusCodes.includes(status);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;
@@ -909,7 +908,7 @@ export class HttpCrawler<
             },
         );
 
-        return addResponsePropertiesToStream(response.stream, response);
+        return response;
     };
 }
 
@@ -921,52 +920,10 @@ interface RequestFunctionOptions {
 }
 
 /**
- * The stream object returned from got does not have the below properties.
- * At the same time, you can't read data directly from the response stream,
- * because they won't get emitted unless you also read from the primary
- * got stream. To be able to work with only one stream, we move the expected props
- * from the response stream to the got stream.
- * @internal
- */
-function addResponsePropertiesToStream(stream: Readable, response: StreamingHttpResponse) {
-    const properties: (keyof PlainResponse)[] = [
-        'statusCode',
-        'statusMessage',
-        'headers',
-        'complete',
-        'httpVersion',
-        'rawHeaders',
-        'rawTrailers',
-        'trailers',
-        'url',
-        'request',
-    ];
-
-    stream.on('end', () => {
-        // @ts-expect-error
-        if (stream.rawTrailers) stream.rawTrailers = response.rawTrailers; // TODO BC with got - remove in 4.0
-
-        // @ts-expect-error
-        if (stream.trailers) stream.trailers = response.trailers;
-
-        // @ts-expect-error
-        stream.complete = response.complete;
-    });
-
-    for (const prop of properties) {
-        if (!(prop in stream)) {
-            (stream as any)[prop] = (response as any)[prop];
-        }
-    }
-
-    return stream as unknown as PlainResponse;
-}
-
-/**
  * Gets parsed content type from response object
  * @param response HTTP response object
  */
-function parseContentTypeFromResponse(response: unknown): { type: string; charset: BufferEncoding } {
+function parseContentTypeFromResponse(response: Response): { type: string; charset: BufferEncoding } {
     ow(
         response,
         ow.object.partialShape({

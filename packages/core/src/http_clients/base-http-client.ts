@@ -187,7 +187,7 @@ export interface BaseHttpClient {
     /**
      * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
      */
-    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
+    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<Response>;
 }
 
 /**

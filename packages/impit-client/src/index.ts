@@ -1,8 +1,8 @@
 import { Readable } from 'node:stream';
-import { type ReadableStream } from 'node:stream/web';
+import { ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
-import type { BaseHttpClient, HttpRequest, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
+import type { BaseHttpClient, HttpRequest, ResponseTypes } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
 
@@ -190,23 +190,15 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async stream(request: HttpRequest): Promise<StreamingHttpResponse> {
-        const { response, redirectUrls } = await this.getResponse(request);
-        const [stream, getDownloadProgress] = this.getStreamWithProgress(response);
+    async stream(request: HttpRequest): Promise<Response> {
+        const { response } = await this.getResponse(request);
+        const [stream] = this.getStreamWithProgress(response);
 
-        return {
-            request,
-            url: response.url,
-            statusCode: response.status,
-            stream,
-            complete: true,
-            get downloadProgress() {
-                return getDownloadProgress();
-            },
-            uploadProgress: { percent: 100, transferred: 0 },
-            redirectUrls,
-            headers: Object.fromEntries(response.headers.entries()),
-            trailers: {},
-        };
+        // Cast shouldn't be needed here, undici might have a slightly different `ReadableStream` type
+        return new Response(Readable.toWeb(stream) as any, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers as HeadersInit,
+        });
     }
 }
