@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import { type ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
-import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
+import type { BaseHttpClient, HttpRequest, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
 
@@ -155,35 +155,15 @@ export class ImpitHttpClient implements BaseHttpClient {
      */
     async sendRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
-    ): Promise<HttpResponse<TResponseType>> {
-        const { response, redirectUrls } = await this.getResponse(request);
+    ): Promise<Response> {
+        const { response } = await this.getResponse(request);
 
-        let responseBody;
-
-        switch (request.responseType) {
-            case 'text':
-                responseBody = await response.text();
-                break;
-            case 'json':
-                responseBody = await response.json();
-                break;
-            case 'buffer':
-                responseBody = await response.bytes();
-                break;
-            default:
-                throw new Error('Unsupported response type.');
-        }
-
-        return {
-            headers: Object.fromEntries(response.headers.entries()),
-            statusCode: response.status,
-            url: response.url,
-            request,
-            redirectUrls,
-            trailers: {},
-            body: responseBody,
-            complete: true,
-        };
+        // todo - cast shouldn't be needed here, impit returns `Uint8Array`
+        return new Response((await response.bytes()) as any, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers as HeadersInit,
+        });
     }
 
     private getStreamWithProgress(

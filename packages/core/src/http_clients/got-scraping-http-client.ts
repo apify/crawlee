@@ -4,7 +4,6 @@ import { gotScraping } from 'got-scraping';
 import type {
     BaseHttpClient,
     HttpRequest,
-    HttpResponse,
     RedirectHandler,
     ResponseTypes,
     StreamingHttpResponse,
@@ -19,7 +18,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      */
     async sendRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
-    ): Promise<HttpResponse<TResponseType>> {
+    ): Promise<Response> {
         const gotResult = await gotScraping({
             ...request,
             retry: {
@@ -28,11 +27,23 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             },
         });
 
-        return {
-            ...gotResult,
-            body: gotResult.body as ResponseTypes[TResponseType],
-            request: { url: request.url, ...gotResult.request },
-        };
+        const parsedHeaders = Object.entries(gotResult.headers)
+            .map(([key, value]) => {
+                if (value === undefined) return [];
+
+                if (Array.isArray(value)) {
+                    return value.map((v) => [key, v]);
+                }
+
+                return [[key, value]];
+            })
+            .flat() as [string, string][];
+
+        return new Response(new Uint8Array(gotResult.rawBody), {
+            headers: new Headers(parsedHeaders),
+            status: gotResult.statusCode,
+            statusText: gotResult.statusMessage ?? '',
+        });
     }
 
     /**
