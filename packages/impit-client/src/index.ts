@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream';
-import { ReadableStream } from 'node:stream/web';
+import type { ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
 import type { BaseHttpClient, HttpRequest, ResponseTypes } from '@crawlee/core';
