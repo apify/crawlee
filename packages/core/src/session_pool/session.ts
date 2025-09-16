@@ -319,10 +319,10 @@ export class Session {
      *
      * It then parses and saves the cookies from the `set-cookie` header, if available.
      */
-    setCookiesFromResponse(response: ResponseLike) {
+    setCookiesFromResponse(response: Response) {
         try {
             const cookies = getCookiesFromResponse(response).filter((c) => c);
-            this._setCookies(cookies, typeof response.url === 'function' ? response.url() : response.url!);
+            this._setCookies(cookies, response.url);
         } catch (e) {
             const err = e as Error;
             // if invalid Cookie header is provided just log the exception.

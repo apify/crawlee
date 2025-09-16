@@ -169,7 +169,7 @@ export interface StreamingHttpResponse extends HttpResponseWithoutBody {
  * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
  */
 export type RedirectHandler = (
-    redirectResponse: BaseHttpResponseData,
+    redirectResponse: Response,
     updatedRequest: { url?: string | URL; headers: SimpleHeaders },
 ) => void;
 

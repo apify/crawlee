@@ -1,4 +1,5 @@
 import { finished } from 'node:stream/promises';
+import { Readable } from 'node:stream';
 import { isPromise } from 'node:util/types';
 
 import type { Dictionary } from '@crawlee/types';
@@ -134,7 +135,6 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 
     private async streamRequestHandler(context: FileDownloadCrawlingContext) {
         const {
-            log,
             request: { url },
         } = context;
 
@@ -144,31 +144,15 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             proxyUrl: context.proxyInfo?.url,
         });
 
-        let pollingInterval: NodeJS.Timeout | undefined;
-
-        const cleanUp = () => {
-            clearInterval(pollingInterval!);
-            response.stream.destroy();
+        const cleanUp = async () => {
+            await response.body?.cancel();
         };
 
         const downloadPromise = new Promise<void>((resolve, reject) => {
-            pollingInterval = setInterval(() => {
-                const { total, transferred } = response.downloadProgress;
-
-                if (transferred > 0) {
-                    log.debug(`Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`);
-                }
-            }, 5000);
-
-            response.stream.on('error', async (error: Error) => {
-                cleanUp();
-                reject(error);
-            });
-
             let streamHandlerResult;
 
             try {
-                context.stream = response.stream;
+                context.stream = response.body;
                 context.response = response as any;
                 streamHandlerResult = this.streamHandler!(context as any);
             } catch (e) {
@@ -190,7 +174,10 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }
         });
 
-        await Promise.all([downloadPromise, finished(response.stream)]);
+        await Promise.all([
+            downloadPromise,
+            response.body ? finished(Readable.fromWeb(response.body as any)) : Promise.resolve(),
+        ]);
 
         cleanUp();
     }

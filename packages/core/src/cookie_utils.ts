@@ -12,9 +12,9 @@ export interface ResponseLike {
 /**
  * @internal
  */
-export function getCookiesFromResponse(response: ResponseLike): Cookie[] {
-    const headers = typeof response.headers === 'function' ? response.headers() : response.headers;
-    const cookieHeader = headers?.['set-cookie'] || '';
+export function getCookiesFromResponse(response: Response): Cookie[] {
+    const headers = response.headers;
+    const cookieHeader = headers.getSetCookie();
 
     try {
         return Array.isArray(cookieHeader)
