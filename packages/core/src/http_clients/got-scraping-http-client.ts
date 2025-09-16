@@ -57,9 +57,14 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         return new Promise(async (resolve, reject) => {
             const stream = gotScraping({ ...request, isStream: true });
 
-            stream.on('redirect', (updatedOptions: Options, redirectResponse: Response) => {
-                // TODO - the types here likely don't match
-                handleRedirect?.(redirectResponse, updatedOptions);
+            stream.on('redirect', (updatedOptions: Options, redirectResponse: any) => {
+                const nativeRedirectResponse = new ResponseWithUrl(redirectResponse.rawBody, {
+                    headers: redirectResponse.headers,
+                    status: redirectResponse.statusCode,
+                    statusText: redirectResponse.statusMessage,
+                    url: redirectResponse.url,
+                });
+                handleRedirect?.(nativeRedirectResponse, updatedOptions);
             });
 
             // We need to end the stream for DELETE requests, otherwise it will hang.

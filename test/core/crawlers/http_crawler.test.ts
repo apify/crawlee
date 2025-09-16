@@ -410,7 +410,7 @@ test('works with a custom HttpClient', async () => {
         requestHandler: async ({ body, sendRequest }) => {
             results.push(body as string);
 
-            results.push((await sendRequest()).body);
+            results.push(await (await sendRequest()).text());
         },
         httpClient: {
             async sendRequest(request) {
