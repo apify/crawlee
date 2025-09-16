@@ -4,11 +4,11 @@ import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
 import {
-    ResponseWithUrl,
     type BaseHttpClient,
     type HttpRequest,
     type RedirectHandler,
     type ResponseTypes,
+    ResponseWithUrl,
 } from './base-http-client.js';
 
 /**

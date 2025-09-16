@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
-import { ResponseWithUrl, type BaseHttpClient, type HttpRequest, type ResponseTypes } from '@crawlee/core';
+import { type BaseHttpClient, type HttpRequest, type ResponseTypes, ResponseWithUrl } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
 
