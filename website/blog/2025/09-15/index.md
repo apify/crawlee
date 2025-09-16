@@ -5,13 +5,13 @@ description: Announcing the Crawlee for Python v1.0.0 release.
 authors: [VladaD]
 ---
 
-We launched Crawlee for Python in beta mode in [July 2024](https://crawlee.dev/blog/launching-crawlee-python). Over the past year, we received many early adopters, tremendous interest in the library from the Python community, more than 6000 stars on GitHub, a dozen contributors, and many feature requests.
+We launched Crawlee for Python in beta mode in [July 2024](https://www.crawlee.dev/blog/launching-crawlee-python). Over the past year, we received many early adopters, tremendous interest in the library from the Python community, more than 6000 stars on GitHub, a dozen contributors, and many feature requests.
 
 After months of development, polishing, and community feedback, the library is leaving beta and entering a production/stable development status.
 
 **We are happy to announce Crawlee for Python v1.0.0.**
 
-From now on, Crawlee for Python will strictly follow [semantic versioning](https://semver.org/). You can now rely on it as a stable foundation for your crawling and scraping projects, knowing that breaking changes will only occur in major releases.
+From now on, Crawlee for Python will strictly follow [semantic versioning](https://www.semver.org/). You can now rely on it as a stable foundation for your crawling and scraping projects, knowing that breaking changes will only occur in major releases.
 
 ## What's new in Crawlee for Python v1
 
@@ -35,7 +35,7 @@ You can upgrade to the latest version straight from [PyPI](https://www.pypi.org/
 pip install --upgrade crawlee
 ```
 
-Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#100-2025-09-15) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v1](https://crawlee.dev/python/docs/upgrading/upgrading-to-v1) guide.
+Check out the full changelog on our [website](https://www.crawlee.dev/python/docs/changelog#100-2025-09-15) to see all the details. If you are updating from an older version, make sure to follow our [Upgrading to v1](https://www.crawlee.dev/python/docs/upgrading/upgrading-to-v1) guide.
 
 ## New storage client system
 
@@ -79,17 +79,17 @@ storage_client = MemoryStorageClient()
 crawler = ParselCrawler(storage_client=storage_client)
 ```
 
-With this new design, switching between storage backends is as simple as swapping out a client, without changing your crawling logic. To dive deeper into configuration, advanced usage (e.g. using different storage clients for specific storage instances), and even how to write your own storage client, see the [Storages](https://crawlee.dev/python/docs/guides/storages) and [Storage clients](https://crawlee.dev/python/docs/guides/storage-clients) guides.
+With this new design, switching between storage backends is as simple as swapping out a client, without changing your crawling logic. To dive deeper into configuration, advanced usage (e.g. using different storage clients for specific storage instances), and even how to write your own storage client, see the [Storages](https://www.crawlee.dev/python/docs/guides/storages) and [Storage clients](https://www.crawlee.dev/python/docs/guides/storage-clients) guides.
 
 ## Adaptive Playwright crawler
 
-Some websites can be scraped quickly with plain HTTP requests, while others require the full power of a browser to render dynamic content. Traditionally, you had to decide upfront whether to use one of the lightweight HTTP-based crawlers ([`ParselCrawler`](https://crawlee.dev/python/api/class/ParselCrawler) or [`BeautifulSoupCrawler`](https://crawlee.dev/python/api/class/BeautifulSoupCrawler)) or a browser-based [`PlaywrightCrawler`](https://crawlee.dev/python/api/class/PlaywrightCrawler). Crawlee v1 introduces the [`AdaptivePlaywrightCrawler`](https://crawlee.dev/python/api/class/AdaptivePlaywrightCrawler), which automatically chooses the right approach for each page.
+Some websites can be scraped quickly with plain HTTP requests, while others require the full power of a browser to render dynamic content. Traditionally, you had to decide upfront whether to use one of the lightweight HTTP-based crawlers ([`ParselCrawler`](https://www.crawlee.dev/python/api/class/ParselCrawler) or [`BeautifulSoupCrawler`](https://www.crawlee.dev/python/api/class/BeautifulSoupCrawler)) or a browser-based [`PlaywrightCrawler`](https://www.crawlee.dev/python/api/class/PlaywrightCrawler). Crawlee v1 introduces the [`AdaptivePlaywrightCrawler`](https://www.crawlee.dev/python/api/class/AdaptivePlaywrightCrawler), which automatically chooses the right approach for each page.
 
 The adaptive crawler uses a detection mechanism: it compares the results of plain HTTP requests with those of a browser-rendered version of the same page. If both match, it can continue with the faster HTTP approach; if differences appear, it falls back to browser-based crawling. Over time, it builds confidence about which rendering type is needed for different pages, occasionally re-checking with the browser to ensure its predictions stay correct.
 
-This makes your crawls faster and cheaper, while still allowing you to reliably handle complex, dynamic websites. In practice, you get the best of both worlds: speed on simple pages and robustness on modern, JavaScript-heavy sites. For advanced options, such as customizing the detection strategy, see the [Adaptive Playwright crawler guide](https://crawlee.dev/python/docs/guides/adaptive-playwright-crawler).
+This makes your crawls faster and cheaper, while still allowing you to reliably handle complex, dynamic websites. In practice, you get the best of both worlds: speed on simple pages and robustness on modern, JavaScript-heavy sites. For advanced options, such as customizing the detection strategy, see the [Adaptive Playwright crawler guide](https://www.crawlee.dev/python/docs/guides/adaptive-playwright-crawler).
 
-Here's a simplified example using the static [Parsel](https://github.com/scrapy/parsel) parser for HTTP responses, and falling back to [Playwright](https://playwright.dev/) only when needed:
+Here's a simplified example using the static [Parsel](https://www.github.com/scrapy/parsel) parser for HTTP responses, and falling back to [Playwright](https://www.playwright.dev/) only when needed:
 
 ```python
 import asyncio
@@ -115,15 +115,15 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-In this example, pages that don't need JavaScript rendering will be processed through the fast HTTP client, while others will be automatically handled with Playwright. You don't need to write two different crawlers or guess in advance which method to use - Crawlee adapts dynamically. For more details and configuration options, see the [Adaptive Playwright crawler](https://crawlee.dev/python/docs/guides/adaptive-playwright-crawler) guide.
+In this example, pages that don't need JavaScript rendering will be processed through the fast HTTP client, while others will be automatically handled with Playwright. You don't need to write two different crawlers or guess in advance which method to use - Crawlee adapts dynamically. For more details and configuration options, see the [Adaptive Playwright crawler](https://www.crawlee.dev/python/docs/guides/adaptive-playwright-crawler) guide.
 
 ## Impit HTTP client
 
-Crawlee v1 introduces a brand-new default HTTP client: [`ImpitHttpClient`](https://crawlee.dev/python/api/class/ImpitHttpClient), powered by the [Impit](https://github.com/apify/impit) library. Written in Rust and exposed to Python through bindings, it delivers better performance, async-first design, HTTP/3 support, and browser impersonation. It can impersonate real browsers out of the box, which makes your crawlers harder to detect and block by common anti-bot systems. This means fewer false positives, more resilient crawls, and less need for complicated workarounds. Impit is also developed as an open-source project by Apify, so you can dive into the internals or contribute improvements yourself.
+Crawlee v1 introduces a brand-new default HTTP client: [`ImpitHttpClient`](https://www.crawlee.dev/python/api/class/ImpitHttpClient), powered by the [Impit](https://www.github.com/apify/impit) library. Written in Rust and exposed to Python through bindings, it delivers better performance, async-first design, HTTP/3 support, and browser impersonation. It can impersonate real browsers out of the box, which makes your crawlers harder to detect and block by common anti-bot systems. This means fewer false positives, more resilient crawls, and less need for complicated workarounds. Impit is also developed as an open-source project by Apify, so you can dive into the internals or contribute improvements yourself.
 
-By default, Crawlee now uses [`ImpitHttpClient`](https://crawlee.dev/python/api/class/ImpitHttpClient) under the hood. But you can also create your own instance, configure it to your needs (e.g. enable HTTP/3 or choose a specific browser profile), and pass it into your crawler.
+By default, Crawlee now uses [`ImpitHttpClient`](https://www.crawlee.dev/python/api/class/ImpitHttpClient) under the hood. But you can also create your own instance, configure it to your needs (e.g. enable HTTP/3 or choose a specific browser profile), and pass it into your crawler.
 
-Here's an example of explicitly using [`ImpitHttpClient`](https://crawlee.dev/python/api/class/ImpitHttpClient) with a [`ParselCrawler`](https://crawlee.dev/python/api/class/ParselCrawler):
+Here's an example of explicitly using [`ImpitHttpClient`](https://www.crawlee.dev/python/api/class/ImpitHttpClient) with a [`ParselCrawler`](https://www.crawlee.dev/python/api/class/ParselCrawler):
 
 ```python
 import asyncio
@@ -171,15 +171,15 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-With the [`ImpitHttpClient`](https://crawlee.dev/python/api/class/ImpitHttpClient), you get stealth without extra dependencies or plugins. Check out the [HTTP clients](https://crawlee.dev/python/docs/guides/http-clients) guide for more details and advanced configuration options.
+With the [`ImpitHttpClient`](https://www.crawlee.dev/python/api/class/ImpitHttpClient), you get stealth without extra dependencies or plugins. Check out the [HTTP clients](https://www.crawlee.dev/python/docs/guides/http-clients) guide for more details and advanced configuration options.
 
 ## Sitemap request loader
 
 Many websites expose their structure through sitemaps. These files provide a clear list of all available URLs, and are often the most efficient way to discover content on a site. In previous Crawlee versions, you had to fetch and parse these XML files manually before feeding them into your crawler. With Crawlee v1, that's no longer necessary.
 
-The new [`SitemapRequestLoader`](https://crawlee.dev/python/api/class/SitemapRequestLoader) lets you load URLs directly from a sitemap into your request queue, with options for filtering and batching. This makes it much easier to start large-scale crawls where sitemaps already provide full coverage of the site.
+The new [`SitemapRequestLoader`](https://www.crawlee.dev/python/api/class/SitemapRequestLoader) lets you load URLs directly from a sitemap into your request queue, with options for filtering and batching. This makes it much easier to start large-scale crawls where sitemaps already provide full coverage of the site.
 
-Here's an example that loads a sitemap, filters out only documentation pages, and processes them with a [`ParselCrawler`](https://crawlee.dev/python/api/class/ParselCrawler):
+Here's an example that loads a sitemap, filters out only documentation pages, and processes them with a [`ParselCrawler`](https://www.crawlee.dev/python/api/class/ParselCrawler):
 
 ```python
 import asyncio
@@ -235,15 +235,15 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-By connecting the [`SitemapRequestLoader`](https://crawlee.dev/python/api/class/SitemapRequestLoader) directly with a crawler, you can skip the boilerplate of parsing XML and just focus on extracting data. For more details, see the [Request loaders](https://crawlee.dev/python/docs/guides/request-loaders) guide.
+By connecting the [`SitemapRequestLoader`](https://www.crawlee.dev/python/api/class/SitemapRequestLoader) directly with a crawler, you can skip the boilerplate of parsing XML and just focus on extracting data. For more details, see the [Request loaders](https://www.crawlee.dev/python/docs/guides/request-loaders) guide.
 
 ## Robots exclusion standard
 
 Respecting [`robots.txt`](https://en.wikipedia.org/wiki/Robots.txt) is an important part of responsible web crawling. This simple file lets website owners declare which parts of their site should not be crawled by automated agents. Crawlee v1 makes it trivial to follow these rules: just set the `respect_robots_txt_file` option on your crawler, and Crawlee will automatically check the file before issuing requests.
 
-This not only helps you build ethical crawlers, but can also save time and bandwidth by skipping disallowed or irrelevant pages. For example, login pages, search results, or admin sections are often excluded in [`robots.txt`](https://en.wikipedia.org/wiki/Robots.txt), and Crawlee will handle that for you automatically.
+This not only helps you build ethical crawlers, but can also save time and bandwidth by skipping disallowed or irrelevant pages. For example, login pages, search results, or admin sections are often excluded in [`robots.txt`](https://www.en.wikipedia.org/wiki/Robots.txt), and Crawlee will handle that for you automatically.
 
-Here's a minimal example showing how a [`ParselCrawler`](https://crawlee.dev/python/api/class/ParselCrawler) obeys the robots exclusion standard:
+Here's a minimal example showing how a [`ParselCrawler`](https://www.crawlee.dev/python/api/class/ParselCrawler) obeys the robots exclusion standard:
 
 ```python
 import asyncio
@@ -284,13 +284,13 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-With this option enabled, you don't need to manually check which URLs are allowed. Crawlee will handle it, letting you focus on the crawling logic and data extraction. For a more information, see the [Respect robots.txt file](https://crawlee.dev/python/docs/examples/respect-robots-txt-file) documentation page.
+With this option enabled, you don't need to manually check which URLs are allowed. Crawlee will handle it, letting you focus on the crawling logic and data extraction. For a more information, see the [Respect robots.txt file](https://www.crawlee.dev/python/docs/examples/respect-robots-txt-file) documentation page.
 
 ## Fingerprinting
 
-Modern websites often rely on browser fingerprinting to distinguish real users from automated traffic. Instead of just checking the [User-Agent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent) header, they combine dozens of subtle signals - supported fonts, canvas rendering, WebGL features, media devices, screen resolution, and more. Together, these form a unique [device fingerprint](https://en.wikipedia.org/wiki/Device_fingerprint) that can easily expose headless browsers or automation frameworks.
+Modern websites often rely on browser fingerprinting to distinguish real users from automated traffic. Instead of just checking the [User-Agent](https://www.developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent) header, they combine dozens of subtle signals - supported fonts, canvas rendering, WebGL features, media devices, screen resolution, and more. Together, these form a unique [device fingerprint](https://www.en.wikipedia.org/wiki/Device_fingerprint) that can easily expose headless browsers or automation frameworks.
 
-Without fingerprinting, Playwright sessions tend to look identical and are more likely to be flagged by anti-bot systems. Crawlee v1 integrates with the [`FingerprintGenerator`](https://crawlee.dev/python/api/class/FingerprintGenerator) to automatically inject realistic, randomized fingerprints into every [`PlaywrightCrawler`](https://crawlee.dev/python/api/class/PlaywrightCrawler) session. This modifies HTTP headers, browser APIs, and other low-level signals so that each crawler run looks like a real browser on a real device.
+Without fingerprinting, Playwright sessions tend to look identical and are more likely to be flagged by anti-bot systems. Crawlee v1 integrates with the [`FingerprintGenerator`](https://www.crawlee.dev/python/api/class/FingerprintGenerator) to automatically inject realistic, randomized fingerprints into every [`PlaywrightCrawler`](https://www.crawlee.dev/python/api/class/PlaywrightCrawler) session. This modifies HTTP headers, browser APIs, and other low-level signals so that each crawler run looks like a real browser on a real device.
 
 Using fingerprinting in Crawlee is straightforward: create a fingerprint generator with your desired options and pass it to the crawler.
 
@@ -341,19 +341,19 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-In this example, each Playwright instance starts with a unique, realistic fingerprint. From the website’s perspective, the crawler behaves like a real browser session, reducing the chance of detection or blocking. For more details and examples, see the [Avoid getting blocked](https://crawlee.dev/python/docs/guides/avoid-blocking) guide and the [Playwright crawler with fingerprint generator](https://crawlee.dev/python/docs/examples/playwright-crawler-with-fingeprint-generator) documentation page.
+In this example, each Playwright instance starts with a unique, realistic fingerprint. From the website’s perspective, the crawler behaves like a real browser session, reducing the chance of detection or blocking. For more details and examples, see the [Avoid getting blocked](https://www.crawlee.dev/python/docs/guides/avoid-blocking) guide and the [Playwright crawler with fingerprint generator](https://www.crawlee.dev/python/docs/examples/playwright-crawler-with-fingeprint-generator) documentation page.
 
 ## Open telemetry
 
-Running crawlers in production means you often want more than just logs - you need visibility into what the crawler is doing, how it's performing, and where bottlenecks occur. Crawlee v1 adds basic [OpenTelemetry](https://opentelemetry.io/) instrumentation via [`CrawlerInstrumentor`](https://crawlee.dev/python/api/class/CrawlerInstrumentor), giving you a standardized way to collect traces and metrics from your crawlers.
+Running crawlers in production means you often want more than just logs - you need visibility into what the crawler is doing, how it's performing, and where bottlenecks occur. Crawlee v1 adds basic [OpenTelemetry](https://www.opentelemetry.io/) instrumentation via [`CrawlerInstrumentor`](https://www.crawlee.dev/python/api/class/CrawlerInstrumentor), giving you a standardized way to collect traces and metrics from your crawlers.
 
-With [OpenTelemetry](https://opentelemetry.io/) enabled, Crawlee automatically records information such as:
+With [OpenTelemetry](https://www.opentelemetry.io/) enabled, Crawlee automatically records information such as:
 
 - Requests and responses (including timings, retries, and errors).
 - Resource usage events (memory, concurrency, system snapshots).
 - Lifecycle events from crawlers, routers, and handlers.
 
-These signals can be exported to any OpenTelemetry-compatible backend (e.g. [Jaeger](https://www.jaegertracing.io/), [Prometheus](https://prometheus.io/), or [Grafana](https://grafana.com/)), where you can monitor real-time dashboards or analyze traces to understand crawler performance.
+These signals can be exported to any OpenTelemetry-compatible backend (e.g. [Jaeger](https://www.jaegertracing.io/), [Prometheus](https://www.prometheus.io/), or [Grafana](https://www.grafana.com/)), where you can monitor real-time dashboards or analyze traces to understand crawler performance.
 
 Here's a minimal example:
 
@@ -415,12 +415,12 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-Once configured, your traces and metrics can be exported using standard OpenTelemetry exporters (e.g. OTLP, console, or custom backends). This makes it much easier to integrate Crawlee into existing monitoring pipelines. For more details on available options and examples of exporting traces, see the [Trace and monitor crawlers](https://crawlee.dev/python/docs/guides/trace-and-monitor-crawlers) guide.
+Once configured, your traces and metrics can be exported using standard OpenTelemetry exporters (e.g. OTLP, console, or custom backends). This makes it much easier to integrate Crawlee into existing monitoring pipelines. For more details on available options and examples of exporting traces, see the [Trace and monitor crawlers](https://www.crawlee.dev/python/docs/guides/trace-and-monitor-crawlers) guide.
 
 ## A message from the Crawlee team
 
 Last but not least, we want to thank our open-source community members who tried Crawlee for Python in its beta version and helped us improve it for the scraping and automation community.
 
-We would appreciate it if you could check out the latest version and [give us a star on GitHub](https://github.com/apify/crawlee-python/) if you like the new features.
+We would appreciate it if you could check out the latest version and [give us a star on GitHub](https://www.github.com/apify/crawlee-python/) if you like the new features.
 
-If you have any questions or feedback, please open a [GitHub discussion](https://www.github.com/apify/crawlee-python/discussions) or [join our Discord community](https://apify.com/discord/) to get support or talk to fellow Crawlee users. If you encounter any bugs or have an idea for a new feature, please open a [GitHub issue](https://www.github.com/apify/crawlee-python/issues).
+If you have any questions or feedback, please open a [GitHub discussion](https://www.github.com/apify/crawlee-python/discussions) or [join our Discord community](https://www.apify.com/discord/) to get support or talk to fellow Crawlee users. If you encounter any bugs or have an idea for a new feature, please open a [GitHub issue](https://www.github.com/apify/crawlee-python/issues).
