@@ -146,6 +146,14 @@ interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = ke
     request: HttpRequest<TResponseType>;
 }
 
+export class ResponseWithUrl extends Response {
+    override url: string;
+    constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
+        super(body, init);
+        this.url = init.url ?? '';
+    }
+}
+
 /**
  * HTTP response data as returned by the {@apilink BaseHttpClient.sendRequest} method.
  */

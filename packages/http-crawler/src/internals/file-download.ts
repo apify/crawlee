@@ -1,5 +1,3 @@
-import { Readable } from 'node:stream';
-import { finished } from 'node:stream/promises';
 import { isPromise } from 'node:util/types';
 
 import type { Dictionary } from '@crawlee/types';
@@ -153,7 +151,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 
             try {
                 context.stream = response.body;
-                context.response = response as any;
+                context.response = response;
                 streamHandlerResult = this.streamHandler!(context as any);
             } catch (e) {
                 cleanUp()
@@ -175,10 +173,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }
         });
 
-        await Promise.all([
-            downloadPromise,
-            response.body ? finished(Readable.fromWeb(response.body as any)) : Promise.resolve(),
-        ]);
+        await Promise.all([downloadPromise]);
 
         await cleanUp();
     }

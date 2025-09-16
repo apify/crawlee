@@ -24,6 +24,7 @@ import {
     mergeCookies,
     processHttpRequestOptions,
     RequestState,
+    ResponseWithUrl,
     Router,
     SessionError,
     validators,
@@ -831,7 +832,7 @@ export class HttpCrawler<
                 : null;
 
             return {
-                response: new Response(reencodedBody as any, response),
+                response: new ResponseWithUrl(reencodedBody as any, response),
                 encoding: utf8,
             };
         }

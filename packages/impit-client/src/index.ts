@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
-import type { BaseHttpClient, HttpRequest, ResponseTypes } from '@crawlee/core';
+import { ResponseWithUrl, type BaseHttpClient, type HttpRequest, type ResponseTypes } from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
 
@@ -159,11 +159,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         const { response } = await this.getResponse(request);
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
-        return new Response((await response.bytes()) as any, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers as HeadersInit,
-        });
+        return new ResponseWithUrl((await response.bytes()) as any, response);
     }
 
     private getStreamWithProgress(
@@ -195,10 +191,6 @@ export class ImpitHttpClient implements BaseHttpClient {
         const [stream] = this.getStreamWithProgress(response);
 
         // Cast shouldn't be needed here, undici might have a slightly different `ReadableStream` type
-        return new Response(Readable.toWeb(stream) as any, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers as HeadersInit,
-        });
+        return new ResponseWithUrl(Readable.toWeb(stream) as any, response);
     }
 }

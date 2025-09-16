@@ -3,7 +3,13 @@ import { Readable } from 'node:stream';
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
-import type { BaseHttpClient, HttpRequest, RedirectHandler, ResponseTypes } from './base-http-client.js';
+import {
+    ResponseWithUrl,
+    type BaseHttpClient,
+    type HttpRequest,
+    type RedirectHandler,
+    type ResponseTypes,
+} from './base-http-client.js';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
@@ -35,10 +41,11 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             })
             .flat() as [string, string][];
 
-        return new Response(new Uint8Array(gotResult.rawBody), {
+        return new ResponseWithUrl(new Uint8Array(gotResult.rawBody), {
             headers: new Headers(parsedHeaders),
             status: gotResult.statusCode,
             statusText: gotResult.statusMessage ?? '',
+            url: gotResult.url,
         });
     }
 
@@ -65,10 +72,11 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             stream.on('response', (response: PlainResponse) => {
                 // Cast shouldn't be needed here, undici might have a different `ReadableStream` type
                 resolve(
-                    new Response(Readable.toWeb(stream) as any, {
+                    new ResponseWithUrl(Readable.toWeb(stream) as any, {
                         status: response.statusCode,
                         statusText: response.statusMessage ?? '',
                         headers: response.headers as HeadersInit,
+                        url: response.url,
                     }),
                 );
             });

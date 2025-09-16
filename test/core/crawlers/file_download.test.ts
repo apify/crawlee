@@ -5,7 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
 
-import { Configuration, FileDownload } from '@crawlee/http';
+import { FileDownload } from '@crawlee/http';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper.js';
 
@@ -96,7 +96,7 @@ test('requestHandler works', async () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].length).toBe(1024);
-    expect(results[0]).toEqual(await ReadableStreamGenerator.getBuffer(1024, 123));
+    expect(results[0]).toEqual(Uint8Array.from(await ReadableStreamGenerator.getBuffer(1024, 123)));
 });
 
 test('streamHandler works', async () => {
@@ -123,11 +123,9 @@ test('streamHandler receives response', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         streamHandler: async ({ response }) => {
-            expect(response.headers['content-type']).toBe('application/octet-stream');
-            expect(response.rawHeaders[0]).toBe('content-type');
-            expect(response.rawHeaders[1]).toBe('application/octet-stream');
-            expect(response.statusCode).toBe(200);
-            expect(response.statusMessage).toBe('OK');
+            expect(response?.headers.get('content-type')).toBe('application/octet-stream');
+            expect(response?.status).toBe(200);
+            expect(response?.statusText).toBe('OK');
         },
     });
 
@@ -173,5 +171,5 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
     const result = Buffer.concat(bufferedData);
 
     expect(result.length).toBe(5 * 1024);
-    expect(result).toEqual(await ReadableStreamGenerator.getBuffer(5 * 1024, 789));
+    expect(result).toEqual(Uint8Array.from(await ReadableStreamGenerator.getBuffer(5 * 1024, 789)));
 });
