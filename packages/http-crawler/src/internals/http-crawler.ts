@@ -753,7 +753,7 @@ export class HttpCrawler<
         _crawlingContext: Context,
     ): Promise<Partial<Context>> {
         return {
-            body: await response.bytes(),
+            body: await response.text(),
         } as Partial<Context>;
     }
 
@@ -937,9 +937,9 @@ function parseContentTypeFromResponse(response: Response): { type: string; chars
     const { url, headers } = response;
     let parsedContentType;
 
-    if (headers['content-type']) {
+    if (headers.get('content-type')) {
         try {
-            parsedContentType = contentTypeParser.parse(headers['content-type'] as string);
+            parsedContentType = contentTypeParser.parse(headers.get('content-type') as string);
         } catch {
             // Can not parse content type from Content-Type header. Try to parse it from file extension.
         }
