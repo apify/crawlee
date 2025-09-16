@@ -395,19 +395,19 @@ describe('CheerioCrawler', () => {
 
     describe('should ensure text/html Content-Type', () => {
         test('by setting a correct Accept header', async () => {
-            const headers: IncomingHttpHeaders[] = [];
+            const headersPerRequests: Headers[] = [];
             const requestList = await getRequestListForMirror();
             const crawler = new CheerioCrawler({
                 requestList,
                 requestHandler: ({ response }) => {
-                    headers.push(response.request.options.headers);
+                    headersPerRequests.push(response?.headers ?? new Headers());
                 },
             });
 
             await crawler.run();
-            expect(headers).toHaveLength(4);
-            headers.forEach((h) => {
-                const acceptHeader = h.accept || h.Accept;
+            expect(headersPerRequests).toHaveLength(4);
+            headersPerRequests.forEach((h) => {
+                const acceptHeader = h.get('accept');
                 expect(acceptHeader!.includes('text/html')).toBe(true);
                 expect(acceptHeader!.includes('application/xhtml+xml')).toBe(true);
             });
@@ -642,10 +642,7 @@ describe('CheerioCrawler', () => {
             // @ts-expect-error Using private method
             const { response, encoding } = crawler._encodeResponse({}, stream);
             expect(encoding).toBe('utf8');
-            for await (const chunk of response) {
-                const string = chunk.toString('utf8');
-                expect(string).toBe(html);
-            }
+            expect(response.text()).toBe(html);
         });
 
         test('always when forced', async () => {
@@ -668,10 +665,7 @@ describe('CheerioCrawler', () => {
             // @ts-expect-error Using private method
             const { response, encoding } = crawler._encodeResponse({}, stream, 'ascii');
             expect(encoding).toBe('utf8');
-            for await (const chunk of response) {
-                const string = chunk.toString('utf8');
-                expect(string).toBe(html);
-            }
+            expect(await response.text()).toBe(html);
         });
 
         test('Cheerio decodes html entities', async () => {

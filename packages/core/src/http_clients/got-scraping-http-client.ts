@@ -50,7 +50,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         return new Promise(async (resolve, reject) => {
             const stream = gotScraping({ ...request, isStream: true });
 
-            stream.on('redirect', (updatedOptions: Options, redirectResponse: PlainResponse) => {
+            stream.on('redirect', (updatedOptions: Options, redirectResponse: Response) => {
+                // TODO - the types here likely don't match
                 handleRedirect?.(redirectResponse, updatedOptions);
             });
 

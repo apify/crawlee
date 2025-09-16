@@ -1,5 +1,6 @@
-import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
+import type { IncomingMessage } from 'node:http';
 import { extname } from 'node:path';
+import { Readable } from 'node:stream';
 import util from 'node:util';
 
 import type {
@@ -40,8 +41,6 @@ import ow, { ObjectPredicate } from 'ow';
 import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
-import { Readable } from 'node:stream';
 
 let TimeoutError: typeof TimeoutErrorClass;
 

@@ -8,7 +8,6 @@ import { CookieJar } from 'tough-cookie';
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { ResponseLike } from '../cookie_utils.js';
 import {
     browserPoolCookieToToughCookie,
     getCookiesFromResponse,
