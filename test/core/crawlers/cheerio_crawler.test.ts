@@ -637,12 +637,10 @@ describe('CheerioCrawler', () => {
                 suggestResponseEncoding,
             });
 
-            const stream = Readable.from([buf]);
-
             // @ts-expect-error Using private method
-            const { response, encoding } = crawler._encodeResponse({}, stream);
+            const { response, encoding } = crawler._encodeResponse({}, new Response(new Uint8Array(buf)));
             expect(encoding).toBe('utf8');
-            expect(response.text()).toBe(html);
+            expect(await response.text()).toBe(html);
         });
 
         test('always when forced', async () => {
@@ -660,10 +658,8 @@ describe('CheerioCrawler', () => {
                 forceResponseEncoding,
             });
 
-            const stream = Readable.from([buf]);
-
             // @ts-expect-error Using private method
-            const { response, encoding } = crawler._encodeResponse({}, stream, 'ascii');
+            const { response, encoding } = crawler._encodeResponse({}, new Response(new Uint8Array(buf)), 'ascii');
             expect(encoding).toBe('utf8');
             expect(await response.text()).toBe(html);
         });

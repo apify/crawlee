@@ -737,7 +737,7 @@ export class HttpCrawler<
             const parsed = await this._parseHTML(response, isXml, crawlingContext);
             return { ...parsed, isXml, response, contentType };
         } else {
-            const body = await response.bytes();
+            const body = Buffer.from(await response.bytes());
             return {
                 body,
                 response,
