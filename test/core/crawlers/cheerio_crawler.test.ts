@@ -40,12 +40,12 @@ async function getRequestListForMock(mockData: Dictionary, pathName = 'special/m
     return requestList;
 }
 
-async function getRequestListForMirror() {
+async function getExampleRequestList(pathname = '/special/mirror') {
     const sources = [
-        { url: `${serverAddress}/special/mirror?a=12` },
-        { url: `${serverAddress}/special/mirror?a=23` },
-        { url: `${serverAddress}/special/mirror?a=33` },
-        { url: `${serverAddress}/special/mirror?a=43` },
+        { url: `${serverAddress}${pathname}?a=12` },
+        { url: `${serverAddress}${pathname}?a=23` },
+        { url: `${serverAddress}${pathname}?a=33` },
+        { url: `${serverAddress}${pathname}?a=43` },
     ];
     const requestList = await RequestList.open(null, sources);
     return requestList;
@@ -82,7 +82,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should work', async () => {
-        const requestList = await getRequestListForMirror();
+        const requestList = await getExampleRequestList();
         const processed: Request[] = [];
         const failed: Request[] = [];
         const requestHandler: CheerioRequestHandler = ({ $, body, request }) => {
@@ -115,7 +115,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should work with implicit router', async () => {
-        const requestList = await getRequestListForMirror();
+        const requestList = await getExampleRequestList();
         const processed: Request[] = [];
         const failed: Request[] = [];
 
@@ -148,7 +148,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should work with explicit router', async () => {
-        const requestList = await getRequestListForMirror();
+        const requestList = await getExampleRequestList();
         const processed: Request[] = [];
         const failed: Request[] = [];
 
@@ -184,7 +184,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should throw when no requestHandler nor default route provided', async () => {
-        const requestList = await getRequestListForMirror();
+        const requestList = await getExampleRequestList();
 
         const cheerioCrawler = new CheerioCrawler({
             requestList,
@@ -331,7 +331,7 @@ describe('CheerioCrawler', () => {
 
         test('after requestHandlerTimeoutSecs', async () => {
             const failed: Request[] = [];
-            const requestList = await getRequestListForMirror();
+            const requestList = await getExampleRequestList();
             const requestHandler = async () => {
                 await sleep(2000);
             };
@@ -396,18 +396,18 @@ describe('CheerioCrawler', () => {
     describe('should ensure text/html Content-Type', () => {
         test('by setting a correct Accept header', async () => {
             const headersPerRequests: Headers[] = [];
-            const requestList = await getRequestListForMirror();
+            const requestList = await getExampleRequestList('/special/headers');
             const crawler = new CheerioCrawler({
                 requestList,
-                requestHandler: ({ response }) => {
-                    headersPerRequests.push(response?.headers ?? new Headers());
+                requestHandler: async ({ json }) => {
+                    headersPerRequests.push(new Headers(json.headers));
                 },
             });
 
             await crawler.run();
             expect(headersPerRequests).toHaveLength(4);
-            headersPerRequests.forEach((h) => {
-                const acceptHeader = h.get('accept');
+            headersPerRequests.forEach((headerset) => {
+                const acceptHeader = headerset.get('accept');
                 expect(acceptHeader!.includes('text/html')).toBe(true);
                 expect(acceptHeader!.includes('application/xhtml+xml')).toBe(true);
             });
@@ -532,7 +532,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should throw an error on http error status codes set by user', async () => {
-        const requestList = await getRequestListForMirror();
+        const requestList = await getExampleRequestList();
         const failed: Request[] = [];
 
         const cheerioCrawler = new CheerioCrawler({
@@ -694,7 +694,7 @@ describe('CheerioCrawler', () => {
                 proxyUrls: [proxyUrl],
             });
 
-            const requestList = await getRequestListForMirror();
+            const requestList = await getExampleRequestList();
 
             const proxies: string[] = [];
             const crawler = new CheerioCrawler({
@@ -726,7 +726,7 @@ describe('CheerioCrawler', () => {
                 sessions.push(session!);
             };
 
-            const requestList = await getRequestListForMirror();
+            const requestList = await getExampleRequestList();
 
             const crawler = new CheerioCrawler({
                 requestList,
