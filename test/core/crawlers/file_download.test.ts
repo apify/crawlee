@@ -96,7 +96,7 @@ test('requestHandler works', async () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].length).toBe(1024);
-    expect(results[0]).toEqual(Uint8Array.from(await ReadableStreamGenerator.getBuffer(1024, 123)));
+    expect(results[0]).toEqual(await ReadableStreamGenerator.getBuffer(1024, 123));
 });
 
 test('streamHandler works', async () => {
@@ -171,5 +171,5 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
     const result = Buffer.concat(bufferedData);
 
     expect(result.length).toBe(5 * 1024);
-    expect(result).toEqual(Uint8Array.from(await ReadableStreamGenerator.getBuffer(5 * 1024, 789)));
+    expect(result).toEqual(await ReadableStreamGenerator.getBuffer(5 * 1024, 789));
 });

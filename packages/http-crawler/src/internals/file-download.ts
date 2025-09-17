@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream';
 import { isPromise } from 'node:util/types';
 
 import type { Dictionary } from '@crawlee/types';
@@ -146,11 +147,29 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             await response.body?.cancel();
         };
 
+        const { promise: isResponseStreamFinished, resolve: responseStreamFinished } = Promise.withResolvers<void>();
+        async function* asyncIterableFromBody() {
+            if (!response.body) return;
+
+            const reader = response.body.getReader();
+            try {
+                let done = false;
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) yield value;
+                }
+            } finally {
+                reader.releaseLock();
+                responseStreamFinished();
+            }
+        }
+
         const downloadPromise = new Promise<void>((resolve, reject) => {
             let streamHandlerResult;
 
             try {
-                context.stream = response.body;
+                context.stream = Readable.toWeb(Readable.from(asyncIterableFromBody()));
                 context.response = response;
                 streamHandlerResult = this.streamHandler!(context as any);
             } catch (e) {
@@ -173,7 +192,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }
         });
 
-        await Promise.all([downloadPromise]);
+        await Promise.all([downloadPromise, isResponseStreamFinished]);
 
         await cleanUp();
     }
