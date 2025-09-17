@@ -146,6 +146,14 @@ interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = ke
     request: HttpRequest<TResponseType>;
 }
 
+export class ResponseWithUrl extends Response {
+    override url: string;
+    constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
+        super(body, init);
+        this.url = init.url ?? '';
+    }
+}
+
 /**
  * HTTP response data as returned by the {@apilink BaseHttpClient.sendRequest} method.
  */
@@ -169,7 +177,7 @@ export interface StreamingHttpResponse extends HttpResponseWithoutBody {
  * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
  */
 export type RedirectHandler = (
-    redirectResponse: BaseHttpResponseData,
+    redirectResponse: Response,
     updatedRequest: { url?: string | URL; headers: SimpleHeaders },
 ) => void;
 
@@ -182,12 +190,12 @@ export interface BaseHttpClient {
      */
     sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
         request: HttpRequest<TResponseType>,
-    ): Promise<HttpResponse<TResponseType>>;
+    ): Promise<Response>;
 
     /**
      * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
      */
-    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
+    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<Response>;
 }
 
 /**

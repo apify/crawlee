@@ -1,4 +1,4 @@
-import { finished } from 'node:stream/promises';
+import { Readable } from 'node:stream';
 import { isPromise } from 'node:util/types';
 
 import type { Dictionary } from '@crawlee/types';
@@ -134,7 +134,6 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 
     private async streamRequestHandler(context: FileDownloadCrawlingContext) {
         const {
-            log,
             request: { url },
         } = context;
 
@@ -144,36 +143,39 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             proxyUrl: context.proxyInfo?.url,
         });
 
-        let pollingInterval: NodeJS.Timeout | undefined;
-
-        const cleanUp = () => {
-            clearInterval(pollingInterval!);
-            response.stream.destroy();
+        const cleanUp = async () => {
+            await response.body?.cancel();
         };
 
-        const downloadPromise = new Promise<void>((resolve, reject) => {
-            pollingInterval = setInterval(() => {
-                const { total, transferred } = response.downloadProgress;
+        const { promise: isResponseStreamFinished, resolve: responseStreamFinished } = Promise.withResolvers<void>();
+        async function* asyncIterableFromBody() {
+            if (!response.body) return;
 
-                if (transferred > 0) {
-                    log.debug(`Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`);
+            const reader = response.body.getReader();
+            try {
+                let done = false;
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) yield value;
                 }
-            }, 5000);
+            } finally {
+                reader.releaseLock();
+                responseStreamFinished();
+            }
+        }
 
-            response.stream.on('error', async (error: Error) => {
-                cleanUp();
-                reject(error);
-            });
-
+        const downloadPromise = new Promise<void>((resolve, reject) => {
             let streamHandlerResult;
 
             try {
-                context.stream = response.stream;
-                context.response = response as any;
+                context.stream = Readable.toWeb(Readable.from(asyncIterableFromBody()));
+                context.response = response;
                 streamHandlerResult = this.streamHandler!(context as any);
             } catch (e) {
-                cleanUp();
-                reject(e);
+                cleanUp()
+                    .then(() => reject(e))
+                    .catch(reject);
             }
 
             if (isPromise(streamHandlerResult)) {
@@ -181,8 +183,8 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
                     .then(() => {
                         resolve();
                     })
-                    .catch((e: Error) => {
-                        cleanUp();
+                    .catch(async (e: Error) => {
+                        await cleanUp();
                         reject(e);
                     });
             } else {
@@ -190,9 +192,9 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }
         });
 
-        await Promise.all([downloadPromise, finished(response.stream)]);
+        await Promise.all([downloadPromise, isResponseStreamFinished]);
 
-        cleanUp();
+        await cleanUp();
     }
 }
 

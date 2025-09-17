@@ -3,7 +3,6 @@ import { isDeepStrictEqual } from 'node:util';
 import type { BrowserHook, LoadedContext, LoadedRequest, Request, RouterHandler } from '@crawlee/browser';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type {
-    BaseHttpResponseData,
     GetUserDataFromRequest,
     RestrictedCrawlingContext,
     RouterRoutes,
@@ -11,7 +10,14 @@ import type {
     StatisticsOptions,
     StatisticState,
 } from '@crawlee/core';
-import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
+import {
+    Configuration,
+    RequestHandlerResult,
+    ResponseWithUrl,
+    Router,
+    Statistics,
+    withCheckedStorageAccess,
+} from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio, load } from 'cheerio';
@@ -95,7 +101,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     /**
      * The HTTP response, either from the HTTP client or from the initial request from playwright's navigation.
      */
-    response: BaseHttpResponseData;
+    response: ResponseWithUrl;
 
     /**
      * Playwright Page object. If accessed in HTTP-only rendering, this will throw an error and make the AdaptivePlaywrightCrawlerContext retry the request in a browser.
@@ -430,20 +436,20 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                             );
                                         }
                                     },
-                                    () =>
+                                    async () =>
                                         this.adaptiveRequestHandler({
                                             id: crawlingContext.id,
                                             session: crawlingContext.session,
                                             proxyInfo: crawlingContext.proxyInfo,
                                             request: crawlingContext.request as LoadedRequest<Request>,
-                                            response: {
-                                                url: crawlingContext.response!.url(),
-                                                statusCode: crawlingContext.response!.status(),
-                                                headers: crawlingContext.response!.headers(),
-                                                trailers: {},
-                                                complete: true,
-                                                redirectUrls: [],
-                                            },
+                                            response: new ResponseWithUrl(
+                                                new Uint8Array((await crawlingContext.response?.body()) ?? []),
+                                                {
+                                                    url: crawlingContext.response!.url(),
+                                                    status: crawlingContext.response!.status(),
+                                                    headers: crawlingContext.response!.headers(),
+                                                },
+                                            ),
                                             log: crawlingContext.log,
                                             page: crawlingContext.page,
                                             querySelector: async (selector, timeoutMs = 5_000) => {
@@ -549,7 +555,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                             const response = await crawlingContext.sendRequest({});
                             const loadedUrl = response.url;
                             crawlingContext.request.loadedUrl = loadedUrl;
-                            const $ = load(response.body);
+                            const $ = load(await response.text());
 
                             await this.adaptiveRequestHandler({
                                 ...hookContext,

@@ -1,5 +1,3 @@
-import type { IncomingMessage } from 'node:http';
-
 import type {
     EnqueueLinksOptions,
     ErrorHandler,
@@ -23,8 +21,6 @@ import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import { DOMParser } from 'linkedom/cached';
-
-import { concatStreamToBuffer } from '@apify/utilities';
 
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -164,12 +160,8 @@ export type LinkeDOMRequestHandler<
 export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
     private static parser = new DOMParser();
 
-    protected override async _parseHTML(
-        response: IncomingMessage,
-        isXml: boolean,
-        crawlingContext: LinkeDOMCrawlingContext,
-    ) {
-        const body = await concatStreamToBuffer(response);
+    protected override async _parseHTML(response: Response, isXml: boolean, crawlingContext: LinkeDOMCrawlingContext) {
+        const body = await response.bytes();
 
         const document = LinkeDOMCrawler.parser.parseFromString(body.toString(), isXml ? 'text/xml' : 'text/html');
 
