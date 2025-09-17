@@ -1,5 +1,5 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import type { OptionsInit, Response as GotResponse } from 'got-scraping';
+import type { OptionsInit } from 'got-scraping';
 import type { ReadonlyDeep } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
