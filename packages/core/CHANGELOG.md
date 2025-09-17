@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.15.0](https://github.com/apify/crawlee/compare/v3.14.1...v3.15.0) (2025-09-17)
+
+
+### Bug Fixes
+
+* `proxyUrls` list can contain `null` ([#3142](https://github.com/apify/crawlee/issues/3142)) ([dc39cc2](https://github.com/apify/crawlee/commit/dc39cc223a90d0c97c60c5a715bdf524cc32bbac)), closes [#3136](https://github.com/apify/crawlee/issues/3136)
+
+
+### Features
+
+* add `collectAllKeys` option for `BasicCrawler.exportData` ([#3129](https://github.com/apify/crawlee/issues/3129)) ([2ddfc9c](https://github.com/apify/crawlee/commit/2ddfc9c6108207d3289ee92fe3c5b646611cc508)), closes [#3007](https://github.com/apify/crawlee/issues/3007)
+* add `TandemRequestProvider` for combined `RequestList` and `RequestQueue` usage ([#2914](https://github.com/apify/crawlee/issues/2914)) ([4ca450f](https://github.com/apify/crawlee/commit/4ca450f08b9fb69ae3b2ba3fc66361f14631b15b)), closes [#2499](https://github.com/apify/crawlee/issues/2499)
+
+
+
+
+
 ## [3.14.1](https://github.com/apify/crawlee/compare/v3.14.0...v3.14.1) (2025-08-05)
 
 **Note:** Version bump only for package @crawlee/core

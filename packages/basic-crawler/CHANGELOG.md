@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.15.0](https://github.com/apify/crawlee/compare/v3.14.1...v3.15.0) (2025-09-17)
+
+
+### Bug Fixes
+
+* don't fail `exportData` calls on empty datasets ([#3115](https://github.com/apify/crawlee/issues/3115)) ([298f170](https://github.com/apify/crawlee/commit/298f170ef032f76d5b252e2a08971bfd161a7ef5)), closes [#2734](https://github.com/apify/crawlee/issues/2734)
+* respect `maxCrawlDepth` with a custom enqueueLinks `transformRequestFunction` ([#3159](https://github.com/apify/crawlee/issues/3159)) ([e2ecb74](https://github.com/apify/crawlee/commit/e2ecb745da6105d8d083b30b8b68197e53b1cf84))
+
+
+### Features
+
+* add `collectAllKeys` option for `BasicCrawler.exportData` ([#3129](https://github.com/apify/crawlee/issues/3129)) ([2ddfc9c](https://github.com/apify/crawlee/commit/2ddfc9c6108207d3289ee92fe3c5b646611cc508)), closes [#3007](https://github.com/apify/crawlee/issues/3007)
+* add `TandemRequestProvider` for combined `RequestList` and `RequestQueue` usage ([#2914](https://github.com/apify/crawlee/issues/2914)) ([4ca450f](https://github.com/apify/crawlee/commit/4ca450f08b9fb69ae3b2ba3fc66361f14631b15b)), closes [#2499](https://github.com/apify/crawlee/issues/2499)
+
+
+
+
+
 ## [3.14.1](https://github.com/apify/crawlee/compare/v3.14.0...v3.14.1) (2025-08-05)
 
 **Note:** Version bump only for package @crawlee/basic

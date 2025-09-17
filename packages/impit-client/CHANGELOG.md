@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.15.0](https://github.com/apify/crawlee/compare/v3.14.1...v3.15.0) (2025-09-17)
+
+
+### Bug Fixes
+
+* `ImpitHttpClient` respects the internal `Request` timeout ([#3103](https://github.com/apify/crawlee/issues/3103)) ([a35376d](https://github.com/apify/crawlee/commit/a35376d2ce0a7dee15ec01aa04f42ba59bb82ea8))
+
+
+
+
+
 ## [3.14.1](https://github.com/apify/crawlee/compare/v3.14.0...v3.14.1) (2025-08-05)
 
 **Note:** Version bump only for package @crawlee/impit-client
