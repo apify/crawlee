@@ -64,7 +64,7 @@
         "got-scraping": "^4.0.0",
         "iconv-lite": "^0.7.0",
         "mime-types": "^2.1.35",
-        "ow": "^0.28.1",
+        "ow": "^3.0.0",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"
     }

@@ -69,7 +69,7 @@
         "got-scraping": "^4.0.0",
         "json5": "^2.2.3",
         "minimatch": "^9.0.0",
-        "ow": "^0.28.1",
+        "ow": "^3.0.0",
         "stream-json": "^1.8.0",
         "tldts": "^7.0.0",
         "tough-cookie": "^6.0.0",
