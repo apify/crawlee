@@ -1,7 +1,7 @@
 import { URL } from 'node:url';
 
 import type { Awaitable } from '@crawlee/types';
-import { minimatch } from 'minimatch';
+import { Minimatch } from 'minimatch';
 
 import { purlToRegExp } from '@apify/pseudo_url';
 
@@ -176,13 +176,17 @@ export function createRequests(
     strategy?: EnqueueLinksOptions['strategy'],
     onSkippedUrl?: (url: string) => void,
 ): Request[] {
+    const excludePatternObjectMatchers = excludePatternObjects.map((excludePatternObject) =>
+        createPatternObjectMatchers(excludePatternObject),
+    );
+    const urlPatternObjectMatchers = urlPatternObjects?.map((urlPatternObject) =>
+        createPatternObjectMatchers(urlPatternObject),
+    );
+
     return requestOptions
         .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
         .filter(({ url }) => {
-            const matchesExcludePatterns = excludePatternObjects.some((excludePatternObject) => {
-                const { regexp, glob } = excludePatternObject;
-                return (regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }));
-            });
+            const matchesExcludePatterns = excludePatternObjectMatchers.some(({ match }) => match(url));
 
             if (matchesExcludePatterns) {
                 onSkippedUrl?.(url);
@@ -191,13 +195,13 @@ export function createRequests(
             return !matchesExcludePatterns;
         })
         .map(({ url, opts }) => {
-            if (!urlPatternObjects || !urlPatternObjects.length) {
+            if (!urlPatternObjectMatchers || !urlPatternObjectMatchers.length) {
                 return new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : { ...opts });
             }
 
-            for (const urlPatternObject of urlPatternObjects) {
-                const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;
-                if ((regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }))) {
+            for (const urlPatternObject of urlPatternObjectMatchers) {
+                const { match, glob, regexp, ...requestRegExpOptions } = urlPatternObject;
+                if (match(url)) {
                     const request =
                         typeof opts === 'string'
                             ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
@@ -224,12 +228,10 @@ export function filterRequestsByPatterns(
     }
 
     const filtered: Request[] = [];
+    const patternMatchers = patterns?.map((pattern) => createPatternObjectMatchers(pattern));
 
     for (const request of requests) {
-        const matchingPattern = patterns.find(
-            ({ regexp, glob }) =>
-                (regexp && request.url.match(regexp)) || (glob && minimatch(request.url, glob, { nocase: true })),
-        );
+        const matchingPattern = patternMatchers.find(({ match }) => match(request.url));
 
         if (matchingPattern !== undefined) {
             filtered.push(request);
@@ -278,6 +280,23 @@ export function createRequestOptions(
 
             return requestOptions;
         });
+}
+
+/**
+ * @ignore
+ */
+function createPatternObjectMatchers(urlPatternObject: UrlPatternObject) {
+    const { regexp, glob } = urlPatternObject;
+    let match;
+    if (regexp) {
+        match = (url: string) => regexp.test(url);
+    } else if (glob) {
+        const m = new Minimatch(glob, { nocase: true });
+        match = (url: string) => m.match(url);
+    } else {
+        match = () => false;
+    }
+    return { ...urlPatternObject, match };
 }
 
 /**
