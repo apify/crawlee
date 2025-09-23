@@ -176,12 +176,8 @@ export function createRequests(
     strategy?: EnqueueLinksOptions['strategy'],
     onSkippedUrl?: (url: string) => void,
 ): Request[] {
-    const excludePatternObjectMatchers = excludePatternObjects.map((excludePatternObject) =>
-        createPatternObjectMatchers(excludePatternObject),
-    );
-    const urlPatternObjectMatchers = urlPatternObjects?.map((urlPatternObject) =>
-        createPatternObjectMatchers(urlPatternObject),
-    );
+    const excludePatternObjectMatchers = excludePatternObjects.map(createPatternObjectMatcher);
+    const urlPatternObjectMatchers = urlPatternObjects?.map(createPatternObjectMatcher);
 
     return requestOptions
         .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
@@ -228,7 +224,7 @@ export function filterRequestsByPatterns(
     }
 
     const filtered: Request[] = [];
-    const patternMatchers = patterns?.map((pattern) => createPatternObjectMatchers(pattern));
+    const patternMatchers = patterns?.map(createPatternObjectMatcher);
 
     for (const request of requests) {
         const matchingPattern = patternMatchers.find(({ match }) => match(request.url));
@@ -285,7 +281,7 @@ export function createRequestOptions(
 /**
  * @ignore
  */
-function createPatternObjectMatchers(urlPatternObject: UrlPatternObject) {
+function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
     const { regexp, glob } = urlPatternObject;
     let match;
     if (regexp) {
