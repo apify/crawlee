@@ -7,7 +7,7 @@ image: 'img/scrape-bluesky-using-python.webp'
 authors: [MaxB]
 ---
 
-[Bluesky](https://bsky.app/) is an emerging social network developed by former members of the [Twitter](https://x.com/)(now X) development team. The platform has been showing significant growth recently, reaching 140.3 million visits according to [SimilarWeb](https://www.similarweb.com/website/bsky.app/#traffic). Like X, luesky generates a vast amount of data that can be used for analysis. In this article, we’ll  explore how to collect this data using [Crawlee for Python](https://github.com/apify/crawlee-python).
+[Bluesky](https://bsky.app/) is an emerging social network developed by former members of the [Twitter](https://x.com/)(now X) development team. The platform has been showing significant growth recently, reaching 140.3 million visits according to [SimilarWeb](https://www.similarweb.com/website/bsky.app/#traffic). Like X, Bluesky generates a vast amount of data that can be used for analysis. In this article, we’ll explore how to collect this data using [Crawlee for Python](https://github.com/apify/crawlee-python).
 
 :::note
 
