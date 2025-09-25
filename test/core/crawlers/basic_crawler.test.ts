@@ -1796,5 +1796,21 @@ describe('BasicCrawler', () => {
             expect(crawlerA.stats.state.requestsFinished).toBe(1);
             expect(crawlerB.stats.state.requestsFinished).toBe(1);
         });
+
+        test('Crawlers with different Configurations does not use global Configuration', async () => {
+            const getGlobalConfigSpy = vitest.spyOn(Configuration, 'getGlobalConfig');
+
+            const configA = new Configuration({ persistStorage: false });
+            const crawlerA = new BasicCrawler({ requestHandler: () => {} }, configA);
+            const configB = new Configuration({ persistStorage: false });
+            const crawlerB = new BasicCrawler({ requestHandler: () => {} }, configB);
+
+            await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
+            await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
+
+            expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
+            expect(crawlerA.requestQueue?.config).toBe(configA);
+            expect(crawlerB.requestQueue?.config).toBe(configB);
+        });
     });
 });
