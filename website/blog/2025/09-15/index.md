@@ -81,6 +81,60 @@ crawler = ParselCrawler(storage_client=storage_client)
 
 With this new design, switching between storage backends is as simple as swapping out a client, without changing your crawling logic. To dive deeper into configuration, advanced usage (e.g. using different storage clients for specific storage instances), and even how to write your own storage client, see the [Storages](https://www.crawlee.dev/python/docs/guides/storages) and [Storage clients](https://www.crawlee.dev/python/docs/guides/storage-clients) guides.
 
+### New experimental SQL storage client
+
+Crawlee v1 introduces an experimental [`SqlStorageClient`](https://www.crawlee.dev/python/api/class/SqlStorageClient) that enables persistent storage using SQL databases. Currently, SQLite and PostgreSQL are supported. This storage backend supports concurrent access from multiple crawler processes, enabling distributed crawling scenarios.
+
+The SQL storage client uses [SQLAlchemy 2+](https://www.sqlalchemy.org/) under the hood, providing automatic schema creation, connection pooling, and database-specific optimizations. It maintains the same interface as other storage clients, making it easy to switch between different storage backends without changing your crawling logic.
+
+The client uses a context manager to ensure proper connection handling:
+
+```python
+import asyncio
+from crawlee.crawlers import ParselCrawler
+from crawlee.storage_clients import SqlStorageClient
+
+
+async def main() -> None:
+    # Create SQL storage client (defaults to SQLite).
+    async with SqlStorageClient() as storage_client:
+        # Pass it to the crawler.
+        crawler = ParselCrawler(storage_client=storage_client)
+
+        # ... define your handlers and crawling logic
+
+        await crawler.run(['https://crawlee.dev'])
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+For PostgreSQL, simply provide a connection string:
+
+```python
+import asyncio
+from crawlee.crawlers import ParselCrawler
+from crawlee.storage_clients import SqlStorageClient
+
+
+async def main() -> None:
+    async with SqlStorageClient(
+        connection_string='postgresql+asyncpg://user:pass@localhost/crawlee_db'
+    ) as storage_client:
+        crawler = ParselCrawler(storage_client=storage_client)
+
+        # ... define your handlers and crawling logic
+
+        await crawler.run(['https://crawlee.dev'])
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+Since this is an experimental feature, the implementation may evolve in future releases as we gather feedback from the community.
+
 ## Adaptive Playwright crawler
 
 Some websites can be scraped quickly with plain HTTP requests, while others require the full power of a browser to render dynamic content. Traditionally, you had to decide upfront whether to use one of the lightweight HTTP-based crawlers ([`ParselCrawler`](https://www.crawlee.dev/python/api/class/ParselCrawler) or [`BeautifulSoupCrawler`](https://www.crawlee.dev/python/api/class/BeautifulSoupCrawler)) or a browser-based [`PlaywrightCrawler`](https://www.crawlee.dev/python/api/class/PlaywrightCrawler). Crawlee v1 introduces the [`AdaptivePlaywrightCrawler`](https://www.crawlee.dev/python/api/class/AdaptivePlaywrightCrawler), which automatically chooses the right approach for each page.
