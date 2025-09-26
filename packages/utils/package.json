@@ -3,7 +3,7 @@
     "version": "3.15.0",
     "description": "A set of shared utilities that can be used by crawlers",
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=18.0.0"
     },
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",

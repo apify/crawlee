@@ -3,7 +3,7 @@
     "version": "3.15.0",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=18.0.0"
     },
     "bin": {
         "crawlee": "./src/index.ts"

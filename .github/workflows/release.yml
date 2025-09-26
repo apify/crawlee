@@ -33,7 +33,7 @@ jobs:
             matrix:
                 # We don't test on Windows as the tests are flaky
                 os: [ ubuntu-22.04 ]
-                node-version: [ 16, 18, 20, 22, 24 ]
+                node-version: [ 18, 20, 22, 24 ]
 
         runs-on: ${{ matrix.os }}
 
