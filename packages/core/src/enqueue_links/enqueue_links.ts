@@ -411,10 +411,10 @@ export async function enqueueLinks(
         if (onSkippedRequest && skippedRequests.length > 0) {
             await Promise.all(
                 skippedRequests.map((request) => {
-                    return·onSkippedRequest({
-                        url:·request.url,
-                        reason:·request.skippedReason·??·reason,
-                    })·as·Promise<void>;
+                    return onSkippedRequest({
+                        url: request.url,
+                        reason: request.skippedReason ?? reason,
+                    }) as Promise<void>;
                 }),
             );
         }
