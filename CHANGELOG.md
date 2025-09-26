@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.1](https://github.com/apify/crawlee/compare/v3.15.0...v3.15.1) (2025-09-26)
+
+
+### Bug Fixes
+
+* use correct config for storage classes to avoid memory leaks ([#3144](https://github.com/apify/crawlee/issues/3144)) ([911a2eb](https://github.com/apify/crawlee/commit/911a2eb45cdb5e3fc0e6a96471af86b43bc828bf))
+
+
+### Performance Improvements
+
+* Improve glob performance by reusing minimatch objects ([#3168](https://github.com/apify/crawlee/issues/3168)) ([e5632e2](https://github.com/apify/crawlee/commit/e5632e2700198d75ca955ef3d2ffb609dbf0f050))
+
+
+
+
+
 # [3.15.0](https://github.com/apify/crawlee/compare/v3.14.1...v3.15.0) (2025-09-17)
 
 
