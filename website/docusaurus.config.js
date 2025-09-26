@@ -51,10 +51,12 @@ module.exports = {
         gaGtag: true,
         repoUrl: 'https://github.com/apify/crawlee',
     },
-    onBrokenLinks:
-    /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
-    onBrokenMarkdownLinks:
-    /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
+    onBrokenLinks: 'throw',
+    markdown: {
+        hooks: {
+            onBrokenMarkdownLinks: 'throw',
+        },
+    },
     future: {
         experimental_faster: {
             // ssgWorkerThreads: true,

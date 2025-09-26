@@ -770,6 +770,10 @@ div[class^='announcementBar_'] button {
         }
     }
 
+    .DocSearch-Clear {
+        color: var(--color-text-subtle);
+    }
+
     .DocSearch-Form {
         border-radius: 6px;
         border-radius: var(--Radius-6, 6px);
@@ -778,7 +782,6 @@ div[class^='announcementBar_'] button {
         box-shadow: none;
         height: 40px;
         padding: 8px 12px;
-        flex-direction: row-reverse;
     }
 
     .DocSearch-Input {
