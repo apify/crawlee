@@ -1,7 +1,7 @@
 ---
 slug: crawlee-for-python-v1
 title: Crawlee for Python v1
-description: Announcing the Crawlee for Python v1.0.0 release.
+description: Announcing the Crawlee for Python v1.0 release.
 authors: [VladaD]
 ---
 
@@ -9,7 +9,7 @@ We launched Crawlee for Python in beta mode in [July 2024](https://www.crawlee.d
 
 After months of development, polishing, and community feedback, the library is leaving beta and entering a production/stable development status.
 
-**We are happy to announce Crawlee for Python v1.0.0.**
+**We are happy to announce Crawlee for Python v1.0.**
 
 From now on, Crawlee for Python will strictly follow [semantic versioning](https://www.semver.org/). You can now rely on it as a stable foundation for your crawling and scraping projects, knowing that breaking changes will only occur in major releases.
 
@@ -23,7 +23,7 @@ From now on, Crawlee for Python will strictly follow [semantic versioning](https
 - [Fingerprinting](#fingerprinting)
 - [Open telemetry](#open-telemetry)
 
-![Crawlee for Python v1.0.0](./img/crawlee_v100.webp)
+![Crawlee for Python v1.0](./img/crawlee_v100.webp)
 
 <!-- truncate -->
 
