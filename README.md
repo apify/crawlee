@@ -28,7 +28,7 @@ Crawlee is available as the [`crawlee`](https://www.npmjs.com/package/crawlee) N
 
 > 👉 **View full documentation, guides and examples on the [Crawlee project website](https://crawlee.dev)** 👈
 
-> Crawlee for Python is open for early adopters. 🐍  [👉 Checkout the source code 👈](https://github.com/apify/crawlee-python).
+> Do you prefer 🐍 Python instead of JavaScript? [👉 Checkout Crawlee for Python 👈](https://github.com/apify/crawlee-python).
 
 ## Installation
 
