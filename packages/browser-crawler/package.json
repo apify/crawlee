@@ -60,7 +60,7 @@
         "@crawlee/utils": "3.15.1",
         "ow": "^0.28.1",
         "tslib": "^2.4.0",
-        "type-fest": "^4.0.0"
+        "type-fest": "^5.0.0"
     },
     "peerDependencies": {
         "playwright": "*",
