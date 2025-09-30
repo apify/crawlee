@@ -265,10 +265,10 @@ module.exports = {
                 hideable: true,
             },
         },
-        // announcementBar: {
-        //     id: `crawlee-for-python-webinar`,
-        //     content: `🎉️ <b><a href="https://crawlee.dev/python/">Crawlee for Python is open to early adopters!</a></b> 🥳️`,
-        // },
+        announcementBar: {
+            id: `crawlee-for-python-v1`,
+            content: `<b><a href="https://github.com/apify/crawlee-python">Crawlee for Python v1.0</a></b> is LIVE. 🎉️ <b><a href="https://www.producthunt.com/posts/crawlee-for-python-v1-0">Support us on Product Hunt!</a> 🥳`,
+        },
         navbar: {
             hideOnScroll: true,
             title: 'Crawlee',
