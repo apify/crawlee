@@ -166,7 +166,7 @@ jobs:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@v3
+                uses: peter-evans/repository-dispatch@v4
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     repository: apify/apify-actor-docker
