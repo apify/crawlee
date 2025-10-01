@@ -1,5 +1,6 @@
 import type { Readable } from 'node:stream';
 
+import type { AllowedHttpMethods } from '@crawlee/types';
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
 import type { FormDataLike } from './form-data-like.js';
@@ -14,24 +15,6 @@ type Timeout =
           response: number;
       }
     | { request: number };
-
-type Method =
-    | 'GET'
-    | 'POST'
-    | 'PUT'
-    | 'PATCH'
-    | 'HEAD'
-    | 'DELETE'
-    | 'OPTIONS'
-    | 'TRACE'
-    | 'get'
-    | 'post'
-    | 'put'
-    | 'patch'
-    | 'head'
-    | 'delete'
-    | 'options'
-    | 'trace';
 
 /**
  * Maps permitted values of the `responseType` option on {@apilink HttpRequest} to the types that they produce.
@@ -79,7 +62,7 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     [k: string]: unknown; // TODO BC with got - remove in 4.0
 
     url: string | URL;
-    method?: Method;
+    method?: AllowedHttpMethods;
     headers?: SimpleHeaders;
     body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
 
@@ -146,6 +129,14 @@ interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = ke
     request: HttpRequest<TResponseType>;
 }
 
+export class ResponseWithUrl extends Response {
+    override url: string;
+    constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
+        super(body, init);
+        this.url = init.url ?? '';
+    }
+}
+
 /**
  * HTTP response data as returned by the {@apilink BaseHttpClient.sendRequest} method.
  */
@@ -169,7 +160,7 @@ export interface StreamingHttpResponse extends HttpResponseWithoutBody {
  * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
  */
 export type RedirectHandler = (
-    redirectResponse: BaseHttpResponseData,
+    redirectResponse: Response,
     updatedRequest: { url?: string | URL; headers: SimpleHeaders },
 ) => void;
 
@@ -182,12 +173,12 @@ export interface BaseHttpClient {
      */
     sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
         request: HttpRequest<TResponseType>,
-    ): Promise<HttpResponse<TResponseType>>;
+    ): Promise<Response>;
 
     /**
      * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
      */
-    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
+    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<Response>;
 }
 
 /**

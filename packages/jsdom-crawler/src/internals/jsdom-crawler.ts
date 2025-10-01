@@ -1,5 +1,3 @@
-import type { IncomingMessage } from 'node:http';
-
 import type {
     Configuration,
     EnqueueLinksOptions,
@@ -28,7 +26,6 @@ import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';
 
 import { addTimeoutToPromise } from '@apify/timeout';
-import { concatStreamToBuffer } from '@apify/utilities';
 
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -233,12 +230,8 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
         context.window?.close();
     }
 
-    protected override async _parseHTML(
-        response: IncomingMessage,
-        isXml: boolean,
-        crawlingContext: JSDOMCrawlingContext,
-    ) {
-        const body = await concatStreamToBuffer(response);
+    protected override async _parseHTML(response: Response, isXml: boolean, crawlingContext: JSDOMCrawlingContext) {
+        const body = await response.bytes();
 
         const { window } = new JSDOM(body, {
             url: response.url,

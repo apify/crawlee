@@ -1,6 +1,6 @@
-import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
+import type { IncomingMessage } from 'node:http';
 import { extname } from 'node:path';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import util from 'node:util';
 
 import type {
@@ -24,11 +24,12 @@ import {
     mergeCookies,
     processHttpRequestOptions,
     RequestState,
+    ResponseWithUrl,
     Router,
     SessionError,
     validators,
 } from '@crawlee/basic';
-import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
+import type { HttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -41,7 +42,6 @@ import ow, { ObjectPredicate } from 'ow';
 import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 
 let TimeoutError: typeof TimeoutErrorClass;
 
@@ -212,7 +212,7 @@ export interface InternalHttpCrawlingContext<
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: BufferEncoding };
-    response: PlainResponse;
+    response?: Response;
 
     /**
      * Wait for an element matching the selector to appear. Timeout is ignored.
@@ -514,7 +514,7 @@ export class HttpCrawler<
             };
 
             if (this.useSessionPool) {
-                this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
+                this._throwOnBlockedRequest(crawlingContext.session!, response.status);
             }
 
             if (this.persistCookiesPerSession) {
@@ -674,7 +674,7 @@ export class HttpCrawler<
         session,
         proxyUrl,
         gotOptions,
-    }: RequestFunctionOptions): Promise<PlainResponse> {
+    }: RequestFunctionOptions): Promise<Response | undefined> {
         if (!TimeoutError) {
             // @ts-ignore
             ({ TimeoutError } = await import('got-scraping'));
@@ -687,7 +687,7 @@ export class HttpCrawler<
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
-                return undefined as unknown as PlainResponse;
+                return undefined;
             }
 
             if (this.isProxyError(e as Error)) {
@@ -701,21 +701,21 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    protected async _parseResponse(request: Request, responseStream: IncomingMessage, crawlingContext: Context) {
-        const { statusCode } = responseStream;
-        const { type, charset } = parseContentTypeFromResponse(responseStream);
-        const { response, encoding } = this._encodeResponse(request, responseStream, charset);
+    protected async _parseResponse(request: Request, response: Response, crawlingContext: Context) {
+        const { status } = response;
+        const { type, charset } = parseContentTypeFromResponse(response);
+        const { response: reencodedResponse, encoding } = this._encodeResponse(request, response, charset);
         const contentType = { type, encoding };
 
-        if (statusCode! >= 400 && statusCode! <= 599) {
-            this.stats.registerStatusCode(statusCode!);
+        if (status >= 400 && status <= 599) {
+            this.stats.registerStatusCode(status);
         }
 
-        const excludeError = this.ignoreHttpErrorStatusCodes.has(statusCode!);
-        const includeError = this.additionalHttpErrorStatusCodes.has(statusCode!);
+        const excludeError = this.ignoreHttpErrorStatusCodes.has(status);
+        const includeError = this.additionalHttpErrorStatusCodes.has(status);
 
-        if ((statusCode! >= 500 && !excludeError) || includeError) {
-            const body = await readStreamToString(response, encoding);
+        if ((status >= 500 && !excludeError) || includeError) {
+            const body = await reencodedResponse.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
 
             // Errors are often sent as JSON, so attempt to parse them,
             // despite Accept header being set to text/html.
@@ -723,21 +723,21 @@ export class HttpCrawler<
                 const errorResponse = JSON.parse(body);
                 let { message } = errorResponse;
                 if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
-                throw new Error(`${statusCode} - ${message}`);
+                throw new Error(`${status} - ${message}`);
             }
 
             if (includeError) {
-                throw new Error(`${statusCode} - Error status code was set by user.`);
+                throw new Error(`${status} - Error status code was set by user.`);
             }
 
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
-            throw new Error(`${statusCode} - Internal Server Error: ${body.slice(0, 100)}`);
+            throw new Error(`${status} - Internal Server Error: ${body.slice(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
             const isXml = type.includes('xml');
             const parsed = await this._parseHTML(response, isXml, crawlingContext);
             return { ...parsed, isXml, response, contentType };
         } else {
-            const body = await concatStreamToBuffer(response);
+            const body = Buffer.from(await response.bytes());
             return {
                 body,
                 response,
@@ -748,12 +748,12 @@ export class HttpCrawler<
     }
 
     protected async _parseHTML(
-        response: IncomingMessage,
+        response: Response,
         _isXml: boolean,
         _crawlingContext: Context,
     ): Promise<Partial<Context>> {
         return {
-            body: await concatStreamToBuffer(response),
+            body: await response.text(),
         } as Partial<Context>;
     }
 
@@ -797,11 +797,11 @@ export class HttpCrawler<
 
     protected _encodeResponse(
         request: Request,
-        response: IncomingMessage,
+        response: Response,
         encoding: BufferEncoding,
     ): {
         encoding: BufferEncoding;
-        response: IncomingMessage;
+        response: Response;
     } {
         if (this.forceResponseEncoding) {
             encoding = this.forceResponseEncoding as BufferEncoding;
@@ -821,17 +821,18 @@ export class HttpCrawler<
         if (iconv.encodingExists(encoding)) {
             const encodeStream = iconv.encodeStream(utf8);
             const decodeStream = iconv.decodeStream(encoding).on('error', (err) => encodeStream.emit('error', err));
-            response.on('error', (err: Error) => decodeStream.emit('error', err));
-            const encodedResponse = response.pipe(decodeStream).pipe(encodeStream) as NodeJS.ReadWriteStream & {
-                statusCode?: number;
-                headers: IncomingHttpHeaders;
-                url?: string;
-            };
-            encodedResponse.statusCode = response.statusCode;
-            encodedResponse.headers = response.headers;
-            encodedResponse.url = response.url;
+            const reencodedBody = response.body
+                ? Readable.toWeb(
+                      Readable.from(
+                          Readable.fromWeb(response.body as any)
+                              .pipe(decodeStream)
+                              .pipe(encodeStream),
+                      ),
+                  )
+                : null;
+
             return {
-                response: encodedResponse as any,
+                response: new ResponseWithUrl(reencodedBody as any, response),
                 encoding: utf8,
             };
         }
@@ -866,14 +867,14 @@ export class HttpCrawler<
         throw new Error(`request timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`);
     }
 
-    private _abortDownloadOfBody(request: Request, response: IncomingMessage) {
-        const { statusCode } = response;
+    private _abortDownloadOfBody(request: Request, response: Response) {
+        const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
         // eslint-disable-next-line dot-notation -- accessing private property
         const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
         // if we retry the request, can the Content-Type change?
-        const isTransientContentType = statusCode! >= 500 || blockedStatusCodes.includes(statusCode!);
+        const isTransientContentType = status >= 500 || blockedStatusCodes.includes(status);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;
@@ -909,7 +910,7 @@ export class HttpCrawler<
             },
         );
 
-        return addResponsePropertiesToStream(response.stream, response);
+        return response;
     };
 }
 
@@ -921,52 +922,10 @@ interface RequestFunctionOptions {
 }
 
 /**
- * The stream object returned from got does not have the below properties.
- * At the same time, you can't read data directly from the response stream,
- * because they won't get emitted unless you also read from the primary
- * got stream. To be able to work with only one stream, we move the expected props
- * from the response stream to the got stream.
- * @internal
- */
-function addResponsePropertiesToStream(stream: Readable, response: StreamingHttpResponse) {
-    const properties: (keyof PlainResponse)[] = [
-        'statusCode',
-        'statusMessage',
-        'headers',
-        'complete',
-        'httpVersion',
-        'rawHeaders',
-        'rawTrailers',
-        'trailers',
-        'url',
-        'request',
-    ];
-
-    stream.on('end', () => {
-        // @ts-expect-error
-        if (stream.rawTrailers) stream.rawTrailers = response.rawTrailers; // TODO BC with got - remove in 4.0
-
-        // @ts-expect-error
-        if (stream.trailers) stream.trailers = response.trailers;
-
-        // @ts-expect-error
-        stream.complete = response.complete;
-    });
-
-    for (const prop of properties) {
-        if (!(prop in stream)) {
-            (stream as any)[prop] = (response as any)[prop];
-        }
-    }
-
-    return stream as unknown as PlainResponse;
-}
-
-/**
  * Gets parsed content type from response object
  * @param response HTTP response object
  */
-function parseContentTypeFromResponse(response: unknown): { type: string; charset: BufferEncoding } {
+function parseContentTypeFromResponse(response: Response): { type: string; charset: BufferEncoding } {
     ow(
         response,
         ow.object.partialShape({
@@ -978,9 +937,9 @@ function parseContentTypeFromResponse(response: unknown): { type: string; charse
     const { url, headers } = response;
     let parsedContentType;
 
-    if (headers['content-type']) {
+    if (headers.get('content-type')) {
         try {
-            parsedContentType = contentTypeParser.parse(headers['content-type'] as string);
+            parsedContentType = contentTypeParser.parse(headers.get('content-type') as string);
         } catch {
             // Can not parse content type from Content-Type header. Try to parse it from file extension.
         }

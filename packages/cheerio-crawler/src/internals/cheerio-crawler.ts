@@ -1,6 +1,3 @@
-import type { IncomingMessage } from 'node:http';
-import { text as readStreamToString } from 'node:stream/consumers';
-
 import type {
     Configuration,
     EnqueueLinksOptions,
@@ -168,12 +165,8 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         super(options, config);
     }
 
-    protected override async _parseHTML(
-        response: IncomingMessage,
-        isXml: boolean,
-        crawlingContext: CheerioCrawlingContext,
-    ) {
-        const body = await readStreamToString(response);
+    protected override async _parseHTML(response: Response, isXml: boolean, crawlingContext: CheerioCrawlingContext) {
+        const body = await response.text();
         const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
         const $ = cheerio.load(dom, {
             xml: { decodeEntities: true, xmlMode: isXml },

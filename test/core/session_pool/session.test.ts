@@ -1,4 +1,4 @@
-import { EVENT_SESSION_RETIRED, ProxyConfiguration, Session, SessionPool } from '@crawlee/core';
+import { EVENT_SESSION_RETIRED, ProxyConfiguration, ResponseWithUrl, Session, SessionPool } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { entries, sleep } from '@crawlee/utils';
 import { CookieJar } from 'tough-cookie';
@@ -61,10 +61,12 @@ describe('Session - testing session behaviour ', () => {
         let error;
 
         try {
-            session.setCookiesFromResponse({
-                headers: { Cookie: 'invaldi*{*{*{*-----***@s' },
-                url: 'http://localhost:1337',
-            });
+            session.setCookiesFromResponse(
+                new ResponseWithUrl('', {
+                    headers: { Cookie: 'invaldi*{*{*{*-----***@s' },
+                    url: 'http://localhost:1337',
+                }),
+            );
         } catch (e) {
             error = e;
         }
@@ -293,36 +295,34 @@ describe('Session - testing session behaviour ', () => {
 
     describe('.putResponse & .getCookieString', () => {
         test('should set and update cookies from "set-cookie" header', () => {
-            const headers: Dictionary<string | string[]> = {};
+            const headers = new Headers();
 
-            headers['set-cookie'] = [
-                'CSRF=e8b667; Domain=example.com; Secure ',
-                'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT',
-            ];
+            headers.append('set-cookie', 'CSRF=e8b667; Domain=example.com; Secure ');
+            headers.append('set-cookie', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT');
+
             const newSession = new Session({ sessionPool: new SessionPool() });
             const url = 'https://example.com';
-            newSession.setCookiesFromResponse({ headers, url });
+            newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers, url }));
             let cookies = newSession.getCookieString(url);
             expect(cookies).toEqual('CSRF=e8b667; id=a3fWa');
 
             const newCookie = 'ABCD=1231231213; Domain=example.com; Secure';
 
-            newSession.setCookiesFromResponse({ headers: { 'set-cookie': newCookie }, url });
+            newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers: { 'set-cookie': newCookie }, url }));
             cookies = newSession.getCookieString(url);
             expect(cookies).toEqual('CSRF=e8b667; id=a3fWa; ABCD=1231231213');
         });
     });
 
     test('should correctly persist and init cookieJar', () => {
-        const headers: Dictionary<string | string[]> = {};
+        const headers = new Headers();
 
-        headers['set-cookie'] = [
-            'CSRF=e8b667; Domain=example.com; Secure ',
-            'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT',
-        ];
+        headers.append('set-cookie', 'CSRF=e8b667; Domain=example.com; Secure ');
+        headers.append('set-cookie', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT');
+
         const newSession = new Session({ sessionPool: new SessionPool() });
         const url = 'https://example.com';
-        newSession.setCookiesFromResponse({ headers, url });
+        newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers, url }));
 
         const old = newSession.getState();
 
