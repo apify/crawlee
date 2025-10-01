@@ -5,7 +5,6 @@ import {
     type Request,
     type Session,
 } from '@crawlee/core';
-import type { Method } from 'got-scraping';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -33,7 +32,7 @@ export function createSendRequest(
 
         const requestOptions = processHttpRequestOptions({
             url: originRequest.url,
-            method: originRequest.method as Method, // Narrow type to omit CONNECT
+            method: originRequest.method,
             headers: originRequest.headers,
             proxyUrl: getProxyUrl(),
             sessionToken: session,

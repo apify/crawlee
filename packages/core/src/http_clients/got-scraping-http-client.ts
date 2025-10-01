@@ -16,11 +16,25 @@ import {
  */
 export class GotScrapingHttpClient implements BaseHttpClient {
     /**
+     * Type guard that validates the HTTP method (excluding CONNECT).
+     * @param request - The HTTP request to validate
+     */
+    private validateRequest<TResponseType extends keyof ResponseTypes, T extends HttpRequest<TResponseType>>(
+        request: T,
+    ): request is T & { method: Exclude<T['method'], 'CONNECT' | 'connect'> } {
+        return !['CONNECT', 'connect'].includes(request.method!);
+    }
+
+    /**
      * @inheritDoc
      */
     async sendRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
     ): Promise<Response> {
+        if (!this.validateRequest(request)) {
+            throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
+        }
+
         const gotResult = await gotScraping({
             ...request,
             retry: {
@@ -53,6 +67,9 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      * @inheritDoc
      */
     async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<Response> {
+        if (!this.validateRequest(request)) {
+            throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
+        }
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
             const stream = gotScraping({ ...request, isStream: true });

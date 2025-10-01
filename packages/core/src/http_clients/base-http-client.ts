@@ -1,5 +1,6 @@
 import type { Readable } from 'node:stream';
 
+import type { AllowedHttpMethods } from '@crawlee/types';
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
 import type { FormDataLike } from './form-data-like.js';
@@ -14,24 +15,6 @@ type Timeout =
           response: number;
       }
     | { request: number };
-
-type Method =
-    | 'GET'
-    | 'POST'
-    | 'PUT'
-    | 'PATCH'
-    | 'HEAD'
-    | 'DELETE'
-    | 'OPTIONS'
-    | 'TRACE'
-    | 'get'
-    | 'post'
-    | 'put'
-    | 'patch'
-    | 'head'
-    | 'delete'
-    | 'options'
-    | 'trace';
 
 /**
  * Maps permitted values of the `responseType` option on {@apilink HttpRequest} to the types that they produce.
@@ -79,7 +62,7 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     [k: string]: unknown; // TODO BC with got - remove in 4.0
 
     url: string | URL;
-    method?: Method;
+    method?: AllowedHttpMethods;
     headers?: SimpleHeaders;
     body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
 
