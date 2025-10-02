@@ -120,7 +120,11 @@ export class ErrorSnapshotter {
     /**
      * Save the HTML snapshot of the page, and return the fileName with the extension.
      */
-    async saveHTMLSnapshot(html: string, keyValueStore: KeyValueStore, fileName: string): Promise<string | undefined> {
+    async saveHTMLSnapshot(
+        html: string,
+        keyValueStore: Pick<KeyValueStore, 'setValue'>,
+        fileName: string,
+    ): Promise<string | undefined> {
         try {
             await keyValueStore.setValue(fileName, html, { contentType: 'text/html' });
             return `${fileName}.html`;
