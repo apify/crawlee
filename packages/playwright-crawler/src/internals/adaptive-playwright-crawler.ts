@@ -250,8 +250,8 @@ export class AdaptivePlaywrightCrawler<
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
     private preventDirectStorageAccess: boolean;
-    private staticContextPipeline: ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext>;
-    private browserContextPipeline: ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext>;
+    private staticContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
+    private browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
     private individualRequestHandlerTimeoutMillis: number;
     declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
 
@@ -272,7 +272,7 @@ export class AdaptivePlaywrightCrawler<
             failedRequestHandler, // TODO handle
             preNavigationHooks, // TODO handle
             postNavigationHooks, // TODO handle
-            contextPipelineEnhancer, // // TODO handle
+            contextPipelineEnhancer: userProvidedPipelineEnhancer,
             ...rest
         } = options;
 
@@ -310,87 +310,95 @@ export class AdaptivePlaywrightCrawler<
             };
         }
 
-        this.staticContextPipeline = new CheerioCrawler(rest, config)['contextPipeline'].compose({
-            action: async (cheerioContext) => {
-                // This will in fact delegate to RequestHandlerResult.enqueueLinks.
-                // We access it indirectly like this to avoid the need to propagate RequestHandlerResult here
-                const enqueueLinks = cheerioContext.enqueueLinks;
+        const contextPipelineEnhancer =
+            userProvidedPipelineEnhancer ??
+            ((pipeline) => pipeline as ContextPipeline<CrawlingContext, ExtendedContext>);
 
-                return {
-                    get page(): Page {
-                        throw new Error('Page object was used in HTTP-only request handler');
-                    },
-                    get response(): BaseHttpResponseData {
-                        return {
-                            // TODO remove this once cheerioContext.response is just a Response
-                            complete: true,
-                            headers: cheerioContext.response.headers,
-                            trailers: {},
-                            url: cheerioContext.response.url!,
-                            statusCode: cheerioContext.response.statusCode!,
-                            redirectUrls:
-                                (cheerioContext.response as unknown as BaseHttpResponseData).redirectUrls ?? [],
-                        };
-                    },
-                    async querySelector(selector) {
-                        return cheerioContext.$(selector);
-                    },
-                    async enqueueLinks(options = {}) {
-                        const urls =
-                            options.urls ??
-                            extractUrlsFromCheerio(
-                                cheerioContext.$,
-                                options.selector,
-                                options.baseUrl ?? cheerioContext.request.loadedUrl,
-                            );
-                        await enqueueLinks({ ...options, urls });
-                    },
-                };
-            },
-        });
+        this.staticContextPipeline = contextPipelineEnhancer(
+            new CheerioCrawler(rest, config)['contextPipeline'].compose({
+                action: async (cheerioContext) => {
+                    // This will in fact delegate to RequestHandlerResult.enqueueLinks.
+                    // We access it indirectly like this to avoid the need to propagate RequestHandlerResult here
+                    const enqueueLinks = cheerioContext.enqueueLinks;
 
-        this.browserContextPipeline = new PlaywrightCrawler(rest, config)['contextPipeline'].compose({
-            action: async (playwrightContext) => {
-                // This will in fact delegate to RequestHandlerResult.enqueueLinks.
-                // We access it indirectly like this to avoid the need to propagate RequestHandlerResult here
-                const enqueueLinks = playwrightContext.enqueueLinks;
+                    return {
+                        get page(): Page {
+                            throw new Error('Page object was used in HTTP-only request handler');
+                        },
+                        get response(): BaseHttpResponseData {
+                            return {
+                                // TODO remove this once cheerioContext.response is just a Response
+                                complete: true,
+                                headers: cheerioContext.response.headers,
+                                trailers: {},
+                                url: cheerioContext.response.url!,
+                                statusCode: cheerioContext.response.statusCode!,
+                                redirectUrls:
+                                    (cheerioContext.response as unknown as BaseHttpResponseData).redirectUrls ?? [],
+                            };
+                        },
+                        async querySelector(selector) {
+                            return cheerioContext.$(selector);
+                        },
+                        async enqueueLinks(options = {}) {
+                            const urls =
+                                options.urls ??
+                                extractUrlsFromCheerio(
+                                    cheerioContext.$,
+                                    options.selector,
+                                    options.baseUrl ?? cheerioContext.request.loadedUrl,
+                                );
+                            await enqueueLinks({ ...options, urls });
+                        },
+                    };
+                },
+            }),
+        );
 
-                return {
-                    get response(): BaseHttpResponseData {
-                        return {
-                            url: playwrightContext.response!.url(),
-                            statusCode: playwrightContext.response!.status(),
-                            headers: playwrightContext.response!.headers(),
-                            trailers: {},
-                            complete: true,
-                            redirectUrls: [],
-                        };
-                    },
-                    async querySelector(selector, timeoutMs = 5000) {
-                        const locator = playwrightContext.page.locator(selector).first();
-                        await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-                        const $ = await playwrightContext.parseWithCheerio();
+        this.browserContextPipeline = contextPipelineEnhancer(
+            new PlaywrightCrawler(rest, config)['contextPipeline'].compose({
+                action: async (playwrightContext) => {
+                    // This will in fact delegate to RequestHandlerResult.enqueueLinks.
+                    // We access it indirectly like this to avoid the need to propagate RequestHandlerResult here
+                    const enqueueLinks = playwrightContext.enqueueLinks;
 
-                        return $(selector) as Cheerio<any>;
-                    },
-                    async enqueueLinks(options = {}, timeoutMs = 5000) {
-                        const selector = options.selector ?? 'a';
-                        const locator = playwrightContext.page.locator(selector).first();
-                        await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                    return {
+                        get response(): BaseHttpResponseData {
+                            return {
+                                url: playwrightContext.response!.url(),
+                                statusCode: playwrightContext.response!.status(),
+                                headers: playwrightContext.response!.headers(),
+                                trailers: {},
+                                complete: true,
+                                redirectUrls: [],
+                            };
+                        },
+                        async querySelector(selector, timeoutMs = 5000) {
+                            const locator = playwrightContext.page.locator(selector).first();
+                            await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                            const $ = await playwrightContext.parseWithCheerio();
 
-                        // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
-                        const urls =
-                            options.urls ??
-                            (await extractUrlsFromPage(
-                                playwrightContext.page,
-                                selector,
-                                options.baseUrl ?? playwrightContext.request.loadedUrl,
-                            ));
-                        await enqueueLinks({ ...options, urls });
-                    },
-                };
-            },
-        });
+                            return $(selector) as Cheerio<any>;
+                        },
+                        async enqueueLinks(options = {}, timeoutMs = 5000) {
+                            const selector = options.selector ?? 'a';
+                            const locator = playwrightContext.page.locator(selector).first();
+                            await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+
+                            // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
+                            const urls =
+                                options.urls ??
+                                (await extractUrlsFromPage(
+                                    playwrightContext.page,
+                                    selector,
+                                    options.baseUrl ?? playwrightContext.request.loadedUrl,
+                                ));
+                            await enqueueLinks({ ...options, urls });
+                        },
+                    };
+                },
+            }),
+        );
 
         this.stats = new AdaptivePlaywrightCrawlerStatistics({
             logMessage: `${this.log.getOptions().prefix} request statistics:`,
