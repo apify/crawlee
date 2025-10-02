@@ -25,7 +25,7 @@
         "@typescript-eslint/parser": "^7.0.0",
         "eslint": "^8.35.0",
         "eslint-plugin-react": "^7.32.2",
-        "eslint-plugin-react-hooks": "^5.0.0",
+        "eslint-plugin-react-hooks": "^6.0.0",
         "fs-extra": "^11.1.0",
         "patch-package": "^8.0.0",
         "path-browserify": "^1.0.1",
