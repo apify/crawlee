@@ -241,7 +241,7 @@ jobs:
                     echo "crawlee=$crawlee" >> $GITHUB_OUTPUT
 
             -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@v3
+                uses: peter-evans/repository-dispatch@v4
                 # Trigger next images only if we have something new pushed
                 if: steps.changed-packages.outputs.changed_packages != '0'
                 with:
