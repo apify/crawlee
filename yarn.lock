@@ -684,6 +684,7 @@ __metadata:
     "@apify/timeout": "npm:^0.3.2"
     "@crawlee/browser": "npm:3.13.3"
     "@crawlee/browser-pool": "npm:3.13.3"
+    "@crawlee/cheerio": "npm:3.13.3"
     "@crawlee/core": "npm:3.13.3"
     "@crawlee/types": "npm:3.13.3"
     "@crawlee/utils": "npm:3.13.3"
