@@ -1,4 +1,4 @@
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import type { OptionsInit, Response as GotResponse } from 'got-scraping';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
@@ -137,12 +137,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
     enqueueLinks(
         options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestQueue' | 'robotsTxtFile'>> &
             Pick<EnqueueLinksOptions, 'requestQueue' | 'robotsTxtFile'>,
-    ): Promise<BatchAddRequestsResult>;
-
-    /**
-     * Get a key-value store with given name or id, or the default one for the crawler.
-     */
-    getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>;
+    ): Promise<unknown>;
 
     /**
      * Fires HTTP request via [`got-scraping`](https://crawlee.dev/js/docs/guides/got-scraping), allowing to override the request

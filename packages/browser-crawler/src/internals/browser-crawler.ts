@@ -40,7 +40,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import type { Cookie as CookieObject } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -64,7 +64,9 @@ export interface BrowserCrawlingContext<
 > extends CrawlingContext<UserData> {
     browserController: ProvidedController;
     page: Page;
+    request: LoadedRequest<Request<UserData>>;
     response?: Response;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
 export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Dictionary | undefined = Dictionary> = (
@@ -506,7 +508,7 @@ export abstract class BrowserCrawler<
                 ? (browserControllerInstance.launchContext.session as Session)
                 : crawlingContext.session,
             proxyInfo: crawlingContext.proxyInfo ?? (browserControllerInstance.launchContext.proxyInfo as ProxyInfo),
-            enqueueLinks: async (enqueueOptions: EnqueueLinksOptions) => {
+            enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return browserCrawlerEnqueueLinks({
                     options: enqueueOptions,
                     page,

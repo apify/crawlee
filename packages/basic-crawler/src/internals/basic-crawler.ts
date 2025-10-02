@@ -1100,7 +1100,7 @@ export class BasicCrawler<
         await this._loadHandledRequestCount();
     }
 
-    protected async _runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
+    protected async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
         await this.contextPipeline.call(crawlingContext, this.requestHandler);
     }
 
@@ -1320,7 +1320,7 @@ export class BasicCrawler<
             request,
             session,
             enqueueLinks: async (options) => {
-                return enqueueLinks({
+                return await enqueueLinks({
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
@@ -1342,7 +1342,7 @@ export class BasicCrawler<
         try {
             request.state = RequestState.REQUEST_HANDLER;
             await addTimeoutToPromise(
-                async () => this._runRequestHandler(crawlingContext),
+                async () => this.runRequestHandler(crawlingContext),
                 this.requestHandlerTimeoutMillis,
                 `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
             );
