@@ -145,7 +145,10 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
 
 interface AdaptiveHook
     extends BrowserHook<
-        Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'request' | 'session' | 'proxyInfo' | 'log'> & { page?: Page },
+        Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> & {
+            page?: Page;
+            request: Request;
+        },
         PlaywrightGotoOptions
     > {}
 
@@ -167,7 +170,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
      * an exception will be thrown. If it's not caught, the request will be transparently retried in a browser.
      */
-    postNavigationHooks?: AdaptiveHook[];
+    postNavigationHooks?: AdaptiveHook[]; // TODO should contain a LoadedRequest - reflect that
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -256,6 +259,8 @@ export class AdaptivePlaywrightCrawler<
     private individualRequestHandlerTimeoutMillis: number;
     declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
 
+    private teardownHooks: (() => Promise<unknown>)[] = [];
+
     constructor(
         options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {},
         override readonly config = Configuration.getGlobalConfig(),
@@ -271,8 +276,8 @@ export class AdaptivePlaywrightCrawler<
             requestHandlerTimeoutSecs = 60,
             errorHandler,
             failedRequestHandler,
-            preNavigationHooks, // TODO handle
-            postNavigationHooks, // TODO handle
+            preNavigationHooks,
+            postNavigationHooks,
             contextPipelineEnhancer: userProvidedPipelineEnhancer,
             ...rest
         } = options;
@@ -313,6 +318,49 @@ export class AdaptivePlaywrightCrawler<
                 );
             };
         }
+        const staticCrawler = new CheerioCrawler(
+            {
+                ...rest,
+                preNavigationHooks: [
+                    async (context) => {
+                        for (const hook of preNavigationHooks ?? []) {
+                            await hook(context, undefined);
+                        }
+                    },
+                ],
+                postNavigationHooks: [
+                    async (context) => {
+                        for (const hook of postNavigationHooks ?? []) {
+                            await hook(context, undefined);
+                        }
+                    },
+                ],
+            },
+            config,
+        );
+
+        const browserCrawler = new PlaywrightCrawler(
+            {
+                ...rest,
+                preNavigationHooks: [
+                    async (context, gotoOptions) => {
+                        for (const hook of preNavigationHooks ?? []) {
+                            await hook(context, gotoOptions);
+                        }
+                    },
+                ],
+                postNavigationHooks: [
+                    async (context, gotoOptions) => {
+                        for (const hook of postNavigationHooks ?? []) {
+                            await hook(context, gotoOptions);
+                        }
+                    },
+                ],
+            },
+            config,
+        );
+
+        this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
 
         const contextPipelineEnhancer =
             userProvidedPipelineEnhancer ??
@@ -320,13 +368,13 @@ export class AdaptivePlaywrightCrawler<
 
         /* eslint-disable dot-notation */
         this.staticContextPipeline = contextPipelineEnhancer(
-            new CheerioCrawler(rest, config)['contextPipeline'].compose({
+            staticCrawler['contextPipeline'].compose({
                 action: this.adaptCheerioContext.bind(this),
             }),
         );
 
         this.browserContextPipeline = contextPipelineEnhancer(
-            new PlaywrightCrawler(rest, config)['contextPipeline'].compose({
+            browserCrawler['contextPipeline'].compose({
                 action: this.adaptPlaywrightContext.bind(this),
             }),
         );
@@ -609,6 +657,13 @@ export class AdaptivePlaywrightCrawler<
                 return Reflect.get(target, propertyName, receiver);
             },
         });
+    }
+
+    override async teardown() {
+        await super.teardown();
+        for (const hook of this.teardownHooks) {
+            await hook();
+        }
     }
 }
 
