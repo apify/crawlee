@@ -11,8 +11,10 @@ import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 
+import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
 import { PuppeteerLauncher } from './puppeteer-launcher.js';
+import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
 import type {
     BlockRequestsOptions,
     DirectNavigationOptions,
@@ -21,9 +23,7 @@ import type {
     PuppeteerContextUtils,
     SaveSnapshotOptions,
 } from './utils/puppeteer_utils.js';
-import { puppeteerUtils, gotoExtended } from './utils/puppeteer_utils.js';
-import { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
-import { InterceptHandler } from './utils/puppeteer_request_interception.js';
+import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
 
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
     extends BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>,

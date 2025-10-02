@@ -40,6 +40,7 @@ import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
+
 import { parseContentTypeFromResponse } from './utils.js';
 
 let TimeoutError: typeof TimeoutErrorClass;

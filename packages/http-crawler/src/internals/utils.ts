@@ -1,4 +1,5 @@
 import { extname } from 'node:path';
+
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
 import ow, { ObjectPredicate } from 'ow';

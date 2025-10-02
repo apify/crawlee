@@ -6,9 +6,9 @@ import type {
     EnqueueLinksOptions,
     ErrorHandler,
     LoadedRequest,
-    Request,
     ProxyConfiguration,
     ProxyInfo,
+    Request,
     RequestHandler,
     RequestProvider,
     Session,
@@ -19,6 +19,7 @@ import {
     BasicCrawler,
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
+    ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
@@ -28,7 +29,6 @@ import {
     SessionError,
     tryAbsoluteURL,
     validators,
-    ContextPipeline,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -553,7 +553,7 @@ export abstract class BrowserCrawler<
 
         await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
 
-        let response: Response | undefined = undefined;
+        let response: Response | undefined;
 
         try {
             response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;

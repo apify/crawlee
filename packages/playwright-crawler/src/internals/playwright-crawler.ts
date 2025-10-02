@@ -12,6 +12,7 @@ import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
 
+import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
 import type { PlaywrightLaunchContext } from './playwright-launcher.js';
 import { PlaywrightLauncher } from './playwright-launcher.js';
 import type {
@@ -24,7 +25,6 @@ import type {
     SaveSnapshotOptions,
 } from './utils/playwright-utils.js';
 import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
-import { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
 
 export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
     extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>,

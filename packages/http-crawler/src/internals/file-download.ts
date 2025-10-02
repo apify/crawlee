@@ -1,15 +1,14 @@
+import type { Readable } from 'node:stream';
+import { buffer } from 'node:stream/consumers';
 import { finished } from 'node:stream/promises';
 
-import type { Dictionary } from '@crawlee/types';
-
-import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import type { CrawlingContext, HttpResponse, LoadedRequest, Request, StreamingHttpResponse } from '@crawlee/core';
+import type { Dictionary } from '@crawlee/types';
 
 import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
 import { Router } from '../index.js';
-import { Readable } from 'node:stream';
-import { buffer } from 'node:stream/consumers';
 import { parseContentTypeFromResponse } from './utils.js';
 
 export type FileDownloadErrorHandler<
@@ -107,7 +106,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         context.request.url = response.url;
 
-        let pollingInterval = setInterval(() => {
+        const pollingInterval = setInterval(() => {
             const { total, transferred } = response.downloadProgress;
 
             if (transferred > 0) {
