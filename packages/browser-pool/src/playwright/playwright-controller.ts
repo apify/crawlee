@@ -48,21 +48,29 @@ export class PlaywrightController extends BrowserController<
 
         let close = async () => {};
 
-        if (this.launchContext.useIncognitoPages && contextOptions?.proxy) {
-            const [anonymizedProxyUrl, closeProxy] = await anonymizeProxySugar(
-                contextOptions.proxy.server,
-                contextOptions.proxy.username,
-                contextOptions.proxy.password,
-            );
+        if (this.launchContext.useIncognitoPages) {
+            // Each page requires to have all the context options applied
+            contextOptions = {
+                ...this.launchContext.launchOptions,
+                ...contextOptions,
+            };
 
-            if (anonymizedProxyUrl) {
-                contextOptions.proxy = {
-                    server: anonymizedProxyUrl,
-                    bypass: contextOptions.proxy.bypass,
-                };
+            if (contextOptions?.proxy) {
+                const [anonymizedProxyUrl, closeProxy] = await anonymizeProxySugar(
+                    contextOptions.proxy.server,
+                    contextOptions.proxy.username,
+                    contextOptions.proxy.password,
+                );
+
+                if (anonymizedProxyUrl) {
+                    contextOptions.proxy = {
+                        server: anonymizedProxyUrl,
+                        bypass: contextOptions.proxy.bypass,
+                    };
+                }
+
+                close = closeProxy;
             }
-
-            close = closeProxy;
         }
 
         try {
