@@ -1508,16 +1508,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const source = this.requestManager;
         if (!source) throw new Error('Request provider is not initialized!');
 
-        let temporaryRequest: Request | null | undefined;
+        let requestVar: Request | null | undefined;
 
         await this._timeoutAndRetry(
             async () => {
-                temporaryRequest = await this._fetchNextRequest();
+                requestVar = await this._fetchNextRequest();
             },
             this.internalTimeoutMillis,
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
-        const request = temporaryRequest;
+        const request = requestVar; // just to make TypeScript happy
 
         tryCancel();
 
