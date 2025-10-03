@@ -455,7 +455,16 @@ export class BasicCrawler<
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    protected contextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
+    private contextPipelineBuilder: () => ContextPipeline<CrawlingContext, ExtendedContext>;
+    private _contextPipeline?: ContextPipeline<CrawlingContext, ExtendedContext>;
+
+    get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
+        if (this._contextPipeline === undefined) {
+            this._contextPipeline = this.contextPipelineBuilder();
+        }
+
+        return this._contextPipeline;
+    }
 
     running = false;
     hasFinishedBefore = false;
@@ -573,33 +582,35 @@ export class BasicCrawler<
             experiments = {},
         } = options;
 
-        this.contextPipeline = (() => {
-            const contextPipeline = (options.contextPipelineBuilder?.() ??
+        // Store the builder so that it can be run when the contextPipeline is needed.
+        // Invoking it immediately would cause problems with parent constructor call order.
+        this.contextPipelineBuilder = () => {
+            let contextPipeline = (options.contextPipelineBuilder?.() ??
                 ContextPipeline.create<CrawlingContext>()) as ContextPipeline<CrawlingContext, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
 
-            if (options.contextPipelineEnhancer === undefined) {
-                return contextPipeline as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
+            if (options.contextPipelineEnhancer !== undefined) {
+                contextPipeline = options.contextPipelineEnhancer(contextPipeline);
             }
 
-            return options.contextPipelineEnhancer(contextPipeline);
-        })();
+            contextPipeline = contextPipeline.compose({
+                action: async (context) => {
+                    const { request } = context;
+                    if (!this.requestMatchesEnqueueStrategy(request)) {
+                        // eslint-disable-next-line dot-notation
+                        const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
+                        this.log.debug(message);
 
-        this.contextPipeline = this.contextPipeline.compose({
-            action: async (context) => {
-                const { request } = context;
-                if (!this.requestMatchesEnqueueStrategy(request)) {
-                    // eslint-disable-next-line dot-notation
-                    const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
-                    this.log.debug(message);
+                        request.noRetry = true;
+                        request.state = RequestState.SKIPPED;
 
-                    request.noRetry = true;
-                    request.state = RequestState.SKIPPED;
+                        throw new ContextPipelineInterruptedError(message);
+                    }
+                    return context;
+                },
+            });
 
-                    throw new ContextPipelineInterruptedError(message);
-                }
-                return context;
-            },
-        });
+            return contextPipeline as ContextPipeline<CrawlingContext, ExtendedContext>;
+        };
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;

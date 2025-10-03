@@ -366,19 +366,17 @@ export class AdaptivePlaywrightCrawler<
             userProvidedPipelineEnhancer ??
             ((pipeline) => pipeline as ContextPipeline<CrawlingContext, ExtendedContext>);
 
-        /* eslint-disable dot-notation */
         this.staticContextPipeline = contextPipelineEnhancer(
-            staticCrawler['contextPipeline'].compose({
+            staticCrawler.contextPipeline.compose({
                 action: this.adaptCheerioContext.bind(this),
             }),
         );
 
         this.browserContextPipeline = contextPipelineEnhancer(
-            browserCrawler['contextPipeline'].compose({
+            browserCrawler.contextPipeline.compose({
                 action: this.adaptPlaywrightContext.bind(this),
             }),
         );
-        /* eslint-enable dot-notation */
 
         this.stats = new AdaptivePlaywrightCrawlerStatistics({
             logMessage: `${this.log.getOptions().prefix} request statistics:`,
