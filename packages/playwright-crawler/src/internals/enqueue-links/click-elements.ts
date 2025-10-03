@@ -408,7 +408,7 @@ function isTopFrameNavigationRequest(page: Page, req: Request): boolean {
     try {
         return req.isNavigationRequest() && req.frame() === page.mainFrame();
     } catch (error) {
-        log.error("Error in isTopFrameNavigationRequest", { error });
+        log.error('Error in isTopFrameNavigationRequest', { error });
         return false;
     }
 }
@@ -447,9 +447,9 @@ async function preventHistoryNavigation(page: Page): Promise<unknown> {
             stateHistory: [],
             length: 0,
             state: {},
-            go() { },
-            back() { },
-            forward() { },
+            go() {},
+            back() {},
+            forward() {},
             pushState(...args: unknown[]) {
                 this.stateHistory.push(args);
             },
@@ -501,8 +501,8 @@ export async function clickElements(page: Page, selector: string, clickOptions?:
             if (shouldLogWarning && e.stack!.includes('is detached from document')) {
                 log.warning(
                     `An element with selector ${selector} that you're trying to click has been removed from the page. ` +
-                    'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. ' +
-                    'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.',
+                        'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. ' +
+                        'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.',
                 );
                 shouldLogWarning = false;
             }
@@ -550,7 +550,7 @@ async function waitForPageIdle({
         function maxTimeoutHandler() {
             log.debug(
                 `enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. ` +
-                'This is probably due to the website itself dispatching requests, but some links may also have been missed.',
+                    'This is probably due to the website itself dispatching requests, but some links may also have been missed.',
             );
             finish();
         }
@@ -572,11 +572,12 @@ async function waitForPageIdle({
  */
 async function restoreHistoryNavigationAndSaveCapturedUrls(page: Page, requests: Set<string>): Promise<void> {
     /* istanbul ignore next */
-    const state = await page.evaluate(() => {
-        const { stateHistory } = window.history as unknown as ApifyWindow;
-        (window as unknown as Dictionary).history = (window as unknown as Dictionary).__originalHistory__;
-        return stateHistory;
-    }) ?? [];
+    const state =
+        (await page.evaluate(() => {
+            const { stateHistory } = window.history as unknown as ApifyWindow;
+            (window as unknown as Dictionary).history = (window as unknown as Dictionary).__originalHistory__;
+            return stateHistory;
+        })) ?? [];
 
     state.forEach((args) => {
         try {
