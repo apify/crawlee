@@ -488,6 +488,9 @@ export class BasicCrawler<
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
 
     protected static optionsShape = {
+        contextPipelineBuilder: ow.optional.object,
+        contextPipelineEnhancer: ow.optional.object,
+
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
         // Subclasses override this function instead of passing it
