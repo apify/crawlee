@@ -296,9 +296,9 @@ describe('BasicCrawler', () => {
         // @ts-expect-error Accessing protected method
         const { _crawlingContextAddRequestsGenerator } = crawler;
 
-        const request = new Request({ url: 'https://example.com/', crawlDepth: 3 });
         const requests = ['https://example.com/1/', { url: 'https://example.com/2/' }];
-        const addRequestsGenerator = _crawlingContextAddRequestsGenerator(request, requests);
+        const request = new Request({ url: 'https://example.com/', crawlDepth: 3 });
+        const addRequestsGenerator = _crawlingContextAddRequestsGenerator(requests, request);
 
         const generatedRequests = await Array.fromAsync(addRequestsGenerator);
 
