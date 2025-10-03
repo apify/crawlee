@@ -195,9 +195,9 @@ describe('BasicCrawler', () => {
 
         const processed: { url: string }[] = [];
         const requestList = await RequestList.open(null, sources);
-        const requestHandler: RequestHandler = async ({ request, crawler }) => {
+        const requestHandler: RequestHandler = async ({ request, useState }) => {
             await sleep(10);
-            const state = await crawler.useState({ processed });
+            const state = await useState({ processed });
             state.processed.push({ url: request.url });
         };
 

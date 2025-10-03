@@ -1,11 +1,15 @@
 import type { IncomingHttpHeaders, Server } from 'node:http';
 import { Readable } from 'node:stream';
 
-import type { CheerioCrawlingContext, CheerioRequestHandler, ProxyInfo, Source } from '@crawlee/cheerio';
+import type {
+    BasicCrawlingContext,
+    CheerioCrawlingContext,
+    CheerioRequestHandler,
+    ProxyInfo,
+    Source,
+} from '@crawlee/cheerio';
 import {
-    AutoscaledPool,
     CheerioCrawler,
-    CrawlerExtension,
     createCheerioRouter,
     EnqueueStrategy,
     mergeCookies,
@@ -1204,19 +1208,17 @@ describe('CheerioCrawler', () => {
         });
 
         test('uses correct crawling context', async () => {
-            let prepareCrawlingContext: CheerioCrawlingContext;
+            let prepareCrawlingContext: unknown;
 
-            const prepareRequestFunction = (crawlingContext: CheerioCrawlingContext) => {
+            const preNavigationHook = (crawlingContext: BasicCrawlingContext) => {
                 prepareCrawlingContext = crawlingContext;
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
             };
 
             const requestHandler = (crawlingContext: CheerioCrawlingContext) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.$).toBe('function');
                 expect(typeof crawlingContext.response).toBe('object');
@@ -1225,10 +1227,9 @@ describe('CheerioCrawler', () => {
                 throw new Error('some error');
             };
 
-            const failedRequestHandler = (crawlingContext: CheerioCrawlingContext, error: Error) => {
+            const failedRequestHandler = (crawlingContext: Partial<CheerioCrawlingContext>, error: Error) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.$).toBe('function');
                 expect(typeof crawlingContext.response).toBe('object');
@@ -1243,81 +1244,11 @@ describe('CheerioCrawler', () => {
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
                 useSessionPool: true,
-                preNavigationHooks: [prepareRequestFunction],
+                preNavigationHooks: [preNavigationHook],
                 requestHandler,
                 failedRequestHandler,
             });
             await cheerioCrawler.run();
-        });
-    });
-
-    describe('use', () => {
-        const sources = ['http://example.com/'];
-        let requestList: RequestList;
-
-        class DummyExtension extends CrawlerExtension {
-            constructor(readonly options: Dictionary) {
-                super();
-            }
-
-            override getCrawlerOptions() {
-                return this.options;
-            }
-        }
-
-        beforeEach(async () => {
-            requestList = await RequestList.open(null, sources.slice());
-        });
-
-        test('should throw if "CrawlerExtension" class is not used', () => {
-            const cheerioCrawler = new CheerioCrawler({
-                requestList,
-                maxRequestRetries: 0,
-                requestHandler: () => {},
-                failedRequestHandler: () => {},
-            });
-            expect(
-                // @ts-expect-error Validating JS side checks
-                () => cheerioCrawler.use({}),
-            ).toThrow('Expected object `{}` to be of type `CrawlerExtension`');
-        });
-
-        test('Should throw if "CrawlerExtension" is trying to override non existing property', () => {
-            const extension = new DummyExtension({
-                doesNotExist: true,
-            });
-            const cheerioCrawler = new CheerioCrawler({
-                requestList,
-                maxRequestRetries: 0,
-                requestHandler: () => {},
-                failedRequestHandler: () => {},
-            });
-            expect(() => cheerioCrawler.use(extension)).toThrow(
-                'DummyExtension tries to set property "doesNotExist" that is not configurable on CheerioCrawler instance.',
-            );
-        });
-
-        test('should override crawler properties', () => {
-            const extension = new DummyExtension({
-                useSessionPool: true,
-                requestHandler: undefined,
-            });
-            const cheerioCrawler = new CheerioCrawler({
-                requestList,
-                useSessionPool: false,
-                maxRequestRetries: 0,
-                requestHandler: () => {},
-                failedRequestHandler: () => {},
-            });
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.useSessionPool).toEqual(false);
-            cheerioCrawler.use(extension);
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.useSessionPool).toEqual(true);
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.requestHandler).toBeUndefined();
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.requestHandler).toBeUndefined();
         });
     });
 
