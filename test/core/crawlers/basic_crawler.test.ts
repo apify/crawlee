@@ -3,7 +3,7 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { CrawlingContext, ErrorHandler, RequestHandler } from '@crawlee/basic';
+import type { CrawlingContext, ErrorHandler, RequestHandler, RequestOptions } from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -21,6 +21,7 @@ import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
 import log from '@apify/log';
@@ -222,6 +223,91 @@ describe('BasicCrawler', () => {
             'https://example.com/deep/',
             'https://example.com/deep/deep/',
         ]);
+    });
+
+    describe('_crawlingContextEnqueueLinksWrapper()', () => {
+        let onSkippedRequestMock: Mock;
+        let addRequestsBatchedMock: Mock;
+        let options: Parameters<BasicCrawler['_crawlingContextEnqueueLinksWrapper']>[0];
+
+        const crawler = new BasicCrawler({ maxCrawlDepth: 3 });
+        // @ts-expect-error Accessing protected method
+        const { _crawlingContextEnqueueLinksWrapper } = crawler;
+
+        beforeEach(() => {
+            addRequestsBatchedMock = vi.fn().mockImplementation(async () => ({}));
+            onSkippedRequestMock = vi.fn();
+            options = {
+                request: new Request({ url: 'https://example.com/', crawlDepth: 2 }),
+                requestQueue: {
+                    addRequestsBatched: addRequestsBatchedMock as RequestQueue['addRequestsBatched'],
+                } as RequestQueue,
+                options: {
+                    urls: ['https://example.com/1/', 'https://example.com/2/'],
+                    onSkippedRequest: onSkippedRequestMock,
+                },
+            };
+        });
+
+        it('should generate requests with maxCrawlDepth', async () => {
+            await _crawlingContextEnqueueLinksWrapper(options);
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(2);
+            expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
+            expect(requests[1]).toMatchObject({ url: 'https://example.com/2/', crawlDepth: 3 });
+
+            expect(onSkippedRequestMock).not.toBeCalled();
+        });
+
+        it('should skip requests with crawlDepth exceeding maxCrawlDepth', async () => {
+            await _crawlingContextEnqueueLinksWrapper({
+                ...options,
+                request: new Request({ url: 'https://example.com/', crawlDepth: 3 }),
+            });
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(0);
+
+            const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
+            expect(skippedRequests).toHaveLength(2);
+            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
+            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+        });
+
+        it('should respect user provided transformRequestFunction', async () => {
+            const transformRequestFunction = vi.fn((request: RequestOptions) => request);
+            await _crawlingContextEnqueueLinksWrapper({
+                ...options,
+                options: { ...options.options, transformRequestFunction },
+            });
+
+            expect(transformRequestFunction).toHaveBeenCalled();
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(2);
+            expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
+        });
+    });
+
+    it('_crawlingContextAddRequestsGenerator() should generate requests with maxCrawlDepth', async () => {
+        const crawler = new BasicCrawler({ maxCrawlDepth: 2 });
+
+        // @ts-expect-error Accessing protected method
+        const { _crawlingContextAddRequestsGenerator } = crawler;
+
+        const request = new Request({ url: 'https://example.com/', crawlDepth: 3 });
+        const requests = ['https://example.com/1/', { url: 'https://example.com/2/' }];
+        const addRequestsGenerator = _crawlingContextAddRequestsGenerator(request, requests);
+
+        const generatedRequests = await Array.fromAsync(addRequestsGenerator);
+
+        expect(generatedRequests).toHaveLength(2);
+        expect(generatedRequests[0].url).toBe('https://example.com/1/');
+        expect(generatedRequests[0].crawlDepth).toBe(4);
+
+        expect(generatedRequests[1].url).toBe('https://example.com/2/');
+        expect(generatedRequests[1].crawlDepth).toBe(4);
     });
 
     test('should correctly combine shorthand and full length options', async () => {
