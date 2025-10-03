@@ -165,7 +165,7 @@ export class PuppeteerCrawler<
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(
-        private readonly options: PuppeteerCrawlerOptions = {},
+        options: PuppeteerCrawlerOptions = {},
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));

@@ -43,7 +43,7 @@ export type LinkeDOMHook<
 export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData, LinkeDOMCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData> {
     window: Window;
     // Technically the document is not of type Document but of type either HTMLDocument or XMLDocument
     // from linkedom/types/{html/xml}/document, depending on the content type of the response
