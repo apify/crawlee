@@ -1571,7 +1571,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return this._crawlingContextEnqueueLinksWrapper({ options, request, requestQueue });
             },
             addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
-                const requestsGenerator = this._crawlingContextAddRequestsGenerator(request, requests);
+                const requestsGenerator = this._crawlingContextAddRequestsGenerator(requests, request);
 
                 return this.addRequests(requestsGenerator, options);
             },
@@ -1700,10 +1700,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * - Injects `crawlDepth` to each request being added based on the crawling context request.
      */
     protected async *_crawlingContextAddRequestsGenerator(
-        request: Request<Dictionary>,
         requests: RequestsLike,
+        crawlingContextRequest: Request<Dictionary>,
     ): AsyncGenerator<Source, void, Source> {
-        const newRequestDepth = request.crawlDepth + 1;
+        const newRequestDepth = crawlingContextRequest.crawlDepth + 1;
 
         for await (const request of requests) {
             if (typeof request === 'string') {
