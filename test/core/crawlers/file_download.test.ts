@@ -5,7 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
 
-import { Configuration, FileDownload } from '@crawlee/http';
+import { FileDownload } from '@crawlee/http';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper.js';
 
@@ -85,8 +85,8 @@ test('requestHandler works', async () => {
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        requestHandler: ({ body }) => {
-            results.push(body as Buffer);
+        requestHandler: async ({ body }) => {
+            results.push(await body);
         },
     });
 
@@ -104,8 +104,8 @@ test('streamHandler works', async () => {
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        streamHandler: async ({ stream }) => {
-            for await (const chunk of stream as unknown as ReadableStream<any>) {
+        requestHandler: async ({ stream }) => {
+            for await (const chunk of stream) {
                 result = Buffer.concat([result, chunk]);
             }
         },
@@ -122,10 +122,8 @@ test('streamHandler works', async () => {
 test('streamHandler receives response', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        streamHandler: async ({ response }) => {
+        requestHandler: async ({ response }) => {
             expect(response.headers['content-type']).toBe('application/octet-stream');
-            expect(response.rawHeaders[0]).toBe('content-type');
-            expect(response.rawHeaders[1]).toBe('application/octet-stream');
             expect(response.statusCode).toBe(200);
             expect(response.statusMessage).toBe('OK');
         },
@@ -139,7 +137,7 @@ test('streamHandler receives response', async () => {
 test('crawler with streamHandler waits for the stream to finish', async () => {
     const bufferingStream = new Duplex({
         read() {},
-        write(chunk, encoding, callback) {
+        write(chunk, _encoding, callback) {
             this.push(chunk);
             callback();
         },
@@ -147,7 +145,7 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        streamHandler: ({ stream }) => {
+        requestHandler: ({ stream }) => {
             pipeline(stream as any, bufferingStream)
                 .then(() => {
                     bufferingStream.push(null);
