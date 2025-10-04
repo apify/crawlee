@@ -3,7 +3,7 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { CrawlingContext, ErrorHandler, RequestHandler, RequestOptions } from '@crawlee/basic';
+import type { CrawlingContext, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -300,7 +300,10 @@ describe('BasicCrawler', () => {
         const request = new Request({ url: 'https://example.com/', crawlDepth: 3 });
         const addRequestsGenerator = _crawlingContextAddRequestsGenerator(requests, request);
 
-        const generatedRequests = await Array.fromAsync(addRequestsGenerator);
+        const generatedRequests: Source[] = [];
+        for await (const generatedRequest of addRequestsGenerator) {
+            generatedRequests.push(generatedRequest);
+        }
 
         expect(generatedRequests).toHaveLength(2);
         expect(generatedRequests[0].url).toBe('https://example.com/1/');

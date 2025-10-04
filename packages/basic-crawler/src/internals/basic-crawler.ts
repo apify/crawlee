@@ -1702,7 +1702,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async *_crawlingContextAddRequestsGenerator(
         requests: RequestsLike,
         crawlingContextRequest: Request<Dictionary>,
-    ): AsyncGenerator<Source, void, Source> {
+    ): AsyncGenerator<Source, void, undefined> {
         const newRequestDepth = crawlingContextRequest.crawlDepth + 1;
 
         for await (const request of requests) {
