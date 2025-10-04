@@ -4,6 +4,7 @@ import type {
     BaseHttpResponseData,
     EnqueueLinksOptions,
     GetUserDataFromRequest,
+    RequestQueue,
     RestrictedCrawlingContext,
     RouterRoutes,
     StatisticPersistedState,
@@ -12,7 +13,6 @@ import type {
 } from '@crawlee/core';
 import {
     Configuration,
-    enqueueLinks,
     RequestHandlerResult,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
@@ -677,25 +677,26 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             userProvidedBaseUrl: options?.baseUrl,
         });
 
-        return await enqueueLinks({
-            limit: this.calculateEnqueuedRequestLimit(options.limit),
-            onSkippedRequest: this.handleSkippedRequest,
-            ...options,
-            baseUrl,
-            requestQueue: {
-                addRequestsBatched: async (requests) => {
-                    await result.addRequests(requests);
-                    return {
-                        addedRequests: requests.map(({ uniqueKey, id }) => ({
-                            uniqueKey,
-                            requestId: id ?? '',
-                            wasAlreadyPresent: false,
-                            wasAlreadyHandled: false,
-                        })),
-                        waitForAllRequestsToBeAdded: Promise.resolve([]),
-                    };
-                },
-            },
+        const addRequestsBatched: RequestQueue['addRequestsBatched'] = async (requests: Request<Dictionary>[]) => {
+            await result.addRequests(requests);
+
+            return {
+                addedRequests: requests.map(({ uniqueKey, id }) => ({
+                    uniqueKey,
+                    requestId: id ?? '',
+                    wasAlreadyPresent: false,
+                    wasAlreadyHandled: false,
+                })),
+                waitForAllRequestsToBeAdded: Promise.resolve([]),
+            };
+        };
+        // We need to use a mock request queue implementation, in order to add the requests into our result object
+        const mockRequestQueue = { addRequestsBatched } as RequestQueue;
+
+        return await this._crawlingContextEnqueueLinksWrapper({
+            options: { ...options, baseUrl },
+            request,
+            requestQueue: mockRequestQueue,
         });
     }
 
