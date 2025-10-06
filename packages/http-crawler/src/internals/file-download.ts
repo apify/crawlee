@@ -116,7 +116,10 @@ export function MinimumSpeedStream({
 export function ByteCounterStream({
     logTransferredBytes,
     loggingInterval = 5000,
-}: { logTransferredBytes: (transferredBytes: number) => void; loggingInterval?: number }): Transform {
+}: {
+    logTransferredBytes: (transferredBytes: number) => void;
+    loggingInterval?: number;
+}): Transform {
     let transferredBytes = 0;
     let lastLogTime = Date.now();
 

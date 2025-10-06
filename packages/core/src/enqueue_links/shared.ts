@@ -49,10 +49,7 @@ export type RegExpInput = RegExp | RegExpObject;
 
 export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'filters' | 'redirect' | 'depth';
 
-export type SkippedRequestCallback = (args: {
-    url: string;
-    reason: SkippedRequestReason;
-}) => Awaitable<void>;
+export type SkippedRequestCallback = (args: { url: string; reason: SkippedRequestReason }) => Awaitable<void>;
 
 /**
  * @ignore

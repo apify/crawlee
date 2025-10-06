@@ -369,7 +369,9 @@ export class SitemapRequestList implements IRequestList {
      */
     private async load({
         parseSitemapOptions,
-    }: { parseSitemapOptions?: SitemapRequestListOptions['parseSitemapOptions'] }): Promise<void> {
+    }: {
+        parseSitemapOptions?: SitemapRequestListOptions['parseSitemapOptions'];
+    }): Promise<void> {
         while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
                 this.sitemapParsingProgress.inProgressSitemapUrl ??

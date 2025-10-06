@@ -832,9 +832,11 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private async _downloadListOfUrls(options: { url: string; urlRegExp?: RegExp; proxyUrl?: string }): Promise<
-        string[]
-    > {
+    private async _downloadListOfUrls(options: {
+        url: string;
+        urlRegExp?: RegExp;
+        proxyUrl?: string;
+    }): Promise<string[]> {
         return downloadListOfUrls(options);
     }
 
