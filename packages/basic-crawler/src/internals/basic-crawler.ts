@@ -1068,6 +1068,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Gracefully stops the current run of the crawler.
      *
      * All the tasks active at the time of calling this method will be allowed to finish.
+     *
+     * To stop the crawler immediately, use {@apilink AutoscaledPool.abort|`autoscaledPool.abort()`} instead.
      */
     stop(message = 'The crawler has been gracefully stopped.'): void {
         // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
