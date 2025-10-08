@@ -1069,7 +1069,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      *
      * All the tasks active at the time of calling this method will be allowed to finish.
      *
-     * To stop the crawler immediately, use {@apilink AutoscaledPool.abort|`autoscaledPool.abort()`} instead.
+     * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
     stop(message = 'The crawler has been gracefully stopped.'): void {
         // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
@@ -1906,8 +1906,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Function for cleaning up after all request are processed.
-     * @ignore
+     * Stops the crawler immediately.
+     *
+     * This method doesn't wait for currently active requests to finish.
+     *
+     * To stop the crawler with waiting for all requests to finish, use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
         this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
