@@ -1910,7 +1910,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      *
      * This method doesn't wait for currently active requests to finish.
      *
-     * To stop the crawler with waiting for all requests to finish, use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
+     * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
         this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
