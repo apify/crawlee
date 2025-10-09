@@ -28,6 +28,7 @@ import {
     AutoscaledPool,
     Configuration,
     ContextPipeline,
+    ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
     CriticalError,
     Dataset,
@@ -39,6 +40,7 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestHandlerError,
     RequestProvider,
     RequestQueue,
     RequestQueueV1,
@@ -1376,11 +1378,13 @@ export class BasicCrawler<
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
             crawlingContext.session?.markGood();
-        } catch (err) {
+        } catch (rawError) {
+            const err = this.unwrapError(rawError);
+
             try {
                 request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    async () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
+                    async () => this._requestFunctionErrorHandler(err, crawlingContext, source),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${
                         this.internalTimeoutMillis / 1e3
@@ -1391,22 +1395,24 @@ export class BasicCrawler<
                 }
                 request.state = RequestState.DONE;
             } catch (secondaryError: any) {
+                const unwrappedSecondaryError = this.unwrapError(secondaryError) as any;
+
                 if (
-                    !secondaryError.triggeredFromUserHandler &&
+                    !unwrappedSecondaryError.triggeredFromUserHandler &&
                     // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
-                    !(secondaryError instanceof CriticalError)
+                    !(unwrappedSecondaryError instanceof CriticalError)
                 ) {
                     const apifySpecific = process.env.APIFY_IS_AT_HOME
                         ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
                         : '';
                     this.log.exception(
-                        secondaryError as Error,
+                        unwrappedSecondaryError as Error,
                         'An exception occurred during handling of failed request. ' +
                             `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
                     );
                 }
                 request.state = RequestState.ERROR;
-                throw secondaryError;
+                throw unwrappedSecondaryError;
             }
             // decrease the session score if the request fails (but the error handler did not throw)
             crawlingContext.session?.markBad();
@@ -1477,6 +1483,17 @@ export class BasicCrawler<
         request.sessionRotationCount ??= 0;
         request.sessionRotationCount++;
         crawlingContext.session?.retire();
+    }
+
+    /**
+     * Unwraps errors thrown by the context pipeline to get the actual user error.
+     * RequestHandlerError and ContextPipelineInitializationError wrap the actual error.
+     */
+    private unwrapError(error: unknown): Error {
+        if (error instanceof RequestHandlerError || error instanceof ContextPipelineInitializationError) {
+            return this.unwrapError(error.error);
+        }
+        return error as Error;
     }
 
     /**

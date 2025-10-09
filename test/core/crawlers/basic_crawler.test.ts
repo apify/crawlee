@@ -1037,9 +1037,9 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(false);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).not.toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1047,9 +1047,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(false);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).not.toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
     });
@@ -1075,8 +1075,8 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
             expect(args[0].split('\n').length).toBeLessThanOrEqual(2);
             expect(args[1]).toBeDefined();
         }
@@ -1085,9 +1085,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
+            expect(args[0]).toMatch(/at requestHandler/);
             expect(args[1]).toBeDefined();
         }
     });
@@ -1114,9 +1114,9 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1124,9 +1124,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1157,9 +1157,9 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
+            expect(args[0]).toMatch(/at requestHandler/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1167,9 +1167,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
+            expect(args[0]).toMatch(/at requestHandler/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1255,52 +1255,6 @@ describe('BasicCrawler', () => {
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
-        });
-    });
-
-    describe('CrawlingContext', () => {
-        test('should be kept and later deleted', async () => {
-            const urls = [
-                'https://example.com/0',
-                'https://example.com/1',
-                'https://example.com/2',
-                'https://example.com/3',
-            ];
-            const requestList = await RequestList.open(null, urls);
-            let counter = 0;
-            let finish: (value?: unknown) => void;
-            const allFinishedPromise = new Promise((resolve) => {
-                finish = resolve;
-            });
-            const mainContexts: CrawlingContext[] = [];
-            const otherContexts: CrawlingContext[][] = [];
-            const crawler = new BasicCrawler({
-                requestList,
-                minConcurrency: 4,
-                async requestHandler(crawlingContext) {
-                    // @ts-expect-error Accessing private prop
-                    mainContexts[counter] = crawler.crawlingContexts.get(crawlingContext.id);
-                    // @ts-expect-error Accessing private prop
-                    otherContexts[counter] = Array.from(crawler.crawlingContexts).map(([, v]) => v);
-                    counter++;
-                    if (counter === 4) finish();
-                    await allFinishedPromise;
-                },
-            });
-            await crawler.run();
-
-            expect(counter).toBe(4);
-            expect(mainContexts).toHaveLength(4);
-            expect(otherContexts).toHaveLength(4);
-            // @ts-expect-error Accessing private prop
-            expect(crawler.crawlingContexts.size).toBe(0);
-            mainContexts.forEach((ctx, idx) => {
-                expect(typeof ctx.id).toBe('string');
-                expect(otherContexts[idx]).toContain(ctx);
-            });
-            otherContexts.forEach((list, idx) => {
-                expect(list).toHaveLength(idx + 1);
-            });
         });
     });
 
