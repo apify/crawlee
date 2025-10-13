@@ -15,7 +15,6 @@ import type {
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
@@ -304,7 +303,6 @@ export abstract class BrowserCrawler<
     protected readonly ignoreIframes: boolean;
 
     protected navigationTimeoutMillis: number;
-    protected requestHandlerTimeoutInnerMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
     protected persistCookiesPerSession: boolean;
@@ -337,7 +335,6 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
-            requestHandlerTimeoutSecs = 60,
             persistCookiesPerSession,
             proxyConfiguration,
             launchContext = {},
@@ -359,8 +356,6 @@ export abstract class BrowserCrawler<
                         .compose({ action: this.performNavigation.bind(this) })
                         .compose({ action: this.handleBlockedRequestByContent.bind(this) }),
                 contextPipelineEnhancer: options.contextPipelineEnhancer,
-                requestHandlerTimeoutSecs:
-                    navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
             },
             config,
         );
@@ -372,7 +367,6 @@ export abstract class BrowserCrawler<
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.requestHandlerTimeoutInnerMillis = requestHandlerTimeoutSecs * 1000;
         this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;

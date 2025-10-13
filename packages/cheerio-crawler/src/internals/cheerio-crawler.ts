@@ -182,15 +182,17 @@ export class CheerioCrawler<
 
     protected async parseContent(crawlingContext: InternalHttpCrawlingContext) {
         const isXml = crawlingContext.contentType.type.includes('xml');
-        // TODO what if it's not in fact a string
-        const dom = parseDocument(crawlingContext.body as string, { decodeEntities: true, xmlMode: isXml });
+        const body = Buffer.isBuffer(crawlingContext.body)
+            ? crawlingContext.body.toString(crawlingContext.contentType.encoding)
+            : crawlingContext.body;
+        const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
         const $ = cheerio.load(dom, {
             xml: { decodeEntities: true, xmlMode: isXml },
         } as CheerioOptions);
 
         return {
             $,
-            body: crawlingContext.body as string,
+            body,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,

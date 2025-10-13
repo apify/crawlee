@@ -16,7 +16,6 @@ import type {
     Session,
 } from '@crawlee/basic';
 import {
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
     Configuration,
     ContextPipeline,
@@ -336,7 +335,6 @@ export class HttpCrawler<
      */
     proxyConfiguration?: ProxyConfiguration;
 
-    protected userRequestHandlerTimeoutMillis: number;
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
     protected persistCookiesPerSession: boolean;
@@ -377,7 +375,6 @@ export class HttpCrawler<
         ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
 
         const {
-            requestHandlerTimeoutSecs = 60,
             navigationTimeoutSecs = 30,
             ignoreSslErrors = true,
             additionalMimeTypes = [],
@@ -403,10 +400,6 @@ export class HttpCrawler<
                 contextPipelineBuilder:
                     contextPipelineBuilder ??
                     (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
-                // We need to add some time for internal functions to finish,
-                // but not too much so that we would stall the crawler.
-                requestHandlerTimeoutSecs:
-                    navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
             },
             config,
         );
@@ -425,7 +418,6 @@ export class HttpCrawler<
             );
         }
 
-        this.userRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
@@ -448,6 +440,7 @@ export class HttpCrawler<
 
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
         return ContextPipeline.create<CrawlingContext>()
+            .compose({ action: this.prepareProxyInfo.bind(this) })
             .compose({
                 action: this.makeHttpRequest.bind(this),
             })
@@ -455,20 +448,25 @@ export class HttpCrawler<
             .compose({ action: this.handleBlockedRequestByContent.bind(this) });
     }
 
-    private async makeHttpRequest(
-        crawlingContext: CrawlingContext,
-    ): Promise<Omit<CrawlingContextWithReponse, keyof CrawlingContext> & Partial<CrawlingContextWithReponse>> {
+    private async prepareProxyInfo(crawlingContext: CrawlingContext) {
         const { request, session } = crawlingContext;
-
         let proxyInfo: ProxyInfo | undefined;
+
         if (this.proxyConfiguration) {
             const sessionId = session ? session.id : undefined;
             proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
         }
 
+        return { proxyInfo };
+    }
+
+    private async makeHttpRequest(
+        crawlingContext: CrawlingContext,
+    ): Promise<Omit<CrawlingContextWithReponse, keyof CrawlingContext> & Partial<CrawlingContextWithReponse>> {
+        const { request, session } = crawlingContext;
+
         if (request.skipNavigation) {
             return {
-                proxyInfo,
                 request: new Proxy(request, {
                     get(target, propertyName, receiver) {
                         if (propertyName === 'loadedUrl') {
@@ -510,7 +508,7 @@ export class HttpCrawler<
         request.loadedUrl = httpResponse.url;
         request.state = RequestState.AFTER_NAV;
 
-        return { request: request as LoadedRequest<Request>, response: httpResponse, proxyInfo };
+        return { request: request as LoadedRequest<Request>, response: httpResponse };
     }
 
     private async processHttpResponse(
@@ -848,7 +846,7 @@ export class HttpCrawler<
      */
     protected _handleRequestTimeout(session?: Session) {
         session?.markBad();
-        throw new Error(`request timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`);
+        throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
     private _abortDownloadOfBody(request: Request, response: IncomingMessage) {

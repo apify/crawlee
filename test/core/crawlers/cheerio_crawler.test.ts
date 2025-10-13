@@ -5,6 +5,7 @@ import type {
     BasicCrawlingContext,
     CheerioCrawlingContext,
     CheerioRequestHandler,
+    CrawlingContext,
     ProxyInfo,
     Source,
 } from '@crawlee/cheerio';
@@ -12,6 +13,7 @@ import {
     CheerioCrawler,
     createCheerioRouter,
     EnqueueStrategy,
+    GotScrapingHttpClient,
     mergeCookies,
     ProxyConfiguration,
     Request,
@@ -58,6 +60,10 @@ async function getRequestListForMirror() {
 beforeAll(async () => {
     [server, port] = await runExampleComServer();
     serverAddress += port;
+});
+
+afterEach(() => {
+    vi.useRealTimers();
 });
 
 afterAll(() => {
@@ -336,9 +342,9 @@ describe('CheerioCrawler', () => {
         test('after requestHandlerTimeoutSecs', async () => {
             const failed: Request[] = [];
             const requestList = await getRequestListForMirror();
-            const requestHandler = async () => {
+            const requestHandler = vi.fn(async () => {
                 await sleep(2000);
-            };
+            });
 
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
@@ -352,18 +358,20 @@ describe('CheerioCrawler', () => {
                 },
             });
 
-            // Override low value to prevent seeing timeouts from BasicCrawler
-            // @ts-expect-error Overriding private property
-            cheerioCrawler.handleRequestTimeoutMillis = 10000;
-
             await cheerioCrawler.run();
 
+            expect(requestHandler).toHaveBeenCalledTimes(8);
             expect(failed).toHaveLength(4);
 
             failed.forEach((request) => {
-                expect(request.errorMessages).toHaveLength(2);
-                expect(request.errorMessages[0]).toMatch('requestHandler timed out');
-                expect(request.errorMessages[1]).toMatch('requestHandler timed out');
+                expect(request).toEqual(
+                    expect.objectContaining({
+                        errorMessages: [
+                            expect.stringContaining('requestHandler timed out'),
+                            expect.stringContaining('requestHandler timed out'),
+                        ],
+                    }),
+                );
             });
         });
     });
@@ -602,7 +610,7 @@ describe('CheerioCrawler', () => {
             const url = `${serverAddress}/special/json-type`;
             await runCrawler(url);
             expect(handlePageInvocationParams.json).toBeInstanceOf(Object);
-            expect(handlePageInvocationParams.body).toEqual(Buffer.from(JSON.stringify(responseSamples.json)));
+            expect(handlePageInvocationParams.body).toEqual(JSON.stringify(responseSamples.json));
             expect(handlePageInvocationParams.contentType.type).toBe('application/json');
             expect(handleFailedInvoked).toBe(false);
         });
@@ -617,8 +625,8 @@ describe('CheerioCrawler', () => {
         test('when response is image/png', async () => {
             const url = `${serverAddress}/special/image-type`;
             await runCrawler(url);
-            expect(handlePageInvocationParams.body).toBeInstanceOf(Buffer);
-            expect(handlePageInvocationParams.body).toEqual(responseSamples.image);
+            expect(typeof handlePageInvocationParams.body).toBe('string');
+            expect(handlePageInvocationParams.body).toEqual(responseSamples.image.toString());
             expect(handlePageInvocationParams.contentType.type).toBe('image/png');
         });
     });
@@ -800,20 +808,24 @@ describe('CheerioCrawler', () => {
              */
             let numberOfRotations = -1;
             const failedRequestHandler = vitest.fn();
+            const got = new GotScrapingHttpClient();
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 5,
                 requestHandler: async () => {},
                 failedRequestHandler,
-            });
-
-            vitest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
-                if (proxyUrl.includes('localhost')) {
-                    numberOfRotations++;
-                    throw new Error('Proxy responded with 400 - Bad request');
-                }
-
-                return null;
+                httpClient: {
+                    sendRequest: async () => {
+                        throw new Error("Don't");
+                    },
+                    stream: async (request, onRedirect) => {
+                        if (request.proxyUrl!.includes('localhost')) {
+                            numberOfRotations++;
+                            throw new Error('Proxy responded with 400 - Bad request');
+                        }
+                        return await got.stream(request, onRedirect);
+                    },
+                },
             });
 
             await crawler.run([serverAddress]);
@@ -827,26 +839,30 @@ describe('CheerioCrawler', () => {
             const proxyError =
                 'Proxy responded with 400 - Bad request. Also, this error message contains some useful payload.';
 
+            const got = new GotScrapingHttpClient();
+
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 1,
                 requestHandler: async () => {},
-            });
-
-            vitest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
-                if (proxyUrl.includes('localhost')) {
-                    throw new Error(proxyError);
-                }
-
-                return null;
+                httpClient: {
+                    sendRequest: async () => {
+                        throw new Error("Don't");
+                    },
+                    stream: async (request, onRedirect) => {
+                        if (request.proxyUrl!.includes('localhost')) {
+                            throw new Error(proxyError);
+                        }
+                        return await got.stream(request, onRedirect);
+                    },
+                },
             });
 
             const spy = vitest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
 
             await crawler.run([serverAddress]);
 
-            expect(spy).toBeCalled();
-            expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
+            expect(spy).toHaveBeenCalledWith(expect.stringContaining(proxyError), expect.any(Object));
         });
     });
 
@@ -1093,6 +1109,8 @@ describe('CheerioCrawler', () => {
         test('should work with `context.request.headers` being undefined', async () => {
             const requests: Request[] = [];
             const responses: unknown[] = [];
+            const errorHandler = vi.fn(async () => {});
+
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [
                     {
@@ -1104,6 +1122,7 @@ describe('CheerioCrawler', () => {
                     responses.push(json);
                     requests.push(request);
                 },
+                errorHandler,
                 preNavigationHooks: [
                     ({ request }) => {
                         request.headers!.Cookie = 'foo=override; coo=kie';
@@ -1112,6 +1131,9 @@ describe('CheerioCrawler', () => {
             });
 
             await crawler.run();
+
+            expect(errorHandler).not.toHaveBeenCalled();
+
             expect(requests).toHaveLength(1);
             expect(requests[0].retryCount).toBe(0);
             expect(responses).toHaveLength(1);
@@ -1159,33 +1181,36 @@ describe('CheerioCrawler', () => {
         test('should use sessionId in proxyUrl when the session pool is enabled', async () => {
             const sourcesNew = [{ url: 'http://example.com/?q=1' }];
             const requestListNew = await RequestList.open({ sources: sourcesNew });
-            let usedSession: Session;
 
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:8080'] });
             const newUrlSpy = vitest.spyOn(proxyConfiguration, 'newUrl');
+
+            const requestHandler = vi.fn(async () => {});
+
             const cheerioCrawler = new CheerioCrawler({
                 requestList: requestListNew,
                 maxRequestRetries: 0,
                 maxSessionRotations: 0,
-                requestHandler: () => {},
+                requestHandler,
                 failedRequestHandler: () => {},
                 useSessionPool: true,
                 proxyConfiguration,
+                preNavigationHooks: [
+                    async (context) => {
+                        context.proxyInfo = undefined;
+                    },
+                ],
             });
-
-            // @ts-expect-error Accessing private method
-            const oldHandleRequestF = cheerioCrawler._runRequestHandler;
-            // @ts-expect-error Overriding private method
-            cheerioCrawler._runRequestHandler = async (opts) => {
-                usedSession = opts.session!;
-                return oldHandleRequestF.call(cheerioCrawler, opts);
-            };
 
             try {
                 await cheerioCrawler.run();
             } catch (e) {
                 // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
             }
+
+            expect(requestHandler).toHaveBeenCalledOnce();
+
+            const usedSession: Session = ((requestHandler.mock.calls?.[0] as any)[0] as CrawlingContext).session!;
 
             expect(newUrlSpy).toBeCalledWith(
                 usedSession!.id,

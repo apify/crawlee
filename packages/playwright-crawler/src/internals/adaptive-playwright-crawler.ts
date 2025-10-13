@@ -288,8 +288,6 @@ export class AdaptivePlaywrightCrawler<
                 // Pass error handlers to the "main" crawler - we only pluck them from `rest` so that they don't go to the sub crawlers
                 errorHandler,
                 failedRequestHandler,
-                // The request handler may be called twice by the crawler. Each invocation uses its own timeout, so this is just a failsafe.
-                requestHandlerTimeoutSecs: requestHandlerTimeoutSecs * 3,
                 // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
                 // (that would be a logical error in this class)
                 contextPipelineBuilder: () =>

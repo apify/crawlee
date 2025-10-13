@@ -1117,7 +1117,13 @@ export class BasicCrawler<
     }
 
     protected async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
-        await this.contextPipeline.call(crawlingContext, this.requestHandler);
+        await this.contextPipeline.call(crawlingContext, async (finalContext) => {
+            await addTimeoutToPromise(
+                async () => this.requestHandler(finalContext),
+                this.requestHandlerTimeoutMillis,
+                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${finalContext.request.id}).`,
+            );
+        });
     }
 
     /**
@@ -1357,11 +1363,7 @@ export class BasicCrawler<
 
         try {
             request.state = RequestState.REQUEST_HANDLER;
-            await addTimeoutToPromise(
-                async () => this.runRequestHandler(crawlingContext),
-                this.requestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
-            );
+            await this.runRequestHandler(crawlingContext);
 
             await this._timeoutAndRetry(
                 async () => source.markRequestHandled(request!),
