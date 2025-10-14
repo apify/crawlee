@@ -157,6 +157,11 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * ```
      */
     sendRequest<Response = string>(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<Response>>;
+
+    /**
+     * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
+     */
+    registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
 }
 
 /**

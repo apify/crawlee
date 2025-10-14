@@ -1,6 +1,7 @@
 import type {
     Awaitable,
     BasicCrawlerOptions,
+    BasicCrawlingContext,
     CrawlingContext,
     Dictionary,
     EnqueueLinksOptions,
@@ -354,7 +355,8 @@ export abstract class BrowserCrawler<
                 contextPipelineBuilder: () =>
                     contextPipelineBuilder()
                         .compose({ action: this.performNavigation.bind(this) })
-                        .compose({ action: this.handleBlockedRequestByContent.bind(this) }),
+                        .compose({ action: this.handleBlockedRequestByContent.bind(this) })
+                        .compose({ action: this.restoreRequestState.bind(this) }),
                 contextPipelineEnhancer: options.contextPipelineEnhancer,
             },
             config,
@@ -405,10 +407,15 @@ export abstract class BrowserCrawler<
     > {
         return ContextPipeline.create<CrawlingContext>().compose({
             action: this.preparePage.bind(this),
-            cleanup: async (context: { page: Page }) => {
-                await context.page
-                    .close()
-                    .catch((error: Error) => this.log.debug('Error while closing page', { error }));
+            cleanup: async (context: {
+                page: Page;
+                registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
+            }) => {
+                context.registerDeferredCleanup(async () => {
+                    await context.page
+                        .close()
+                        .catch((error: Error) => this.log.debug('Error while closing page', { error }));
+                });
             },
         });
     }
@@ -589,6 +596,11 @@ export abstract class BrowserCrawler<
             if (error) throw new SessionError(error);
         }
 
+        return {};
+    }
+
+    private async restoreRequestState(crawlingContext: CrawlingContext) {
+        crawlingContext.request.state = RequestState.REQUEST_HANDLER;
         return {};
     }
 

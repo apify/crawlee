@@ -1336,6 +1336,8 @@ export class BasicCrawler<
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
 
+        const deferredCleanup: (() => Promise<unknown>)[] = [];
+
         const crawlingContext: CrawlingContext = {
             id: cryptoRandomObjectId(10),
             log: this.log,
@@ -1357,6 +1359,9 @@ export class BasicCrawler<
             useState: this.useState.bind(this),
             sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
+            registerDeferredCleanup: (cleanup) => {
+                deferredCleanup.push(cleanup);
+            },
         };
 
         let isRequestLocked = true;
@@ -1419,6 +1424,8 @@ export class BasicCrawler<
             // decrease the session score if the request fails (but the error handler did not throw)
             crawlingContext.session?.markBad();
         } finally {
+            await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
+
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && source instanceof RequestProvider) {
                 try {

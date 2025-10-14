@@ -470,6 +470,8 @@ export class AdaptivePlaywrightCrawler<
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
         const logs: LogProxyCall[] = [];
 
+        const deferredCleanup: (() => Promise<unknown>)[] = [];
+
         const resultBoundContextHelpers = {
             addRequests: result.addRequests,
             pushData: result.pushData,
@@ -477,6 +479,7 @@ export class AdaptivePlaywrightCrawler<
             getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
             enqueueLinks: result.enqueueLinks,
             log: this.createLogProxy(context.log, logs),
+            registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
 
         try {
@@ -510,6 +513,8 @@ export class AdaptivePlaywrightCrawler<
             return { result, ok: true, logs };
         } catch (error) {
             return { error, ok: false, logs };
+        } finally {
+            await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
         }
     }
 
