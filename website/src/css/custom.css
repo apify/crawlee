@@ -354,7 +354,6 @@ article .card h2 {
 .menu__link,
 .table-of-contents__link {
     text-overflow: ellipsis;
-    display: inline-block;
     width: 100%;
     overflow: hidden;
     white-space: nowrap;

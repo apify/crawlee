@@ -34,7 +34,7 @@
         "typescript": "^5.8.3"
     },
     "dependencies": {
-        "@apify/docusaurus-plugin-typedoc-api": "^4.4.5",
+        "@apify/docusaurus-plugin-typedoc-api": "^4.4.8",
         "@apify/utilities": "^2.8.0",
         "@docusaurus/core": "3.9.1",
         "@docusaurus/faster": "3.9.1",
