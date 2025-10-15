@@ -436,18 +436,14 @@ export abstract class BrowserCrawler<
 
         const useIncognitoPages = this.launchContext?.useIncognitoPages;
 
-        if (this.proxyConfiguration) {
-            const { session } = crawlingContext;
-
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, {
-                request: crawlingContext.request,
-            });
+        if (crawlingContext.session?.proxyInfo) {
+            const proxyInfo = crawlingContext.session.proxyInfo;
             crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
 
-            if (this.proxyConfiguration.isManInTheMiddle) {
+            if (proxyInfo?.ignoreTlsErrors) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
@@ -658,15 +654,14 @@ export abstract class BrowserCrawler<
             launchContextExtends.session = await this.sessionPool.getSession();
         }
 
-        if (this.proxyConfiguration && !launchContext.proxyUrl) {
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session?.id, {
-                proxyTier: (launchContext.proxyTier as number) ?? undefined,
-            });
+        if (!launchContext.proxyUrl && launchContextExtends.session?.proxyInfo) {
+            const proxyInfo = launchContextExtends.session.proxyInfo;
+
             launchContext.proxyUrl = proxyInfo?.url;
             launchContextExtends.proxyInfo = proxyInfo;
 
             // Disable SSL verification for MITM proxies
-            if (this.proxyConfiguration.isManInTheMiddle) {
+            if (proxyInfo?.ignoreTlsErrors) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
