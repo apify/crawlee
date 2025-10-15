@@ -1344,7 +1344,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             addRequests: this.addRequests.bind(this),
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
+            sendRequest: createSendRequest(this.httpClient, request!, session),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 
