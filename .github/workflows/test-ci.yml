@@ -35,7 +35,7 @@ jobs:
                 uses: actions/checkout@v5
 
             -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
@@ -46,7 +46,7 @@ jobs:
                     corepack prepare yarn@stable --activate
 
             -   name: Activate cache for Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
 
@@ -90,7 +90,7 @@ jobs:
                 uses: actions/checkout@v5
 
             -   name: Use Node.js 20
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     node-version: 22
                     package-manager-cache: false
@@ -101,7 +101,7 @@ jobs:
                     corepack prepare yarn@stable --activate
 
             -   name: Activate cache for Node.js 20
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
 
@@ -135,7 +135,7 @@ jobs:
                 uses: actions/checkout@v5
 
             -   name: Use Node.js 20
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     node-version: 22
                     package-manager-cache: false
@@ -146,7 +146,7 @@ jobs:
                     corepack prepare yarn@stable --activate
 
             -   name: Activate cache for Node.js 20
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
 
@@ -179,7 +179,7 @@ jobs:
                 uses: actions/checkout@v5
 
             -   name: Use Node.js 20
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     node-version: 22
                     package-manager-cache: false
@@ -190,7 +190,7 @@ jobs:
                     corepack prepare yarn@stable --activate
 
             -   name: Activate cache for Node.js 20
-                uses: actions/setup-node@v5
+                uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
 
