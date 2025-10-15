@@ -16,8 +16,8 @@ import {
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils.js';
 import { log as defaultLog } from '../log.js';
+import type { ProxyInfo } from '../proxy_configuration.js';
 import { EVENT_SESSION_RETIRED } from './events.js';
-import { ProxyInfo } from '../proxy_configuration.js';
 
 /**
  * Persistable {@apilink Session} state.

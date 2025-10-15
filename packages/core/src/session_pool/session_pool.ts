@@ -11,11 +11,11 @@ import type { PersistenceOptions } from '../crawlers/statistics.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import { log as defaultLog } from '../log.js';
+import type { ProxyConfiguration } from '../proxy_configuration.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
-import { ProxyConfiguration } from '../proxy_configuration.js';
 
 /**
  * Factory user-function which creates customized {@apilink Session} instances.
