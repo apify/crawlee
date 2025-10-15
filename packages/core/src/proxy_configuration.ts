@@ -110,6 +110,13 @@ export interface ProxyInfo {
      * Proxy tier for the current proxy, if applicable (only for `tieredProxyUrls`).
      */
     proxyTier?: number;
+
+    /**
+     * When `true`, the proxy is likely intercepting HTTPS traffic and is able to view and modify its content.
+     *
+     * @default false
+     */
+    ignoreTlsErrors?: boolean;
 }
 
 interface TieredProxyOptions {
