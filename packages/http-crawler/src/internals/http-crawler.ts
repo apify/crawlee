@@ -321,12 +321,6 @@ export type HttpRequestHandler<
 export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any, HttpCrawler<Context>>,
 > extends BasicCrawler<Context> {
-    /**
-     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
-     * Only available if used by the crawler.
-     */
-    proxyConfiguration?: ProxyConfiguration;
-
     protected userRequestHandlerTimeoutMillis: number;
     protected preNavigationHooks: InternalHttpHook<Context>[];
     protected postNavigationHooks: InternalHttpHook<Context>[];

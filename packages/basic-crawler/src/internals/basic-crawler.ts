@@ -14,6 +14,7 @@ import type {
     GetUserDataFromRequest,
     IRequestList,
     LoadedContext,
+    ProxyConfiguration,
     ProxyInfo,
     Request,
     RequestOptions,
@@ -337,6 +338,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Defaults to a new instance of {@apilink GotScrapingHttpClient}
      */
     httpClient?: BaseHttpClient;
+
+    /**
+     * If set, the crawler will be configured for all connections to use
+     * the Proxy URLs provided and rotated according to the configuration.
+     */
+    proxyConfiguration?: ProxyConfiguration;
 }
 
 /**
@@ -456,6 +463,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     autoscaledPool?: AutoscaledPool;
 
     /**
+     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
+     * Only available if used by the crawler.
+     */
+    proxyConfiguration?: ProxyConfiguration;
+
+    /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
      */
@@ -551,6 +564,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             keepAlive,
             sessionPoolOptions = {},
             useSessionPool = true,
+            proxyConfiguration,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -577,6 +591,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.httpClient = httpClient ?? new GotScrapingHttpClient();
+        this.proxyConfiguration = proxyConfiguration;
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -625,6 +640,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
             log,
+            proxyConfiguration: this.proxyConfiguration,
         };
         if (this.retryOnBlocked) {
             this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];

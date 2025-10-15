@@ -267,12 +267,6 @@ export abstract class BrowserCrawler<
     GoToOptions extends Dictionary = Dictionary,
 > extends BasicCrawler<Context> {
     /**
-     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
-     * Only available if used by the crawler.
-     */
-    proxyConfiguration?: ProxyConfiguration;
-
-    /**
      * A reference to the underlying {@apilink BrowserPool} class that manages the crawler's browsers.
      */
     browserPool: BrowserPool<InternalBrowserPoolOptions>;
