@@ -288,6 +288,8 @@ export class AdaptivePlaywrightCrawler<
                 // Pass error handlers to the "main" crawler - we only pluck them from `rest` so that they don't go to the sub crawlers
                 errorHandler,
                 failedRequestHandler,
+                // Same for request handler
+                requestHandler,
                 // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
                 // (that would be a logical error in this class)
                 contextPipelineBuilder: () =>
@@ -319,6 +321,10 @@ export class AdaptivePlaywrightCrawler<
         const staticCrawler = new CheerioCrawler(
             {
                 ...rest,
+                useSessionPool: false,
+                statisticsOptions: {
+                    persistenceOptions: { enable: false },
+                },
                 preNavigationHooks: [
                     async (context) => {
                         for (const hook of preNavigationHooks ?? []) {
@@ -340,6 +346,10 @@ export class AdaptivePlaywrightCrawler<
         const browserCrawler = new PlaywrightCrawler(
             {
                 ...rest,
+                useSessionPool: false,
+                statisticsOptions: {
+                    persistenceOptions: { enable: false },
+                },
                 preNavigationHooks: [
                     async (context, gotoOptions) => {
                         for (const hook of preNavigationHooks ?? []) {
@@ -487,12 +497,12 @@ export class AdaptivePlaywrightCrawler<
                 if (renderingType === 'static') {
                     await this.staticContextPipeline.call(
                         { ...context, ...resultBoundContextHelpers },
-                        async (finalContext) => await this.router(finalContext),
+                        async (finalContext) => await this.requestHandler(finalContext),
                     );
                 } else if (renderingType === 'clientOnly') {
                     await this.browserContextPipeline.call(
                         { ...context, ...resultBoundContextHelpers },
-                        async (finalContext) => await this.router(finalContext),
+                        async (finalContext) => await this.requestHandler(finalContext),
                     );
                 }
             };

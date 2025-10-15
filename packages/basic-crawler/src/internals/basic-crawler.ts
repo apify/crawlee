@@ -1674,9 +1674,7 @@ export class BasicCrawler<
     async teardown(): Promise<void> {
         this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
 
-        if (this.useSessionPool) {
-            await this.sessionPool!.teardown();
-        }
+        await this.sessionPool?.teardown();
 
         if (this._closeEvents) {
             await this.events.close();
