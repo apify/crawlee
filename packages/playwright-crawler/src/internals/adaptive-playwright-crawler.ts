@@ -16,7 +16,14 @@ import type {
     StatisticsOptions,
     StatisticState,
 } from '@crawlee/core';
-import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
+import {
+    Configuration,
+    RequestHandlerError,
+    RequestHandlerResult,
+    Router,
+    Statistics,
+    withCheckedStorageAccess,
+} from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio } from 'cheerio';
@@ -258,6 +265,7 @@ export class AdaptivePlaywrightCrawler<
     private browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
     private individualRequestHandlerTimeoutMillis: number;
     declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
+    private resultObjects = new WeakMap<CrawlingContext, RequestHandlerResult>();
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
@@ -396,9 +404,13 @@ export class AdaptivePlaywrightCrawler<
     }
 
     private async adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
-        // This will in fact delegate to RequestHandlerResult.enqueueLinks.
-        // We access it indirectly like this to avoid the need to propagate RequestHandlerResult here
-        const enqueueLinks = cheerioContext.enqueueLinks;
+        // Capture the original response to avoid infinite recursion when the getter is copied to the context
+        const originalResponse = cheerioContext.response;
+
+        const enqueueLinks = this.resultObjects.get(cheerioContext)?.enqueueLinks;
+        if (enqueueLinks === undefined) {
+            throw new Error('Logical error - `this.resultObjects` does not contain the result object');
+        }
 
         return {
             get page(): Page {
@@ -408,11 +420,11 @@ export class AdaptivePlaywrightCrawler<
                 return {
                     // TODO remove this once cheerioContext.response is just a Response
                     complete: true,
-                    headers: cheerioContext.response.headers,
+                    headers: originalResponse.headers,
                     trailers: {},
-                    url: cheerioContext.response.url!,
-                    statusCode: cheerioContext.response.statusCode!,
-                    redirectUrls: (cheerioContext.response as unknown as BaseHttpResponseData).redirectUrls ?? [],
+                    url: originalResponse.url!,
+                    statusCode: originalResponse.statusCode!,
+                    redirectUrls: (originalResponse as unknown as BaseHttpResponseData).redirectUrls ?? [],
                 };
             },
             async querySelector(selector: string) {
@@ -432,16 +444,20 @@ export class AdaptivePlaywrightCrawler<
     }
 
     private async adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
-        // This will in fact delegate to RequestHandlerResult.enqueueLinks.
-        // We access it indirectly like this to avoid the need to propagate RequestHandlerResult here
-        const enqueueLinks = playwrightContext.enqueueLinks;
+        // Capture the original response to avoid infinite recursion when the getter is copied to the context
+        const originalResponse = playwrightContext.response;
+
+        const enqueueLinks = this.resultObjects.get(playwrightContext)?.enqueueLinks;
+        if (enqueueLinks === undefined) {
+            throw new Error('Logical error - `this.resultObjects` does not contain the result object');
+        }
 
         return {
             get response(): BaseHttpResponseData {
                 return {
-                    url: playwrightContext.response!.url(),
-                    statusCode: playwrightContext.response!.status(),
-                    headers: playwrightContext.response!.headers(),
+                    url: originalResponse!.url(),
+                    statusCode: originalResponse!.status(),
+                    headers: originalResponse!.headers(),
                     trailers: {},
                     complete: true,
                     redirectUrls: [],
@@ -492,16 +508,19 @@ export class AdaptivePlaywrightCrawler<
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
 
+        const subCrawlerContext = { ...context, ...resultBoundContextHelpers };
+        this.resultObjects.set(subCrawlerContext, result);
+
         try {
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
                     await this.staticContextPipeline.call(
-                        { ...context, ...resultBoundContextHelpers },
+                        subCrawlerContext,
                         async (finalContext) => await this.requestHandler(finalContext),
                     );
                 } else if (renderingType === 'clientOnly') {
                     await this.browserContextPipeline.call(
-                        { ...context, ...resultBoundContextHelpers },
+                        subCrawlerContext,
                         async (finalContext) => await this.requestHandler(finalContext),
                     );
                 }
@@ -553,8 +572,13 @@ export class AdaptivePlaywrightCrawler<
 
             // Execution will "fall through" and try running the request handler in a browser
             if (!plainHTTPRun.ok) {
+                const actualError =
+                    plainHTTPRun.error instanceof RequestHandlerError
+                        ? (plainHTTPRun.error.error as Error)
+                        : (plainHTTPRun.error as Error);
+
                 crawlingContext.log.exception(
-                    plainHTTPRun.error as Error,
+                    actualError,
                     `HTTP-only request handler failed for ${crawlingContext.request.url}`,
                 );
             } else {
