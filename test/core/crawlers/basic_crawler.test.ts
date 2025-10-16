@@ -1087,7 +1087,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(args[0]).toMatch(/Request failed and reached maximum retries/);
             expect(args[0]).toMatch(/Other non-timeout error/);
-            expect(args[0]).toMatch(/at requestHandler/);
+            expect(args[0]).toMatch(/at _?BasicCrawler\.requestHandler/);
             expect(args[1]).toBeDefined();
         }
     });
@@ -1159,7 +1159,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
             expect(args[0]).toMatch(/Other non-timeout error/);
-            expect(args[0]).toMatch(/at requestHandler/);
+            expect(args[0]).toMatch(/at _?BasicCrawler\.requestHandler/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1169,7 +1169,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(args[0]).toMatch(/Request failed and reached maximum retries/);
             expect(args[0]).toMatch(/Other non-timeout error/);
-            expect(args[0]).toMatch(/at requestHandler/);
+            expect(args[0]).toMatch(/at _?BasicCrawler\.requestHandler/);
             expect(args[1]).toBeDefined();
         }
 
