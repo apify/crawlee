@@ -48,7 +48,7 @@ export interface SessionPoolOptions {
     persistStateKey?: string;
 
     /**
-     * Custom function that should return `Session` instance.
+     * Custom function that should return a `Session` instance, or a promise resolving to such instance.
      * Any error thrown from this function will terminate the process.
      * Function receives `SessionPool` instance as a parameter
      */
