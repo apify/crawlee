@@ -1,6 +1,7 @@
+import { beforeAll, afterAll, test, expect } from 'vitest';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Duplex } from 'node:stream';
+import { Duplex, pipeline as pipelineWithCallbacks } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
@@ -80,7 +81,7 @@ afterAll(async () => {
     server.close();
 });
 
-test('requestHandler works', async () => {
+test('requestHandler - `body` property works', async () => {
     const results: Buffer[] = [];
 
     const crawler = new FileDownload({
@@ -99,7 +100,7 @@ test('requestHandler works', async () => {
     expect(results[0]).toEqual(await ReadableStreamGenerator.getBuffer(1024, 123));
 });
 
-test('streamHandler works', async () => {
+test('requestHandler - `stream` property works', async () => {
     let result: Buffer = Buffer.alloc(0);
 
     const crawler = new FileDownload({
@@ -119,7 +120,7 @@ test('streamHandler works', async () => {
     expect(result).toEqual(await ReadableStreamGenerator.getBuffer(1024, 456));
 });
 
-test('streamHandler receives response', async () => {
+test('requestHandler receives response', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         requestHandler: async ({ response }) => {
@@ -134,7 +135,7 @@ test('streamHandler receives response', async () => {
     await crawler.run([fileUrl]);
 });
 
-test('crawler with streamHandler waits for the stream to finish', async () => {
+test('crawler waits for the stream to be consumed', async () => {
     const bufferingStream = new Duplex({
         read() {},
         write(chunk, _encoding, callback) {
@@ -146,14 +147,14 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         requestHandler: ({ stream }) => {
-            pipeline(stream as any, bufferingStream)
-                .then(() => {
+            pipelineWithCallbacks(stream, bufferingStream, (err) => {
+                if (!err) {
                     bufferingStream.push(null);
                     bufferingStream.end();
-                })
-                .catch((e) => {
-                    bufferingStream.destroy(e);
-                });
+                } else {
+                    bufferingStream.destroy(err);
+                }
+            });
         },
     });
 

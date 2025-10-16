@@ -136,11 +136,18 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     ) {
         clearInterval(context[this.#contextInternals].pollingInterval);
 
-        if (error !== undefined) {
-            await finished(context.stream);
+        // If there was no error and the stream is still readable, wait for it to be consumed before proceeding
+        if (error === undefined) {
+            if (!context.stream.destroyed && context.stream.readable) {
+                try {
+                    await finished(context.stream);
+                } catch {
+                    // Stream might have encountered an error or been closed, which is fine
+                }
+            }
+        } else {
+            context.stream.destroy();
         }
-
-        context.stream.destroy();
     }
 }
 
