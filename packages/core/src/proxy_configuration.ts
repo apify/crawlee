@@ -2,12 +2,11 @@ import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 import log from '@apify/log';
-import { cryptoRandomObjectId } from '@apify/utilities';
 
 import type { Request } from './request.js';
 
 export interface ProxyConfigurationFunction {
-    (sessionId: string | number, options?: { request?: Request }): string | null | Promise<string | null>;
+    (options?: { request?: Request }): string | null | Promise<string | null>;
 }
 
 export interface ProxyConfigurationOptions {
@@ -19,7 +18,7 @@ export interface ProxyConfigurationOptions {
     proxyUrls?: string[];
 
     /**
-     * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter and an optional parameter with the `Request` object when applicable.
+     * Custom function that allows you to generate the new proxy URL dynamically. It gets an optional parameter with the `Request` object when applicable.
      * Can return either stringified proxy URL or `null` if the proxy should not be used. Can be asynchronous.
      *
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
@@ -67,20 +66,12 @@ export interface TieredProxy {
  *   requestHandler({ proxyInfo }) {
  *      // Getting used proxy URL
  *       const proxyUrl = proxyInfo.url;
- *
- *      // Getting ID of used Session
- *       const sessionIdentifier = proxyInfo.sessionId;
  *   }
  * })
  *
  * ```
  */
 export interface ProxyInfo {
-    /**
-     * The identifier of used {@apilink Session}, if used.
-     */
-    sessionId?: string;
-
     /**
      * The URL of the proxy.
      */
@@ -265,28 +256,18 @@ export class ProxyConfiguration {
      * the currently used proxy via the requestHandler parameter `proxyInfo`.
      * Use it if you want to work with a rich representation of a proxy URL.
      * If you need the URL string only, use {@apilink ProxyConfiguration.newUrl}.
-     * @param [sessionId]
-     *  Represents the identifier of user {@apilink Session} that can be managed by the {@apilink SessionPool} or
-     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
-     *  When the provided sessionId is a number, it's converted to a string. Property sessionId of
-     *  {@apilink ProxyInfo} is always returned as a type string.
      *
-     *  All the HTTP requests going through the proxy with the same session identifier
-     *  will use the same target proxy server (i.e. the same IP address).
-     *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(sessionId?: string | number, options?: TieredProxyOptions): Promise<ProxyInfo | undefined> {
-        if (typeof sessionId === 'number') sessionId = `${sessionId}`;
-
+    async newProxyInfo(options?: TieredProxyOptions): Promise<ProxyInfo | undefined> {
         let url: string | undefined;
         let tier: number | undefined;
         if (this.tieredProxyUrls) {
-            const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(6), options);
+            const { proxyUrl, proxyTier } = this._handleTieredUrl(options);
             url = proxyUrl ?? undefined;
             tier = proxyTier;
         } else {
-            url = await this.newUrl(sessionId, options);
+            url = await this.newUrl(options);
         }
 
         if (!url) return undefined;
@@ -294,7 +275,6 @@ export class ProxyConfiguration {
         const { username, password, port, hostname } = new URL(url);
 
         return {
-            sessionId,
             url,
             username: decodeURIComponent(username),
             password: decodeURIComponent(password),
@@ -305,12 +285,11 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Given a session identifier and a request / proxy tier, this function returns a new proxy URL based on the provided configuration options.
-     * @param _sessionId Session identifier
+     * Given a request / proxy tier, this function returns a new proxy URL based on the provided configuration options.
      * @param options Options for the tiered proxy rotation
      * @returns An object with the proxy URL and the proxy tier used.
      */
-    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): TieredProxy {
+    protected _handleTieredUrl(options?: TieredProxyOptions): TieredProxy {
         if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
 
         if (!options || (!options?.request && options?.proxyTier === undefined)) {
@@ -373,57 +352,35 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Returns a new proxy URL based on provided configuration options and the `sessionId` parameter.
-     * @param [sessionId]
-     *  Represents the identifier of user {@apilink Session} that can be managed by the {@apilink SessionPool} or
-     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
-     *  When the provided sessionId is a number, it's converted to a string.
+     * Returns a new proxy URL based on provided configuration options.
      *
-     *  All the HTTP requests going through the proxy with the same session identifier
-     *  will use the same target proxy server (i.e. the same IP address).
-     *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(sessionId?: string | number, options?: TieredProxyOptions): Promise<string | undefined> {
-        if (typeof sessionId === 'number') sessionId = `${sessionId}`;
-
+    async newUrl(options?: TieredProxyOptions): Promise<string | undefined> {
         if (this.newUrlFunction) {
-            return (await this._callNewUrlFunction(sessionId, { request: options?.request })) ?? undefined;
+            return (await this._callNewUrlFunction({ request: options?.request })) ?? undefined;
         }
 
         if (this.tieredProxyUrls) {
-            return this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(6), options).proxyUrl ?? undefined;
+            return this._handleTieredUrl(options).proxyUrl ?? undefined;
         }
 
-        return this._handleCustomUrl(sessionId);
+        return this._handleProxyUrlsList();
     }
 
     /**
-     * Handles custom url rotation with session
+     * Handles custom url rotation
      */
-    protected _handleCustomUrl(sessionId?: string): string {
-        let customUrlToUse: string;
-
-        if (!sessionId) {
-            return this.proxyUrls![this.nextCustomUrlIndex++ % this.proxyUrls!.length];
-        }
-
-        if (this.usedProxyUrls.has(sessionId)) {
-            customUrlToUse = this.usedProxyUrls.get(sessionId)!;
-        } else {
-            customUrlToUse = this.proxyUrls![this.nextCustomUrlIndex++ % this.proxyUrls!.length];
-            this.usedProxyUrls.set(sessionId, customUrlToUse);
-        }
-
-        return customUrlToUse;
+    protected _handleProxyUrlsList(): string {
+        return this.proxyUrls![this.nextCustomUrlIndex++ % this.proxyUrls!.length];
     }
 
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      */
-    protected async _callNewUrlFunction(sessionId?: string, options?: { request?: Request }) {
-        const proxyUrl = await this.newUrlFunction!(sessionId!, options);
+    protected async _callNewUrlFunction(options?: { request?: Request }) {
+        const proxyUrl = await this.newUrlFunction!(options);
         try {
             if (proxyUrl) {
                 new URL(proxyUrl); // eslint-disable-line no-new

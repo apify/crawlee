@@ -1290,7 +1290,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this._timeoutAndRetry(
                 async () => {
                     session = await this.sessionPool!.newSession({
-                        proxyInfo: await this.proxyConfiguration?.newProxyInfo(),
+                        proxyInfo: await this.proxyConfiguration?.newProxyInfo({
+                            request: request ?? undefined,
+                        }),
                     });
                 },
                 this.internalTimeoutMillis,
