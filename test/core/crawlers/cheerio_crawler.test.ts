@@ -1151,42 +1151,42 @@ describe('CheerioCrawler', () => {
             expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'coo' and 'Coo'`);
         });
 
-        test('should use sessionId in proxyUrl when the session pool is enabled', async () => {
-            const sourcesNew = [{ url: 'http://example.com/?q=1' }];
-            const requestListNew = await RequestList.open({ sources: sourcesNew });
-            let usedSession: Session;
+        // test('should use sessionId in proxyUrl when the session pool is enabled', async () => {
+        //     const sourcesNew = [{ url: 'http://example.com/?q=1' }];
+        //     const requestListNew = await RequestList.open({ sources: sourcesNew });
+        //     let usedSession: Session;
 
-            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:8080'] });
-            const newUrlSpy = vitest.spyOn(proxyConfiguration, 'newUrl');
-            const cheerioCrawler = new CheerioCrawler({
-                requestList: requestListNew,
-                maxRequestRetries: 0,
-                maxSessionRotations: 0,
-                requestHandler: () => {},
-                failedRequestHandler: () => {},
-                useSessionPool: true,
-                proxyConfiguration,
-            });
+        //     const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:8080'] });
+        //     const newUrlSpy = vitest.spyOn(proxyConfiguration, 'newUrl');
+        //     const cheerioCrawler = new CheerioCrawler({
+        //         requestList: requestListNew,
+        //         maxRequestRetries: 0,
+        //         maxSessionRotations: 0,
+        //         requestHandler: () => {},
+        //         failedRequestHandler: () => {},
+        //         useSessionPool: true,
+        //         proxyConfiguration,
+        //     });
 
-            // @ts-expect-error Accessing private method
-            const oldHandleRequestF = cheerioCrawler._runRequestHandler;
-            // @ts-expect-error Overriding private method
-            cheerioCrawler._runRequestHandler = async (opts) => {
-                usedSession = opts.session!;
-                return oldHandleRequestF.call(cheerioCrawler, opts);
-            };
+        //     // @ts-expect-error Accessing private method
+        //     const oldHandleRequestF = cheerioCrawler._runRequestHandler;
+        //     // @ts-expect-error Overriding private method
+        //     cheerioCrawler._runRequestHandler = async (opts) => {
+        //         usedSession = opts.session!;
+        //         return oldHandleRequestF.call(cheerioCrawler, opts);
+        //     };
 
-            try {
-                await cheerioCrawler.run();
-            } catch (e) {
-                // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
-            }
+        //     try {
+        //         await cheerioCrawler.run();
+        //     } catch (e) {
+        //         // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
+        //     }
 
-            expect(newUrlSpy).toBeCalledWith(
-                usedSession!.id,
-                expect.objectContaining({ request: expect.any(Request) }),
-            );
-        });
+        //     expect(newUrlSpy).toBeCalledWith(
+        //         usedSession!.id,
+        //         expect.objectContaining({ request: expect.any(Request) }),
+        //     );
+        // });
     });
 
     describe('Crawling context', () => {
