@@ -6,7 +6,6 @@ import type {
     EnqueueLinksOptions,
     ErrorHandler,
     LoadedContext,
-    ProxyConfiguration,
     ProxyInfo,
     RequestHandler,
     RequestProvider,
@@ -26,7 +25,6 @@ import {
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
     tryAbsoluteURL,
-    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -142,12 +140,6 @@ export interface BrowserCrawlerOptions<
      */
     browserPoolOptions?: Partial<BrowserPoolOptions> &
         Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
-
-    /**
-     * If set, the crawler will be configured for all connections to use
-     * the Proxy URLs provided and rotated according to the configuration.
-     */
-    proxyConfiguration?: ProxyConfiguration;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -293,7 +285,6 @@ export abstract class BrowserCrawler<
         sessionPoolOptions: ow.optional.object,
         persistCookiesPerSession: ow.optional.boolean,
         useSessionPool: ow.optional.boolean,
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         ignoreShadowRoots: ow.optional.boolean,
         ignoreIframes: ow.optional.boolean,
     };
@@ -310,7 +301,6 @@ export abstract class BrowserCrawler<
             navigationTimeoutSecs = 60,
             requestHandlerTimeoutSecs = 60,
             persistCookiesPerSession,
-            proxyConfiguration,
             launchContext = {},
             browserPoolOptions,
             preNavigationHooks = [],
@@ -342,7 +332,6 @@ export abstract class BrowserCrawler<
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
         this.requestHandlerTimeoutInnerMillis = requestHandlerTimeoutSecs * 1000;
-        this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
 

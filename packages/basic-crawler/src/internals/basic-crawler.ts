@@ -522,6 +522,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
+        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
         statusMessageCallback: ow.optional.function,

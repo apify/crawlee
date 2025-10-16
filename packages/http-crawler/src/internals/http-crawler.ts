@@ -10,7 +10,6 @@ import type {
     ErrorHandler,
     GetUserDataFromRequest,
     LoadedContext,
-    ProxyConfiguration,
     Request,
     RequestHandler,
     RouterRoutes,
@@ -26,7 +25,6 @@ import {
     RequestState,
     Router,
     SessionError,
-    validators,
 } from '@crawlee/basic';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -86,13 +84,6 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
      * If set to true, SSL certificate errors will be ignored.
      */
     ignoreSslErrors?: boolean;
-
-    /**
-     * If set, this crawler will be configured for all connections to use
-     * [Apify Proxy](https://console.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
-     * For more information, see the [documentation](https://docs.apify.com/proxy).
-     */
-    proxyConfiguration?: ProxyConfiguration;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -341,7 +332,6 @@ export class HttpCrawler<
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         persistCookiesPerSession: ow.optional.boolean,
 
         additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
@@ -368,7 +358,6 @@ export class HttpCrawler<
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-            proxyConfiguration,
             persistCookiesPerSession,
             preNavigationHooks = [],
             postNavigationHooks = [],
@@ -416,7 +405,6 @@ export class HttpCrawler<
         this.forceResponseEncoding = forceResponseEncoding;
         this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
         this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
-        this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
