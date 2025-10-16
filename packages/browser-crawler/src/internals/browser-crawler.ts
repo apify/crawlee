@@ -634,7 +634,9 @@ export abstract class BrowserCrawler<
         const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
 
         if (this.sessionPool) {
-            launchContextExtends.session = await this.sessionPool.getSession();
+            launchContextExtends.session = await this.sessionPool.newSession({
+                proxyInfo: await this.proxyConfiguration?.newProxyInfo(),
+            });
         }
 
         if (!launchContext.proxyUrl && launchContextExtends.session?.proxyInfo) {

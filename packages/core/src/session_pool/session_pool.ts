@@ -11,7 +11,7 @@ import type { PersistenceOptions } from '../crawlers/statistics.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import { log as defaultLog } from '../log.js';
-import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { ProxyInfo } from '../proxy_configuration.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
@@ -46,13 +46,6 @@ export interface SessionPoolOptions {
      * @default SESSION_POOL_STATE
      */
     persistStateKey?: string;
-
-    /**
-     * Proxy configuration to be used with the sessions.
-     * Note that this configuration is only used if you don't provide your own `createSessionFunction`.
-     * If you do provide a custom session creation function, you are responsible for setting up the proxy for the session.
-     */
-    proxyConfiguration?: ProxyConfiguration;
 
     /**
      * Custom function that should return `Session` instance.
@@ -157,7 +150,6 @@ export class SessionPool extends EventEmitter {
     protected readonly blockedStatusCodes: number[];
     protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
-    protected proxyConfiguration?: ProxyConfiguration;
 
     private queue = new AsyncQueue();
 
@@ -181,7 +173,6 @@ export class SessionPool extends EventEmitter {
                 blockedStatusCodes: ow.optional.array.ofType(ow.number),
                 log: ow.optional.object,
                 persistenceOptions: ow.optional.object,
-                proxyConfiguration: ow.optional.object,
             }),
         );
 
@@ -196,7 +187,6 @@ export class SessionPool extends EventEmitter {
             persistenceOptions = {
                 enable: true,
             },
-            proxyConfiguration,
         } = options;
 
         this.config = config;
@@ -207,7 +197,6 @@ export class SessionPool extends EventEmitter {
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
-        this.proxyConfiguration = proxyConfiguration;
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
         // Session configuration
@@ -292,6 +281,21 @@ export class SessionPool extends EventEmitter {
         this.log.debug(`Adding new Session - ${newSession.id}`);
 
         this._addSession(newSession);
+    }
+
+    /**
+     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
+     * but this allows you to add more sessions once the max pool size is reached.
+     * This also allows you to add session with overridden session options (e.g. with specific session id).
+     * @param [options] The configuration options for the session being added to the session pool.
+     */
+    async newSession(options?: { proxyInfo?: ProxyInfo }): Promise<Session> {
+        this._throwIfNotInitialized();
+
+        const newSession = await this.createSessionFunction(this, { sessionOptions: options });
+        this._addSession(newSession);
+
+        return newSession;
     }
 
     /**
@@ -453,13 +457,10 @@ export class SessionPool extends EventEmitter {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
         const { sessionOptions = {} } = options;
 
-        const proxyInfo = await this.proxyConfiguration?.newProxyInfo();
-
         return new Session({
             ...this.sessionOptions,
             ...sessionOptions,
             sessionPool,
-            proxyInfo,
         });
     }
 

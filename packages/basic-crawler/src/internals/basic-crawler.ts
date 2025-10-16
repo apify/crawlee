@@ -641,7 +641,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
             log,
-            proxyConfiguration: this.proxyConfiguration,
         };
         if (this.retryOnBlocked) {
             this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
@@ -1290,7 +1289,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this.useSessionPool) {
             await this._timeoutAndRetry(
                 async () => {
-                    session = await this.sessionPool!.getSession();
+                    session = await this.sessionPool!.newSession({
+                        proxyInfo: await this.proxyConfiguration?.newProxyInfo(),
+                    });
                 },
                 this.internalTimeoutMillis,
                 `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
