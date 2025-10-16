@@ -1,4 +1,3 @@
-import { beforeAll, afterAll, test, expect } from 'vitest';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Duplex, pipeline as pipelineWithCallbacks } from 'node:stream';
@@ -9,6 +8,7 @@ import { setTimeout } from 'node:timers/promises';
 import { FileDownload } from '@crawlee/http';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { afterAll, beforeAll, expect, test } from 'vitest';
 
 class ReadableStreamGenerator {
     private static async generateRandomData(size: number, seed: number) {
