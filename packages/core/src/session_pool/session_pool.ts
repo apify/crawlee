@@ -11,6 +11,7 @@ import type { PersistenceOptions } from '../crawlers/statistics.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import { log as defaultLog } from '../log.js';
+import type { ProxyInfo } from '../proxy_configuration.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
@@ -47,7 +48,7 @@ export interface SessionPoolOptions {
     persistStateKey?: string;
 
     /**
-     * Custom function that should return `Session` instance.
+     * Custom function that should return a `Session` instance, or a promise resolving to such instance.
      * Any error thrown from this function will terminate the process.
      * Function receives `SessionPool` instance as a parameter
      */
@@ -283,6 +284,21 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
+     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
+     * but this allows you to add more sessions once the max pool size is reached.
+     * This also allows you to add session with overridden session options (e.g. with specific session id).
+     * @param [options] The configuration options for the session being added to the session pool.
+     */
+    async newSession(options?: { proxyInfo?: ProxyInfo }): Promise<Session> {
+        this._throwIfNotInitialized();
+
+        const newSession = await this.createSessionFunction(this, { sessionOptions: options });
+        this._addSession(newSession);
+
+        return newSession;
+    }
+
+    /**
      * Gets session.
      * If there is space for new session, it creates and returns new session.
      * If the session pool is full, it picks a session from the pool,
@@ -434,12 +450,13 @@ export class SessionPool extends EventEmitter {
      * @param [options.sessionOptions] The configuration options for the session being created.
      * @returns New session.
      */
-    protected _defaultCreateSessionFunction(
+    protected async _defaultCreateSessionFunction(
         sessionPool: SessionPool,
         options: { sessionOptions?: SessionOptions } = {},
-    ): Session {
+    ): Promise<Session> {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
         const { sessionOptions = {} } = options;
+
         return new Session({
             ...this.sessionOptions,
             ...sessionOptions,
