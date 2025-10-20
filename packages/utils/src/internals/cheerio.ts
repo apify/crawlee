@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 import { tryAbsoluteURL } from './extract-urls';
 
 export type CheerioRoot = ReturnType<typeof load>;
+export type { CheerioAPI, Cheerio, Element } from 'cheerio';
 
 // NOTE: We are skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
