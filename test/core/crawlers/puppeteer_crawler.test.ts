@@ -5,7 +5,15 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import { promisify } from 'node:util';
 
-import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, Request } from '@crawlee/puppeteer';
+import type {
+    Cheerio,
+    CheerioAPI,
+    CheerioRoot,
+    Element,
+    PuppeteerCrawlingContext,
+    PuppeteerGoToOptions,
+    Request,
+} from '@crawlee/puppeteer';
 import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Session } from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
@@ -436,4 +444,23 @@ describe('PuppeteerCrawler', () => {
             expect(count[2] + count[3] + count[4]).toBe(6);
         });
     }
+
+    test('should have correct types in crawling context', async () => {
+        const requestHandler = async (crawlingContext: PuppeteerCrawlingContext) => {
+            // Checking that types are correct
+            const $ = await crawlingContext.parseWithCheerio();
+
+            const _cheerioRootType: CheerioRoot = $;
+            const _apiType: CheerioAPI = $;
+            const _cheerioElementType: Cheerio<Element> = $('div');
+        };
+
+        const puppeteerCrawler = new PuppeteerCrawler({
+            requestList,
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            requestHandler,
+        });
+        await puppeteerCrawler.run();
+    });
 });

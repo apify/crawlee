@@ -2,7 +2,16 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
-import type { PlaywrightGotoOptions, PlaywrightRequestHandler, Request } from '@crawlee/playwright';
+import type {
+    Cheerio,
+    CheerioAPI,
+    CheerioRoot,
+    Element,
+    PlaywrightCrawlingContext,
+    PlaywrightGotoOptions,
+    PlaywrightRequestHandler,
+    Request,
+} from '@crawlee/playwright';
 import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
@@ -197,4 +206,23 @@ describe('PlaywrightCrawler', () => {
             expect(reducedMotion).toBe(launchOptions.reducedMotion);
         },
     );
+
+    test('should have correct types in crawling context', async () => {
+        const requestHandler = async (crawlingContext: PlaywrightCrawlingContext) => {
+            // Checking that types are correct
+            const $ = await crawlingContext.parseWithCheerio();
+
+            const _cheerioRootType: CheerioRoot = $;
+            const _apiType: CheerioAPI = $;
+            const _cheerioElementType: Cheerio<Element> = $('div');
+        };
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            requestList,
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            requestHandler,
+        });
+        await playwrightCrawler.run();
+    });
 });

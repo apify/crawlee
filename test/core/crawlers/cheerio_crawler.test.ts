@@ -1,7 +1,16 @@
 import type { IncomingHttpHeaders, Server } from 'node:http';
 import { Readable } from 'node:stream';
 
-import type { CheerioCrawlingContext, CheerioRequestHandler, ProxyInfo, Source } from '@crawlee/cheerio';
+import type {
+    Cheerio,
+    CheerioAPI,
+    CheerioCrawlingContext,
+    CheerioRequestHandler,
+    CheerioRoot,
+    Element,
+    ProxyInfo,
+    Source,
+} from '@crawlee/cheerio';
 import {
     AutoscaledPool,
     CheerioCrawler,
@@ -1254,6 +1263,23 @@ describe('CheerioCrawler', () => {
                 preNavigationHooks: [prepareRequestFunction],
                 requestHandler,
                 failedRequestHandler,
+            });
+            await cheerioCrawler.run();
+        });
+
+        test('should have correct types in crawling context', async () => {
+            const requestHandler = (crawlingContext: CheerioCrawlingContext) => {
+                // Checking that types are correct
+                const _cheerioRootType: CheerioRoot = crawlingContext.$;
+                const _apiType: CheerioAPI = crawlingContext.$;
+                const _cheerioElementType: Cheerio<Element> = crawlingContext.$('div');
+            };
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                requestHandler,
             });
             await cheerioCrawler.run();
         });
