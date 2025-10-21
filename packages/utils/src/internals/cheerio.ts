@@ -4,6 +4,7 @@ import * as cheerio from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls';
 
+/** @deprecated use CheerioAPI instead */
 export type CheerioRoot = ReturnType<typeof load>;
 export type { CheerioAPI, Cheerio, Element } from 'cheerio';
 
