@@ -1508,28 +1508,21 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const source = this.requestManager;
         if (!source) throw new Error('Request provider is not initialized!');
 
-        let request: Request | null | undefined;
-        let session: Session | undefined;
-
-        await this._timeoutAndRetry(
-            async () => {
-                request = await this._fetchNextRequest();
-            },
+        const request = await this._timeoutAndRetry(
+            this._fetchNextRequest,
             this.internalTimeoutMillis,
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
 
         tryCancel();
 
-        if (this.useSessionPool) {
-            await this._timeoutAndRetry(
-                async () => {
-                    session = await this.sessionPool!.getSession();
-                },
-                this.internalTimeoutMillis,
-                `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-            );
-        }
+        const session = this.useSessionPool
+            ? await this._timeoutAndRetry(
+                  this.sessionPool!.getSession,
+                  this.internalTimeoutMillis,
+                  `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+              )
+            : undefined;
 
         tryCancel();
 
@@ -1691,24 +1684,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Run async callback with given timeout and retry.
+     * Run async callback with given timeout and retry. Returns the result of the callback.
      * @ignore
      */
-    protected async _timeoutAndRetry(
-        handler: () => Promise<unknown>,
+    protected async _timeoutAndRetry<T>(
+        handler: () => Promise<T>,
         timeout: number,
         error: Error | string,
         maxRetries = 3,
         retried = 1,
-    ): Promise<void> {
+    ): Promise<T> {
         try {
-            await addTimeoutToPromise(handler, timeout, error);
+            return addTimeoutToPromise(handler, timeout, error);
         } catch (e) {
             if (retried <= maxRetries) {
                 // we retry on any error, not just timeout
                 this.log.warning(`${(e as Error).message} (retrying ${retried}/${maxRetries})`);
-                void this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
-                return;
+                return this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
             }
 
             throw e;
