@@ -798,7 +798,6 @@ __metadata:
     turbo: "npm:^2.1.0"
     typescript: "npm:^5.7.3"
     typescript-eslint: "npm:^8.28.0"
-    vite-tsconfig-paths: "npm:^4.3.2"
     vitest: "npm:^3.0.0"
   languageName: unknown
   linkType: soft
@@ -7075,13 +7074,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globrex@npm:^0.1.2":
-  version: 0.1.2
-  resolution: "globrex@npm:0.1.2"
-  checksum: 10c0/a54c029520cf58bda1d8884f72bd49b4cd74e977883268d931fd83bcbd1a9eb96d57c7dbd4ad80148fb9247467ebfb9b215630b2ed7563b2a8de02e1ff7f89d1
-  languageName: node
-  linkType: hard
-
 "gopd@npm:^1.0.1, gopd@npm:^1.2.0":
   version: 1.2.0
   resolution: "gopd@npm:1.2.0"
@@ -12768,20 +12760,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsconfck@npm:^3.0.3":
-  version: 3.1.6
-  resolution: "tsconfck@npm:3.1.6"
-  peerDependencies:
-    typescript: ^5.0.0
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-  bin:
-    tsconfck: bin/tsconfck.js
-  checksum: 10c0/269c3c513540be44844117bb9b9258fe6f8aeab026d32aeebf458d5299125f330711429dbb556dbf125a0bc25f4a81e6c24ac96de2740badd295c3fb400f66c4
-  languageName: node
-  linkType: hard
-
 "tsconfig-paths@npm:^3.15.0":
   version: 3.15.0
   resolution: "tsconfig-paths@npm:3.15.0"
@@ -13338,22 +13316,6 @@ __metadata:
   bin:
     vite-node: vite-node.mjs
   checksum: 10c0/6ceca67c002f8ef6397d58b9539f80f2b5d79e103a18367288b3f00a8ab55affa3d711d86d9112fce5a7fa658a212a087a005a045eb8f4758947dd99af2a6c6b
-  languageName: node
-  linkType: hard
-
-"vite-tsconfig-paths@npm:^4.3.2":
-  version: 4.3.2
-  resolution: "vite-tsconfig-paths@npm:4.3.2"
-  dependencies:
-    debug: "npm:^4.1.1"
-    globrex: "npm:^0.1.2"
-    tsconfck: "npm:^3.0.3"
-  peerDependencies:
-    vite: "*"
-  peerDependenciesMeta:
-    vite:
-      optional: true
-  checksum: 10c0/f390ac1d1c3992fc5ac50f9274c1090f8b55ab34a89ea88893db9a6924a3b26c9f64bc1163615150ad100749db73b6b2cf1d57f6cd60df6e762ceb5b8ad30024
   languageName: node
   linkType: hard
 
