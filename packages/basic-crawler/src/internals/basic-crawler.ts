@@ -1509,7 +1509,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (!source) throw new Error('Request provider is not initialized!');
 
         const request = await this._timeoutAndRetry(
-            this._fetchNextRequest,
+            this._fetchNextRequest.bind(this),
             this.internalTimeoutMillis,
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
@@ -1518,7 +1518,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const session = this.useSessionPool
             ? await this._timeoutAndRetry(
-                  this.sessionPool!.getSession,
+                  this.sessionPool!.getSession.bind(this.sessionPool),
                   this.internalTimeoutMillis,
                   `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
               )
