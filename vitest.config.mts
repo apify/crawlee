@@ -1,7 +1,6 @@
 import { resolve } from 'node:path';
 
 import isCI from 'is-ci';
-// @ts-ignore
 import { defineConfig } from 'vitest/config';
 
 let threads: { minThreads: number; maxThreads: number } | undefined;

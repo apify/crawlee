@@ -1,7 +1,8 @@
 import { resolve } from 'node:path';
 
 import { emptyDirSync, existsSync } from 'fs-extra';
-import { createKeyValueStorageImplementation } from 'packages/memory-storage/src/fs/key-value-store';
+
+import { createKeyValueStorageImplementation } from '../../src/fs/key-value-store';
 
 describe('KeyValueStore should append extension only when needed', () => {
     const mockImageBuffer = Buffer.from('This is a test image', 'utf8');
