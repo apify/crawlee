@@ -214,7 +214,7 @@ describe('Snapshotter', () => {
             mainProcessBytes: toBytes(1000),
             childProcessesBytes: toBytes(1000),
         } as MemoryInfo;
-        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
+        vitest.spyOn(utils, 'getMemoryInfoV2').mockResolvedValue(memoryData);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         // do not initialize the event intervals as we will fire them manually
@@ -245,7 +245,7 @@ describe('Snapshotter', () => {
     });
 
     test('correctly logs critical memory overload', async () => {
-        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) } as MemoryInfo);
+        vitest.spyOn(utils, 'getMemoryInfoV2').mockResolvedValueOnce({ totalBytes: toBytes(10000) } as MemoryInfo);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         await snapshotter.start();

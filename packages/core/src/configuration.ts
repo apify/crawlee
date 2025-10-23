@@ -295,7 +295,7 @@ export class Configuration {
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 1_000,
         persistStorage: true,
-        systemInfoV2: false,
+        systemInfoV2: true,
     };
 
     /**
