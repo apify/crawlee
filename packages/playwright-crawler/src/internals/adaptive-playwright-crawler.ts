@@ -693,11 +693,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         // We need to use a mock request queue implementation, in order to add the requests into our result object
         const mockRequestQueue = { addRequestsBatched } as RequestQueue;
 
-        return await this._crawlingContextEnqueueLinksWrapper({
-            options: { ...options, baseUrl },
-            request,
-            requestQueue: mockRequestQueue,
-        });
+        return await this.enqueueLinksWithCrawlDepth({ ...options, baseUrl }, request, mockRequestQueue);
     }
 
     private createLogProxy(log: Log, logs: LogProxyCall[]) {

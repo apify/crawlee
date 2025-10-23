@@ -3,7 +3,14 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { CrawlingContext, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
+import type {
+    CrawlingContext,
+    EnqueueLinksOptions,
+    ErrorHandler,
+    RequestHandler,
+    RequestOptions,
+    Source,
+} from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -21,6 +28,7 @@ import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
@@ -225,32 +233,38 @@ describe('BasicCrawler', () => {
         ]);
     });
 
-    describe('_crawlingContextEnqueueLinksWrapper()', () => {
+    describe('enqueueLinksWithCrawlDepth()', () => {
         let onSkippedRequestMock: Mock;
         let addRequestsBatchedMock: Mock;
-        let options: Parameters<BasicCrawler['_crawlingContextEnqueueLinksWrapper']>[0];
+        let options: SetRequired<EnqueueLinksOptions, 'urls'>;
+        let request: Request;
+        let requestQueue: RequestQueue;
 
-        const crawler = new BasicCrawler({ maxCrawlDepth: 3 });
-        // @ts-expect-error Accessing protected method
-        const { _crawlingContextEnqueueLinksWrapper } = crawler;
+        type EnqueueLinksWrapperOptions = Parameters<BasicCrawler['enqueueLinksWithCrawlDepth']>;
+        class TestCrawler extends BasicCrawler {
+            public exposedEnqueueLinksWithCrawlDepth(...enqueueLinksOptions: EnqueueLinksWrapperOptions) {
+                return this.enqueueLinksWithCrawlDepth(...enqueueLinksOptions);
+            }
+        }
+
+        const crawler = new TestCrawler({ maxCrawlDepth: 3 });
 
         beforeEach(() => {
             addRequestsBatchedMock = vi.fn().mockImplementation(async () => ({}));
             onSkippedRequestMock = vi.fn();
+
             options = {
-                request: new Request({ url: 'https://example.com/', crawlDepth: 2 }),
-                requestQueue: {
-                    addRequestsBatched: addRequestsBatchedMock as RequestQueue['addRequestsBatched'],
-                } as RequestQueue,
-                options: {
-                    urls: ['https://example.com/1/', 'https://example.com/2/'],
-                    onSkippedRequest: onSkippedRequestMock,
-                },
+                urls: ['https://example.com/1/', 'https://example.com/2/'],
+                onSkippedRequest: onSkippedRequestMock,
             };
+            request = new Request({ url: 'https://example.com/', crawlDepth: 2 });
+            requestQueue = {
+                addRequestsBatched: addRequestsBatchedMock as RequestQueue['addRequestsBatched'],
+            } as RequestQueue;
         });
 
         it('should generate requests with maxCrawlDepth', async () => {
-            await _crawlingContextEnqueueLinksWrapper(options);
+            await crawler.exposedEnqueueLinksWithCrawlDepth(options, request, requestQueue);
 
             const requests = addRequestsBatchedMock.mock.calls[0][0];
             expect(requests).toHaveLength(2);
@@ -261,10 +275,8 @@ describe('BasicCrawler', () => {
         });
 
         it('should skip requests with crawlDepth exceeding maxCrawlDepth', async () => {
-            await _crawlingContextEnqueueLinksWrapper({
-                ...options,
-                request: new Request({ url: 'https://example.com/', crawlDepth: 3 }),
-            });
+            const requestWithMaxDepth = new Request({ url: 'https://example.com/', crawlDepth: 3 });
+            await crawler.exposedEnqueueLinksWithCrawlDepth(options, requestWithMaxDepth, requestQueue);
 
             const requests = addRequestsBatchedMock.mock.calls[0][0];
             expect(requests).toHaveLength(0);
@@ -276,11 +288,10 @@ describe('BasicCrawler', () => {
         });
 
         it('should respect user provided transformRequestFunction', async () => {
-            const transformRequestFunction = vi.fn((request: RequestOptions) => request);
-            await _crawlingContextEnqueueLinksWrapper({
-                ...options,
-                options: { ...options.options, transformRequestFunction },
-            });
+            const transformRequestFunction = vi.fn((req: RequestOptions) => req);
+            const optionsWithTransform = { ...options, transformRequestFunction };
+
+            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
 
             expect(transformRequestFunction).toHaveBeenCalled();
 

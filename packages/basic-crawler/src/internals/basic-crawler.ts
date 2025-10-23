@@ -1568,10 +1568,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
                 const requestQueue = await this.getRequestQueue();
 
-                return this._crawlingContextEnqueueLinksWrapper({ options, request, requestQueue });
+                return this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
             },
             addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
-                const requestsGenerator = this._crawlingContextAddRequestsGenerator(requests, request);
+                const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, request);
 
                 return this.addRequests(requestsGenerator, options);
             },
@@ -1663,13 +1663,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * - Provides defaults for the `enqueueLinks` options based on the crawler configuration.
      *      - These options can be overridden by the user.
      */
-    protected _crawlingContextEnqueueLinksWrapper = async (params: {
-        options: SetRequired<EnqueueLinksOptions, 'urls'>;
-        request: Request<Dictionary>;
-        requestQueue: RequestProvider;
-    }): Promise<BatchAddRequestsResult> => {
-        const { request, requestQueue, options } = params;
-
+    protected async enqueueLinksWithCrawlDepth(
+        options: SetRequired<EnqueueLinksOptions, 'urls'>,
+        request: Request<Dictionary>,
+        requestQueue: RequestProvider,
+    ): Promise<BatchAddRequestsResult> {
         const transformRequestFunctionWrapper: RequestTransform = (newRequest) => {
             newRequest.crawlDepth = request.crawlDepth + 1;
 
@@ -1693,13 +1691,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             transformRequestFunction: transformRequestFunctionWrapper,
         });
-    };
+    }
 
     /**
      * Generator function that yields requests bound to the crawling context.
      * - Injects `crawlDepth` to each request being added based on the crawling context request.
      */
-    protected async *_crawlingContextAddRequestsGenerator(
+    protected async *addCrawlDepthRequestGenerator(
         requests: RequestsLike,
         crawlingContextRequest: Request<Dictionary>,
     ): AsyncGenerator<Source, void, undefined> {
