@@ -934,8 +934,8 @@ export class HttpCrawler<
     ) => {
         const response = await this.httpClient.stream(
             processHttpRequestOptions({
-                ...options,
-                cookieJar: options.cookieJar as any, // HACK - the type of ToughCookieJar in got is wrong
+                ...(options as any),
+                cookieJar: options.cookieJar,
                 responseType: 'text',
             }),
             (redirectResponse, updatedRequest) => {
