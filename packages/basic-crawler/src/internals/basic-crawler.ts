@@ -1695,7 +1695,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         retried = 1,
     ): Promise<T> {
         try {
-            return addTimeoutToPromise(handler, timeout, error);
+            return await addTimeoutToPromise(handler, timeout, error);
         } catch (e) {
             if (retried <= maxRetries) {
                 // we retry on any error, not just timeout
