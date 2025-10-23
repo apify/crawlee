@@ -989,7 +989,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this._init();
         await this.stats.startCapturing();
         const periodicLogger = this.getPeriodicLogger();
-        await this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+        // Don't await, we don't want to block the execution
+        void this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
         const sigintHandler = async () => {
             this.log.warning(
@@ -1051,12 +1052,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             periodicLogger.stop();
-            await this.setStatusMessage(
+            // Don't await, we don't want to block the execution
+            void this.setStatusMessage(
                 `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
                     this.stats.state.requestsFinished
                 } succeeded, ${this.stats.state.requestsFailed} failed.`,
                 { isStatusMessageTerminal: true, level: 'INFO' },
             );
+
             this.running = false;
             this.hasFinishedBefore = true;
         }
