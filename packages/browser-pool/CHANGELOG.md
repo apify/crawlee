@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.2](https://github.com/apify/crawlee/compare/v3.15.1...v3.15.2) (2025-10-23)
+
+
+### Bug Fixes
+
+* correctly apply `launchOptions` with `useIncognitoPages` ([#3181](https://github.com/apify/crawlee/issues/3181)) ([84a4b70](https://github.com/apify/crawlee/commit/84a4b709ee59d9edbcdc9a19559fefa4e9139ba4)), closes [/github.com/apify/crawlee/issues/3173#issuecomment-3346728227](https://github.com//github.com/apify/crawlee/issues/3173/issues/issuecomment-3346728227) [#3173](https://github.com/apify/crawlee/issues/3173) [#3173](https://github.com/apify/crawlee/issues/3173)
+
+
+
+
+
 ## [3.15.1](https://github.com/apify/crawlee/compare/v3.15.0...v3.15.1) (2025-09-26)
 
 **Note:** Version bump only for package @crawlee/browser-pool

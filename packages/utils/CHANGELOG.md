@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.2](https://github.com/apify/crawlee/compare/v3.15.1...v3.15.2) (2025-10-23)
+
+
+### Features
+
+* export cheerio types in all crawler packages ([#3204](https://github.com/apify/crawlee/issues/3204)) ([f05790b](https://github.com/apify/crawlee/commit/f05790b8c4e77056fd3cdbdd6d6abe3186ddf104))
+
+
+
+
+
 ## [3.15.1](https://github.com/apify/crawlee/compare/v3.15.0...v3.15.1) (2025-09-26)
 
 **Note:** Version bump only for package @crawlee/utils

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.2](https://github.com/apify/crawlee/compare/v3.15.1...v3.15.2) (2025-10-23)
+
+
+### Bug Fixes
+
+* enable `systemInfoV2` by default ([#3208](https://github.com/apify/crawlee/issues/3208)) ([617a343](https://github.com/apify/crawlee/commit/617a343d4f594635adfff3c41a3632a19144749a))
+
+
+
+
+
 ## [3.15.1](https://github.com/apify/crawlee/compare/v3.15.0...v3.15.1) (2025-09-26)
 
 

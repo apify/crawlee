@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.2](https://github.com/apify/crawlee/compare/v3.15.1...v3.15.2) (2025-10-23)
+
+
+### Bug Fixes
+
+* correctly apply `launchOptions` with `useIncognitoPages` ([#3181](https://github.com/apify/crawlee/issues/3181)) ([84a4b70](https://github.com/apify/crawlee/commit/84a4b709ee59d9edbcdc9a19559fefa4e9139ba4)), closes [/github.com/apify/crawlee/issues/3173#issuecomment-3346728227](https://github.com//github.com/apify/crawlee/issues/3173/issues/issuecomment-3346728227) [#3173](https://github.com/apify/crawlee/issues/3173) [#3173](https://github.com/apify/crawlee/issues/3173)
+* enable `systemInfoV2` by default ([#3208](https://github.com/apify/crawlee/issues/3208)) ([617a343](https://github.com/apify/crawlee/commit/617a343d4f594635adfff3c41a3632a19144749a))
+* Re-export MemoryStorage from the crawlee package ([#3200](https://github.com/apify/crawlee/issues/3200)) ([e183ea9](https://github.com/apify/crawlee/commit/e183ea9b239a985fe64729dd8132fbe4d13f73d8))
+
+
+### Features
+
+* export cheerio types in all crawler packages ([#3204](https://github.com/apify/crawlee/issues/3204)) ([f05790b](https://github.com/apify/crawlee/commit/f05790b8c4e77056fd3cdbdd6d6abe3186ddf104))
+
+
+### Performance Improvements
+
+* don't await `crawler.setStatusMessage` ([#3207](https://github.com/apify/crawlee/issues/3207)) ([1a67ffb](https://github.com/apify/crawlee/commit/1a67ffbf22e0ecf034d30a2215c4bd0f0ecbf41e))
+
+
+
+
+
 ## [3.15.1](https://github.com/apify/crawlee/compare/v3.15.0...v3.15.1) (2025-09-26)
 
 

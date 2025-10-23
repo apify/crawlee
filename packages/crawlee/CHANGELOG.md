@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.2](https://github.com/apify/crawlee/compare/v3.15.1...v3.15.2) (2025-10-23)
+
+
+### Bug Fixes
+
+* Re-export MemoryStorage from the crawlee package ([#3200](https://github.com/apify/crawlee/issues/3200)) ([e183ea9](https://github.com/apify/crawlee/commit/e183ea9b239a985fe64729dd8132fbe4d13f73d8))
+
+
+
+
+
 ## [3.15.1](https://github.com/apify/crawlee/compare/v3.15.0...v3.15.1) (2025-09-26)
 
 **Note:** Version bump only for package crawlee
