@@ -13,6 +13,6 @@
 		"test/**/*.js",
 		"test/**/*.mjs",
 		"docs/**/*.ts",
-		"vitest.config.ts"
+		"vitest.config.mts"
 	]
 }

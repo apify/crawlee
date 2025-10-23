@@ -1,8 +1,6 @@
 import { resolve } from 'node:path';
 
 import isCI from 'is-ci';
-import tsconfigPaths from 'vite-tsconfig-paths';
-// @ts-ignore
 import { defineConfig } from 'vitest/config';
 
 let threads: { minThreads: number; maxThreads: number } | undefined;
@@ -13,7 +11,6 @@ if (isCI) {
 }
 
 export default defineConfig({
-    plugins: [tsconfigPaths()],
     esbuild: {
         target: 'es2022',
         keepNames: true,

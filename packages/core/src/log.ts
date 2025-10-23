@@ -1,3 +1,5 @@
-import log, { Log, Logger, LoggerJson, LoggerOptions, LoggerText, LogLevel } from '@apify/log';
+import type { LoggerOptions } from '@apify/log';
+import log, { Log, Logger, LoggerJson, LoggerText, LogLevel } from '@apify/log';
 
-export { log, Log, LoggerOptions, LogLevel, Logger, LoggerJson, LoggerText };
+export { log, Log, LogLevel, Logger, LoggerJson, LoggerText };
+export type { LoggerOptions };
