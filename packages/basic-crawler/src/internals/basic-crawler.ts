@@ -1571,7 +1571,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
             },
             addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
-                const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, request);
+                const newCrawlDepth = request.crawlDepth + 1;
+                const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
 
                 return this.addRequests(requestsGenerator, options);
             },
@@ -1658,10 +1659,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Wrapper around `enqueueLinks` that is bound to the crawling context.
+     * Wrapper around the crawling context's `enqueueLinks` method:
      * - Injects `crawlDepth` to each request being added based on the crawling context request.
      * - Provides defaults for the `enqueueLinks` options based on the crawler configuration.
      *      - These options can be overridden by the user.
+     * @internal
      */
     protected async enqueueLinksWithCrawlDepth(
         options: SetRequired<EnqueueLinksOptions, 'urls'>,
@@ -1694,15 +1696,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Generator function that yields requests bound to the crawling context.
-     * - Injects `crawlDepth` to each request being added based on the crawling context request.
+     * Generator function that yields requests injected with the given crawl depth.
+     * @internal
      */
     protected async *addCrawlDepthRequestGenerator(
         requests: RequestsLike,
-        crawlingContextRequest: Request<Dictionary>,
+        newRequestDepth: number,
     ): AsyncGenerator<Source, void, undefined> {
-        const newRequestDepth = crawlingContextRequest.crawlDepth + 1;
-
         for await (const request of requests) {
             if (typeof request === 'string') {
                 yield { url: request, crawlDepth: newRequestDepth };

@@ -301,15 +301,19 @@ describe('BasicCrawler', () => {
         });
     });
 
-    it('_crawlingContextAddRequestsGenerator() should generate requests with maxCrawlDepth', async () => {
-        const crawler = new BasicCrawler({ maxCrawlDepth: 2 });
+    it('addCrawlDepthRequestGenerator() should generate requests with maxCrawlDepth', async () => {
+        type AddCrawlDepthWrapperOptions = Parameters<BasicCrawler['addCrawlDepthRequestGenerator']>;
+        class TestCrawler extends BasicCrawler {
+            public exposedAddCrawlDepthRequestGenerator(...enqueueLinksOptions: AddCrawlDepthWrapperOptions) {
+                return this.addCrawlDepthRequestGenerator(...enqueueLinksOptions);
+            }
+        }
 
-        // @ts-expect-error Accessing protected method
-        const { _crawlingContextAddRequestsGenerator } = crawler;
+        const crawler = new TestCrawler();
 
         const requests = ['https://example.com/1/', { url: 'https://example.com/2/' }];
-        const request = new Request({ url: 'https://example.com/', crawlDepth: 3 });
-        const addRequestsGenerator = _crawlingContextAddRequestsGenerator(requests, request);
+        const newCrawlDepth = 4;
+        const addRequestsGenerator = crawler.exposedAddCrawlDepthRequestGenerator(requests, newCrawlDepth);
 
         const generatedRequests: Source[] = [];
         for await (const generatedRequest of addRequestsGenerator) {
