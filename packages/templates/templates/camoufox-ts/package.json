@@ -11,7 +11,7 @@
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
         "@types/fs-extra": "^11",
-        "@types/node": "^22.0.0",
+        "@types/node": "^24.0.0",
         "fs-extra": "^11.3.0",
         "tsx": "^4.4.0",
         "typescript": "~5.9.0"
