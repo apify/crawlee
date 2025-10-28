@@ -74,7 +74,7 @@
         "@types/lodash.isequal": "^4.5.8",
         "@types/lodash.merge": "^4.6.7",
         "@types/mime-types": "^2.1.1",
-        "@types/node": "^22.5.1",
+        "@types/node": "^24.0.0",
         "@types/proper-lockfile": "^4.1.2",
         "@types/ps-tree": "^1.1.2",
         "@types/rimraf": "^4.0.0",

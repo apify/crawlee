@@ -749,7 +749,7 @@ __metadata:
     "@types/lodash.isequal": "npm:^4.5.8"
     "@types/lodash.merge": "npm:^4.6.7"
     "@types/mime-types": "npm:^2.1.1"
-    "@types/node": "npm:^22.5.1"
+    "@types/node": "npm:^24.0.0"
     "@types/proper-lockfile": "npm:^4.1.2"
     "@types/ps-tree": "npm:^1.1.2"
     "@types/rimraf": "npm:^4.0.0"
@@ -2878,21 +2878,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*":
+"@types/node@npm:*, @types/node@npm:^24.0.0":
   version: 24.9.1
   resolution: "@types/node@npm:24.9.1"
   dependencies:
     undici-types: "npm:~7.16.0"
   checksum: 10c0/c52f8168080ef9a7c3dc23d8ac6061fab5371aad89231a0f6f4c075869bc3de7e89b075b1f3e3171d9e5143d0dda1807c3dab8e32eac6d68f02e7480e7e78576
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^22.5.1":
-  version: 22.18.12
-  resolution: "@types/node@npm:22.18.12"
-  dependencies:
-    undici-types: "npm:~6.21.0"
-  checksum: 10c0/13a4638f2baba3efba2b8bc369dd6f950dccbfca78f318f9c9f2c7adc11fce14fc119723c38567dada2d57a873c092b7356c024924d5974a08f3c1f93dc706c6
   languageName: node
   linkType: hard
 
@@ -13041,13 +13032,6 @@ __metadata:
     has-symbols: "npm:^1.1.0"
     which-boxed-primitive: "npm:^1.1.1"
   checksum: 10c0/7dbd35ab02b0e05fe07136c72cb9355091242455473ec15057c11430129bab38b7b3624019b8778d02a881c13de44d63cd02d122ee782fb519e1de7775b5b982
-  languageName: node
-  linkType: hard
-
-"undici-types@npm:~6.21.0":
-  version: 6.21.0
-  resolution: "undici-types@npm:6.21.0"
-  checksum: 10c0/c01ed51829b10aa72fc3ce64b747f8e74ae9b60eafa19a7b46ef624403508a54c526ffab06a14a26b3120d055e1104d7abe7c9017e83ced038ea5cf52f8d5e04
   languageName: node
   linkType: hard
 
