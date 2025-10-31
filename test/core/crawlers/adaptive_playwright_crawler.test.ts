@@ -2,7 +2,12 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { Configuration, type Dictionary, EventType, KeyValueStore } from '@crawlee/core';
-import type { AdaptivePlaywrightCrawlerOptions, Request } from '@crawlee/playwright';
+import type {
+    AdaptivePlaywrightCrawlerContext,
+    AdaptivePlaywrightCrawlerOptions,
+    LoadedContext,
+    Request,
+} from '@crawlee/playwright';
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
@@ -229,6 +234,35 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(resultChecker).toHaveBeenCalledTimes(1);
     });
 
+    test.each([['static'], ['clientOnly']] as const)(
+        'crawlingContext.addRequests() should add requests correctly (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}`).toString();
+
+            let requestContext: LoadedContext<AdaptivePlaywrightCrawlerContext> | undefined;
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                const isStartUrl = context.request.url === url;
+
+                if (isStartUrl) await context.addRequests([`${url}/1`]);
+                else requestContext = context;
+            };
+
+            const crawler = await makeOneshotCrawler(
+                { requestHandler, renderingTypePredictor, maxRequestsPerCrawl: 10 },
+                [],
+            );
+
+            await crawler.run([{ url, crawlDepth: 2 }]);
+
+            assert(requestContext);
+            expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
+        },
+    );
+
     describe('should enqueue links correctly', () => {
         test.each([
             ['/static', 'static'],
@@ -239,12 +273,12 @@ describe('AdaptivePlaywrightCrawler', () => {
                 renderingType,
             });
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
-            const enqueuedUrls = new Set<string>();
+            const enqueuedRequests: Request[] = [];
 
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
                 async ({ enqueueLinks, request }) => {
                     if (request.label === 'enqueued-url') {
-                        enqueuedUrls.add(request.url);
+                        enqueuedRequests.push(request);
                     } else {
                         await enqueueLinks({ label: 'enqueued-url' });
                     }
@@ -262,6 +296,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
             await crawler.run();
 
+            const enqueuedUrls = Array.from(enqueuedRequests).map((request) => request.url);
             expect(new Set(enqueuedUrls)).toEqual(
                 new Set([
                     `http://${HOSTNAME}:${port}/static?q=1`,
@@ -271,6 +306,12 @@ describe('AdaptivePlaywrightCrawler', () => {
                     `http://${HOSTNAME}:${port}/static?q=5`,
                 ]),
             );
+
+            expect(enqueuedRequests[0]).toMatchObject({
+                url: enqueuedUrls[0],
+                label: 'enqueued-url',
+                crawlDepth: 1,
+            });
         });
     });
 
