@@ -120,6 +120,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
 
         args.positional('project-name', {
             describe: 'Name of the new project folder.',
+            type: 'string',
         });
         args.option('template', {
             alias: 't',
