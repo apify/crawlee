@@ -144,6 +144,7 @@ jobs:
                     yarn install --no-immutable
 
             -   name: Commit changes
+                id: commit
                 uses: EndBug/add-and-commit@v9
                 with:
                   author_name: Apify Release Bot
@@ -154,7 +155,11 @@ jobs:
                 uses: apify/workflows/execute-workflow@main
                 with:
                     workflow: publish-to-npm.yml
-                    inputs: '{ "ref": "master" }'
+                    inputs: >
+                      {
+                        "ref": ${{ steps.commit.outputs.commit_long_sha || github.sha }},
+                        "dist-tag": "prod"
+                      }
 
             -   name: Trigger Docker image builds
                 uses: peter-evans/repository-dispatch@v4
