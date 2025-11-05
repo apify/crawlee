@@ -24,6 +24,10 @@ on:
                 type: string
                 default: 'prod'
 
+concurrency:
+    group: publish-to-npm
+    cancel-in-progress: false
+
 permissions:
     id-token: write # Required for OIDC
     contents: write # Required to push updates
