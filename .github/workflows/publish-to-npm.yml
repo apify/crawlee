@@ -87,12 +87,22 @@ jobs:
 
             - name: Publish to NPM (@latest)
               if: inputs.dist-tag == 'prod'
-              run: yarn publish:prod --yes --no-verify-access
+              uses: nick-fields/retry@v3
+              with:
+                  timeout_minutes: 10
+                  max_attempts: 5
+                  retry_wait_seconds: 30
+                  command: yarn publish:prod --yes --no-verify-access
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             - name: Publish to NPM (@next)
               if: inputs.dist-tag == 'next'
-              run: yarn publish:next --yes --no-verify-access
+              uses: nick-fields/retry@v3
+              with:
+                  timeout_minutes: 10
+                  max_attempts: 5
+                  retry_wait_seconds: 30
+                  command: yarn publish:next --yes --no-verify-access
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
