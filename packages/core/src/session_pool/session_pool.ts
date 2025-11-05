@@ -289,10 +289,10 @@ export class SessionPool extends EventEmitter {
      * This also allows you to add session with overridden session options (e.g. with specific session id).
      * @param [options] The configuration options for the session being added to the session pool.
      */
-    async newSession(options?: { proxyInfo?: ProxyInfo }): Promise<Session> {
+    async newSession(sessionOptions?: SessionOptions): Promise<Session> {
         this._throwIfNotInitialized();
 
-        const newSession = await this.createSessionFunction(this, { sessionOptions: options });
+        const newSession = await this.createSessionFunction(this, { sessionOptions });
         this._addSession(newSession);
 
         return newSession;

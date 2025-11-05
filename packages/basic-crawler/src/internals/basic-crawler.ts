@@ -1293,6 +1293,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         proxyInfo: await this.proxyConfiguration?.newProxyInfo({
                             request: request ?? undefined,
                         }),
+                        maxUsageCount: 1,
                     });
                 },
                 this.internalTimeoutMillis,
