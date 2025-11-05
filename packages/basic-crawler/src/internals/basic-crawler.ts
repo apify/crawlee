@@ -17,12 +17,14 @@ import type {
     ProxyInfo,
     Request,
     RequestsLike,
+    RequestTransform,
     RestrictedCrawlingContext,
     RouterHandler,
     RouterRoutes,
     Session,
     SessionPoolOptions,
     SkippedRequestCallback,
+    Source,
     StatisticsOptions,
     StatisticState,
 } from '@crawlee/core';
@@ -1564,49 +1566,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             request,
             session,
             enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
-                await this.getRequestQueue();
+                const requestQueue = await this.getRequestQueue();
 
-                return enqueueLinks({
-                    // specify the RQ first to allow overriding it
-                    requestQueue: this.requestManager!,
-                    robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-                    onSkippedRequest: this.handleSkippedRequest,
-                    limit: this.calculateEnqueuedRequestLimit(options.limit),
-                    ...options,
-
-                    // Allow all previous option defaults to be overridden by the user, but execute this as a wrapper
-                    // around the original function, to inject `crawlDepth` and check the `maxCrawlDepth` limit.
-                    transformRequestFunction: (newRequest) => {
-                        newRequest.crawlDepth = (request?.crawlDepth ?? 0) + 1;
-
-                        if (this.maxCrawlDepth !== undefined && newRequest.crawlDepth > this.maxCrawlDepth) {
-                            newRequest.skippedReason = 'depth';
-                            return false;
-                        }
-
-                        return options.transformRequestFunction?.(newRequest) ?? newRequest;
-                    },
-                });
+                return this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
             },
             addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
-                const newRequestDepth = (request?.crawlDepth ?? 0) + 1;
+                const newCrawlDepth = request.crawlDepth + 1;
+                const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
 
-                async function* injectDepth() {
-                    for await (const rq of requests) {
-                        if (typeof rq === 'string') {
-                            yield { url: rq, crawlDepth: newRequestDepth };
-                        } else {
-                            rq.crawlDepth ??= newRequestDepth;
-                            yield rq;
-                        }
-                    }
-                }
-
-                return this.addRequests(injectDepth(), options);
+                return this.addRequests(requestsGenerator, options);
             },
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
+            sendRequest: createSendRequest(this.httpClient, request, session, () => crawlingContext.proxyInfo?.url),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 
@@ -1682,6 +1654,61 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 } catch {
                     // We don't have the lock, or the request was never locked. Either way it's fine
                 }
+            }
+        }
+    }
+
+    /**
+     * Wrapper around the crawling context's `enqueueLinks` method:
+     * - Injects `crawlDepth` to each request being added based on the crawling context request.
+     * - Provides defaults for the `enqueueLinks` options based on the crawler configuration.
+     *      - These options can be overridden by the user.
+     * @internal
+     */
+    protected async enqueueLinksWithCrawlDepth(
+        options: SetRequired<EnqueueLinksOptions, 'urls'>,
+        request: Request<Dictionary>,
+        requestQueue: RequestProvider,
+    ): Promise<BatchAddRequestsResult> {
+        const transformRequestFunctionWrapper: RequestTransform = (newRequest) => {
+            newRequest.crawlDepth = request.crawlDepth + 1;
+
+            if (this.maxCrawlDepth !== undefined && newRequest.crawlDepth > this.maxCrawlDepth) {
+                newRequest.skippedReason = 'depth';
+                return false;
+            }
+
+            // After injecting the crawlDepth, we call the user-provided transform function, if there is one.
+            return options.transformRequestFunction?.(newRequest) ?? newRequest;
+        };
+
+        return enqueueLinks({
+            requestQueue,
+            robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
+            onSkippedRequest: this.handleSkippedRequest,
+            limit: this.calculateEnqueuedRequestLimit(options.limit),
+
+            // Allow user options to override defaults set above ⤴
+            ...options,
+
+            transformRequestFunction: transformRequestFunctionWrapper,
+        });
+    }
+
+    /**
+     * Generator function that yields requests injected with the given crawl depth.
+     * @internal
+     */
+    protected async *addCrawlDepthRequestGenerator(
+        requests: RequestsLike,
+        newRequestDepth: number,
+    ): AsyncGenerator<Source, void, undefined> {
+        for await (const request of requests) {
+            if (typeof request === 'string') {
+                yield { url: request, crawlDepth: newRequestDepth };
+            } else {
+                request.crawlDepth ??= newRequestDepth;
+                yield request;
             }
         }
     }
