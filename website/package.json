@@ -74,5 +74,8 @@
             "last 5 safari version"
         ]
     },
+    "resolutions": {
+        "@rspack/core": "1.5.8"
+    },
     "packageManager": "yarn@4.10.3"
 }
