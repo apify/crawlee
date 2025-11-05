@@ -6,7 +6,6 @@ import type {
     EnqueueLinksOptions,
     ErrorHandler,
     LoadedContext,
-    ProxyConfiguration,
     ProxyInfo,
     RequestHandler,
     RequestProvider,
@@ -26,7 +25,6 @@ import {
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
     tryAbsoluteURL,
-    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -142,12 +140,6 @@ export interface BrowserCrawlerOptions<
      */
     browserPoolOptions?: Partial<BrowserPoolOptions> &
         Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
-
-    /**
-     * If set, the crawler will be configured for all connections to use
-     * the Proxy URLs provided and rotated according to the configuration.
-     */
-    proxyConfiguration?: ProxyConfiguration;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -267,12 +259,6 @@ export abstract class BrowserCrawler<
     GoToOptions extends Dictionary = Dictionary,
 > extends BasicCrawler<Context> {
     /**
-     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
-     * Only available if used by the crawler.
-     */
-    proxyConfiguration?: ProxyConfiguration;
-
-    /**
      * A reference to the underlying {@apilink BrowserPool} class that manages the crawler's browsers.
      */
     browserPool: BrowserPool<InternalBrowserPoolOptions>;
@@ -299,7 +285,6 @@ export abstract class BrowserCrawler<
         sessionPoolOptions: ow.optional.object,
         persistCookiesPerSession: ow.optional.boolean,
         useSessionPool: ow.optional.boolean,
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         ignoreShadowRoots: ow.optional.boolean,
         ignoreIframes: ow.optional.boolean,
     };
@@ -316,7 +301,6 @@ export abstract class BrowserCrawler<
             navigationTimeoutSecs = 60,
             requestHandlerTimeoutSecs = 60,
             persistCookiesPerSession,
-            proxyConfiguration,
             launchContext = {},
             browserPoolOptions,
             preNavigationHooks = [],
@@ -348,7 +332,6 @@ export abstract class BrowserCrawler<
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
         this.requestHandlerTimeoutInnerMillis = requestHandlerTimeoutSecs * 1000;
-        this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
 
@@ -436,18 +419,14 @@ export abstract class BrowserCrawler<
 
         const useIncognitoPages = this.launchContext?.useIncognitoPages;
 
-        if (this.proxyConfiguration) {
-            const { session } = crawlingContext;
-
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, {
-                request: crawlingContext.request,
-            });
+        if (crawlingContext.session?.proxyInfo) {
+            const proxyInfo = crawlingContext.session.proxyInfo;
             crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
 
-            if (this.proxyConfiguration.isManInTheMiddle) {
+            if (proxyInfo?.ignoreTlsErrors) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
@@ -655,18 +634,21 @@ export abstract class BrowserCrawler<
         const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
 
         if (this.sessionPool) {
-            launchContextExtends.session = await this.sessionPool.getSession();
+            launchContextExtends.session = await this.sessionPool.newSession({
+                proxyInfo: await this.proxyConfiguration?.newProxyInfo({
+                    // cannot pass a request here, since session is created on browser launch
+                }),
+            });
         }
 
-        if (this.proxyConfiguration && !launchContext.proxyUrl) {
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session?.id, {
-                proxyTier: (launchContext.proxyTier as number) ?? undefined,
-            });
+        if (!launchContext.proxyUrl && launchContextExtends.session?.proxyInfo) {
+            const proxyInfo = launchContextExtends.session.proxyInfo;
+
             launchContext.proxyUrl = proxyInfo?.url;
             launchContextExtends.proxyInfo = proxyInfo;
 
             // Disable SSL verification for MITM proxies
-            if (this.proxyConfiguration.isManInTheMiddle) {
+            if (proxyInfo?.ignoreTlsErrors) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
