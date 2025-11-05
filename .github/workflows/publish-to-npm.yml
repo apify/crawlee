@@ -1,0 +1,112 @@
+name: Publish to NPM
+
+on:
+    workflow_call:
+        inputs:
+            ref:
+                description: Git ref to publish (branch, tag, or commit SHA)
+                required: true
+                type: string
+            dist-tag:
+                description: NPM dist-tag (prod or next)
+                required: false
+                type: string
+                default: 'prod'
+    workflow_dispatch:
+        inputs:
+            ref:
+                description: Git ref to publish (branch, tag, or commit SHA)
+                required: true
+                type: string
+            dist-tag:
+                description: NPM dist-tag (prod or next)
+                required: false
+                type: string
+                default: 'prod'
+
+concurrency:
+    group: publish-to-npm
+    cancel-in-progress: false
+
+permissions:
+    id-token: write # Required for OIDC
+    contents: write # Required to push updates
+
+jobs:
+    publish_to_npm:
+        name: Publish to NPM (${{ inputs.dist-tag }})
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  ref: ${{ inputs.ref }}
+                  token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                  fetch-depth: 0
+
+            - name: Use Node.js 24
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+                  package-manager-cache: false
+
+            - name: Enable corepack
+              run: |
+                  corepack enable
+                  corepack prepare yarn@stable --activate
+
+            - name: Activate cache for Node.js 24
+              uses: actions/setup-node@v6
+              with:
+                  cache: 'yarn'
+
+            - name: Turbo cache
+              id: turbo-cache
+              uses: actions/cache@v4
+              with:
+                  path: .turbo
+                  key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                  restore-keys: |
+                      turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            - name: Install dependencies
+              run: yarn
+
+            - name: Build packages
+              run: yarn ci:build
+
+            - name: Bump canary versions
+              if: inputs.dist-tag == 'next'
+              run: |
+                    yarn turbo copy --force -- --canary --preid=beta
+
+            - name: Commit changes
+              if: inputs.dist-tag == 'next'
+              uses: EndBug/add-and-commit@v9
+              id: commit
+              with:
+                author_name: Apify Release Bot
+                author_email: noreply@apify.com
+                message: 'chore: bump canary versions [skip ci]'
+                push: false
+
+            - name: Publish to NPM (@latest)
+              if: inputs.dist-tag == 'prod'
+              uses: nick-fields/retry@v3
+              with:
+                  timeout_minutes: 10
+                  max_attempts: 5
+                  retry_wait_seconds: 30
+                  command: yarn publish:prod --yes --no-verify-access
+              env:
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+
+            - name: Publish to NPM (@next)
+              if: inputs.dist-tag == 'next'
+              uses: nick-fields/retry@v3
+              with:
+                  timeout_minutes: 10
+                  max_attempts: 5
+                  retry_wait_seconds: 30
+                  command: yarn publish:next --yes --no-verify-access
+              env:
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

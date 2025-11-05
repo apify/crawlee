@@ -177,8 +177,11 @@ jobs:
         steps:
             -   name: Checkout repository
                 uses: actions/checkout@v5
+                with:
+                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                    fetch-depth: 0
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
@@ -189,7 +192,7 @@ jobs:
                     corepack enable
                     corepack prepare yarn@stable --activate
 
-            -   name: Activate cache for Node.js 20
+            -   name: Activate cache for Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     cache: 'yarn'
@@ -212,33 +215,28 @@ jobs:
             -   name: Generate changed packages list
                 id: changed-packages
                 run: |
-                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" >> $GITHUB_OUTPUT
+                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" | tee -a $GITHUB_OUTPUT
 
             -   name: Report nothing to release
                 if: steps.changed-packages.outputs.changed_packages == '0'
                 run: echo "Nothing to release"
 
-            -   name: Release @next
+            -   name: Publish packages
                 if: steps.changed-packages.outputs.changed_packages != '0'
-                run: |
-                    git config --global user.name 'Apify Release Bot'
-                    git config --global user.email 'noreply@apify.com'
-                    yarn turbo copy --force -- --canary --preid=beta
-                    git commit -am "chore: bump canary versions [skip ci]"
-
-                    echo "access=public" > .npmrc
-                    echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc
-                    yarn publish:next --yes --no-verify-access
-                env:
-                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
-                    GIT_USER: 'noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
-                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                uses: apify/workflows/execute-workflow@main
+                with:
+                    workflow: publish-to-npm.yml
+                    inputs: >
+                      {
+                        "ref": "${{ steps.commit.outputs.commit_long_sha || github.sha }}",
+                        "dist-tag": "next"
+                      }
 
             -   name: Collect versions for Docker images
                 id: versions
                 run: |
                     crawlee=`node -p "require('./packages/crawlee/package.json').version"`
-                    echo "crawlee=$crawlee" >> $GITHUB_OUTPUT
+                    echo "crawlee=$crawlee" | tee -a $GITHUB_OUTPUT
 
             -   name: Trigger Docker image builds
                 uses: peter-evans/repository-dispatch@v4
