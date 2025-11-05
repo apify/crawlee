@@ -119,5 +119,8 @@
     "volta": {
         "node": "24.11.0",
         "yarn": "4.10.3"
+    },
+    "resolutions": {
+        "@rspack/core": "1.5.8"
     }
 }
