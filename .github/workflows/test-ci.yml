@@ -221,19 +221,6 @@ jobs:
                 if: steps.changed-packages.outputs.changed_packages == '0'
                 run: echo "Nothing to release"
 
-            -   name: Bump canary versions
-                if: steps.changed-packages.outputs.changed_packages != '0'
-                run: |
-                    yarn turbo copy --force -- --canary --preid=beta
-
-            -   name: Commit changes
-                uses: EndBug/add-and-commit@v9
-                id: commit
-                with:
-                  author_name: Apify Release Bot
-                  author_email: noreply@apify.com
-                  message: 'chore: bump canary versions [skip ci]'
-
             -   name: Publish packages
                 if: steps.changed-packages.outputs.changed_packages != '0'
                 uses: apify/workflows/execute-workflow@main
@@ -241,7 +228,7 @@ jobs:
                     workflow: publish-to-npm.yml
                     inputs: >
                       {
-                        "ref": ${{ steps.commit.outputs.commit_long_sha || github.sha }},
+                        "ref": "${{ steps.commit.outputs.commit_long_sha || github.sha }}",
                         "dist-tag": "next"
                       }
 
