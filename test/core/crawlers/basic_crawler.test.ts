@@ -9,6 +9,7 @@ import type {
     ErrorHandler,
     RequestHandler,
     RequestOptions,
+    Source,
 } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -27,6 +28,8 @@ import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import type { SetRequired } from 'type-fest';
+import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
 import log from '@apify/log';
@@ -202,47 +205,127 @@ describe('BasicCrawler', () => {
         ]);
     });
 
-    describe('enqueueLinks should respect maxCrawlDepth', async () => {
-        const expectedUrls = ['https://example.com/', 'https://example.com/deep/', 'https://example.com/deep/deep/'];
+    test('enqueueLinks should respect maxCrawlDepth', async () => {
+        const processedUrls: string[] = [];
 
-        const runCrawlWithDepthLimit = async (enqueueLinksOptions?: EnqueueLinksOptions): Promise<string[]> => {
-            const processedUrls: string[] = [];
+        const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
+            processedUrls.push(request.url);
+            const url = new URL(request.url);
+            url.pathname = `${url.pathname}deep/`;
 
-            const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
-                processedUrls.push(request.url);
-                const url = new URL(request.url);
-                url.pathname = `${url.pathname}deep/`;
-
-                await enqueueLinks({
-                    urls: [url.toString()],
-                    ...enqueueLinksOptions,
-                });
-            };
-
-            const crawler = new BasicCrawler({
-                maxCrawlDepth: 2,
-                maxRequestsPerCrawl: 10, // safeguard against infinite loops
-                requestHandler,
+            await enqueueLinks({
+                urls: [url.toString()],
             });
-
-            await crawler.run(['https://example.com/']);
-
-            return processedUrls;
         };
 
-        test("without user's transformRequestFunction", async () => {
-            const processedUrls = await runCrawlWithDepthLimit();
-            expect(processedUrls).toEqual(expectedUrls);
+        const crawler = new BasicCrawler({
+            maxCrawlDepth: 2,
+            maxRequestsPerCrawl: 10, // safeguard against infinite loops
+            requestHandler,
         });
 
-        test('while executing user provided transformRequestFunction', async () => {
-            const transformRequestFunction = vi.fn((request: RequestOptions) => request);
+        await crawler.run(['https://example.com/']);
 
-            const processedUrls = await runCrawlWithDepthLimit({ transformRequestFunction });
-            expect(processedUrls).toEqual(expectedUrls);
+        expect(processedUrls).toEqual([
+            'https://example.com/',
+            'https://example.com/deep/',
+            'https://example.com/deep/deep/',
+        ]);
+    });
+
+    describe('enqueueLinksWithCrawlDepth()', () => {
+        let onSkippedRequestMock: Mock;
+        let addRequestsBatchedMock: Mock;
+        let options: SetRequired<EnqueueLinksOptions, 'urls'>;
+        let request: Request;
+        let requestQueue: RequestQueue;
+
+        type EnqueueLinksWrapperOptions = Parameters<BasicCrawler['enqueueLinksWithCrawlDepth']>;
+        class TestCrawler extends BasicCrawler {
+            public exposedEnqueueLinksWithCrawlDepth(...enqueueLinksOptions: EnqueueLinksWrapperOptions) {
+                return this.enqueueLinksWithCrawlDepth(...enqueueLinksOptions);
+            }
+        }
+
+        const crawler = new TestCrawler({ maxCrawlDepth: 3 });
+
+        beforeEach(() => {
+            addRequestsBatchedMock = vi.fn().mockImplementation(async () => ({}));
+            onSkippedRequestMock = vi.fn();
+
+            options = {
+                urls: ['https://example.com/1/', 'https://example.com/2/'],
+                onSkippedRequest: onSkippedRequestMock,
+            };
+            request = new Request({ url: 'https://example.com/', crawlDepth: 2 });
+            requestQueue = {
+                addRequestsBatched: addRequestsBatchedMock as RequestQueue['addRequestsBatched'],
+            } as RequestQueue;
+        });
+
+        it('should generate requests with maxCrawlDepth', async () => {
+            await crawler.exposedEnqueueLinksWithCrawlDepth(options, request, requestQueue);
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(2);
+            expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
+            expect(requests[1]).toMatchObject({ url: 'https://example.com/2/', crawlDepth: 3 });
+
+            expect(onSkippedRequestMock).not.toBeCalled();
+        });
+
+        it('should skip requests with crawlDepth exceeding maxCrawlDepth', async () => {
+            const requestWithMaxDepth = new Request({ url: 'https://example.com/', crawlDepth: 3 });
+            await crawler.exposedEnqueueLinksWithCrawlDepth(options, requestWithMaxDepth, requestQueue);
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(0);
+
+            const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
+            expect(skippedRequests).toHaveLength(2);
+            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
+            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+        });
+
+        it('should respect user provided transformRequestFunction', async () => {
+            const transformRequestFunction = vi.fn((req: RequestOptions) => req);
+            const optionsWithTransform = { ...options, transformRequestFunction };
+
+            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
 
             expect(transformRequestFunction).toHaveBeenCalled();
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(2);
+            expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
         });
+    });
+
+    it('addCrawlDepthRequestGenerator() should generate requests with maxCrawlDepth', async () => {
+        type AddCrawlDepthWrapperOptions = Parameters<BasicCrawler['addCrawlDepthRequestGenerator']>;
+        class TestCrawler extends BasicCrawler {
+            public exposedAddCrawlDepthRequestGenerator(...enqueueLinksOptions: AddCrawlDepthWrapperOptions) {
+                return this.addCrawlDepthRequestGenerator(...enqueueLinksOptions);
+            }
+        }
+
+        const crawler = new TestCrawler();
+
+        const requests = ['https://example.com/1/', { url: 'https://example.com/2/' }];
+        const newCrawlDepth = 4;
+        const addRequestsGenerator = crawler.exposedAddCrawlDepthRequestGenerator(requests, newCrawlDepth);
+
+        const generatedRequests: Source[] = [];
+        for await (const generatedRequest of addRequestsGenerator) {
+            generatedRequests.push(generatedRequest);
+        }
+
+        expect(generatedRequests).toHaveLength(2);
+        expect(generatedRequests[0].url).toBe('https://example.com/1/');
+        expect(generatedRequests[0].crawlDepth).toBe(4);
+
+        expect(generatedRequests[1].url).toBe('https://example.com/2/');
+        expect(generatedRequests[1].crawlDepth).toBe(4);
     });
 
     test('should correctly combine shorthand and full length options', async () => {
