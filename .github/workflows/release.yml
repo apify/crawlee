@@ -126,44 +126,40 @@ jobs:
             -   name: Build
                 run: yarn ci:build
 
-            -   name: Setup git user and npm
-                run: |
-                    git config --global user.name "Apify Release Bot"
-                    git config --global user.email "noreply@apify.com"
-
-                    echo "access=public" > .npmrc
-                    echo "//registry.npmjs.org/:_authToken=${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}" >> .npmrc
-
             -   name: Bump version to custom version
                 if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
                 run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
                 env:
-                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
-                    GIT_USER: 'noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             -   name: Bump version to ${{ github.event.inputs.version }} version
                 if: ${{ github.event.inputs.version != 'custom' }}
                 run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
                 env:
-                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
-                    GIT_USER: 'noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             -   name: Pin versions in internal dependencies and update lockfile
                 run: |
                     yarn release:pin-versions
                     yarn install --no-immutable
-                    git add .
-                    git diff-index --quiet HEAD || git commit -m 'chore(release): update internal dependencies [skip ci]'
-                    git push
+
+            -   name: Commit changes
+                id: commit
+                uses: EndBug/add-and-commit@v9
+                with:
+                  author_name: Apify Release Bot
+                  author_email: noreply@apify.com
+                  message: 'chore(release): update internal dependencies [skip ci]'
 
             -   name: Publish packages
-                run: yarn publish:prod --yes --no-verify-access
-                env:
-                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
-                    GIT_USER: 'noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
-                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                uses: apify/workflows/execute-workflow@main
+                with:
+                    workflow: publish-to-npm.yml
+                    inputs: >
+                      {
+                        "ref": ${{ steps.commit.outputs.commit_long_sha || github.sha }},
+                        "dist-tag": "prod"
+                      }
 
             -   name: Trigger Docker image builds
                 uses: peter-evans/repository-dispatch@v4
