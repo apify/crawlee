@@ -67,6 +67,9 @@ jobs:
             - name: Install dependencies
               run: yarn
 
+            - name: Build packages
+              run: yarn ci:build
+
             - name: Bump canary versions
               if: inputs.dist-tag == 'next'
               run: |
@@ -81,9 +84,6 @@ jobs:
                 author_email: noreply@apify.com
                 message: 'chore: bump canary versions [skip ci]'
                 push: false
-
-            - name: Build packages
-              run: yarn ci:build
 
             - name: Publish to NPM (@latest)
               if: inputs.dist-tag == 'prod'

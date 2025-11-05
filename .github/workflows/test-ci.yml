@@ -215,7 +215,7 @@ jobs:
             -   name: Generate changed packages list
                 id: changed-packages
                 run: |
-                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" >> $GITHUB_OUTPUT
+                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" | tee -a $GITHUB_OUTPUT
 
             -   name: Report nothing to release
                 if: steps.changed-packages.outputs.changed_packages == '0'
@@ -236,7 +236,7 @@ jobs:
                 id: versions
                 run: |
                     crawlee=`node -p "require('./packages/crawlee/package.json').version"`
-                    echo "crawlee=$crawlee" >> $GITHUB_OUTPUT
+                    echo "crawlee=$crawlee" | tee -a $GITHUB_OUTPUT
 
             -   name: Trigger Docker image builds
                 uses: peter-evans/repository-dispatch@v4
