@@ -30,7 +30,7 @@ export function extractMicrodata(item: CheerioAPI | string): Dictionary<any> {
     };
 
     const extractItem = (elem: any): any => {
-        const item: any = { _type: $(elem).attr('itemtype') };
+        const _item: any = { _type: $(elem).attr('itemtype') };
         let count = 0;
 
         $(elem)
@@ -43,12 +43,12 @@ export function extractMicrodata(item: CheerioAPI | string): Dictionary<any> {
 
                 const value = $(this).is('[itemscope]') ? extractItem(this) : extractValue(this);
 
-                addProperty(item, propName as string, value);
+                addProperty(_item, propName as string, value);
                 count++;
             });
 
         if (count === 0) {
-            addProperty(item, '_value', extractValue(elem));
+            addProperty(_item, '_value', extractValue(elem));
         }
 
         return item;
