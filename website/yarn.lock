@@ -2178,20 +2178,39 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docsearch/css@npm:4.2.0":
-  version: 4.2.0
-  resolution: "@docsearch/css@npm:4.2.0"
-  checksum: 10c0/e4ce5f6ccc5cb337121bcdb290c00f124c545d2fe1d620cd2a0075e084ccc452ed85a6b3592a359d65551a8843ed16b4d12f6ad78df3a00363910c2b4bc8b111
+"@docsearch/core@npm:4.3.1":
+  version: 4.3.1
+  resolution: "@docsearch/core@npm:4.3.1"
+  peerDependencies:
+    "@types/react": ">= 16.8.0 < 20.0.0"
+    react: ">= 16.8.0 < 20.0.0"
+    react-dom: ">= 16.8.0 < 20.0.0"
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 10c0/e43d62b4b339fa9d7780703f6c98e63fa57e8e6ceb749fee5eed4f6649e84cddd13c513471c09405c8082540ae0b0045a4196b93edf5fa873410a2b110a6ea12
+  languageName: node
+  linkType: hard
+
+"@docsearch/css@npm:4.3.1":
+  version: 4.3.1
+  resolution: "@docsearch/css@npm:4.3.1"
+  checksum: 10c0/1fb25eecf7e6c40709a70b1178962b8d07fc88025d2c6cabb7cb0b812c2a113a28c8c4b0174ac9d79ea3513a95c547caacba0101ed762613c2b8ea3e34c7b84f
   languageName: node
   linkType: hard
 
 "@docsearch/react@npm:^3.9.0 || ^4.1.0":
-  version: 4.2.0
-  resolution: "@docsearch/react@npm:4.2.0"
+  version: 4.3.1
+  resolution: "@docsearch/react@npm:4.3.1"
   dependencies:
     "@ai-sdk/react": "npm:^2.0.30"
     "@algolia/autocomplete-core": "npm:1.19.2"
-    "@docsearch/css": "npm:4.2.0"
+    "@docsearch/core": "npm:4.3.1"
+    "@docsearch/css": "npm:4.3.1"
     ai: "npm:^5.0.30"
     algoliasearch: "npm:^5.28.0"
     marked: "npm:^16.3.0"
@@ -2210,7 +2229,7 @@ __metadata:
       optional: true
     search-insights:
       optional: true
-  checksum: 10c0/5aee1e57cbc82476d956caa275e2be70a4cd82107d7b91d1c6ad66b6c189aef33933f50d446425661a99bc8aaf5a32115e5f3c817baf75696568a68719a53141
+  checksum: 10c0/867db4ba2dc826d15a54992271600b50c38b79ff002dcd8d3a6fc0a89d716901b108bd9a9a01db6e273084f78d2e383706ae4c173a0a98a114f1e01ecf0c1e0a
   languageName: node
   linkType: hard
 
@@ -5496,13 +5515,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.11.0":
-  version: 1.13.1
-  resolution: "axios@npm:1.13.1"
+  version: 1.13.2
+  resolution: "axios@npm:1.13.2"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.4"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/de9c3c6de43d3ee1146d3afe78645f19450cac6a5d7235bef8b8e8eeb705c2e47e2d231dea99cecaec4dae1897c521118ca9413b9d474063c719c4d94c5b9adc
+  checksum: 10c0/e8a42e37e5568ae9c7a28c348db0e8cf3e43d06fcbef73f0048669edfe4f71219664da7b6cc991b0c0f01c28a48f037c515263cb79be1f1ae8ff034cd813867b
   languageName: node
   linkType: hard
 
@@ -14740,9 +14759,9 @@ __metadata:
   linkType: hard
 
 "sax@npm:^1.2.4":
-  version: 1.4.2
-  resolution: "sax@npm:1.4.2"
-  checksum: 10c0/1009e9c5d677a6e256ab6295d486c092c6e70aeb54abe7040fee02af72f51e464ca3708da347a7779fa56ad895f03c36eb7d3b20454df3a7a0fcf8b358eef6fa
+  version: 1.4.3
+  resolution: "sax@npm:1.4.3"
+  checksum: 10c0/45bba07561d93f184a8686e1a543418ced8c844b994fbe45cc49d5cd2fc8ac7ec949dae38565e35e388ad0cca2b75997a29b6857c927bf6553da3f80ed0e4e62
   languageName: node
   linkType: hard
 
