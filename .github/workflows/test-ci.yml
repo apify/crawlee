@@ -215,24 +215,11 @@ jobs:
             -   name: Generate changed packages list
                 id: changed-packages
                 run: |
-                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" >> $GITHUB_OUTPUT
+                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" | tee -a $GITHUB_OUTPUT
 
             -   name: Report nothing to release
                 if: steps.changed-packages.outputs.changed_packages == '0'
                 run: echo "Nothing to release"
-
-            -   name: Bump canary versions
-                if: steps.changed-packages.outputs.changed_packages != '0'
-                run: |
-                    yarn turbo copy --force -- --canary --preid=beta
-
-            -   name: Commit changes
-                uses: EndBug/add-and-commit@v9
-                id: commit
-                with:
-                  author_name: Apify Release Bot
-                  author_email: noreply@apify.com
-                  message: 'chore: bump canary versions [skip ci]'
 
             -   name: Publish packages
                 if: steps.changed-packages.outputs.changed_packages != '0'
@@ -241,7 +228,7 @@ jobs:
                     workflow: publish-to-npm.yml
                     inputs: >
                       {
-                        "ref": ${{ steps.commit.outputs.commit_long_sha || github.sha }},
+                        "ref": "${{ steps.commit.outputs.commit_long_sha || github.sha }}",
                         "dist-tag": "next"
                       }
 
@@ -249,7 +236,7 @@ jobs:
                 id: versions
                 run: |
                     crawlee=`node -p "require('./packages/crawlee/package.json').version"`
-                    echo "crawlee=$crawlee" >> $GITHUB_OUTPUT
+                    echo "crawlee=$crawlee" | tee -a $GITHUB_OUTPUT
 
             -   name: Trigger Docker image builds
                 uses: peter-evans/repository-dispatch@v4

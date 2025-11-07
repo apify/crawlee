@@ -24,6 +24,10 @@ on:
                 type: string
                 default: 'prod'
 
+concurrency:
+    group: publish-to-npm
+    cancel-in-progress: false
+
 permissions:
     id-token: write # Required for OIDC
     contents: write # Required to push updates
@@ -38,19 +42,23 @@ jobs:
                   ref: ${{ inputs.ref }}
                   token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                   fetch-depth: 0
+
             - name: Use Node.js 24
               uses: actions/setup-node@v6
               with:
                   node-version: 24
                   package-manager-cache: false
+
             - name: Enable corepack
               run: |
                   corepack enable
                   corepack prepare yarn@stable --activate
+
             - name: Activate cache for Node.js 24
               uses: actions/setup-node@v6
               with:
                   cache: 'yarn'
+
             - name: Turbo cache
               id: turbo-cache
               uses: actions/cache@v4
@@ -59,17 +67,46 @@ jobs:
                   key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                   restore-keys: |
                       turbo-${{ github.job }}-${{ github.ref_name }}-
+
             - name: Install dependencies
               run: yarn
+
             - name: Build packages
               run: yarn ci:build
+
+            - name: Bump canary versions
+              if: inputs.dist-tag == 'next'
+              run: |
+                    yarn turbo copy --force -- --canary --preid=beta
+
+            - name: Commit changes
+              if: inputs.dist-tag == 'next'
+              uses: EndBug/add-and-commit@v9
+              id: commit
+              with:
+                author_name: Apify Release Bot
+                author_email: noreply@apify.com
+                message: 'chore: bump canary versions [skip ci]'
+                push: false
+
             - name: Publish to NPM (@latest)
               if: inputs.dist-tag == 'prod'
-              run: yarn publish:prod --yes --no-verify-access
+              uses: nick-fields/retry@v3
+              with:
+                  timeout_minutes: 10
+                  max_attempts: 5
+                  retry_wait_seconds: 30
+                  command: git checkout . && yarn publish:prod --yes
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+
             - name: Publish to NPM (@next)
               if: inputs.dist-tag == 'next'
-              run: yarn publish:next --yes --no-verify-access
+              uses: nick-fields/retry@v3
+              with:
+                  timeout_minutes: 10
+                  max_attempts: 5
+                  retry_wait_seconds: 30
+                  command: git checkout . && yarn publish:next --yes
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
