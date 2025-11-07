@@ -369,8 +369,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     /**
      * If set to `true`, the crawler will automatically try to fetch the robots.txt file for each domain,
      * and skip those that are not allowed. This also prevents disallowed URLs to be added via `enqueueLinks`.
+     *
+     * If an object is provided, it may contain a `userAgent` property to specify which user-agent
+     * should be used when checking the robots.txt file. If not provided, the default user-agent `*` will be used.
      */
-    respectRobotsTxtFile?: boolean;
+    respectRobotsTxtFile?: boolean | { userAgent?: string };
 
     /**
      * When a request is skipped for some reason, you can use this callback to act on it.
@@ -556,7 +559,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected events: EventManager;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
-    protected respectRobotsTxtFile: boolean;
+    protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private shouldLogMaxProcessedRequestsExceeded = true;
@@ -594,7 +597,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         statusMessageCallback: ow.optional.function,
 
         retryOnBlocked: ow.optional.boolean,
-        respectRobotsTxtFile: ow.optional.boolean,
+        respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
         onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
 
@@ -1357,7 +1360,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         const robotsTxtFile = await this.getRobotsTxtFileForUrl(url);
-        return !robotsTxtFile || robotsTxtFile.isAllowed(url);
+        const userAgent = typeof this.respectRobotsTxtFile === 'object' ? this.respectRobotsTxtFile?.userAgent : '*';
+
+        return !robotsTxtFile || robotsTxtFile.isAllowed(url, userAgent);
     }
 
     protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined> {
