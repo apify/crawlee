@@ -173,17 +173,17 @@ __metadata:
   linkType: hard
 
 "@biomejs/biome@npm:^2.2.5":
-  version: 2.3.3
-  resolution: "@biomejs/biome@npm:2.3.3"
+  version: 2.3.4
+  resolution: "@biomejs/biome@npm:2.3.4"
   dependencies:
-    "@biomejs/cli-darwin-arm64": "npm:2.3.3"
-    "@biomejs/cli-darwin-x64": "npm:2.3.3"
-    "@biomejs/cli-linux-arm64": "npm:2.3.3"
-    "@biomejs/cli-linux-arm64-musl": "npm:2.3.3"
-    "@biomejs/cli-linux-x64": "npm:2.3.3"
-    "@biomejs/cli-linux-x64-musl": "npm:2.3.3"
-    "@biomejs/cli-win32-arm64": "npm:2.3.3"
-    "@biomejs/cli-win32-x64": "npm:2.3.3"
+    "@biomejs/cli-darwin-arm64": "npm:2.3.4"
+    "@biomejs/cli-darwin-x64": "npm:2.3.4"
+    "@biomejs/cli-linux-arm64": "npm:2.3.4"
+    "@biomejs/cli-linux-arm64-musl": "npm:2.3.4"
+    "@biomejs/cli-linux-x64": "npm:2.3.4"
+    "@biomejs/cli-linux-x64-musl": "npm:2.3.4"
+    "@biomejs/cli-win32-arm64": "npm:2.3.4"
+    "@biomejs/cli-win32-x64": "npm:2.3.4"
   dependenciesMeta:
     "@biomejs/cli-darwin-arm64":
       optional: true
@@ -203,62 +203,62 @@ __metadata:
       optional: true
   bin:
     biome: bin/biome
-  checksum: 10c0/d5effef7b584efc3bda036953179d932e3b7f2e52085b04186a569c6804bf1e767de58a02be9b7588dd30dc031250386c26c6de73b0787d4747ad67a98f26fac
+  checksum: 10c0/61bb2e3b98ebb26cc21e5690492bc09793c9135c34fd33230c227d4cb707a19ced578d20df4cab8b257c70cef006312f1050cdba3abdf8c0aa478ca6a347b27f
   languageName: node
   linkType: hard
 
-"@biomejs/cli-darwin-arm64@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-darwin-arm64@npm:2.3.3"
+"@biomejs/cli-darwin-arm64@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-darwin-arm64@npm:2.3.4"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@biomejs/cli-darwin-x64@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-darwin-x64@npm:2.3.3"
+"@biomejs/cli-darwin-x64@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-darwin-x64@npm:2.3.4"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@biomejs/cli-linux-arm64-musl@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-linux-arm64-musl@npm:2.3.3"
+"@biomejs/cli-linux-arm64-musl@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-linux-arm64-musl@npm:2.3.4"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@biomejs/cli-linux-arm64@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-linux-arm64@npm:2.3.3"
+"@biomejs/cli-linux-arm64@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-linux-arm64@npm:2.3.4"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@biomejs/cli-linux-x64-musl@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-linux-x64-musl@npm:2.3.3"
+"@biomejs/cli-linux-x64-musl@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-linux-x64-musl@npm:2.3.4"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@biomejs/cli-linux-x64@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-linux-x64@npm:2.3.3"
+"@biomejs/cli-linux-x64@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-linux-x64@npm:2.3.4"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@biomejs/cli-win32-arm64@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-win32-arm64@npm:2.3.3"
+"@biomejs/cli-win32-arm64@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-win32-arm64@npm:2.3.4"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@biomejs/cli-win32-x64@npm:2.3.3":
-  version: 2.3.3
-  resolution: "@biomejs/cli-win32-x64@npm:2.3.3"
+"@biomejs/cli-win32-x64@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@biomejs/cli-win32-x64@npm:2.3.4"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -3954,11 +3954,11 @@ __metadata:
   linkType: hard
 
 "baseline-browser-mapping@npm:^2.8.19":
-  version: 2.8.24
-  resolution: "baseline-browser-mapping@npm:2.8.24"
+  version: 2.8.25
+  resolution: "baseline-browser-mapping@npm:2.8.25"
   bin:
     baseline-browser-mapping: dist/cli.js
-  checksum: 10c0/8add2f6fe6312134032caa1d385d07a939e25594566672a57d2eef2a53592252b8b56348cdd991d73d78741033d16a28d3da96ef3fc9f4d0bb9ea268124a53c3
+  checksum: 10c0/93d5631ef1d1770c6166c760adb75e510a2f9ea9bccc1e2f3ec97c1e946ce71f9480e6314ad37e3ed933f2edc597cc9c7a0ec98d42691028e300bd62efd9cddd
   languageName: node
   linkType: hard
 
@@ -5478,9 +5478,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.238":
-  version: 1.5.244
-  resolution: "electron-to-chromium@npm:1.5.244"
-  checksum: 10c0/a3cbc8c9c9415234f97e92724924f943fcb82494b3a2f9ae998954d22496e86f7eaf5e2fceca8aa8be098b0693f508332ec2d3b4b39a42cd2de1fac4d048a19f
+  version: 1.5.245
+  resolution: "electron-to-chromium@npm:1.5.245"
+  checksum: 10c0/b129116a3a77eba49a5c3f35de16a6b76e39a08f608f8eedbefdd86669f255ead2e9a15f596eecd4521b3a87bcecab86cbd80843cd0a64a5daffde4af338d9c3
   languageName: node
   linkType: hard
 
@@ -13183,8 +13183,8 @@ __metadata:
   linkType: hard
 
 "vite@npm:^6.0.0 || ^7.0.0":
-  version: 7.1.12
-  resolution: "vite@npm:7.1.12"
+  version: 7.2.0
+  resolution: "vite@npm:7.2.0"
   dependencies:
     esbuild: "npm:^0.25.0"
     fdir: "npm:^6.5.0"
@@ -13233,7 +13233,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/cef4d4b4a84e663e09b858964af36e916892ac8540068df42a05ced637ceeae5e9ef71c72d54f3cfc1f3c254af16634230e221b6e2327c2a66d794bb49203262
+  checksum: 10c0/ab2579dffa1bc3dd169a9360499827920d83218b2e9b512c6e2c5220d58306abd238e0c87b4292a40b0b48de3323bda2ac418f6df8dcc3459d6cdb148b287619
   languageName: node
   linkType: hard
 
