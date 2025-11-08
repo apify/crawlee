@@ -5,16 +5,16 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@ai-sdk/gateway@npm:2.0.6":
-  version: 2.0.6
-  resolution: "@ai-sdk/gateway@npm:2.0.6"
+"@ai-sdk/gateway@npm:2.0.7":
+  version: 2.0.7
+  resolution: "@ai-sdk/gateway@npm:2.0.7"
   dependencies:
     "@ai-sdk/provider": "npm:2.0.0"
     "@ai-sdk/provider-utils": "npm:3.0.16"
     "@vercel/oidc": "npm:3.0.3"
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 10c0/c9ab093dd8037281eb12d26498c20437d9252b0d6dd52ecbd1133557ddcd14a4690ff52746f9776e22252351bddc1c6d0ab84727fd11f21974f6f902d9e5ec90
+  checksum: 10c0/b57db87ccfbda6d28c8ac6e24df5e57a45f18826bff3ca5d1b65b00d863dd779d2b0d80496eee8eea8cbf6db232c31bd00494cd0d25e745cb402aa98b0b4d50d
   languageName: node
   linkType: hard
 
@@ -41,11 +41,11 @@ __metadata:
   linkType: hard
 
 "@ai-sdk/react@npm:^2.0.30":
-  version: 2.0.87
-  resolution: "@ai-sdk/react@npm:2.0.87"
+  version: 2.0.89
+  resolution: "@ai-sdk/react@npm:2.0.89"
   dependencies:
     "@ai-sdk/provider-utils": "npm:3.0.16"
-    ai: "npm:5.0.87"
+    ai: "npm:5.0.89"
     swr: "npm:^2.2.5"
     throttleit: "npm:2.1.0"
   peerDependencies:
@@ -54,7 +54,7 @@ __metadata:
   peerDependenciesMeta:
     zod:
       optional: true
-  checksum: 10c0/ff39570b88b4fa13f41034af182131ce10078ee2d7a758f3b0d965a7cfbccfec25928deba5dff4a09374b43af83f5b5404d633e10c3df13e97ab40e1ee64da22
+  checksum: 10c0/d53a3ca82f8243b4080cd728fa8929ce7378b9db632691fa62eede4442ebed3d0e7a96f12fec6fbcbbe895771dd6066b932ed3382dd8294b0cd0ad83cab99c2c
   languageName: node
   linkType: hard
 
@@ -5102,17 +5102,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:5.0.87, ai@npm:^5.0.30":
-  version: 5.0.87
-  resolution: "ai@npm:5.0.87"
+"ai@npm:5.0.89, ai@npm:^5.0.30":
+  version: 5.0.89
+  resolution: "ai@npm:5.0.89"
   dependencies:
-    "@ai-sdk/gateway": "npm:2.0.6"
+    "@ai-sdk/gateway": "npm:2.0.7"
     "@ai-sdk/provider": "npm:2.0.0"
     "@ai-sdk/provider-utils": "npm:3.0.16"
     "@opentelemetry/api": "npm:1.9.0"
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 10c0/feaa65f07bb96ac9ae7fa46d4758294f4d4af8af61cc6ab57687df9f8fbc2114a0cbcc3fcee08183af30baa44a7eb39cfbc2698733332c9b7d7b24f004053a29
+  checksum: 10c0/73fbf9772f809b54e78da11a14391dd837329dcb98d58f27de347468e75a11330efe82c77ba444931f26699a566af11168b8057d0829edc3381cd01f5acc6c67
   languageName: node
   linkType: hard
 
@@ -6011,9 +6011,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001702, caniuse-lite@npm:^1.0.30001751":
-  version: 1.0.30001753
-  resolution: "caniuse-lite@npm:1.0.30001753"
-  checksum: 10c0/730344b6c54769f544f1d4bd7f99a122cd5f6e964e482adbcb18b63cda56e9c40aca1e3ab47c7154098803c9ba3772cca0aba936d1c924e67e8db8345712e5a8
+  version: 1.0.30001754
+  resolution: "caniuse-lite@npm:1.0.30001754"
+  checksum: 10c0/d38709ab11abc36eea28068d241434eba925c4d3462916ccaa17a34a6227dfdeb58ab0e1eb614bab12fb393c7d527db392a0f477b48c33d70d8e466954f381ba
   languageName: node
   linkType: hard
 
@@ -7286,9 +7286,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.238":
-  version: 1.5.245
-  resolution: "electron-to-chromium@npm:1.5.245"
-  checksum: 10c0/b129116a3a77eba49a5c3f35de16a6b76e39a08f608f8eedbefdd86669f255ead2e9a15f596eecd4521b3a87bcecab86cbd80843cd0a64a5daffde4af338d9c3
+  version: 1.5.247
+  resolution: "electron-to-chromium@npm:1.5.247"
+  checksum: 10c0/fb1825399bedebe0eb9775f084df4bb63c827a62f08ab8f54eb9fa036250353c7360e26bb88d1370a21110b7c5b32478971a872b69d25938febeca558cf795cc
   languageName: node
   linkType: hard
 
@@ -10933,11 +10933,11 @@ __metadata:
   linkType: hard
 
 "marked@npm:^16.3.0":
-  version: 16.4.1
-  resolution: "marked@npm:16.4.1"
+  version: 16.4.2
+  resolution: "marked@npm:16.4.2"
   bin:
     marked: bin/marked.js
-  checksum: 10c0/2b5bc04db3453e493ea78758f1fe5006d725ec90aab9bf991242b0820a069d9748e2ac26fb0e2603848a409649c77900e599f3f66d251d0f7e5f606576090a54
+  checksum: 10c0/fc6051142172454f2023f3d6b31cca92879ec8e1b96457086a54c70354c74b00e1b6543a76a1fad6d399366f52b90a848f6ffb8e1d65a5baff87f3ba9b8f1847
   languageName: node
   linkType: hard
 
