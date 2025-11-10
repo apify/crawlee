@@ -131,12 +131,16 @@ jobs:
                 run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                    GIT_AUTHOR_NAME: Apify Release Bot
+                    GIT_AUTHOR_EMAIL: noreply@apify.com
 
             -   name: Bump version to ${{ github.event.inputs.version }} version
                 if: ${{ github.event.inputs.version != 'custom' }}
                 run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                    GIT_AUTHOR_NAME: Apify Release Bot
+                    GIT_AUTHOR_EMAIL: noreply@apify.com
 
             -   name: Pin versions in internal dependencies and update lockfile
                 run: |
