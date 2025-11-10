@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
+
+
+### Bug Fixes
+
+* **cli:** support creating projects with names that start with a number ([#3219](https://github.com/apify/crawlee/issues/3219)) ([3f37845](https://github.com/apify/crawlee/commit/3f37845899a88d4e41df56c996aa05b5ee28a2e8)), closes [#3213](https://github.com/apify/crawlee/issues/3213)
+
+
+
+
+
 ## [3.15.2](https://github.com/apify/crawlee/compare/v3.15.1...v3.15.2) (2025-10-23)
 
 **Note:** Version bump only for package @crawlee/cli

@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
+
+
+### Bug Fixes
+
+* await retries inside `_timeoutAndRetry` ([#3206](https://github.com/apify/crawlee/issues/3206)) ([9c1cf6d](https://github.com/apify/crawlee/commit/9c1cf6d68acd356af8b7dbd682141357d789e3fb)), closes [/github.com/apify/crawlee/pull/3188#discussion_r2410256271](https://github.com//github.com/apify/crawlee/pull/3188/issues/discussion_r2410256271)
+* **cli:** support creating projects with names that start with a number ([#3219](https://github.com/apify/crawlee/issues/3219)) ([3f37845](https://github.com/apify/crawlee/commit/3f37845899a88d4e41df56c996aa05b5ee28a2e8)), closes [#3213](https://github.com/apify/crawlee/issues/3213)
+* use shared enqueue links wrapper in `AdaptivePlaywrightCrawler` ([#3188](https://github.com/apify/crawlee/issues/3188)) ([9569d19](https://github.com/apify/crawlee/commit/9569d191933325d93f6c66754274b63fd272fc59))
+
+
+### Features
+
+* support custom `userAgent` with `respectRobotsTxtFile` ([#3226](https://github.com/apify/crawlee/issues/3226)) ([354252d](https://github.com/apify/crawlee/commit/354252dee44c5ea618a12e087acb24b9e0f555c7)), closes [#3222](https://github.com/apify/crawlee/issues/3222)
+
+
+
+
+
 ## [3.15.2](https://github.com/apify/crawlee/compare/v3.15.1...v3.15.2) (2025-10-23)
 
 
