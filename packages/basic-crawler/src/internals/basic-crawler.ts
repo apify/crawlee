@@ -1144,7 +1144,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
 
-        if (options.reason === 'enqueueLimit' && this.shouldLogMaxEnqueuedRequestsExceeded) {
+        if (
+            this.maxRequestsPerCrawl === undefined &&
+            options.reason === 'enqueueLimit' &&
+            this.shouldLogMaxEnqueuedRequestsExceeded
+        ) {
             this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
             this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
