@@ -1137,12 +1137,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
         if (options.reason === 'limit' && this.shouldLogMaxEnqueuedRequestsExceeded) {
-            if (this.maxRequestsPerCrawl !== undefined) {
-                this.log.info(
-                    'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
+            this.log.info(
+                'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
                     `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
-                );
-            }
+            );
+            this.shouldLogMaxEnqueuedRequestsExceeded = false;
+        }
+
+        if (options.reason === 'enqueueLimit' && this.shouldLogMaxEnqueuedRequestsExceeded) {
+            this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
             this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
 
