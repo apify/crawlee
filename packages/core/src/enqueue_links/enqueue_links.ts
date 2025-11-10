@@ -490,7 +490,7 @@ export async function enqueueLinks(
 
     let requests = await createFilteredRequests();
     if (typeof limit === 'number' && limit < requests.length) {
-        await reportSkippedRequests(requests.slice(limit), 'limit');
+        await reportSkippedRequests(requests.slice(limit), 'enqueueLimit');
         requests = requests.slice(0, limit);
     }
 
