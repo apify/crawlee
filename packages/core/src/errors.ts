@@ -43,28 +43,19 @@ export class ContextPipelineInterruptedError extends Error {
 }
 
 export class ContextPipelineInitializationError extends Error {
-    constructor(
-        public error: unknown,
-        public crawlingContext: {},
-    ) {
-        super();
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
     }
 }
 
 export class ContextPipelineCleanupError extends CriticalError {
-    constructor(
-        public error: unknown,
-        public crawlingContext: {},
-    ) {
-        super();
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
     }
 }
 
 export class RequestHandlerError extends Error {
-    constructor(
-        public error: unknown,
-        public crawlingContext: {},
-    ) {
-        super();
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
     }
 }

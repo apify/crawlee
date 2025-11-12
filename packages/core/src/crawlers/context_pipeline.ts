@@ -142,7 +142,7 @@ class ContextPipelineImpl<TContextBase extends {}, TCrawlingContext extends TCon
                         throw exception;
                     }
 
-                    throw new ContextPipelineInitializationError(exception, crawlingContext);
+                    throw new ContextPipelineInitializationError(exception);
                 }
             }
 
@@ -154,7 +154,7 @@ class ContextPipelineImpl<TContextBase extends {}, TCrawlingContext extends TCon
                     throw exception; // Session errors are re-thrown as-is
                 }
                 consumerException = exception;
-                throw new RequestHandlerError(exception, crawlingContext);
+                throw new RequestHandlerError(exception);
             }
         } finally {
             try {
@@ -163,7 +163,7 @@ class ContextPipelineImpl<TContextBase extends {}, TCrawlingContext extends TCon
                 }
             } catch (exception: unknown) {
                 // eslint-disable-next-line no-unsafe-finally
-                throw new ContextPipelineCleanupError(exception, crawlingContext);
+                throw new ContextPipelineCleanupError(exception);
             }
         }
     }

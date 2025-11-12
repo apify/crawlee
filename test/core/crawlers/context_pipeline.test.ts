@@ -92,8 +92,7 @@ describe('ContextPipeline', () => {
 
         await expect(pipeline.call(context, consumer)).rejects.toThrow(
             expect.objectContaining({
-                error: initializationError,
-                crawlingContext: context,
+                cause: initializationError,
                 constructor: ContextPipelineInitializationError,
             }),
         );
@@ -116,8 +115,7 @@ describe('ContextPipeline', () => {
 
         await expect(pipeline.call(context, consumer)).rejects.toThrow(
             expect.objectContaining({
-                error: consumerError,
-                crawlingContext: { a: 3, b: 4 },
+                cause: consumerError,
                 constructor: RequestHandlerError,
             }),
         );
@@ -159,8 +157,7 @@ describe('ContextPipeline', () => {
 
         await expect(pipeline.call(context, consumer)).rejects.toThrow(
             expect.objectContaining({
-                error: cleanupError,
-                crawlingContext: { a: 3, b: 4 },
+                cause: cleanupError,
                 constructor: ContextPipelineCleanupError,
             }),
         );

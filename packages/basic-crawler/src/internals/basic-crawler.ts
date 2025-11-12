@@ -30,6 +30,7 @@ import {
     ContextPipeline,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
+    ContextPipelineCleanupError,
     CriticalError,
     Dataset,
     enqueueLinks,
@@ -1499,8 +1500,12 @@ export class BasicCrawler<
      * RequestHandlerError and ContextPipelineInitializationError wrap the actual error.
      */
     private unwrapError(error: unknown): Error {
-        if (error instanceof RequestHandlerError || error instanceof ContextPipelineInitializationError) {
-            return this.unwrapError(error.error);
+        if (
+            error instanceof RequestHandlerError ||
+            error instanceof ContextPipelineInitializationError ||
+            error instanceof ContextPipelineCleanupError
+        ) {
+            return this.unwrapError(error.cause);
         }
         return error as Error;
     }
