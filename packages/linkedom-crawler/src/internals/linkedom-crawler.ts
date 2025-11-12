@@ -1,5 +1,3 @@
-import type { IncomingMessage } from 'node:http';
-
 import type {
     EnqueueLinksOptions,
     ErrorHandler,
@@ -24,17 +22,16 @@ import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import { DOMParser } from 'linkedom/cached';
 
-import { concatStreamToBuffer } from '@apify/utilities';
-
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = ErrorHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
 
 export interface LinkeDOMCrawlerOptions<
+    ExtendedContext extends LinkeDOMCrawlingContext,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>> {}
+> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ExtendedContext> {}
 
 export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
@@ -46,7 +43,7 @@ export type LinkeDOMHook<
 export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData, LinkeDOMCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData> {
     window: Window;
     // Technically the document is not of type Document but of type either HTMLDocument or XMLDocument
     // from linkedom/types/{html/xml}/document, depending on the content type of the response
@@ -161,17 +158,29 @@ export type LinkeDOMRequestHandler<
  * @category Crawlers
  */
 
-export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
+export class LinkeDOMCrawler<
+    ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext,
+> extends HttpCrawler<LinkeDOMCrawlingContext, ExtendedContext> {
     private static parser = new DOMParser();
 
-    protected override async _parseHTML(
-        response: IncomingMessage,
-        isXml: boolean,
-        crawlingContext: LinkeDOMCrawlingContext,
-    ) {
-        const body = await concatStreamToBuffer(response);
+    constructor(options: LinkeDOMCrawlerOptions<ExtendedContext>) {
+        super({
+            ...options,
+            contextPipelineBuilder: () =>
+                this.buildContextPipeline()
+                    .compose({
+                        action: async (context) => this.parseContent(context),
+                    })
+                    .compose({ action: async (context) => this.addHelpers(context) }),
+        });
+    }
 
-        const document = LinkeDOMCrawler.parser.parseFromString(body.toString(), isXml ? 'text/xml' : 'text/html');
+    private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
+        const isXml = crawlingContext.contentType.type.includes('xml');
+        const document = LinkeDOMCrawler.parser.parseFromString(
+            crawlingContext.body.toString(),
+            isXml ? 'text/xml' : 'text/html',
+        );
 
         return {
             window: document.defaultView,
@@ -182,6 +191,11 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                 // See comment about typing in LinkeDOMCrawlingContext definition
                 return document as unknown as Document;
             },
+        };
+    }
+
+    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string }) {
+        return {
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
                     options: enqueueOptions,
@@ -193,34 +207,29 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
             },
-        };
-    }
+            async waitForSelector(selector: string, timeoutMs = 5_000) {
+                const $ = cheerio.load(crawlingContext.body);
 
-    override async _runRequestHandler(context: LinkeDOMCrawlingContext) {
-        context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
-            const $ = cheerio.load(context.body);
+                if ($(selector).get().length === 0) {
+                    if (timeoutMs) {
+                        await sleep(50);
+                        await this.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                        return;
+                    }
 
-            if ($(selector).get().length === 0) {
-                if (timeoutMs) {
-                    await sleep(50);
-                    await context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
-                    return;
+                    throw new Error(`Selector '${selector}' not found.`);
+                }
+            },
+            async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
+                const $ = cheerio.load(crawlingContext.body);
+
+                if (selector && $(selector).get().length === 0) {
+                    throw new Error(`Selector '${selector}' not found.`);
                 }
 
-                throw new Error(`Selector '${selector}' not found.`);
-            }
+                return $;
+            },
         };
-        context.parseWithCheerio = async (selector?: string, _timeoutMs = 5_000) => {
-            const $ = cheerio.load(context.body);
-
-            if (selector && $(selector).get().length === 0) {
-                throw new Error(`Selector '${selector}' not found.`);
-            }
-
-            return $;
-        };
-
-        await super._runRequestHandler(context);
     }
 }
 

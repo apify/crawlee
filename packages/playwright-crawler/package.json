@@ -52,6 +52,7 @@
         "@apify/timeout": "^0.3.2",
         "@crawlee/browser": "3.13.3",
         "@crawlee/browser-pool": "3.13.3",
+        "@crawlee/cheerio": "3.13.3",
         "@crawlee/core": "3.13.3",
         "@crawlee/types": "3.13.3",
         "@crawlee/utils": "3.13.3",
