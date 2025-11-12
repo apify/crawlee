@@ -13,7 +13,6 @@ import {
     CheerioCrawler,
     createCheerioRouter,
     EnqueueStrategy,
-    GotScrapingHttpClient,
     mergeCookies,
     ProxyConfiguration,
     Request,
@@ -28,6 +27,7 @@ import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import log, { Log } from '@apify/log';
+import { ImpitHttpClient } from '@crawlee/impit-client';
 
 let server: Server;
 let port: number;
@@ -808,7 +808,7 @@ describe('CheerioCrawler', () => {
              */
             let numberOfRotations = -1;
             const failedRequestHandler = vitest.fn();
-            const got = new GotScrapingHttpClient();
+            const impit = new ImpitHttpClient();
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 5,
@@ -823,7 +823,7 @@ describe('CheerioCrawler', () => {
                             numberOfRotations++;
                             throw new Error('Proxy responded with 400 - Bad request');
                         }
-                        return await got.stream(request, onRedirect);
+                        return await impit.stream(request);
                     },
                 },
             });
@@ -839,7 +839,7 @@ describe('CheerioCrawler', () => {
             const proxyError =
                 'Proxy responded with 400 - Bad request. Also, this error message contains some useful payload.';
 
-            const got = new GotScrapingHttpClient();
+            const impit = new ImpitHttpClient();
 
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
@@ -853,7 +853,7 @@ describe('CheerioCrawler', () => {
                         if (request.proxyUrl!.includes('localhost')) {
                             throw new Error(proxyError);
                         }
-                        return await got.stream(request, onRedirect);
+                        return await impit.stream(request);
                     },
                 },
             });
