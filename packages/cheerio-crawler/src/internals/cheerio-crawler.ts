@@ -14,7 +14,7 @@ import type {
 import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio, type RobotsTxtFile } from '@crawlee/utils';
-import type { CheerioOptions } from 'cheerio';
+import type { CheerioAPI, CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { parseDocument } from 'htmlparser2';
 
@@ -172,15 +172,17 @@ export class CheerioCrawler<
             {
                 ...options,
                 contextPipelineBuilder: () =>
-                    this.buildContextPipeline().compose({
-                        action: async (context) => await this.parseContent(context),
-                    }),
+                    this.buildContextPipeline()
+                        .compose({
+                            action: async (context) => await this.parseContent(context),
+                        })
+                        .compose({ action: async (context) => await this.addHelpers(context) }),
             },
             config,
         );
     }
 
-    protected async parseContent(crawlingContext: InternalHttpCrawlingContext) {
+    private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
         const isXml = crawlingContext.contentType.type.includes('xml');
         const body = Buffer.isBuffer(crawlingContext.body)
             ? crawlingContext.body.toString(crawlingContext.contentType.encoding)
@@ -193,10 +195,15 @@ export class CheerioCrawler<
         return {
             $,
             body,
+        };
+    }
+
+    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { $: CheerioAPI }) {
+        return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
-                    $,
+                    $: crawlingContext.$,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.onSkippedRequest,
@@ -205,7 +212,7 @@ export class CheerioCrawler<
                 });
             },
             waitForSelector: async (selector: string, _timeoutMs?: number) => {
-                if ($(selector).get().length === 0) {
+                if (crawlingContext.$(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);
                 }
             },
@@ -214,7 +221,7 @@ export class CheerioCrawler<
                     await crawlingContext.waitForSelector(selector, timeoutMs);
                 }
 
-                return $;
+                return crawlingContext.$;
             },
         };
     }

@@ -167,13 +167,15 @@ export class LinkeDOMCrawler<
         super({
             ...options,
             contextPipelineBuilder: () =>
-                this.buildContextPipeline().compose({
-                    action: async (context) => this.parseContent(context),
-                }),
+                this.buildContextPipeline()
+                    .compose({
+                        action: async (context) => this.parseContent(context),
+                    })
+                    .compose({ action: async (context) => this.addHelpers(context) }),
         });
     }
 
-    protected async parseContent(crawlingContext: InternalHttpCrawlingContext) {
+    private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
         const isXml = crawlingContext.contentType.type.includes('xml');
         const document = LinkeDOMCrawler.parser.parseFromString(
             crawlingContext.body.toString(),
@@ -189,6 +191,11 @@ export class LinkeDOMCrawler<
                 // See comment about typing in LinkeDOMCrawlingContext definition
                 return document as unknown as Document;
             },
+        };
+    }
+
+    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string }) {
+        return {
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
                     options: enqueueOptions,
@@ -201,7 +208,7 @@ export class LinkeDOMCrawler<
                 });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
-                const $ = cheerio.load(this.body);
+                const $ = cheerio.load(crawlingContext.body);
 
                 if ($(selector).get().length === 0) {
                     if (timeoutMs) {
@@ -214,7 +221,7 @@ export class LinkeDOMCrawler<
                 }
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = cheerio.load(this.body);
+                const $ = cheerio.load(crawlingContext.body);
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);

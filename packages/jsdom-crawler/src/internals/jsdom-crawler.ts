@@ -197,13 +197,15 @@ export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCr
             {
                 ...httpOptions,
                 contextPipelineBuilder: () =>
-                    this.buildContextPipeline().compose({
-                        action: async (context) => await this.parseContent(context),
-                        cleanup: async (context) => {
-                            this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
-                            context.window?.close();
-                        },
-                    }),
+                    this.buildContextPipeline()
+                        .compose({
+                            action: async (context) => await this.parseContent(context),
+                            cleanup: async (context) => {
+                                this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
+                                context.window?.close();
+                            },
+                        })
+                        .compose({ action: async (context) => await this.addHelpers(context) }),
             },
             config,
         );
@@ -244,7 +246,7 @@ export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCr
 
     private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', error);
 
-    protected async parseContent(crawlingContext: InternalHttpCrawlingContext) {
+    private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
         const isXml = crawlingContext.contentType.type.includes('xml');
 
         // TODO handle non-string
@@ -308,10 +310,15 @@ export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCr
             get document() {
                 return window.document;
             },
+        };
+    }
+
+    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: DOMWindow }) {
+        return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return domCrawlerEnqueueLinks({
                     options: enqueueOptions,
-                    window,
+                    window: crawlingContext.window,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.onSkippedRequest,
@@ -320,7 +327,7 @@ export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCr
                 });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
-                const $ = cheerio.load(this.body);
+                const $ = cheerio.load(crawlingContext.body);
 
                 if ($(selector).get().length === 0) {
                     if (timeoutMs) {
@@ -333,7 +340,7 @@ export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCr
                 }
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = cheerio.load(this.body);
+                const $ = cheerio.load(crawlingContext.body);
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);
