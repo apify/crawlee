@@ -574,7 +574,7 @@ export class AdaptivePlaywrightCrawler<
             if (!plainHTTPRun.ok) {
                 const actualError =
                     plainHTTPRun.error instanceof RequestHandlerError
-                        ? (plainHTTPRun.error.error as Error)
+                        ? (plainHTTPRun.error.cause as Error)
                         : (plainHTTPRun.error as Error);
 
                 crawlingContext.log.exception(

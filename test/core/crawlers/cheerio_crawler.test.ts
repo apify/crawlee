@@ -19,6 +19,7 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
+import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import type { OptionsInit } from 'got-scraping';
@@ -27,7 +28,6 @@ import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import log, { Log } from '@apify/log';
-import { ImpitHttpClient } from '@crawlee/impit-client';
 
 let server: Server;
 let port: number;
