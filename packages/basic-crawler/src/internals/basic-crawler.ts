@@ -1144,6 +1144,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
 
+        if (options.reason === 'enqueueLimit') {
+            const enqueuedRequestLimit = this.calculateEnqueuedRequestLimit();
+            if (enqueuedRequestLimit === undefined || enqueuedRequestLimit !== 0) {
+                this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
+            }
+        }
+
         await this.onSkippedRequest?.(options);
     }
 
