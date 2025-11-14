@@ -266,8 +266,8 @@ module.exports = {
             },
         },
         announcementBar: {
-            id: `crawlee-for-python-v1`,
-            content: `<b><a href="https://github.com/apify/crawlee-python">Crawlee for Python v1.0</a></b> is LIVE. 🎉️ <b><a href="https://www.producthunt.com/posts/crawlee-for-python-v1-0">Support us on Product Hunt!</a> 🥳`,
+            id: `apify-1m-challenge`,
+            content: `<b><a href="https://apify.com/challenge">Apify $1M Challenge 💰</a></b> Earn and win building with Crawlee!`,
         },
         navbar: {
             hideOnScroll: true,
