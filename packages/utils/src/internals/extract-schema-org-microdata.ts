@@ -2,7 +2,7 @@
  * Extracts Schema.org microdata from a document and returns it as an array of objects.
  * Recursively processes itemscope, itemtype, and itemprop attributes.
  */
- export function extractSchemaOrgMicrodata(): Record<string, any>[] {
+export function extractSchemaOrgMicrodata(): Record<string, any>[] {
     const getItemProps = function (element: Element) {
         let itemprops = Array.from(element.querySelectorAll('[itemprop]')).filter((itemprop) => {
             let parent = itemprop.parentElement;
