@@ -109,7 +109,7 @@ async function run() {
             console.log(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} failed with error: ${err}`);
         });
 
-        worker.on('exit', async (code) => {
+        const exitHandler = async (code) => {
             if (code === SKIPPED_TEST_CLOSE_CODE) {
                 console.log(`Test ${colors.yellow(`[${dir.name}]`)} was skipped`);
                 return;
@@ -139,9 +139,17 @@ async function run() {
             }
 
             if (status === 'failure') failure = true;
+        };
+
+        worker.on('exit', async (exitCode) => {
+            try {
+                await exitHandler(exitCode);
+            } finally {
+                worker.emit('done');
+            }
         });
 
-        await once(worker, 'exit');
+        await once(worker, 'done');
     }
 }
 
