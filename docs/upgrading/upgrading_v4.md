@@ -32,9 +32,30 @@ The crawler following options are removed:
 - `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
 - `handleFailedRequestFunction` -> `failedRequestHandler`
 
-## Crawling context no longer includes Error for failed requests
+## The protected `BasicCrawler.crawlingContexts` map is removed
+
+The property was not used by the library itself and re-implementing the functionality in user code is fairly straightforward.
+
+## Removed crawling context properties
+
+### Crawling context no longer includes Error for failed requests
 
 The crawling context no longer includes the `Error` object for failed requests. Use the second parameter of the `errorHandler` or `failedRequestHandler` callbacks to access the error.
+
+### Crawling context no longer includes a reference to the crawler itself
+
+This was previously accessible via `context.crawler`. If you want to restore the functionality, you may use the `extendContext` option of the crawler:
+
+```ts
+const crawler = new CheerioCrawler({
+  extendContext: () => ({ crawler }),
+  requestHandler: async (context) => {
+    if (Math.random() < 0.01) {
+      context.crawler.stop()
+    }
+  }
+})
+```
 
 ## Crawling context is strictly typed
 
