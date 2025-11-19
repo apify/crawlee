@@ -1,4 +1,4 @@
-import { Actor, KeyValueStore, Dataset } from 'apify';
+import { Actor, Dataset, KeyValueStore } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
