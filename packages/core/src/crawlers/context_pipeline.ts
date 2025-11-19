@@ -14,7 +14,7 @@ import {
  * @template TCrawlingContext - The input context type for this middleware
  * @template TCrawlingContextExtension - The enhanced output context type
  */
-export interface ContextMiddleware<TCrawlingContext extends {}, TCrawlingContextExtension extends {}> {
+export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
     /** The main middleware function that enhances the context */
     action: (context: TCrawlingContext) => Awaitable<TCrawlingContextExtension>;
     /** Optional cleanup function called after the consumer finishes or fails */
@@ -31,14 +31,14 @@ export interface ContextMiddleware<TCrawlingContext extends {}, TCrawlingContext
  * @template TContextBase - The base context type that serves as the starting point
  * @template TCrawlingContext - The final context type after all middleware transformations
  */
-export abstract class ContextPipeline<TContextBase extends {}, TCrawlingContext extends TContextBase> {
+export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TContextBase> {
     /**
      * Creates a new empty context pipeline.
      *
      * @template TContextBase - The base context type for the pipeline
      * @returns A new ContextPipeline instance with no transformations
      */
-    static create<TContextBase extends {}>(): ContextPipeline<TContextBase, TContextBase> {
+    static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase> {
         return new ContextPipelineImpl<TContextBase, TContextBase>({ action: async (context) => context });
     }
 
@@ -52,7 +52,7 @@ export abstract class ContextPipeline<TContextBase extends {}, TCrawlingContext 
      * @param middleware - The middleware to add to the pipeline
      * @returns A new ContextPipeline instance with the added middleware
      */
-    abstract compose<TCrawlingContextExtension extends {}>(
+    abstract compose<TCrawlingContextExtension>(
         middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>,
     ): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
 
@@ -82,7 +82,7 @@ export abstract class ContextPipeline<TContextBase extends {}, TCrawlingContext 
  * Implementation of the `ContextPipeline` logic. This hides implementation details such as the `middleware` and `parent`
  * properties from the `ContextPipeline` interface, making type checking more reliable.
  */
-class ContextPipelineImpl<TContextBase extends {}, TCrawlingContext extends TContextBase> extends ContextPipeline<
+class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> extends ContextPipeline<
     TContextBase,
     TCrawlingContext
 > {
@@ -96,7 +96,7 @@ class ContextPipelineImpl<TContextBase extends {}, TCrawlingContext extends TCon
     /**
      * @inheritdoc
      */
-    compose<TCrawlingContextExtension extends {}>(
+    compose<TCrawlingContextExtension>(
         middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>,
     ): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension> {
         return new ContextPipelineImpl<TContextBase, TCrawlingContext & TCrawlingContextExtension>(
