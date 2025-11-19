@@ -286,7 +286,7 @@ export class AdaptivePlaywrightCrawler<
             failedRequestHandler,
             preNavigationHooks,
             postNavigationHooks,
-            contextPipelineEnhancer: userProvidedPipelineEnhancer,
+            extendContext,
             ...rest
         } = options;
 
@@ -378,21 +378,23 @@ export class AdaptivePlaywrightCrawler<
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
 
-        const contextPipelineEnhancer =
-            userProvidedPipelineEnhancer ??
-            ((pipeline) => pipeline as ContextPipeline<CrawlingContext, ExtendedContext>);
-
-        this.staticContextPipeline = contextPipelineEnhancer(
-            staticCrawler.contextPipeline.compose({
+        this.staticContextPipeline = staticCrawler.contextPipeline
+            .compose({
                 action: this.adaptCheerioContext.bind(this),
-            }),
-        );
+            })
+            .compose({
+                action: async (context) =>
+                    extendContext ? await extendContext(context) : (context as unknown as ExtendedContext),
+            });
 
-        this.browserContextPipeline = contextPipelineEnhancer(
-            browserCrawler.contextPipeline.compose({
+        this.browserContextPipeline = browserCrawler.contextPipeline
+            .compose({
                 action: this.adaptPlaywrightContext.bind(this),
-            }),
-        );
+            })
+            .compose({
+                action: async (context) =>
+                    extendContext ? await extendContext(context) : (context as unknown as ExtendedContext),
+            });
 
         this.stats = new AdaptivePlaywrightCrawlerStatistics({
             logMessage: `${this.log.getOptions().prefix} request statistics:`,

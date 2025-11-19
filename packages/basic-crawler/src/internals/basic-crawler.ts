@@ -113,7 +113,8 @@ export type RequireContextPipeline<
 
 export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
-    ExtendedContext extends Context = Context,
+    ContextExtension = {},
+    ExtendedContext extends Context = Context & ContextExtension,
 > {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
@@ -137,11 +138,25 @@ export interface BasicCrawlerOptions<
     /**
      * Allows the user to extend the crawling context passed to the request handler with custom functionality.
      *
-     * TODO example
+     * **Example usage:**
+     *
+     * ```javascript
+     * import { BasicCrawler } from 'crawlee';
+     *
+     * // Create a crawler instance
+     * const crawler = new BasicCrawler({
+     *     extendContext(context) => ({
+     *         async customHelper() {
+     *             await context.pushData({ url: context.request.url })
+     *         }
+     *     }),
+     *     async requestHandler(context) {
+     *         await context.customHelper();
+     *     },
+     * });
+     * ```
      */
-    contextPipelineEnhancer?: (
-        pipeline: ContextPipeline<CrawlingContext, Context>,
-    ) => ContextPipeline<CrawlingContext, ExtendedContext>;
+    extendContext?: (context: Context) => Awaitable<ContextExtension>;
 
     /**
      * Static list of URLs to be processed.
@@ -415,7 +430,8 @@ export interface CrawlerExperiments {
  */
 export class BasicCrawler<
     Context extends CrawlingContext = CrawlingContext,
-    ExtendedContext extends Context = Context,
+    ContextExtension = {},
+    ExtendedContext extends Context = Context & ContextExtension,
 > {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
@@ -501,7 +517,7 @@ export class BasicCrawler<
 
     protected static optionsShape = {
         contextPipelineBuilder: ow.optional.object,
-        contextPipelineEnhancer: ow.optional.object,
+        extendContext: ow.optional.function,
 
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
@@ -545,7 +561,7 @@ export class BasicCrawler<
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: BasicCrawlerOptions<Context, ExtendedContext> &
+        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
         readonly config = Configuration.getGlobalConfig(),
     ) {
@@ -591,8 +607,10 @@ export class BasicCrawler<
             let contextPipeline = (options.contextPipelineBuilder?.() ??
                 ContextPipeline.create<CrawlingContext>()) as ContextPipeline<CrawlingContext, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
 
-            if (options.contextPipelineEnhancer !== undefined) {
-                contextPipeline = options.contextPipelineEnhancer(contextPipeline);
+            if (options.extendContext !== undefined) {
+                contextPipeline = contextPipeline.compose({
+                    action: async (context) => await options.extendContext(context),
+                });
             }
 
             contextPipeline = contextPipeline.compose({

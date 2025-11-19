@@ -32,12 +32,15 @@ export interface PlaywrightCrawlingContext<UserData extends Dictionary = Diction
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 
-export interface PlaywrightCrawlerOptions<ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext>
-    extends BrowserCrawlerOptions<
+export interface PlaywrightCrawlerOptions<
+    ContextExtension = {},
+    ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
+> extends BrowserCrawlerOptions<
         Page,
         Response,
         PlaywrightController,
         PlaywrightCrawlingContext,
+        ContextExtension,
         ExtendedContext,
         { browserPlugins: [PlaywrightPlugin] }
     > {
@@ -173,7 +176,8 @@ export interface PlaywrightCrawlerOptions<ExtendedContext extends PlaywrightCraw
  * @category Crawlers
  */
 export class PlaywrightCrawler<
-    ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
+    ContextExtension = {},
+    ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
 > extends BrowserCrawler<
     Page,
     Response,
@@ -181,6 +185,7 @@ export class PlaywrightCrawler<
     { browserPlugins: [PlaywrightPlugin] },
     LaunchOptions,
     PlaywrightCrawlingContext,
+    ContextExtension,
     ExtendedContext
 > {
     protected static override optionsShape = {
@@ -195,7 +200,7 @@ export class PlaywrightCrawler<
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: PlaywrightCrawlerOptions = {},
+        options: PlaywrightCrawlerOptions<ExtendedContext> = {},
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));

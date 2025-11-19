@@ -1258,6 +1258,22 @@ describe('BasicCrawler', () => {
         });
     });
 
+    test('extendContext', async () => {
+        const url = 'https://example.com';
+        const requestHandlerImplementation = vi.fn();
+
+        const crawler = new BasicCrawler({
+            extendContext: () => ({ hello: 'world' }),
+            requestHandler: async ({ hello }) => {
+                requestHandlerImplementation({ hello });
+            },
+        });
+
+        await crawler.run([url]);
+        expect(requestHandlerImplementation).toHaveBeenCalledOnce();
+        expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
+    });
+
     describe('sendRequest', () => {
         const html = `<!DOCTYPE html><html><head><title>foobar</title></head><body><p>Hello, world!</p></body></html>`;
 

@@ -16,9 +16,9 @@ import {
  */
 export interface ContextMiddleware<TCrawlingContext extends {}, TCrawlingContextExtension extends {}> {
     /** The main middleware function that enhances the context */
-    action: (context: TCrawlingContext) => Promise<TCrawlingContextExtension>;
+    action: (context: TCrawlingContext) => Awaitable<TCrawlingContextExtension>;
     /** Optional cleanup function called after the consumer finishes or fails */
-    cleanup?: (context: TCrawlingContext & TCrawlingContextExtension, error?: unknown) => Promise<void>;
+    cleanup?: (context: TCrawlingContext & TCrawlingContextExtension, error?: unknown) => Awaitable<void>;
 }
 
 /**

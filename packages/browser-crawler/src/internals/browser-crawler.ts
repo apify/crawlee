@@ -54,7 +54,7 @@ interface BaseResponse {
     status(): number;
 }
 
-type ContextExtension<T, U> = Omit<U, keyof T> & Partial<U>;
+type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 
 export interface BrowserCrawlingContext<
     Page extends CommonPage = CommonPage,
@@ -84,7 +84,8 @@ export interface BrowserCrawlerOptions<
         ProvidedController,
         Dictionary
     >,
-    ExtendedContext extends Context = Context,
+    ContextExtension = {},
+    ExtendedContext extends Context = Context & ContextExtension,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
@@ -284,9 +285,10 @@ export abstract class BrowserCrawler<
         ProvidedController,
         Dictionary
     >,
-    ExtendedContext extends Context = Context,
+    ContextExtension = {},
+    ExtendedContext extends Context = Context & ContextExtension,
     GoToOptions extends Dictionary = Dictionary,
-> extends BasicCrawler<Context, ExtendedContext> {
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     /**
      * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
@@ -328,7 +330,14 @@ export abstract class BrowserCrawler<
      * All `BrowserCrawler` parameters are passed via an options object.
      */
     protected constructor(
-        options: BrowserCrawlerOptions<Page, Response, ProvidedController, Context, ExtendedContext> & {
+        options: BrowserCrawlerOptions<
+            Page,
+            Response,
+            ProvidedController,
+            Context,
+            ContextExtension,
+            ExtendedContext
+        > & {
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         },
         override readonly config = Configuration.getGlobalConfig(),
@@ -346,6 +355,7 @@ export abstract class BrowserCrawler<
             ignoreIframes = false,
             ignoreShadowRoots = false,
             contextPipelineBuilder,
+            extendContext,
             ...basicCrawlerOptions
         } = options;
 
@@ -357,7 +367,7 @@ export abstract class BrowserCrawler<
                         .compose({ action: this.performNavigation.bind(this) })
                         .compose({ action: this.handleBlockedRequestByContent.bind(this) })
                         .compose({ action: this.restoreRequestState.bind(this) }),
-                contextPipelineEnhancer: options.contextPipelineEnhancer,
+                extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
             },
             config,
         );
@@ -464,7 +474,7 @@ export abstract class BrowserCrawler<
     private async preparePage(
         crawlingContext: CrawlingContext,
     ): Promise<
-        ContextExtension<CrawlingContext, BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>>
+        ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>>
     > {
         const newPageOptions: Dictionary = {
             id: crawlingContext.id,

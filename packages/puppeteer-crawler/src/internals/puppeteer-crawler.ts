@@ -31,12 +31,15 @@ export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictiona
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
-export interface PuppeteerCrawlerOptions<ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext>
-    extends BrowserCrawlerOptions<
+export interface PuppeteerCrawlerOptions<
+    ContextExtension = {},
+    ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+> extends BrowserCrawlerOptions<
         Page,
         HTTPResponse,
         PuppeteerController,
         PuppeteerCrawlingContext,
+        ContextExtension,
         ExtendedContext,
         { browserPlugins: [PuppeteerPlugin] }
     > {
@@ -146,7 +149,8 @@ export interface PuppeteerCrawlerOptions<ExtendedContext extends PuppeteerCrawli
  * @category Crawlers
  */
 export class PuppeteerCrawler<
-    ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    ContextExtension = {},
+    ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
@@ -154,6 +158,7 @@ export class PuppeteerCrawler<
     { browserPlugins: [PuppeteerPlugin] },
     LaunchOptions,
     PuppeteerCrawlingContext,
+    ContextExtension,
     ExtendedContext
 > {
     protected static override optionsShape = {
@@ -165,7 +170,7 @@ export class PuppeteerCrawler<
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: PuppeteerCrawlerOptions = {},
+        options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {},
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
@@ -205,6 +210,7 @@ export class PuppeteerCrawler<
                     HTTPResponse,
                     PuppeteerController,
                     PuppeteerCrawlingContext,
+                    ContextExtension,
                     ExtendedContext
                 >),
                 launchContext,
