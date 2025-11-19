@@ -675,8 +675,8 @@ interface HandleCloudflareChallengeOptions {
     isBlockedCallback?: (page: Page) => Promise<boolean>;
     /** Allows overriding how the checkbox click position is calculated. */
     clickPositionCallback?: (page: Page) => Promise<{ x: number; y: number } | null>;
-    /** Optional delay (in milliseconds) before the first click attempt on the challenge checkbox. */
-    waitPeriod?: number;
+    /** Optional delay (in seconds) before the first click attempt on the challenge checkbox. */
+    waitPeriodSecs?: number;
 }
 
 /**
@@ -773,19 +773,15 @@ async function handleCloudflareChallenge(
 
     // try to click the checkbox every second
     for (let i = 0; i < 10; i++) {
-        await sleep(1000);
+        await sleep((options.waitPeriodSecs ?? 1) * 1000);
 
         // break early if we are no longer on the CF challenge page
         if (!(await isChallenge())) {
             break;
         }
 
-        if (i == 0 && options.waitPeriod) {
-            await sleep(options.waitPeriod);
-        }
-
         if (options.clickPositionCallback) {
-            let pos = await options.clickPositionCallback(page);
+            const pos = await options.clickPositionCallback(page);
             if (pos) {
                 x = pos.x;
                 y = pos.y;
