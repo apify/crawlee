@@ -30,7 +30,7 @@ process.env.STORAGE_IMPLEMENTATION ??= 'MEMORY';
 // so that the CI knows that e2e test suite has failed
 let failure = false;
 
-async function run() {
+async function run({ maxParallelTests = 1 } = {}) {
     if (!['LOCAL', 'MEMORY', 'PLATFORM'].includes(process.env.STORAGE_IMPLEMENTATION)) {
         throw new Error(`Unknown storage provided: '${process.env.STORAGE_IMPLEMENTATION}'`);
     }
@@ -40,9 +40,23 @@ async function run() {
     const paths = await readdir(basePath, { withFileTypes: true });
     const dirs = paths.filter((dirent) => dirent.isDirectory());
 
-    for (const dir of dirs) {
+    const concurrentGroups = dirs.reduce((groups, dir, index) => {
+        const groupIndex = Math.floor(index / maxParallelTests);
+        if (!groups[groupIndex]) {
+            groups[groupIndex] = [];
+        }
+        groups[groupIndex].push(dir);
+        return groups;
+    }, []);
+
+    for (const group of concurrentGroups) {
+        const promises = group.map((dir) => runTest(dir));
+        await Promise.all(promises);
+    }
+
+    async function runTest(dir) {
         if (process.argv.length === 3 && dir.name !== process.argv[2]) {
-            continue;
+            return;
         }
 
         const now = Date.now();
@@ -51,6 +65,7 @@ async function run() {
             stdout: true,
             stderr: true,
         });
+        const logLines = [];
         let seenFirst = false;
         /** @type Map<string, string[]> */
         const allLogs = new Map();
@@ -91,7 +106,7 @@ async function run() {
             ) {
                 const platformStatsMessage = str.match(/\[(?:run|build|kv)] (.*)/);
                 if (platformStatsMessage) {
-                    console.log(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
+                    logLines.push(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
                 }
             }
 
@@ -99,14 +114,14 @@ async function run() {
 
             if (match) {
                 const c = match[1] === 'passed' ? colors.green : colors.red;
-                console.log(`${colors.yellow(`[${dir.name}] `)}${match[2]}: ${c(match[1])}`);
+                logLines.push(`${colors.yellow(`[${dir.name}] `)}${match[2]}: ${c(match[1])}`);
             }
         });
 
         worker.on('error', (err) => {
             // If the worker emits any error, we want to exit with a non-zero code
             failure = true;
-            console.log(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} failed with error: ${err}`);
+            logLines.push(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} failed with error: ${err}`);
         });
 
         const exitHandler = async (code) => {
@@ -118,7 +133,7 @@ async function run() {
             const took = (Date.now() - now) / 1000;
             const status = code === 0 ? 'success' : 'failure';
             const color = code === 0 ? 'green' : 'red';
-            console.log(
+            logLines.push(
                 `${colors.yellow(`[${dir.name}] `)}${colors[color](
                     `Test finished with status: ${status} `,
                 )}${colors.grey(`[took ${took}s]`)}`,
@@ -135,7 +150,7 @@ async function run() {
             const taskLogs = allLogs.get(dir.name);
 
             if (code !== 0 && taskLogs?.length > 0) {
-                console.log(taskLogs.join('\n'));
+                logLines.push(taskLogs.join('\n'));
             }
 
             if (status === 'failure') failure = true;
@@ -147,6 +162,7 @@ async function run() {
             try {
                 await exitHandler(exitCode);
             } finally {
+                console.log(logLines.join('\n'));
                 markTestDone();
             }
         });
@@ -168,7 +184,7 @@ if (isMainThread) {
             console.log('Fetching camoufox');
             execSync(`npx camoufox-js fetch`, { stdio: 'inherit' });
         }
-        await run();
+        await run({ maxParallelTests: process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' ? 10 : 1 });
     } catch (e) {
         failure = true;
         console.error(e);
