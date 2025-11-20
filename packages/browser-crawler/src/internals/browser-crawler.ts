@@ -62,10 +62,29 @@ export interface BrowserCrawlingContext<
     ProvidedController = BrowserController,
     UserData extends Dictionary = Dictionary,
 > extends CrawlingContext<UserData> {
+    /**
+     * An instance of the {@apilink BrowserController} that manages the browser instance and provides access to its API.
+     */
     browserController: ProvidedController;
+
+    /**
+     * The browser page object where the web page is loaded and rendered.
+     */
     page: Page;
+
+    /**
+     * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
+     */
     request: LoadedRequest<Request<UserData>>;
-    response?: Response;
+
+    /**
+     * The HTTP response object returned by the browser's navigation.
+     */
+    response: Response;
+
+    /**
+     * Helper function for extracting URLs from the current page and adding them to the request queue.
+     */
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
@@ -514,6 +533,11 @@ export abstract class BrowserCrawler<
 
         return {
             page,
+            get response(): Response {
+                throw new Error(
+                    "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (this should only happen with `about:` URLs)",
+                );
+            },
             browserController: browserControllerInstance,
             session: !useIncognitoPages
                 ? (browserControllerInstance.launchContext.session as Session)
@@ -533,7 +557,10 @@ export abstract class BrowserCrawler<
         };
     }
 
-    private async performNavigation(crawlingContext: Context) {
+    private async performNavigation(crawlingContext: Context): Promise<{
+        request: LoadedRequest<Request>;
+        response?: Response;
+    }> {
         if (crawlingContext.request.skipNavigation) {
             return {
                 request: new Proxy(crawlingContext.request, {
@@ -546,7 +573,7 @@ export abstract class BrowserCrawler<
                         return Reflect.get(target, propertyName, receiver);
                     },
                 }) as LoadedRequest<Request>,
-                get response() {
+                get response(): Response {
                     throw new Error('The `response` property is not available - `skipNavigation` was used');
                 },
             };
@@ -592,9 +619,15 @@ export abstract class BrowserCrawler<
             crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
         }
 
+        if (response !== undefined) {
+            return {
+                request: crawlingContext.request as LoadedRequest<Request>,
+                response,
+            };
+        }
+
         return {
             request: crawlingContext.request as LoadedRequest<Request>,
-            response,
         };
     }
 

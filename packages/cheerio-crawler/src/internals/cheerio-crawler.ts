@@ -38,6 +38,9 @@ export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends InternalHttpCrawlingContext<UserData, JSONData> {
+    /**
+     * The raw HTML content of the web page as a string.
+     */
     body: string;
 
     /**
@@ -76,6 +79,9 @@ export interface CheerioCrawlingContext<
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 
+    /**
+     * Helper function for extracting URLs from the parsed HTML and adding them to the request queue.
+     */
     enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
 }
 

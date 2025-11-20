@@ -191,8 +191,14 @@ export type HttpHook<
 interface CrawlingContextWithReponse<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
+    /**
+     * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
+     */
     request: LoadedRequest<Request<UserData>>;
 
+    /**
+     * The HTTP response object containing status code, headers, and other response metadata.
+     */
     response: PlainResponse;
 }
 
