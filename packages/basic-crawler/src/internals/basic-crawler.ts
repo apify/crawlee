@@ -108,7 +108,7 @@ export type RequireContextPipeline<
     DefaultContextType extends CrawlingContext,
     FinalContextType extends DefaultContextType,
 > = DefaultContextType extends FinalContextType
-    ? { contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, FinalContextType> }
+    ? {}
     : { contextPipelineBuilder: () => ContextPipeline<CrawlingContext, FinalContextType> };
 
 export interface BasicCrawlerOptions<
@@ -157,6 +157,13 @@ export interface BasicCrawlerOptions<
      * ```
      */
     extendContext?: (context: Context) => Awaitable<ContextExtension>;
+
+    /**
+     * *Intended for BasicCrawler subclasses*. Prepares a context pipeline that transforms the initial crawling context into the shape given by the `Context` type parameter.
+     *
+     * The option is not required if your crawler subclass does not extend the crawling context with custom information or helpers.
+     */
+    contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
 
     /**
      * Static list of URLs to be processed.

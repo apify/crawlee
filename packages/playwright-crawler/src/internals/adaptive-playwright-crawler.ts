@@ -287,6 +287,7 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks,
             postNavigationHooks,
             extendContext,
+            contextPipelineBuilder,
             ...rest
         } = options;
 
