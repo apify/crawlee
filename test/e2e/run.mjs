@@ -159,7 +159,7 @@ if (isMainThread) {
     try {
         if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
             console.log('Temporary installing @apify/storage-local');
-            execSync(`yarn add -D @apify/storage-local@^2.1.3-beta.1`, { stdio: 'inherit' });
+            execSync(`yarn add -D @apify/storage-local@^2.3.1-beta.1`, { stdio: 'inherit' });
         }
         if (process.env.STORAGE_IMPLEMENTATION !== 'PLATFORM') {
             console.log('Fetching camoufox');
@@ -167,6 +167,7 @@ if (isMainThread) {
         }
         await run();
     } catch (e) {
+        failure = true;
         console.error(e);
     } finally {
         if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
