@@ -32,7 +32,29 @@ The crawler following options are removed:
 - `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
 - `handleFailedRequestFunction` -> `failedRequestHandler`
 
-## The protected `BasicCrawler.crawlingContexts` map is removed
+## Underscore prefix is removed from many protected and private methods
+
+- `BasicCrawler._runRequestHandler` -> `BasicCrawler.runRequestHandler`
+
+## Removed symbols
+
+- `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
+- `BasicCrawler.isRequestBlocked` (protected)
+- `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
+- `BrowserCrawler.userProvidedRequestHandler` (protected)
+- `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
+- `BrowserCrawler._enhanceCrawlingContextWithPageInfo` (protected)
+- `BrowserCrawler._handleNavigation` (protected)
+- `HttpCrawler.userRequestHandlerTimeoutMillis` (protected)
+- `HttpCrawler._handleNavigation` (protected)
+- `HttpCrawler._parseHTML` (protected)
+- `HttpCrawler._parseResponse` (protected) - made private
+- `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
+- `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
+- `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
+- `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
+
+### The protected `BasicCrawler.crawlingContexts` map is removed
 
 The property was not used by the library itself and re-implementing the functionality in user code is fairly straightforward.
 
