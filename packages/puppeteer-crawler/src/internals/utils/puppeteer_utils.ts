@@ -23,7 +23,7 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import type { Request } from '@crawlee/browser';
-import { Configuration, KeyValueStore, RequestState, validators } from '@crawlee/browser';
+import { Configuration, KeyValueStore, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -37,7 +37,6 @@ import log_ from '@apify/log';
 
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
-import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler.js';
 import type { InterceptHandler } from './puppeteer_request_interception.js';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception.js';
 
@@ -928,32 +927,6 @@ export interface PuppeteerContextUtils {
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
 
     /**
-     * `blockResources()` has a high impact on performance in recent versions of Puppeteer.
-     * Until this resolves, please use `utils.puppeteer.blockRequests()`.
-     * @deprecated
-     */
-    blockResources(resourceTypes?: string[]): Promise<void>;
-
-    /**
-     * *NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
-     * performance. Until this resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
-     *
-     * Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
-     * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
-     *   This issue should be resolved or atleast mitigated in future iterations of this feature.
-     * @param cache
-     *   Object in which responses are stored
-     * @param responseUrlRules
-     *   List of rules that are used to check if the response should be cached.
-     *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
-     * @deprecated
-     */
-    cacheResponses(
-        cache: Dictionary<Partial<ResponseForRequest>>,
-        responseUrlRules: (string | RegExp)[],
-    ): Promise<void>;
-
-    /**
      * Compiles a Puppeteer script into an async function that may be executed at any time
      * by providing it with the following object:
      * ```
@@ -1056,60 +1029,6 @@ export interface PuppeteerContextUtils {
     closeCookieModals(): Promise<void>;
 }
 
-/** @internal */
-export function registerUtilsToContext(
-    context: PuppeteerCrawlingContext,
-    crawlerOptions: PuppeteerCrawlerOptions,
-): void {
-    context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
-        injectFile(context.page, filePath, options);
-    context.injectJQuery = async () => {
-        if (context.request.state === RequestState.BEFORE_NAV) {
-            log.warning(
-                'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
-            );
-            await injectJQuery(context.page);
-            return;
-        }
-        await injectJQuery(context.page, { surviveNavigations: false });
-    };
-    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
-        await context.page.waitForSelector(selector, { timeout: timeoutMs });
-    };
-    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
-        if (selector) {
-            await context.waitForSelector(selector, timeoutMs);
-        }
-
-        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
-    };
-    context.enqueueLinksByClickingElements = async (
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
-    ) =>
-        enqueueLinksByClickingElements({
-            page: context.page,
-            requestQueue: context.crawler.requestQueue!,
-            ...options,
-        });
-    context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.blockResources = async (resourceTypes?: string[]) => blockResources(context.page, resourceTypes);
-    context.cacheResponses = async (
-        cache: Dictionary<Partial<ResponseForRequest>>,
-        responseUrlRules: (string | RegExp)[],
-    ) => {
-        return cacheResponses(context.page, cache, responseUrlRules);
-    };
-    context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
-    context.addInterceptRequestHandler = async (handler: InterceptHandler) =>
-        addInterceptRequestHandler(context.page, handler);
-    context.removeInterceptRequestHandler = async (handler: InterceptHandler) =>
-        removeInterceptRequestHandler(context.page, handler);
-    context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
-        saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    context.closeCookieModals = async () => closeCookieModals(context.page);
-}
-
 export { enqueueLinksByClickingElements, addInterceptRequestHandler, removeInterceptRequestHandler };
 
 /** @internal */
@@ -1118,8 +1037,6 @@ export const puppeteerUtils = {
     injectJQuery,
     enqueueLinksByClickingElements,
     blockRequests,
-    blockResources,
-    cacheResponses,
     compileScript,
     gotoExtended,
     addInterceptRequestHandler,

@@ -32,9 +32,52 @@ The crawler following options are removed:
 - `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
 - `handleFailedRequestFunction` -> `failedRequestHandler`
 
-## Crawling context no longer includes Error for failed requests
+## Underscore prefix is removed from many protected and private methods
+
+- `BasicCrawler._runRequestHandler` -> `BasicCrawler.runRequestHandler`
+
+## Removed symbols
+
+- `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
+- `BasicCrawler.isRequestBlocked` (protected)
+- `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
+- `BrowserCrawler.userProvidedRequestHandler` (protected)
+- `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
+- `BrowserCrawler._enhanceCrawlingContextWithPageInfo` (protected)
+- `BrowserCrawler._handleNavigation` (protected)
+- `HttpCrawler.userRequestHandlerTimeoutMillis` (protected)
+- `HttpCrawler._handleNavigation` (protected)
+- `HttpCrawler._parseHTML` (protected)
+- `HttpCrawler._parseResponse` (protected) - made private
+- `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
+- `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
+- `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
+- `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
+
+### The protected `BasicCrawler.crawlingContexts` map is removed
+
+The property was not used by the library itself and re-implementing the functionality in user code is fairly straightforward.
+
+## Removed crawling context properties
+
+### Crawling context no longer includes Error for failed requests
 
 The crawling context no longer includes the `Error` object for failed requests. Use the second parameter of the `errorHandler` or `failedRequestHandler` callbacks to access the error.
+
+### Crawling context no longer includes a reference to the crawler itself
+
+This was previously accessible via `context.crawler`. If you want to restore the functionality, you may use the `extendContext` option of the crawler:
+
+```ts
+const crawler = new CheerioCrawler({
+  extendContext: () => ({ crawler }),
+  requestHandler: async (context) => {
+    if (Math.random() < 0.01) {
+      context.crawler.stop()
+    }
+  }
+})
+```
 
 ## Crawling context is strictly typed
 
