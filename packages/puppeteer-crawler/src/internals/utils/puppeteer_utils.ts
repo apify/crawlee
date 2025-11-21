@@ -778,8 +778,33 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     }
 }
 
+let idcacPlaywright: null | { getInjectableScript: () => string } = null;
+async function getIdcacPlaywright() {
+    if (idcacPlaywright) return idcacPlaywright;
+
+    try {
+        idcacPlaywright = await import('idcac-playwright');
+    } catch (error: any) {
+        log.warning(`Failed to import 'idcac-playwright'.
+
+We recently made idcac-playwright an optional dependency due to licensing issues.
+To use this feature, please install it manually by running
+
+npm install idcac-playwright
+
+Original error message follows: ${error.message}
+`);
+    }
+    return idcacPlaywright;
+}
+
 export async function closeCookieModals(page: Page): Promise<void> {
-    await page.evaluate(getInjectableScript());
+    ow(page, ow.object.validate(validators.browserPage));
+    const idcac = await getIdcacPlaywright();
+
+    if (idcac?.getInjectableScript()) {
+        await page.evaluate(idcac.getInjectableScript());
+    }
 }
 
 /** @internal */
@@ -1057,6 +1082,15 @@ export interface PuppeteerContextUtils {
 
     /**
      * Tries to close cookie consent modals on the page. Based on the I Don't Care About Cookies browser extension.
+     *
+     * Note that this method requires the idcac-playwright package to be installed.
+     * Crawlee does not include it by default due to licensing issues.
+     *
+     * To use this method, please install the package manually by running:
+     *
+     * ```bash
+     * npm install idcac-playwright
+     * ```
      */
     closeCookieModals(): Promise<void>;
 }
