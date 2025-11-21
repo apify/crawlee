@@ -165,8 +165,19 @@ if (isMainThread) {
             );
         }
         if (process.env.STORAGE_IMPLEMENTATION !== 'PLATFORM') {
-            console.log('Fetching camoufox');
-            execSync(`npx camoufox-js fetch`, { stdio: 'inherit' });
+            console.log('Fetching Camoufox...');
+
+            for (let attempt = 0; attempt < 5; attempt++) {
+                try {
+                    execSync(`npx camoufox-js fetch`, { stdio: 'inherit' });
+                } catch (e) {
+                    console.error('Failed to fetch Camoufox', e);
+                    if (attempt === 4) throw e;
+                    console.log(`Retrying to fetch Camoufox (attempt ${attempt + 2}/5)...`);
+                    await new Promise((resolve) => setTimeout(resolve, 10e3));
+                    continue;
+                }
+            }
         }
         await run();
     } catch (e) {
