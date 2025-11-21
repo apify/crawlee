@@ -37,7 +37,7 @@ jobs:
         name: Publish to NPM (${{ inputs.dist-tag }})
         runs-on: ubuntu-22.04
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v6
               with:
                   ref: ${{ inputs.ref }}
                   token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
