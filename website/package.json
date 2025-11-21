@@ -58,7 +58,7 @@
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "react-github-btn": "^1.4.0",
-        "react-lite-youtube-embed": "^2.3.52",
+        "react-lite-youtube-embed": "^3.0.0",
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
