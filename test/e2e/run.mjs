@@ -30,7 +30,7 @@ process.env.STORAGE_IMPLEMENTATION ??= 'MEMORY';
 // so that the CI knows that e2e test suite has failed
 let failure = false;
 
-async function run({ maxParallelTests = 1 } = {}) {
+async function run() {
     if (!['LOCAL', 'MEMORY', 'PLATFORM'].includes(process.env.STORAGE_IMPLEMENTATION)) {
         throw new Error(`Unknown storage provided: '${process.env.STORAGE_IMPLEMENTATION}'`);
     }
@@ -40,23 +40,9 @@ async function run({ maxParallelTests = 1 } = {}) {
     const paths = await readdir(basePath, { withFileTypes: true });
     const dirs = paths.filter((dirent) => dirent.isDirectory());
 
-    const concurrentGroups = dirs.reduce((groups, dir, index) => {
-        const groupIndex = Math.floor(index / maxParallelTests);
-        if (!groups[groupIndex]) {
-            groups[groupIndex] = [];
-        }
-        groups[groupIndex].push(dir);
-        return groups;
-    }, []);
-
-    for (const group of concurrentGroups) {
-        const promises = group.map((dir) => runTest(dir));
-        await Promise.all(promises);
-    }
-
-    async function runTest(dir) {
+    for (const dir of dirs) {
         if (process.argv.length === 3 && dir.name !== process.argv[2]) {
-            return;
+            continue;
         }
 
         const now = Date.now();
@@ -65,7 +51,6 @@ async function run({ maxParallelTests = 1 } = {}) {
             stdout: true,
             stderr: true,
         });
-        const logLines = [];
         let seenFirst = false;
         /** @type Map<string, string[]> */
         const allLogs = new Map();
@@ -106,7 +91,7 @@ async function run({ maxParallelTests = 1 } = {}) {
             ) {
                 const platformStatsMessage = str.match(/\[(?:run|build|kv)] (.*)/);
                 if (platformStatsMessage) {
-                    logLines.push(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
+                    console.log(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
                 }
             }
 
@@ -114,14 +99,14 @@ async function run({ maxParallelTests = 1 } = {}) {
 
             if (match) {
                 const c = match[1] === 'passed' ? colors.green : colors.red;
-                logLines.push(`${colors.yellow(`[${dir.name}] `)}${match[2]}: ${c(match[1])}`);
+                console.log(`${colors.yellow(`[${dir.name}] `)}${match[2]}: ${c(match[1])}`);
             }
         });
 
         worker.on('error', (err) => {
             // If the worker emits any error, we want to exit with a non-zero code
             failure = true;
-            logLines.push(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} failed with error: ${err}`);
+            console.log(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} failed with error: ${err}`);
         });
 
         const exitHandler = async (code) => {
@@ -133,7 +118,7 @@ async function run({ maxParallelTests = 1 } = {}) {
             const took = (Date.now() - now) / 1000;
             const status = code === 0 ? 'success' : 'failure';
             const color = code === 0 ? 'green' : 'red';
-            logLines.push(
+            console.log(
                 `${colors.yellow(`[${dir.name}] `)}${colors[color](
                     `Test finished with status: ${status} `,
                 )}${colors.grey(`[took ${took}s]`)}`,
@@ -150,7 +135,7 @@ async function run({ maxParallelTests = 1 } = {}) {
             const taskLogs = allLogs.get(dir.name);
 
             if (code !== 0 && taskLogs?.length > 0) {
-                logLines.push(taskLogs.join('\n'));
+                console.log(taskLogs.join('\n'));
             }
 
             if (status === 'failure') failure = true;
@@ -162,7 +147,6 @@ async function run({ maxParallelTests = 1 } = {}) {
             try {
                 await exitHandler(exitCode);
             } finally {
-                console.log(logLines.join('\n'));
                 markTestDone();
             }
         });
@@ -184,7 +168,7 @@ if (isMainThread) {
             console.log('Fetching camoufox');
             execSync(`npx camoufox-js fetch`, { stdio: 'inherit' });
         }
-        await run({ maxParallelTests: process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' ? 10 : 1 });
+        await run();
     } catch (e) {
         failure = true;
         console.error(e);
