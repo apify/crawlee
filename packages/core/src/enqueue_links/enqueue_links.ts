@@ -7,13 +7,13 @@ import type { SetRequired } from 'type-fest';
 import log from '@apify/log';
 
 import type { Request, RequestOptions } from '../request.js';
-import type { 
+import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    RequestProvider, 
-    RequestQueueOperationOptions 
+    RequestProvider,
+    RequestQueueOperationOptions,
 } from '../storages/request_provider.js';
-import type { 
+import type {
     GlobInput,
     PseudoUrlInput,
     RegExpInput,
@@ -22,7 +22,6 @@ import type {
     SkippedRequestReason,
     UrlPatternObject,
 } from './shared.js';
-
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,

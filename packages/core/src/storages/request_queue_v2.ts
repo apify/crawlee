@@ -12,7 +12,6 @@ import type {
 } from './request_provider.js';
 import { RequestProvider } from './request_provider.js';
 import { getRequestId } from './utils.js';
->>>>>>> e4b7f69b (refactor: convert to native ESM)
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
