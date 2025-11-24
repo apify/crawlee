@@ -19,6 +19,7 @@ import {
     sleep,
 } from '@crawlee/utils';
 import ow from 'ow';
+import type { ReadonlyDeep } from 'type-fest';
 
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
@@ -393,7 +394,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      * @param options Options for the request queue
      */
     async addRequestsBatched(
-        requests: RequestsLike,
+        requests: ReadonlyDeep<RequestsLike>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();

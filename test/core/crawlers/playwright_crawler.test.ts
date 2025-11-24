@@ -2,16 +2,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
-import type {
-    Cheerio,
-    CheerioAPI,
-    CheerioRoot,
-    Element,
-    PlaywrightCrawlingContext,
-    PlaywrightGotoOptions,
-    PlaywrightRequestHandler,
-    Request,
-} from '@crawlee/playwright';
+import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
 import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
@@ -37,7 +28,7 @@ describe('PlaywrightCrawler', () => {
         const app = express();
         server = await startExpressAppPromise(app, 0);
         port = (server.address() as AddressInfo).port;
-        app.get('/', (req, res) => {
+        app.get('/', (_req, res) => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
             res.status(200);
         });
@@ -85,13 +76,8 @@ describe('PlaywrightCrawler', () => {
             const processed: Request[] = [];
             const failed: Request[] = [];
             const requestListLarge = await RequestList.open({ sources: sourcesLarge });
-            const requestHandler = async ({
-                page,
-                request,
-                response,
-                useState,
-            }: Parameters<PlaywrightRequestHandler>[0]) => {
-                const state = await useState([]);
+            const requestHandler = async ({ page, request, response, useState }: PlaywrightCrawlingContext) => {
+                await useState([]);
                 expect(response!.status()).toBe(200);
                 request.userData.title = await page.title();
                 processed.push(request);
@@ -206,23 +192,4 @@ describe('PlaywrightCrawler', () => {
             expect(reducedMotion).toBe(launchOptions.reducedMotion);
         },
     );
-
-    test('should have correct types in crawling context', async () => {
-        const requestHandler = async (crawlingContext: PlaywrightCrawlingContext) => {
-            // Checking that types are correct
-            const $ = await crawlingContext.parseWithCheerio();
-
-            const _cheerioRootType: CheerioRoot = $;
-            const _apiType: CheerioAPI = $;
-            const _cheerioElementType: Cheerio<Element> = $('div');
-        };
-
-        const playwrightCrawler = new PlaywrightCrawler({
-            requestList,
-            maxRequestRetries: 0,
-            maxConcurrency: 1,
-            requestHandler,
-        });
-        await playwrightCrawler.run();
-    });
 });

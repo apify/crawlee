@@ -1,6 +1,6 @@
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import type { OptionsInit, Response as GotResponse } from 'got-scraping';
-import type { ReadonlyDeep } from 'type-fest';
+import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
@@ -27,9 +27,7 @@ export type LoadedContext<Context extends RestrictedCrawlingContext> = IsAny<Con
           request: LoadedRequest<Context['request']>;
       } & Omit<Context, 'request'>;
 
-export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
-    // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
-    extends Record<string & {}, unknown> {
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     id: string;
     session?: Session;
 
@@ -77,7 +75,9 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      *
      * @param [options] All `enqueueLinks()` parameters are passed via an options object.
      */
-    enqueueLinks: (options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>>) => Promise<unknown>;
+    enqueueLinks: (
+        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestQueue' | 'robotsTxtFile'>>,
+    ) => Promise<unknown>;
 
     /**
      * Add requests directly to the request queue.
@@ -108,10 +108,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     log: Log;
 }
 
-export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary>
-    extends RestrictedCrawlingContext<UserData> {
-    crawler: Crawler;
-
+export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
     /**
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
      * currently used by the crawler.
@@ -138,13 +135,9 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinks(
-        options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>,
-    ): Promise<BatchAddRequestsResult>;
-
-    /**
-     * Get a key-value store with given name or id, or the default one for the crawler.
-     */
-    getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>;
+        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestQueue' | 'robotsTxtFile'>> &
+            Pick<EnqueueLinksOptions, 'requestQueue' | 'robotsTxtFile'>,
+    ): Promise<unknown>;
 
     /**
      * Fires HTTP request via [`got-scraping`](https://crawlee.dev/js/docs/guides/got-scraping), allowing to override the request
@@ -164,6 +157,11 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * ```
      */
     sendRequest<Response = string>(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<Response>>;
+
+    /**
+     * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
+     */
+    registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
 }
 
 /**
