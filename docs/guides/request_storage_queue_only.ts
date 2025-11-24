@@ -15,7 +15,7 @@ const sources = [
 // The crawler will automatically process requests from the queue.
 // It's used the same way for Cheerio/Playwright crawlers
 const crawler = new PuppeteerCrawler({
-    async requestHandler({ crawler, enqueueLinks }) {
+    async requestHandler({ enqueueLinks }) {
         // Add new request to the queue
         await crawler.addRequests(['http://www.example.com/new-page']);
 

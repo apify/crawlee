@@ -1,6 +1,5 @@
 /* eslint-disable no-loop-func */
 import { execSync } from 'node:child_process';
-import { once } from 'node:events';
 import { readdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
