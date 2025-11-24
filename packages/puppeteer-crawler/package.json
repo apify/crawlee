@@ -67,9 +67,13 @@
         "tslib": "^2.4.0"
     },
     "peerDependencies": {
+        "idcac-playwright": "^0.1.2",
         "puppeteer": "*"
     },
     "peerDependenciesMeta": {
+        "idcac-playwright": {
+            "optional": true
+        },
         "puppeteer": {
             "optional": true
         }

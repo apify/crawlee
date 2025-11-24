@@ -686,7 +686,6 @@ __metadata:
     "@crawlee/types": "npm:3.15.3"
     "@crawlee/utils": "npm:3.15.3"
     cheerio: "npm:1.0.0-rc.12"
-    idcac-playwright: "npm:^0.1.2"
     jquery: "npm:^3.6.0"
     lodash.isequal: "npm:^4.5.0"
     ml-logistic-regression: "npm:^2.0.0"
@@ -695,8 +694,11 @@ __metadata:
     string-comparison: "npm:^1.3.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
+    idcac-playwright: ^0.1.2
     playwright: "*"
   peerDependenciesMeta:
+    idcac-playwright:
+      optional: true
     playwright:
       optional: true
   languageName: unknown
@@ -719,8 +721,11 @@ __metadata:
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
   peerDependencies:
+    idcac-playwright: ^0.1.2
     puppeteer: "*"
   peerDependenciesMeta:
+    idcac-playwright:
+      optional: true
     puppeteer:
       optional: true
   languageName: unknown
@@ -4934,9 +4939,12 @@ __metadata:
     import-local: "npm:^3.1.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
+    idcac-playwright: "*"
     playwright: "*"
     puppeteer: "*"
   peerDependenciesMeta:
+    idcac-playwright:
+      optional: true
     playwright:
       optional: true
     puppeteer:
