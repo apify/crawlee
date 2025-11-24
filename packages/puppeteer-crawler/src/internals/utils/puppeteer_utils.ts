@@ -791,7 +791,9 @@ To use this feature, please install it manually by running
 
 npm install idcac-playwright
 
-Original error message follows: ${error.message}
+Original error message follows:
+
+${error.message}
 `);
     }
     return idcacPlaywright;
