@@ -8,7 +8,6 @@ import type {
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
-    ProxyConfiguration,
     Request,
     RequestHandler,
     RequireContextPipeline,

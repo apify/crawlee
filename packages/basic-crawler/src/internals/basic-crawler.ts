@@ -12,7 +12,6 @@ import type {
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
-    LoadedContext,
     ProxyConfiguration,
     ProxyInfo,
     Request,
