@@ -38,7 +38,7 @@ describe('PlaywrightCrawler', () => {
         const app = express();
         server = await startExpressAppPromise(app, 0);
         port = (server.address() as AddressInfo).port;
-        app.get('/', (req, res) => {
+        app.get('/', (_req, res) => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
             res.status(200);
         });
@@ -96,13 +96,8 @@ describe('PlaywrightCrawler', () => {
             const processed: Request[] = [];
             const failed: Request[] = [];
             const requestListLarge = await RequestList.open({ sources: sourcesLarge });
-            const requestHandler = async ({
-                page,
-                request,
-                response,
-                useState,
-            }: Parameters<PlaywrightRequestHandler>[0]) => {
-                const state = await useState([]);
+            const requestHandler = async ({ page, request, response, useState }: PlaywrightCrawlingContext) => {
+                await useState([]);
                 expect(response!.status()).toBe(200);
                 request.userData.title = await page.title();
                 processed.push(request);

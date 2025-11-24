@@ -25,7 +25,7 @@ const crawler = new PuppeteerCrawler({
     requestQueue,
     // Each request from the request list is enqueued to the request queue one by one.
     // At this point request with the same URL would exist in the list and the queue
-    async requestHandler({ crawler, enqueueLinks }) {
+    async requestHandler({ enqueueLinks }) {
         // Add new request to the queue
         await crawler.addRequests(['http://www.example.com/new-page']);
 

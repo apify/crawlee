@@ -1,66 +1,42 @@
+import type { Readable } from 'node:stream';
 import { Transform } from 'node:stream';
+import { buffer } from 'node:stream/consumers';
 import { finished } from 'node:stream/promises';
-import { isPromise } from 'node:util/types';
 
+import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
+import type { CrawlingContext, HttpResponse, LoadedRequest, Request, StreamingHttpResponse } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import type { Request } from 'got-scraping';
 
-import type {
-    ErrorHandler,
-    GetUserDataFromRequest,
-    HttpCrawlerOptions,
-    InternalHttpCrawlingContext,
-    InternalHttpHook,
-    RequestHandler,
-    RouterHandler,
-    RouterRoutes,
-    RouteSchemas,
-    RoutesFromSchemas,
-} from '../index.js';
-import { HttpCrawler, Router } from '../index.js';
+import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
+import { Router } from '../index.js';
+import { parseContentTypeFromResponse } from './utils.js';
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
-
-export type StreamHandlerContext = Omit<
-    FileDownloadCrawlingContext,
-    'body' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
-> & {
-    stream: Request; // TODO BC - remove in v4
-    abortDownload: () => void;
-};
-
-type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
-
-export type FileDownloadOptions<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> =
-    | (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
-          requestHandler?: never;
-          streamHandler?: StreamHandler;
-      })
-    | (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
-          requestHandler: FileDownloadRequestHandler;
-          streamHandler?: never;
-      });
+> = ErrorHandler<FileDownloadCrawlingContext<UserData>>;
 
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<FileDownloadCrawlingContext<UserData, JSONData>>;
+> = InternalHttpHook<FileDownloadCrawlingContext<UserData>>;
 
 export interface FileDownloadCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData, FileDownload> {}
+> extends CrawlingContext<UserData> {
+    request: LoadedRequest<Request<UserData>>;
+    response: HttpResponse<'buffer'> | StreamingHttpResponse;
+    body: Promise<Buffer>;
+    stream: Readable;
+    contentType: { type: string; encoding: BufferEncoding };
+}
 
 export type FileDownloadRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = RequestHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
+> = RequestHandler<FileDownloadCrawlingContext<UserData>>;
+
+interface ContextInternals {
+    pollingInterval?: NodeJS.Timeout;
+}
 
 /**
  * Creates a transform stream that throws an error if the source data speed is below the specified minimum speed.
@@ -187,123 +163,74 @@ export function ByteCounterStream({
  * ]);
  * ```
  */
-export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
-    private streamHandler?: StreamHandler;
+export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
+    #contextInternals = Symbol('contextInternals');
 
-    constructor(options: FileDownloadOptions = {}) {
-        const { streamHandler } = options;
-        delete options.streamHandler;
-
-        if (streamHandler) {
-            // For streams, the navigation is done in the request handler.
-            (options as any).requestHandlerTimeoutSecs = options.navigationTimeoutSecs ?? 120;
-        }
-
-        super(options);
-
-        this.streamHandler = streamHandler;
-        if (this.streamHandler) {
-            this.requestHandler = this.streamRequestHandler as any;
-        }
-
-        // The base HttpCrawler class only supports a handful of text based mime types.
-        // With the FileDownload crawler, we want to download any file type.
-        (this as any).supportedMimeTypes = new Set(['*/*']);
+    // TODO hooks
+    constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
+        super({
+            ...options,
+            contextPipelineBuilder: () =>
+                ContextPipeline.create<CrawlingContext>().compose({
+                    action: this.initiateDownload.bind(this),
+                    cleanup: this.cleanupDownload.bind(this),
+                }),
+        });
     }
 
-    protected override async _runRequestHandler(context: FileDownloadCrawlingContext) {
-        if (this.streamHandler) {
-            context.request.skipNavigation = true;
-        }
-
-        await super._runRequestHandler(context);
-    }
-
-    private async streamRequestHandler(context: FileDownloadCrawlingContext) {
-        const {
-            log,
-            request: { url },
-        } = context;
-
+    private async initiateDownload(context: CrawlingContext) {
         const response = await this.httpClient.stream({
-            url,
+            url: context.request.url,
             timeout: { request: undefined },
             proxyUrl: context.proxyInfo?.url,
         });
 
-        let pollingInterval: NodeJS.Timeout | undefined;
-        let abortedByHandler = false;
+        const { type, charset: encoding } = parseContentTypeFromResponse(response);
 
-        const abortDownload = () => {
-            if (abortedByHandler || !response.stream.readable) {
-                return;
+        context.request.url = response.url;
+
+        const pollingInterval = setInterval(() => {
+            const { total, transferred } = response.downloadProgress;
+
+            if (transferred > 0) {
+                context.log.debug(
+                    `Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${context.request.url}.`,
+                );
             }
+        }, 5000);
 
-            abortedByHandler = true;
-            response.stream.destroy();
+        const contextExtension = {
+            [this.#contextInternals]: { pollingInterval } as ContextInternals,
+            request: context.request as LoadedRequest<Request>,
+            response,
+            contentType: { type, encoding },
+            stream: response.stream,
+            get body() {
+                return buffer(response.stream);
+            },
         };
 
-        const cleanUp = () => {
-            clearInterval(pollingInterval!);
-            response.stream.destroy();
-        };
+        return contextExtension;
+    }
 
-        const downloadPromise = new Promise<void>((resolve, reject) => {
-            pollingInterval = setInterval(() => {
-                const { total, transferred } = response.downloadProgress;
+    private async cleanupDownload(
+        context: FileDownloadCrawlingContext & { [k: symbol]: ContextInternals },
+        error?: unknown,
+    ) {
+        clearInterval(context[this.#contextInternals].pollingInterval);
 
-                if (transferred > 0) {
-                    log.debug(`Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`);
+        // If there was no error and the stream is still readable, wait for it to be consumed before proceeding
+        if (error === undefined) {
+            if (!context.stream.destroyed && context.stream.readable) {
+                try {
+                    await finished(context.stream);
+                } catch {
+                    // Stream might have encountered an error or been closed, which is fine
                 }
-            }, 5000);
-
-            response.stream.on('error', async (error: Error) => {
-                if (abortedByHandler) {
-                    resolve();
-                    return;
-                }
-
-                cleanUp();
-                reject(error);
-            });
-
-            let streamHandlerResult;
-
-            try {
-                context.stream = response.stream;
-                context.response = response as any;
-                (context as any).abortDownload = abortDownload;
-                streamHandlerResult = this.streamHandler!(context as any);
-            } catch (e) {
-                cleanUp();
-                reject(e);
             }
-
-            if (isPromise(streamHandlerResult)) {
-                streamHandlerResult
-                    .then(() => {
-                        resolve();
-                    })
-                    .catch((e: Error) => {
-                        cleanUp();
-                        reject(e);
-                    });
-            } else {
-                resolve();
-            }
-        });
-
-        const streamFinishedPromise = finished(response.stream).catch((error) => {
-            if (abortedByHandler) {
-                return;
-            }
-
-            throw error;
-        });
-
-        await Promise.all([downloadPromise, streamFinishedPromise]);
-
-        cleanUp();
+        } else {
+            context.stream.destroy();
+        }
     }
 }
 
@@ -333,16 +260,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
  */
 export function createFileRouter<
     Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
-    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
->(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
-export function createFileRouter<
-    Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createFileRouter<
-    Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
-    const Schemas extends RouteSchemas = RouteSchemas,
->(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
-export function createFileRouter(routesOrSchemas?: any): any {
-    return Router.create(routesOrSchemas);
+>(routes?: RouterRoutes<Context, UserData>) {
+    return Router.create<Context>(routes);
 }
