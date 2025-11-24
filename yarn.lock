@@ -4939,9 +4939,12 @@ __metadata:
     import-local: "npm:^3.1.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
+    idcac-playwright: "*"
     playwright: "*"
     puppeteer: "*"
   peerDependenciesMeta:
+    idcac-playwright:
+      optional: true
     playwright:
       optional: true
     puppeteer:
