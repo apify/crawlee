@@ -1,11 +1,16 @@
 import type { IncomingHttpHeaders, Server } from 'node:http';
 import { Readable } from 'node:stream';
 
-import type { CheerioCrawlingContext, CheerioRequestHandler, ProxyInfo, Source } from '@crawlee/cheerio';
+import type {
+    BasicCrawlingContext,
+    CheerioCrawlingContext,
+    CheerioRequestHandler,
+    CrawlingContext,
+    ProxyInfo,
+    Source,
+} from '@crawlee/cheerio';
 import {
-    AutoscaledPool,
     CheerioCrawler,
-    CrawlerExtension,
     createCheerioRouter,
     EnqueueStrategy,
     mergeCookies,
@@ -14,6 +19,7 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
+import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import type { OptionsInit } from 'got-scraping';
@@ -54,6 +60,10 @@ async function getRequestListForMirror() {
 beforeAll(async () => {
     [server, port] = await runExampleComServer();
     serverAddress += port;
+});
+
+afterEach(() => {
+    vi.useRealTimers();
 });
 
 afterAll(() => {
@@ -332,9 +342,9 @@ describe('CheerioCrawler', () => {
         test('after requestHandlerTimeoutSecs', async () => {
             const failed: Request[] = [];
             const requestList = await getRequestListForMirror();
-            const requestHandler = async () => {
+            const requestHandler = vi.fn(async () => {
                 await sleep(2000);
-            };
+            });
 
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
@@ -348,18 +358,20 @@ describe('CheerioCrawler', () => {
                 },
             });
 
-            // Override low value to prevent seeing timeouts from BasicCrawler
-            // @ts-expect-error Overriding private property
-            cheerioCrawler.handleRequestTimeoutMillis = 10000;
-
             await cheerioCrawler.run();
 
+            expect(requestHandler).toHaveBeenCalledTimes(8);
             expect(failed).toHaveLength(4);
 
             failed.forEach((request) => {
-                expect(request.errorMessages).toHaveLength(2);
-                expect(request.errorMessages[0]).toMatch('requestHandler timed out');
-                expect(request.errorMessages[1]).toMatch('requestHandler timed out');
+                expect(request).toEqual(
+                    expect.objectContaining({
+                        errorMessages: [
+                            expect.stringContaining('requestHandler timed out'),
+                            expect.stringContaining('requestHandler timed out'),
+                        ],
+                    }),
+                );
             });
         });
     });
@@ -598,7 +610,7 @@ describe('CheerioCrawler', () => {
             const url = `${serverAddress}/special/json-type`;
             await runCrawler(url);
             expect(handlePageInvocationParams.json).toBeInstanceOf(Object);
-            expect(handlePageInvocationParams.body).toEqual(Buffer.from(JSON.stringify(responseSamples.json)));
+            expect(handlePageInvocationParams.body).toEqual(JSON.stringify(responseSamples.json));
             expect(handlePageInvocationParams.contentType.type).toBe('application/json');
             expect(handleFailedInvoked).toBe(false);
         });
@@ -613,8 +625,8 @@ describe('CheerioCrawler', () => {
         test('when response is image/png', async () => {
             const url = `${serverAddress}/special/image-type`;
             await runCrawler(url);
-            expect(handlePageInvocationParams.body).toBeInstanceOf(Buffer);
-            expect(handlePageInvocationParams.body).toEqual(responseSamples.image);
+            expect(typeof handlePageInvocationParams.body).toBe('string');
+            expect(handlePageInvocationParams.body).toEqual(responseSamples.image.toString());
             expect(handlePageInvocationParams.contentType.type).toBe('image/png');
         });
     });
@@ -795,20 +807,24 @@ describe('CheerioCrawler', () => {
              */
             let numberOfRotations = -1;
             const failedRequestHandler = vitest.fn();
+            const impit = new ImpitHttpClient();
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 5,
                 requestHandler: async () => {},
                 failedRequestHandler,
-            });
-
-            vitest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
-                if (proxyUrl.includes('localhost')) {
-                    numberOfRotations++;
-                    throw new Error('Proxy responded with 400 - Bad request');
-                }
-
-                return null;
+                httpClient: {
+                    sendRequest: async () => {
+                        throw new Error("Don't");
+                    },
+                    stream: async (request, onRedirect) => {
+                        if (request.proxyUrl!.includes('localhost')) {
+                            numberOfRotations++;
+                            throw new Error('Proxy responded with 400 - Bad request');
+                        }
+                        return await impit.stream(request);
+                    },
+                },
             });
 
             await crawler.run([serverAddress]);
@@ -822,26 +838,30 @@ describe('CheerioCrawler', () => {
             const proxyError =
                 'Proxy responded with 400 - Bad request. Also, this error message contains some useful payload.';
 
+            const impit = new ImpitHttpClient();
+
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 1,
                 requestHandler: async () => {},
-            });
-
-            vitest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
-                if (proxyUrl.includes('localhost')) {
-                    throw new Error(proxyError);
-                }
-
-                return null;
+                httpClient: {
+                    sendRequest: async () => {
+                        throw new Error("Don't");
+                    },
+                    stream: async (request, onRedirect) => {
+                        if (request.proxyUrl!.includes('localhost')) {
+                            throw new Error(proxyError);
+                        }
+                        return await impit.stream(request);
+                    },
+                },
             });
 
             const spy = vitest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
 
             await crawler.run([serverAddress]);
 
-            expect(spy).toBeCalled();
-            expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
+            expect(spy).toHaveBeenCalledWith(expect.stringContaining(proxyError), expect.any(Object));
         });
     });
 
@@ -1088,6 +1108,8 @@ describe('CheerioCrawler', () => {
         test('should work with `context.request.headers` being undefined', async () => {
             const requests: Request[] = [];
             const responses: unknown[] = [];
+            const errorHandler = vi.fn(async () => {});
+
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [
                     {
@@ -1099,6 +1121,7 @@ describe('CheerioCrawler', () => {
                     responses.push(json);
                     requests.push(request);
                 },
+                errorHandler,
                 preNavigationHooks: [
                     ({ request }) => {
                         request.headers!.Cookie = 'foo=override; coo=kie';
@@ -1107,6 +1130,9 @@ describe('CheerioCrawler', () => {
             });
 
             await crawler.run();
+
+            expect(errorHandler).not.toHaveBeenCalled();
+
             expect(requests).toHaveLength(1);
             expect(requests[0].retryCount).toBe(0);
             expect(responses).toHaveLength(1);
@@ -1166,19 +1192,17 @@ describe('CheerioCrawler', () => {
         });
 
         test('uses correct crawling context', async () => {
-            let prepareCrawlingContext: CheerioCrawlingContext;
+            let prepareCrawlingContext: unknown;
 
-            const prepareRequestFunction = (crawlingContext: CheerioCrawlingContext) => {
+            const preNavigationHook = (crawlingContext: BasicCrawlingContext) => {
                 prepareCrawlingContext = crawlingContext;
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
             };
 
             const requestHandler = (crawlingContext: CheerioCrawlingContext) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.$).toBe('function');
                 expect(typeof crawlingContext.response).toBe('object');
@@ -1187,10 +1211,9 @@ describe('CheerioCrawler', () => {
                 throw new Error('some error');
             };
 
-            const failedRequestHandler = (crawlingContext: CheerioCrawlingContext, error: Error) => {
+            const failedRequestHandler = (crawlingContext: Partial<CheerioCrawlingContext>, error: Error) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.$).toBe('function');
                 expect(typeof crawlingContext.response).toBe('object');
@@ -1205,81 +1228,11 @@ describe('CheerioCrawler', () => {
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
                 useSessionPool: true,
-                preNavigationHooks: [prepareRequestFunction],
+                preNavigationHooks: [preNavigationHook],
                 requestHandler,
                 failedRequestHandler,
             });
             await cheerioCrawler.run();
-        });
-    });
-
-    describe('use', () => {
-        const sources = ['http://example.com/'];
-        let requestList: RequestList;
-
-        class DummyExtension extends CrawlerExtension {
-            constructor(readonly options: Dictionary) {
-                super();
-            }
-
-            override getCrawlerOptions() {
-                return this.options;
-            }
-        }
-
-        beforeEach(async () => {
-            requestList = await RequestList.open(null, sources.slice());
-        });
-
-        test('should throw if "CrawlerExtension" class is not used', () => {
-            const cheerioCrawler = new CheerioCrawler({
-                requestList,
-                maxRequestRetries: 0,
-                requestHandler: () => {},
-                failedRequestHandler: () => {},
-            });
-            expect(
-                // @ts-expect-error Validating JS side checks
-                () => cheerioCrawler.use({}),
-            ).toThrow('Expected object `{}` to be of type `CrawlerExtension`');
-        });
-
-        test('Should throw if "CrawlerExtension" is trying to override non existing property', () => {
-            const extension = new DummyExtension({
-                doesNotExist: true,
-            });
-            const cheerioCrawler = new CheerioCrawler({
-                requestList,
-                maxRequestRetries: 0,
-                requestHandler: () => {},
-                failedRequestHandler: () => {},
-            });
-            expect(() => cheerioCrawler.use(extension)).toThrow(
-                'DummyExtension tries to set property "doesNotExist" that is not configurable on CheerioCrawler instance.',
-            );
-        });
-
-        test('should override crawler properties', () => {
-            const extension = new DummyExtension({
-                useSessionPool: true,
-                requestHandler: undefined,
-            });
-            const cheerioCrawler = new CheerioCrawler({
-                requestList,
-                useSessionPool: false,
-                maxRequestRetries: 0,
-                requestHandler: () => {},
-                failedRequestHandler: () => {},
-            });
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.useSessionPool).toEqual(false);
-            cheerioCrawler.use(extension);
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.useSessionPool).toEqual(true);
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.requestHandler).toBeUndefined();
-            // @ts-expect-error Accessing private prop
-            expect(cheerioCrawler.requestHandler).toBeUndefined();
         });
     });
 
