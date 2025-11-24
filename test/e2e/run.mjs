@@ -30,7 +30,7 @@ process.env.STORAGE_IMPLEMENTATION ??= 'MEMORY';
 // so that the CI knows that e2e test suite has failed
 let failure = false;
 
-async function run() {
+async function run({ parallelTests = 1 } = {}) {
     if (!['LOCAL', 'MEMORY', 'PLATFORM'].includes(process.env.STORAGE_IMPLEMENTATION)) {
         throw new Error(`Unknown storage provided: '${process.env.STORAGE_IMPLEMENTATION}'`);
     }
@@ -40,9 +40,9 @@ async function run() {
     const paths = await readdir(basePath, { withFileTypes: true });
     const dirs = paths.filter((dirent) => dirent.isDirectory());
 
-    for (const dir of dirs) {
+    async function runTest(dir) {
         if (process.argv.length === 3 && dir.name !== process.argv[2]) {
-            continue;
+            return;
         }
 
         const now = Date.now();
@@ -153,6 +153,15 @@ async function run() {
 
         await waitForExit;
     }
+
+    let chunks = [];
+    for (let i = 0; i < dirs.length; i += parallelTests) {
+        chunks.push(dirs.slice(i, i + parallelTests));
+    }
+
+    for (const chunk of chunks) {
+        await Promise.all(chunk.map(runTest));
+    }
 }
 
 if (isMainThread) {
@@ -176,7 +185,7 @@ if (isMainThread) {
                 }
             }
         }
-        await run();
+        await run({ parallelTests: process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' ? 10 : 1 });
     } catch (e) {
         failure = true;
         console.error(e);
