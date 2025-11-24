@@ -539,9 +539,9 @@ export abstract class BrowserCrawler<
                 );
             },
             browserController: browserControllerInstance,
-            session: !useIncognitoPages
-                ? (browserControllerInstance.launchContext.session as Session)
-                : crawlingContext.session,
+            session: useIncognitoPages
+                ? crawlingContext.session
+                : (browserControllerInstance.launchContext.session as Session),
             proxyInfo: crawlingContext.proxyInfo ?? (browserControllerInstance.launchContext.proxyInfo as ProxyInfo),
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return browserCrawlerEnqueueLinks({
