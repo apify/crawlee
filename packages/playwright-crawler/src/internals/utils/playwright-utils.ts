@@ -22,15 +22,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
-import {
-    Configuration,
-    KeyValueStore,
-    type Request,
-    RequestState,
-    type Session,
-    SessionError,
-    validators,
-} from '@crawlee/browser';
+import { Configuration, KeyValueStore, type Request, type Session, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -43,7 +35,6 @@ import log_ from '@apify/log';
 
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
-import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '../playwright-crawler.js';
 import { RenderingTypePredictor } from './rendering-type-prediction.js';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
@@ -656,7 +647,7 @@ export async function closeCookieModals(page: Page): Promise<void> {
     await page.evaluate(getCookieClosingScript());
 }
 
-interface HandleCloudflareChallengeOptions {
+export interface HandleCloudflareChallengeOptions {
     /** Logging defaults to the `debug` level, use this flag to log to `info` level instead. */
     verbose?: boolean;
     /** How long should we wait after the challenge is completed for the final page to load. */
@@ -1011,52 +1002,6 @@ export interface PlaywrightContextUtils {
      * @param [options]
      */
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
-}
-
-export function registerUtilsToContext(
-    context: PlaywrightCrawlingContext,
-    crawlerOptions: PlaywrightCrawlerOptions,
-): void {
-    context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
-        injectFile(context.page, filePath, options);
-    context.injectJQuery = async () => {
-        if (context.request.state === RequestState.BEFORE_NAV) {
-            log.warning(
-                'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
-            );
-            await injectJQuery(context.page);
-            return;
-        }
-        await injectJQuery(context.page, { surviveNavigations: false });
-    };
-    context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
-        const locator = context.page.locator(selector).first();
-        await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-    };
-    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
-        if (selector) {
-            await context.waitForSelector(selector, timeoutMs);
-        }
-
-        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
-    };
-    context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
-        saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    context.enqueueLinksByClickingElements = async (
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
-    ) =>
-        enqueueLinksByClickingElements({
-            ...options,
-            page: context.page,
-            requestQueue: context.crawler.requestQueue!,
-        });
-    context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
-    context.closeCookieModals = async () => closeCookieModals(context.page);
-    context.handleCloudflareChallenge = async (options?: HandleCloudflareChallengeOptions) => {
-        return handleCloudflareChallenge(context.page, context.request.url, context.session, options);
-    };
 }
 
 export { enqueueLinksByClickingElements };

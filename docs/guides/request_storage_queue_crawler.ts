@@ -4,7 +4,7 @@ import { CheerioCrawler } from 'crawlee';
 // It's used the same way for Puppeteer/Playwright crawlers.
 const crawler = new CheerioCrawler({
     // Note that we're not specifying the requestQueue here
-    async requestHandler({ $, crawler, enqueueLinks }) {
+    async requestHandler({ $, enqueueLinks }) {
         // Add new request to the queue
         await crawler.addRequests([{ url: 'https://example.com/new-page' }]);
         // Add links found on page to the queue
