@@ -24,7 +24,7 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import type { HttpResponse, LoadedRequest, ProxyInfo, StreamingHttpResponse } from '@crawlee/core';
+import type { HttpResponse, LoadedRequest, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -429,23 +429,11 @@ export class HttpCrawler<
 
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
         return ContextPipeline.create<CrawlingContext>()
-            .compose({ action: this.prepareProxyInfo.bind(this) })
             .compose({
                 action: this.makeHttpRequest.bind(this),
             })
             .compose({ action: this.processHttpResponse.bind(this) })
             .compose({ action: this.handleBlockedRequestByContent.bind(this) });
-    }
-
-    private async prepareProxyInfo(crawlingContext: CrawlingContext) {
-        const { session } = crawlingContext;
-        let proxyInfo: ProxyInfo | undefined;
-
-        if (session?.proxyInfo) {
-            crawlingContext.proxyInfo = session.proxyInfo;
-        }
-
-        return { proxyInfo };
     }
 
     private async makeHttpRequest(

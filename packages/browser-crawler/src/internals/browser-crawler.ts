@@ -514,6 +514,10 @@ export abstract class BrowserCrawler<
             page as any,
         ) as ProvidedController;
 
+        const session = useIncognitoPages
+            ? crawlingContext.session
+            : (browserControllerInstance.launchContext.session as Session);
+
         return {
             page,
             get response(): Response {
@@ -522,10 +526,8 @@ export abstract class BrowserCrawler<
                 );
             },
             browserController: browserControllerInstance,
-            session: useIncognitoPages
-                ? crawlingContext.session
-                : (browserControllerInstance.launchContext.session as Session),
-            proxyInfo: crawlingContext.proxyInfo ?? (browserControllerInstance.launchContext.proxyInfo as ProxyInfo),
+            session,
+            proxyInfo: session?.proxyInfo,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return browserCrawlerEnqueueLinks({
                     options: enqueueOptions,

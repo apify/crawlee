@@ -1390,6 +1390,7 @@ export class BasicCrawler<
             log: this.log,
             request,
             session,
+            proxyInfo: session?.proxyInfo,
             enqueueLinks: async (options) => {
                 return await enqueueLinks({
                     // specify the RQ first to allow overriding it
