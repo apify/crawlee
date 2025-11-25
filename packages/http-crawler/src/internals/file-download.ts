@@ -1,3 +1,5 @@
+import { finished } from 'node:stream/promises';
+
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
@@ -6,7 +8,6 @@ import type { Dictionary } from '@crawlee/types';
 import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
 import { Router } from '../index.js';
 import { parseContentTypeFromResponse } from './utils.js';
-import { finished } from 'stream/promises';
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -80,7 +81,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
                 ContextPipeline.create<CrawlingContext>().compose({
                     action: async (context) => this.initiateDownload(context),
                     cleanup: async (context) => {
-                        context.response.body ? await finished(context.response.body as any) : undefined;
+                        await (context.response.body ? finished(context.response.body as any) : Promise.resolve());
                     },
                 }),
         });
