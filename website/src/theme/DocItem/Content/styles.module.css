@@ -1,0 +1,18 @@
+.docItemContent {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  /* move the h1 margin to padding */
+  h1 {
+      margin-bottom: 0 !important;
+  }
+  padding-bottom: calc(
+      var(--ifm-h1-vertical-rhythm-bottom) * var(--ifm-leading)
+  );
+
+  @media (max-width: 767px) {
+      flex-direction: column;
+      align-items: flex-start;
+  }
+}

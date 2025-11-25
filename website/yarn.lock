@@ -335,6 +335,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@apify/ui-icons@npm:^1.23.0":
+  version: 1.23.0
+  resolution: "@apify/ui-icons@npm:1.23.0"
+  dependencies:
+    clsx: "npm:^2.0.0"
+  peerDependencies:
+    react: 17.x || 18.x
+    react-dom: 17.x || 18.x
+  checksum: 10c0/960399ba6878ae564e23d095a3f65d13c1f7a2bff8c3dd3804c55b9bbfa084e7f464be35bc11cee4d7c68164fb729aa821b5232b703bac2609c85dd891c6ef19
+  languageName: node
+  linkType: hard
+
 "@apify/utilities@npm:^2.8.0":
   version: 2.20.3
   resolution: "@apify/utilities@npm:2.20.3"
@@ -14630,6 +14642,7 @@ __metadata:
     "@apify/docusaurus-plugin-typedoc-api": "npm:^4.4.8"
     "@apify/eslint-config-ts": "npm:^0.4.0"
     "@apify/tsconfig": "npm:^0.1.0"
+    "@apify/ui-icons": "npm:^1.23.0"
     "@apify/utilities": "npm:^2.8.0"
     "@docusaurus/core": "npm:3.9.2"
     "@docusaurus/faster": "npm:3.9.2"
