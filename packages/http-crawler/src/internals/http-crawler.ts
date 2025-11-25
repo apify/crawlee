@@ -585,7 +585,7 @@ export class HttpCrawler<
             waitForSelector,
             parseWithCheerio,
             contentType,
-            body: parsed.body!,
+            body: parsed.body,
         };
     }
 
