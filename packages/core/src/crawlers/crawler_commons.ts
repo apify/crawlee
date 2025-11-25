@@ -1,5 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
-import type { OptionsInit, Response as GotResponse } from 'got-scraping';
+import type { OptionsInit } from 'got-scraping';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
@@ -156,7 +156,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * },
      * ```
      */
-    sendRequest<Response = string>(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<Response>>;
+    sendRequest(overrideOptions?: Partial<OptionsInit>): Promise<Response>;
 
     /**
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.

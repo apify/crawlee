@@ -12,16 +12,14 @@ export interface ResponseLike {
 /**
  * @internal
  */
-export function getCookiesFromResponse(response: ResponseLike): Cookie[] {
-    const headers = typeof response.headers === 'function' ? response.headers() : response.headers;
-    const cookieHeader = headers?.['set-cookie'] || '';
+export function getCookiesFromResponse(response: Response): Cookie[] {
+    const headers = response.headers;
+    const cookieHeaders = headers.getSetCookie();
 
     try {
-        return Array.isArray(cookieHeader)
-            ? cookieHeader.map((cookie) => Cookie.parse(cookie)!)
-            : [Cookie.parse(cookieHeader)!];
+        return cookieHeaders.map((cookie) => Cookie.parse(cookie)!);
     } catch (e) {
-        throw new CookieParseError(cookieHeader);
+        throw new CookieParseError(cookieHeaders);
     }
 }
 

@@ -79,7 +79,7 @@ export enum RequestState {
  * ```
  * @category Sources
  */
-export class Request<UserData extends Dictionary = Dictionary> {
+class CrawleeRequest<UserData extends Dictionary = Dictionary> {
     /** Request ID */
     id?: string;
 
@@ -193,7 +193,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.url = url;
         this.loadedUrl = loadedUrl;
         this.uniqueKey =
-            uniqueKey || Request.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+            uniqueKey ||
+            CrawleeRequest.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -253,6 +254,18 @@ export class Request<UserData extends Dictionary = Dictionary> {
         if (enqueueStrategy) {
             this.enqueueStrategy ??= enqueueStrategy;
         }
+    }
+
+    /**
+     * Converts the Crawlee Request object to a `fetch` API Request object.
+     * @returns The native `fetch` API Request object.
+     */
+    public intoFetchAPIRequest(): Request {
+        return new Request(this.url, {
+            method: this.method,
+            headers: this.headers,
+            body: this.payload,
+        });
     }
 
     /** Tells the crawler processing this request to skip the navigation and process the request directly. */
@@ -398,7 +411,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             }
             return normalizedUrl;
         }
-        const payloadHash = payload ? Request.hashPayload(payload) : '';
+        const payloadHash = payload ? CrawleeRequest.hashPayload(payload) : '';
         return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
     }
 
@@ -526,10 +539,12 @@ interface ComputeUniqueKeyOptions {
     useExtendedUniqueKey?: boolean;
 }
 
-export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | Request;
+export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | CrawleeRequest;
 
 /** @internal */
 export interface InternalSource {
     requestsFromUrl: string;
     regex?: RegExp;
 }
+
+export { CrawleeRequest as Request };

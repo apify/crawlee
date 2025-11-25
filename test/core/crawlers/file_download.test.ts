@@ -124,9 +124,9 @@ test('requestHandler receives response', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         requestHandler: async ({ response }) => {
-            expect(response.headers['content-type']).toBe('application/octet-stream');
-            expect(response.statusCode).toBe(200);
-            expect(response.statusMessage).toBe('OK');
+            expect(response?.headers.get('content-type')).toBe('application/octet-stream');
+            expect(response?.status).toBe(200);
+            expect(response?.statusText).toBe('OK');
         },
     });
 

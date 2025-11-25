@@ -5,7 +5,6 @@ import {
     type Request,
     type Session,
 } from '@crawlee/core';
-import type { Method, Response as GotResponse } from 'got-scraping';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -22,10 +21,7 @@ export function createSendRequest(
     session: Session | undefined,
     getProxyUrl: () => string | undefined,
 ) {
-    return async <Response = string>(
-        // TODO the type information here (and in crawler_commons) is outright wrong... for BC - replace this with generic HttpResponse in v4
-        overrideOptions: Partial<HttpRequestOptions> = {},
-    ): Promise<GotResponse<Response>> => {
+    return async (overrideOptions: Partial<HttpRequestOptions> = {}): Promise<Response> => {
         const cookieJar = session
             ? {
                   getCookieString: async (url: string) => session.getCookieString(url),
@@ -36,7 +32,7 @@ export function createSendRequest(
 
         const requestOptions = processHttpRequestOptions({
             url: originRequest.url,
-            method: originRequest.method as Method, // Narrow type to omit CONNECT
+            method: originRequest.method,
             headers: originRequest.headers,
             proxyUrl: getProxyUrl(),
             sessionToken: session,
@@ -48,6 +44,6 @@ export function createSendRequest(
         // Fill in body as the last step - `processHttpRequestOptions` may use either `body`, `json` or `form` so we cannot override it beforehand
         requestOptions.body ??= originRequest.payload;
 
-        return httpClient.sendRequest<any>(requestOptions) as unknown as GotResponse<Response>;
+        return httpClient.sendRequest(requestOptions);
     };
 }
