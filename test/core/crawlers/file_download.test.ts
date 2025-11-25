@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Duplex, pipeline as pipelineWithCallbacks } from 'node:stream';
+import { Duplex, finished, pipeline as pipelineWithCallbacks, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
@@ -81,13 +81,13 @@ afterAll(async () => {
     server.close();
 });
 
-test('requestHandler - `body` property works', async () => {
-    const results: Buffer[] = [];
+test('requestHandler - reading bytes synchronously', async () => {
+    const results: Uint8Array[] = [];
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        requestHandler: async ({ body }) => {
-            results.push(await body);
+        requestHandler: async ({ response }) => {
+            results.push(await response.bytes());
         },
     });
 
@@ -100,13 +100,13 @@ test('requestHandler - `body` property works', async () => {
     expect(results[0]).toEqual(await ReadableStreamGenerator.getBuffer(1024, 123));
 });
 
-test('requestHandler - `stream` property works', async () => {
+test('requestHandler - streaming response body', async () => {
     let result: Buffer = Buffer.alloc(0);
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        requestHandler: async ({ stream }) => {
-            for await (const chunk of stream) {
+        requestHandler: async ({ response }) => {
+            for await (const chunk of response.body as any) {
                 result = Buffer.concat([result, chunk]);
             }
         },
@@ -146,8 +146,8 @@ test('crawler waits for the stream to be consumed', async () => {
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        requestHandler: ({ stream }) => {
-            pipelineWithCallbacks(stream, bufferingStream, (err) => {
+        requestHandler: async ({ response }) => {
+            pipelineWithCallbacks(response.body as any, bufferingStream, (err) => {
                 if (!err) {
                     bufferingStream.push(null);
                     bufferingStream.end();

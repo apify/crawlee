@@ -6,6 +6,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
 import { Router } from '../index.js';
 import { parseContentTypeFromResponse } from './utils.js';
+import { finished } from 'stream/promises';
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -77,7 +78,10 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
             ...options,
             contextPipelineBuilder: () =>
                 ContextPipeline.create<CrawlingContext>().compose({
-                    action: this.initiateDownload.bind(this),
+                    action: async (context) => this.initiateDownload(context),
+                    cleanup: async (context) => {
+                        context.response.body ? await finished(context.response.body as any) : undefined;
+                    },
                 }),
         });
     }
