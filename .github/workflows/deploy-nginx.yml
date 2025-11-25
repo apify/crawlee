@@ -1,0 +1,24 @@
+# Triggers deployment of the Nginx reverse proxy configuration for crawlee.dev
+# when the configuration file is updated in this repository.
+name: Deploy Nginx Configuration
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'website/nginx.conf'
+
+jobs:
+  trigger-deployment:
+    name: Trigger Nginx deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deployment workflow in apify-docs-private
+        run: |
+          gh workflow run deploy-nginx.yml \
+            --repo apify/apify-docs-private \
+            --field deployment=crawlee-docs
+          echo "✅ Deployment workflow triggered successfully"
+        env:
+          GITHUB_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
