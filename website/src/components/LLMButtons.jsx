@@ -82,16 +82,24 @@ const Menu = ({
     options = [],
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [focusedIndex, setFocusedIndex] = useState(0);
     const menuRef = useRef(null);
+    const menuItemRefs = useRef([]);
 
     const MenuBaseComponent = components.MenuBase;
 
     const closeMenu = useCallback(() => {
         setIsOpen(false);
+        setFocusedIndex(0);
     }, []);
 
     const toggleMenu = useCallback(() => {
-        setIsOpen((prev) => !prev);
+        setIsOpen((prev) => {
+            if (!prev) {
+                setFocusedIndex(0);
+            }
+            return !prev;
+        });
     }, []);
 
     const handleKeyDown = useCallback(
@@ -99,9 +107,21 @@ const Menu = ({
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 toggleMenu();
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (!isOpen) {
+                    toggleMenu();
+                } else {
+                    setFocusedIndex((prev) => (prev + 1) % options.length);
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (isOpen) {
+                    setFocusedIndex((prev) => (prev - 1 + options.length) % options.length);
+                }
             }
         },
-        [toggleMenu],
+        [toggleMenu, isOpen, options.length],
     );
 
     const handleOptionSelect = useCallback(
@@ -112,9 +132,34 @@ const Menu = ({
         [closeMenu, onSelect],
     );
 
+    const handleMenuItemKeyDown = useCallback(
+        (event, option, index) => {
+            if (event.key === 'Enter' || event.key === 'Space') {
+                event.preventDefault();
+                handleOptionSelect(option);
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setFocusedIndex((index + 1) % options.length);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setFocusedIndex((index - 1 + options.length) % options.length);
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                closeMenu();
+            }
+        },
+        [handleOptionSelect, options.length, closeMenu],
+    );
+
     useEffect(() => {
         onMenuOpen?.(isOpen);
     }, [isOpen, onMenuOpen]);
+
+    useEffect(() => {
+        if (isOpen && menuItemRefs.current[focusedIndex]) {
+            menuItemRefs.current[focusedIndex].focus();
+        }
+    }, [isOpen, focusedIndex]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -149,16 +194,21 @@ const Menu = ({
                 onKeyDown={handleKeyDown}
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
-                aria-controls={'llm-menu'}
+                aria-controls="llm-menu"
             />
             {isOpen && (
-                <div className={styles.menuDropdown} role="menu" id={'llm-menu'}>
-                    {options.map((option) => (
+                <div className={styles.menuDropdown} role="menu" id="llm-menu">
+                    {options.map((option, index) => (
                         <div
                             key={option.value}
+                            ref={(el) => {
+                                menuItemRefs.current[index] = el;
+                            }}
                             className={styles.menuOptionWrapper}
                             role="menuitem"
+                            tabIndex={0}
                             onClick={() => handleOptionSelect(option)}
+                            onKeyDown={(e) => handleMenuItemKeyDown(e, option, index)}
                         >
                             <Option {...option} />
                         </div>
@@ -263,6 +313,12 @@ const onCopyAsMarkdownClick = async ({ setCopyingStatus }) => {
     }
 };
 
+const COPYING_STATUS_ICON = {
+    loading: <LoaderIcon size={16} />,
+    copied: <CheckIcon size={16} />,
+    idle: <CopyIcon size={16} />,
+}
+
 const MenuBase = React.forwardRef(({
     copyingStatus,
     setCopyingStatus,
@@ -275,9 +331,7 @@ const MenuBase = React.forwardRef(({
                 className={styles.copyUpIconWrapper}
                 onClick={() => onCopyAsMarkdownClick({ setCopyingStatus })}
             >
-                {copyingStatus === 'loading' && <LoaderIcon size={16} />}
-                {copyingStatus === 'copied' && <CheckIcon size={16} />}
-                {copyingStatus === 'idle' && <CopyIcon size={16} />}
+                {COPYING_STATUS_ICON[copyingStatus]}
             </div>
             <span
                 onClick={() => onCopyAsMarkdownClick({ setCopyingStatus })}

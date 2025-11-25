@@ -94,16 +94,22 @@
   transition: background-color 0.15s ease-in-out;
 }
 
+.menuOption:hover {
+  background: var(--color-hover);
+}
+
 .menuOptionWrapper {
   border: none;
   background: transparent;
   padding: 0;
   text-align: left;
   cursor: pointer;
+  outline: none;
 }
 
-.menuOptionWrapper:focus-visible {
-  outline: none;
+.menuOptionWrapper:focus-visible .menuOption {
+  background: var(--color-hover);
+  outline-offset: -2px;
 }
 
 .menuOptionIcon,
