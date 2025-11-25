@@ -1383,7 +1383,12 @@ export class BasicCrawler<
             },
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
+            sendRequest: createSendRequest(
+                this.httpClient,
+                request!,
+                session,
+                () => crawlingContext.proxyInfo?.url,
+            ) as CrawlingContext['sendRequest'],
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
             registerDeferredCleanup: (cleanup) => {
                 deferredCleanup.push(cleanup);
