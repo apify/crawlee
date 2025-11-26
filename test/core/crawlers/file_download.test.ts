@@ -11,15 +11,15 @@ import { startExpressAppPromise } from 'test/shared/_helper.js';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 
 class ReadableStreamGenerator {
-    private static async generateRandomData(size: number, seed: number) {
+    private static async generateRandomData(size: number, seed: number): Promise<Uint8Array> {
         const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        const buffer = Buffer.alloc(size);
+        const array = new Uint8Array(size);
         for (let i = 0; i < size; i++) {
             // eslint-disable-next-line no-bitwise
             seed = Math.imul(48271, seed) | (0 % 2147483647);
-            buffer[i] = chars.charCodeAt(seed % chars.length);
+            array[i] = chars.charCodeAt(seed % chars.length);
         }
-        return buffer;
+        return array;
     }
 
     static getReadableStream(size: number, seed: number, throttle = 0): ReadableStream {
@@ -43,13 +43,15 @@ class ReadableStreamGenerator {
         return stream;
     }
 
-    static async getBuffer(size: number, seed: number) {
+    static async getUint8Array(size: number, seed: number) {
         const stream = this.getReadableStream(size, seed);
-        const chunks: string[] = [];
+        const chunks: Uint8Array = new Uint8Array(size);
+        let offset = 0;
         for await (const chunk of stream) {
-            chunks.push(chunk);
+            chunks.set(chunk, offset);
+            offset += chunk.length;
         }
-        return Buffer.from(chunks.join(''));
+        return chunks;
     }
 }
 
@@ -97,17 +99,17 @@ test('requestHandler - reading bytes synchronously', async () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].length).toBe(1024);
-    expect(results[0]).toEqual(await ReadableStreamGenerator.getBuffer(1024, 123));
+    expect(results[0]).toEqual(await ReadableStreamGenerator.getUint8Array(1024, 123));
 });
 
 test('requestHandler - streaming response body', async () => {
-    let result: Buffer = Buffer.alloc(0);
+    let result: Uint8Array = new Uint8Array();
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         requestHandler: async ({ response }) => {
             for await (const chunk of response.body as any) {
-                result = Buffer.concat([result, chunk]);
+                result = new Uint8Array([...result, ...chunk]);
             }
         },
     });
@@ -117,7 +119,7 @@ test('requestHandler - streaming response body', async () => {
     await crawler.run([fileUrl]);
 
     expect(result.length).toBe(1024);
-    expect(result).toEqual(await ReadableStreamGenerator.getBuffer(1024, 456));
+    expect(result).toEqual(await ReadableStreamGenerator.getUint8Array(1024, 456));
 });
 
 test('requestHandler receives response', async () => {
@@ -165,12 +167,13 @@ test('crawler waits for the stream to be consumed', async () => {
     // the stream should be finished once the crawler finishes.
     expect(bufferingStream.writableFinished).toBe(true);
 
-    const bufferedData: Buffer[] = [];
+    const bufferedData = new Uint8Array(5 * 1024);
+    let offset = 0;
     for await (const chunk of bufferingStream) {
-        bufferedData.push(chunk);
+        bufferedData.set(chunk, offset);
+        offset += chunk.length;
     }
-    const result = Buffer.concat(bufferedData);
 
-    expect(result.length).toBe(5 * 1024);
-    expect(result).toEqual(await ReadableStreamGenerator.getBuffer(5 * 1024, 789));
+    expect(bufferedData.length).toBe(5 * 1024);
+    expect(bufferedData).toEqual(await ReadableStreamGenerator.getUint8Array(5 * 1024, 789));
 });
