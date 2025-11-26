@@ -376,32 +376,6 @@ test('should retry on 403 even with disallowed content-type', async () => {
     expect(succeeded[0].retryCount).toBe(1);
 });
 
-// test('should work with cacheable-request', async () => {
-//     const isFromCache: Record<string, boolean> = {};
-//     const cache = new Map();
-//     const crawler = new HttpCrawler({
-//         maxConcurrency: 1,
-//         preNavigationHooks: [
-//             async (_, gotOptions) => {
-//                 gotOptions.cache = cache;
-//                 gotOptions.headers = {
-//                     ...gotOptions.headers,
-//                     // to force cache
-//                     'cache-control': 'max-stale',
-//                 };
-//             },
-//         ],
-//         requestHandler: async ({ request, response }) => {
-//             isFromCache[request.uniqueKey] = response.isFromCache;
-//         },
-//     });
-//     await crawler.run([
-//         { url, uniqueKey: 'first' },
-//         { url, uniqueKey: 'second' },
-//     ]);
-//     expect(isFromCache).toEqual({ first: false, second: true });
-// });
-
 test('works with a custom HttpClient', async () => {
     const results: string[] = [];
 
