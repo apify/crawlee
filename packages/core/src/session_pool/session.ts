@@ -15,6 +15,7 @@ import {
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils.js';
 import { log as defaultLog } from '../log.js';
+import type { ProxyInfo } from '../proxy_configuration.js';
 import { EVENT_SESSION_RETIRED } from './events.js';
 
 /**
@@ -23,6 +24,7 @@ import { EVENT_SESSION_RETIRED } from './events.js';
 export interface SessionState {
     id: string;
     cookieJar: SerializedCookieJar;
+    proxyInfo?: ProxyInfo;
     userData: object;
     errorScore: number;
     maxErrorScore: number;
@@ -88,6 +90,7 @@ export interface SessionOptions {
     log?: Log;
     errorScore?: number;
     cookieJar?: CookieJar;
+    proxyInfo?: ProxyInfo;
 }
 
 /**
@@ -108,6 +111,7 @@ export class Session {
     private _maxUsageCount: number;
     private sessionPool: import('./session_pool.js').SessionPool;
     private _errorScore: number;
+    private _proxyInfo?: ProxyInfo;
     private _cookieJar: CookieJar;
     private log: Log;
 
@@ -143,6 +147,10 @@ export class Session {
         return this._cookieJar;
     }
 
+    get proxyInfo() {
+        return this._proxyInfo;
+    }
+
     /**
      * Session configuration.
      */
@@ -153,6 +161,7 @@ export class Session {
                 sessionPool: ow.object.instanceOf(EventEmitter),
                 id: ow.optional.string,
                 cookieJar: ow.optional.object,
+                proxyInfo: ow.optional.object,
                 maxAgeSecs: ow.optional.number,
                 userData: ow.optional.object,
                 maxErrorScore: ow.optional.number,
@@ -170,6 +179,7 @@ export class Session {
             sessionPool,
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
+            proxyInfo = undefined,
             maxAgeSecs = 3000,
             userData = {},
             maxErrorScore = 3,
@@ -186,6 +196,7 @@ export class Session {
         this.log = log.child({ prefix: 'Session' });
 
         this._cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this._proxyInfo = proxyInfo;
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
@@ -256,6 +267,7 @@ export class Session {
         return {
             id: this.id,
             cookieJar: this.cookieJar.toJSON()!,
+            proxyInfo: this._proxyInfo,
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,

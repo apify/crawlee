@@ -15,12 +15,7 @@ import {
  * @param session The user session associated with the current request.
  * @param getProxyUrl A function that will return the proxy URL that should be used for handling the request.
  */
-export function createSendRequest(
-    httpClient: BaseHttpClient,
-    originRequest: Request,
-    session: Session | undefined,
-    getProxyUrl: () => string | undefined,
-) {
+export function createSendRequest(httpClient: BaseHttpClient, originRequest: Request, session: Session | undefined) {
     return async (overrideOptions: Partial<HttpRequestOptions> = {}): Promise<Response> => {
         const cookieJar = session
             ? {
@@ -34,7 +29,7 @@ export function createSendRequest(
             url: originRequest.url,
             method: originRequest.method,
             headers: originRequest.headers,
-            proxyUrl: getProxyUrl(),
+            proxyUrl: session?.proxyInfo?.url,
             sessionToken: session,
             responseType: 'text',
             ...overrideOptions,

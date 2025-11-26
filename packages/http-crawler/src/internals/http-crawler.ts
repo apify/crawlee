@@ -8,7 +8,6 @@ import type {
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
-    ProxyConfiguration,
     Request,
     RequestHandler,
     RequireContextPipeline,
@@ -25,9 +24,8 @@ import {
     ResponseWithUrl,
     Router,
     SessionError,
-    validators,
 } from '@crawlee/basic';
-import type { HttpResponse, LoadedRequest, ProxyInfo } from '@crawlee/core';
+import type { HttpResponse, LoadedRequest } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -87,13 +85,6 @@ export interface HttpCrawlerOptions<
      * If set to true, SSL certificate errors will be ignored.
      */
     ignoreSslErrors?: boolean;
-
-    /**
-     * If set, this crawler will be configured for all connections to use
-     * [Apify Proxy](https://console.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
-     * For more information, see the [documentation](https://docs.apify.com/proxy).
-     */
-    proxyConfiguration?: ProxyConfiguration;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -336,12 +327,6 @@ export class HttpCrawler<
     ContextExtension = {},
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawler<Context, ExtendedContext> {
-    /**
-     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
-     * Only available if used by the crawler.
-     */
-    proxyConfiguration?: ProxyConfiguration;
-
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
     protected persistCookiesPerSession: boolean;
@@ -361,7 +346,6 @@ export class HttpCrawler<
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         persistCookiesPerSession: ow.optional.boolean,
 
         additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
@@ -387,7 +371,6 @@ export class HttpCrawler<
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-            proxyConfiguration,
             persistCookiesPerSession,
             preNavigationHooks = [],
             postNavigationHooks = [],
@@ -431,7 +414,6 @@ export class HttpCrawler<
         this.forceResponseEncoding = forceResponseEncoding;
         this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
         this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
-        this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
@@ -447,24 +429,11 @@ export class HttpCrawler<
 
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
         return ContextPipeline.create<CrawlingContext>()
-            .compose({ action: this.prepareProxyInfo.bind(this) })
             .compose({
                 action: this.makeHttpRequest.bind(this),
             })
             .compose({ action: this.processHttpResponse.bind(this) })
             .compose({ action: this.handleBlockedRequestByContent.bind(this) });
-    }
-
-    private async prepareProxyInfo(crawlingContext: CrawlingContext) {
-        const { request, session } = crawlingContext;
-        let proxyInfo: ProxyInfo | undefined;
-
-        if (this.proxyConfiguration) {
-            const sessionId = session ? session.id : undefined;
-            proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
-        }
-
-        return { proxyInfo };
     }
 
     private async makeHttpRequest(
@@ -769,11 +738,8 @@ export class HttpCrawler<
         // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
         Reflect.deleteProperty(requestOptions.headers!, 'cookie');
 
-        // TODO this is incorrect, the check for man in the middle needs to be done
-        //   on individual proxy level, not on the `proxyConfiguration` level,
-        //   because users can use normal + MITM proxies in a single configuration.
         // Disable SSL verification for MITM proxies
-        if (this.proxyConfiguration && this.proxyConfiguration.isManInTheMiddle) {
+        if (session?.proxyInfo?.ignoreTlsErrors) {
             requestOptions.https = {
                 ...requestOptions.https,
                 rejectUnauthorized: false,
