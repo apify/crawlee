@@ -1055,8 +1055,7 @@ describe('BrowserCrawler', () => {
                     protected override async _navigationHandler(
                         ctx: TestCrawlingContext,
                     ): Promise<HTTPResponse | null | undefined> {
-                        const { session } = ctx;
-                        const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
+                        const proxyInfo = ctx.session?.proxyInfo;
 
                         if (proxyInfo!.url !== goodProxyUrl) {
                             throw new Error('ERR_PROXY_CONNECTION_FAILED');
@@ -1111,8 +1110,7 @@ describe('BrowserCrawler', () => {
                     protected override async _navigationHandler(
                         ctx: TestCrawlingContext,
                     ): Promise<HTTPResponse | null | undefined> {
-                        const { session } = ctx;
-                        const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
+                        const proxyInfo = ctx.session?.proxyInfo;
 
                         numberOfRotations++;
 
@@ -1166,8 +1164,7 @@ describe('BrowserCrawler', () => {
                     protected override async _navigationHandler(
                         ctx: TestCrawlingContext,
                     ): Promise<HTTPResponse | null | undefined> {
-                        const { session } = ctx;
-                        const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
+                        const proxyInfo = ctx.session?.proxyInfo;
 
                         if (proxyInfo!.url.includes('localhost')) {
                             throw new Error(proxyError);
