@@ -108,7 +108,7 @@ test('requestHandler - streaming response body', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         requestHandler: async ({ response }) => {
-            for await (const chunk of response.body as any) {
+            for await (const chunk of response.body ?? []) {
                 result = new Uint8Array([...result, ...chunk]);
             }
         },
@@ -149,7 +149,7 @@ test('crawler waits for the stream to be consumed', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         requestHandler: async ({ response }) => {
-            pipelineWithCallbacks(response.body as any, bufferingStream, (err) => {
+            pipelineWithCallbacks(response.body ?? ReadableStream.from([]), bufferingStream, (err) => {
                 if (!err) {
                     bufferingStream.push(null);
                     bufferingStream.end();
