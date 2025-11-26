@@ -764,8 +764,7 @@ describe('CheerioCrawler', () => {
                 const session = sessions[i];
                 expect(typeof proxyInfo.url).toBe('string');
                 expect(typeof session.id).toBe('string');
-                expect(proxyInfo.sessionId).toBe(session.id);
-                expect(proxyInfo).toEqual(await proxyConfiguration.newProxyInfo(session.id));
+                expect(session.proxyInfo).toBe(proxyInfo);
             }
         });
 
@@ -1176,46 +1175,6 @@ describe('CheerioCrawler', () => {
             expect(warningSpy).toBeCalledTimes(2);
             expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'Foo' and 'foo'`);
             expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'coo' and 'Coo'`);
-        });
-
-        test('should use sessionId in proxyUrl when the session pool is enabled', async () => {
-            const sourcesNew = [{ url: 'http://example.com/?q=1' }];
-            const requestListNew = await RequestList.open({ sources: sourcesNew });
-
-            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:8080'] });
-            const newUrlSpy = vitest.spyOn(proxyConfiguration, 'newUrl');
-
-            const requestHandler = vi.fn(async () => {});
-
-            const cheerioCrawler = new CheerioCrawler({
-                requestList: requestListNew,
-                maxRequestRetries: 0,
-                maxSessionRotations: 0,
-                requestHandler,
-                failedRequestHandler: () => {},
-                useSessionPool: true,
-                proxyConfiguration,
-                preNavigationHooks: [
-                    async (context) => {
-                        context.proxyInfo = undefined;
-                    },
-                ],
-            });
-
-            try {
-                await cheerioCrawler.run();
-            } catch (e) {
-                // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
-            }
-
-            expect(requestHandler).toHaveBeenCalledOnce();
-
-            const usedSession: Session = ((requestHandler.mock.calls?.[0] as any)[0] as CrawlingContext).session!;
-
-            expect(newUrlSpy).toBeCalledWith(
-                usedSession!.id,
-                expect.objectContaining({ request: expect.any(Request) }),
-            );
         });
     });
 

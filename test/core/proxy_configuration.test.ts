@@ -1,12 +1,10 @@
 import { ProxyConfiguration, Request } from '@crawlee/core';
 
-const sessionId = 538909250932;
-
 describe('ProxyConfiguration', () => {
     test('newUrl() should return proxy URL', async () => {
         const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://proxy.com:1111'] });
         expect(proxyConfiguration).toBeInstanceOf(ProxyConfiguration);
-        expect(await proxyConfiguration.newUrl(sessionId)).toBe('http://proxy.com:1111');
+        expect(await proxyConfiguration.newUrl()).toBe('http://proxy.com:1111');
     });
 
     test('newProxyInfo() should return ProxyInfo object', async () => {
@@ -14,14 +12,13 @@ describe('ProxyConfiguration', () => {
         const url = 'http://proxy.com:1111';
 
         const proxyInfo = {
-            sessionId: `${sessionId}`,
             url,
             hostname: 'proxy.com',
             username: '',
             password: '',
             port: '1111',
         };
-        expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
+        expect(await proxyConfiguration.newProxyInfo()).toEqual(proxyInfo);
     });
 
     test('newProxyInfo() works with special characters', async () => {
@@ -29,14 +26,13 @@ describe('ProxyConfiguration', () => {
         const proxyConfiguration = new ProxyConfiguration({ proxyUrls: [url] });
 
         const proxyInfo = {
-            sessionId: `${sessionId}`,
             url,
             hostname: 'proxy.com',
             username: 'user@name',
             password: 'pass@word',
             port: '1111',
         };
-        expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
+        expect(await proxyConfiguration.newProxyInfo()).toEqual(proxyInfo);
     });
 
     test('should throw on invalid newUrlFunction', async () => {
@@ -140,31 +136,6 @@ describe('ProxyConfiguration', () => {
             expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[2]);
         });
 
-        test('should rotate custom URLs with sessions correctly', async () => {
-            const sessions = ['session_01', 'session_02', 'session_03', 'session_04', 'session_05', 'session_06'];
-            const proxyConfiguration = new ProxyConfiguration({
-                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
-            });
-
-            // @ts-expect-error TODO private property?
-            const proxyUrls = proxyConfiguration.proxyUrls!;
-            // should use same proxy URL
-            expect(await proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
-            expect(await proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
-            expect(await proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
-
-            // should rotate different proxies
-            expect(await proxyConfiguration.newUrl(sessions[1])).toEqual(proxyUrls[1]);
-            expect(await proxyConfiguration.newUrl(sessions[2])).toEqual(proxyUrls[2]);
-            expect(await proxyConfiguration.newUrl(sessions[3])).toEqual(proxyUrls[0]);
-            expect(await proxyConfiguration.newUrl(sessions[4])).toEqual(proxyUrls[1]);
-            expect(await proxyConfiguration.newUrl(sessions[5])).toEqual(proxyUrls[2]);
-
-            // should remember already used session
-            expect(await proxyConfiguration.newUrl(sessions[1])).toEqual(proxyUrls[1]);
-            expect(await proxyConfiguration.newUrl(sessions[3])).toEqual(proxyUrls[0]);
-        });
-
         test('should throw cannot combine custom methods', async () => {
             const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
             const newUrlFunction = () => {
@@ -233,16 +204,16 @@ describe('ProxyConfiguration', () => {
 
             // @ts-expect-error protected property
             const tieredProxyUrls = proxyConfiguration.tieredProxyUrls!;
-            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[0][0]);
-            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[1][0]);
-            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[2][0]);
+            expect(await proxyConfiguration.newUrl({ request })).toEqual(tieredProxyUrls[0][0]);
+            expect(await proxyConfiguration.newUrl({ request })).toEqual(tieredProxyUrls[1][0]);
+            expect(await proxyConfiguration.newUrl({ request })).toEqual(tieredProxyUrls[2][0]);
 
             // we still get the same (higher) proxy tier even with a new request
             const request2 = new Request({
                 url: 'http://example.com/another-resource',
             });
 
-            expect(await proxyConfiguration.newUrl('session-id', { request: request2 })).toEqual(tieredProxyUrls[2][0]);
+            expect(await proxyConfiguration.newUrl({ request: request2 })).toEqual(tieredProxyUrls[2][0]);
         });
 
         test('upshifts and downshifts properly', async () => {
@@ -258,7 +229,7 @@ describe('ProxyConfiguration', () => {
 
             let gotToTheHighestProxy = false;
             for (let i = 0; i < 10; i++) {
-                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', { request });
+                const lastProxyUrl = await proxyConfiguration.newUrl({ request });
                 if (lastProxyUrl === tieredProxyUrls[2][0]) {
                     gotToTheHighestProxy = true;
                     break;
@@ -271,7 +242,7 @@ describe('ProxyConfiguration', () => {
             let gotToTheLowestProxy = false;
 
             for (let i = 0; i < 20; i++) {
-                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', { request });
+                const lastProxyUrl = await proxyConfiguration.newUrl({ request });
                 if (lastProxyUrl === tieredProxyUrls[0][0]) {
                     gotToTheLowestProxy = true;
                     break;
@@ -294,7 +265,7 @@ describe('ProxyConfiguration', () => {
             let gotToTheHighestProxy = false;
 
             for (let i = 0; i < 10; i++) {
-                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', { request: failingRequest });
+                const lastProxyUrl = await proxyConfiguration.newUrl({ request: failingRequest });
 
                 if (lastProxyUrl === tieredProxyUrls[2][0]) {
                     gotToTheHighestProxy = true;
@@ -307,7 +278,7 @@ describe('ProxyConfiguration', () => {
             let gotToTheLowestProxy = false;
 
             for (let i = 0; i < 100; i++) {
-                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', {
+                const lastProxyUrl = await proxyConfiguration.newUrl({
                     request: new Request({ url: `http://example.com/${i}` }),
                 });
 
