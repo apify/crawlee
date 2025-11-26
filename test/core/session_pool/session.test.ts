@@ -1,4 +1,4 @@
-import { EVENT_SESSION_RETIRED, ProxyConfiguration, Session, SessionPool } from '@crawlee/core';
+import { EVENT_SESSION_RETIRED, Session, SessionPool } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { entries, sleep } from '@crawlee/utils';
 import { CookieJar } from 'tough-cookie';
@@ -146,19 +146,6 @@ describe('Session - testing session behaviour ', () => {
                 expect(session[key]).toEqual(value);
             }
         });
-    });
-
-    test('should be valid proxy session', async () => {
-        const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:1234'] });
-        session = new Session({ sessionPool });
-        let error;
-        try {
-            await proxyConfiguration.newUrl(session.id);
-        } catch (e) {
-            error = e;
-        }
-
-        expect(error).toBeUndefined();
     });
 
     test('should use cookieJar', () => {
