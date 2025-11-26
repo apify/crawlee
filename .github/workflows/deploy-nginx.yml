@@ -18,7 +18,7 @@ jobs:
         run: |
           gh workflow run deploy-nginx.yml \
             --repo apify/apify-docs-private \
-            --field deployment=crawlee-docs
+            --field deployment=crawlee-web
           echo "✅ Deployment workflow triggered successfully"
         env:
           GITHUB_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
