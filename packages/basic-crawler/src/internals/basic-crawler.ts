@@ -12,6 +12,7 @@ import type {
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
+    ProxyConfiguration,
     ProxyInfo,
     Request,
     RequestOptions,
@@ -353,6 +354,12 @@ export interface BasicCrawlerOptions<
      * Defaults to a new instance of {@apilink GotScrapingHttpClient}
      */
     httpClient?: BaseHttpClient;
+
+    /**
+     * If set, the crawler will be configured for all connections to use
+     * the Proxy URLs provided and rotated according to the configuration.
+     */
+    proxyConfiguration?: ProxyConfiguration;
 }
 
 /**
@@ -476,6 +483,12 @@ export class BasicCrawler<
     autoscaledPool?: AutoscaledPool;
 
     /**
+     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
+     * Only available if used by the crawler.
+     */
+    proxyConfiguration?: ProxyConfiguration;
+
+    /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
      */
@@ -542,6 +555,7 @@ export class BasicCrawler<
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
+        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
         statusMessageCallback: ow.optional.function,
@@ -585,6 +599,7 @@ export class BasicCrawler<
             keepAlive,
             sessionPoolOptions = {},
             useSessionPool = true,
+            proxyConfiguration,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -643,6 +658,7 @@ export class BasicCrawler<
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.httpClient = httpClient ?? new GotScrapingHttpClient();
+        this.proxyConfiguration = proxyConfiguration;
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -1329,7 +1345,12 @@ export class BasicCrawler<
         if (this.useSessionPool) {
             await this._timeoutAndRetry(
                 async () => {
-                    session = await this.sessionPool!.getSession();
+                    session = await this.sessionPool!.newSession({
+                        proxyInfo: await this.proxyConfiguration?.newProxyInfo({
+                            request: request ?? undefined,
+                        }),
+                        maxUsageCount: 1,
+                    });
                 },
                 this.internalTimeoutMillis,
                 `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
@@ -1369,6 +1390,7 @@ export class BasicCrawler<
             log: this.log,
             request,
             session,
+            proxyInfo: session?.proxyInfo,
             enqueueLinks: async (options) => {
                 return await enqueueLinks({
                     // specify the RQ first to allow overriding it
@@ -1383,7 +1405,7 @@ export class BasicCrawler<
             },
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
+            sendRequest: createSendRequest(this.httpClient, request!, session),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
             registerDeferredCleanup: (cleanup) => {
                 deferredCleanup.push(cleanup);
