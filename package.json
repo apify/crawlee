@@ -39,6 +39,7 @@
         "build": "turbo run build && node ./scripts/typescript_fixes.mjs",
         "ci:build": "turbo run build --cache-dir=\".turbo\" && node ./scripts/typescript_fixes.mjs",
         "test": "vitest run --silent",
+        "test:examples": "yarn --cwd=docs typecheck",
         "test:e2e": "node test/e2e/run.mjs",
         "test:full": "cross-env CRAWLEE_DIFFICULT_TESTS=1 vitest run --silent",
         "tsc-check-tests": "tsc --noEmit --project test/tsconfig.json",

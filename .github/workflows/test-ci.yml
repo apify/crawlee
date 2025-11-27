@@ -72,7 +72,9 @@ jobs:
                     YARN_IGNORE_NODE: 1
 
             -   name: Test TS
-                run: yarn tsc-check-tests
+                run: |
+                    yarn tsc-check-tests
+                    yarn test:examples
                 env:
                     YARN_IGNORE_NODE: 1
 
