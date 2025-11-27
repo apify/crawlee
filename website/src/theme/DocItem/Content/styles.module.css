@@ -1,18 +1,22 @@
 .docItemContent {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: space-between;
-  /* move the h1 margin to padding */
-  h1 {
-      margin-bottom: 0 !important;
-  }
+  gap: 1rem;
+  flex-wrap: wrap;
   padding-bottom: calc(
       var(--ifm-h1-vertical-rhythm-bottom) * var(--ifm-leading)
   );
 
+  h1 {
+      margin: 0 !important;
+      flex: 1 1 auto;
+      min-width: 12rem;
+  }
+
   @media (max-width: 767px) {
       flex-direction: column;
       align-items: flex-start;
+      gap: 0.75rem;
   }
 }

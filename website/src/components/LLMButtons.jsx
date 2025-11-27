@@ -323,33 +323,50 @@ const MenuBase = React.forwardRef(({
     copyingStatus,
     setCopyingStatus,
     chevronIconRef,
-    ...props
-}, ref) => (
-    <div ref={ref} className={styles.llmButtonWrapper}>
-        <div className={styles.llmButton}>
+    ...buttonProps
+}, ref) => {
+    const mergedButtonProps = {
+        ...buttonProps,
+        tabIndex: buttonProps.tabIndex ?? 0,
+    };
+
+    return (
+        <div className={styles.llmButtonWrapper}>
             <div
-                className={styles.copyUpIconWrapper}
-                onClick={() => onCopyAsMarkdownClick({ setCopyingStatus })}
+                ref={ref}
+                className={styles.llmButton}
+                {...mergedButtonProps}
             >
-                {COPYING_STATUS_ICON[copyingStatus]}
-            </div>
-            <span
-                onClick={() => onCopyAsMarkdownClick({ setCopyingStatus })}
-                className={styles.llmButtonText}
-            >
-                {getButtonText({ status: copyingStatus })}
-            </span>
-            <div {...props} className={styles.chevronIconWrapper}>
-                <ChevronDownIcon
-                    size="16"
-                    color="currentColor"
-                    className={styles.chevronIcon}
-                    ref={chevronIconRef}
-                />
+                <div
+                    className={styles.copyUpIconWrapper}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onCopyAsMarkdownClick({ setCopyingStatus });
+                    }}
+                >
+                    {COPYING_STATUS_ICON[copyingStatus]}
+                </div>
+                <span
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onCopyAsMarkdownClick({ setCopyingStatus });
+                    }}
+                    className={styles.llmButtonText}
+                >
+                    {getButtonText({ status: copyingStatus })}
+                </span>
+                <div className={styles.chevronIconWrapper}>
+                    <ChevronDownIcon
+                        size="16"
+                        color="currentColor"
+                        className={styles.chevronIcon}
+                        ref={chevronIconRef}
+                    />
+                </div>
             </div>
         </div>
-    </div>
-));
+    );
+});
 MenuBase.displayName = 'MenuBase';
 
 const Option = ({ label, description, showExternalIcon, icon }) => {
