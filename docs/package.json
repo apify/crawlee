@@ -1,0 +1,11 @@
+{
+  "name": "crawlee-docs",
+  "type": "module",
+  "packageManager": "yarn@4.10.3",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
