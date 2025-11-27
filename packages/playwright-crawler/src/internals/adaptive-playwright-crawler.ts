@@ -6,7 +6,6 @@ import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
-    BaseHttpResponseData,
     ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
@@ -109,7 +108,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     /**
      * The HTTP response, either from the HTTP client or from the initial request from playwright's navigation.
      */
-    response: BaseHttpResponseData;
+    response: Response;
 
     /**
      * Playwright Page object. If accessed in HTTP-only rendering, this will throw an error and make the AdaptivePlaywrightCrawlerContext retry the request in a browser.
@@ -423,8 +422,6 @@ export class AdaptivePlaywrightCrawler<
 
     private async adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
         // Capture the original response to avoid infinite recursion when the getter is copied to the context
-        const originalResponse = cheerioContext.response;
-
         const result = this.resultObjects.get(cheerioContext);
         if (result === undefined) {
             throw new Error('Logical error - `this.resultObjects` does not contain the result object');
@@ -433,17 +430,6 @@ export class AdaptivePlaywrightCrawler<
         return {
             get page(): Page {
                 throw new Error('Page object was used in HTTP-only request handler');
-            },
-            get response(): BaseHttpResponseData {
-                return {
-                    // TODO remove this once cheerioContext.response is just a Response
-                    complete: true,
-                    headers: originalResponse.headers,
-                    trailers: {},
-                    url: originalResponse.url!,
-                    statusCode: originalResponse.statusCode!,
-                    redirectUrls: (originalResponse as unknown as BaseHttpResponseData).redirectUrls ?? [],
-                };
             },
             async querySelector(selector: string) {
                 return cheerioContext.$(selector);
@@ -456,13 +442,17 @@ export class AdaptivePlaywrightCrawler<
                         options.selector,
                         options.baseUrl ?? cheerioContext.request.loadedUrl,
                     );
-                return await this.enqueueLinks({ ...options, urls }, cheerioContext.request, result);
+                return (await this.enqueueLinks(
+                    { ...options, urls },
+                    cheerioContext.request,
+                    result,
+                )) as unknown as void;
             },
+            response: cheerioContext.response,
         };
     }
 
     private async adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
-        // Capture the original response to avoid infinite recursion when the getter is copied to the context
         const originalResponse = playwrightContext.response;
 
         const result = this.resultObjects.get(playwrightContext);
@@ -471,16 +461,11 @@ export class AdaptivePlaywrightCrawler<
         }
 
         return {
-            get response(): BaseHttpResponseData {
-                return {
-                    url: originalResponse!.url(),
-                    statusCode: originalResponse!.status(),
-                    headers: originalResponse!.headers(),
-                    trailers: {},
-                    complete: true,
-                    redirectUrls: [],
-                };
-            },
+            response: new Response(Uint8Array.from(await originalResponse.body()), {
+                headers: originalResponse.headers(),
+                status: originalResponse.status(),
+                statusText: originalResponse.statusText(),
+            }),
             async querySelector(selector: string, timeoutMs = 5000) {
                 const locator = playwrightContext.page.locator(selector).first();
                 await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
@@ -507,7 +492,11 @@ export class AdaptivePlaywrightCrawler<
                     urls = options.urls;
                 }
 
-                return await this.enqueueLinks({ ...options, urls }, playwrightContext.request, result);
+                return (await this.enqueueLinks(
+                    { ...options, urls },
+                    playwrightContext.request,
+                    result,
+                )) as unknown as void;
             },
         };
     }

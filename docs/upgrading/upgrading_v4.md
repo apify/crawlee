@@ -94,3 +94,16 @@ This experimental option relied on an outdated manifest version for browser exte
 ## Available resource detection
 
 In v3, we introduced a new way to detect available resources for the crawler, available via `systemInfoV2` flag. In v4, this is the default way to detect available resources. The old way is removed completely together with the `systemInfoV2` flag.
+
+## `HttpClient` instances return `Response` objects
+
+The interface of `HttpClient` instances was changed to return the [native `Response` objects](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of custom `HttpResponse` objects.
+
+## `CrawlingContext.response` is now of type `Response`
+
+The `CrawlingContext.response` property is now of type [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of `HttpResponse`. `CrawlingContext.sendRequest` method now returns `Response` objects as well.
+
+## Crawling context in the `FileDownload` crawler no longer includes `body` and `stream` properties
+
+The crawling context in the `FileDownload` crawler no longer includes the `body` and `stream` properties. These can be accessed directly via the `response` property instead, e.g. `context.response.bytes()` or `context.response.body`.
+

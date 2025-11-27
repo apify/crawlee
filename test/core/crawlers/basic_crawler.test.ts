@@ -1496,8 +1496,8 @@ describe('BasicCrawler', () => {
                     const response = await sendRequest();
 
                     responses.push({
-                        statusCode: response.statusCode,
-                        body: response.body,
+                        statusCode: response.status,
+                        body: await response.text(),
                     });
                 },
             });
@@ -1524,8 +1524,8 @@ describe('BasicCrawler', () => {
                     const response = await sendRequest();
 
                     responses.push({
-                        statusCode: response.statusCode,
-                        body: response.body,
+                        statusCode: response.status,
+                        body: await response.text(),
                     });
                 },
             });

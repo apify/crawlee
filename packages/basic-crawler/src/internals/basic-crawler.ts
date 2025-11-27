@@ -1578,7 +1578,7 @@ export class BasicCrawler<
             },
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request!, session),
+            sendRequest: createSendRequest(this.httpClient, request!, session) as CrawlingContext['sendRequest'],
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
             registerDeferredCleanup: (cleanup) => {
                 deferredCleanup.push(cleanup);
