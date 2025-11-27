@@ -4,7 +4,7 @@ import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 // First, we tell puppeteer-extra to use the plugin (or plugins) we want.
 // Certain plugins might have options you can pass in - read up on their documentation!
-// @ts-ignore - The default export types for puppeteer-extra don't properly expose the 'use' method in ESM contexts
+// @ts-expect-error - The default export types for puppeteer-extra don't properly expose the 'use' method in ESM contexts
 puppeteerExtra.use(stealthPlugin());
 
 // Create an instance of the PuppeteerCrawler class - a crawler
