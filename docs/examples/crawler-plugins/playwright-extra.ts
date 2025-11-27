@@ -35,14 +35,14 @@ const crawler = new PlaywrightCrawler({
 
         // A function to be evaluated by Puppeteer within the browser context.
         const data = await page.$$eval('.athing', ($posts) => {
-            const scrapedData: { title: string; rank: string; href: string }[] = [];
+            const scrapedData: { title?: string; rank?: string; href?: string }[] = [];
 
             // We're getting the title, rank and URL of each post on Hacker News.
             $posts.forEach(($post) => {
                 scrapedData.push({
-                    title: $post.querySelector('.title a').innerText,
-                    rank: $post.querySelector('.rank').innerText,
-                    href: $post.querySelector('.title a').href,
+                    title: $post.querySelector<HTMLElement>('.title a')?.innerText,
+                    rank: $post.querySelector<HTMLElement>('.rank')?.innerText,
+                    href: $post.querySelector<HTMLAnchorElement>('.title a')?.href,
                 });
             });
 

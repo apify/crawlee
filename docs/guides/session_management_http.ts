@@ -15,12 +15,12 @@ const crawler = new HttpCrawler({
     // and set the cookie header to request automatically (default is true).
     persistCookiesPerSession: true,
     async requestHandler({ session, body }) {
-        const title = body.match(/<title(?:.*?)>(.*?)<\/title>/)?.[1];
+        const title = (body as string).match(/<title(?:.*?)>(.*?)<\/title>/)?.[1];
 
         if (title === 'Blocked') {
-            session.retire();
+            session?.retire();
         } else if (title === 'Not sure if blocked, might also be a connection error') {
-            session.markBad();
+            session?.markBad();
         } else {
             // session.markGood() - this step is done automatically in BasicCrawler.
         }

@@ -35,7 +35,7 @@ const crawler = new CheerioCrawler({
         // Extract data from the page using cheerio.
         const title = $('title').text();
         const h1texts: { text: string }[] = [];
-        $('h1').each((index, el) => {
+        $('h1').each((_, el) => {
             h1texts.push({
                 text: $(el).text(),
             });
