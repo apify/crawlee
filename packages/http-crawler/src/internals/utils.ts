@@ -8,7 +8,7 @@ import ow, { ObjectPredicate } from 'ow';
  * Gets parsed content type from response object
  * @param response HTTP response object
  */
-export function parseContentTypeFromResponse(response: unknown): { type: string; charset: BufferEncoding } {
+export function parseContentTypeFromResponse(response: Response): { type: string; charset: BufferEncoding } {
     ow(
         response,
         ow.object.partialShape({
@@ -20,9 +20,9 @@ export function parseContentTypeFromResponse(response: unknown): { type: string;
     const { url, headers } = response;
     let parsedContentType;
 
-    if (headers['content-type']) {
+    if (headers.get('content-type')) {
         try {
-            parsedContentType = contentTypeParser.parse(headers['content-type'] as string);
+            parsedContentType = contentTypeParser.parse(headers.get('content-type') as string);
         } catch {
             // Can not parse content type from Content-Type header. Try to parse it from file extension.
         }
