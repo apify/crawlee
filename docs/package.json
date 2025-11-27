@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "yarn@4.10.3",
   "scripts": {
-    "typecheck": "yarn && tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

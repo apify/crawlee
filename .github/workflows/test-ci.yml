@@ -72,9 +72,15 @@ jobs:
                     YARN_IGNORE_NODE: 1
 
             -   name: Test TS
+                run: yarn tsc-check-tests
+                env:
+                    YARN_IGNORE_NODE: 1
+
+            -   name: Typecheck documentation examples
+                working-directory: ./docs
                 run: |
-                    yarn tsc-check-tests
-                    yarn test:examples
+                    yarn
+                    yarn typecheck
                 env:
                     YARN_IGNORE_NODE: 1
 
