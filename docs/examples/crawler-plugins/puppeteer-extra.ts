@@ -4,6 +4,7 @@ import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 // First, we tell puppeteer-extra to use the plugin (or plugins) we want.
 // Certain plugins might have options you can pass in - read up on their documentation!
+// @ts-ignore - The default export types for puppeteer-extra don't properly expose the 'use' method in ESM contexts
 puppeteerExtra.use(stealthPlugin());
 
 // Create an instance of the PuppeteerCrawler class - a crawler
@@ -32,14 +33,14 @@ const crawler = new PuppeteerCrawler({
 
         // A function to be evaluated by Puppeteer within the browser context.
         const data = await page.$$eval('.athing', ($posts) => {
-            const scrapedData: { title: string; rank: string; href: string }[] = [];
+            const scrapedData: { title?: string; rank?: string; href?: string }[] = [];
 
             // We're getting the title, rank and URL of each post on Hacker News.
             $posts.forEach(($post) => {
                 scrapedData.push({
-                    title: $post.querySelector('.title a').innerText,
-                    rank: $post.querySelector('.rank').innerText,
-                    href: $post.querySelector('.title a').href,
+                    title: $post.querySelector<HTMLElement>('.title a')?.innerText,
+                    rank: $post.querySelector<HTMLElement>('.rank')?.innerText,
+                    href: $post.querySelector<HTMLAnchorElement>('.title a')?.href,
                 });
             });
 

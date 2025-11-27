@@ -2,6 +2,7 @@
 	"extends": "../tsconfig.json",
 	"include": ["**/*.ts"],
 	"compilerOptions": {
+		"lib": ["ES2022", "DOM.AsyncIterable"],
 		"noUnusedLocals": false
 	}
 }
