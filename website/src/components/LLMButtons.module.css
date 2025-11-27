@@ -72,7 +72,7 @@
   border: 1px solid var(--color-separator);
   background-color: var(--color-background);
   box-shadow: 0 12px 32px rgb(10 11 36 / 20%);
-  min-width: 15rem;
+  min-width: 17rem;
   max-width: min(20rem, calc(100vw - 1.5rem));
   z-index: 2;
   display: flex;
@@ -80,7 +80,7 @@
   gap: 0.25rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 996px) {
   .menuDropdown {
     left: 0;
     right: auto;
@@ -105,6 +105,10 @@
   background: transparent;
   padding: 0;
   text-align: left;
+  width: 100%;
+  display: block;
+  text-decoration: none;
+  color: inherit;
   cursor: pointer;
   outline: none;
 }

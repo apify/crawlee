@@ -10,9 +10,11 @@ import {
     PerplexityIcon,
 } from '@apify/ui-icons';
 import clsx from 'clsx';
+import { useLocation } from '@docusaurus/router';
 import React, {
     useCallback,
     useEffect,
+    useMemo,
     useRef,
     useState,
 } from 'react';
@@ -26,6 +28,10 @@ const DROPDOWN_OPTIONS = [
         showExternalIcon: false,
         icon: CopyIcon,
         value: 'copyForLLM',
+        analytics: {
+            buttonText: 'Copy for LLM',
+            element: 'llm-buttons.copyForLLM',
+        },
     },
     {
         label: 'View as Markdown',
@@ -33,6 +39,10 @@ const DROPDOWN_OPTIONS = [
         icon: MarkdownIcon,
         value: 'viewAsMarkdown',
         showExternalIcon: true,
+        analytics: {
+            buttonText: 'View as Markdown',
+            element: 'llm-buttons.viewAsMarkdown',
+        },
     },
     {
         label: 'Open in ChatGPT',
@@ -40,6 +50,10 @@ const DROPDOWN_OPTIONS = [
         icon: ChatGptIcon,
         value: 'openInChatGPT',
         showExternalIcon: true,
+        analytics: {
+            buttonText: 'Open in ChatGPT',
+            element: 'llm-buttons.openInChatGPT',
+        },
     },
     {
         label: 'Open in Claude',
@@ -47,6 +61,10 @@ const DROPDOWN_OPTIONS = [
         icon: AnthropicIcon,
         value: 'openInClaude',
         showExternalIcon: true,
+        analytics: {
+            buttonText: 'Open in Claude',
+            element: 'llm-buttons.openInClaude',
+        },
     },
     {
         label: 'Open in Perplexity',
@@ -54,8 +72,16 @@ const DROPDOWN_OPTIONS = [
         icon: PerplexityIcon,
         value: 'openInPerplexity',
         showExternalIcon: true,
+        analytics: {
+            buttonText: 'Open in Perplexity',
+            element: 'llm-buttons.openInPerplexity',
+        },
     },
 ];
+
+const CHAT_GPT_BASE = 'https://chatgpt.com/?hints=search&q=';
+const CLAUDE_BASE = 'https://claude.ai/new?q=';
+const PERPLEXITY_BASE = 'https://www.perplexity.ai/search/new?q=';
 
 const getPrompt = (currentUrl) => `Read from ${currentUrl} so I can ask questions about it.`;
 const getMarkdownUrl = (currentUrl) => {
@@ -65,12 +91,31 @@ const getMarkdownUrl = (currentUrl) => {
 };
 
 const trackClick = (buttonText, element) => {
-    if (window.analytics) {
+    if (typeof window !== 'undefined' && window.analytics) {
         window.analytics.track('Clicked', {
             app: 'crawlee',
             button_text: buttonText,
             element,
         });
+    }
+};
+
+const getOptionHref = (value, currentUrl) => {
+    if (!currentUrl) {
+        return undefined;
+    }
+
+    switch (value) {
+        case 'viewAsMarkdown':
+            return getMarkdownUrl(currentUrl);
+        case 'openInChatGPT':
+            return `${CHAT_GPT_BASE}${encodeURIComponent(getPrompt(currentUrl))}`;
+        case 'openInClaude':
+            return `${CLAUDE_BASE}${encodeURIComponent(getPrompt(currentUrl))}`;
+        case 'openInPerplexity':
+            return `${PERPLEXITY_BASE}${encodeURIComponent(getPrompt(currentUrl))}`;
+        default:
+            return undefined;
     }
 };
 
@@ -125,8 +170,8 @@ const Menu = ({
     );
 
     const handleOptionSelect = useCallback(
-        (option) => {
-            onSelect?.(option);
+        (option, event) => {
+            onSelect?.(option, event);
             closeMenu();
         },
         [closeMenu, onSelect],
@@ -134,21 +179,30 @@ const Menu = ({
 
     const handleMenuItemKeyDown = useCallback(
         (event, option, index) => {
-            if (event.key === 'Enter' || event.key === 'Space') {
+            if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                handleOptionSelect(option);
-            } else if (event.key === 'ArrowDown') {
+                event.currentTarget.click();
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
                 event.preventDefault();
                 setFocusedIndex((index + 1) % options.length);
-            } else if (event.key === 'ArrowUp') {
+                return;
+            }
+
+            if (event.key === 'ArrowUp') {
                 event.preventDefault();
                 setFocusedIndex((index - 1 + options.length) % options.length);
-            } else if (event.key === 'Escape') {
+                return;
+            }
+
+            if (event.key === 'Escape') {
                 event.preventDefault();
                 closeMenu();
             }
         },
-        [handleOptionSelect, options.length, closeMenu],
+        [options.length, closeMenu],
     );
 
     useEffect(() => {
@@ -198,37 +252,38 @@ const Menu = ({
             />
             {isOpen && (
                 <div className={styles.menuDropdown} role="menu" id="llm-menu">
-                    {options.map((option, index) => (
-                        <div
-                            key={option.value}
-                            ref={(el) => {
-                                menuItemRefs.current[index] = el;
-                            }}
-                            className={styles.menuOptionWrapper}
-                            role="menuitem"
-                            tabIndex={0}
-                            onClick={() => handleOptionSelect(option)}
-                            onKeyDown={(e) => handleMenuItemKeyDown(e, option, index)}
-                        >
-                            <Option {...option} />
-                        </div>
-                    ))}
+                    {options.map((option, index) => {
+                        const WrapperComponent = option.href ? 'a' : 'button';
+
+                        return (
+                            <WrapperComponent
+                                key={option.value}
+                                ref={(el) => {
+                                    menuItemRefs.current[index] = el;
+                                }}
+                                className={styles.menuOptionWrapper}
+                                role="menuitem"
+                                tabIndex={0}
+                                href={option.href}
+                                target={option.target}
+                                rel={option.rel}
+                                type={option.href ? undefined : 'button'}
+                                onClick={(event) => {
+                                    if (!option.href) {
+                                        event.preventDefault();
+                                    }
+                                    handleOptionSelect(option, event);
+                                }}
+                                onKeyDown={(e) => handleMenuItemKeyDown(e, option, index)}
+                            >
+                                <Option {...option} />
+                            </WrapperComponent>
+                        );
+                    })}
                 </div>
             )}
         </div>
     );
-};
-
-const onViewAsMarkdownClick = () => {
-    trackClick('View as Markdown', 'llm-buttons.viewAsMarkdown');
-
-    const markdownUrl = getMarkdownUrl(window.location.href);
-
-    try {
-        window.open(markdownUrl, '_blank');
-    } catch (error) {
-        console.error('Error opening markdown file:', error);
-    }
 };
 
 function getButtonText({ status }) {
@@ -242,57 +297,16 @@ function getButtonText({ status }) {
     }
 }
 
-const onOpenInChatGPTClick = () => {
-    trackClick('Open in ChatGPT', 'llm-buttons.openInChatGPT');
+const onCopyAsMarkdownClick = async ({ setCopyingStatus, currentUrl }) => {
+    const sourceUrl = currentUrl || (typeof window !== 'undefined' ? window.location.href : '');
 
-    const prompt = getPrompt(window.location.href);
-
-    try {
-        window.open(
-            `https://chatgpt.com/?hints=search&q=${encodeURIComponent(prompt)}`,
-            '_blank',
-        );
-    } catch (error) {
-        console.error('Error opening ChatGPT:', error);
+    if (!sourceUrl) {
+        return;
     }
-};
 
-const onOpenInClaudeClick = () => {
-    trackClick('Open in Claude', 'llm-buttons.openInClaude');
-
-    const prompt = getPrompt(window.location.href);
-
-    try {
-        window.open(
-            `https://claude.ai/new?q=${encodeURIComponent(prompt)}`,
-            '_blank',
-        );
-    } catch (error) {
-        console.error('Error opening Claude:', error);
-    }
-};
-
-const onOpenInPerplexityClick = () => {
-    trackClick('Open in Perplexity', 'llm-buttons.openInPerplexity');
-
-    const prompt = getPrompt(window.location.href);
-
-    try {
-        window.open(
-            `https://www.perplexity.ai/search/new?q=${encodeURIComponent(
-                prompt,
-            )}`,
-            '_blank',
-        );
-    } catch (error) {
-        console.error('Error opening Perplexity:', error);
-    }
-};
-
-const onCopyAsMarkdownClick = async ({ setCopyingStatus }) => {
     trackClick('Copy for LLM', 'llm-buttons.copyForLLM');
 
-    const markdownUrl = getMarkdownUrl(window.location.href);
+    const markdownUrl = getMarkdownUrl(sourceUrl);
 
     try {
         setCopyingStatus('loading');
@@ -323,6 +337,7 @@ const MenuBase = React.forwardRef(({
     copyingStatus,
     setCopyingStatus,
     chevronIconRef,
+    currentUrl,
     ...buttonProps
 }, ref) => {
     const mergedButtonProps = {
@@ -341,7 +356,7 @@ const MenuBase = React.forwardRef(({
                     className={styles.copyUpIconWrapper}
                     onClick={(event) => {
                         event.stopPropagation();
-                        onCopyAsMarkdownClick({ setCopyingStatus });
+                        onCopyAsMarkdownClick({ setCopyingStatus, currentUrl });
                     }}
                 >
                     {COPYING_STATUS_ICON[copyingStatus]}
@@ -349,7 +364,7 @@ const MenuBase = React.forwardRef(({
                 <span
                     onClick={(event) => {
                         event.stopPropagation();
-                        onCopyAsMarkdownClick({ setCopyingStatus });
+                        onCopyAsMarkdownClick({ setCopyingStatus, currentUrl });
                     }}
                     className={styles.llmButtonText}
                 >
@@ -390,30 +405,49 @@ const Option = ({ label, description, showExternalIcon, icon }) => {
 };
 
 export default function LLMButtons() {
+    const location = useLocation();
     const [copyingStatus, setCopyingStatus] = useState('idle');
+    const [currentUrl, setCurrentUrl] = useState('');
     const chevronIconRef = useRef(null);
 
-    const onMenuOptionClick = useCallback((option) => {
-        switch (option?.value) {
-            case 'copyForLLM':
-                onCopyAsMarkdownClick({ setCopyingStatus });
-                break;
-            case 'viewAsMarkdown':
-                onViewAsMarkdownClick();
-                break;
-            case 'openInChatGPT':
-                onOpenInChatGPTClick();
-                break;
-            case 'openInClaude':
-                onOpenInClaudeClick();
-                break;
-            case 'openInPerplexity':
-                onOpenInPerplexityClick();
-                break;
-            default:
-                break;
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setCurrentUrl(window.location.href);
         }
-    }, []);
+    }, [location]);
+
+    const menuOptions = useMemo(
+        () =>
+            DROPDOWN_OPTIONS.map((option) => {
+                const href = getOptionHref(option.value, currentUrl);
+
+                return {
+                    ...option,
+                    href,
+                    target: href ? '_blank' : undefined,
+                    rel: href ? 'noopener noreferrer' : undefined,
+                };
+            }),
+        [currentUrl],
+    );
+
+    const onMenuOptionClick = useCallback(
+        (option, event) => {
+            if (!option) {
+                return;
+            }
+
+            if (option.analytics) {
+                trackClick(option.analytics.buttonText, option.analytics.element);
+            }
+
+            if (option.value === 'copyForLLM') {
+                event?.preventDefault();
+                onCopyAsMarkdownClick({ setCopyingStatus, currentUrl });
+            }
+        },
+        [currentUrl, setCopyingStatus],
+    );
 
     return (
         <Menu
@@ -428,12 +462,13 @@ export default function LLMButtons() {
                         copyingStatus={copyingStatus}
                         setCopyingStatus={setCopyingStatus}
                         chevronIconRef={chevronIconRef}
+                        currentUrl={currentUrl}
                         {...props}
                     />
                 ),
             }}
             onSelect={onMenuOptionClick}
-            options={DROPDOWN_OPTIONS}
+            options={menuOptions}
         />
     );
 }
