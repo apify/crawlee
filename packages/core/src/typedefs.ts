@@ -14,13 +14,4 @@ export function keys<T extends {}>(obj: T) {
     return Object.keys(obj) as (keyof T)[];
 }
 
-export declare type AllowedHttpMethods =
-    | 'GET'
-    | 'HEAD'
-    | 'POST'
-    | 'PUT'
-    | 'DELETE'
-    | 'TRACE'
-    | 'OPTIONS'
-    | 'CONNECT'
-    | 'PATCH';
+export { AllowedHttpMethods } from '@crawlee/types';
