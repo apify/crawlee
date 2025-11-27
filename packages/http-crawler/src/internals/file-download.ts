@@ -1,11 +1,9 @@
-import type { Readable } from 'node:stream';
 import { Transform } from 'node:stream';
-import { buffer } from 'node:stream/consumers';
 import { finished } from 'node:stream/promises';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
-import type { CrawlingContext, HttpResponse, LoadedRequest, Request, StreamingHttpResponse } from '@crawlee/core';
+import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 
 import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
@@ -24,19 +22,13 @@ export interface FileDownloadCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
     request: LoadedRequest<Request<UserData>>;
-    response: HttpResponse<'buffer'> | StreamingHttpResponse;
-    body: Promise<Buffer>;
-    stream: Readable;
+    response: Response;
     contentType: { type: string; encoding: BufferEncoding };
 }
 
 export type FileDownloadRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = RequestHandler<FileDownloadCrawlingContext<UserData>>;
-
-interface ContextInternals {
-    pollingInterval?: NodeJS.Timeout;
-}
 
 /**
  * Creates a transform stream that throws an error if the source data speed is below the specified minimum speed.
@@ -164,16 +156,16 @@ export function ByteCounterStream({
  * ```
  */
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
-    #contextInternals = Symbol('contextInternals');
-
     // TODO hooks
     constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
         super({
             ...options,
             contextPipelineBuilder: () =>
                 ContextPipeline.create<CrawlingContext>().compose({
-                    action: this.initiateDownload.bind(this),
-                    cleanup: this.cleanupDownload.bind(this),
+                    action: async (context) => this.initiateDownload(context),
+                    cleanup: async (context) => {
+                        await (context.response.body ? finished(context.response.body as any) : Promise.resolve());
+                    },
                 }),
         });
     }
@@ -189,48 +181,13 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         context.request.url = response.url;
 
-        const pollingInterval = setInterval(() => {
-            const { total, transferred } = response.downloadProgress;
-
-            if (transferred > 0) {
-                context.log.debug(
-                    `Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${context.request.url}.`,
-                );
-            }
-        }, 5000);
-
         const contextExtension = {
-            [this.#contextInternals]: { pollingInterval } as ContextInternals,
             request: context.request as LoadedRequest<Request>,
             response,
             contentType: { type, encoding },
-            stream: response.stream,
-            get body() {
-                return buffer(response.stream);
-            },
         };
 
         return contextExtension;
-    }
-
-    private async cleanupDownload(
-        context: FileDownloadCrawlingContext & { [k: symbol]: ContextInternals },
-        error?: unknown,
-    ) {
-        clearInterval(context[this.#contextInternals].pollingInterval);
-
-        // If there was no error and the stream is still readable, wait for it to be consumed before proceeding
-        if (error === undefined) {
-            if (!context.stream.destroyed && context.stream.readable) {
-                try {
-                    await finished(context.stream);
-                } catch {
-                    // Stream might have encountered an error or been closed, which is fine
-                }
-            }
-        } else {
-            context.stream.destroy();
-        }
     }
 }
 
