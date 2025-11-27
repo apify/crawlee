@@ -408,6 +408,7 @@ export default function LLMButtons() {
     const location = useLocation();
     const [copyingStatus, setCopyingStatus] = useState('idle');
     const [currentUrl, setCurrentUrl] = useState('');
+    const [isMarkdownAvailable, setIsMarkdownAvailable] = useState(false);
     const chevronIconRef = useRef(null);
 
     useEffect(() => {
@@ -416,10 +417,48 @@ export default function LLMButtons() {
         }
     }, [location]);
 
+    useEffect(() => {
+        if (!currentUrl) {
+            setIsMarkdownAvailable(false);
+            return undefined;
+        }
+
+        const controller = new AbortController();
+        const markdownUrl = getMarkdownUrl(currentUrl);
+
+        const checkMarkdownAvailability = async () => {
+            try {
+                const response = await fetch(markdownUrl, {
+                    method: 'HEAD',
+                    signal: controller.signal,
+                });
+                setIsMarkdownAvailable(response.ok);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setIsMarkdownAvailable(false);
+            }
+        };
+
+        checkMarkdownAvailability();
+
+        return () => {
+            controller.abort();
+        };
+    }, [currentUrl]);
+
     const menuOptions = useMemo(
         () =>
             DROPDOWN_OPTIONS.map((option) => {
                 const href = getOptionHref(option.value, currentUrl);
+
+
+                if (option.value === 'viewAsMarkdown') {
+                    if (!isMarkdownAvailable) {
+                        return null;
+                    }
+                }
 
                 return {
                     ...option,
@@ -427,8 +466,8 @@ export default function LLMButtons() {
                     target: href ? '_blank' : undefined,
                     rel: href ? 'noopener noreferrer' : undefined,
                 };
-            }),
-        [currentUrl],
+            }).filter(Boolean),
+        [currentUrl, isMarkdownAvailable],
     );
 
     const onMenuOptionClick = useCallback(
