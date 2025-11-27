@@ -694,7 +694,7 @@ __metadata:
     string-comparison: "npm:^1.3.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
-    idcac-playwright: ^0.1.2
+    idcac-playwright: ^0.2.0
     playwright: "*"
   peerDependenciesMeta:
     idcac-playwright:
@@ -716,12 +716,12 @@ __metadata:
     "@crawlee/utils": "npm:3.15.3"
     cheerio: "npm:1.0.0-rc.12"
     devtools-protocol: "npm:*"
-    idcac-playwright: "npm:^0.1.2"
+    idcac-playwright: "npm:^0.2.0"
     jquery: "npm:^3.6.0"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
   peerDependencies:
-    idcac-playwright: ^0.1.2
+    idcac-playwright: ^0.2.0
     puppeteer: "*"
   peerDependenciesMeta:
     idcac-playwright:
@@ -7444,10 +7444,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"idcac-playwright@npm:^0.1.2":
-  version: 0.1.3
-  resolution: "idcac-playwright@npm:0.1.3"
-  checksum: 10c0/2b269960b6cfb9cc5222d9be0f05268486b61725299c140f529b83643adffb66c09ed3917d3f2e4cb2fc2b5af047235cda5042b273ed684f55c285b597627dd5
+"idcac-playwright@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "idcac-playwright@npm:0.2.0"
+  checksum: 10c0/a1ff836ff3c0400127b840d36b27b1ae25bec3dec8202aa25b00875a86d955c659cc26fd46f1eb097990c462bb9f4c7c535801ce4e3435dcd1f9ffa96564c407
   languageName: node
   linkType: hard
 
