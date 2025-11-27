@@ -3,7 +3,6 @@
 	"include": ["./**/*.ts"],
 	"compilerOptions": {
 		"lib": ["ES2022", "DOM.AsyncIterable"],
-		"noUnusedLocals": false,
-		"skipLibCheck": true
+		"noUnusedLocals": false
 	}
 }
