@@ -18,8 +18,8 @@ const crawler = new PlaywrightCrawler({
                 .first();
 
             const currentPriceString = await priceElement.textContent();
-            const rawPrice = currentPriceString.split('$')[1];
-            const price = Number(rawPrice.replaceAll(',', ''));
+            const rawPrice = currentPriceString?.split('$')[1];
+            const price = Number(rawPrice?.replaceAll(',', ''));
 
             const inStockElement = page
                 .locator('span.product-form__inventory')

@@ -15,7 +15,7 @@ await requestQueue.addRequests([
 // It's used the same way for Puppeteer/Playwright crawlers
 const crawler = new CheerioCrawler({
     requestQueue,
-    async requestHandler({ $, request, enqueueLinks }) {
+    async requestHandler({ enqueueLinks }) {
         // Add new request to the queue
         await requestQueue.addRequests([{ url: 'https://example.com/new-page' }]);
         // Add links found on page to the queue
