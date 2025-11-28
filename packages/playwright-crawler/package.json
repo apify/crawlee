@@ -71,7 +71,7 @@
         "tslib": "^2.4.0"
     },
     "peerDependencies": {
-        "idcac-playwright": "^0.1.2",
+        "idcac-playwright": "^0.2.0",
         "playwright": "*"
     },
     "peerDependenciesMeta": {
