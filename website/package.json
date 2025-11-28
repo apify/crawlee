@@ -76,7 +76,7 @@
         ]
     },
     "resolutions": {
-        "@rspack/core": "1.5.8"
+        "@rspack/core": "1.6.5"
     },
     "packageManager": "yarn@4.10.3"
 }
