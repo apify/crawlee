@@ -23,32 +23,27 @@ function createProgressTracker({ url, log, totalBytes }: { url: URL; log: Log; t
 
 // Create a FileDownload - a custom crawler instance that will download files from URLs.
 const crawler = new FileDownload({
-    async streamHandler({ stream, request, log, getKeyValueStore }) {
+    async requestHandler({ response, request, log, getKeyValueStore }) {
         const url = new URL(request.url);
 
         log.info(`Downloading ${url} to ${url.pathname.replace(/\//g, '_')}...`);
 
-        await new Promise<void>((resolve, reject) => {
-            // With the 'response' event, we have received the headers of the response.
-            stream.on('response', async (response) => {
-                const kvs = await getKeyValueStore();
-                await kvs.setValue(
-                    url.pathname.replace(/\//g, '_'),
-                    pipeline(
-                        stream,
-                        createProgressTracker({ url, log, totalBytes: Number(response.headers['content-length']) }),
-                        (error) => {
-                            if (error) reject(error);
-                        },
-                    ),
-                    { contentType: response.headers['content-type'] },
-                );
+        if (!response.body) return;
 
-                log.info(`Downloaded ${url} to ${url.pathname.replace(/\//g, '_')}.`);
+        const kvs = await getKeyValueStore();
+        await kvs.setValue(
+            url.pathname.replace(/\//g, '_'),
+            pipeline(
+                response.body,
+                createProgressTracker({ url, log, totalBytes: Number(response.headers.get('content-length')) }),
+                (error) => {
+                    if (error) log.error(`Failed to download ${url}: ${error.message}`);
+                },
+            ),
+            response.headers.get('content-type') ? { contentType: response.headers.get('content-type')! } : {},
+        );
 
-                resolve();
-            });
-        });
+        log.info(`Downloaded ${url} to ${url.pathname.replace(/\//g, '_')}.`);
     },
 });
 
