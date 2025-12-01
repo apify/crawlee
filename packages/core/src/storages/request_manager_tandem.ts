@@ -2,9 +2,9 @@ import type { Dictionary } from '@crawlee/types';
 
 import type { Log } from '@apify/log';
 
-import { log } from '../log';
-import type { Request, Source } from '../request';
-import type { IRequestList } from './request_list';
+import { log } from '../log.js';
+import type { Request, Source } from '../request.js';
+import type { IRequestList } from './request_list.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -12,7 +12,7 @@ import type {
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
     RequestsLike,
-} from './request_provider';
+} from './request_provider.js';
 
 /**
  * A request manager that combines a RequestList and a RequestQueue.
