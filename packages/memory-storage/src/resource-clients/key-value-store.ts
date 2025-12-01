@@ -125,10 +125,10 @@ export class KeyValueStoreClient extends BaseClient {
     ): AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData> {
         const { limit, exclusiveStartKey, prefix } = s
             .object({
-                limit: s.number().greaterThan(0).optional,
-                exclusiveStartKey: s.string().optional,
-                collection: s.string().optional, // This is ignored, but kept for validation consistency with API client.
-                prefix: s.string().optional,
+                limit: s.number().greaterThan(0).optional(),
+                exclusiveStartKey: s.string().optional(),
+                collection: s.string().optional(), // This is ignored, but kept for validation consistency with API client.
+                prefix: s.string().optional(),
             })
             .parse(options);
 
