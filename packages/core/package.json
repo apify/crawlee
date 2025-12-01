@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/core",
-    "version": "3.15.3",
+    "version": "4.0.0",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=22.0.0"
@@ -53,9 +53,9 @@
         "@apify/pseudo_url": "^2.0.59",
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
-        "@crawlee/memory-storage": "3.15.3",
-        "@crawlee/types": "3.15.3",
-        "@crawlee/utils": "3.15.3",
+        "@crawlee/memory-storage": "4.0.0",
+        "@crawlee/types": "4.0.0",
+        "@crawlee/utils": "4.0.0",
         "@sapphire/async-queue": "^1.5.5",
         "@vladfrangu/async_event_emitter": "^2.4.6",
         "csv-stringify": "^6.5.2",
