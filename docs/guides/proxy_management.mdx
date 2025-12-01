@@ -31,7 +31,7 @@ import InspectionPuppeteerSource from '!!raw-loader!./proxy_management_inspectio
 and most effective ways of preventing access to a website. It is therefore paramount for
 a good web scraping library to provide easy to use but powerful tools which can work around
 IP blocking. The most powerful weapon in our anti IP blocking arsenal is a
-[proxy server](https://en.wikipedia.org/wiki/Proxy_server). 
+[proxy server](https://en.wikipedia.org/wiki/Proxy_server).
 
 With Crawlee we can use our own proxy servers or proxy servers acquired from
 third-party providers.
@@ -105,7 +105,7 @@ You can also provide a list of proxy tiers to the `ProxyConfiguration` class. Th
 
 :::warning
 
-Note that the `tieredProxyUrls` option requires `ProxyConfiguration` to be used from a crawler instance ([see below](#crawler-integration)). 
+Note that the `tieredProxyUrls` option requires `ProxyConfiguration` to be used from a crawler instance ([see below](#crawler-integration)).
 
 Using this configuration through the `newUrl` calls will not yield the expected results.
 
@@ -162,9 +162,7 @@ Our crawlers will now use the selected proxies for all connections.
 
 ## IP Rotation and session management
 
-&#8203;<ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> allows us to pass a `sessionId` parameter. It will then be used to create a `sessionId`-`proxyUrl` pair, and subsequent `newUrl()` calls with the same `sessionId` will always return the same `proxyUrl`. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
-
-When no `sessionId` is provided, our proxy URLs are rotated round-robin.
+Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> generates a new proxy URL. Crawler instances pair these URLs with `Session` instances and rotate those together with browser fingerprints, impersonated headers, and more. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">

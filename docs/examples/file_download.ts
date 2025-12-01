@@ -2,11 +2,11 @@ import { FileDownload } from 'crawlee';
 
 // Create a FileDownload - a custom crawler instance that will download files from URLs.
 const crawler = new FileDownload({
-    async requestHandler({ body, request, contentType, getKeyValueStore }) {
+    async requestHandler({ request, response, contentType, getKeyValueStore }) {
         const url = new URL(request.url);
         const kvs = await getKeyValueStore();
 
-        await kvs.setValue(url.pathname.replace(/\//g, '_'), body, { contentType: contentType.type });
+        await kvs.setValue(url.pathname.replace(/\//g, '_'), response.body, { contentType: contentType.type });
     },
 });
 
