@@ -192,7 +192,7 @@ export class KeyValueStoreClient extends BaseClient {
      * @param key The key of the record to generate the public URL for.
      */
     async getRecordPublicUrl(key: string): Promise<string | undefined> {
-        s.string.parse(key);
+        s.string().parse(key);
 
         // Check by id
         const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
