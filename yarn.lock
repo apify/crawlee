@@ -497,37 +497,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@crawlee/basic@npm:3.13.3":
-  version: 3.13.3
-  resolution: "@crawlee/basic@npm:3.13.3"
-  dependencies:
-    "@apify/log": "npm:^2.4.0"
-    "@apify/timeout": "npm:^0.3.0"
-    "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/core": "npm:3.13.3"
-    "@crawlee/types": "npm:3.13.3"
-    "@crawlee/utils": "npm:3.13.3"
-    csv-stringify: "npm:^6.2.0"
-    fs-extra: "npm:^11.0.0"
-    got-scraping: "npm:^4.0.0"
-    ow: "npm:^0.28.1"
-    tldts: "npm:^6.0.0"
-    tslib: "npm:^2.4.0"
-    type-fest: "npm:^4.0.0"
-  checksum: 10c0/449c17cca6fcc9846314b4e6f0198bbdbdd57cf405a1d89c384dec289cf997945a20fdabf955fcb5b8693fd854b8a10b50536ce1c4938f4378e5ebb59cfa510a
-  languageName: node
-  linkType: hard
-
-"@crawlee/basic@npm:3.15.3, @crawlee/basic@workspace:packages/basic-crawler":
+"@crawlee/basic@npm:4.0.0, @crawlee/basic@workspace:packages/basic-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/basic@workspace:packages/basic-crawler"
   dependencies:
     "@apify/log": "npm:^2.5.18"
     "@apify/timeout": "npm:^0.3.2"
     "@apify/utilities": "npm:^2.15.5"
-    "@crawlee/core": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/core": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     csv-stringify: "npm:^6.5.2"
     fs-extra: "npm:^11.3.0"
     got-scraping: "npm:^4.1.1"
@@ -538,14 +517,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser-pool@npm:3.15.3, @crawlee/browser-pool@workspace:packages/browser-pool":
+"@crawlee/browser-pool@npm:4.0.0, @crawlee/browser-pool@workspace:packages/browser-pool":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser-pool@workspace:packages/browser-pool"
   dependencies:
     "@apify/log": "npm:^2.5.18"
     "@apify/timeout": "npm:^0.3.2"
-    "@crawlee/core": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
+    "@crawlee/core": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
     fingerprint-generator: "npm:^2.1.68"
     fingerprint-injector: "npm:^2.1.68"
     lodash.merge: "npm:^4.6.2"
@@ -567,15 +546,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser@npm:3.15.3, @crawlee/browser@workspace:packages/browser-crawler":
+"@crawlee/browser@npm:4.0.0, @crawlee/browser@workspace:packages/browser-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser@workspace:packages/browser-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.2"
-    "@crawlee/basic": "npm:3.15.3"
-    "@crawlee/browser-pool": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/basic": "npm:4.0.0"
+    "@crawlee/browser-pool": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     ow: "npm:^2.0.0"
     tslib: "npm:^2.8.1"
     type-fest: "npm:^4.41.0"
@@ -590,24 +569,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/cheerio@npm:3.15.3, @crawlee/cheerio@workspace:packages/cheerio-crawler":
+"@crawlee/cheerio@npm:4.0.0, @crawlee/cheerio@workspace:packages/cheerio-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/cheerio@workspace:packages/cheerio-crawler"
   dependencies:
-    "@crawlee/http": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/http": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     cheerio: "npm:^1.0.0"
     htmlparser2: "npm:^10.0.0"
     tslib: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
 
-"@crawlee/cli@npm:3.15.3, @crawlee/cli@workspace:packages/cli":
+"@crawlee/cli@npm:4.0.0, @crawlee/cli@workspace:packages/cli":
   version: 0.0.0-use.local
   resolution: "@crawlee/cli@workspace:packages/cli"
   dependencies:
-    "@crawlee/templates": "npm:3.15.3"
+    "@crawlee/templates": "npm:4.0.0"
     "@inquirer/prompts": "npm:^7.5.0"
     ansi-colors: "npm:^4.1.3"
     fs-extra: "npm:^11.3.0"
@@ -618,37 +597,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/core@npm:3.13.3":
-  version: 3.13.3
-  resolution: "@crawlee/core@npm:3.13.3"
-  dependencies:
-    "@apify/consts": "npm:^2.20.0"
-    "@apify/datastructures": "npm:^2.0.0"
-    "@apify/log": "npm:^2.4.0"
-    "@apify/pseudo_url": "npm:^2.0.30"
-    "@apify/timeout": "npm:^0.3.0"
-    "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/memory-storage": "npm:3.13.3"
-    "@crawlee/types": "npm:3.13.3"
-    "@crawlee/utils": "npm:3.13.3"
-    "@sapphire/async-queue": "npm:^1.5.1"
-    "@vladfrangu/async_event_emitter": "npm:^2.2.2"
-    csv-stringify: "npm:^6.2.0"
-    fs-extra: "npm:^11.0.0"
-    got-scraping: "npm:^4.0.0"
-    json5: "npm:^2.2.3"
-    minimatch: "npm:^9.0.0"
-    ow: "npm:^0.28.1"
-    stream-json: "npm:^1.8.0"
-    tldts: "npm:^6.0.0"
-    tough-cookie: "npm:^5.0.0"
-    tslib: "npm:^2.4.0"
-    type-fest: "npm:^4.0.0"
-  checksum: 10c0/61ee1f11b916cfd3855d34ad5604b53bd66fe59fba37b1764b5119b67e8dee96d3c767477478a69b77749733cc681be01ddf7352027d84838558036acf3a98f3
-  languageName: node
-  linkType: hard
-
-"@crawlee/core@npm:3.15.3, @crawlee/core@npm:^3.14.1, @crawlee/core@npm:^3.15.3, @crawlee/core@workspace:packages/core":
+"@crawlee/core@npm:4.0.0, @crawlee/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@crawlee/core@workspace:packages/core"
   dependencies:
@@ -658,9 +607,9 @@ __metadata:
     "@apify/pseudo_url": "npm:^2.0.59"
     "@apify/timeout": "npm:^0.3.2"
     "@apify/utilities": "npm:^2.15.5"
-    "@crawlee/memory-storage": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/memory-storage": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     "@sapphire/async-queue": "npm:^1.5.5"
     "@vladfrangu/async_event_emitter": "npm:^2.4.6"
     csv-stringify: "npm:^6.5.2"
@@ -677,37 +626,45 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/http@npm:3.13.3":
-  version: 3.13.3
-  resolution: "@crawlee/http@npm:3.13.3"
+"@crawlee/core@npm:^3.14.1":
+  version: 3.15.3
+  resolution: "@crawlee/core@npm:3.15.3"
   dependencies:
+    "@apify/consts": "npm:^2.20.0"
+    "@apify/datastructures": "npm:^2.0.0"
+    "@apify/log": "npm:^2.4.0"
+    "@apify/pseudo_url": "npm:^2.0.30"
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/basic": "npm:3.13.3"
-    "@crawlee/types": "npm:3.13.3"
-    "@crawlee/utils": "npm:3.13.3"
-    "@types/content-type": "npm:^1.1.5"
-    cheerio: "npm:1.0.0-rc.12"
-    content-type: "npm:^1.0.4"
+    "@crawlee/memory-storage": "npm:3.15.3"
+    "@crawlee/types": "npm:3.15.3"
+    "@crawlee/utils": "npm:3.15.3"
+    "@sapphire/async-queue": "npm:^1.5.1"
+    "@vladfrangu/async_event_emitter": "npm:^2.2.2"
+    csv-stringify: "npm:^6.2.0"
+    fs-extra: "npm:^11.0.0"
     got-scraping: "npm:^4.0.0"
-    iconv-lite: "npm:^0.6.3"
-    mime-types: "npm:^2.1.35"
+    json5: "npm:^2.2.3"
+    minimatch: "npm:^9.0.0"
     ow: "npm:^0.28.1"
+    stream-json: "npm:^1.8.0"
+    tldts: "npm:^7.0.0"
+    tough-cookie: "npm:^6.0.0"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
-  checksum: 10c0/4e783509605a45e708abc3079b76e945db930e2b14f2eb048b118020fab005e547f1b8146dce20aa693d6be6c4a1f823b3ba84d1865e0b5c2222f47154abc9d8
+  checksum: 10c0/d7657f12817c83c5dda1b9da916a4d3568412e3a637d5dd8f014b51220e5ec7049957a1879f687f61c21e80798d0703ffd2edf0bfe863fb82716e089b59df287
   languageName: node
   linkType: hard
 
-"@crawlee/http@npm:3.15.3, @crawlee/http@workspace:packages/http-crawler":
+"@crawlee/http@npm:4.0.0, @crawlee/http@workspace:packages/http-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.2"
     "@apify/utilities": "npm:^2.15.5"
-    "@crawlee/basic": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/basic": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     "@types/content-type": "npm:^1.1.8"
     cheerio: "npm:^1.0.0"
     content-type: "npm:^1.0.5"
@@ -725,23 +682,23 @@ __metadata:
   resolution: "@crawlee/impit-client@workspace:packages/impit-client"
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
-    "@crawlee/core": "npm:^3.15.3"
+    "@crawlee/core": "npm:4.0.0"
     impit: "npm:^0.7.0"
     tough-cookie: "npm:^6.0.0"
   peerDependencies:
-    "@crawlee/core": ^3.13.3
+    "@crawlee/core": 4.0.0
   languageName: unknown
   linkType: soft
 
-"@crawlee/jsdom@npm:3.15.3, @crawlee/jsdom@workspace:packages/jsdom-crawler":
+"@crawlee/jsdom@npm:4.0.0, @crawlee/jsdom@workspace:packages/jsdom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/jsdom@workspace:packages/jsdom-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
-    "@crawlee/http": "npm:3.13.3"
-    "@crawlee/types": "npm:3.13.3"
-    "@crawlee/utils": "npm:3.13.3"
+    "@crawlee/http": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     "@types/jsdom": "npm:^21.1.7"
     cheerio: "npm:^1.0.0"
     jsdom: "npm:^26.1.0"
@@ -750,26 +707,26 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/linkedom@npm:3.15.3, @crawlee/linkedom@workspace:packages/linkedom-crawler":
+"@crawlee/linkedom@npm:4.0.0, @crawlee/linkedom@workspace:packages/linkedom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
   dependencies:
     "@apify/timeout": "npm:^0.3.2"
     "@apify/utilities": "npm:^2.15.5"
-    "@crawlee/http": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
+    "@crawlee/http": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
     linkedom: "npm:^0.18.10"
     ow: "npm:^2.0.0"
     tslib: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
 
-"@crawlee/memory-storage@npm:3.13.3":
-  version: 3.13.3
-  resolution: "@crawlee/memory-storage@npm:3.13.3"
+"@crawlee/memory-storage@npm:3.15.3":
+  version: 3.15.3
+  resolution: "@crawlee/memory-storage@npm:3.15.3"
   dependencies:
     "@apify/log": "npm:^2.4.0"
-    "@crawlee/types": "npm:3.13.3"
+    "@crawlee/types": "npm:3.15.3"
     "@sapphire/async-queue": "npm:^1.5.0"
     "@sapphire/shapeshift": "npm:^3.0.0"
     content-type: "npm:^1.0.4"
@@ -778,16 +735,16 @@ __metadata:
     mime-types: "npm:^2.1.35"
     proper-lockfile: "npm:^4.1.2"
     tslib: "npm:^2.4.0"
-  checksum: 10c0/587c45ed7a2c95d3135a76a6368cb36e37036274e33400c94a9c92a5c48c109ebcc57ca5c224497d3fc761f6034012ce05e68ee3624a3f8821887ecc07870a3a
+  checksum: 10c0/a9f69fa24ab301f303bedbc108edc36ba90e9389761410a6b258ad8d8b702ee7d2c963665ab5a596b72ebbaeb4c9659efaeb1b72b3effc6379cfd33b81882512
   languageName: node
   linkType: hard
 
-"@crawlee/memory-storage@npm:3.15.3, @crawlee/memory-storage@workspace:packages/memory-storage":
+"@crawlee/memory-storage@npm:4.0.0, @crawlee/memory-storage@workspace:packages/memory-storage":
   version: 0.0.0-use.local
   resolution: "@crawlee/memory-storage@workspace:packages/memory-storage"
   dependencies:
     "@apify/log": "npm:^2.5.18"
-    "@crawlee/types": "npm:3.15.3"
+    "@crawlee/types": "npm:4.0.0"
     "@sapphire/async-queue": "npm:^1.5.5"
     "@sapphire/shapeshift": "npm:^4.0.0"
     content-type: "npm:^1.0.5"
@@ -799,19 +756,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/playwright@npm:3.15.3, @crawlee/playwright@workspace:packages/playwright-crawler":
+"@crawlee/playwright@npm:4.0.0, @crawlee/playwright@workspace:packages/playwright-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/playwright@workspace:packages/playwright-crawler"
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
     "@apify/log": "npm:^2.5.18"
     "@apify/timeout": "npm:^0.3.2"
-    "@crawlee/browser": "npm:3.15.3"
-    "@crawlee/browser-pool": "npm:3.15.3"
-    "@crawlee/cheerio": "npm:3.15.3"
-    "@crawlee/core": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/browser": "npm:4.0.0"
+    "@crawlee/browser-pool": "npm:4.0.0"
+    "@crawlee/cheerio": "npm:4.0.0"
+    "@crawlee/core": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     cheerio: "npm:^1.0.0"
     idcac-playwright: "npm:^0.1.3"
     jquery: "npm:^3.7.1"
@@ -831,16 +788,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/puppeteer@npm:3.15.3, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
+"@crawlee/puppeteer@npm:4.0.0, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/puppeteer@workspace:packages/puppeteer-crawler"
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
     "@apify/log": "npm:^2.5.18"
-    "@crawlee/browser": "npm:3.15.3"
-    "@crawlee/browser-pool": "npm:3.15.3"
-    "@crawlee/types": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/browser": "npm:4.0.0"
+    "@crawlee/browser-pool": "npm:4.0.0"
+    "@crawlee/types": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     cheerio: "npm:^1.0.0"
     devtools-protocol: "npm:*"
     idcac-playwright: "npm:^0.1.3"
@@ -926,7 +883,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/templates@npm:3.15.3, @crawlee/templates@workspace:packages/templates":
+"@crawlee/templates@npm:4.0.0, @crawlee/templates@workspace:packages/templates":
   version: 0.0.0-use.local
   resolution: "@crawlee/templates@workspace:packages/templates"
   dependencies:
@@ -934,16 +891,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/types@npm:3.13.3":
-  version: 3.13.3
-  resolution: "@crawlee/types@npm:3.13.3"
+"@crawlee/types@npm:3.15.3, @crawlee/types@npm:^3.14.1, @crawlee/types@npm:^3.3.0":
+  version: 3.15.3
+  resolution: "@crawlee/types@npm:3.15.3"
   dependencies:
     tslib: "npm:^2.4.0"
-  checksum: 10c0/cb63e006c262279ea122cbd709776444ce3b775c923d1cdb2149a997f5f6f4df4ba5881206cfa5c248f4379a108375425bcfaa936efc295e7ff99883a4b35435
+  checksum: 10c0/3669016018aec6891d55d961ab2a951b501a4231ab0a6019f317f607ba90b60e5a5f8c9eafb771a5b8b72d9e2095d66e9e3c5eeb64bd08986a0632b957ee9836
   languageName: node
   linkType: hard
 
-"@crawlee/types@npm:3.15.3, @crawlee/types@npm:^3.14.1, @crawlee/types@npm:^3.3.0, @crawlee/types@workspace:packages/types":
+"@crawlee/types@npm:4.0.0, @crawlee/types@workspace:packages/types":
   version: 0.0.0-use.local
   resolution: "@crawlee/types@workspace:packages/types"
   dependencies:
@@ -951,13 +908,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/utils@npm:3.13.3":
-  version: 3.13.3
-  resolution: "@crawlee/utils@npm:3.13.3"
+"@crawlee/utils@npm:3.15.3, @crawlee/utils@npm:^3.14.1":
+  version: 3.15.3
+  resolution: "@crawlee/utils@npm:3.15.3"
   dependencies:
     "@apify/log": "npm:^2.4.0"
     "@apify/ps-tree": "npm:^1.2.0"
-    "@crawlee/types": "npm:3.13.3"
+    "@crawlee/types": "npm:3.15.3"
     "@types/sax": "npm:^1.2.7"
     cheerio: "npm:1.0.0-rc.12"
     file-type: "npm:^20.0.0"
@@ -967,19 +924,20 @@ __metadata:
     sax: "npm:^1.4.1"
     tslib: "npm:^2.4.0"
     whatwg-mimetype: "npm:^4.0.0"
-  checksum: 10c0/74539efb4713096337c7b8ac0b84012e0fff13296bbbbcf12a61f0a3af8f9c0b06f67c9a39c9d534cbd6321ec4d3af03a68f9e3e66fcb859146cd256bbde5ca0
+  checksum: 10c0/bff41765cae7817aae22bd31714cd6b1cad113b3a61d9fb5dfefdbaa08aa187c474f8fb266b483cf3bb0561764fabb65672116d9fa2a7e3cb691584d660ea0fc
   languageName: node
   linkType: hard
 
-"@crawlee/utils@npm:3.15.3, @crawlee/utils@npm:^3.14.1, @crawlee/utils@workspace:packages/utils":
+"@crawlee/utils@npm:4.0.0, @crawlee/utils@workspace:packages/utils":
   version: 0.0.0-use.local
   resolution: "@crawlee/utils@workspace:packages/utils"
   dependencies:
     "@apify/log": "npm:^2.5.18"
     "@apify/ps-tree": "npm:^1.2.0"
-    "@crawlee/types": "npm:3.15.3"
+    "@crawlee/types": "npm:4.0.0"
     "@types/sax": "npm:^1.2.7"
     cheerio: "npm:^1.0.0"
+    domhandler: "npm:^5.0.3"
     file-type: "npm:^21.0.0"
     got-scraping: "npm:^4.1.1"
     ow: "npm:^2.0.0"
@@ -3118,13 +3076,6 @@ __metadata:
   dependencies:
     "@types/node": "npm:*"
   checksum: 10c0/2e1cdba2c410f25649e77856505cd60223250fa12dff7a503e492208dbfdd25f62859918f28aba95315251fd1f5e1ffbfca1e25e73037189ab85dd3f8d0a148c
-  languageName: node
-  linkType: hard
-
-"@types/content-type@npm:^1.1.5":
-  version: 1.1.9
-  resolution: "@types/content-type@npm:1.1.9"
-  checksum: 10c0/d8b198257862991880d38985ad9871241db18b21ec728bddc78e4c61e0f987cc037dae6c5f9bd2bcc08f41de74ad371180af2fcdefeafe25d0ccae0c3fceb7fd
   languageName: node
   linkType: hard
 
@@ -5366,18 +5317,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "crawlee@workspace:packages/crawlee"
   dependencies:
-    "@crawlee/basic": "npm:3.15.3"
-    "@crawlee/browser": "npm:3.15.3"
-    "@crawlee/browser-pool": "npm:3.15.3"
-    "@crawlee/cheerio": "npm:3.15.3"
-    "@crawlee/cli": "npm:3.15.3"
-    "@crawlee/core": "npm:3.15.3"
-    "@crawlee/http": "npm:3.15.3"
-    "@crawlee/jsdom": "npm:3.15.3"
-    "@crawlee/linkedom": "npm:3.15.3"
-    "@crawlee/playwright": "npm:3.15.3"
-    "@crawlee/puppeteer": "npm:3.15.3"
-    "@crawlee/utils": "npm:3.15.3"
+    "@crawlee/basic": "npm:4.0.0"
+    "@crawlee/browser": "npm:4.0.0"
+    "@crawlee/browser-pool": "npm:4.0.0"
+    "@crawlee/cheerio": "npm:4.0.0"
+    "@crawlee/cli": "npm:4.0.0"
+    "@crawlee/core": "npm:4.0.0"
+    "@crawlee/http": "npm:4.0.0"
+    "@crawlee/jsdom": "npm:4.0.0"
+    "@crawlee/linkedom": "npm:4.0.0"
+    "@crawlee/playwright": "npm:4.0.0"
+    "@crawlee/puppeteer": "npm:4.0.0"
+    "@crawlee/utils": "npm:4.0.0"
     import-local: "npm:^3.2.0"
     tslib: "npm:^2.8.1"
   peerDependencies:
@@ -13111,6 +13062,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tldts-core@npm:^7.0.19":
+  version: 7.0.19
+  resolution: "tldts-core@npm:7.0.19"
+  checksum: 10c0/8f9fa5838aa7b3adbe80a6588ad802019f21faef34e04aa1aeab3a20275bba5e22c60b66a6b3bdd830b0bd6a2d57b92e0605c3cdb2c6317f111e586fa2f37927
+  languageName: node
+  linkType: hard
+
 "tldts-core@npm:^7.0.7":
   version: 7.0.7
   resolution: "tldts-core@npm:7.0.7"
@@ -13118,7 +13076,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts@npm:^6.0.0, tldts@npm:^6.1.32":
+"tldts@npm:^6.1.32":
   version: 6.1.86
   resolution: "tldts@npm:6.1.86"
   dependencies:
@@ -13126,6 +13084,17 @@ __metadata:
   bin:
     tldts: bin/cli.js
   checksum: 10c0/27ae7526d9d78cb97b2de3f4d102e0b4321d1ccff0648a7bb0e039ed54acbce86bacdcd9cd3c14310e519b457854e7bafbef1f529f58a1e217a737ced63f0940
+  languageName: node
+  linkType: hard
+
+"tldts@npm:^7.0.0":
+  version: 7.0.19
+  resolution: "tldts@npm:7.0.19"
+  dependencies:
+    tldts-core: "npm:^7.0.19"
+  bin:
+    tldts: bin/cli.js
+  checksum: 10c0/d77d2fe6f8ec07e27248cd6647b91fc814dfc82e15dce104277f317d861576908409f6549ff46e21277677f823a037f57b7a748ada7d0fcdcb08535890f71050
   languageName: node
   linkType: hard
 
@@ -13194,7 +13163,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tough-cookie@npm:^5.0.0, tough-cookie@npm:^5.1.1":
+"tough-cookie@npm:^5.1.1":
   version: 5.1.2
   resolution: "tough-cookie@npm:5.1.2"
   dependencies:

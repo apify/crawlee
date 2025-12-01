@@ -585,8 +585,8 @@ export class HttpCrawler<
                   this.sessionPool!['blockedStatusCodes']
                 : BLOCKED_STATUS_CODES;
 
-        if (blockedStatusCodes.includes(crawlingContext.response.statusCode!)) {
-            return `Blocked by status code ${crawlingContext.response.statusCode}`;
+        if (blockedStatusCodes.includes(crawlingContext.response.status!)) {
+            return `Blocked by status code ${crawlingContext.response.status}`;
         }
 
         return false;
