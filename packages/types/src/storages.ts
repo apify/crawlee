@@ -168,6 +168,7 @@ export interface KeyValueStoreClient {
     delete(): Promise<void>;
     listKeys(options?: KeyValueStoreClientListOptions): Promise<KeyValueStoreClientListData>;
     recordExists(key: string): Promise<boolean>;
+    getRecordPublicUrl(key: string): Promise<string | undefined>;
     getRecord(key: string, options?: KeyValueStoreClientGetRecordOptions): Promise<KeyValueStoreRecord | undefined>;
     setRecord(record: KeyValueStoreRecord, options?: KeyValueStoreRecordOptions): Promise<void>;
     deleteRecord(key: string): Promise<void>;
