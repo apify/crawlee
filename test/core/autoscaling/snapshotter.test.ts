@@ -2,6 +2,7 @@ import os from 'node:os';
 
 import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';
+import * as utils from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
@@ -215,7 +216,7 @@ describe('Snapshotter', () => {
             mainProcessBytes: toBytes(1000),
             childProcessesBytes: toBytes(1000),
         } as MemoryInfo;
-        vitest.spyOn(LocalEventManager.prototype as any, 'getMemoryInfo').mockResolvedValue(memoryData);
+        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         // do not initialize the event intervals as we will fire them manually
@@ -246,19 +247,7 @@ describe('Snapshotter', () => {
     });
 
     test('correctly logs critical memory overload', async () => {
-        const initialMemory = toBytes(10000);
-        const usageRatio1 = 0.75; // below warning usage
-        const usageRatio2 = 0.76; // above warning usage
-        const memoryData: MemoryInfo = {
-            totalBytes: initialMemory,
-            freeBytes: initialMemory * (1 - usageRatio1),
-            usedBytes: initialMemory * usageRatio1,
-            mainProcessBytes: initialMemory * usageRatio1,
-            childProcessesBytes: 0,
-        };
-
-        // Mock memory info to be able to inject custom memory measurement data.
-        vitest.spyOn(LocalEventManager.prototype as any, 'getMemoryInfo').mockResolvedValue(memoryData);
+        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) } as MemoryInfo);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
 

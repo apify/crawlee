@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { RecoverableState } from '../../packages/core/src/recoverable_state';
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
+import { RecoverableState } from '../../packages/core/src/recoverable_state.js';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 interface TestState {
     counter: number;
