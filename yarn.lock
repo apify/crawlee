@@ -937,6 +937,7 @@ __metadata:
     "@crawlee/types": "npm:4.0.0"
     "@types/sax": "npm:^1.2.7"
     cheerio: "npm:^1.0.0"
+    domhandler: "npm:^5.0.3"
     file-type: "npm:^21.0.0"
     got-scraping: "npm:^4.1.1"
     ow: "npm:^2.0.0"
