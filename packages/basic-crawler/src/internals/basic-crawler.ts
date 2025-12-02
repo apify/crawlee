@@ -120,7 +120,7 @@ export type RequireContextPipeline<
 
 export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
 > {
     /**
@@ -472,7 +472,7 @@ export interface CrawlerExperiments {
  */
 export class BasicCrawler<
     Context extends CrawlingContext = CrawlingContext,
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
 > {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';

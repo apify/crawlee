@@ -36,7 +36,7 @@ export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, Pup
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
 export interface PuppeteerCrawlerOptions<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
 > extends BrowserCrawlerOptions<
         Page,
@@ -153,7 +153,7 @@ export interface PuppeteerCrawlerOptions<
  * @category Crawlers
  */
 export class PuppeteerCrawler<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
 > extends BrowserCrawler<
     Page,
