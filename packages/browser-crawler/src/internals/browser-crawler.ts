@@ -102,7 +102,7 @@ export interface BrowserCrawlerOptions<
         ProvidedController,
         Dictionary
     >,
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
@@ -297,7 +297,7 @@ export abstract class BrowserCrawler<
         ProvidedController,
         Dictionary
     >,
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     GoToOptions extends Dictionary = Dictionary,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
