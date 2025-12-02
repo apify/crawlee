@@ -483,10 +483,13 @@ export class KeyValueStore {
 
     /**
      * Returns a file URL for the given key.
+     *
+     * If the record does not exist or has no associated file path (i.e., it is not stored as a file), returns `undefined`.
+     *
+     * @param key The key of the record to generate the public URL for.
      */
-    getPublicUrl(key: string): string {
-        const name = this.name ?? this.config.get('defaultKeyValueStoreId');
-        return `file://${process.cwd()}/storage/key_value_stores/${name}/${key}`;
+    async getPublicUrl(key: string): Promise<string | undefined> {
+        return this.client.getRecordPublicUrl(key);
     }
 
     /**

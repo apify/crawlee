@@ -32,6 +32,7 @@ export interface InternalKeyRecord {
     value: Buffer | string;
     contentType?: string;
     extension: string;
+    filePath?: string;
 }
 
 export class KeyValueStoreClient extends BaseClient {
@@ -182,6 +183,27 @@ export class KeyValueStoreClient extends BaseClient {
             nextExclusiveStartKey,
             items: limitedItems,
         };
+    }
+
+    /**
+     * Generates a public file:// URL for accessing a specific record in the key-value store.
+     *
+     * Returns `undefined` if the record does not exist or has no associated file path (i.e., it is not stored as a file).
+     * @param key The key of the record to generate the public URL for.
+     */
+    async getRecordPublicUrl(key: string): Promise<string | undefined> {
+        s.string().parse(key);
+
+        // Check by id
+        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
+
+        if (!existingStoreById) {
+            this.throwOnNonExisting(StorageTypes.KeyValueStore);
+        }
+
+        const storageEntry = await existingStoreById.keyValueEntries.get(key)?.get();
+
+        return storageEntry?.filePath;
     }
 
     /**

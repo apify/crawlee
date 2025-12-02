@@ -88,9 +88,9 @@ export class ErrorSnapshotter {
 
             return {
                 screenshotFileName,
-                screenshotFileUrl: screenshotFileName && keyValueStore.getPublicUrl(screenshotFileName),
+                screenshotFileUrl: screenshotFileName && (await keyValueStore.getPublicUrl(screenshotFileName)),
                 htmlFileName,
-                htmlFileUrl: htmlFileName && keyValueStore.getPublicUrl(htmlFileName),
+                htmlFileUrl: htmlFileName && (await keyValueStore.getPublicUrl(htmlFileName)),
             };
         } catch {
             return {};
