@@ -1,0 +1,19 @@
+import { PuppeteerCrawler, Dataset } from 'crawlee';
+
+const crawler = new PuppeteerCrawler({
+    async requestHandler({ request, page, enqueueLinks, log }) {
+        const title = await page.title();
+        log.info(`Title of ${request.loadedUrl} is '${title}'`);
+        await Dataset.pushData({ title, url: request.loadedUrl });
+        await enqueueLinks();
+    },
+    // When you turn off headless mode, the crawler
+    // will run with a visible browser window.
+    headless: false,
+
+    // Let's limit our crawls to make our tests shorter and safer.
+    maxRequestsPerCrawl: 50,
+});
+
+// Add first URL to the queue and start the crawl.
+await crawler.run(['https://crawlee.dev']);

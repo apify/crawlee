@@ -1,0 +1,19 @@
+---
+id: basic-crawler
+title: Basic crawler
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import BasicCrawlerSource from '!!raw-loader!roa-loader!./basic_crawler.ts';
+
+This is the most bare-bones example of using Crawlee, which demonstrates some of its building blocks such as the <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>. You probably don't need to go this deep though, and it would be better to start with one of the full-featured crawlers
+like <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> or <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>.
+
+The script simply downloads several web pages with plain HTTP requests using the <ApiLink to="basic-crawler/interface/BasicCrawlingContext#sendRequest">`sendRequest`</ApiLink> utility function (which uses the [`got-scraping`](https://github.com/apify/got-scraping)
+npm module internally) and stores their raw HTML and URL in the default dataset. In local configuration, the data will be stored as JSON files in
+`./storage/datasets/default`.
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{BasicCrawlerSource}
+</RunnableCodeBlock>
