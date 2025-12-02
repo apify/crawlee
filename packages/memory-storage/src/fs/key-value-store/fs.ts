@@ -34,8 +34,9 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
             file = await readFile(this.filePath);
         } catch {
             try {
+                const noExtFilePath = resolve(this.storeDirectory, this.rawRecord.key);
                 // Try without extension
-                file = await readFile(resolve(this.storeDirectory, this.rawRecord.key));
+                file = await readFile(noExtFilePath);
                 memoryStorageLog.warning(
                     [
                         `Key-value entry "${this.rawRecord.key}" for store ${basename(
@@ -45,6 +46,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
                     ].join('\n'),
                 );
                 file = file.toString('utf-8');
+                this.filePath = noExtFilePath;
             } catch {
                 // This is impossible to happen, but just in case
                 throw new Error(`Could not find file at ${this.filePath}`);
@@ -56,6 +58,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
         return {
             ...this.rawRecord,
             value: file,
+            filePath: this.filePath,
         };
     }
 
