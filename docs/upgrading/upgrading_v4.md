@@ -107,3 +107,6 @@ The `CrawlingContext.response` property is now of type [`Response`](https://deve
 
 The crawling context in the `FileDownload` crawler no longer includes the `body` and `stream` properties. These can be accessed directly via the `response` property instead, e.g. `context.response.bytes()` or `context.response.body`.
 
+## `KeyValueStore.getPublicUrl` is now async
+
+The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage client.
