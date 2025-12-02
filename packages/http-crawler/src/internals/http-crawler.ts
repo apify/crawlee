@@ -75,8 +75,9 @@ export type HttpErrorHandler<
 
 export interface HttpCrawlerOptions<
     Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext,
-    ExtendedContext extends Context = Context,
-> extends BasicCrawlerOptions<Context, ExtendedContext> {
+    ContextExtension = {},
+    ExtendedContext extends Context = Context & ContextExtension,
+> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
     /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
      */
@@ -327,7 +328,7 @@ export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext,
     ContextExtension = {},
     ExtendedContext extends Context = Context & ContextExtension,
-> extends BasicCrawler<Context, ExtendedContext> {
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
     protected persistCookiesPerSession: boolean;
@@ -360,7 +361,7 @@ export class HttpCrawler<
      * All `HttpCrawlerOptions` parameters are passed via an options object.
      */
     constructor(
-        options: HttpCrawlerOptions<Context, ExtendedContext> &
+        options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
         override readonly config = Configuration.getGlobalConfig(),
     ) {

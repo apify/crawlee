@@ -34,10 +34,11 @@ export type JSDOMErrorHandler<
 > = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
 
 export interface JSDOMCrawlerOptions<
-    ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext,
+    ContextExtension = {},
+    ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ExtendedContext> {
+> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {
     /**
      * Download and run scripts.
      */
@@ -177,10 +178,10 @@ const resources = new ResourceLoader({
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
 });
 
-export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext> extends HttpCrawler<
-    JSDOMCrawlingContext,
-    ExtendedContext
-> {
+export class JSDOMCrawler<
+    ContextExtension = {},
+    ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
+> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: ow.optional.boolean,
@@ -191,7 +192,7 @@ export class JSDOMCrawler<ExtendedContext extends JSDOMCrawlingContext = JSDOMCr
     protected hideInternalConsole: boolean;
     protected virtualConsole: VirtualConsole | null = null;
 
-    constructor(options: JSDOMCrawlerOptions<ExtendedContext> = {}, config?: Configuration) {
+    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}, config?: Configuration) {
         const { runScripts = false, hideInternalConsole = false, ...httpOptions } = options;
 
         super(

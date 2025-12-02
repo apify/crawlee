@@ -25,10 +25,11 @@ export type CheerioErrorHandler<
 > = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlerOptions<
-    ExtendedContext extends CheerioCrawlingContext,
+    ContextExtension = {},
+    ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ExtendedContext> {}
+> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {}
 
 export type CheerioHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -169,12 +170,13 @@ export type CheerioRequestHandler<
  * @category Crawlers
  */
 export class CheerioCrawler<
-    ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext,
-> extends HttpCrawler<CheerioCrawlingContext, ExtendedContext> {
+    ContextExtension = {},
+    ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension,
+> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options?: CheerioCrawlerOptions<ExtendedContext>, config?: Configuration) {
+    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext>, config?: Configuration) {
         super(
             {
                 ...options,
