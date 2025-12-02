@@ -4,10 +4,10 @@ import Link from '@docusaurus/Link';
 import { useDocsVersion } from '@docusaurus/plugin-content-docs/client';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
-const pkg = require('../../../packages/crawlee/package.json');
+const { version: packageJsonVersion } = require('../../../packages/crawlee/package.json');
 
-const [v1, v2] = pkg.version.split('.');
-const stable = [v1, v2].join('.');
+const [major, minor] = packageJsonVersion.split('.');
+const stable = [major, minor].join('.');
 
 const ApiLink = ({ to, children }) => {
     const version = useDocsVersion();

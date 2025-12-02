@@ -1,0 +1,17 @@
+---
+id: crawl-single-url
+title: Crawl a single URL
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import CrawlSource from '!!raw-loader!roa-loader!./crawl_single_url.ts';
+
+This example uses the [`got-scraping`](https://github.com/apify/got-scraping) npm package
+to grab the HTML of a web page.
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{CrawlSource}
+</RunnableCodeBlock>
+
+If you don't want to hard-code the URL into the script, refer to the [Accept User Input](./accept-user-input) example.
