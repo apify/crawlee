@@ -33,7 +33,7 @@ export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, P
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 
 export interface PlaywrightCrawlerOptions<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
 > extends BrowserCrawlerOptions<
         Page,
@@ -176,7 +176,7 @@ export interface PlaywrightCrawlerOptions<
  * @category Crawlers
  */
 export class PlaywrightCrawler<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
 > extends BrowserCrawler<
     Page,
