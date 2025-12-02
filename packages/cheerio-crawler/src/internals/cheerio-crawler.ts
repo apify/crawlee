@@ -25,7 +25,7 @@ export type CheerioErrorHandler<
 > = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlerOptions<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -170,7 +170,7 @@ export type CheerioRequestHandler<
  * @category Crawlers
  */
 export class CheerioCrawler<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension,
 > extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext> {
     /**

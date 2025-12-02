@@ -75,7 +75,7 @@ export type HttpErrorHandler<
 
 export interface HttpCrawlerOptions<
     Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext,
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
     /**
@@ -326,7 +326,7 @@ export type HttpRequestHandler<
  */
 export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext,
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];

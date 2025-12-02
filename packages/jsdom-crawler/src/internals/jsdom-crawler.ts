@@ -34,7 +34,7 @@ export type JSDOMErrorHandler<
 > = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
 
 export interface JSDOMCrawlerOptions<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -179,7 +179,7 @@ const resources = new ResourceLoader({
 });
 
 export class JSDOMCrawler<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
 > extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext> {
     protected static override optionsShape = {

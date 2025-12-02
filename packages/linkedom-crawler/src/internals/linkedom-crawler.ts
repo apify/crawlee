@@ -29,7 +29,7 @@ export type LinkeDOMErrorHandler<
 > = ErrorHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
 
 export interface LinkeDOMCrawlerOptions<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -161,7 +161,7 @@ export type LinkeDOMRequestHandler<
  */
 
 export class LinkeDOMCrawler<
-    ContextExtension = {},
+    ContextExtension = Dictionary<never>,
     ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension,
 > extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext> {
     private static parser = new DOMParser();
