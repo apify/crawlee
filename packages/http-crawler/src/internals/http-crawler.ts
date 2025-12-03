@@ -864,8 +864,9 @@ export class HttpCrawler<
                 body: opts.body ? Readable.toWeb(opts.body) as any : undefined,
                 headers: new Headers(opts.headers),
                 method: opts.method,
+                // Node.JS - specific option to make the request body work
                 duplex: 'half',
-            }),
+            } as any),
             {
                 session,
                 timeout: opts.timeout,
