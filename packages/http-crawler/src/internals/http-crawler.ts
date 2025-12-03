@@ -1,4 +1,3 @@
-import type { IncomingMessage } from 'node:http';
 import { Readable } from 'node:stream';
 import util from 'node:util';
 
@@ -26,7 +25,7 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import type { HttpResponse, LoadedRequest } from '@crawlee/core';
+import type { LoadedRequest } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -42,15 +41,6 @@ import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { parseContentTypeFromResponse } from './utils.js';
 
 let TimeoutError: typeof TimeoutErrorClass;
-
-/**
- * TODO exists for BC within HttpCrawler - replace completely with StreamingHttpResponse in 4.0
- * @internal
- */
-export type PlainResponse = Omit<HttpResponse, 'body'> &
-    IncomingMessage & {
-        body?: unknown;
-    };
 
 /**
  * Default mime types, which HttpScraper supports.

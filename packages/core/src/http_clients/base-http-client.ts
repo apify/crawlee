@@ -25,12 +25,6 @@ export interface ResponseTypes {
     'buffer': Buffer;
 }
 
-interface Progress {
-    percent: number;
-    transferred: number;
-    total?: number;
-}
-
 // TODO BC with got - remove the options and callback parameters in 4.0
 interface ToughCookieJar {
     getCookieString: ((
@@ -107,53 +101,12 @@ export interface HttpRequestOptions<TResponseType extends keyof ResponseTypes = 
     password?: string;
 }
 
-/**
- * HTTP response data, without a body, as returned by {@apilink BaseHttpClient} methods.
- */
-export interface BaseHttpResponseData {
-    redirectUrls: URL[];
-    url: string;
-
-    ip?: string;
-    statusCode: number;
-    statusMessage?: string;
-
-    headers: SimpleHeaders;
-    trailers: SimpleHeaders; // Populated after the whole message is processed
-
-    complete: boolean;
-}
-
-interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
-    extends BaseHttpResponseData {
-    request: HttpRequest<TResponseType>;
-}
-
 export class ResponseWithUrl extends Response {
     override url: string;
     constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
         super(body, init);
         this.url = init.url ?? '';
     }
-}
-
-/**
- * HTTP response data as returned by the {@apilink BaseHttpClient.sendRequest} method.
- */
-export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
-    extends HttpResponseWithoutBody<TResponseType> {
-    [k: string]: any; // TODO BC with got - remove in 4.0
-
-    body: ResponseTypes[TResponseType];
-}
-
-/**
- * HTTP response data as returned by the {@apilink BaseHttpClient.stream} method.
- */
-export interface StreamingHttpResponse extends HttpResponseWithoutBody {
-    stream: Readable;
-    readonly downloadProgress: Progress;
-    readonly uploadProgress: Progress;
 }
 
 /**
