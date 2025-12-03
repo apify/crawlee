@@ -864,7 +864,7 @@ export class HttpCrawler<
                 body: opts.body ? Readable.toWeb(opts.body) as any : undefined,
                 headers: new Headers(opts.headers),
                 method: opts.method,
-                // Node.JS - specific option to make the request body work
+                // Node.JS - specific option to make the request body work with streams
                 duplex: 'half',
             } as any),
             {
@@ -874,9 +874,9 @@ export class HttpCrawler<
                     if (this.persistCookiesPerSession) {
                         session!.setCookiesFromResponse(redirectResponse);
 
-                        const cookieString = updatedRequest.url ? session!.getCookieString(updatedRequest.url.toString()) : '';
+                        const cookieString = session!.getCookieString(updatedRequest.url!.toString());
                         if (cookieString !== '') {
-                            updatedRequest.headers.set('Cookie', cookieString);
+                            updatedRequest.headers.Cookie = cookieString;
                         }
                     }
                 },

@@ -36,6 +36,8 @@ interface PromiseCookieJar {
     setCookie: (rawCookie: string, url: string) => Promise<unknown>;
 }
 
+type SimpleHeaders = Record<string, string | string[] | undefined>;
+
 /**
  * HTTP Request as accepted by {@apilink BaseHttpClient} methods.
  */
@@ -101,7 +103,7 @@ export class ResponseWithUrl extends Response {
  */
 export type RedirectHandler = (
     redirectResponse: Response,
-    updatedRequest: { url?: string | URL; headers: Headers },
+    updatedRequest: { url?: string | URL; headers: SimpleHeaders },
 ) => void;
 
 export interface SendRequestOptions {
