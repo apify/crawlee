@@ -1,13 +1,13 @@
 import { Readable } from 'node:stream';
 import util from 'node:util';
 
-import type {
+import {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
-    Request,
+    Request as CrawleeRequest,
     RequestHandler,
     RequireContextPipeline,
     RouterRoutes,
@@ -177,7 +177,7 @@ interface CrawlingContextWithReponse<
     /**
      * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
      */
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawleeRequest<UserData>>;
 
     /**
      * The HTTP response object containing status code, headers, and other response metadata.
@@ -444,7 +444,7 @@ export class HttpCrawler<
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
-                }) as LoadedRequest<Request>,
+                }) as LoadedRequest<CrawleeRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
                     throw new Error('The `response` property is not available - `skipNavigation` was used');
                 },
@@ -476,7 +476,7 @@ export class HttpCrawler<
         request.loadedUrl = httpResponse?.url;
         request.state = RequestState.AFTER_NAV;
 
-        return { request: request as LoadedRequest<Request>, response: httpResponse };
+        return { request: request as LoadedRequest<CrawleeRequest>, response: httpResponse };
     }
 
     private async processHttpResponse(
@@ -677,7 +677,7 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    protected async _parseResponse(request: Request, response: Response) {
+    protected async _parseResponse(request: CrawleeRequest, response: Response) {
         const { status } = response;
         const { type, charset } = parseContentTypeFromResponse(response);
         const { response: reencodedResponse, encoding } = this._encodeResponse(request, response, charset);
@@ -723,7 +723,7 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: Request, session?: Session, proxyUrl?: string, gotOptions?: OptionsInit) {
+    protected _getRequestOptions(request: CrawleeRequest, session?: Session, proxyUrl?: string, gotOptions?: OptionsInit) {
         const requestOptions: OptionsInit & Required<Pick<OptionsInit, 'url'>> & { isStream: true } = {
             url: request.url,
             method: request.method as Method,
@@ -757,7 +757,7 @@ export class HttpCrawler<
     }
 
     protected _encodeResponse(
-        request: Request,
+        request: CrawleeRequest,
         response: Response,
         encoding: BufferEncoding,
     ): {
@@ -828,7 +828,7 @@ export class HttpCrawler<
         throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
-    private _abortDownloadOfBody(request: Request, response: Response) {
+    private _abortDownloadOfBody(request: CrawleeRequest, response: Response) {
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
@@ -853,22 +853,33 @@ export class HttpCrawler<
         options: OptionsInit & { url: string | URL; isStream: true },
         session?: Session,
     ) => {
-        const response = await this.httpClient.stream(
-            processHttpRequestOptions({
-                ...(options as any),
-                cookieJar: options.cookieJar,
-                responseType: 'text',
-            }),
-            (redirectResponse, updatedRequest) => {
-                if (this.persistCookiesPerSession) {
-                    session!.setCookiesFromResponse(redirectResponse);
+        const opts = processHttpRequestOptions({
+            ...(options as any),
+            cookieJar: options.cookieJar,
+            responseType: 'text',
+        });
 
-                    const cookieString = session!.getCookieString(updatedRequest.url!.toString());
-                    if (cookieString !== '') {
-                        updatedRequest.headers.Cookie = cookieString;
+        const response = await this.httpClient.stream(
+            new Request(opts.url, {
+                body: opts.body ? Readable.toWeb(opts.body) as any : undefined,
+                headers: new Headers(opts.headers),
+                method: opts.method,
+                duplex: 'half',
+            }),
+            {
+                session,
+                timeout: opts.timeout,
+                onRedirect: (redirectResponse, updatedRequest) => {
+                    if (this.persistCookiesPerSession) {
+                        session!.setCookiesFromResponse(redirectResponse);
+
+                        const cookieString = updatedRequest.url ? session!.getCookieString(updatedRequest.url.toString()) : '';
+                        if (cookieString !== '') {
+                            updatedRequest.headers.set('Cookie', cookieString);
+                        }
                     }
-                }
-            },
+                },
+            }
         );
 
         return response;
@@ -876,7 +887,7 @@ export class HttpCrawler<
 }
 
 interface RequestFunctionOptions {
-    request: Request;
+    request: CrawleeRequest;
     session?: Session;
     proxyUrl?: string;
     gotOptions: OptionsInit;

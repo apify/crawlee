@@ -1,20 +1,9 @@
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 
 import type { AllowedHttpMethods } from '@crawlee/types';
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
-import type { FormDataLike } from './form-data-like.js';
-
-type Timeout =
-    | {
-          lookup: number;
-          connect: number;
-          secureConnect: number;
-          socket: number;
-          send: number;
-          response: number;
-      }
-    | { request: number };
+import { Session } from '../session_pool/session.js';
 
 /**
  * Maps permitted values of the `responseType` option on {@apilink HttpRequest} to the types that they produce.
@@ -47,8 +36,6 @@ interface PromiseCookieJar {
     setCookie: (rawCookie: string, url: string) => Promise<unknown>;
 }
 
-type SimpleHeaders = Record<string, string | string[] | undefined>;
-
 /**
  * HTTP Request as accepted by {@apilink BaseHttpClient} methods.
  */
@@ -57,11 +44,11 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
 
     url: string | URL;
     method?: AllowedHttpMethods;
-    headers?: SimpleHeaders;
-    body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
+    headers?: Headers;
+    body?: Readable;
 
     signal?: AbortSignal;
-    timeout?: Partial<Timeout>;
+    timeout?: number;
 
     cookieJar?: ToughCookieJar | PromiseCookieJar;
     followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
@@ -114,8 +101,18 @@ export class ResponseWithUrl extends Response {
  */
 export type RedirectHandler = (
     redirectResponse: Response,
-    updatedRequest: { url?: string | URL; headers: SimpleHeaders },
+    updatedRequest: { url?: string | URL; headers: Headers },
 ) => void;
+
+export interface SendRequestOptions {
+    session?: Session;
+    cookieJar?: ToughCookieJar;
+    timeout?: number;
+}
+
+export interface StreamOptions extends SendRequestOptions {
+    onRedirect?: RedirectHandler;
+}
 
 /**
  * Interface for user-defined HTTP clients to be used for plain HTTP crawling and for sending additional requests during a crawl.
@@ -124,14 +121,12 @@ export interface BaseHttpClient {
     /**
      * Perform an HTTP Request and return the complete response.
      */
-    sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
-        request: HttpRequest<TResponseType>,
-    ): Promise<Response>;
+    sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
 
     /**
      * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
      */
-    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<Response>;
+    stream(request: Request, options?: StreamOptions): Promise<Response>;
 }
 
 /**
@@ -146,7 +141,7 @@ export function processHttpRequestOptions<TResponseType extends keyof ResponseTy
     ...request
 }: HttpRequestOptions<TResponseType>): HttpRequest<TResponseType> {
     const url = new URL(request.url);
-    const headers = { ...request.headers };
+    const headers = new Headers(request.headers);
 
     applySearchParams(url, searchParams);
 
@@ -156,27 +151,31 @@ export function processHttpRequestOptions<TResponseType extends keyof ResponseTy
 
     const body = (() => {
         if (form !== undefined) {
-            return new URLSearchParams(form).toString();
+            return Readable.from(new URLSearchParams(form).toString());
         }
 
         if (json !== undefined) {
-            return JSON.stringify(json);
+            return Readable.from(JSON.stringify(json));
         }
 
-        return request.body;
+        if (request.body !== undefined) {
+            return Readable.from(request.body);
+        }
+
+        return undefined;
     })();
 
-    if (form !== undefined) {
-        headers['content-type'] ??= 'application/x-www-form-urlencoded';
+    if (form !== undefined && !headers.has('content-type')) {
+        headers.set('content-type', 'application/x-www-form-urlencoded');
     }
 
-    if (json !== undefined) {
-        headers['content-type'] ??= 'application/json';
+    if (json !== undefined && !headers.has('content-type')) {
+        headers.set('content-type', 'application/json');
     }
 
     if (username !== undefined || password !== undefined) {
         const encodedAuth = Buffer.from(`${username ?? ''}:${password ?? ''}`).toString('base64');
-        headers.authorization = `Basic ${encodedAuth}`;
+        headers.set('authorization', `Basic ${encodedAuth}`);
     }
 
     return { ...request, body, url, headers };
