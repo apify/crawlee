@@ -675,7 +675,7 @@ interface HandleCloudflareChallengeOptions {
     isBlockedCallback?: (page: Page) => Promise<boolean>;
     /** Allows overriding how the checkbox click position is calculated. */
     clickPositionCallback?: (page: Page) => Promise<{ x: number; y: number } | null>;
-    /** Optional delay (in seconds) before the first click attempt on the challenge checkbox. */
+    /** Optional delay (in seconds) before the first click attempt on the challenge checkbox. Defaults to 1s. */
     preChallengeSleepSecs?: number;
 }
 
