@@ -74,6 +74,6 @@
         "tldts": "^7.0.0",
         "tough-cookie": "^6.0.0",
         "tslib": "^2.4.0",
-        "type-fest": "^4.0.0"
+        "type-fest": "^5.0.0"
     }
 }
