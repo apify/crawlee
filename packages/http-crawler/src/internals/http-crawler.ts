@@ -3,24 +3,26 @@ import util from 'node:util';
 
 import type {
     AutoscaledPoolOptions,
-    BasicCrawler,
     BasicCrawlerOptions,
-    BLOCKED_STATUS_CODES,
-    Configuration,
-    ContextPipeline,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
-    mergeCookies,
-    processHttpRequestOptions,
     Request as CrawleeRequest,
     RequestHandler,
-    RequestState,
     RequireContextPipeline,
-    ResponseWithUrl,
-    Router,
     RouterRoutes,
     Session,
+} from '@crawlee/basic';
+import {
+    BasicCrawler,
+    BLOCKED_STATUS_CODES,
+    Configuration,
+    ContextPipeline,
+    mergeCookies,
+    processHttpRequestOptions,
+    RequestState,
+    ResponseWithUrl,
+    Router,
     SessionError,
 } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';

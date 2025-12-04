@@ -1,7 +1,8 @@
 import { Readable } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
 
-import type { BaseHttpClient, ResponseWithUrl, SendRequestOptions, StreamOptions } from '@crawlee/core';
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/core';
 import type { ImpitOptions, ImpitResponse } from 'impit';
 import { Impit } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
