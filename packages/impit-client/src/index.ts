@@ -101,7 +101,11 @@ export class ImpitHttpClient implements BaseHttpClient {
     private getRedirectMethod(originalMethod: HttpRequest<any>['method'], statusCode: number): HttpMethod {
         // According to RFC 7231, in case of 301 and 302, the method should not change,
         // but in practice, browsers change it to GET for POST requests.
-        if ((statusCode === 301 || statusCode === 302) && originalMethod?.toUpperCase() === 'POST') {
+        if (
+            (statusCode === 301 || statusCode === 302) &&
+            originalMethod?.toUpperCase() !== 'GET' &&
+            originalMethod?.toUpperCase() !== 'HEAD'
+        ) {
             return 'GET';
         }
 
@@ -111,7 +115,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         }
 
         // 307 and 308 must not change the method
-        return originalMethod ?? 'GET';
+        return (originalMethod?.toUpperCase() as HttpMethod) ?? 'GET';
     }
 
     /**
