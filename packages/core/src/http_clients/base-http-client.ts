@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import type { AllowedHttpMethods } from '@crawlee/types';
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
-import { Session } from '../session_pool/session.js';
+import type { Session } from '../session_pool/session.js';
 
 /**
  * Maps permitted values of the `responseType` option on {@apilink HttpRequest} to the types that they produce.

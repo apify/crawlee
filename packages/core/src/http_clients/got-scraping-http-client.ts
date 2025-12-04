@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
-import { type BaseHttpClient, ResponseWithUrl, SendRequestOptions, StreamOptions } from './base-http-client.js';
+import type { BaseHttpClient, ResponseWithUrl, SendRequestOptions, StreamOptions } from './base-http-client.js';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.

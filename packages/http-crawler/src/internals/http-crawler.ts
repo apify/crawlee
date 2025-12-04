@@ -1,28 +1,26 @@
 import { Readable } from 'node:stream';
 import util from 'node:util';
 
-import {
+import type {
     AutoscaledPoolOptions,
-    BasicCrawlerOptions,
-    CrawlingContext,
-    ErrorHandler,
-    GetUserDataFromRequest,
-    Request as CrawleeRequest,
-    RequestHandler,
-    RequireContextPipeline,
-    RouterRoutes,
-    Session,
-} from '@crawlee/basic';
-import {
     BasicCrawler,
+    BasicCrawlerOptions,
     BLOCKED_STATUS_CODES,
     Configuration,
     ContextPipeline,
+    CrawlingContext,
+    ErrorHandler,
+    GetUserDataFromRequest,
     mergeCookies,
     processHttpRequestOptions,
+    Request as CrawleeRequest,
+    RequestHandler,
     RequestState,
+    RequireContextPipeline,
     ResponseWithUrl,
     Router,
+    RouterRoutes,
+    Session,
     SessionError,
 } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
@@ -723,7 +721,12 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: CrawleeRequest, session?: Session, proxyUrl?: string, gotOptions?: OptionsInit) {
+    protected _getRequestOptions(
+        request: CrawleeRequest,
+        session?: Session,
+        proxyUrl?: string,
+        gotOptions?: OptionsInit,
+    ) {
         const requestOptions: OptionsInit & Required<Pick<OptionsInit, 'url'>> & { isStream: true } = {
             url: request.url,
             method: request.method as Method,
@@ -861,7 +864,7 @@ export class HttpCrawler<
 
         const response = await this.httpClient.stream(
             new Request(opts.url, {
-                body: opts.body ? Readable.toWeb(opts.body) as any : undefined,
+                body: opts.body ? (Readable.toWeb(opts.body) as any) : undefined,
                 headers: new Headers(opts.headers),
                 method: opts.method,
                 // Node.JS - specific option to make the request body work with streams
@@ -880,7 +883,7 @@ export class HttpCrawler<
                         }
                     }
                 },
-            }
+            },
         );
 
         return response;
