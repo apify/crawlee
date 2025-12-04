@@ -161,7 +161,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             return this.getResponse(
                 {
                     ...request,
-                    method: this.getRedirectMethod(request.method ?? 'GET', response.status),
+                    method: this.getRedirectMethod(request.method, response.status),
                     url: redirectUrl.href,
                 },
                 {
