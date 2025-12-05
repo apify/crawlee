@@ -88,7 +88,15 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                     statusText: redirectResponse.statusMessage,
                     url: redirectResponse.url,
                 });
-                options?.onRedirect?.(nativeRedirectResponse, updatedOptions);
+
+                options?.onRedirect?.(nativeRedirectResponse, {
+                    url: updatedOptions.url,
+                    headers: new Headers(
+                        Object.entries(updatedOptions.headers)
+                            .map(([key, value]) => (Array.isArray(value) ? value.map((v) => [key, v]) : [key, value]))
+                            .flat() as [string, string][],
+                    ),
+                });
             });
 
             // We need to end the stream for DELETE requests, otherwise it will hang.

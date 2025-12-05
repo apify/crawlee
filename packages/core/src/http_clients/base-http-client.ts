@@ -5,15 +5,6 @@ import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
 import type { Session } from '../session_pool/session.js';
 
-/**
- * Maps permitted values of the `responseType` option on {@apilink HttpRequest} to the types that they produce.
- */
-export interface ResponseTypes {
-    'json': unknown;
-    'text': string;
-    'buffer': Buffer;
-}
-
 // TODO BC with got - remove the options and callback parameters in 4.0
 interface ToughCookieJar {
     getCookieString: ((
@@ -36,14 +27,10 @@ interface PromiseCookieJar {
     setCookie: (rawCookie: string, url: string) => Promise<unknown>;
 }
 
-type SimpleHeaders = Record<string, string | string[] | undefined>;
-
 /**
  * HTTP Request as accepted by {@apilink BaseHttpClient} methods.
  */
-export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'> {
-    [k: string]: unknown; // TODO BC with got - remove in 4.0
-
+export interface HttpRequest {
     url: string | URL;
     method?: AllowedHttpMethods;
     headers?: Headers;
@@ -57,7 +44,6 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     maxRedirects?: number;
 
     encoding?: BufferEncoding;
-    responseType?: TResponseType;
     throwHttpErrors?: boolean;
 
     // from got-scraping Context
@@ -74,8 +60,7 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
 /**
  * Additional options for HTTP requests that need to be handled separately before passing to {@apilink BaseHttpClient}.
  */
-export interface HttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>
-    extends HttpRequest<TResponseType> {
+export interface HttpRequestOptions extends HttpRequest {
     /** Search (query string) parameters to be appended to the request URL */
     searchParams?: SearchParams;
 
@@ -103,7 +88,7 @@ export class ResponseWithUrl extends Response {
  */
 export type RedirectHandler = (
     redirectResponse: Response,
-    updatedRequest: { url?: string | URL; headers: SimpleHeaders },
+    updatedRequest: { url?: string | URL; headers: Headers },
 ) => void;
 
 export interface SendRequestOptions {
@@ -134,14 +119,14 @@ export interface BaseHttpClient {
 /**
  * Converts {@apilink HttpRequestOptions} to a {@apilink HttpRequest}.
  */
-export function processHttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>({
+export function processHttpRequestOptions({
     searchParams,
     form,
     json,
     username,
     password,
     ...request
-}: HttpRequestOptions<TResponseType>): HttpRequest<TResponseType> {
+}: HttpRequestOptions): HttpRequest {
     const url = new URL(request.url);
     const headers = new Headers(request.headers);
 
