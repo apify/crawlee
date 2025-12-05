@@ -1,9 +1,9 @@
 import { pipeline, Readable, Transform } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
-import { isGeneratorObject } from 'node:util/types';
 
-import { type BaseHttpClient, type HttpRequest, type ResponseTypes, ResponseWithUrl } from '@crawlee/core';
-import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/core';
+import type { ImpitOptions, ImpitResponse } from 'impit';
 import { Impit } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
@@ -114,32 +114,26 @@ export class ImpitHttpClient implements BaseHttpClient {
      * @param request `HttpRequest` object
      * @returns `HttpResponse` object
      */
-    private async getResponse<TResponseType extends keyof ResponseTypes>(
-        request: HttpRequest<TResponseType>,
+    private async getResponse(
+        request: Request,
         redirects?: {
             redirectCount?: number;
             redirectUrls?: URL[];
         },
+        options?: StreamOptions,
     ): Promise<ResponseWithRedirects> {
         if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
             throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
         }
 
-        const url = typeof request.url === 'string' ? request.url : request.url.href;
-
         const impit = this.getClient({
             ...this.impitOptions,
-            ...(request?.cookieJar ? { cookieJar: request.cookieJar as ToughCookieJar } : {}),
-            proxyUrl: request.proxyUrl,
+            ...(options?.cookieJar ? { cookieJar: options?.cookieJar as any as ToughCookieJar } : {}),
+            proxyUrl: options?.session?.proxyInfo?.url,
             followRedirects: false,
         });
 
-        const response = await impit.fetch(url, {
-            method: request.method as HttpMethod,
-            headers: this.intoHeaders(request.headers),
-            body: this.intoImpitBody(request.body),
-            timeout: (request.timeout as { request?: number })?.request,
-        });
+        const response = await impit.fetch(request, { timeout: options?.timeout });
 
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
             const location = response.headers.get('location');
@@ -171,10 +165,8 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async sendRequest<TResponseType extends keyof ResponseTypes>(
-        request: HttpRequest<TResponseType>,
-    ): Promise<Response> {
-        const { response } = await this.getResponse(request);
+    async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
+        const { response } = await this.getResponse(request, {}, options);
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
         return new ResponseWithUrl((await response.bytes()) as any, response);
@@ -209,8 +201,8 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async stream(request: HttpRequest): Promise<Response> {
-        const { response } = await this.getResponse(request);
+    async stream(request: Request, options?: StreamOptions): Promise<Response> {
+        const { response } = await this.getResponse(request, {}, options);
         const [stream] = this.getStreamWithProgress(response);
 
         // Cast shouldn't be needed here, undici might have a slightly different `ReadableStream` type
