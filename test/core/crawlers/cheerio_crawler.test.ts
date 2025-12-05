@@ -807,8 +807,9 @@ describe('CheerioCrawler', () => {
                     sendRequest: async () => {
                         throw new Error("Don't");
                     },
-                    stream: async (request, onRedirect) => {
-                        if (request.proxyUrl!.includes('localhost')) {
+                    stream: async (request, opts) => {
+                        const { session } = opts ?? {};
+                        if (session?.proxyInfo?.url.includes('localhost')) {
                             numberOfRotations++;
                             throw new Error('Proxy responded with 400 - Bad request');
                         }
@@ -838,8 +839,9 @@ describe('CheerioCrawler', () => {
                     sendRequest: async () => {
                         throw new Error("Don't");
                     },
-                    stream: async (request, onRedirect) => {
-                        if (request.proxyUrl!.includes('localhost')) {
+                    stream: async (request, opts) => {
+                        const { session } = opts ?? {};
+                        if (session?.proxyInfo?.url.includes('localhost')) {
                             throw new Error(proxyError);
                         }
                         return await impit.stream(request);
