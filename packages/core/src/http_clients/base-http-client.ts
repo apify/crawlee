@@ -1,35 +1,9 @@
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 
 import type { AllowedHttpMethods } from '@crawlee/types';
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
-import type { FormDataLike } from './form-data-like.js';
-
-type Timeout =
-    | {
-          lookup: number;
-          connect: number;
-          secureConnect: number;
-          socket: number;
-          send: number;
-          response: number;
-      }
-    | { request: number };
-
-/**
- * Maps permitted values of the `responseType` option on {@apilink HttpRequest} to the types that they produce.
- */
-export interface ResponseTypes {
-    'json': unknown;
-    'text': string;
-    'buffer': Buffer;
-}
-
-interface Progress {
-    percent: number;
-    transferred: number;
-    total?: number;
-}
+import type { Session } from '../session_pool/session.js';
 
 // TODO BC with got - remove the options and callback parameters in 4.0
 interface ToughCookieJar {
@@ -53,28 +27,23 @@ interface PromiseCookieJar {
     setCookie: (rawCookie: string, url: string) => Promise<unknown>;
 }
 
-type SimpleHeaders = Record<string, string | string[] | undefined>;
-
 /**
  * HTTP Request as accepted by {@apilink BaseHttpClient} methods.
  */
-export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'> {
-    [k: string]: unknown; // TODO BC with got - remove in 4.0
-
+export interface HttpRequest {
     url: string | URL;
     method?: AllowedHttpMethods;
-    headers?: SimpleHeaders;
-    body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
+    headers?: Headers;
+    body?: Readable;
 
     signal?: AbortSignal;
-    timeout?: Partial<Timeout>;
+    timeout?: number;
 
     cookieJar?: ToughCookieJar | PromiseCookieJar;
     followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
     maxRedirects?: number;
 
     encoding?: BufferEncoding;
-    responseType?: TResponseType;
     throwHttpErrors?: boolean;
 
     // from got-scraping Context
@@ -91,8 +60,7 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
 /**
  * Additional options for HTTP requests that need to be handled separately before passing to {@apilink BaseHttpClient}.
  */
-export interface HttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>
-    extends HttpRequest<TResponseType> {
+export interface HttpRequestOptions extends HttpRequest {
     /** Search (query string) parameters to be appended to the request URL */
     searchParams?: SearchParams;
 
@@ -107,28 +75,6 @@ export interface HttpRequestOptions<TResponseType extends keyof ResponseTypes = 
     password?: string;
 }
 
-/**
- * HTTP response data, without a body, as returned by {@apilink BaseHttpClient} methods.
- */
-export interface BaseHttpResponseData {
-    redirectUrls: URL[];
-    url: string;
-
-    ip?: string;
-    statusCode: number;
-    statusMessage?: string;
-
-    headers: SimpleHeaders;
-    trailers: SimpleHeaders; // Populated after the whole message is processed
-
-    complete: boolean;
-}
-
-interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
-    extends BaseHttpResponseData {
-    request: HttpRequest<TResponseType>;
-}
-
 export class ResponseWithUrl extends Response {
     override url: string;
     constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
@@ -138,31 +84,22 @@ export class ResponseWithUrl extends Response {
 }
 
 /**
- * HTTP response data as returned by the {@apilink BaseHttpClient.sendRequest} method.
- */
-export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
-    extends HttpResponseWithoutBody<TResponseType> {
-    [k: string]: any; // TODO BC with got - remove in 4.0
-
-    body: ResponseTypes[TResponseType];
-}
-
-/**
- * HTTP response data as returned by the {@apilink BaseHttpClient.stream} method.
- */
-export interface StreamingHttpResponse extends HttpResponseWithoutBody {
-    stream: Readable;
-    readonly downloadProgress: Progress;
-    readonly uploadProgress: Progress;
-}
-
-/**
  * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
  */
 export type RedirectHandler = (
     redirectResponse: Response,
-    updatedRequest: { url?: string | URL; headers: SimpleHeaders },
+    updatedRequest: { url?: string | URL; headers: Headers },
 ) => void;
+
+export interface SendRequestOptions {
+    session?: Session;
+    cookieJar?: ToughCookieJar;
+    timeout?: number;
+}
+
+export interface StreamOptions extends SendRequestOptions {
+    onRedirect?: RedirectHandler;
+}
 
 /**
  * Interface for user-defined HTTP clients to be used for plain HTTP crawling and for sending additional requests during a crawl.
@@ -171,29 +108,27 @@ export interface BaseHttpClient {
     /**
      * Perform an HTTP Request and return the complete response.
      */
-    sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
-        request: HttpRequest<TResponseType>,
-    ): Promise<Response>;
+    sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
 
     /**
      * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
      */
-    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<Response>;
+    stream(request: Request, options?: StreamOptions): Promise<Response>;
 }
 
 /**
  * Converts {@apilink HttpRequestOptions} to a {@apilink HttpRequest}.
  */
-export function processHttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>({
+export function processHttpRequestOptions({
     searchParams,
     form,
     json,
     username,
     password,
     ...request
-}: HttpRequestOptions<TResponseType>): HttpRequest<TResponseType> {
+}: HttpRequestOptions): HttpRequest {
     const url = new URL(request.url);
-    const headers = { ...request.headers };
+    const headers = new Headers(request.headers);
 
     applySearchParams(url, searchParams);
 
@@ -203,27 +138,31 @@ export function processHttpRequestOptions<TResponseType extends keyof ResponseTy
 
     const body = (() => {
         if (form !== undefined) {
-            return new URLSearchParams(form).toString();
+            return Readable.from(new URLSearchParams(form).toString());
         }
 
         if (json !== undefined) {
-            return JSON.stringify(json);
+            return Readable.from(JSON.stringify(json));
         }
 
-        return request.body;
+        if (request.body !== undefined) {
+            return Readable.from(request.body);
+        }
+
+        return undefined;
     })();
 
-    if (form !== undefined) {
-        headers['content-type'] ??= 'application/x-www-form-urlencoded';
+    if (form !== undefined && !headers.has('content-type')) {
+        headers.set('content-type', 'application/x-www-form-urlencoded');
     }
 
-    if (json !== undefined) {
-        headers['content-type'] ??= 'application/json';
+    if (json !== undefined && !headers.has('content-type')) {
+        headers.set('content-type', 'application/json');
     }
 
     if (username !== undefined || password !== undefined) {
         const encodedAuth = Buffer.from(`${username ?? ''}:${password ?? ''}`).toString('base64');
-        headers.authorization = `Basic ${encodedAuth}`;
+        headers.set('authorization', `Basic ${encodedAuth}`);
     }
 
     return { ...request, body, url, headers };
