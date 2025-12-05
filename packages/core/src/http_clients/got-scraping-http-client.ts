@@ -3,13 +3,8 @@ import { Readable } from 'node:stream';
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
-import {
-    type BaseHttpClient,
-    type HttpRequest,
-    type RedirectHandler,
-    type ResponseTypes,
-    ResponseWithUrl,
-} from './base-http-client.js';
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from './base-http-client.js';
+import { ResponseWithUrl } from './base-http-client.js';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
@@ -19,31 +14,33 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      * Type guard that validates the HTTP method (excluding CONNECT).
      * @param request - The HTTP request to validate
      */
-    private validateRequest<TResponseType extends keyof ResponseTypes, T extends HttpRequest<TResponseType>>(
-        request: T,
-    ): request is T & { method: Exclude<T['method'], 'CONNECT' | 'connect'> } {
+    private validateRequest(
+        request: Request,
+    ): request is Request & { method: Exclude<Request['method'], 'CONNECT' | 'connect'> } {
         return !['CONNECT', 'connect'].includes(request.method!);
     }
 
     /**
      * @inheritDoc
      */
-    async sendRequest<TResponseType extends keyof ResponseTypes>(
-        request: HttpRequest<TResponseType>,
-    ): Promise<Response> {
+    async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
+        const { session, timeout } = options ?? {};
+
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
         }
 
         const gotResult = await gotScraping({
-            ...request,
+            url: request.url!,
+            method: request.method as Options['method'],
+            headers: Object.fromEntries(request.headers.entries()),
+            body: request.body ? Readable.fromWeb(request.body as any) : undefined,
+            proxyUrl: session?.proxyInfo?.url,
+            timeout: { request: timeout },
+            // We set cookieJar to undefined because
             // `HttpCrawler` reads the cookies beforehand and sets them in `request.gotOptions`.
             // Using the `cookieJar` option directly would override that.
             cookieJar: undefined,
-            retry: {
-                limit: 0,
-                ...(request.retry as Record<string, unknown> | undefined),
-            },
         });
 
         const parsedHeaders = Object.entries(gotResult.headers)
@@ -69,13 +66,20 @@ export class GotScrapingHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<Response> {
+    async stream(request: Request, options?: StreamOptions): Promise<Response> {
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
         }
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
-            const stream = gotScraping({ ...request, isStream: true, cookieJar: undefined });
+            const stream = gotScraping({
+                url: request.url,
+                method: request.method as Options['method'],
+                headers: Object.fromEntries(request.headers.entries()),
+                body: request.body ? Readable.fromWeb(request.body as any) : undefined,
+                isStream: true,
+                cookieJar: undefined,
+            });
 
             stream.on('redirect', (updatedOptions: Options, redirectResponse: any) => {
                 const nativeRedirectResponse = new ResponseWithUrl(redirectResponse.rawBody, {
@@ -84,7 +88,19 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                     statusText: redirectResponse.statusMessage,
                     url: redirectResponse.url,
                 });
-                handleRedirect?.(nativeRedirectResponse, updatedOptions);
+
+                const nativeHeaders = new Headers(
+                    Object.entries(updatedOptions.headers)
+                        .map(([key, value]) => (Array.isArray(value) ? value.map((v) => [key, v]) : [[key, value]]))
+                        .flat() as [string, string][],
+                );
+
+                options?.onRedirect?.(nativeRedirectResponse, {
+                    url: updatedOptions.url,
+                    headers: nativeHeaders,
+                });
+
+                updatedOptions.headers = Object.fromEntries(nativeHeaders.entries());
             });
 
             // We need to end the stream for DELETE requests, otherwise it will hang.

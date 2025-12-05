@@ -1,10 +1,4 @@
-import {
-    type BaseHttpClient,
-    type HttpRequestOptions,
-    processHttpRequestOptions,
-    type Request,
-    type Session,
-} from '@crawlee/core';
+import { type BaseHttpClient, type HttpRequestOptions, type Request, type Session } from '@crawlee/core';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -25,20 +19,6 @@ export function createSendRequest(httpClient: BaseHttpClient, originRequest: Req
               }
             : overrideOptions?.cookieJar;
 
-        const requestOptions = processHttpRequestOptions({
-            url: originRequest.url,
-            method: originRequest.method,
-            headers: originRequest.headers,
-            proxyUrl: session?.proxyInfo?.url,
-            sessionToken: session,
-            responseType: 'text',
-            ...overrideOptions,
-            cookieJar,
-        });
-
-        // Fill in body as the last step - `processHttpRequestOptions` may use either `body`, `json` or `form` so we cannot override it beforehand
-        requestOptions.body ??= originRequest.payload;
-
-        return httpClient.sendRequest(requestOptions);
+        return httpClient.sendRequest(originRequest.intoFetchAPIRequest(), { session, cookieJar: cookieJar as any });
     };
 }
