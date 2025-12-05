@@ -90,7 +90,9 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                 });
 
                 const nativeHeaders = new Headers(
-                    Object.entries(updatedOptions.headers).map(([key, value]) => (Array.isArray(value) ? value.map((v) => [key, v]) : [[key, value]])).flat() as [string, string][],
+                    Object.entries(updatedOptions.headers)
+                        .map(([key, value]) => (Array.isArray(value) ? value.map((v) => [key, v]) : [[key, value]]))
+                        .flat() as [string, string][],
                 );
 
                 options?.onRedirect?.(nativeRedirectResponse, {
