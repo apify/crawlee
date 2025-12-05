@@ -4,28 +4,7 @@ import type { AllowedHttpMethods } from '@crawlee/types';
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
 import type { Session } from '../session_pool/session.js';
-
-// TODO BC with got - remove the options and callback parameters in 4.0
-interface ToughCookieJar {
-    getCookieString: ((
-        currentUrl: string,
-        options: Record<string, unknown>,
-        callback: (error: Error | null, cookies: string) => void,
-    ) => string) &
-        ((url: string, callback: (error: Error | null, cookieHeader: string) => void) => string);
-    setCookie: ((
-        cookieOrString: unknown,
-        currentUrl: string,
-        options: Record<string, unknown>,
-        callback: (error: Error | null, cookie: unknown) => void,
-    ) => void) &
-        ((rawCookie: string, url: string, callback: (error: Error | null, result: unknown) => void) => void);
-}
-
-interface PromiseCookieJar {
-    getCookieString: (url: string) => Promise<string>;
-    setCookie: (rawCookie: string, url: string) => Promise<unknown>;
-}
+import { CookieJar } from 'tough-cookie';
 
 /**
  * HTTP Request as accepted by {@apilink BaseHttpClient} methods.
@@ -39,7 +18,6 @@ export interface HttpRequest {
     signal?: AbortSignal;
     timeout?: number;
 
-    cookieJar?: ToughCookieJar | PromiseCookieJar;
     followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
     maxRedirects?: number;
 
@@ -93,7 +71,7 @@ export type RedirectHandler = (
 
 export interface SendRequestOptions {
     session?: Session;
-    cookieJar?: ToughCookieJar;
+    cookieJar?: CookieJar;
     timeout?: number;
 }
 

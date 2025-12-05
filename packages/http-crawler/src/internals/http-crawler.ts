@@ -18,7 +18,6 @@ import {
     BLOCKED_STATUS_CODES,
     Configuration,
     ContextPipeline,
-    mergeCookies,
     processHttpRequestOptions,
     RequestState,
     ResponseWithUrl,
@@ -452,17 +451,9 @@ export class HttpCrawler<
         }
 
         const gotOptions = {} as OptionsInit;
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
-
         request.state = RequestState.BEFORE_NAV;
-        // Execute pre navigation hooks before applying session pool cookies,
-        // as they may also set cookies in the session
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
         tryCancel();
-
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
-
-        this._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
 
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
@@ -584,63 +575,6 @@ export class HttpCrawler<
     }
 
     /**
-     * Sets the cookie header to `gotOptions` based on the provided request and session headers, as well as any changes that occurred due to hooks.
-     */
-    protected _applyCookies(
-        { session, request }: CrawlingContext,
-        gotOptions: OptionsInit,
-        preHookCookies: string,
-        postHookCookies: string,
-    ) {
-        const sessionCookie = session?.getCookieString(request.url) ?? '';
-        let alteredGotOptionsCookies = gotOptions.headers?.Cookie || gotOptions.headers?.cookie || '';
-
-        if (gotOptions.headers?.Cookie && gotOptions.headers?.cookie) {
-            const { Cookie: upperCaseHeader, cookie: lowerCaseHeader } = gotOptions.headers;
-
-            this.log.warning(
-                `Encountered mixed casing for the cookie headers in the got options for request ${request.url} (${request.id}). Their values will be merged`,
-            );
-
-            const sourceCookies = [];
-
-            if (Array.isArray(lowerCaseHeader)) {
-                sourceCookies.push(...lowerCaseHeader);
-            } else {
-                sourceCookies.push(lowerCaseHeader);
-            }
-
-            if (Array.isArray(upperCaseHeader)) {
-                sourceCookies.push(...upperCaseHeader);
-            } else {
-                sourceCookies.push(upperCaseHeader);
-            }
-
-            alteredGotOptionsCookies = mergeCookies(request.url, sourceCookies);
-        }
-
-        const sourceCookies = [sessionCookie, preHookCookies];
-
-        if (Array.isArray(alteredGotOptionsCookies)) {
-            sourceCookies.push(...alteredGotOptionsCookies);
-        } else {
-            sourceCookies.push(alteredGotOptionsCookies);
-        }
-
-        sourceCookies.push(postHookCookies);
-
-        const mergedCookie = mergeCookies(request.url, sourceCookies);
-
-        gotOptions.headers ??= {};
-        Reflect.deleteProperty(gotOptions.headers, 'Cookie');
-        Reflect.deleteProperty(gotOptions.headers, 'cookie');
-
-        if (mergedCookie !== '') {
-            gotOptions.headers.Cookie = mergedCookie;
-        }
-    }
-
-    /**
      * Function to make the HTTP request. It performs optimizations
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
@@ -745,7 +679,6 @@ export class HttpCrawler<
             isStream: true,
         };
 
-        // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
         Reflect.deleteProperty(requestOptions.headers!, 'cookie');
 
         // Disable SSL verification for MITM proxies
