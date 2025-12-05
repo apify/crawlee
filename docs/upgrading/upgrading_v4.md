@@ -110,3 +110,7 @@ The crawling context in the `FileDownload` crawler no longer includes the `body`
 ## `KeyValueStore.getPublicUrl` is now async
 
 The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage client.
+
+## Cookies now live only in `Session`s
+
+Cookies are now stored only in `Session` objects. To update the cookies for the current session, use `session.setCookie` and `session.getCookieString` methods. The crawler no longer accepts cookies from other sources like `Request` objects or `GotOptions`.

@@ -19,7 +19,6 @@ import {
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
     ContextPipeline,
-    cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
@@ -569,15 +568,11 @@ export abstract class BrowserCrawler<
 
         const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
 
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
-
         crawlingContext.request.state = RequestState.BEFORE_NAV;
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
-
-        await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+        await this._applyCookies(crawlingContext);
 
         let response: Response | undefined;
 
@@ -637,16 +632,12 @@ export abstract class BrowserCrawler<
 
     protected async _applyCookies(
         { session, request, page, browserController }: BrowserCrawlingContext,
-        preHooksCookies: string,
-        postHooksCookies: string,
     ) {
         const sessionCookie = session?.getCookies(request.url) ?? [];
-        const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
-        const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 
         await browserController.setCookies(
             page,
-            [...sessionCookie, ...parsedPreHooksCookies, ...parsedPostHooksCookies]
+            sessionCookie
                 .filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null)
                 .map((c) => ({ ...c, url: c.domain ? undefined : request.url })),
         );

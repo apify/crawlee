@@ -1,4 +1,4 @@
-import { type BaseHttpClient, type HttpRequestOptions, type Request, type Session } from '@crawlee/core';
+import { type BaseHttpClient, type Request, type Session } from '@crawlee/core';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -10,15 +10,7 @@ import { type BaseHttpClient, type HttpRequestOptions, type Request, type Sessio
  * @param getProxyUrl A function that will return the proxy URL that should be used for handling the request.
  */
 export function createSendRequest(httpClient: BaseHttpClient, originRequest: Request, session: Session | undefined) {
-    return async (overrideOptions: Partial<HttpRequestOptions> = {}): Promise<Response> => {
-        const cookieJar = session
-            ? {
-                  getCookieString: async (url: string) => session.getCookieString(url),
-                  setCookie: async (rawCookie: string, url: string) => session.setCookie(rawCookie, url),
-                  ...overrideOptions?.cookieJar,
-              }
-            : overrideOptions?.cookieJar;
-
-        return httpClient.sendRequest(originRequest.intoFetchAPIRequest(), { session, cookieJar: cookieJar as any });
+    return async (): Promise<Response> => {
+        return httpClient.sendRequest(originRequest.intoFetchAPIRequest(), { session, cookieJar: session?.cookieJar as any });
     };
 }

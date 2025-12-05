@@ -5,7 +5,7 @@ import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee
 import { ResponseWithUrl } from '@crawlee/core';
 import type { ImpitOptions, ImpitResponse } from 'impit';
 import { Impit } from 'impit';
-import type { CookieJar as ToughCookieJar } from 'tough-cookie';
+import type { CookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
 
@@ -33,7 +33,7 @@ export class ImpitHttpClient implements BaseHttpClient {
      * a new client for each request breaks TCP connection
      * (and other resources) reuse.
      */
-    private clientCache: LruCache<{ client: Impit; cookieJar: ToughCookieJar }> = new LruCache({ maxLength: 10 });
+    private clientCache: LruCache<{ client: Impit; cookieJar?: Pick<CookieJar, 'getCookieString' | 'setCookie'> }> = new LruCache({ maxLength: 10 });
 
     private getClient(options: ImpitOptions) {
         const { cookieJar, ...rest } = options;
@@ -46,7 +46,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         }
 
         const client = new Impit(options);
-        this.clientCache.add(cacheKey, { client, cookieJar: cookieJar as ToughCookieJar });
+        this.clientCache.add(cacheKey, { client, cookieJar: cookieJar as any });
 
         return client;
     }
@@ -77,7 +77,7 @@ export class ImpitHttpClient implements BaseHttpClient {
 
         const impit = this.getClient({
             ...this.impitOptions,
-            ...(options?.cookieJar ? { cookieJar: options?.cookieJar as any as ToughCookieJar } : {}),
+            cookieJar: options?.cookieJar,
             proxyUrl: options?.session?.proxyInfo?.url,
             followRedirects: false,
         });
