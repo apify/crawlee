@@ -171,10 +171,8 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     }
 
     private async initiateDownload(context: CrawlingContext) {
-        const response = await this.httpClient.stream({
-            url: context.request.url,
-            timeout: { request: undefined },
-            proxyUrl: context.proxyInfo?.url,
+        const response = await this.httpClient.stream(context.request.intoFetchAPIRequest(), {
+            session: context.session,
         });
 
         const { type, charset: encoding } = parseContentTypeFromResponse(response);
