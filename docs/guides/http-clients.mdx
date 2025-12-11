@@ -9,8 +9,8 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 
-import CheerioGotScrapingExample from '!!raw-loader!roa-loader!./http_clients/cheerio-got-scraping-example.ts';
-import CheerioImpitExample from '!!raw-loader!roa-loader!./http_clients/cheerio-impit-example.ts';
+import CheerioGotScrapingExample from '!!raw-loader!roa-loader!./http-clients/cheerio-got-scraping-example.ts';
+import CheerioImpitExample from '!!raw-loader!roa-loader!./http-clients/cheerio-impit-example.ts';
 
 HTTP clients are utilized by HTTP-based crawlers (e.g., <ApiLink to="class/CheerioCrawler">`CheerioCrawler`</ApiLink>) to communicate with web servers. They use external HTTP libraries for communication rather than a browser. Examples of such libraries include [`impit`](https://apify.github.io/impit/) or [`got-scraping`](https://github.com/apify/got-scraping/). After retrieving page content, an HTML parsing library is typically used to facilitate data extraction. Examples of such libraries include [Cheerio](https://cheerio.js.org/), [`jsdom`](https://github.com/jsdom/jsdom) or [`linkedom`](https://github.com/WebReflection/linkedom). These crawlers are faster than browser-based crawlers but generally cannot execute client-side JavaScript.
 
