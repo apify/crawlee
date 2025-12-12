@@ -16,6 +16,7 @@ const packages = [
     'memory-storage',
     'utils',
     'types',
+    'impit-client',
 ];
 const packagesOrder = [
     '@crawlee/core',
@@ -31,6 +32,7 @@ const packagesOrder = [
     '@crawlee/browser-pool',
     '@crawlee/utils',
     '@crawlee/types',
+    '@crawlee/impit-client',
 ];
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
@@ -53,10 +55,14 @@ module.exports = {
     },
     onBrokenLinks: 'throw',
     markdown: {
+        mermaid: true,
         hooks: {
             onBrokenMarkdownLinks: 'throw',
         },
     },
+    themes: [
+        '@docusaurus/theme-mermaid',
+    ],
     future: {
         experimental_faster: {
             // ssgWorkerThreads: true,

@@ -33,6 +33,7 @@ module.exports = {
             items: [
                 'guides/request-storage',
                 'guides/result-storage',
+                'guides/http-clients',
                 'guides/configuration',
                 'guides/cheerio-crawler-guide',
                 'guides/javascript-rendering',
