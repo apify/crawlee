@@ -1022,7 +1022,7 @@ describe('CheerioCrawler', () => {
             });
         });
 
-        test('should merge cookies set in pre-nav hook with the session ones', async () => {
+        test('should merge request and session cookies', async () => {
             const responses: unknown[] = [];
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [
