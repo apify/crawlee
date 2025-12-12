@@ -812,7 +812,9 @@ export class HttpCrawler<
         });
 
         if (cookieString) {
-            opts.headers?.append('Cookie', cookieString);
+            opts.headers?.delete('Cookie');
+            opts.headers?.delete('cookie');
+            opts.headers?.set('Cookie', cookieString);
         }
 
         const response = await this.httpClient.stream(

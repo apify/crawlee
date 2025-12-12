@@ -1123,7 +1123,7 @@ describe('CheerioCrawler', () => {
             });
         });
 
-        test.only('mergeCookies()', async () => {
+        test('mergeCookies()', async () => {
             const warningSpy = vitest.spyOn(Log.prototype, 'warningOnce');
             const cookie1 = mergeCookies('https://example.com', [
                 'foo=bar1; other=cookie1 ; coo=kie',
