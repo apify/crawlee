@@ -1,11 +1,9 @@
-import type { HTTPError as HTTPErrorClass } from 'got-scraping';
-import { gotScraping } from 'got-scraping';
+import { BaseHttpClient } from '@crawlee/types';
+import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
 import { Sitemap } from './sitemap.js';
-
-let HTTPError: typeof HTTPErrorClass;
 
 /**
  * Loads and queries information from a [robots.txt file](https://en.wikipedia.org/wiki/Robots.txt).
@@ -36,12 +34,15 @@ export class RobotsTxtFile {
      * @param url the URL to fetch robots.txt for
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
-    static async find(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
+    static async find(
+        url: string,
+        options?: { proxyUrl?: string; httpClient?: BaseHttpClient },
+    ): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
         robotsTxtFileUrl.search = '';
 
-        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl);
+        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), options);
     }
 
     /**
@@ -55,37 +56,36 @@ export class RobotsTxtFile {
         return new RobotsTxtFile(robotsParser(url, content), proxyUrl);
     }
 
-    protected static async load(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
-        if (!HTTPError) {
-            HTTPError = (await import('got-scraping')).HTTPError;
-        }
+    protected static async load(
+        url: string,
+        options?: { proxyUrl?: string; httpClient?: BaseHttpClient },
+    ): Promise<RobotsTxtFile> {
+        let { proxyUrl, httpClient = new ImpitHttpClient() } = options || {};
 
-        try {
-            const response = await gotScraping({
-                url,
-                proxyUrl,
-                method: 'GET',
-                responseType: 'text',
-            });
-
-            // @ts-ignore
-            return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);
-        } catch (e) {
-            if (e instanceof HTTPError && e.response.statusCode === 404) {
-                return new RobotsTxtFile(
-                    {
-                        isAllowed() {
-                            return true;
-                        },
-                        getSitemaps() {
-                            return [];
-                        },
-                    },
+        const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
+            session: {
+                proxyInfo: {
                     proxyUrl,
-                );
-            }
-            throw e;
+                },
+            },
+        });
+
+        if (response.status == 404) {
+            return new RobotsTxtFile(
+                {
+                    isAllowed() {
+                        return true;
+                    },
+                    getSitemaps() {
+                        return [];
+                    },
+                },
+                proxyUrl,
+            );
         }
+
+        // @ts-ignore
+        return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);
     }
 
     /**

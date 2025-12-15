@@ -683,6 +683,7 @@ __metadata:
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
     "@crawlee/core": "npm:4.0.0"
+    "@crawlee/types": "workspace:^"
     impit: "npm:^0.7.0"
     tough-cookie: "npm:^6.0.0"
   peerDependencies:
@@ -900,7 +901,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@crawlee/types@npm:4.0.0, @crawlee/types@workspace:packages/types":
+"@crawlee/types@npm:4.0.0, @crawlee/types@workspace:^, @crawlee/types@workspace:packages/types":
   version: 0.0.0-use.local
   resolution: "@crawlee/types@workspace:packages/types"
   dependencies:

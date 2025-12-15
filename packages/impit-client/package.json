@@ -54,6 +54,7 @@
     },
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
+        "@crawlee/types": "workspace:^",
         "impit": "^0.7.0",
         "tough-cookie": "^6.0.0"
     }

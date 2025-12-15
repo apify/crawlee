@@ -1,13 +1,14 @@
 import { Readable } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
 
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/core';
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
 import { ResponseWithUrl } from '@crawlee/core';
 import type { ImpitOptions, ImpitResponse } from 'impit';
 import { Impit } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
+import { Session } from '@crawlee/core';
 
 export const Browser = {
     'Chrome': 'chrome',
@@ -69,7 +70,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             redirectCount?: number;
             redirectUrls?: URL[];
         },
-        options?: StreamOptions,
+        options?: StreamOptions<Session>,
     ): Promise<ResponseWithRedirects> {
         if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
             throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
@@ -113,7 +114,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
+    async sendRequest(request: Request, options?: SendRequestOptions<Session>): Promise<Response> {
         const { response } = await this.getResponse(request, {}, options);
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
@@ -144,7 +145,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async stream(request: Request, options?: StreamOptions): Promise<Response> {
+    async stream(request: Request, options?: StreamOptions<Session>): Promise<Response> {
         const { response } = await this.getResponse(request, {}, options);
         const [stream] = this.getStreamWithProgress(response);
 

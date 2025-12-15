@@ -3,8 +3,9 @@ import { Readable } from 'node:stream';
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from './base-http-client.js';
-import { ResponseWithUrl } from './base-http-client.js';
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
+import { ResponseWithUrl } from '@crawlee/core';
+import type { Session } from '@crawlee/core';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
@@ -23,7 +24,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
+    async sendRequest(request: Request, options?: SendRequestOptions<Session>): Promise<Response> {
         const { session, timeout } = options ?? {};
 
         if (!this.validateRequest(request)) {

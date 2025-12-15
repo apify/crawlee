@@ -5,7 +5,6 @@ import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
-    BaseHttpClient,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,
@@ -59,6 +58,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
+import { BaseHttpClient } from '@crawlee/types';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
