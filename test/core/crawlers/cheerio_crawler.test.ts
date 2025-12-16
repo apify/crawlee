@@ -1022,9 +1022,8 @@ describe('CheerioCrawler', () => {
             });
         });
 
-        test('should merge cookies set in pre-nav hook with the session ones', async () => {
+        test('should merge request and session cookies', async () => {
             const responses: unknown[] = [];
-            const gotOptions: OptionsInit[] = [];
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [
                     {
@@ -1040,11 +1039,6 @@ describe('CheerioCrawler', () => {
                 requestHandler: ({ json }) => {
                     responses.push(json);
                 },
-                preNavigationHooks: [
-                    (_context, options) => {
-                        gotOptions.push(options);
-                    },
-                ],
             });
 
             const sessSpy = vitest.spyOn(Session.prototype, 'getCookieString');
@@ -1054,12 +1048,6 @@ describe('CheerioCrawler', () => {
             expect(responses[0]).toMatchObject({
                 headers: {
                     cookie: 'foo=bar2; other=cookie1; coo=kie; baz=123',
-                },
-            });
-            expect(gotOptions).toHaveLength(1);
-            expect(gotOptions[0]).toMatchObject({
-                headers: {
-                    Cookie: 'foo=bar2; other=cookie1; coo=kie; baz=123', // header name normalized to `Cookie`
                 },
             });
         });

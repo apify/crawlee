@@ -31,7 +31,7 @@ import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-import type { Method, OptionsInit, TimeoutError as TimeoutErrorClass } from 'got-scraping';
+import type { TimeoutError as TimeoutErrorClass } from 'got-scraping';
 import iconv from 'iconv-lite';
 import ow from 'ow';
 import type { JsonValue } from 'type-fest';
@@ -80,12 +80,12 @@ export interface HttpCrawlerOptions<
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotOptions`,
-     * which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
+     * or browser properties before navigation. The function accepts one parameter `crawlingContext`,
+     * which is passed to the `requestAsBrowser()` function the crawler calls to navigate.
      * Example:
      * ```
      * preNavigationHooks: [
-     *     async (crawlingContext, gotOptions) => {
+     *     async (crawlingContext) => {
      *         // ...
      *     },
      * ]
@@ -164,7 +164,7 @@ export interface HttpCrawlerOptions<
 /**
  * @internal
  */
-export type InternalHttpHook<Context> = (crawlingContext: Context, gotOptions: OptionsInit) => Awaitable<void>;
+export type InternalHttpHook<Context> = (crawlingContext: Context) => Awaitable<void>;
 
 export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -268,11 +268,11 @@ export type HttpRequestHandler<
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * We can use the `preNavigationHooks` to adjust `gotOptions`:
+ * We can use the `preNavigationHooks` to adjust the crawling context before the request is made:
  *
  * ```javascript
  * preNavigationHooks: [
- *     (crawlingContext, gotOptions) => {
+ *     (crawlingContext) => {
  *         // ...
  *     },
  * ]
@@ -451,23 +451,22 @@ export class HttpCrawler<
             };
         }
 
-        const gotOptions = {} as OptionsInit;
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
         request.state = RequestState.BEFORE_NAV;
         // Execute pre navigation hooks before applying session pool cookies,
         // as they may also set cookies in the session
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
+        await this._executeHooks(this.preNavigationHooks, crawlingContext);
         tryCancel();
 
         const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
-        this._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
+        const cookieString = this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
 
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         const httpResponse = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
+            async () => this._requestFunction({ request, session, proxyUrl, cookieString }),
             this.navigationTimeoutMillis,
             `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -584,60 +583,19 @@ export class HttpCrawler<
     }
 
     /**
-     * Sets the cookie header to `gotOptions` based on the provided request and session headers, as well as any changes that occurred due to hooks.
+     * Returns the `Cookie` header value based on the current context and
+     * any changes that occurred in the navigation hooks.
      */
     protected _applyCookies(
         { session, request }: CrawlingContext,
-        gotOptions: OptionsInit,
         preHookCookies: string,
         postHookCookies: string,
-    ) {
+    ): string {
         const sessionCookie = session?.getCookieString(request.url) ?? '';
-        let alteredGotOptionsCookies = gotOptions.headers?.Cookie || gotOptions.headers?.cookie || '';
 
-        if (gotOptions.headers?.Cookie && gotOptions.headers?.cookie) {
-            const { Cookie: upperCaseHeader, cookie: lowerCaseHeader } = gotOptions.headers;
+        const sourceCookies = [sessionCookie, preHookCookies, postHookCookies];
 
-            this.log.warning(
-                `Encountered mixed casing for the cookie headers in the got options for request ${request.url} (${request.id}). Their values will be merged`,
-            );
-
-            const sourceCookies = [];
-
-            if (Array.isArray(lowerCaseHeader)) {
-                sourceCookies.push(...lowerCaseHeader);
-            } else {
-                sourceCookies.push(lowerCaseHeader);
-            }
-
-            if (Array.isArray(upperCaseHeader)) {
-                sourceCookies.push(...upperCaseHeader);
-            } else {
-                sourceCookies.push(upperCaseHeader);
-            }
-
-            alteredGotOptionsCookies = mergeCookies(request.url, sourceCookies);
-        }
-
-        const sourceCookies = [sessionCookie, preHookCookies];
-
-        if (Array.isArray(alteredGotOptionsCookies)) {
-            sourceCookies.push(...alteredGotOptionsCookies);
-        } else {
-            sourceCookies.push(alteredGotOptionsCookies);
-        }
-
-        sourceCookies.push(postHookCookies);
-
-        const mergedCookie = mergeCookies(request.url, sourceCookies);
-
-        gotOptions.headers ??= {};
-        Reflect.deleteProperty(gotOptions.headers, 'Cookie');
-        Reflect.deleteProperty(gotOptions.headers, 'cookie');
-
-        if (mergedCookie !== '') {
-            gotOptions.headers.Cookie = mergedCookie;
-        }
+        return mergeCookies(request.url, sourceCookies);
     }
 
     /**
@@ -649,17 +607,17 @@ export class HttpCrawler<
         request,
         session,
         proxyUrl,
-        gotOptions,
+        cookieString,
     }: RequestFunctionOptions): Promise<Response> {
         if (!TimeoutError) {
             // @ts-ignore
             ({ TimeoutError } = await import('got-scraping'));
         }
 
-        const opts = this._getRequestOptions(request, session, proxyUrl, gotOptions);
+        const opts = this._getRequestOptions(request, session, proxyUrl);
 
         try {
-            return await this._requestAsBrowser(opts, session);
+            return await this._requestAsBrowser(opts, session, cookieString);
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
@@ -723,26 +681,19 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(
-        request: CrawleeRequest,
-        session?: Session,
-        proxyUrl?: string,
-        gotOptions?: OptionsInit,
-    ) {
-        const requestOptions: OptionsInit & Required<Pick<OptionsInit, 'url'>> & { isStream: true } = {
+    protected _getRequestOptions(request: CrawleeRequest, session?: Session, proxyUrl?: string) {
+        const requestOptions = {
             url: request.url,
-            method: request.method as Method,
+            method: request.method,
             proxyUrl,
             timeout: { request: this.navigationTimeoutMillis },
             cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
             sessionToken: session,
-            ...gotOptions,
-            headers: { ...request.headers, ...gotOptions?.headers },
+            headers: request.headers,
             https: {
-                ...gotOptions?.https,
                 rejectUnauthorized: !this.ignoreSslErrors,
             },
-            isStream: true,
+            body: undefined as string | undefined,
         };
 
         // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
@@ -854,15 +805,18 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = async (
-        options: OptionsInit & { url: string | URL; isStream: true },
-        session?: Session,
-    ) => {
+    private _requestAsBrowser = async (options: Dictionary<any>, session?: Session, cookieString?: string) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
             cookieJar: options.cookieJar,
             responseType: 'text',
         });
+
+        if (cookieString) {
+            opts.headers?.delete('Cookie');
+            opts.headers?.delete('cookie');
+            opts.headers?.set('Cookie', cookieString);
+        }
 
         const response = await this.httpClient.stream(
             new Request(opts.url, {
@@ -879,9 +833,9 @@ export class HttpCrawler<
                     if (this.persistCookiesPerSession) {
                         session!.setCookiesFromResponse(redirectResponse);
 
-                        const cookieString = session!.getCookieString(updatedRequest.url!.toString());
-                        if (cookieString !== '') {
-                            updatedRequest.headers.set('Cookie', cookieString);
+                        const cookieStringRedirected = session!.getCookieString(updatedRequest.url!.toString());
+                        if (cookieStringRedirected !== '') {
+                            updatedRequest.headers.set('Cookie', cookieStringRedirected);
                         }
                     }
                 },
@@ -896,7 +850,7 @@ interface RequestFunctionOptions {
     request: CrawleeRequest;
     session?: Session;
     proxyUrl?: string;
-    gotOptions: OptionsInit;
+    cookieString?: string;
 }
 
 /**
