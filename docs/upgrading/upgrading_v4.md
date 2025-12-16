@@ -111,6 +111,6 @@ The crawling context in the `FileDownload` crawler no longer includes the `body`
 
 The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage client.
 
-## `preNavigationHooks` no longer accept `gotOptions` object
+## `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
 
-The `preNavigationHooks` no longer accept the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
+The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
