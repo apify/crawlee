@@ -5,7 +5,7 @@ import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import type { BaseHttpClient, ISession } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/types';
 import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
@@ -262,15 +262,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             },
                         }),
                         {
-                            ...(proxyUrl
-                                ? {
-                                      session: {
-                                          proxyInfo: {
-                                              url: proxyUrl,
-                                          },
-                                      } as ISession,
-                                  }
-                                : {}),
+                            proxyUrl,
                             timeout,
                         },
                     );
