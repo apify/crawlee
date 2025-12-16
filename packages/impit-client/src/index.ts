@@ -85,7 +85,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         const impit = this.getClient({
             ...this.impitOptions,
             ...(options?.cookieJar ? { cookieJar: options?.cookieJar as any as ToughCookieJar } : {}),
-            proxyUrl: options?.session?.proxyInfo?.url,
+            proxyUrl: options?.proxyUrl ?? options?.session?.proxyInfo?.url,
             followRedirects: false,
         });
 

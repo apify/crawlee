@@ -90,6 +90,12 @@ export interface SendRequestOptions {
     session?: ISession;
     cookieJar?: ToughCookieJar;
     timeout?: number;
+    /**
+     * Overrides the proxy URL set in the `session` for this request.
+     *
+     * Note that setting this manually can interfere with session proxy rotation.
+     */
+    proxyUrl?: string;
 }
 
 export interface StreamOptions extends SendRequestOptions {
