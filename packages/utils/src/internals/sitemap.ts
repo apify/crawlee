@@ -254,28 +254,32 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
             while (retriesLeft-- > 0) {
                 try {
-                    const sitemapResponse = await httpClient.stream(
-                        new Request(sitemapUrl, {
-                            method: 'GET',
-                            headers: {
-                                accept: 'text/plain, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
+                    let sitemapResponse: Response | null = null;
+
+                    try {
+                        sitemapResponse = await httpClient.stream(
+                            new Request(sitemapUrl, {
+                                method: 'GET',
+                                headers: {
+                                    accept: 'text/plain, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
+                                },
+                            }),
+                            {
+                                proxyUrl,
+                                timeout,
                             },
-                        }),
-                        {
-                            proxyUrl,
-                            timeout,
-                        },
-                    );
+                        );
+                    } catch (error: any) {}
 
                     let error: { error: Error; type: 'fetch' | 'parser' } | null = null;
 
-                    if (sitemapResponse.status >= 200 && sitemapResponse.status < 300) {
+                    if (sitemapResponse && sitemapResponse.status >= 200 && sitemapResponse.status < 300) {
                         let contentType = sitemapResponse.headers.get('content-type');
 
                         if (sitemapResponse.body === null) {
                             return;
                         }
-                        const streamWithType = await fileTypeStream(sitemapResponse.body);
+                        const streamWithType = await fileTypeStream(Readable.fromWeb(sitemapResponse.body as any));
                         if (streamWithType.fileType !== undefined) {
                             contentType = streamWithType.fileType.mime;
                         }
@@ -308,7 +312,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         error = {
                             type: 'fetch',
                             error: new Error(
-                                `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapResponse.status}`,
+                                `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapResponse?.status}`,
                             ),
                         };
                     }
@@ -381,7 +385,11 @@ export class Sitemap {
      * @param url The domain URL to fetch the sitemap for.
      * @param proxyUrl A proxy to be used for fetching the sitemap file.
      */
-    static async tryCommonNames(url: string, proxyUrl?: string): Promise<Sitemap> {
+    static async tryCommonNames(
+        url: string,
+        proxyUrl?: string,
+        parseSitemapOptions?: ParseSitemapOptions,
+    ): Promise<Sitemap> {
         const sitemapUrls: string[] = [];
 
         const sitemapUrl = new URL(url);
@@ -393,7 +401,7 @@ export class Sitemap {
         sitemapUrl.pathname = '/sitemap.txt';
         sitemapUrls.push(sitemapUrl.toString());
 
-        return Sitemap.load(sitemapUrls, proxyUrl, { reportNetworkErrors: false });
+        return Sitemap.load(sitemapUrls, proxyUrl, { reportNetworkErrors: false, ...parseSitemapOptions });
     }
 
     /**
@@ -418,8 +426,12 @@ export class Sitemap {
      * @param content XML sitemap content
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
      */
-    static async fromXmlString(content: string, proxyUrl?: string): Promise<Sitemap> {
-        return await this.parse([{ type: 'raw', content }], proxyUrl);
+    static async fromXmlString(
+        content: string,
+        proxyUrl?: string,
+        parseSitemapOptions?: ParseSitemapOptions,
+    ): Promise<Sitemap> {
+        return await this.parse([{ type: 'raw', content }], proxyUrl, parseSitemapOptions);
     }
 
     protected static async parse(

@@ -81,7 +81,7 @@ export class RobotsTxtFile {
         }
 
         // @ts-ignore
-        return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);
+        return new RobotsTxtFile(robotsParser(url.toString(), await response.text()), proxyUrl);
     }
 
     /**
