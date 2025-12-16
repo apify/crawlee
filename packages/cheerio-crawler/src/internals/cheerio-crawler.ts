@@ -118,11 +118,11 @@ export type CheerioRequestHandler<
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * We can use the `preNavigationHooks` to adjust `gotOptions`:
+ * We can use the `preNavigationHooks` to adjust the crawling context before the request is made:
  *
  * ```
  * preNavigationHooks: [
- *     (crawlingContext, gotOptions) => {
+ *     (crawlingContext) => {
  *         // ...
  *     },
  * ]

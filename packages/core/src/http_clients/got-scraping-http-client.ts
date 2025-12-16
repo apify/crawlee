@@ -38,7 +38,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             proxyUrl: session?.proxyInfo?.url,
             timeout: { request: timeout },
             // We set cookieJar to undefined because
-            // `HttpCrawler` reads the cookies beforehand and sets them in `request.gotOptions`.
+            // `HttpCrawler` reads the cookies beforehand and sets them in `request.headers`.
             // Using the `cookieJar` option directly would override that.
             cookieJar: undefined,
         });
