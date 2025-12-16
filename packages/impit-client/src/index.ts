@@ -98,6 +98,17 @@ export class ImpitHttpClient implements BaseHttpClient {
         return body as any;
     }
 
+    private shouldRewriteRedirectToGet(httpStatus: number, method: HttpRequest<any>['method']): boolean {
+        // See https://github.com/mozilla-firefox/firefox/blob/911b3eec6c5e58a9a49e23aa105e49aa76e00f9c/netwerk/protocol/http/HttpBaseChannel.cpp#L4801
+        if ([301, 302].includes(httpStatus)) {
+            return method === 'POST';
+        }
+
+        if (httpStatus === 303) return method !== 'HEAD';
+
+        return false;
+    }
+
     /**
      * Common implementation for `sendRequest` and `stream` methods.
      * @param request `HttpRequest` object
@@ -141,6 +152,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             return this.getResponse(
                 {
                     ...request,
+                    method: this.shouldRewriteRedirectToGet(response.status, request.method) ? 'GET' : request.method,
                     url: redirectUrl.href,
                 },
                 {
