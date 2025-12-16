@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import type { BaseHttpClient } from '@crawlee/types';
 import { downloadListOfUrls, extractUrls, URL_WITH_COMMAS_REGEX } from '@crawlee/utils';
-import { BaseHttpClient } from '@crawlee/types';
 
 const baseDataPath = path.join(import.meta.dirname, '..', 'shared', 'data');
 

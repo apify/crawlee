@@ -890,7 +890,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         queue.initialCount = queueInfo?.totalRequestCount ?? 0;
         queue.initialHandledCount = queueInfo?.handledRequestCount ?? 0;
-        queue['httpClient'] = options.httpClient;
+        queue.httpClient = options.httpClient;
 
         return queue;
     }

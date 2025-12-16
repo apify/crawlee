@@ -254,7 +254,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
             while (retriesLeft-- > 0) {
                 try {
-                    let sitemapResponse: Response | null = null;
+                    let sitemapResponse: Response | null;
 
                     try {
                         sitemapResponse = await httpClient.stream(
@@ -269,7 +269,9 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                                 timeout,
                             },
                         );
-                    } catch (error: any) {}
+                    } catch (error: any) {
+                        sitemapResponse = null;
+                    }
 
                     let error: { error: Error; type: 'fetch' | 'parser' } | null = null;
 
