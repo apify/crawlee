@@ -98,24 +98,15 @@ export class ImpitHttpClient implements BaseHttpClient {
         return body as any;
     }
 
-    private getRedirectMethod(originalMethod: HttpRequest<any>['method'], statusCode: number): HttpMethod {
-        // According to RFC 7231, in case of 301 and 302, the method should not change,
-        // but in practice, browsers change it to GET for POST requests.
-        if (
-            (statusCode === 301 || statusCode === 302) &&
-            originalMethod?.toUpperCase() !== 'GET' &&
-            originalMethod?.toUpperCase() !== 'HEAD'
-        ) {
-            return 'GET';
+    private shouldRewriteRedirectToGet(httpStatus: number, method: HttpRequest<any>['method']): boolean {
+        // See https://github.com/mozilla-firefox/firefox/blob/911b3eec6c5e58a9a49e23aa105e49aa76e00f9c/netwerk/protocol/http/HttpBaseChannel.cpp#L4801
+        if ([301, 302].includes(httpStatus)) {
+            return method === 'POST';
         }
 
-        // 303 must always change the method to GET
-        if (statusCode === 303) {
-            return 'GET';
-        }
+        if (httpStatus === 303) return method !== 'HEAD';
 
-        // 307 and 308 must not change the method
-        return (originalMethod?.toUpperCase() as HttpMethod) ?? 'GET';
+        return false;
     }
 
     /**
@@ -161,7 +152,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             return this.getResponse(
                 {
                     ...request,
-                    method: this.getRedirectMethod(request.method, response.status),
+                    method: this.shouldRewriteRedirectToGet(response.status, request.method) ? 'GET' : request.method,
                     url: redirectUrl.href,
                 },
                 {
