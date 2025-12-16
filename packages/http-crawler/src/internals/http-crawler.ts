@@ -583,7 +583,8 @@ export class HttpCrawler<
     }
 
     /**
-     * Sets the cookie header to `gotOptions` based on the provided request and session headers, as well as any changes that occurred due to hooks.
+     * Returns the `Cookie` header value based on the current context and
+     * any changes that occurred in the navigation hooks.
      */
     protected _applyCookies(
         { session, request }: CrawlingContext,
