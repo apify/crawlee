@@ -1,8 +1,8 @@
-import { BaseHttpClient } from '@crawlee/types';
+import { ImpitHttpClient } from '@crawlee/impit-client';
+import type { BaseHttpClient, ISession } from '@crawlee/types';
 import ow from 'ow';
 
 import { URL_NO_COMMAS_REGEX } from './general.js';
-import { ImpitHttpClient } from '@crawlee/impit-client';
 
 export interface DownloadListOfUrlsOptions {
     /**
@@ -63,13 +63,18 @@ export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Pr
         fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
     }
 
-    const response = await httpClient.sendRequest(new Request(fixedUrl, { method: 'GET' }), {
-        session: {
-            proxyInfo: {
-                proxyUrl,
-            },
-        },
-    });
+    const response = await httpClient.sendRequest(
+        new Request(fixedUrl, { method: 'GET' }),
+        proxyUrl
+            ? {
+                  session: {
+                      proxyInfo: {
+                          url: proxyUrl,
+                      },
+                  } as ISession,
+              }
+            : {},
+    );
 
     const string = new TextDecoder(encoding).decode(new Uint8Array(await response.arrayBuffer()));
 

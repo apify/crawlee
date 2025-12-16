@@ -1,9 +1,9 @@
 import { Readable } from 'node:stream';
 
-import { HttpRequestOptions, HttpRequest } from '@crawlee/types';
+import type { HttpRequest, HttpRequestOptions, IResponseWithUrl } from '@crawlee/types';
 import { applySearchParams } from '@crawlee/utils';
 
-export class ResponseWithUrl extends Response {
+export class ResponseWithUrl extends Response implements IResponseWithUrl {
     override url: string;
     constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
         super(body, init);

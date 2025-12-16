@@ -46,12 +46,6 @@
     "publishConfig": {
         "access": "public"
     },
-    "peerDependencies": {
-        "@crawlee/core": "4.0.0"
-    },
-    "devDependencies": {
-        "@crawlee/core": "4.0.0"
-    },
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
         "@crawlee/types": "workspace:^",

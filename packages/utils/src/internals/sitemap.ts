@@ -3,14 +3,14 @@ import type { Duplex } from 'node:stream';
 import { PassThrough, pipeline, Readable, Transform } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
-import { fileTypeStream } from 'file-type';
 
+import { ImpitHttpClient } from '@crawlee/impit-client';
+import type { BaseHttpClient, ISession } from '@crawlee/types';
+import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
 import log from '@apify/log';
-import { BaseHttpClient } from '@crawlee/types';
-import { ImpitHttpClient } from '@crawlee/impit-client';
 
 interface SitemapUrlData {
     loc: string;
@@ -262,11 +262,15 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             },
                         }),
                         {
-                            session: {
-                                proxyInfo: {
-                                    proxyUrl,
-                                },
-                            },
+                            ...(proxyUrl
+                                ? {
+                                      session: {
+                                          proxyInfo: {
+                                              url: proxyUrl,
+                                          },
+                                      } as ISession,
+                                  }
+                                : {}),
                             timeout,
                         },
                     );

@@ -1,5 +1,6 @@
 import type { Readable } from 'node:stream';
-import type { AllowedHttpMethods } from '@crawlee/types';
+
+import type { AllowedHttpMethods, ISession } from '@crawlee/types';
 
 export type SearchParams = string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
 
@@ -73,7 +74,7 @@ export interface HttpRequestOptions extends HttpRequest {
     password?: string;
 }
 
-export interface ResponseWithUrl extends Response {
+export interface IResponseWithUrl extends Response {
     url: string;
 }
 
@@ -85,13 +86,13 @@ export type RedirectHandler = (
     updatedRequest: { url?: string | URL; headers: Headers },
 ) => void;
 
-export interface SendRequestOptions<TSession = unknown> {
-    session?: TSession;
+export interface SendRequestOptions {
+    session?: ISession;
     cookieJar?: ToughCookieJar;
     timeout?: number;
 }
 
-export interface StreamOptions<TSession = unknown> extends SendRequestOptions<TSession> {
+export interface StreamOptions extends SendRequestOptions {
     onRedirect?: RedirectHandler;
 }
 

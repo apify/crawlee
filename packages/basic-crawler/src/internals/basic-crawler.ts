@@ -14,7 +14,6 @@ import type {
     IRequestList,
     IRequestManager,
     ProxyConfiguration,
-    ProxyInfo,
     Request,
     RequestsLike,
     RequestTransform,
@@ -58,8 +57,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/types';
-import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
+import type { Awaitable, BaseHttpClient, BatchAddRequestsResult, Dictionary, ProxyInfo,SetStatusMessageOptions  } from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';

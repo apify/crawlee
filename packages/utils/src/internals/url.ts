@@ -1,4 +1,4 @@
-import { SearchParams } from '@crawlee/types';
+import type { SearchParams } from '@crawlee/types';
 
 /**
  * Appends search (query string) parameters to a URL, replacing the original value (if any).

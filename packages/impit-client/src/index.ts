@@ -1,14 +1,12 @@
 import { Readable } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
 
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
-import { ResponseWithUrl } from '@crawlee/core';
+import type { BaseHttpClient, IResponseWithUrl,SendRequestOptions, StreamOptions } from '@crawlee/types';
 import type { ImpitOptions, ImpitResponse } from 'impit';
 import { Impit } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
-import { Session } from '@crawlee/core';
 
 export const Browser = {
     'Chrome': 'chrome',
@@ -18,6 +16,14 @@ export const Browser = {
 interface ResponseWithRedirects {
     response: ImpitResponse;
     redirectUrls: URL[];
+}
+
+class ResponseWithUrl extends Response implements IResponseWithUrl {
+    override url: string;
+    constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
+        super(body, init);
+        this.url = init.url ?? '';
+    }
 }
 
 /**
@@ -70,7 +76,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             redirectCount?: number;
             redirectUrls?: URL[];
         },
-        options?: StreamOptions<Session>,
+        options?: StreamOptions,
     ): Promise<ResponseWithRedirects> {
         if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
             throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
@@ -114,7 +120,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async sendRequest(request: Request, options?: SendRequestOptions<Session>): Promise<Response> {
+    async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
         const { response } = await this.getResponse(request, {}, options);
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
@@ -145,7 +151,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async stream(request: Request, options?: StreamOptions<Session>): Promise<Response> {
+    async stream(request: Request, options?: StreamOptions): Promise<Response> {
         const { response } = await this.getResponse(request, {}, options);
         const [stream] = this.getStreamWithProgress(response);
 

@@ -677,17 +677,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/impit-client@workspace:packages/impit-client":
+"@crawlee/impit-client@npm:4.0.0, @crawlee/impit-client@workspace:packages/impit-client":
   version: 0.0.0-use.local
   resolution: "@crawlee/impit-client@workspace:packages/impit-client"
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
-    "@crawlee/core": "npm:4.0.0"
     "@crawlee/types": "workspace:^"
     impit: "npm:^0.7.0"
     tough-cookie: "npm:^6.0.0"
-  peerDependencies:
-    "@crawlee/core": 4.0.0
   languageName: unknown
   linkType: soft
 
@@ -905,6 +902,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/types@workspace:packages/types"
   dependencies:
+    tough-cookie: "npm:^6.0.0"
     tslib: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
@@ -935,6 +933,7 @@ __metadata:
   dependencies:
     "@apify/log": "npm:^2.5.18"
     "@apify/ps-tree": "npm:^1.2.0"
+    "@crawlee/impit-client": "npm:4.0.0"
     "@crawlee/types": "npm:4.0.0"
     "@types/sax": "npm:^1.2.7"
     cheerio: "npm:^1.0.0"
