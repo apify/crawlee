@@ -57,7 +57,14 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
-import type { Awaitable, BaseHttpClient, BatchAddRequestsResult, Dictionary, ProxyInfo,SetStatusMessageOptions  } from '@crawlee/types';
+import type {
+    Awaitable,
+    BaseHttpClient,
+    BatchAddRequestsResult,
+    Dictionary,
+    ProxyInfo,
+    SetStatusMessageOptions,
+} from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
