@@ -1,4 +1,4 @@
-import type { Dictionary, StorageClient } from '@crawlee/types';
+import type { BaseHttpClient, Dictionary, StorageClient } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 
 import { Configuration } from '../configuration.js';
@@ -172,4 +172,9 @@ export interface StorageManagerOptions {
      * If undefined, the `requestsFromUrl` requests will be made without proxy.
      */
     proxyConfiguration?: ProxyConfiguration;
+
+    /**
+     * HTTP client to be used to download the list of URLs in `RequestQueue`.
+     */
+    httpClient?: BaseHttpClient;
 }
