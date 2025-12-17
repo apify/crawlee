@@ -686,7 +686,7 @@ export class HttpCrawler<
             url: request.url,
             method: request.method,
             proxyUrl,
-            timeout: { request: this.navigationTimeoutMillis },
+            timeout: this.navigationTimeoutMillis,
             cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
             sessionToken: session,
             headers: request.headers,
