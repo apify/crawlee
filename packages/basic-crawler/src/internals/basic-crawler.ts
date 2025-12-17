@@ -494,7 +494,6 @@ export class BasicCrawler<
      * Used to detect and warn about multiple crawlers sharing the same state.
      */
     private static useStateCrawlerIds = new Set<string>();
-    private static useStateWarningLogged = false;
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
@@ -1137,9 +1136,8 @@ export class BasicCrawler<
 
         BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
 
-        if (BasicCrawler.useStateCrawlerIds.size > 1 && !BasicCrawler.useStateWarningLogged) {
-            BasicCrawler.useStateWarningLogged = true;
-            defaultLog.warning(
+        if (BasicCrawler.useStateCrawlerIds.size > 1) {
+            defaultLog.warningOnce(
                 'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
                     'This means they will share the same state object, which is likely unintended. \n' +
                     'To fix this, provide a unique `id` option to each crawler instance. \n' +
