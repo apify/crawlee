@@ -387,6 +387,19 @@ export interface BasicCrawlerOptions<
      * the Proxy URLs provided and rotated according to the configuration.
      */
     proxyConfiguration?: ProxyConfiguration;
+
+    /**
+     * A unique identifier for the crawler instance. This ID is used to isolate the state returned by
+     * {@apilink BasicCrawler.useState|`crawler.useState()`} from other crawler instances.
+     *
+     * When multiple crawler instances use `useState()` without an explicit `id`, they will share the same
+     * state object for backward compatibility. A warning will be logged in this case.
+     *
+     * To ensure each crawler has its own isolated state that also persists across script restarts
+     * (e.g., during Apify migrations), provide a stable, unique ID for each crawler instance.
+     *
+     */
+    id?: string;
 }
 
 /**
@@ -475,6 +488,13 @@ export class BasicCrawler<
     ExtendedContext extends Context = Context & ContextExtension,
 > {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
+
+    /**
+     * Tracks crawler instances that accessed shared state without having an explicit id.
+     * Used to detect and warn about multiple crawlers sharing the same state.
+     */
+    private static useStateCrawlerIds = new Set<string>();
+    private static useStateWarningLogged = false;
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
@@ -569,6 +589,8 @@ export class BasicCrawler<
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
+    private readonly crawlerId: string;
+    private readonly hasExplicitId: boolean;
 
     protected static optionsShape = {
         contextPipelineBuilder: ow.optional.object,
@@ -612,6 +634,8 @@ export class BasicCrawler<
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
+
+        id: ow.optional.string,
     };
 
     /**
@@ -659,7 +683,14 @@ export class BasicCrawler<
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
             experiments = {},
+
+            id,
         } = options;
+
+        // Store whether the user explicitly provided an ID
+        this.hasExplicitId = id !== undefined;
+        // Store the user-provided ID, or generate a unique one for tracking purposes (not for state key)
+        this.crawlerId = id ?? cryptoRandomObjectId();
 
         // Store the builder so that it can be run when the contextPipeline is needed.
         // Invoking it immediately would cause problems with parent constructor call order.
@@ -1098,6 +1129,24 @@ export class BasicCrawler<
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { config: this.config });
+
+        if (this.hasExplicitId) {
+            const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.crawlerId}`;
+            return kvs.getAutoSavedValue<State>(stateKey, defaultValue);
+        }
+
+        BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
+
+        if (BasicCrawler.useStateCrawlerIds.size > 1 && !BasicCrawler.useStateWarningLogged) {
+            BasicCrawler.useStateWarningLogged = true;
+            defaultLog.warning(
+                'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
+                    'This means they will share the same state object, which is likely unintended. \n' +
+                    'To fix this, provide a unique `id` option to each crawler instance. \n' +
+                    'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
+            );
+        }
+
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
     }
 
