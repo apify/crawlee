@@ -279,7 +279,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         let contentType = sitemapResponse.headers.get('content-type');
 
                         if (sitemapResponse.body === null) {
-                            return;
+                            break;
                         }
                         const streamWithType = await fileTypeStream(Readable.fromWeb(sitemapResponse.body as any));
                         if (streamWithType.fileType !== undefined) {

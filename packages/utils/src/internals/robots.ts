@@ -60,11 +60,15 @@ export class RobotsTxtFile {
         url: string,
         options?: { proxyUrl?: string; httpClient?: BaseHttpClient },
     ): Promise<RobotsTxtFile> {
-        const { proxyUrl, httpClient = new ImpitHttpClient() } = options || {};
+        const { proxyUrl, httpClient = new ImpitHttpClient({ followRedirects: true }) } = options || {};
 
         const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
             proxyUrl,
         });
+
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error(`Failed to load robots.txt from ${url}: HTTP ${response.status}`);
+        }
 
         if (response.status === 404) {
             return new RobotsTxtFile(

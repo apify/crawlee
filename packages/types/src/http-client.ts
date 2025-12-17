@@ -1,6 +1,7 @@
 import type { Readable } from 'node:stream';
 
-import type { AllowedHttpMethods, ISession } from '@crawlee/types';
+import type { ISession } from './session.js';
+import type { AllowedHttpMethods } from './utility-types.js';
 
 export type SearchParams = string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
 
@@ -65,7 +66,7 @@ export interface HttpRequestOptions extends HttpRequest {
 
     /** A form to be sent in the HTTP request body (URL encoding will be used) */
     form?: Record<string, string>;
-    /** Artbitrary object to be JSON-serialized and sent as the HTTP request body */
+    /** Arbitrary object to be JSON-serialized and sent as the HTTP request body */
     json?: unknown;
 
     /** Basic HTTP Auth username */

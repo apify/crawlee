@@ -1,9 +1,10 @@
 import { Readable } from 'node:stream';
 
-import { ResponseWithUrl } from '@crawlee/core';
 import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
+
+import { ResponseWithUrl } from './base-http-client.js';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
