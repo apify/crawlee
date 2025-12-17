@@ -198,11 +198,6 @@ export class SitemapRequestList implements IRequestList {
     private proxyUrl?: string;
 
     /**
-     * Custom HTTP client to be used for sitemap loading.
-     */
-    private httpClient?: BaseHttpClient;
-
-    /**
      * Logger instance.
      */
     private log = defaultLog.child({ prefix: 'SitemapRequestList' });
