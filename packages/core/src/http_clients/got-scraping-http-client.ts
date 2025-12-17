@@ -20,6 +20,31 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         return !['CONNECT', 'connect'].includes(request.method!);
     }
 
+    private parseHeaders(headers: Record<string, string | string[] | undefined>): Headers {
+        const filterPseudoheaders = (headerPair: string[]): boolean => {
+            return !headerPair[0].startsWith(':');
+        };
+
+        const mergeMultipleHeaderValues = (header: [string, string | string[] | undefined]): string[][] => {
+            const [key, value] = header;
+            if (value === undefined) {
+                return [];
+            }
+
+            if (Array.isArray(value)) {
+                return value.map((v) => [key, v]);
+            }
+            return [[key, value]];
+        };
+
+        const parsedHeaders = Object.entries(headers)
+            .map(mergeMultipleHeaderValues)
+            .flat()
+            .filter(filterPseudoheaders) as [string, string][];
+
+        return new Headers(parsedHeaders);
+    }
+
     /**
      * @inheritDoc
      */
@@ -43,20 +68,10 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             cookieJar: undefined,
         });
 
-        const parsedHeaders = Object.entries(gotResult.headers)
-            .map(([key, value]) => {
-                if (value === undefined) return [];
-
-                if (Array.isArray(value)) {
-                    return value.map((v) => [key, v]);
-                }
-
-                return [[key, value]];
-            })
-            .flat() as [string, string][];
+        const responseHeaders = this.parseHeaders(gotResult.headers);
 
         return new ResponseWithUrl(new Uint8Array(gotResult.rawBody), {
-            headers: new Headers(parsedHeaders),
+            headers: responseHeaders,
             status: gotResult.statusCode,
             statusText: gotResult.statusMessage ?? '',
             url: gotResult.url,
@@ -111,12 +126,13 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             stream.on('error', reject);
 
             stream.on('response', (response: PlainResponse) => {
+                const headers = this.parseHeaders(response.headers);
                 // Cast shouldn't be needed here, undici might have a different `ReadableStream` type
                 resolve(
                     new ResponseWithUrl(Readable.toWeb(stream) as any, {
                         status: response.statusCode,
                         statusText: response.statusMessage ?? '',
-                        headers: response.headers as HeadersInit,
+                        headers,
                         url: response.url,
                     }),
                 );
