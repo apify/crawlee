@@ -430,6 +430,7 @@ describe('SitemapRequestList', () => {
 
         while (!(await list.isFinished())) {
             const request = await list.fetchNextRequest();
+            if (!request) break;
             await list.markRequestHandled(request!);
             requests.push(request!);
         }
@@ -455,6 +456,7 @@ describe('SitemapRequestList', () => {
 
         while (!(await list.isFinished())) {
             const request = await list.fetchNextRequest();
+            if (!request) break;
 
             if (counter % 2 === 0) {
                 await list.markRequestHandled(request!);
@@ -494,6 +496,7 @@ describe('SitemapRequestList', () => {
 
         while (!(await newList.isFinished())) {
             const request = await newList.fetchNextRequest();
+            if (!request) break;
             await newList.markRequestHandled(request!);
         }
 
