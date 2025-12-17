@@ -66,7 +66,7 @@
 .menuDropdown {
   position: absolute;
   right: 0;
-  margin-top: 0.5rem;
+  top: calc(100% + 0.5rem);
   padding: 0.375rem;
   border-radius: 0.75rem;
   border: 1px solid var(--color-separator);
