@@ -82,6 +82,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      * @inheritDoc
      */
     async stream(request: Request, options?: StreamOptions): Promise<Response> {
+        const { session, timeout } = options ?? {};
+
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
         }
@@ -93,6 +95,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                 headers: Object.fromEntries(request.headers.entries()),
                 body: request.body ? Readable.fromWeb(request.body as any) : undefined,
                 isStream: true,
+                proxyUrl: session?.proxyInfo?.url,
+                timeout: { request: timeout },
                 cookieJar: undefined,
             });
 
