@@ -20,29 +20,27 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         return !['CONNECT', 'connect'].includes(request.method!);
     }
 
-    private parseHeaders(headers: Record<string, string | string[] | undefined>): Headers {
-        const filterPseudoheaders = (headerPair: string[]): boolean => {
-            return !headerPair[0].startsWith(':');
-        };
-
-        const mergeMultipleHeaderValues = (header: [string, string | string[] | undefined]): string[][] => {
-            const [key, value] = header;
-            if (value === undefined) {
-                return [];
+    private *iterateHeaders(
+        headers: Record<string, string | string[] | undefined>,
+    ): Generator<[string, string], void, unknown> {
+        for (const [key, value] of Object.entries(headers)) {
+            // Filter out pseudo-headers
+            if (key.startsWith(':') || value === undefined) {
+                continue;
             }
 
             if (Array.isArray(value)) {
-                return value.map((v) => [key, v]);
+                for (const v of value) {
+                    yield [key, v];
+                }
+            } else {
+                yield [key, value];
             }
-            return [[key, value]];
-        };
+        }
+    }
 
-        const parsedHeaders = Object.entries(headers)
-            .map(mergeMultipleHeaderValues)
-            .flat()
-            .filter(filterPseudoheaders) as [string, string][];
-
-        return new Headers(parsedHeaders);
+    private parseHeaders(headers: Record<string, string | string[] | undefined>): Headers {
+        return new Headers([...this.iterateHeaders(headers)]);
     }
 
     /**
