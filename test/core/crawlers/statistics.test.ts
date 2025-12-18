@@ -34,14 +34,14 @@ describe('Statistics', () => {
     describe('persist state', () => {
         // needs to go first for predictability
         test('should increment id by each new consecutive instance', () => {
-            expect(stats.id).toEqual(0);
+            expect(stats.id).toEqual('0');
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(1);
             // @ts-expect-error Accessing private prop
             expect(stats.persistStateKey).toEqual('SDK_CRAWLER_STATISTICS_0');
             const [n1, n2] = [new Statistics(), new Statistics()];
-            expect(n1.id).toEqual(1);
-            expect(n2.id).toEqual(2);
+            expect(n1.id).toEqual('1');
+            expect(n2.id).toEqual('2');
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(3);
         });
@@ -337,5 +337,43 @@ describe('Statistics', () => {
         stats.reset();
         expect(stats.state.requestsFinished).toEqual(0);
         expect(stats.requestRetryHistogram).toEqual([]);
+    });
+
+    describe('explicit id option', () => {
+        test('statistics with same explicit id should share persisted state', async () => {
+            const stats1 = new Statistics({ id: 'shared-stats' });
+            stats1.startJob(0);
+            vitest.advanceTimersByTime(100);
+            stats1.finishJob(0, 0);
+
+            await stats1.startCapturing();
+            await stats1.persistState();
+            await stats1.stopCapturing();
+
+            const stats2 = new Statistics({ id: 'shared-stats' });
+            await stats2.startCapturing();
+
+            expect(stats2.state.requestsFinished).toEqual(1);
+
+            await stats2.stopCapturing();
+        });
+
+        test('statistics with different explicit ids should have isolated state', async () => {
+            const statsA = new Statistics({ id: 'stats-a' });
+            statsA.startJob(0);
+            vitest.advanceTimersByTime(100);
+            statsA.finishJob(0, 0);
+
+            await statsA.startCapturing();
+            await statsA.persistState();
+            await statsA.stopCapturing();
+
+            const statsB = new Statistics({ id: 'stats-b' });
+            await statsB.startCapturing();
+
+            expect(statsB.state.requestsFinished).toEqual(0);
+
+            await statsB.stopCapturing();
+        });
     });
 });
