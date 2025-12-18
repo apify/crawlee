@@ -1,9 +1,4 @@
----
-id: crawling
-title: 'Crawling the Store'
-sidebar_label: 'Crawling'
-description: Your first steps into the world of scraping with Crawlee
----
+# Crawling the Store
 
 To crawl the whole [example Warehouse Store](https://warehouse-theme-metal.myshopify.com/collections) and find all the data, you first need to visit all the pages with products - going through all categories available and also all the product detail pages.
 
@@ -53,6 +48,170 @@ When you previously used `enqueueLinks()`, you were not providing any `selector`
 ### The `label` of `enqueueLinks()`
 
 You will see `label` used often throughout Crawlee, as it's a convenient way of labelling a `Request` instance for quick identification later. You can access it with `request.label` and it's a `string`. You can name your requests any way you want. Here, we used the label `CATEGORY` to note that we're enqueueing pages that represent a category of products. The `enqueueLinks()` function will add this label to all requests before enqueueing them to the `RequestQueue`. Why this is useful will become obvious in a minute.
+
+---
+
+## Making Requests with Headers
+
+When crawling websites, you often need to customize HTTP headers to make your requests appear more legitimate, bypass certain restrictions, or comply with API requirements. Crawlee allows you to set custom headers for your requests.
+
+### Basic Header Configuration
+
+You can set headers at the crawler level or per request:
+
+```ts
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    // Set default headers for all requests
+    preNavigationHooks: [
+        async ({ page }) => {
+            await page.setExtraHTTPHeaders({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            });
+        },
+    ],
+    requestHandler: async ({ page, request, enqueueLinks }) => {
+        console.log(`Processing: ${request.url}`);
+        // Your crawling logic here
+    },
+});
+
+await crawler.run(['https://warehouse-theme-metal.myshopify.com/collections']);
+```
+
+### Common HTTP Headers and Their Uses
+
+#### 1. **User-Agent**
+```ts
+'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+```
+**Purpose:** Identifies the browser and operating system making the request.
+- **Why it matters:** Many websites block requests without a valid User-Agent or serve different content based on the browser
+- **Best practice:** Use a recent, common browser User-Agent to avoid detection as a bot
+
+#### 2. **Accept**
+```ts
+'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+```
+**Purpose:** Tells the server what content types the client can process.
+- **Why it matters:** Helps the server determine the appropriate response format
+- **Use case:** Essential when working with APIs that can return JSON, XML, or HTML
+
+#### 3. **Accept-Language**
+```ts
+'Accept-Language': 'en-US,en;q=0.9'
+```
+**Purpose:** Specifies the preferred language for the response.
+- **Why it matters:** Some websites serve different content based on language preferences
+- **Use case:** Important for international scraping or when targeting specific regional content
+
+#### 4. **Accept-Encoding**
+```ts
+'Accept-Encoding': 'gzip, deflate, br'
+```
+**Purpose:** Indicates which compression algorithms the client supports.
+- **Why it matters:** Enables compressed responses, reducing bandwidth and improving speed
+- **Best practice:** Always include common compression methods supported by browsers
+
+#### 5. **Referer**
+```ts
+'Referer': 'https://www.google.com/'
+```
+**Purpose:** Shows the URL of the page that linked to the current request.
+- **Why it matters:** Some websites check the Referer header to prevent hotlinking or verify navigation flow
+- **Use case:** Useful when crawling requires appearing to come from a specific source
+
+#### 6. **Connection**
+```ts
+'Connection': 'keep-alive'
+```
+**Purpose:** Controls whether the network connection stays open after the current transaction.
+- **Why it matters:** Improves performance by reusing connections for multiple requests
+- **Best practice:** Use "keep-alive" for better crawling efficiency
+
+#### 7. **Authorization**
+```ts
+'Authorization': 'Bearer YOUR_API_TOKEN'
+```
+**Purpose:** Provides credentials for authentication.
+- **Why it matters:** Required when accessing protected resources or APIs
+- **Use case:** Essential for scraping authenticated content or using API endpoints
+
+#### 8. **Cookie**
+```ts
+'Cookie': 'session_id=abc123; user_pref=dark_mode'
+```
+**Purpose:** Sends stored cookies to the server.
+- **Why it matters:** Maintains session state and user preferences
+- **Use case:** Necessary for crawling content that requires login or session persistence
+
+#### 9. **Cache-Control**
+```ts
+'Cache-Control': 'no-cache'
+```
+**Purpose:** Directs caching mechanisms on how to handle the request/response.
+- **Why it matters:** Ensures you get fresh data rather than cached versions
+- **Use case:** Important when scraping frequently updated content
+
+#### 10. **Upgrade-Insecure-Requests**
+```ts
+'Upgrade-Insecure-Requests': '1'
+```
+**Purpose:** Signals preference for encrypted (HTTPS) connections.
+- **Why it matters:** Helps with security and can prevent redirect issues
+- **Best practice:** Include to match modern browser behavior
+
+### Advanced Example with Headers
+
+```ts
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    preNavigationHooks: [
+        async ({ page, request }) => {
+            // Set different headers based on the request label
+            const headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+            };
+
+            // Add specific headers for API requests
+            if (request.label === 'API') {
+                headers['Accept'] = 'application/json';
+                headers['Content-Type'] = 'application/json';
+            } else {
+                headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+                headers['Upgrade-Insecure-Requests'] = '1';
+            }
+
+            await page.setExtraHTTPHeaders(headers);
+        },
+    ],
+    requestHandler: async ({ page, request, enqueueLinks }) => {
+        console.log(`Processing: ${request.url}`);
+        // Your crawling logic here
+    },
+});
+
+await crawler.run(['https://warehouse-theme-metal.myshopify.com/collections']);
+```
+
+### Important Considerations
+
+1. **Don't overdo it:** Setting too many unusual headers can actually make your requests more suspicious
+2. **Rotate User-Agents:** For large-scale crawling, consider rotating User-Agents to appear more natural
+3. **Respect robots.txt:** Headers won't help if you're violating a site's crawling policies
+4. **Legal compliance:** Always ensure your scraping activities comply with the website's terms of service and applicable laws
+
+---
 
 ## Crawling the detail pages
 
