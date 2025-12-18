@@ -1149,6 +1149,45 @@ describe('CheerioCrawler', () => {
             expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'Foo' and 'foo'`);
             expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'coo' and 'Coo'`);
         });
+
+        test('sendRequest and main request should share the same session cookie jar', async () => {
+            const responses: { cookies: string }[] = [];
+
+            const crawler = new CheerioCrawler({
+                requestList: await RequestList.open(null, [{ url: `${serverAddress}/special/get-cookies` }]),
+                useSessionPool: true,
+                sessionPoolOptions: {
+                    // Even with multiple available sessions, the preNavigationHook should use the same one as the main request
+                    maxPoolSize: 10,
+                },
+                preNavigationHooks: [
+                    async ({ sendRequest }) => {
+                        await sendRequest({
+                            url: `${serverAddress}/special/set-cookie?name=sharedCookie&value=sharedValue`,
+                        });
+
+                        const response = await sendRequest({ url: `${serverAddress}/special/get-cookies` });
+                        const json = await response.json();
+
+                        expect(json.cookies).toContain('sharedCookie=sharedValue');
+                    },
+                ],
+                requestHandler: async ({ json, sendRequest }) => {
+                    responses.push(json as { cookies: string });
+
+                    const sendRequestJson = await sendRequest({ url: `${serverAddress}/special/get-cookies` }).then(
+                        async (response) => response.json(),
+                    );
+                    responses.push(sendRequestJson as { cookies: string });
+                },
+            });
+
+            await crawler.run();
+
+            expect(responses).toHaveLength(2);
+            expect(responses[0].cookies).toContain('sharedCookie=sharedValue');
+            expect(responses[1].cookies).toContain('sharedCookie=sharedValue');
+        });
     });
 
     describe('Crawling context', () => {
