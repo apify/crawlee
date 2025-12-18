@@ -1,4 +1,4 @@
-export type SearchParams = string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
+import type { SearchParams } from '@crawlee/types';
 
 /**
  * Appends search (query string) parameters to a URL, replacing the original value (if any).

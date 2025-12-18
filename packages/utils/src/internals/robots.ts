@@ -1,11 +1,9 @@
-import type { HTTPError as HTTPErrorClass } from 'got-scraping';
-import { gotScraping } from 'got-scraping';
+import { ImpitHttpClient } from '@crawlee/impit-client';
+import type { BaseHttpClient } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
 import { Sitemap } from './sitemap.js';
-
-let HTTPError: typeof HTTPErrorClass;
 
 /**
  * Loads and queries information from a [robots.txt file](https://en.wikipedia.org/wiki/Robots.txt).
@@ -34,21 +32,20 @@ export class RobotsTxtFile {
     /**
      * Determine the location of a robots.txt file for a URL and fetch it.
      * @param url the URL to fetch robots.txt for
-     * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      * @param [options] additional options
      * @param [options.signal] an AbortSignal to cancel the request
      * @param [options.timeoutMillis] timeout in milliseconds for the request
+     * @param [options.proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static async find(
         url: string,
-        proxyUrl?: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number },
+        options?: { signal?: AbortSignal; timeoutMillis?: number; proxyUrl?: string; httpClient?: BaseHttpClient },
     ): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
         robotsTxtFileUrl.search = '';
 
-        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl, options);
+        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), options);
     }
 
     /**
@@ -64,41 +61,36 @@ export class RobotsTxtFile {
 
     protected static async load(
         url: string,
-        proxyUrl?: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number },
+        options?: { signal?: AbortSignal; timeoutMillis?: number; proxyUrl?: string; httpClient?: BaseHttpClient },
     ): Promise<RobotsTxtFile> {
-        if (!HTTPError) {
-            HTTPError = (await import('got-scraping')).HTTPError;
+        const { proxyUrl, httpClient = new ImpitHttpClient({ followRedirects: true }) } = options || {};
+
+        const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
+            proxyUrl,
+            signal,
+            timeout: options?.timeoutMillis,
+        });
+
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error(`Failed to load robots.txt from ${url}: HTTP ${response.status}`);
         }
 
-        try {
-            const response = await gotScraping({
-                url,
-                proxyUrl,
-                method: 'GET',
-                responseType: 'text',
-                signal: options?.signal,
-                ...(options?.timeoutMillis ? { timeout: { request: options.timeoutMillis } } : {}),
-            });
-
-            // @ts-ignore
-            return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);
-        } catch (e) {
-            if (e instanceof HTTPError && e.response.statusCode === 404) {
-                return new RobotsTxtFile(
-                    {
-                        isAllowed() {
-                            return true;
-                        },
-                        getSitemaps() {
-                            return [];
-                        },
+        if (response.status === 404) {
+            return new RobotsTxtFile(
+                {
+                    isAllowed() {
+                        return true;
                     },
-                    proxyUrl,
-                );
-            }
-            throw e;
+                    getSitemaps() {
+                        return [];
+                    },
+                },
+                proxyUrl,
+            );
         }
+
+        // @ts-ignore
+        return new RobotsTxtFile(robotsParser(url.toString(), await response.text()), proxyUrl);
     }
 
     /**

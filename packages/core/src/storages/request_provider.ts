@@ -1,6 +1,7 @@
 import { inspect } from 'node:util';
 
 import type {
+    BaseHttpClient,
     BatchAddRequestsResult,
     Dictionary,
     ProcessedRequest,
@@ -146,6 +147,8 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     protected isFinishedCalledWhileHeadWasNotEmpty = 0;
 
     protected inProgressRequestBatchCount = 0;
+
+    protected httpClient?: BaseHttpClient;
 
     constructor(
         options: InternalRequestProviderOptions,
@@ -920,7 +923,10 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         urlRegExp?: RegExp;
         proxyUrl?: string;
     }): Promise<string[]> {
-        return downloadListOfUrls(options);
+        return downloadListOfUrls({
+            ...options,
+            httpClient: this.httpClient,
+        });
     }
 
     /**
@@ -949,6 +955,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 config: ow.optional.object.instanceOf(Configuration),
                 storageClient: ow.optional.object,
                 proxyConfiguration: ow.optional.object,
+                httpClient: ow.optional.object,
             }),
         );
 
@@ -965,6 +972,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         queue.initialCount = queueInfo?.totalRequestCount ?? 0;
         queue.initialHandledCount = queueInfo?.handledRequestCount ?? 0;
+        queue.httpClient = options.httpClient;
 
         return queue;
     }

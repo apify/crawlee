@@ -430,8 +430,9 @@ describe('SitemapRequestList', () => {
 
         while (!(await list.isFinished())) {
             const request = await list.fetchNextRequest();
-            await list.markRequestHandled(request!);
-            requests.push(request!);
+            if (!request) break;
+            await list.markRequestHandled(request);
+            requests.push(request);
         }
 
         await expect(list.isEmpty()).resolves.toBe(true);
@@ -455,12 +456,13 @@ describe('SitemapRequestList', () => {
 
         while (!(await list.isFinished())) {
             const request = await list.fetchNextRequest();
+            if (!request) break;
 
             if (counter % 2 === 0) {
-                await list.markRequestHandled(request!);
-                requests.push(request!);
+                await list.markRequestHandled(request);
+                requests.push(request);
             } else {
-                await list.reclaimRequest(request!);
+                await list.reclaimRequest(request);
             }
 
             counter += 1;
@@ -494,7 +496,8 @@ describe('SitemapRequestList', () => {
 
         while (!(await newList.isFinished())) {
             const request = await newList.fetchNextRequest();
-            await newList.markRequestHandled(request!);
+            if (!request) break;
+            await newList.markRequestHandled(request);
         }
 
         expect(list.handledCount()).toBe(1);
