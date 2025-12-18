@@ -784,6 +784,7 @@ export class BasicCrawler<
             logMessage: `${log.getOptions().prefix} request statistics:`,
             log,
             config,
+            ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
             ...statisticsOptions,
         });
         this.sessionPoolOptions = {

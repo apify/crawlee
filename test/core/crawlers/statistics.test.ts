@@ -338,4 +338,42 @@ describe('Statistics', () => {
         expect(stats.state.requestsFinished).toEqual(0);
         expect(stats.requestRetryHistogram).toEqual([]);
     });
+
+    describe('explicit id option', () => {
+        test('statistics with same explicit id should share persisted state', async () => {
+            const stats1 = new Statistics({ id: 'shared-stats' });
+            stats1.startJob(0);
+            vitest.advanceTimersByTime(100);
+            stats1.finishJob(0, 0);
+
+            await stats1.startCapturing();
+            await stats1.persistState();
+            await stats1.stopCapturing();
+
+            const stats2 = new Statistics({ id: 'shared-stats' });
+            await stats2.startCapturing();
+
+            expect(stats2.state.requestsFinished).toEqual(1);
+
+            await stats2.stopCapturing();
+        });
+
+        test('statistics with different explicit ids should have isolated state', async () => {
+            const statsA = new Statistics({ id: 'stats-a' });
+            statsA.startJob(0);
+            vitest.advanceTimersByTime(100);
+            statsA.finishJob(0, 0);
+
+            await statsA.startCapturing();
+            await statsA.persistState();
+            await statsA.stopCapturing();
+
+            const statsB = new Statistics({ id: 'stats-b' });
+            await statsB.startCapturing();
+
+            expect(statsB.state.requestsFinished).toEqual(0);
+
+            await statsB.stopCapturing();
+        });
+    });
 });
