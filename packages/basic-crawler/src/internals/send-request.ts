@@ -1,4 +1,10 @@
-import { type BaseHttpClient, type HttpRequestOptions, type Request, type Session } from '@crawlee/core';
+import {
+    type BaseHttpClient,
+    type HttpRequestOptions,
+    type Request as CrawleeRequest,
+    type SendRequestOptions,
+    type Session,
+} from '@crawlee/core';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -7,18 +13,42 @@ import { type BaseHttpClient, type HttpRequestOptions, type Request, type Sessio
  * @param httpClient The HTTP client that will perform the requests.
  * @param originRequest The crawling request being processed.
  * @param session The user session associated with the current request.
- * @param getProxyUrl A function that will return the proxy URL that should be used for handling the request.
  */
-export function createSendRequest(httpClient: BaseHttpClient, originRequest: Request, session: Session | undefined) {
-    return async (overrideOptions: Partial<HttpRequestOptions> = {}): Promise<Response> => {
-        const cookieJar = session
-            ? {
-                  getCookieString: async (url: string) => session.getCookieString(url),
-                  setCookie: async (rawCookie: string, url: string) => session.setCookie(rawCookie, url),
-                  ...overrideOptions?.cookieJar,
-              }
-            : overrideOptions?.cookieJar;
+export function createSendRequest(
+    httpClient: BaseHttpClient,
+    originRequest: CrawleeRequest,
+    session: Session | undefined,
+) {
+    return async (
+        overrideRequest: Partial<HttpRequestOptions> = {},
+        overrideOptions: SendRequestOptions = {},
+    ): Promise<Response> => {
+        const sessionCookieJar = {
+            getCookieString: async (url: string) => session?.getCookieString(url),
+            setCookie: async (rawCookie: string, url: string) => session?.setCookie(rawCookie, url),
+        };
 
-        return httpClient.sendRequest(originRequest.intoFetchAPIRequest(), { session, cookieJar: cookieJar as any });
+        const baseRequest = originRequest.intoFetchAPIRequest();
+        const mergedUrl = overrideRequest.url ?? baseRequest.url;
+        const mergedMethod = overrideRequest.method ?? baseRequest.method;
+
+        const mergedHeaders = new Headers(baseRequest.headers);
+        if (overrideRequest.headers) {
+            overrideRequest.headers.forEach((value, key) => {
+                mergedHeaders.set(key, value);
+            });
+        }
+
+        const request = new Request(mergedUrl, {
+            method: mergedMethod,
+            headers: mergedHeaders,
+            body: overrideRequest.body ?? baseRequest.body,
+        } as RequestInit);
+
+        return httpClient.sendRequest(request, {
+            session,
+            cookieJar: overrideOptions?.cookieJar ?? (sessionCookieJar as any),
+            timeout: overrideOptions.timeout,
+        });
     };
 }

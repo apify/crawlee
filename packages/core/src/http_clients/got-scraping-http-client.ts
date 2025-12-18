@@ -24,7 +24,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      * @inheritDoc
      */
     async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
-        const { session, timeout } = options ?? {};
+        const { session, timeout, cookieJar } = options ?? {};
 
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
@@ -37,10 +37,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             body: request.body ? Readable.fromWeb(request.body as any) : undefined,
             proxyUrl: session?.proxyInfo?.url,
             timeout: { request: timeout },
-            // We set cookieJar to undefined because
-            // `HttpCrawler` reads the cookies beforehand and sets them in `request.headers`.
-            // Using the `cookieJar` option directly would override that.
-            cookieJar: undefined,
+            cookieJar,
         });
 
         const parsedHeaders = Object.entries(gotResult.headers)
