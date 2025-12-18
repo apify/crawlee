@@ -331,6 +331,17 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         special.get('/html-entities', (_req, res) => {
             res.type('html').send('&quot;&lt;&gt;"<>');
         });
+
+        special.get('/set-cookie', (req, res) => {
+            const cookieName = (req.query.name as string) || 'testCookie';
+            const cookieValue = (req.query.value as string) || 'testValue';
+            res.setHeader('set-cookie', `${cookieName}=${cookieValue}; Path=/`);
+            res.type('html').send('<html><body>Cookie set</body></html>');
+        });
+
+        special.get('/get-cookies', (req, res) => {
+            res.json({ cookies: req.headers.cookie || '' });
+        });
     })();
 
     // "cacheable" site with one page, scripts and stylesheets
