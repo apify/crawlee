@@ -89,7 +89,7 @@ By default, Crawlee stores data to `./storage` in the current working directory.
 We provide automated beta builds for every merged code change in Crawlee. You can find them in the npm [list of releases](https://www.npmjs.com/package/crawlee?activeTab=versions). If you want to test new features or bug fixes before we release them, feel free to install a beta build like this:
 
 ```bash
-npm install crawlee@3.12.3-beta.13
+npm install crawlee@next
 ```
 
 If you also use the [Apify SDK](https://github.com/apify/apify-sdk-js), you need to specify dependency overrides in your `package.json` file so that you don't end up with multiple versions of Crawlee installed:
@@ -98,9 +98,9 @@ If you also use the [Apify SDK](https://github.com/apify/apify-sdk-js), you need
 {
     "overrides": {
        "apify": {
-           "@crawlee/core": "3.12.3-beta.13",
-           "@crawlee/types": "3.12.3-beta.13",
-           "@crawlee/utils": "3.12.3-beta.13"
+           "@crawlee/core": "$crawlee",
+           "@crawlee/types": "$crawlee",
+           "@crawlee/utils": "$crawlee"
        }
     }
 }
