@@ -30,7 +30,7 @@ import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
 
 import log from '@apify/log';
 
@@ -412,6 +412,61 @@ describe('BasicCrawler', () => {
         expect(state.processed).toEqual(sourcesCopy);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
+    });
+
+    test('print a warning on sharing state between two crawlers', async () => {
+        function createCrawler() {
+            return new BasicCrawler({
+                requestHandler: async ({ request, useState }) => {
+                    const state = await useState<{ urls: string[] }>({ urls: [] });
+                    state.urls.push(request.url);
+                },
+            });
+        }
+
+        const loggerSpy = vitest.spyOn(log, 'warning');
+
+        const [crawler1, crawler2] = [createCrawler(), createCrawler()];
+
+        await crawler1.run([`http://${HOSTNAME}:${port}/`]);
+        await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
+
+        // Both crawlers should share the same state (backward compatibility)
+        const state1 = await crawler1.useState<{ urls: string[] }>();
+        const state2 = await crawler2.useState<{ urls: string[] }>();
+
+        expect(state1).toBe(state2);
+        expect(state1.urls).toHaveLength(2);
+        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/`);
+        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
+        expect(loggerSpy).toBeCalledWith(expect.stringContaining('Multiple crawler instances are calling useState()'));
+    });
+
+    test('crawlers with explicit id have isolated state', async () => {
+        function createCrawler(id: string) {
+            return new BasicCrawler({
+                id,
+                requestHandler: async ({ request, useState }) => {
+                    const state = await useState<{ urls: string[] }>({ urls: [] });
+                    state.urls.push(request.url);
+                },
+            });
+        }
+
+        const [crawler1, crawler2] = [createCrawler('crawler-1'), createCrawler('crawler-2')];
+
+        await crawler1.run([`http://${HOSTNAME}:${port}/`]);
+        await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
+
+        // Each crawler should have its own isolated state
+        const state1 = await crawler1.useState<{ urls: string[] }>();
+        const state2 = await crawler2.useState<{ urls: string[] }>();
+
+        expect(state1).not.toBe(state2);
+        expect(state1.urls).toHaveLength(1);
+        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/`);
+        expect(state2.urls).toHaveLength(1);
+        expect(state2.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
     });
 
     test.each([EventType.MIGRATING, EventType.ABORTING])(

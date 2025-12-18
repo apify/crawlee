@@ -1,9 +1,9 @@
 import { Readable } from 'node:stream';
 
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from './base-http-client.js';
 import { ResponseWithUrl } from './base-http-client.js';
 
 /**
@@ -20,11 +20,34 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         return !['CONNECT', 'connect'].includes(request.method!);
     }
 
+    private *iterateHeaders(
+        headers: Record<string, string | string[] | undefined>,
+    ): Generator<[string, string], void, unknown> {
+        for (const [key, value] of Object.entries(headers)) {
+            // Filter out pseudo-headers
+            if (key.startsWith(':') || value === undefined) {
+                continue;
+            }
+
+            if (Array.isArray(value)) {
+                for (const v of value) {
+                    yield [key, v];
+                }
+            } else {
+                yield [key, value];
+            }
+        }
+    }
+
+    private parseHeaders(headers: Record<string, string | string[] | undefined>): Headers {
+        return new Headers([...this.iterateHeaders(headers)]);
+    }
+
     /**
      * @inheritDoc
      */
     async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
-        const { session, timeout, cookieJar } = options ?? {};
+        const { session, timeout, cookieJar, proxyUrl } = options ?? {};
 
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
@@ -35,25 +58,15 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             method: request.method as Options['method'],
             headers: Object.fromEntries(request.headers.entries()),
             body: request.body ? Readable.fromWeb(request.body as any) : undefined,
-            proxyUrl: session?.proxyInfo?.url,
+            proxyUrl: proxyUrl ?? session?.proxyInfo?.url,
             timeout: { request: timeout },
             cookieJar,
         });
 
-        const parsedHeaders = Object.entries(gotResult.headers)
-            .map(([key, value]) => {
-                if (value === undefined) return [];
-
-                if (Array.isArray(value)) {
-                    return value.map((v) => [key, v]);
-                }
-
-                return [[key, value]];
-            })
-            .flat() as [string, string][];
+        const responseHeaders = this.parseHeaders(gotResult.headers);
 
         return new ResponseWithUrl(new Uint8Array(gotResult.rawBody), {
-            headers: new Headers(parsedHeaders),
+            headers: responseHeaders,
             status: gotResult.statusCode,
             statusText: gotResult.statusMessage ?? '',
             url: gotResult.url,
@@ -64,6 +77,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      * @inheritDoc
      */
     async stream(request: Request, options?: StreamOptions): Promise<Response> {
+        const { session, timeout } = options ?? {};
+
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
         }
@@ -75,6 +90,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                 headers: Object.fromEntries(request.headers.entries()),
                 body: request.body ? Readable.fromWeb(request.body as any) : undefined,
                 isStream: true,
+                proxyUrl: session?.proxyInfo?.url,
+                timeout: { request: timeout },
                 cookieJar: undefined,
             });
 
@@ -108,12 +125,13 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             stream.on('error', reject);
 
             stream.on('response', (response: PlainResponse) => {
+                const headers = this.parseHeaders(response.headers);
                 // Cast shouldn't be needed here, undici might have a different `ReadableStream` type
                 resolve(
                     new ResponseWithUrl(Readable.toWeb(stream) as any, {
                         status: response.statusCode,
                         statusText: response.statusMessage ?? '',
-                        headers: response.headers as HeadersInit,
+                        headers,
                         url: response.url,
                     }),
                 );
