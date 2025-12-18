@@ -8,7 +8,6 @@ import {
     RequestList,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-import { gotScraping } from 'got-scraping';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
 
@@ -26,16 +25,24 @@ function shuffle(array: unknown[]): unknown[] {
     return out;
 }
 
-vitest.mock('got-scraping', async () => {
-    return {
-        gotScraping: vitest.fn(),
-    };
+let mockHttpClient = vitest.mockObject({
+    async sendRequest(_request: any, _options?: any) {
+        return new Response();
+    },
+    async stream() {
+        return new Response();
+    },
 });
 
-let gotScrapingSpy: MockedFunction<typeof gotScraping>;
-
-beforeAll(async () => {
-    gotScrapingSpy = vitest.mocked(gotScraping);
+beforeEach(async () => {
+    mockHttpClient = vitest.mockObject({
+        async sendRequest() {
+            return new Response();
+        },
+        async stream() {
+            return new Response();
+        },
+    });
 });
 
 describe('RequestList', () => {
@@ -189,9 +196,11 @@ describe('RequestList', () => {
     test('should use regex parameter to parse urls', async () => {
         const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
         const listArr = ['https://example.com', 'HTTP://google.com'];
-        gotScrapingSpy.mockResolvedValue({ body: listStr } as any);
 
         const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
+
+        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(listStr));
+
         const requestList = await RequestList.open({
             sources: [
                 {
@@ -200,12 +209,14 @@ describe('RequestList', () => {
                     regex,
                 },
             ],
+            httpClient: mockHttpClient,
         });
 
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[0] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
 
-        expect(gotScrapingSpy).toBeCalledWith({ url: 'http://example.com/list-1', encoding: 'utf8' });
+        expect(mockHttpClient.sendRequest).toBeCalled();
+        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
@@ -221,17 +232,18 @@ describe('RequestList', () => {
         const correctUrl =
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
 
-        gotScrapingSpy.mockResolvedValue({ body: JSON.stringify(list) } as any);
+        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n')));
 
         const requestList = await RequestList.open({
             sources: wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })),
+            httpClient: mockHttpClient,
         });
 
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
 
-        expect(gotScrapingSpy).toBeCalledWith({ url: correctUrl, encoding: 'utf8' });
+        expect(mockHttpClient.sendRequest.mock.calls[0][0]?.url).toBe(correctUrl);
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {

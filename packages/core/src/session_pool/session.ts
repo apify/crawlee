@@ -1,8 +1,8 @@
 import { EventEmitter } from 'node:events';
 
-import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
+import type { Cookie as CookieObject, Dictionary, ISession, ProxyInfo, SessionState } from '@crawlee/types';
 import ow from 'ow';
-import type { Cookie, SerializedCookieJar } from 'tough-cookie';
+import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
 import type { Log } from '@apify/log';
@@ -15,25 +15,7 @@ import {
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils.js';
 import { log as defaultLog } from '../log.js';
-import type { ProxyInfo } from '../proxy_configuration.js';
 import { EVENT_SESSION_RETIRED } from './events.js';
-
-/**
- * Persistable {@apilink Session} state.
- */
-export interface SessionState {
-    id: string;
-    cookieJar: SerializedCookieJar;
-    proxyInfo?: ProxyInfo;
-    userData: object;
-    errorScore: number;
-    maxErrorScore: number;
-    errorScoreDecrement: number;
-    usageCount: number;
-    maxUsageCount: number;
-    expiresAt: string;
-    createdAt: string;
-}
 
 export interface SessionOptions {
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
@@ -99,7 +81,7 @@ export interface SessionOptions {
  * Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
  * @category Scaling
  */
-export class Session {
+export class Session implements ISession {
     readonly id: string;
     private maxAgeSecs: number;
     userData: Dictionary;

@@ -5,7 +5,6 @@ import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
-    BaseHttpClient,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,
@@ -15,7 +14,6 @@ import type {
     IRequestList,
     IRequestManager,
     ProxyConfiguration,
-    ProxyInfo,
     Request,
     RequestsLike,
     RequestTransform,
@@ -60,7 +58,14 @@ import {
     validateUserData,
     validators,
 } from '@crawlee/core';
-import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
+import type {
+    Awaitable,
+    BaseHttpClient,
+    BatchAddRequestsResult,
+    Dictionary,
+    ProxyInfo,
+    SetStatusMessageOptions,
+} from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS, sleep } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';

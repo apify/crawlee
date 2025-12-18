@@ -1,14 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import type { BaseHttpClient } from '@crawlee/types';
 import { downloadListOfUrls, extractUrls, URL_WITH_COMMAS_REGEX } from '@crawlee/utils';
-import { gotScraping } from 'got-scraping';
-
-vitest.mock('got-scraping', async () => {
-    return {
-        gotScraping: vitest.fn(),
-    };
-});
 
 const baseDataPath = path.join(import.meta.dirname, '..', 'shared', 'data');
 
@@ -20,12 +14,19 @@ describe('downloadListOfUrls()', () => {
             .split(/[\r\n]+/g)
             .map((u) => u.trim());
 
-        const gotScrapingSpy = vitest.mocked(gotScraping);
-        gotScrapingSpy.mockResolvedValueOnce({ body: text });
+        const mockClient: BaseHttpClient = {
+            async sendRequest() {
+                return new Response(text);
+            },
+            async stream() {
+                return new Response(text);
+            },
+        };
 
         await expect(
             downloadListOfUrls({
                 url: 'http://www.nowhere12345.com',
+                httpClient: mockClient,
             }),
         ).resolves.toEqual(arr);
     });

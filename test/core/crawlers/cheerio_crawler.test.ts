@@ -1,14 +1,6 @@
-import type { IncomingHttpHeaders, Server } from 'node:http';
-import { Readable } from 'node:stream';
+import type { Server } from 'node:http';
 
-import type {
-    BasicCrawlingContext,
-    CheerioCrawlingContext,
-    CheerioRequestHandler,
-    CrawlingContext,
-    ProxyInfo,
-    Source,
-} from '@crawlee/cheerio';
+import type { BasicCrawlingContext, CheerioCrawlingContext, CheerioRequestHandler, Source } from '@crawlee/cheerio';
 import {
     CheerioCrawler,
     createCheerioRouter,
@@ -20,6 +12,7 @@ import {
     Session,
 } from '@crawlee/cheerio';
 import { ImpitHttpClient } from '@crawlee/impit-client';
+import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import type { OptionsInit } from 'got-scraping';
