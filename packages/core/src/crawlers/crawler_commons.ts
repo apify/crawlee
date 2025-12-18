@@ -1,11 +1,10 @@
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import type { OptionsInit } from 'got-scraping';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
 import type { Log } from '../log.js';
-import type { ProxyInfo } from '../proxy_configuration.js';
 import type { Request, Source } from '../request.js';
 import type { Session } from '../session_pool/session.js';
 import type { Dataset } from '../storages/dataset.js';

@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { BaseHttpClient, Dictionary } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
@@ -234,6 +234,13 @@ export interface RequestListOptions {
 
     /** @internal */
     config?: Configuration;
+
+    /**
+     * The HTTP client to be used to download `requestsFromUrl` URLs.
+     *
+     * If not specified the `RequestList` will use the default HTTP client.
+     */
+    httpClient?: BaseHttpClient;
 }
 
 /**
@@ -348,6 +355,7 @@ export class RequestList implements IRequestList {
     private sourcesFunction?: RequestListSourcesFunction;
     private proxyConfiguration?: ProxyConfiguration;
     private events: EventManager;
+    private httpClient?: BaseHttpClient;
 
     /**
      * To create new instance of `RequestList` we need to use `RequestList.open()` factory method.
@@ -364,6 +372,7 @@ export class RequestList implements IRequestList {
             proxyConfiguration,
             keepDuplicateUrls = false,
             config = Configuration.getGlobalConfig(),
+            httpClient,
         } = options;
 
         if (!(sources || sourcesFunction)) {
@@ -386,6 +395,7 @@ export class RequestList implements IRequestList {
                 }),
                 keepDuplicateUrls: ow.optional.boolean,
                 proxyConfiguration: ow.optional.object,
+                httpClient: ow.optional.object,
             }),
         );
 
@@ -393,6 +403,7 @@ export class RequestList implements IRequestList {
         this.persistRequestsKey = persistRequestsKey ? `SDK_${persistRequestsKey}` : persistRequestsKey;
         this.initialState = state;
         this.events = config.getEventManager();
+        this.httpClient = httpClient;
 
         // If this option is set then all requests will get a pre-generated unique ID and duplicate URLs will be kept in the list.
         this.keepDuplicateUrls = keepDuplicateUrls;
@@ -967,7 +978,10 @@ export class RequestList implements IRequestList {
         urlRegExp?: RegExp;
         proxyUrl?: string;
     }): Promise<string[]> {
-        return downloadListOfUrls(options);
+        return downloadListOfUrls({
+            ...options,
+            httpClient: this.httpClient,
+        });
     }
 }
 

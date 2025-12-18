@@ -1,4 +1,4 @@
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/core';
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
 
 export class FetchHttpClient implements BaseHttpClient {
     async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {

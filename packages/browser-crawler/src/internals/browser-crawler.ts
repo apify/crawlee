@@ -7,7 +7,6 @@ import type {
     EnqueueLinksOptions,
     ErrorHandler,
     LoadedRequest,
-    ProxyInfo,
     Request,
     RequestHandler,
     RequestProvider,
@@ -39,7 +38,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject, ProxyInfo } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';

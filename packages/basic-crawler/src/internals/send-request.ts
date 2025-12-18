@@ -1,4 +1,5 @@
-import { type BaseHttpClient, type HttpRequestOptions, type Request, type Session } from '@crawlee/core';
+import type { Request, Session } from '@crawlee/core';
+import type { BaseHttpClient, HttpRequestOptions } from '@crawlee/types';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.

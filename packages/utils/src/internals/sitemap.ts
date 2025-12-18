@@ -4,7 +4,9 @@ import { PassThrough, pipeline, Readable, Transform } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
-import type { Delays } from 'got-scraping';
+import { ImpitHttpClient } from '@crawlee/impit-client';
+import type { BaseHttpClient } from '@crawlee/types';
+import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
@@ -185,14 +187,18 @@ export interface ParseSitemapOptions {
      */
     sitemapRetries?: number;
     /**
-     * Network timeouts for sitemap fetching. See [Got documentation](https://github.com/sindresorhus/got/blob/main/documentation/6-timeout.md) for more details.
+     * Timeout settings for network requests when fetching sitemaps. By default this is `30000` milliseconds (30 seconds).
      */
-    networkTimeouts?: Delays;
+    timeoutMillis?: number;
     /**
      * If true, the parser will log a warning if it fails to fetch a sitemap due to a network error
      * @default true
      */
     reportNetworkErrors?: boolean;
+    /**
+     * Custom HTTP client to be used for fetching sitemaps.
+     */
+    httpClient?: BaseHttpClient;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -200,13 +206,12 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     proxyUrl?: string,
     options?: T,
 ): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
-    const { gotScraping } = await import('got-scraping');
-    const { fileTypeStream } = await import('file-type');
     const {
+        httpClient = new ImpitHttpClient(),
         emitNestedSitemaps = false,
         maxDepth = Infinity,
         sitemapRetries = 3,
-        networkTimeouts,
+        timeoutMillis: timeout = 30000,
         reportNetworkErrors = true,
     } = options ?? {};
 
@@ -252,28 +257,34 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
             while (retriesLeft-- > 0) {
                 try {
-                    const sitemapStream = await new Promise<ReturnType<typeof gotScraping.stream>>(
-                        (resolve, reject) => {
-                            const request = gotScraping.stream({
-                                url: sitemapUrl,
-                                proxyUrl,
+                    let sitemapResponse: Response | null;
+
+                    try {
+                        sitemapResponse = await httpClient.stream(
+                            new Request(sitemapUrl, {
                                 method: 'GET',
-                                timeout: networkTimeouts,
                                 headers: {
                                     accept: '*/*',
                                 },
-                            });
-                            request.on('response', () => resolve(request));
-                            request.on('error', reject);
-                        },
-                    );
+                            }),
+                            {
+                                proxyUrl,
+                                timeout,
+                            },
+                        );
+                    } catch (error: any) {
+                        sitemapResponse = null;
+                    }
 
                     let error: { error: Error; type: 'fetch' | 'parser' } | null = null;
 
-                    if (sitemapStream.response!.statusCode >= 200 && sitemapStream.response!.statusCode < 300) {
-                        let contentType = sitemapStream.response!.headers['content-type'];
+                    if (sitemapResponse && sitemapResponse.status >= 200 && sitemapResponse.status < 300) {
+                        let contentType = sitemapResponse.headers.get('content-type');
 
-                        const streamWithType = await fileTypeStream(sitemapStream);
+                        if (sitemapResponse.body === null) {
+                            break;
+                        }
+                        const streamWithType = await fileTypeStream(Readable.fromWeb(sitemapResponse.body as any));
                         if (streamWithType.fileType !== undefined) {
                             contentType = streamWithType.fileType.mime;
                         }
@@ -295,7 +306,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         items = pipeline(
                             streamWithType,
                             isGzipped ? createGunzip() : new PassThrough(),
-                            createParser(contentType, sitemapUrl),
+                            createParser(contentType ?? undefined, sitemapUrl),
                             (e) => {
                                 if (e !== undefined && e !== null) {
                                     error = { type: 'parser', error: e };
@@ -306,7 +317,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         error = {
                             type: 'fetch',
                             error: new Error(
-                                `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapStream.response!.statusCode}`,
+                                `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapResponse?.status}`,
                             ),
                         };
                     }
@@ -379,7 +390,11 @@ export class Sitemap {
      * @param url The domain URL to fetch the sitemap for.
      * @param proxyUrl A proxy to be used for fetching the sitemap file.
      */
-    static async tryCommonNames(url: string, proxyUrl?: string): Promise<Sitemap> {
+    static async tryCommonNames(
+        url: string,
+        proxyUrl?: string,
+        parseSitemapOptions?: ParseSitemapOptions,
+    ): Promise<Sitemap> {
         const sitemapUrls: string[] = [];
 
         const sitemapUrl = new URL(url);
@@ -391,7 +406,7 @@ export class Sitemap {
         sitemapUrl.pathname = '/sitemap.txt';
         sitemapUrls.push(sitemapUrl.toString());
 
-        return Sitemap.load(sitemapUrls, proxyUrl, { reportNetworkErrors: false });
+        return Sitemap.load(sitemapUrls, proxyUrl, { reportNetworkErrors: false, ...parseSitemapOptions });
     }
 
     /**
@@ -416,8 +431,12 @@ export class Sitemap {
      * @param content XML sitemap content
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
      */
-    static async fromXmlString(content: string, proxyUrl?: string): Promise<Sitemap> {
-        return await this.parse([{ type: 'raw', content }], proxyUrl);
+    static async fromXmlString(
+        content: string,
+        proxyUrl?: string,
+        parseSitemapOptions?: ParseSitemapOptions,
+    ): Promise<Sitemap> {
+        return await this.parse([{ type: 'raw', content }], proxyUrl, parseSitemapOptions);
     }
 
     protected static async parse(
