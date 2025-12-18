@@ -1,4 +1,5 @@
-import { gotScraping } from 'got-scraping';
+import { ImpitHttpClient } from '@crawlee/impit-client';
+import type { BaseHttpClient } from '@crawlee/types';
 import ow from 'ow';
 
 import { URL_NO_COMMAS_REGEX } from './general.js';
@@ -24,6 +25,11 @@ export interface DownloadListOfUrlsOptions {
 
     /** Allows to use a proxy for the download request. */
     proxyUrl?: string;
+
+    /**
+     * Custom HTTP client to use for downloading the file.
+     */
+    httpClient?: BaseHttpClient;
 }
 
 /**
@@ -38,9 +44,16 @@ export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Pr
             encoding: ow.optional.string,
             urlRegExp: ow.optional.regExp,
             proxyUrl: ow.optional.string,
+            httpClient: ow.optional.object,
         }),
     );
-    const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX, proxyUrl } = options;
+    const {
+        url,
+        encoding = 'utf8',
+        urlRegExp = URL_NO_COMMAS_REGEX,
+        proxyUrl,
+        httpClient = new ImpitHttpClient(),
+    } = options;
 
     // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
     const match = url.match(/^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/);
@@ -50,7 +63,11 @@ export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Pr
         fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
     }
 
-    const { body: string } = await gotScraping({ url: fixedUrl, encoding, proxyUrl });
+    const response = await httpClient.sendRequest(new Request(fixedUrl, { method: 'GET' }), {
+        proxyUrl,
+    });
+
+    const string = new TextDecoder(encoding).decode(new Uint8Array(await response.arrayBuffer()));
 
     return extractUrls({ string, urlRegExp });
 }

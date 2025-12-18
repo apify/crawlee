@@ -1,5 +1,6 @@
 import { Transform } from 'node:stream';
 
+import type { BaseHttpClient } from '@crawlee/types';
 import { EnqueueStrategy, parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
 import ow from 'ow';
@@ -110,6 +111,10 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      * Crawlee configuration
      */
     config?: Configuration;
+    /**
+     * Custom HTTP client to be used for sitemap loading.
+     */
+    httpClient?: BaseHttpClient;
 }
 
 interface SitemapParsingProgress {
@@ -197,7 +202,7 @@ export class SitemapRequestList implements IRequestList {
     /**
      * Proxy URL to be used for sitemap loading.
      */
-    private proxyUrl: string | undefined;
+    private proxyUrl?: string;
 
     /**
      * Enqueue strategy applied to sitemap-derived URLs and stamped onto the emitted `Request` objects.
@@ -429,12 +434,14 @@ export class SitemapRequestList implements IRequestList {
      * Track the loading progress using the `isSitemapFullyLoaded` property.
      */
     static async open(options: SitemapRequestListOptions): Promise<SitemapRequestList> {
+        const { httpClient, ...restOptions } = options;
+
         const requestList = new SitemapRequestList({
-            ...options,
+            ...restOptions,
             persistStateKey: options.persistStateKey ?? STATE_PERSISTENCE_KEY,
         });
         await requestList.restoreState();
-        void requestList.load({ parseSitemapOptions: options.parseSitemapOptions });
+        void requestList.load({ parseSitemapOptions: { ...options.parseSitemapOptions, httpClient } });
 
         if (requestList.persistenceOptions.enable) {
             requestList.events.on(EventType.PERSIST_STATE, requestList.persistState);

@@ -1,6 +1,5 @@
+import type { SearchParams } from '@crawlee/types';
 import { getDomain } from 'tldts';
-
-export type SearchParams = string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
 
 /**
  * The different enqueueing strategies available.

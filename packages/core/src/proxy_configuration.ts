@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import ow from 'ow';
 
 import log from '@apify/log';
@@ -44,72 +44,6 @@ export interface ProxyConfigurationOptions {
 export interface TieredProxy {
     proxyUrl: string | null;
     proxyTier?: number;
-}
-
-/**
- * The main purpose of the ProxyInfo object is to provide information
- * about the current proxy connection used by the crawler for the request.
- * Outside of crawlers, you can get this object by calling {@apilink ProxyConfiguration.newProxyInfo}.
- *
- * **Example usage:**
- *
- * ```javascript
- * const proxyConfiguration = new ProxyConfiguration({
- *   proxyUrls: ['...', '...'] // List of Proxy URLs to rotate
- * });
- *
- * // Getting proxyInfo object by calling class method directly
- * const proxyInfo = await proxyConfiguration.newProxyInfo();
- *
- * // In crawler
- * const crawler = new CheerioCrawler({
- *   // ...
- *   proxyConfiguration,
- *   requestHandler({ proxyInfo }) {
- *      // Getting used proxy URL
- *       const proxyUrl = proxyInfo.url;
- *   }
- * })
- *
- * ```
- */
-export interface ProxyInfo {
-    /**
-     * The URL of the proxy.
-     */
-    url: string;
-
-    /**
-     * Username for the proxy.
-     */
-    username?: string;
-
-    /**
-     * User's password for the proxy.
-     */
-    password: string;
-
-    /**
-     * Hostname of your proxy.
-     */
-    hostname: string;
-
-    /**
-     * Proxy port.
-     */
-    port: number | string;
-
-    /**
-     * Proxy tier for the current proxy, if applicable (only for `tieredProxyUrls`).
-     */
-    proxyTier?: number;
-
-    /**
-     * When `true`, the proxy is likely intercepting HTTPS traffic and is able to view and modify its content.
-     *
-     * @default false
-     */
-    ignoreTlsErrors?: boolean;
 }
 
 interface TieredProxyOptions {

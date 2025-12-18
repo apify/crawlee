@@ -1,9 +1,9 @@
 import { Readable } from 'node:stream';
 
+import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
 import type { Options, PlainResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from './base-http-client.js';
 import { ResponseWithUrl } from './base-http-client.js';
 
 /**
@@ -47,7 +47,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
      * @inheritDoc
      */
     async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
-        const { session, timeout } = options ?? {};
+        const { session, timeout, proxyUrl } = options ?? {};
 
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
@@ -58,7 +58,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             method: request.method as Options['method'],
             headers: Object.fromEntries(request.headers.entries()),
             body: request.body ? Readable.fromWeb(request.body as any) : undefined,
-            proxyUrl: session?.proxyInfo?.url,
+            proxyUrl: proxyUrl ?? session?.proxyInfo?.url,
             timeout: { request: timeout },
             // We set cookieJar to undefined because
             // `HttpCrawler` reads the cookies beforehand and sets them in `request.headers`.
