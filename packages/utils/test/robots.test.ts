@@ -2,6 +2,9 @@ import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RobotsTxtFile } from '../src/internals/robots.js';
+import { FetchHttpClient } from './mock-http-client.js';
+
+const httpClient = new FetchHttpClient();
 
 describe('RobotsTxtFile', () => {
     beforeEach(() => {
@@ -37,12 +40,12 @@ describe('RobotsTxtFile', () => {
     });
 
     it('generates the correct robots.txt URL', async () => {
-        const robots = await RobotsTxtFile.find('http://not-exists.com/nested/index.html');
+        const robots = await RobotsTxtFile.find('http://not-exists.com/nested/index.html', { httpClient });
         expect(robots.getSitemaps()).not.toHaveLength(0);
     });
 
     it('parses allow/deny directives from robots.txt', async () => {
-        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt');
+        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt', { httpClient });
         console.log(robots.isAllowed('https://crawlee.dev'));
         expect(robots.isAllowed('http://not-exists.com/something/page.html')).toBe(true);
         expect(robots.isAllowed('http://not-exists.com/deny_googlebot/page.html')).toBe(true);
@@ -50,7 +53,7 @@ describe('RobotsTxtFile', () => {
     });
 
     it('extracts sitemap urls', async () => {
-        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt');
+        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt', { httpClient });
         expect(robots.getSitemaps()).toEqual([
             'http://not-exists.com/sitemap_1.xml',
             'http://not-exists.com/sitemap_2.xml',

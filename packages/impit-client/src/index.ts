@@ -1,8 +1,7 @@
 import { Readable } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
 
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/core';
-import { ResponseWithUrl } from '@crawlee/core';
+import type { BaseHttpClient, IResponseWithUrl, SendRequestOptions, StreamOptions } from '@crawlee/types';
 import type { ImpitOptions, ImpitResponse } from 'impit';
 import { Impit } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
@@ -17,6 +16,14 @@ export const Browser = {
 interface ResponseWithRedirects {
     response: ImpitResponse;
     redirectUrls: URL[];
+}
+
+class ResponseWithUrl extends Response implements IResponseWithUrl {
+    override url: string;
+    constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
+        super(body, init);
+        this.url = init.url ?? '';
+    }
 }
 
 /**
@@ -78,7 +85,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         const impit = this.getClient({
             ...this.impitOptions,
             ...(options?.cookieJar ? { cookieJar: options?.cookieJar as any as ToughCookieJar } : {}),
-            proxyUrl: options?.session?.proxyInfo?.url,
+            proxyUrl: options?.proxyUrl ?? options?.session?.proxyInfo?.url,
             followRedirects: false,
         });
 

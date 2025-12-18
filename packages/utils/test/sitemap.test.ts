@@ -5,6 +5,7 @@ import log from '@apify/log';
 
 import type { SitemapUrl } from '../src/internals/sitemap.js';
 import { parseSitemap, Sitemap } from '../src/internals/sitemap.js';
+import { FetchHttpClient } from './mock-http-client.js';
 
 describe('Sitemap', () => {
     beforeEach(() => {
@@ -233,7 +234,9 @@ describe('Sitemap', () => {
     });
 
     it('extracts urls from sitemaps', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -248,7 +251,11 @@ describe('Sitemap', () => {
     it('extracts metadata from sitemaps', async () => {
         const items: SitemapUrl[] = [];
 
-        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap_child.xml' }])) {
+        for await (const item of parseSitemap(
+            [{ type: 'url', url: 'http://not-exists.com/sitemap_child.xml' }],
+            undefined,
+            { httpClient: new FetchHttpClient() },
+        )) {
             items.push(item);
         }
 
@@ -264,7 +271,9 @@ describe('Sitemap', () => {
     });
 
     it('extracts urls from gzipped sitemaps', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml.gz');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -277,12 +286,16 @@ describe('Sitemap', () => {
     });
 
     it('identifies incorrect gzipped sitemaps as malformed', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/invalid_sitemap_child.xml.gz');
+        const sitemap = await Sitemap.load('http://not-exists.com/invalid_sitemap_child.xml.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(new Set([]));
     });
 
     it('follows links in sitemap indexes', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -295,17 +308,23 @@ describe('Sitemap', () => {
     });
 
     it('does not break on invalid xml', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(sitemap.urls).toEqual([]);
     });
 
     it('handles CDATA in loc tags', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(new Set(['http://not-exists.com/catalog']));
     });
 
     it('autodetects sitemaps', async () => {
-        const sitemap = await Sitemap.tryCommonNames('http://not-exists.com/arbitrary_url?search=xyz');
+        const sitemap = await Sitemap.tryCommonNames('http://not-exists.com/arbitrary_url?search=xyz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/catalog?item=80&desc=vacation_turkey',
@@ -319,14 +338,18 @@ describe('Sitemap', () => {
     it('keeps quiet if autodetection does not find anything', async () => {
         const spy = vi.spyOn(log, 'warning');
 
-        const sitemap = await Sitemap.tryCommonNames('http://not-exists-2.com/arbitrary_url?search=xyz');
+        const sitemap = await Sitemap.tryCommonNames('http://not-exists-2.com/arbitrary_url?search=xyz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
 
         expect(sitemap.urls).toHaveLength(0);
         expect(spy).not.toHaveBeenCalled();
     });
 
     it('handles sitemap.txt correctly', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/catalog?item=78&desc=vacation_crete',
@@ -336,14 +359,20 @@ describe('Sitemap', () => {
     });
 
     it('handles pretty-printed XML correctly', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_pretty.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_pretty.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(new Set(['http://not-exists.com/catalog?item=80&desc=vacation_turkey']));
     });
 
     it('extracts metadata from pretty-printed XML', async () => {
         const items: SitemapUrl[] = [];
 
-        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap_pretty.xml' }])) {
+        for await (const item of parseSitemap(
+            [{ type: 'url', url: 'http://not-exists.com/sitemap_pretty.xml' }],
+            undefined,
+            { httpClient: new FetchHttpClient() },
+        )) {
             items.push(item);
         }
 
@@ -359,7 +388,9 @@ describe('Sitemap', () => {
     });
 
     it('handles pretty-printed nested sitemaps XML correctly', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent_pretty.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent_pretty.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -411,6 +442,8 @@ describe('Sitemap', () => {
                 '</sitemap>',
                 '</sitemapindex>',
             ].join('\n'),
+            undefined,
+            { httpClient: new FetchHttpClient() },
         );
 
         expect(new Set(sitemap.urls)).toEqual(
@@ -425,7 +458,9 @@ describe('Sitemap', () => {
     });
 
     it("loads XML sitemap even though it's gzipped according to file extension", async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/non_gzipped_sitemap.xml.gz');
+        const sitemap = await Sitemap.load('http://not-exists.com/non_gzipped_sitemap.xml.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
 
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
@@ -436,7 +471,9 @@ describe('Sitemap', () => {
     });
 
     it("loads gzipped sitemap even though it's not gzipped according to file extension", async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sneakily_gzipped_sitemap.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sneakily_gzipped_sitemap.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
 
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
