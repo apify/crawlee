@@ -44,7 +44,7 @@ jobs:
                     access_token: ${{ github.token }}
 
             -   name: Checkout repository
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
 
             -   name: Use Node.js ${{ matrix.node-version }}
                 uses: actions/setup-node@v6
@@ -64,7 +64,7 @@ jobs:
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v4
+                uses: actions/cache@v5
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -90,7 +90,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
@@ -113,7 +113,7 @@ jobs:
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v4
+                uses: actions/cache@v5
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -131,12 +131,20 @@ jobs:
                 run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                    GIT_AUTHOR_NAME: Apify Release Bot
+                    GIT_COMMITTER_NAME: Apify Release Bot
+                    GIT_AUTHOR_EMAIL: noreply@apify.com
+                    GIT_COMMITTER_EMAIL: noreply@apify.com
 
             -   name: Bump version to ${{ github.event.inputs.version }} version
                 if: ${{ github.event.inputs.version != 'custom' }}
                 run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                    GIT_AUTHOR_NAME: Apify Release Bot
+                    GIT_COMMITTER_NAME: Apify Release Bot
+                    GIT_AUTHOR_EMAIL: noreply@apify.com
+                    GIT_COMMITTER_EMAIL: noreply@apify.com
 
             -   name: Pin versions in internal dependencies and update lockfile
                 run: |
@@ -175,7 +183,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
                 with:
                     ref: ${{ github.event.repository.default_branch }}
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

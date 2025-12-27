@@ -109,7 +109,7 @@ async function run() {
             console.log(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} failed with error: ${err}`);
         });
 
-        worker.on('exit', async (code) => {
+        const exitHandler = async (code) => {
             if (code === SKIPPED_TEST_CLOSE_CODE) {
                 console.log(`Test ${colors.yellow(`[${dir.name}]`)} was skipped`);
                 return;
@@ -139,9 +139,19 @@ async function run() {
             }
 
             if (status === 'failure') failure = true;
+        };
+
+        const { promise: waitForExit, resolve: markTestDone } = Promise.withResolvers();
+
+        worker.on('exit', async (exitCode) => {
+            try {
+                await exitHandler(exitCode);
+            } finally {
+                markTestDone();
+            }
         });
 
-        await once(worker, 'exit');
+        await waitForExit;
     }
 }
 
@@ -149,19 +159,31 @@ if (isMainThread) {
     try {
         if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
             console.log('Temporary installing @apify/storage-local');
-            execSync(`yarn add -D @apify/storage-local@^2.1.3-beta.1 > /dev/null`, { stdio: 'inherit' });
+            execSync(`yarn add -D "@apify/storage-local@^2.3.1-beta.1"`, { stdio: 'inherit' });
         }
         if (process.env.STORAGE_IMPLEMENTATION !== 'PLATFORM') {
-            console.log('Fetching camoufox');
-            execSync(`npx camoufox-js fetch > /dev/null`, { stdio: 'inherit' });
+            console.log('Fetching Camoufox...');
+
+            for (let attempt = 0; attempt < 5; attempt++) {
+                try {
+                    execSync(`npx camoufox-js fetch`, { stdio: 'inherit' });
+                } catch (e) {
+                    console.error('Failed to fetch Camoufox', e);
+                    if (attempt === 4) throw e;
+                    console.log(`Retrying to fetch Camoufox (attempt ${attempt + 2}/5)...`);
+                    await new Promise((resolve) => setTimeout(resolve, 10e3));
+                    continue;
+                }
+            }
         }
         await run();
     } catch (e) {
+        failure = true;
         console.error(e);
     } finally {
         if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
             console.log('Removing temporary installation of @apify/storage-local');
-            execSync(`yarn remove @apify/storage-local > /dev/null`, { stdio: 'inherit' });
+            execSync(`yarn remove @apify/storage-local`, { stdio: 'inherit' });
         }
     }
 

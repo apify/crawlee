@@ -35,6 +35,7 @@
     },
     "dependencies": {
         "@apify/docusaurus-plugin-typedoc-api": "^4.4.8",
+        "@apify/ui-icons": "^1.23.0",
         "@apify/utilities": "^2.8.0",
         "@docusaurus/core": "3.9.2",
         "@docusaurus/faster": "3.9.2",
@@ -43,6 +44,7 @@
         "@docusaurus/plugin-content-docs": "3.9.2",
         "@docusaurus/preset-classic": "3.9.2",
         "@docusaurus/theme-common": "3.9.2",
+        "@docusaurus/theme-mermaid": "^3.9.2",
         "@giscus/react": "^3.0.0",
         "@mdx-js/react": "^3.0.1",
         "@signalwire/docusaurus-plugin-llms-txt": "^1.2.1",
@@ -58,7 +60,7 @@
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "react-github-btn": "^1.4.0",
-        "react-lite-youtube-embed": "^2.3.52",
+        "react-lite-youtube-embed": "^3.0.0",
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },

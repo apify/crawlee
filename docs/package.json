@@ -1,0 +1,17 @@
+{
+  "name": "crawlee-docs",
+  "description": "Documentation and examples for Crawlee. This package is not published to npm, only used locally for TS build checks.",
+  "type": "module",
+  "packageManager": "yarn@4.10.3",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}

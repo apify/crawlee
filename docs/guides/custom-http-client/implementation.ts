@@ -8,7 +8,7 @@ import type {
 } from '@crawlee/core';
 import { Readable } from 'node:stream';
 
-class CustomHttpClient implements BaseHttpClient {
+export class CustomHttpClient implements BaseHttpClient {
     async sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>> {
@@ -59,7 +59,7 @@ class CustomHttpClient implements BaseHttpClient {
         };
     }
 
-    async stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
+    async stream(request: HttpRequest, _onRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
         const fetchResponse = await fetch(request.url, {
             method: request.method,
             headers: new Headers(),
@@ -79,7 +79,7 @@ class CustomHttpClient implements BaseHttpClient {
                         return null;
                     }
                     return pump();
-                    function pump() {
+                    function pump(): Promise<void> {
                         return reader!.read().then(({ done, value }) => {
                             // When no more data needs to be consumed, close the stream
                             if (done) {

@@ -25,7 +25,7 @@ import {
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { sleep } from '@crawlee/utils';
+import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import type { SetRequired } from 'type-fest';
@@ -1695,6 +1695,65 @@ describe('BasicCrawler', () => {
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/3' },
             ]);
+
+            // Should only have added the first request (allowed by robots.txt and within limit)
+            expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
+        });
+
+        test.each([
+            {
+                testName: 'custom user-agent robots.txt rules',
+                userAgent: 'MyCrawler',
+                visitedUrls: [
+                    {
+                        url: 'http://example.com/yes',
+                    },
+                    {
+                        url: 'http://example.com/my-crawler/anything',
+                    },
+                ],
+            },
+            {
+                testName: 'catch-all robots.txt rules with custom user-agent',
+                userAgent: 'RandomCrawler',
+                visitedUrls: [
+                    {
+                        url: 'http://example.com/yes',
+                    },
+                ],
+            },
+        ])('should respect $testName', async ({ userAgent, visitedUrls }) => {
+            const requestQueue = await RequestQueue.open();
+            const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from(
+                        'http://example.com/robots.txt',
+                        `User-agent: *
+                         Disallow: /
+                         Allow: /yes
+
+                         User-agent: MyCrawler
+                         Disallow: /no
+                         Allow: /my-crawler
+                        `,
+                    );
+                }
+            })({
+                requestQueue,
+                respectRobotsTxtFile: { userAgent },
+                requestHandler: async () => {},
+            });
+
+            await crawler.addRequests([
+                'http://example.com/yes', // Allowed by robots.txt
+                'http://example.com/no', // Blocked by robots.txt for "MyCrawler"
+                'http://example.com/no-globally', // Blocked by robots.txt, "*" rule
+                'http://example.com/my-crawler/anything', // Blocked by robots.txt for all user-agents, but allowed for "MyCrawler"
+            ]);
+
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject(visitedUrls);
 
             // Should only have added the first request (allowed by robots.txt and within limit)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();

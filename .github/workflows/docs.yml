@@ -17,7 +17,7 @@ jobs:
         runs-on: ubuntu-22.04
 
         steps:
-            -   uses: actions/checkout@v5
+            -   uses: actions/checkout@v6
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v6
@@ -54,3 +54,12 @@ jobs:
 
             -   name: Deploy artifact to GitHub Pages
                 uses: actions/deploy-pages@v4
+
+            -   name: Invalidate CloudFront cache
+                run: |
+                    gh workflow run invalidate-cloudfront.yml \
+                        --repo apify/apify-docs-private \
+                        --field deployment=crawlee-web
+                    echo "✅ CloudFront cache invalidation workflow triggered successfully"
+                env:
+                    GITHUB_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

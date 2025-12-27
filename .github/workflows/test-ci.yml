@@ -32,7 +32,7 @@ jobs:
                     access_token: ${{ github.token }}
 
             -   name: Checkout repository
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
 
             -   name: Use Node.js ${{ matrix.node-version }}
                 uses: actions/setup-node@v6
@@ -52,7 +52,7 @@ jobs:
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v4
+                uses: actions/cache@v5
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-${{ github.sha }}
@@ -76,6 +76,14 @@ jobs:
                 env:
                     YARN_IGNORE_NODE: 1
 
+            -   name: Typecheck documentation examples
+                working-directory: ./docs
+                run: |
+                    yarn
+                    yarn typecheck
+                env:
+                    YARN_IGNORE_NODE: 1
+
             -   name: Tests
                 run: yarn test
                 env:
@@ -87,7 +95,7 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v6
@@ -107,7 +115,7 @@ jobs:
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v4
+                uses: actions/cache@v5
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -132,7 +140,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
 
             -   name: Use Node.js 20
                 uses: actions/setup-node@v6
@@ -152,7 +160,7 @@ jobs:
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v4
+                uses: actions/cache@v5
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -176,7 +184,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
@@ -199,7 +207,7 @@ jobs:
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v4
+                uses: actions/cache@v5
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}

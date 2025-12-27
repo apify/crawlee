@@ -1,0 +1,151 @@
+.llmMenu {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 996px) {
+  .llmMenu {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.llmButtonWrapper {
+  display: flex;
+  justify-content: flex-end;
+  width: auto;
+}
+
+.llmButton {
+  display: flex;
+  align-items: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-separator);
+  background-color: var(--color-background-subtle);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.copyUpIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.5rem 0.6rem 0.8rem;
+}
+
+.llmButtonText {
+  display: flex;
+  align-items: center;
+  padding-right: 0.8rem;
+  border-right: 1px solid var(--color-separator);
+  margin: 0;
+  font: 400 0.875rem/1.4 Inter, sans-serif;
+}
+
+.chevronIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.25rem;
+}
+
+.chevronIcon {
+  transition: transform 0.2s ease-in-out;
+}
+
+.chevronIconOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: relative;
+  width: fit-content;
+}
+
+.menuDropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  padding: 0.375rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-separator);
+  background-color: var(--color-background);
+  box-shadow: 0 12px 32px rgb(10 11 36 / 20%);
+  min-width: 17rem;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+@media (max-width: 996px) {
+  .menuDropdown {
+    left: 0;
+    right: auto;
+    width: min(20rem, calc(100vw - 1.5rem));
+  }
+}
+
+.menuOption {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.menuOption:hover {
+  background: var(--color-hover);
+}
+
+.menuOptionWrapper {
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.menuOptionWrapper:focus-visible .menuOption {
+  background: var(--color-hover);
+  outline-offset: -2px;
+}
+
+.menuOptionIcon,
+.menuOptionExternalIcon {
+  flex-shrink: 0;
+}
+
+.menuOptionIcon {
+  margin-top: 0.2rem;
+}
+
+.menuOptionText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  line-height: 1rem;
+  padding: 4px 0;
+}
+
+.menuOptionLabel {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1rem;
+  font-weight: 400;
+  color: var(--ifm-font-color-base);
+}
+
+.menuOptionDescription {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-subtle);
+}

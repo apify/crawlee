@@ -18,9 +18,9 @@ const crawler = new CheerioCrawler({
         const title = $('title').text();
 
         if (title === 'Blocked') {
-            session.retire();
+            session?.retire();
         } else if (title === 'Not sure if blocked, might also be a connection error') {
-            session.markBad();
+            session?.markBad();
         } else {
             // session.markGood() - this step is done automatically in BasicCrawler.
         }

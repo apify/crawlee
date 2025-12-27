@@ -37,7 +37,7 @@ jobs:
         name: Publish to NPM (${{ inputs.dist-tag }})
         runs-on: ubuntu-22.04
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v6
               with:
                   ref: ${{ inputs.ref }}
                   token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
@@ -61,7 +61,7 @@ jobs:
 
             - name: Turbo cache
               id: turbo-cache
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                   path: .turbo
                   key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -96,7 +96,7 @@ jobs:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: yarn publish:prod --yes --no-verify-access
+                  command: git checkout . && yarn publish:prod --yes
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
@@ -107,6 +107,6 @@ jobs:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: yarn publish:next --yes --no-verify-access
+                  command: git checkout . && yarn publish:next --yes
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

@@ -18,9 +18,9 @@ const crawler = new PlaywrightCrawler({
         const title = await page.title();
 
         if (title === 'Blocked') {
-            session.retire();
+            session?.retire();
         } else if (title === 'Not sure if blocked, might also be a connection error') {
-            session.markBad();
+            session?.markBad();
         } else {
             // session.markGood() - this step is done automatically in PlaywrightCrawler.
         }
