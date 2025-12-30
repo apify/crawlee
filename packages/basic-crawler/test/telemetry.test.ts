@@ -102,8 +102,8 @@ describe('BasicCrawler Telemetry', () => {
             });
 
             // Access protected withSpan method
-            // eslint-disable-next-line dot-notation
             await expect(
+                // eslint-disable-next-line dot-notation
                 crawler['withSpan']('test.span', {}, async () => {
                     throw new Error('Test error');
                 }),

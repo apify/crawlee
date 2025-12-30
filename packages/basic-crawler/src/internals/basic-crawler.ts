@@ -1953,8 +1953,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return request.retryCount < maxRequestRetries;
     }
 
-    protected _augmentContextWithDeprecatedError(context: Context, error: Error) {
-        Object.defineProperty(context, 'error', {
+    protected _augmentContextWithDeprecatedError(crawlingContext: Context, error: Error) {
+        Object.defineProperty(crawlingContext, 'error', {
             get: () => {
                 this.log.deprecated(
                     "The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.",
@@ -1965,7 +1965,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             configurable: true,
         });
 
-        return context as LoadedContext<Context>;
+        return crawlingContext as LoadedContext<Context>;
     }
 
     /**
