@@ -56,6 +56,8 @@ import {
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import type { SpanOptions } from '@opentelemetry/api';
+import { context, trace } from '@opentelemetry/api';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
@@ -63,8 +65,7 @@ import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
+import defaultLog, { Log, LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
@@ -405,6 +406,16 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Defaults to a new instance of {@apilink GotScrapingHttpClient}
      */
     httpClient?: BaseHttpClient;
+
+    /**
+     * Enable Telemetry for the crawler. Defaults to `false`.
+     */
+    enableTelemetry?: boolean;
+
+    /**
+     * If set to `true`, the crawler will collect logs and add them to the spans. Defaults to `false`.
+     */
+    collectLogs?: boolean;
 }
 
 /**
@@ -568,6 +579,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
 
+    protected telemetry: boolean;
+    protected tracer = trace.getTracer(this.constructor.name);
+
     protected static optionsShape = {
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
@@ -600,6 +614,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
         onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
+
+        enableTelemetry: ow.optional.boolean,
+        collectLogs: ow.optional.boolean,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -667,6 +684,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             statisticsOptions,
             httpClient,
+
+            enableTelemetry = false,
+            collectLogs = false,
         } = options;
 
         if (requestManager !== undefined) {
@@ -683,6 +703,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.httpClient = httpClient ?? new GotScrapingHttpClient();
+        this.telemetry = enableTelemetry;
+        if (enableTelemetry && collectLogs) {
+            this.wrapLogWithTracing(Log);
+        }
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -957,119 +981,124 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
         }
 
-        const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
+        return this.withSpan('crawlee.crawler.run', {
+            attributes: {
+                'crawlee.crawler.type': this.constructor.name,
+            },
+        }, async () => {
+            const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
 
-        if (this.hasFinishedBefore) {
-            // When executing the run method for the second time explicitly,
-            // we need to purge the default RQ to allow processing the same requests again - this is important so users can
-            // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
-            // ignored - as a failed requests is still handled.
-            if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
-                await this.requestQueue.drop();
-                this.requestQueue = await this._getRequestQueue();
-                this.requestManager = undefined;
-                await this.initializeRequestManager();
-                this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
+            if (this.hasFinishedBefore) {
+                // When executing the run method for the second time explicitly,
+                // we need to purge the default RQ to allow processing the same requests again - this is important so users can
+                // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
+                // ignored - as a failed requests is still handled.
+                if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
+                    await this.requestQueue.drop();
+                    this.requestQueue = await this._getRequestQueue();
+                    this.requestManager = undefined;
+                    await this.initializeRequestManager();
+                    this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
+                }
+
+                this.stats.reset();
+                await this.stats.resetStore();
+                await this.sessionPool?.resetStore();
             }
 
-            this.stats.reset();
-            await this.stats.resetStore();
-            await this.sessionPool?.resetStore();
-        }
+            this.running = true;
+            this.shouldLogMaxProcessedRequestsExceeded = true;
+            this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
-        this.running = true;
-        this.shouldLogMaxProcessedRequestsExceeded = true;
-        this.shouldLogMaxEnqueuedRequestsExceeded = true;
+            await purgeDefaultStorages({
+                onlyPurgeOnce: true,
+                client: this.config.getStorageClient(),
+                config: this.config,
+            });
 
-        await purgeDefaultStorages({
-            onlyPurgeOnce: true,
-            client: this.config.getStorageClient(),
-            config: this.config,
-        });
-
-        if (requests) {
-            await this.addRequests(requests, addRequestsOptions);
-        }
-
-        await this._init();
-        await this.stats.startCapturing();
-        const periodicLogger = this.getPeriodicLogger();
-        // Don't await, we don't want to block the execution
-        void this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
-
-        const sigintHandler = async () => {
-            this.log.warning(
-                'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
-            );
-            await this._pauseOnMigration();
-            await this.autoscaledPool!.abort();
-        };
-
-        // Attach a listener to handle migration and aborting events gracefully.
-        const boundPauseOnMigration = this._pauseOnMigration.bind(this);
-        process.once('SIGINT', sigintHandler);
-        this.events.on(EventType.MIGRATING, boundPauseOnMigration);
-        this.events.on(EventType.ABORTING, boundPauseOnMigration);
-
-        let stats = {} as FinalStatistics;
-
-        try {
-            await this.autoscaledPool!.run();
-        } finally {
-            await this.teardown();
-            await this.stats.stopCapturing();
-
-            process.off('SIGINT', sigintHandler);
-            this.events.off(EventType.MIGRATING, boundPauseOnMigration);
-            this.events.off(EventType.ABORTING, boundPauseOnMigration);
-
-            const finalStats = this.stats.calculate();
-            stats = {
-                requestsFinished: this.stats.state.requestsFinished,
-                requestsFailed: this.stats.state.requestsFailed,
-                retryHistogram: this.stats.requestRetryHistogram,
-                ...finalStats,
-            };
-            this.log.info('Final request statistics:', stats);
-
-            if (this.stats.errorTracker.total !== 0) {
-                const prettify = ([count, info]: [number, string[]]) =>
-                    `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
-
-                this.log.info(`Error analysis:`, {
-                    totalErrors: this.stats.errorTracker.total,
-                    uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
-                    mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
-                });
+            if (requests) {
+                await this.addRequests(requests, addRequestsOptions);
             }
 
-            const client = this.config.getStorageClient();
-
-            if (client.teardown) {
-                let finished = false;
-                setTimeout(() => {
-                    if (!finished) {
-                        this.log.info('Waiting for the storage to write its state to file system.');
-                    }
-                }, 1000);
-                await client.teardown();
-                finished = true;
-            }
-
-            periodicLogger.stop();
+            await this._init();
+            await this.stats.startCapturing();
+            const periodicLogger = this.getPeriodicLogger();
             // Don't await, we don't want to block the execution
-            void this.setStatusMessage(
-                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                    this.stats.state.requestsFinished
-                } succeeded, ${this.stats.state.requestsFailed} failed.`,
-                { isStatusMessageTerminal: true, level: 'INFO' },
-            );
+            void this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
-            this.running = false;
-            this.hasFinishedBefore = true;
-        }
+            const sigintHandler = async () => {
+                this.log.warning(
+                    'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
+                );
+                await this._pauseOnMigration();
+                await this.autoscaledPool!.abort();
+            };
 
-        return stats;
+            // Attach a listener to handle migration and aborting events gracefully.
+            const boundPauseOnMigration = this._pauseOnMigration.bind(this);
+            process.once('SIGINT', sigintHandler);
+            this.events.on(EventType.MIGRATING, boundPauseOnMigration);
+            this.events.on(EventType.ABORTING, boundPauseOnMigration);
+
+            let stats = {} as FinalStatistics;
+
+            try {
+                await this.autoscaledPool!.run();
+            } finally {
+                await this.teardown();
+                await this.stats.stopCapturing();
+
+                process.off('SIGINT', sigintHandler);
+                this.events.off(EventType.MIGRATING, boundPauseOnMigration);
+                this.events.off(EventType.ABORTING, boundPauseOnMigration);
+
+                const finalStats = this.stats.calculate();
+                stats = {
+                    requestsFinished: this.stats.state.requestsFinished,
+                    requestsFailed: this.stats.state.requestsFailed,
+                    retryHistogram: this.stats.requestRetryHistogram,
+                    ...finalStats,
+                };
+                this.log.info('Final request statistics:', stats);
+
+                if (this.stats.errorTracker.total !== 0) {
+                    const prettify = ([count, info]: [number, string[]]) =>
+                        `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
+
+                    this.log.info(`Error analysis:`, {
+                        totalErrors: this.stats.errorTracker.total,
+                        uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
+                        mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
+                    });
+                }
+
+                const client = this.config.getStorageClient();
+
+                if (client.teardown) {
+                    let finished = false;
+                    setTimeout(() => {
+                        if (!finished) {
+                            this.log.info('Waiting for the storage to write its state to file system.');
+                        }
+                    }, 1000);
+                    await client.teardown();
+                    finished = true;
+                }
+
+                periodicLogger.stop();
+                // Don't await, we don't want to block the execution
+                void this.setStatusMessage(
+                    `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
+                        this.stats.state.requestsFinished
+                    } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                    { isStatusMessageTerminal: true, level: 'INFO' },
+                );
+
+                this.running = false;
+                this.hasFinishedBefore = true;
+            }
+            return stats;
+        });
     }
 
     /**
@@ -1080,15 +1109,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
     stop(message = 'The crawler has been gracefully stopped.'): void {
-        // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
-        this.autoscaledPool
-            ?.pause()
-            // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
-            .then(async () => this.autoscaledPool?.abort())
-            .then(() => this.log.info(message))
-            .catch((err) => {
-                this.log.error('An error occurred when stopping the crawler:', err);
-            });
+        void this.withSpan('crawlee.crawler.stop', {}, async () => {
+            // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
+            await this.autoscaledPool
+                ?.pause()
+                // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
+                .then(async () => this.autoscaledPool?.abort())
+                .then(() => this.log.info(message))
+                .catch((err) => {
+                    this.log.error('An error occurred when stopping the crawler:', err);
+                });
+        });
     }
 
     async getRequestQueue(): Promise<RequestProvider> {
@@ -1547,127 +1578,129 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return;
         }
 
-        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
-            this.log.warning(
-                `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
-            );
-            request.state = RequestState.SKIPPED;
-            request.noRetry = true;
-            await source.markRequestHandled(request);
-            await this.handleSkippedRequest({
-                url: request.url,
-                reason: 'robotsTxt',
-            });
-            return;
-        }
+        await this.withSpan('crawlee.runTaskFunction', {}, async () => {
+            if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
+                this.log.warning(
+                    `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
+                );
+                request.state = RequestState.SKIPPED;
+                request.noRetry = true;
+                await source.markRequestHandled(request);
+                await this.handleSkippedRequest({
+                    url: request.url,
+                    reason: 'robotsTxt',
+                });
+                return;
+            }
 
-        // Reset loadedUrl so an old one is not carried over to retries.
-        request.loadedUrl = undefined;
+            // Reset loadedUrl so an old one is not carried over to retries.
+            request.loadedUrl = undefined;
 
-        const statisticsId = request.id || request.uniqueKey;
-        this.stats.startJob(statisticsId);
+            const statisticsId = request.id || request.uniqueKey;
+            this.stats.startJob(statisticsId);
 
-        // Shared crawling context
-        // @ts-expect-error
-        // All missing properties (that extend CrawlingContext) are set dynamically,
-        // but TS does not know that, so otherwise it would throw when compiling.
-        const crawlingContext: Context = {
-            id: cryptoRandomObjectId(10),
-            crawler: this,
-            log: this.log,
-            request,
-            session,
-            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
-                const requestQueue = await this.getRequestQueue();
+            // Shared crawling context
+            // @ts-expect-error
+            // All missing properties (that extend CrawlingContext) are set dynamically,
+            // but TS does not know that, so otherwise it would throw when compiling.
+            const crawlingContext: Context = {
+                id: cryptoRandomObjectId(10),
+                crawler: this,
+                log: this.log,
+                request,
+                session,
+                enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
+                    const requestQueue = await this.getRequestQueue();
 
-                return this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
-            },
-            addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
-                const newCrawlDepth = request.crawlDepth + 1;
-                const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
+                    return this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
+                },
+                addRequests: async (requests: RequestsLike, options: CrawlerAddRequestsOptions = {}) => {
+                    const newCrawlDepth = request.crawlDepth + 1;
+                    const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
 
-                return this.addRequests(requestsGenerator, options);
-            },
-            pushData: this.pushData.bind(this),
-            useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request, session, () => crawlingContext.proxyInfo?.url),
-            getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
-        };
+                    return this.addRequests(requestsGenerator, options);
+                },
+                pushData: this.pushData.bind(this),
+                useState: this.useState.bind(this),
+                sendRequest: createSendRequest(this.httpClient, request, session, () => crawlingContext.proxyInfo?.url),
+                getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
+            };
 
-        this.crawlingContexts.set(crawlingContext.id, crawlingContext);
-        let isRequestLocked = true;
+            this.crawlingContexts.set(crawlingContext.id, crawlingContext);
+            let isRequestLocked = true;
 
-        try {
-            request.state = RequestState.REQUEST_HANDLER;
-            await addTimeoutToPromise(
-                async () => this._runRequestHandler(crawlingContext),
-                this.requestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
-            );
-
-            await this._timeoutAndRetry(
-                async () => source.markRequestHandled(request!),
-                this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                    this.internalTimeoutMillis / 1e3
-                } seconds.`,
-            );
-            isRequestLocked = false; // markRequestHandled succeeded and unlocked the request
-
-            this.stats.finishJob(statisticsId, request.retryCount);
-            this.handledRequestsCount++;
-
-            // reclaim session if request finishes successfully
-            request.state = RequestState.DONE;
-            crawlingContext.session?.markGood();
-        } catch (err) {
             try {
-                request.state = RequestState.ERROR_HANDLER;
+                request.state = RequestState.REQUEST_HANDLER;
                 await addTimeoutToPromise(
-                    async () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
+                    async () => this._runRequestHandler(crawlingContext),
+                    this.requestHandlerTimeoutMillis,
+                    `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
+                );
+
+                await this._timeoutAndRetry(
+                    async () => source.markRequestHandled(request!),
                     this.internalTimeoutMillis,
-                    `Handling request failure of ${request.url} (${request.id}) timed out after ${
+                    `Marking request ${request.url} (${request.id}) as handled timed out after ${
                         this.internalTimeoutMillis / 1e3
                     } seconds.`,
                 );
-                if (!(err instanceof CriticalError)) {
-                    isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestHandled or reclaimRequest
-                }
+                isRequestLocked = false; // markRequestHandled succeeded and unlocked the request
+
+                this.stats.finishJob(statisticsId, request.retryCount);
+                this.handledRequestsCount++;
+
+                // reclaim session if request finishes successfully
                 request.state = RequestState.DONE;
-            } catch (secondaryError: any) {
-                if (
-                    !secondaryError.triggeredFromUserHandler &&
-                    // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
-                    !(secondaryError instanceof CriticalError)
-                ) {
-                    const apifySpecific = process.env.APIFY_IS_AT_HOME
-                        ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
-                        : '';
-                    this.log.exception(
-                        secondaryError as Error,
-                        'An exception occurred during handling of failed request. ' +
-                            `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
-                    );
-                }
-                request.state = RequestState.ERROR;
-                throw secondaryError;
-            }
-            // decrease the session score if the request fails (but the error handler did not throw)
-            crawlingContext.session?.markBad();
-        } finally {
-            await this._cleanupContext(crawlingContext);
-
-            this.crawlingContexts.delete(crawlingContext.id);
-
-            // Safety net - release the lock if nobody managed to do it before
-            if (isRequestLocked && source instanceof RequestProvider) {
+                crawlingContext.session?.markGood();
+            } catch (err) {
                 try {
-                    await source.client.deleteRequestLock(request.id!);
-                } catch {
-                    // We don't have the lock, or the request was never locked. Either way it's fine
+                    request.state = RequestState.ERROR_HANDLER;
+                    await addTimeoutToPromise(
+                        async () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
+                        this.internalTimeoutMillis,
+                        `Handling request failure of ${request.url} (${request.id}) timed out after ${
+                            this.internalTimeoutMillis / 1e3
+                        } seconds.`,
+                    );
+                    if (!(err instanceof CriticalError)) {
+                        isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestHandled or reclaimRequest
+                    }
+                    request.state = RequestState.DONE;
+                } catch (secondaryError: any) {
+                    if (
+                        !secondaryError.triggeredFromUserHandler &&
+                        // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
+                        !(secondaryError instanceof CriticalError)
+                    ) {
+                        const apifySpecific = process.env.APIFY_IS_AT_HOME
+                            ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
+                            : '';
+                        this.log.exception(
+                            secondaryError as Error,
+                            'An exception occurred during handling of failed request. ' +
+                                `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
+                        );
+                    }
+                    request.state = RequestState.ERROR;
+                    throw secondaryError;
+                }
+                // decrease the session score if the request fails (but the error handler did not throw)
+                crawlingContext.session?.markBad();
+            } finally {
+                await this._cleanupContext(crawlingContext);
+
+                this.crawlingContexts.delete(crawlingContext.id);
+
+                // Safety net - release the lock if nobody managed to do it before
+                if (isRequestLocked && source instanceof RequestProvider) {
+                    try {
+                        await source.client.deleteRequestLock(request.id!);
+                    } catch {
+                        // We don't have the lock, or the request was never locked. Either way it's fine
+                    }
                 }
             }
-        }
+        });
     }
 
     /**
@@ -1933,8 +1966,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         ...args: Parameters<HookLike>
     ) {
         if (Array.isArray(hooks) && hooks.length) {
-            for (const hook of hooks) {
-                await hook(...args);
+            for (let i = 0; i < hooks.length; i++) {
+                await this.withSpan('crawlee.hook', { attributes: { 'crawlee.hook.index': i } }, async () => {
+                    await hooks[i](...args);
+                });
             }
         }
     }
@@ -2067,6 +2102,67 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
         }
     }
+
+    protected async withSpan<T>(
+        name: string,
+        options: SpanOptions,
+        fn: () => Promise<T>,
+    ): Promise<T> {
+        if (!this.telemetry) {
+            return fn();
+        }
+    
+        return this.tracer.startActiveSpan(name, options, async (span) => {
+            try {
+                return await fn();
+            } finally {
+                span.end();
+            }
+        });
+    }
+    
+
+     private wrapLogWithTracing(LogCtor: typeof Log): void {
+        const WRAPPED = Symbol.for("otel.log.internal.patched");
+      
+        const proto = LogCtor.prototype as any;
+      
+        if (proto[WRAPPED]) {
+          return;
+        }
+      
+        const originalInternal = proto.internal;
+      
+        proto.internal = function (
+          this: Log,
+          level: LogLevel,
+          message: string,
+          data?: any,
+          exception?: any,
+        ): void {
+          if (level <= this.getLevel()) {
+            const span = trace.getSpan(context.active());
+            if (span) {
+              if (exception) {
+                span.recordException(exception);
+              } else {
+                span.addEvent(message, {
+                  "crawlee.log.level": level,
+                  "crawlee.log.data": data,
+                });
+              }
+            }
+          }
+      
+          return originalInternal.call(this, level, message, data, exception);
+        };
+      
+        Object.defineProperty(proto, WRAPPED, {
+          value: true,
+          enumerable: false,
+        });
+      }
+      
 }
 
 export interface CreateContextOptions {

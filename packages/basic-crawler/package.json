@@ -58,5 +58,11 @@
         "tldts": "^7.0.0",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"
+    },
+    "devDependencies": {
+        "@opentelemetry/api": "^1.0.0"
+    },
+    "peerDependencies": {
+        "@opentelemetry/api": "^1.0.0"
     }
 }
