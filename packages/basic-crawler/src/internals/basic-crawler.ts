@@ -55,7 +55,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS, toOtelAttributeValue } from '@crawlee/utils';
 import type { SpanOptions } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
 import { stringify } from 'csv-stringify/sync';
@@ -981,124 +981,128 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
         }
 
-        return this.withSpan('crawlee.crawler.run', {
-            attributes: {
-                'crawlee.crawler.type': this.constructor.name,
+        return this.withSpan(
+            'crawlee.crawler.run',
+            {
+                attributes: {
+                    'crawlee.crawler.type': this.constructor.name,
+                },
             },
-        }, async () => {
-            const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
+            async () => {
+                const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
 
-            if (this.hasFinishedBefore) {
-                // When executing the run method for the second time explicitly,
-                // we need to purge the default RQ to allow processing the same requests again - this is important so users can
-                // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
-                // ignored - as a failed requests is still handled.
-                if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
-                    await this.requestQueue.drop();
-                    this.requestQueue = await this._getRequestQueue();
-                    this.requestManager = undefined;
-                    await this.initializeRequestManager();
-                    this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
+                if (this.hasFinishedBefore) {
+                    // When executing the run method for the second time explicitly,
+                    // we need to purge the default RQ to allow processing the same requests again - this is important so users can
+                    // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
+                    // ignored - as a failed requests is still handled.
+                    if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
+                        await this.requestQueue.drop();
+                        this.requestQueue = await this._getRequestQueue();
+                        this.requestManager = undefined;
+                        await this.initializeRequestManager();
+                        this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
+                    }
+
+                    this.stats.reset();
+                    await this.stats.resetStore();
+                    await this.sessionPool?.resetStore();
                 }
 
-                this.stats.reset();
-                await this.stats.resetStore();
-                await this.sessionPool?.resetStore();
-            }
+                this.running = true;
+                this.shouldLogMaxProcessedRequestsExceeded = true;
+                this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
-            this.running = true;
-            this.shouldLogMaxProcessedRequestsExceeded = true;
-            this.shouldLogMaxEnqueuedRequestsExceeded = true;
+                await purgeDefaultStorages({
+                    onlyPurgeOnce: true,
+                    client: this.config.getStorageClient(),
+                    config: this.config,
+                });
 
-            await purgeDefaultStorages({
-                onlyPurgeOnce: true,
-                client: this.config.getStorageClient(),
-                config: this.config,
-            });
-
-            if (requests) {
-                await this.addRequests(requests, addRequestsOptions);
-            }
-
-            await this._init();
-            await this.stats.startCapturing();
-            const periodicLogger = this.getPeriodicLogger();
-            // Don't await, we don't want to block the execution
-            void this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
-
-            const sigintHandler = async () => {
-                this.log.warning(
-                    'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
-                );
-                await this._pauseOnMigration();
-                await this.autoscaledPool!.abort();
-            };
-
-            // Attach a listener to handle migration and aborting events gracefully.
-            const boundPauseOnMigration = this._pauseOnMigration.bind(this);
-            process.once('SIGINT', sigintHandler);
-            this.events.on(EventType.MIGRATING, boundPauseOnMigration);
-            this.events.on(EventType.ABORTING, boundPauseOnMigration);
-
-            let stats = {} as FinalStatistics;
-
-            try {
-                await this.autoscaledPool!.run();
-            } finally {
-                await this.teardown();
-                await this.stats.stopCapturing();
-
-                process.off('SIGINT', sigintHandler);
-                this.events.off(EventType.MIGRATING, boundPauseOnMigration);
-                this.events.off(EventType.ABORTING, boundPauseOnMigration);
-
-                const finalStats = this.stats.calculate();
-                stats = {
-                    requestsFinished: this.stats.state.requestsFinished,
-                    requestsFailed: this.stats.state.requestsFailed,
-                    retryHistogram: this.stats.requestRetryHistogram,
-                    ...finalStats,
-                };
-                this.log.info('Final request statistics:', stats);
-
-                if (this.stats.errorTracker.total !== 0) {
-                    const prettify = ([count, info]: [number, string[]]) =>
-                        `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
-
-                    this.log.info(`Error analysis:`, {
-                        totalErrors: this.stats.errorTracker.total,
-                        uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
-                        mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
-                    });
+                if (requests) {
+                    await this.addRequests(requests, addRequestsOptions);
                 }
 
-                const client = this.config.getStorageClient();
-
-                if (client.teardown) {
-                    let finished = false;
-                    setTimeout(() => {
-                        if (!finished) {
-                            this.log.info('Waiting for the storage to write its state to file system.');
-                        }
-                    }, 1000);
-                    await client.teardown();
-                    finished = true;
-                }
-
-                periodicLogger.stop();
+                await this._init();
+                await this.stats.startCapturing();
+                const periodicLogger = this.getPeriodicLogger();
                 // Don't await, we don't want to block the execution
-                void this.setStatusMessage(
-                    `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                        this.stats.state.requestsFinished
-                    } succeeded, ${this.stats.state.requestsFailed} failed.`,
-                    { isStatusMessageTerminal: true, level: 'INFO' },
-                );
+                void this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
-                this.running = false;
-                this.hasFinishedBefore = true;
-            }
-            return stats;
-        });
+                const sigintHandler = async () => {
+                    this.log.warning(
+                        'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
+                    );
+                    await this._pauseOnMigration();
+                    await this.autoscaledPool!.abort();
+                };
+
+                // Attach a listener to handle migration and aborting events gracefully.
+                const boundPauseOnMigration = this._pauseOnMigration.bind(this);
+                process.once('SIGINT', sigintHandler);
+                this.events.on(EventType.MIGRATING, boundPauseOnMigration);
+                this.events.on(EventType.ABORTING, boundPauseOnMigration);
+
+                let stats = {} as FinalStatistics;
+
+                try {
+                    await this.autoscaledPool!.run();
+                } finally {
+                    await this.teardown();
+                    await this.stats.stopCapturing();
+
+                    process.off('SIGINT', sigintHandler);
+                    this.events.off(EventType.MIGRATING, boundPauseOnMigration);
+                    this.events.off(EventType.ABORTING, boundPauseOnMigration);
+
+                    const finalStats = this.stats.calculate();
+                    stats = {
+                        requestsFinished: this.stats.state.requestsFinished,
+                        requestsFailed: this.stats.state.requestsFailed,
+                        retryHistogram: this.stats.requestRetryHistogram,
+                        ...finalStats,
+                    };
+                    this.log.info('Final request statistics:', stats);
+
+                    if (this.stats.errorTracker.total !== 0) {
+                        const prettify = ([count, info]: [number, string[]]) =>
+                            `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
+
+                        this.log.info(`Error analysis:`, {
+                            totalErrors: this.stats.errorTracker.total,
+                            uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
+                            mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
+                        });
+                    }
+
+                    const client = this.config.getStorageClient();
+
+                    if (client.teardown) {
+                        let finished = false;
+                        setTimeout(() => {
+                            if (!finished) {
+                                this.log.info('Waiting for the storage to write its state to file system.');
+                            }
+                        }, 1000);
+                        await client.teardown();
+                        finished = true;
+                    }
+
+                    periodicLogger.stop();
+                    // Don't await, we don't want to block the execution
+                    void this.setStatusMessage(
+                        `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
+                            this.stats.state.requestsFinished
+                        } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                        { isStatusMessageTerminal: true, level: 'INFO' },
+                    );
+
+                    this.running = false;
+                    this.hasFinishedBefore = true;
+                }
+                return stats;
+            },
+        );
     }
 
     /**
@@ -1654,14 +1658,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 crawlingContext.session?.markGood();
             } catch (err) {
                 try {
-                    request.state = RequestState.ERROR_HANDLER;
-                    await addTimeoutToPromise(
-                        async () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
-                        this.internalTimeoutMillis,
-                        `Handling request failure of ${request.url} (${request.id}) timed out after ${
-                            this.internalTimeoutMillis / 1e3
-                        } seconds.`,
-                    );
+                    await this.withSpan('crawlee.requestFunctionErrorHandler', {}, async () => {
+                        request.state = RequestState.ERROR_HANDLER;
+                        await addTimeoutToPromise(
+                            async () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
+                            this.internalTimeoutMillis,
+                            `Handling request failure of ${request.url} (${request.id}) timed out after ${
+                                this.internalTimeoutMillis / 1e3
+                            } seconds.`,
+                        );
+                    });
                     if (!(err instanceof CriticalError)) {
                         isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestHandled or reclaimRequest
                     }
@@ -1882,15 +1888,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _handleFailedRequestHandler(crawlingContext: Context, error: Error): Promise<void> {
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
-        const message = this._getMessageFromError(error, true);
 
-        this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
+        await this.withSpan('crawlee.failedRequestHandler', {}, async () => {
+            const message = this._getMessageFromError(error, true);
 
-        if (this.failedRequestHandler) {
-            await this._tagUserHandlerError(() =>
-                this.failedRequestHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
-            );
-        }
+            this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
+
+            if (this.failedRequestHandler) {
+                await this._tagUserHandlerError(() =>
+                    this.failedRequestHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
+                );
+            }
+        });
     }
 
     /**
@@ -2103,15 +2112,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
     }
 
-    protected async withSpan<T>(
-        name: string,
-        options: SpanOptions,
-        fn: () => Promise<T>,
-    ): Promise<T> {
+    protected async withSpan<T>(name: string, options: SpanOptions, fn: () => Promise<T>): Promise<T> {
         if (!this.telemetry) {
             return fn();
         }
-    
+
         return this.tracer.startActiveSpan(name, options, async (span) => {
             try {
                 return await fn();
@@ -2120,49 +2125,41 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
         });
     }
-    
 
-     private wrapLogWithTracing(LogCtor: typeof Log): void {
-        const WRAPPED = Symbol.for("otel.log.internal.patched");
-      
+    private wrapLogWithTracing(LogCtor: typeof Log): void {
+        const WRAPPED = Symbol.for('otel.log.internal.patched');
+
         const proto = LogCtor.prototype as any;
-      
+
         if (proto[WRAPPED]) {
-          return;
+            return;
         }
-      
+
         const originalInternal = proto.internal;
-      
-        proto.internal = function (
-          this: Log,
-          level: LogLevel,
-          message: string,
-          data?: any,
-          exception?: any,
-        ): void {
-          if (level <= this.getLevel()) {
-            const span = trace.getSpan(context.active());
-            if (span) {
-              if (exception) {
-                span.recordException(exception);
-              } else {
-                span.addEvent(message, {
-                  "crawlee.log.level": level,
-                  "crawlee.log.data": data,
-                });
-              }
+
+        proto.internal = function (this: Log, level: LogLevel, message: string, data?: any, exception?: any): void {
+            if (level <= this.getLevel()) {
+                const span = trace.getSpan(context.active());
+                if (span && span.isRecording()) {
+                    if (exception) {
+                        span.recordException(exception);
+                    } else {
+                        span.addEvent(message, {
+                            'crawlee.log.level': level,
+                            'crawlee.log.data': toOtelAttributeValue(data),
+                        });
+                    }
+                }
             }
-          }
-      
-          return originalInternal.call(this, level, message, data, exception);
+
+            return originalInternal.call(this, level, message, data, exception);
         };
-      
+
         Object.defineProperty(proto, WRAPPED, {
-          value: true,
-          enumerable: false,
+            value: true,
+            enumerable: false,
         });
-      }
-      
+    }
 }
 
 export interface CreateContextOptions {

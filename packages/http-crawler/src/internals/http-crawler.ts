@@ -508,92 +508,92 @@ export class HttpCrawler<
         await this.withSpan('crawlee.runRequestHandler', {}, async () => {
             const { request, session } = crawlingContext;
 
-                if (this.proxyConfiguration) {
-                    const sessionId = session ? session.id : undefined;
-                    crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
+            if (this.proxyConfiguration) {
+                const sessionId = session ? session.id : undefined;
+                crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
+            }
+
+            if (!request.skipNavigation) {
+                await this._handleNavigation(crawlingContext);
+                tryCancel();
+
+                const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
+                const response = parsed.response!;
+                const contentType = parsed.contentType!;
+                tryCancel();
+
+                // `??=` because descendant classes may already set optimized version
+                crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
+                    const $ = cheerio.load(parsed.body!.toString());
+
+                    if ($(selector).get().length === 0) {
+                        throw new Error(`Selector '${selector}' not found.`);
+                    }
+                };
+                crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
+                    const $ = cheerio.load(parsed.body!.toString());
+
+                    if (selector) {
+                        await crawlingContext.waitForSelector(selector, timeoutMs);
+                    }
+
+                    return $;
+                };
+
+                if (this.useSessionPool) {
+                    this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
                 }
 
-                if (!request.skipNavigation) {
-                    await this._handleNavigation(crawlingContext);
-                    tryCancel();
-
-                    const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
-                    const response = parsed.response!;
-                    const contentType = parsed.contentType!;
-                    tryCancel();
-
-                    // `??=` because descendant classes may already set optimized version
-                    crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
-                        const $ = cheerio.load(parsed.body!.toString());
-
-                        if ($(selector).get().length === 0) {
-                            throw new Error(`Selector '${selector}' not found.`);
-                        }
-                    };
-                    crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
-                        const $ = cheerio.load(parsed.body!.toString());
-
-                        if (selector) {
-                            await crawlingContext.waitForSelector(selector, timeoutMs);
-                        }
-
-                        return $;
-                    };
-
-                    if (this.useSessionPool) {
-                        this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
-                    }
-
-                    if (this.persistCookiesPerSession) {
-                        crawlingContext.session!.setCookiesFromResponse(response);
-                    }
-
-                    request.loadedUrl = response.url;
-
-                    if (!this.requestMatchesEnqueueStrategy(request)) {
-                        this.log.debug(
-                            // eslint-disable-next-line dot-notation
-                            `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
-                        );
-
-                        request.noRetry = true;
-                        request.state = RequestState.SKIPPED;
-
-                        await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
-
-                        return;
-                    }
-
-                    Object.assign(crawlingContext, parsed);
-
-                    Object.defineProperty(crawlingContext, 'json', {
-                        get() {
-                            if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
-                            const jsonString = parsed.body!.toString(contentType.encoding);
-                            return JSON.parse(jsonString);
-                        },
-                    });
+                if (this.persistCookiesPerSession) {
+                    crawlingContext.session!.setCookiesFromResponse(response);
                 }
 
-                if (this.retryOnBlocked) {
-                    const error = await this.isRequestBlocked(crawlingContext);
-                    if (error) throw new SessionError(error);
+                request.loadedUrl = response.url;
+
+                if (!this.requestMatchesEnqueueStrategy(request)) {
+                    this.log.debug(
+                        // eslint-disable-next-line dot-notation
+                        `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+                    );
+
+                    request.noRetry = true;
+                    request.state = RequestState.SKIPPED;
+
+                    await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
+                    return;
                 }
 
-                request.state = RequestState.REQUEST_HANDLER;
-                await this.withSpan('crawlee.userRequestHandler', {}, async () => {
-                    try {
-                        await addTimeoutToPromise(
-                            async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
-                            this.userRequestHandlerTimeoutMillis,
-                            `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
-                        );
-                        request.state = RequestState.DONE;
-                    } catch (e: any) {
-                        request.state = RequestState.ERROR;
-                        throw e;
-                    }
+                Object.assign(crawlingContext, parsed);
+
+                Object.defineProperty(crawlingContext, 'json', {
+                    get() {
+                        if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
+                        const jsonString = parsed.body!.toString(contentType.encoding);
+                        return JSON.parse(jsonString);
+                    },
                 });
+            }
+
+            if (this.retryOnBlocked) {
+                const error = await this.isRequestBlocked(crawlingContext);
+                if (error) throw new SessionError(error);
+            }
+
+            request.state = RequestState.REQUEST_HANDLER;
+            await this.withSpan('crawlee.userRequestHandler', {}, async () => {
+                try {
+                    await addTimeoutToPromise(
+                        async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
+                        this.userRequestHandlerTimeoutMillis,
+                        `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
+                    );
+                    request.state = RequestState.DONE;
+                } catch (e: any) {
+                    request.state = RequestState.ERROR;
+                    throw e;
+                }
+            });
         });
     }
 

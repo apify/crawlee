@@ -509,95 +509,99 @@ export abstract class BrowserCrawler<
      * Wrapper around requestHandler that opens and closes pages etc.
      */
     protected override async _runRequestHandler(crawlingContext: Context) {
-        const newPageOptions: Dictionary = {
-            id: crawlingContext.id,
-        };
+        await this.withSpan('crawlee.runRequestHandler', {}, async () => {
+            const newPageOptions: Dictionary = {
+                id: crawlingContext.id,
+            };
 
-        const useIncognitoPages = this.launchContext?.useIncognitoPages;
-        const experimentalContainers = this.launchContext?.experimentalContainers;
+            const useIncognitoPages = this.launchContext?.useIncognitoPages;
+            const experimentalContainers = this.launchContext?.experimentalContainers;
 
-        if (this.proxyConfiguration) {
-            const { session } = crawlingContext;
+            if (this.proxyConfiguration) {
+                const { session } = crawlingContext;
 
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, {
-                request: crawlingContext.request,
-            });
-            crawlingContext.proxyInfo = proxyInfo;
+                const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, {
+                    request: crawlingContext.request,
+                });
+                crawlingContext.proxyInfo = proxyInfo;
 
-            newPageOptions.proxyUrl = proxyInfo?.url;
-            newPageOptions.proxyTier = proxyInfo?.proxyTier;
+                newPageOptions.proxyUrl = proxyInfo?.url;
+                newPageOptions.proxyTier = proxyInfo?.proxyTier;
 
-            if (this.proxyConfiguration.isManInTheMiddle) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                newPageOptions.pageOptions = {
-                    ignoreHTTPSErrors: true,
-                    acceptInsecureCerts: true,
-                };
+                if (this.proxyConfiguration.isManInTheMiddle) {
+                    /**
+                     * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                     * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                     */
+                    newPageOptions.pageOptions = {
+                        ignoreHTTPSErrors: true,
+                        acceptInsecureCerts: true,
+                    };
+                }
             }
-        }
 
-        const page = (await this.browserPool.newPage(newPageOptions)) as CommonPage;
-        tryCancel();
-        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages || experimentalContainers);
-
-        // DO NOT MOVE THIS LINE ABOVE!
-        // `enhanceCrawlingContextWithPageInfo` gives us a valid session.
-        // For example, `sessionPoolOptions.sessionOptions.maxUsageCount` can be `1`.
-        // So we must not save the session prior to making sure it was used only once, otherwise we would use it twice.
-        const { request, session } = crawlingContext;
-
-        if (!request.skipNavigation) {
-            await this._handleNavigation(crawlingContext);
+            const page = (await this.browserPool.newPage(newPageOptions)) as CommonPage;
             tryCancel();
+            this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages || experimentalContainers);
 
-            await this._responseHandler(crawlingContext);
-            tryCancel();
+            // DO NOT MOVE THIS LINE ABOVE!
+            // `enhanceCrawlingContextWithPageInfo` gives us a valid session.
+            // For example, `sessionPoolOptions.sessionOptions.maxUsageCount` can be `1`.
+            // So we must not save the session prior to making sure it was used only once, otherwise we would use it twice.
+            const { request, session } = crawlingContext;
 
-            // save cookies
-            // TODO: Should we save the cookies also after/only the handle page?
-            if (this.persistCookiesPerSession) {
-                const cookies = await crawlingContext.browserController.getCookies(page);
+            if (!request.skipNavigation) {
+                await this._handleNavigation(crawlingContext);
                 tryCancel();
-                session?.setCookies(cookies, request.loadedUrl!);
+
+                await this._responseHandler(crawlingContext);
+                tryCancel();
+
+                // save cookies
+                // TODO: Should we save the cookies also after/only the handle page?
+                if (this.persistCookiesPerSession) {
+                    const cookies = await crawlingContext.browserController.getCookies(page);
+                    tryCancel();
+                    session?.setCookies(cookies, request.loadedUrl!);
+                }
             }
-        }
 
-        if (!this.requestMatchesEnqueueStrategy(request)) {
-            this.log.debug(
-                // eslint-disable-next-line dot-notation
-                `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
-            );
+            if (!this.requestMatchesEnqueueStrategy(request)) {
+                this.log.debug(
+                    // eslint-disable-next-line dot-notation
+                    `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+                );
 
-            request.noRetry = true;
-            request.state = RequestState.SKIPPED;
+                request.noRetry = true;
+                request.state = RequestState.SKIPPED;
 
-            await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+                await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
 
-            return;
-        }
+                return;
+            }
 
-        if (this.retryOnBlocked) {
-            const error = await this.isRequestBlocked(crawlingContext);
-            if (error) throw new SessionError(error);
-        }
+            if (this.retryOnBlocked) {
+                const error = await this.isRequestBlocked(crawlingContext);
+                if (error) throw new SessionError(error);
+            }
 
-        request.state = RequestState.REQUEST_HANDLER;
-        try {
-            await addTimeoutToPromise(
-                async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
-                this.requestHandlerTimeoutInnerMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
-            );
+            request.state = RequestState.REQUEST_HANDLER;
+            await this.withSpan('crawlee.userRequestHandler', {}, async () => {
+                try {
+                    await addTimeoutToPromise(
+                        async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
+                        this.requestHandlerTimeoutInnerMillis,
+                        `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
+                    );
 
-            request.state = RequestState.DONE;
-        } catch (e: any) {
-            request.state = RequestState.ERROR;
-            throw e;
-        }
-        tryCancel();
+                    request.state = RequestState.DONE;
+                } catch (e: any) {
+                    request.state = RequestState.ERROR;
+                    throw e;
+                }
+            });
+            tryCancel();
+        });
     }
 
     protected _enhanceCrawlingContextWithPageInfo(
@@ -640,32 +644,42 @@ export abstract class BrowserCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
+        await this.withSpan('crawlee.handleNavigation', {}, async () => {
+            const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
 
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+            const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        crawlingContext.request.state = RequestState.BEFORE_NAV;
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
-        tryCancel();
+            crawlingContext.request.state = RequestState.BEFORE_NAV;
+            if (this.preNavigationHooks.length) {
+                await this.withSpan('crawlee.preNavigationHooks', {}, async () => {
+                    await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+                });
+            }
+            tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+            const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+            await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
 
-        try {
-            crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
-        } catch (error) {
-            await this._handleNavigationTimeout(crawlingContext, error as Error);
+            try {
+                crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
+            } catch (error) {
+                await this._handleNavigationTimeout(crawlingContext, error as Error);
 
-            crawlingContext.request.state = RequestState.ERROR;
+                crawlingContext.request.state = RequestState.ERROR;
 
-            this._throwIfProxyError(error as Error);
-            throw error;
-        }
-        tryCancel();
+                this._throwIfProxyError(error as Error);
+                throw error;
+            }
+            tryCancel();
 
-        crawlingContext.request.state = RequestState.AFTER_NAV;
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+            crawlingContext.request.state = RequestState.AFTER_NAV;
+            if (this.postNavigationHooks.length) {
+                await this.withSpan('crawlee.postNavigationHooks', {}, async () => {
+                    await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+                });
+            }
+        });
     }
 
     protected async _applyCookies(
