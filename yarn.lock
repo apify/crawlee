@@ -522,10 +522,12 @@ __metadata:
     "@crawlee/browser-pool": "npm:3.15.3"
     "@crawlee/types": "npm:3.15.3"
     "@crawlee/utils": "npm:3.15.3"
+    "@opentelemetry/api": "npm:^1.0.0"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
   peerDependencies:
+    "@opentelemetry/api": ^1.0.0
     playwright: "*"
     puppeteer: "*"
   peerDependenciesMeta:
