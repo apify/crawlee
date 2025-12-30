@@ -3,8 +3,7 @@
     "private": true,
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "workspaces": [
-        "packages/*",
-        "demo-telemetry"
+        "packages/*"
     ],
     "keywords": [
         "apify",
