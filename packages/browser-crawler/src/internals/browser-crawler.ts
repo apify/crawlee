@@ -542,7 +542,11 @@ export abstract class BrowserCrawler<
 
             const page = (await this.browserPool.newPage(newPageOptions)) as CommonPage;
             tryCancel();
-            this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages || experimentalContainers);
+            this._enhanceCrawlingContextWithPageInfo(
+                crawlingContext,
+                page,
+                useIncognitoPages || experimentalContainers,
+            );
 
             // DO NOT MOVE THIS LINE ABOVE!
             // `enhanceCrawlingContextWithPageInfo` gives us a valid session.
@@ -589,7 +593,8 @@ export abstract class BrowserCrawler<
             await this.withSpan('crawlee.userRequestHandler', {}, async () => {
                 try {
                     await addTimeoutToPromise(
-                        async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
+                        async () =>
+                            Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
                         this.requestHandlerTimeoutInnerMillis,
                         `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
                     );

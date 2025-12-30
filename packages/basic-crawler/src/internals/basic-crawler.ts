@@ -55,7 +55,14 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS, toOtelAttributeValue } from '@crawlee/utils';
+import {
+    getObjectType,
+    isAsyncIterable,
+    isIterable,
+    RobotsTxtFile,
+    ROTATE_PROXY_ERRORS,
+    toOtelAttributeValue,
+} from '@crawlee/utils';
 import type { SpanOptions } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
 import { stringify } from 'csv-stringify/sync';
