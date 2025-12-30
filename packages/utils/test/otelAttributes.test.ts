@@ -83,7 +83,10 @@ describe('toOtelAttributeValue', () => {
         });
 
         it('should JSON stringify arrays with nested arrays', () => {
-            const arr = [[1, 2], [3, 4]];
+            const arr = [
+                [1, 2],
+                [3, 4],
+            ];
             expect(toOtelAttributeValue(arr)).toBe(JSON.stringify(arr));
         });
     });

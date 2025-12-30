@@ -68,10 +68,18 @@ describe('BasicCrawler Telemetry', () => {
 
             // Access protected withSpan method
             // eslint-disable-next-line dot-notation
-            const result = await crawler['withSpan']('test.span', { attributes: { key: 'value' } }, async () => 'result');
+            const result = await crawler['withSpan'](
+                'test.span',
+                { attributes: { key: 'value' } },
+                async () => 'result',
+            );
 
             expect(result).toBe('result');
-            expect(tracerMock.startActiveSpan).toHaveBeenCalledWith('test.span', { attributes: { key: 'value' } }, expect.any(Function));
+            expect(tracerMock.startActiveSpan).toHaveBeenCalledWith(
+                'test.span',
+                { attributes: { key: 'value' } },
+                expect.any(Function),
+            );
             expect(mockSpan.end).toHaveBeenCalled();
         });
 
@@ -95,9 +103,11 @@ describe('BasicCrawler Telemetry', () => {
 
             // Access protected withSpan method
             // eslint-disable-next-line dot-notation
-            await expect(crawler['withSpan']('test.span', {}, async () => {
-                throw new Error('Test error');
-            })).rejects.toThrow('Test error');
+            await expect(
+                crawler['withSpan']('test.span', {}, async () => {
+                    throw new Error('Test error');
+                }),
+            ).rejects.toThrow('Test error');
 
             expect(mockSpan.end).toHaveBeenCalled();
         });
@@ -333,4 +343,3 @@ describe('BasicCrawler Telemetry', () => {
         });
     });
 });
-
