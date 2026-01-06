@@ -875,7 +875,6 @@ describe('BrowserCrawler', () => {
     });
 
     describe('proxy', () => {
-
         // TODO move to actor sdk tests before splitting the repos
         // test('browser should launch with correct proxyUrl', async () => {
         //     process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
@@ -1065,64 +1064,67 @@ describe('BrowserCrawler', () => {
             }
         });
 
-        test.concurrent('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
-            const localStorageEmulator = new MemoryStorageEmulator();
-            await localStorageEmulator.init();
-            const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+        test.concurrent(
+            'proxy rotation on error respects maxSessionRotations, calls failedRequestHandler',
+            async () => {
+                const localStorageEmulator = new MemoryStorageEmulator();
+                await localStorageEmulator.init();
+                const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
-            try {
-                const requestList = await RequestList.open({
-                    sources: [
-                        { url: 'http://example.com/?q=1' },
-                        { url: 'http://example.com/?q=2' },
-                        { url: 'http://example.com/?q=3' },
-                        { url: 'http://example.com/?q=4' },
-                    ],
-                });
+                try {
+                    const requestList = await RequestList.open({
+                        sources: [
+                            { url: 'http://example.com/?q=1' },
+                            { url: 'http://example.com/?q=2' },
+                            { url: 'http://example.com/?q=3' },
+                            { url: 'http://example.com/?q=4' },
+                        ],
+                    });
 
-                const proxyConfiguration = new ProxyConfiguration({
-                    proxyUrls: ['http://localhost', 'http://localhost:1234'],
-                });
-                const failedRequestHandler = vitest.fn();
+                    const proxyConfiguration = new ProxyConfiguration({
+                        proxyUrls: ['http://localhost', 'http://localhost:1234'],
+                    });
+                    const failedRequestHandler = vitest.fn();
 
-                /**
-                 * The first increment is the base case when the proxy is retrieved for the first time.
-                 */
-                let numberOfRotations = -requestList!.length();
-                const browserCrawler = new (class extends BrowserCrawlerTest {
-                    protected override async _navigationHandler(
-                        ctx: PuppeteerCrawlingContext,
-                    ): Promise<HTTPResponse | null | undefined> {
-                        const { session } = ctx;
-                        const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
+                    /**
+                     * The first increment is the base case when the proxy is retrieved for the first time.
+                     */
+                    let numberOfRotations = -requestList!.length();
+                    const browserCrawler = new (class extends BrowserCrawlerTest {
+                        protected override async _navigationHandler(
+                            ctx: PuppeteerCrawlingContext,
+                        ): Promise<HTTPResponse | null | undefined> {
+                            const { session } = ctx;
+                            const proxyInfo = await this.proxyConfiguration!.newProxyInfo(session?.id);
 
-                        numberOfRotations++;
+                            numberOfRotations++;
 
-                        if (proxyInfo!.url.includes('localhost')) {
-                            throw new Error('ERR_PROXY_CONNECTION_FAILED');
+                            if (proxyInfo!.url.includes('localhost')) {
+                                throw new Error('ERR_PROXY_CONNECTION_FAILED');
+                            }
+
+                            return null;
                         }
+                    })({
+                        browserPoolOptions: {
+                            browserPlugins: [puppeteerPlugin],
+                        },
+                        requestList,
+                        maxSessionRotations: 5,
+                        maxConcurrency: 1,
+                        proxyConfiguration,
+                        requestHandler: async () => {},
+                        failedRequestHandler,
+                    });
 
-                        return null;
-                    }
-                })({
-                    browserPoolOptions: {
-                        browserPlugins: [puppeteerPlugin],
-                    },
-                    requestList,
-                    maxSessionRotations: 5,
-                    maxConcurrency: 1,
-                    proxyConfiguration,
-                    requestHandler: async () => {},
-                    failedRequestHandler,
-                });
-
-                await browserCrawler.run();
-                expect(failedRequestHandler).toBeCalledTimes(requestList!.length());
-                expect(numberOfRotations).toBe(requestList!.length() * 5);
-            } finally {
-                await localStorageEmulator.destroy();
-            }
-        });
+                    await browserCrawler.run();
+                    expect(failedRequestHandler).toBeCalledTimes(requestList!.length());
+                    expect(numberOfRotations).toBe(requestList!.length() * 5);
+                } finally {
+                    await localStorageEmulator.destroy();
+                }
+            },
+        );
 
         test.concurrent('proxy rotation logs the original proxy error', async () => {
             const localStorageEmulator = new MemoryStorageEmulator();

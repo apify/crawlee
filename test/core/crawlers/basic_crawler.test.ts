@@ -958,19 +958,17 @@ describe('BasicCrawler', () => {
         vitest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
 
         let handledCount = 0;
-        const markRequestHandled = vitest
-            .spyOn(requestQueue, 'markRequestHandled')
-            .mockImplementation(async () => {
-                handledCount++;
-                // Only set isFinished after both requests have been handled
-                if (handledCount >= 2) {
-                    // Small delay to ensure the test can verify everything
-                    setTimeout(() => {
-                        isFinished = true;
-                    }, 50);
-                }
-                return Promise.resolve() as any;
-            });
+        const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled').mockImplementation(async () => {
+            handledCount++;
+            // Only set isFinished after both requests have been handled
+            if (handledCount >= 2) {
+                // Small delay to ensure the test can verify everything
+                setTimeout(() => {
+                    isFinished = true;
+                }, 50);
+            }
+            return Promise.resolve() as any;
+        });
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
