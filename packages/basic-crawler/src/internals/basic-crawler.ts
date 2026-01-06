@@ -561,6 +561,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
+    protected stoppingPromise?: Promise<void>;
     private _closeEvents?: boolean;
     private shouldLogMaxProcessedRequestsExceeded = true;
     private shouldLogMaxEnqueuedRequestsExceeded = true;
@@ -978,6 +979,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.running = true;
+        this.stoppingPromise = undefined;
         this.shouldLogMaxProcessedRequestsExceeded = true;
         this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
@@ -1016,6 +1018,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await this.autoscaledPool!.run();
         } finally {
+            await this?.stoppingPromise;
             await this.teardown();
             await this.stats.stopCapturing();
 
@@ -1080,15 +1083,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
     stop(message = 'The crawler has been gracefully stopped.'): void {
-        // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
-        this.autoscaledPool
-            ?.pause()
-            // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
-            .then(async () => this.autoscaledPool?.abort())
-            .then(() => this.log.info(message))
-            .catch((err) => {
-                this.log.error('An error occurred when stopping the crawler:', err);
-            });
+        if (!this.stoppingPromise) {
+            // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
+            this.stoppingPromise = this.autoscaledPool
+                ?.pause()
+                // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
+                .then(async () => this.autoscaledPool?.abort())
+                .then(() => this.log.info(message))
+                .catch((err) => {
+                    this.log.error('An error occurred when stopping the crawler:', err);
+                });
+        }
     }
 
     async getRequestQueue(): Promise<RequestProvider> {
