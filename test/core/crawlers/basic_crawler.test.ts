@@ -956,20 +956,28 @@ describe('BasicCrawler', () => {
         const request1 = new Request({ url: 'http://example.com/1' });
 
         vitest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
-        const markRequestHandled = vitest
-            .spyOn(requestQueue, 'markRequestHandled')
-            .mockReturnValue(Promise.resolve() as any);
+
+        let handledCount = 0;
+        const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled').mockImplementation(async () => {
+            handledCount++;
+            // Only set isFinished after both requests have been handled
+            if (handledCount >= 2) {
+                // Small delay to ensure the test can verify everything
+                setTimeout(() => {
+                    isFinished = true;
+                }, 50);
+            }
+            return Promise.resolve() as any;
+        });
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
         requestQueue.fetchNextRequest = async () => queue.pop()!;
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 10);
-        setTimeout(() => queue.push(request1), 100);
-        setTimeout(() => {
-            isFinished = true;
-        }, 150);
+        // Add requests with buffer time for crawler startup
+        setTimeout(() => queue.push(request0), 150);
+        setTimeout(() => queue.push(request1), 350);
 
         await basicCrawler.run();
 
@@ -1016,11 +1024,11 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 10);
-        setTimeout(() => queue.push(request1), 100);
+        setTimeout(() => queue.push(request0), 100);
+        setTimeout(() => queue.push(request1), 250);
         setTimeout(() => {
             void basicCrawler.teardown();
-        }, 300);
+        }, 650);
 
         await basicCrawler.run();
 

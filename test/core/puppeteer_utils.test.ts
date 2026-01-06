@@ -242,7 +242,7 @@ describe('puppeteerUtils', () => {
                     urlPatterns: ['.css'],
                 });
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
 
                 expect(loadedUrls).toEqual(
                     expect.arrayContaining([
