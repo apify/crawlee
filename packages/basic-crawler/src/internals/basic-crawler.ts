@@ -979,7 +979,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.running = true;
-        this.stoppingPromise = undefined;
+        this.stoppingPromise = undefined as any;
         this.shouldLogMaxProcessedRequestsExceeded = true;
         this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
@@ -1018,7 +1018,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await this.autoscaledPool!.run();
         } finally {
-            await this?.stoppingPromise;
+            if (this?.stoppingPromise) {
+                await this.stoppingPromise;
+            }
             await this.teardown();
             await this.stats.stopCapturing();
 
