@@ -965,11 +965,11 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = async () => queue.pop()!;
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 10);
-        setTimeout(() => queue.push(request1), 100);
+        setTimeout(() => queue.push(request0), 100);
+        setTimeout(() => queue.push(request1), 250);
         setTimeout(() => {
             isFinished = true;
-        }, 150);
+        }, 600);
 
         await basicCrawler.run();
 
@@ -1016,11 +1016,11 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 10);
-        setTimeout(() => queue.push(request1), 100);
+        setTimeout(() => queue.push(request0), 100);
+        setTimeout(() => queue.push(request1), 250);
         setTimeout(() => {
             void basicCrawler.teardown();
-        }, 300);
+        }, 650);
 
         await basicCrawler.run();
 
