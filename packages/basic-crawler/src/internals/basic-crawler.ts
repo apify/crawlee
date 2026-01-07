@@ -536,6 +536,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     running = false;
     hasFinishedBefore = false;
+    protected unexpectedStop = false;
 
     readonly log: Log;
     protected requestHandler!: RequestHandler<Context>;
@@ -561,7 +562,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
-    protected stoppingPromise?: Promise<void>;
     private _closeEvents?: boolean;
     private shouldLogMaxProcessedRequestsExceeded = true;
     private shouldLogMaxEnqueuedRequestsExceeded = true;
@@ -821,6 +821,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     return false;
                 }
 
+                if (this.unexpectedStop) {
+                    this.log.info(
+                        'No new requests are allowed because crawler `stop` method was called.\n' +
+                        'Ongoing requests will be allowed to complete.'
+                    )
+                    return false;
+                }
+
                 return isTaskReadyFunction ? await isTaskReadyFunction() : await this._isTaskReadyFunction();
             },
             isFinishedFunction: async () => {
@@ -830,6 +838,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                             'and all requests that were in progress at that time have now finished. ' +
                             `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
                     );
+                    return true;
+                }
+
+                if (this.unexpectedStop) {
+                    this.log.info('The crawler will finish any remaining ongoing requests and shut down.')
                     return true;
                 }
 
@@ -978,8 +991,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this.sessionPool?.resetStore();
         }
 
+        this.unexpectedStop = false;
         this.running = true;
-        this.stoppingPromise = undefined as any;
         this.shouldLogMaxProcessedRequestsExceeded = true;
         this.shouldLogMaxEnqueuedRequestsExceeded = true;
 
@@ -1018,9 +1031,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await this.autoscaledPool!.run();
         } finally {
-            if (this?.stoppingPromise) {
-                await this.stoppingPromise;
-            }
             await this.teardown();
             await this.stats.stopCapturing();
 
@@ -1084,18 +1094,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      *
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
-    stop(message = 'The crawler has been gracefully stopped.'): void {
-        if (!this.stoppingPromise) {
-            // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
-            this.stoppingPromise = this.autoscaledPool
-                ?.pause()
-                // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
-                .then(async () => this.autoscaledPool?.abort())
-                .then(() => this.log.info(message))
-                .catch((err) => {
-                    this.log.error('An error occurred when stopping the crawler:', err);
-                });
-        }
+    stop(reason = 'The crawler has been gracefully stopped.'): void {
+        this.log.info(reason);
+        this.unexpectedStop = true;
     }
 
     async getRequestQueue(): Promise<RequestProvider> {
