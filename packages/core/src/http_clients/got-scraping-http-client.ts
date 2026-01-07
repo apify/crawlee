@@ -2,6 +2,7 @@ import { Readable } from 'node:stream';
 
 import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
 import type { Options } from 'got-scraping';
+import type { CookieJar } from 'tough-cookie';
 import { gotScraping } from 'got-scraping';
 
 import { ResponseWithUrl } from './base-http-client.js';
@@ -22,18 +23,19 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
      */
     protected abstract fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>;
 
-    private applyCookies(request: Request, cookieJar: any): Request {
-        const cookies = cookieJar.getCookiesSync(request.url);
-        if (cookies) {
-            request.headers.set('cookie', cookies);
+    private async applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
+        const cookies = (await cookieJar.getCookies(request.url)).map((x) => x.cookieString().trim()).filter(Boolean);
+
+        if (cookies?.length > 0) {
+            request.headers.set('cookie', cookies.join('; '));
         }
         return request;
     }
 
-    private setCookies(response: Response, cookieJar: any): void {
+    private async setCookies(response: Response, cookieJar: CookieJar): Promise<void> {
         const setCookieHeader = response.headers.get('set-cookie');
         if (setCookieHeader) {
-            cookieJar.setCookieSync(setCookieHeader, response.url);
+            await cookieJar.setCookie(setCookieHeader, response.url);
         }
     }
 
@@ -48,7 +50,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar;
 
         while (true) {
-            this.applyCookies(currentRequest, cookieJar);
+            await this.applyCookies(currentRequest, cookieJar as CookieJar);
 
             const abortSignal = options?.timeout ? AbortSignal.timeout(options?.timeout) : undefined;
             const response = await this.fetch(currentRequest, {
@@ -56,7 +58,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 proxyUrl,
             });
 
-            this.setCookies(response, cookieJar);
+            await this.setCookies(response, cookieJar as CookieJar);
 
             const status = response.status;
             const location = response.headers.get('location');

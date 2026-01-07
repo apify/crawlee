@@ -18,11 +18,6 @@ export function createSendRequest(
         overrideRequest: Partial<HttpRequestOptions> = {},
         overrideOptions: SendRequestOptions = {},
     ): Promise<Response> => {
-        const sessionCookieJar = {
-            getCookieString: async (url: string) => session?.getCookieString(url),
-            setCookie: async (rawCookie: string, url: string) => session?.setCookie(rawCookie, url),
-        };
-
         const baseRequest = originRequest.intoFetchAPIRequest();
         const mergedUrl = overrideRequest.url ?? baseRequest.url;
         const mergedMethod = overrideRequest.method ?? baseRequest.method;
@@ -42,7 +37,7 @@ export function createSendRequest(
 
         return httpClient.sendRequest(request, {
             session,
-            cookieJar: overrideOptions?.cookieJar ?? (sessionCookieJar as any),
+            cookieJar: overrideOptions?.cookieJar ?? (session?.cookieJar as any),
             timeout: overrideOptions.timeout,
         });
     };
