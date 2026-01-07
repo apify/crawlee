@@ -171,7 +171,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     }
 
     private async initiateDownload(context: CrawlingContext) {
-        const response = await this.httpClient.stream(context.request.intoFetchAPIRequest(), {
+        const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
             session: context.session,
         });
 
