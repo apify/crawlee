@@ -1,15 +1,111 @@
 import { Readable } from 'node:stream';
 
-import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee/types';
-import type { Options, PlainResponse } from 'got-scraping';
+import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
+import type { Options } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 
 import { ResponseWithUrl } from './base-http-client.js';
 
+interface CustomFetchOptions {
+    proxyUrl?: string;
+}
+
+/**
+ * Base HTTP client that provides fetch-like `sendRequest` with Crawlee-managed
+ * behaviors (redirect handling, proxy and cookie handling). Concrete clients
+ * implement only the low-level network call in `fetch`.
+ */
+export abstract class BaseHttpClient implements BaseHttpClientInterface {
+    /**
+     * Perform the raw network request and return a single Response without any
+     * automatic redirect following or special error handling.
+     */
+    protected abstract fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>;
+
+    private applyCookies(request: Request, cookieJar: any): Request {
+        const cookies = cookieJar.getCookiesSync(request.url);
+        if (cookies) {
+            request.headers.set('cookie', cookies);
+        }
+        return request;
+    }
+
+    private setCookies(response: Response, cookieJar: any): void {
+        const setCookieHeader = response.headers.get('set-cookie');
+        if (setCookieHeader) {
+            cookieJar.setCookieSync(setCookieHeader, response.url);
+        }
+    }
+
+    /**
+     * Public fetch-like method that handles redirects and uses provided proxy and cookie jar.
+     */
+    async sendRequest(initialRequest: Request, options?: SendRequestOptions): Promise<Response> {
+        const maxRedirects = 10;
+        let currentRequest = initialRequest;
+        let redirectCount = 0;
+        const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
+        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar;
+
+        while (true) {
+            this.applyCookies(currentRequest, cookieJar);
+
+            const abortSignal = options?.timeout ? AbortSignal.timeout(options?.timeout) : undefined;
+            const response = await this.fetch(currentRequest, {
+                signal: abortSignal,
+                proxyUrl,
+            });
+
+            this.setCookies(response, cookieJar);
+
+            const status = response.status;
+            const location = response.headers.get('location');
+            if (location && status >= 300 && status < 400) {
+                if (redirectCount++ >= maxRedirects) {
+                    throw new Error(`Too many redirects (${maxRedirects}) while requesting ${currentRequest.url}`);
+                }
+
+                const nextUrl = new URL(location, response.url || currentRequest.url);
+
+                const prevMethod = (currentRequest.method || 'GET').toUpperCase();
+                let nextMethod = prevMethod;
+                let nextBody: BodyInit | null = null;
+
+                if (status === 303 || ((status === 301 || status === 302) && prevMethod === 'POST')) {
+                    nextMethod = 'GET';
+                    nextBody = null;
+                } else {
+                    nextBody = (currentRequest as any).body ?? null;
+                }
+
+                const nextHeaders = new Headers();
+                currentRequest.headers.forEach((value, key) => nextHeaders.set(key, value));
+
+                currentRequest = new Request(nextUrl.toString(), {
+                    method: nextMethod,
+                    headers: nextHeaders,
+                    body: nextBody,
+                    credentials: (currentRequest as any).credentials,
+                    redirect: 'manual',
+                });
+                continue;
+            }
+
+            return response;
+        }
+    }
+
+    // Temporary compatibility: implement stream to satisfy current interface.
+    // Delegates to sendRequest; clients should rely on sendRequest only.
+    async stream(request: Request, options?: SendRequestOptions): Promise<Response> {
+        return this.sendRequest(request, options);
+    }
+}
+
 /**
  * A HTTP client implementation based on the `got-scraping` library.
  */
-export class GotScrapingHttpClient implements BaseHttpClient {
+export class GotScrapingHttpClient extends BaseHttpClient {
     /**
      * Type guard that validates the HTTP method (excluding CONNECT).
      * @param request - The HTTP request to validate
@@ -24,15 +120,9 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         headers: Record<string, string | string[] | undefined>,
     ): Generator<[string, string], void, unknown> {
         for (const [key, value] of Object.entries(headers)) {
-            // Filter out pseudo-headers
-            if (key.startsWith(':') || value === undefined) {
-                continue;
-            }
-
+            if (key.startsWith(':') || value === undefined) continue;
             if (Array.isArray(value)) {
-                for (const v of value) {
-                    yield [key, v];
-                }
+                for (const v of value) yield [key, v];
             } else {
                 yield [key, value];
             }
@@ -43,11 +133,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         return new Headers([...this.iterateHeaders(headers)]);
     }
 
-    /**
-     * @inheritDoc
-     */
-    async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
-        const { session, timeout, cookieJar, proxyUrl } = options ?? {};
+    override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
+        const { proxyUrl } = options ?? {};
 
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
@@ -58,9 +145,9 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             method: request.method as Options['method'],
             headers: Object.fromEntries(request.headers.entries()),
             body: request.body ? Readable.fromWeb(request.body as any) : undefined,
-            proxyUrl: proxyUrl ?? session?.proxyInfo?.url,
-            timeout: { request: timeout },
-            cookieJar,
+            proxyUrl: proxyUrl,
+            signal: options?.signal ?? undefined,
+            followRedirect: false,
         });
 
         const responseHeaders = this.parseHeaders(gotResult.headers);
@@ -70,72 +157,6 @@ export class GotScrapingHttpClient implements BaseHttpClient {
             status: gotResult.statusCode,
             statusText: gotResult.statusMessage ?? '',
             url: gotResult.url,
-        });
-    }
-
-    /**
-     * @inheritDoc
-     */
-    async stream(request: Request, options?: StreamOptions): Promise<Response> {
-        const { session, timeout } = options ?? {};
-
-        if (!this.validateRequest(request)) {
-            throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
-        }
-        // eslint-disable-next-line no-async-promise-executor
-        return new Promise(async (resolve, reject) => {
-            const stream = gotScraping({
-                url: request.url,
-                method: request.method as Options['method'],
-                headers: Object.fromEntries(request.headers.entries()),
-                body: request.body ? Readable.fromWeb(request.body as any) : undefined,
-                isStream: true,
-                proxyUrl: session?.proxyInfo?.url,
-                timeout: { request: timeout },
-                cookieJar: undefined,
-            });
-
-            stream.on('redirect', (updatedOptions: Options, redirectResponse: any) => {
-                const nativeRedirectResponse = new ResponseWithUrl(redirectResponse.rawBody, {
-                    headers: redirectResponse.headers,
-                    status: redirectResponse.statusCode,
-                    statusText: redirectResponse.statusMessage,
-                    url: redirectResponse.url,
-                });
-
-                const nativeHeaders = new Headers(
-                    Object.entries(updatedOptions.headers)
-                        .map(([key, value]) => (Array.isArray(value) ? value.map((v) => [key, v]) : [[key, value]]))
-                        .flat() as [string, string][],
-                );
-
-                options?.onRedirect?.(nativeRedirectResponse, {
-                    url: updatedOptions.url,
-                    headers: nativeHeaders,
-                });
-
-                updatedOptions.headers = Object.fromEntries(nativeHeaders.entries());
-            });
-
-            // We need to end the stream for DELETE requests, otherwise it will hang.
-            if (request.method && ['DELETE', 'delete'].includes(request.method)) {
-                stream.end();
-            }
-
-            stream.on('error', reject);
-
-            stream.on('response', (response: PlainResponse) => {
-                const headers = this.parseHeaders(response.headers);
-                // Cast shouldn't be needed here, undici might have a different `ReadableStream` type
-                resolve(
-                    new ResponseWithUrl(Readable.toWeb(stream) as any, {
-                        status: response.statusCode,
-                        statusText: response.statusMessage ?? '',
-                        headers,
-                        url: response.url,
-                    }),
-                );
-            });
         });
     }
 }

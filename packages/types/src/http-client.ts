@@ -111,9 +111,4 @@ export interface BaseHttpClient {
      * Perform an HTTP Request and return the complete response.
      */
     sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
-
-    /**
-     * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
-     */
-    stream(request: Request, options?: StreamOptions): Promise<Response>;
 }
