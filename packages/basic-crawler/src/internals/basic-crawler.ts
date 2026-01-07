@@ -565,6 +565,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private _closeEvents?: boolean;
     private shouldLogMaxProcessedRequestsExceeded = true;
     private shouldLogMaxEnqueuedRequestsExceeded = true;
+    private shouldLogUnexpectedStop = true;
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
@@ -822,10 +823,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 }
 
                 if (this.unexpectedStop) {
-                    this.log.info(
-                        'No new requests are allowed because crawler `stop` method was called.\n' +
-                        'Ongoing requests will be allowed to complete.'
-                    )
+                    if (this.shouldLogUnexpectedStop) {
+                        this.log.info(
+                            'No new requests are allowed because the `stop()` method has been called. ' +
+                                'Ongoing requests will be allowed to complete.',
+                        );
+                        this.shouldLogUnexpectedStop = false;
+                    }
                     return false;
                 }
 
@@ -842,7 +846,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 }
 
                 if (this.unexpectedStop) {
-                    this.log.info('The crawler will finish any remaining ongoing requests and shut down.')
+                    this.log.info(
+                        'The crawler has finished all the remaining ongoing requests and will shut down now.',
+                    );
                     return true;
                 }
 
@@ -995,6 +1001,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.running = true;
         this.shouldLogMaxProcessedRequestsExceeded = true;
         this.shouldLogMaxEnqueuedRequestsExceeded = true;
+        this.shouldLogUnexpectedStop = true;
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
@@ -1095,6 +1102,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
     stop(reason = 'The crawler has been gracefully stopped.'): void {
+        if (this.unexpectedStop) {
+            return;
+        }
         this.log.info(reason);
         this.unexpectedStop = true;
     }
