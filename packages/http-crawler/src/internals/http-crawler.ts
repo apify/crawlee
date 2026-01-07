@@ -24,8 +24,8 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { ResponseWithUrl } from '@crawlee/http-client';
 import type { LoadedRequest } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';

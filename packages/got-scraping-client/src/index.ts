@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
 
-import { gotScraping, type Options } from 'got-scraping';
 import { BaseHttpClient, type CustomFetchOptions, ResponseWithUrl } from '@crawlee/http-client';
+import { gotScraping, type Options } from 'got-scraping';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
@@ -46,7 +46,7 @@ export class GotScrapingHttpClient extends BaseHttpClient {
             method: request.method as Options['method'],
             headers: Object.fromEntries(request.headers.entries()),
             body: request.body ? Readable.fromWeb(request.body as any) : undefined,
-            proxyUrl: proxyUrl,
+            proxyUrl,
             signal: options?.signal ?? undefined,
             followRedirect: redirect === 'follow',
         });

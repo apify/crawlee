@@ -64,7 +64,6 @@ export class RobotsTxtFile {
 
         const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
             proxyUrl,
-
         });
 
         if (response.status < 200 || response.status >= 300) {

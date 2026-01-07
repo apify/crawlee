@@ -56,6 +56,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
+import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 import type {
     Awaitable,
     BaseHttpClient,
@@ -78,7 +79,6 @@ import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
-import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {}
 

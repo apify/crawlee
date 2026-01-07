@@ -1,4 +1,5 @@
-import { BaseHttpClient, CustomFetchOptions, ResponseWithUrl } from '@crawlee/http-client';
+import type { CustomFetchOptions } from '@crawlee/http-client';
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 import { Impit, type ImpitOptions } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
@@ -57,7 +58,7 @@ export class ImpitHttpClient extends BaseHttpClient {
         });
 
         // todo - missing support for aborts / timeouts (see https://github.com/apify/impit/issues/348)
-        const response = await impit.fetch(request)
+        const response = await impit.fetch(request);
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
         return new ResponseWithUrl((await response.bytes()) as any, response);
