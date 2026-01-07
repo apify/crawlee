@@ -257,7 +257,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                     let sitemapResponse: Response | null;
 
                     try {
-                        sitemapResponse = await httpClient.stream(
+                        sitemapResponse = await httpClient.sendRequest(
                             new Request(sitemapUrl, {
                                 method: 'GET',
                                 headers: {
