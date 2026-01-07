@@ -1,9 +1,5 @@
-import { Readable } from 'node:stream';
-import type { ReadableStream } from 'node:stream/web';
-
-import type { BaseHttpClient, IResponseWithUrl, SendRequestOptions, StreamOptions } from '@crawlee/types';
-import type { ImpitOptions, ImpitResponse } from 'impit';
-import { Impit } from 'impit';
+import { BaseHttpClient, CustomFetchOptions, ResponseWithUrl } from '@crawlee/http-client';
+import { Impit, type ImpitOptions } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
@@ -13,26 +9,11 @@ export const Browser = {
     'Firefox': 'firefox',
 } as const;
 
-interface ResponseWithRedirects {
-    response: ImpitResponse;
-    redirectUrls: URL[];
-}
-
-class ResponseWithUrl extends Response implements IResponseWithUrl {
-    override url: string;
-    constructor(body: BodyInit | null, init: ResponseInit & { url?: string }) {
-        super(body, init);
-        this.url = init.url ?? '';
-    }
-}
-
 /**
  * A HTTP client implementation based on the `impit library.
  */
-export class ImpitHttpClient implements BaseHttpClient {
+export class ImpitHttpClient extends BaseHttpClient {
     private impitOptions: ImpitOptions;
-    private maxRedirects: number;
-    private followRedirects: boolean;
 
     /**
      * Enables reuse of `impit` clients for the same set of options.
@@ -58,104 +39,27 @@ export class ImpitHttpClient implements BaseHttpClient {
         return client;
     }
 
-    constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number }) {
+    constructor(options?: Omit<ImpitOptions, 'proxyUrl'>) {
+        super();
         this.impitOptions = options ?? {};
-
-        this.maxRedirects = options?.maxRedirects ?? 10;
-        this.followRedirects = options?.followRedirects ?? true;
     }
 
     /**
-     * Common implementation for `sendRequest` and `stream` methods.
-     * @param request `HttpRequest` object
-     * @returns `HttpResponse` object
+     * @inheritDoc
      */
-    private async getResponse(
-        request: Request,
-        redirects?: {
-            redirectCount?: number;
-            redirectUrls?: URL[];
-        },
-        options?: StreamOptions,
-    ): Promise<ResponseWithRedirects> {
-        if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
-            throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
-        }
+    async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
+        const { proxyUrl, redirect } = options ?? {};
 
         const impit = this.getClient({
             ...this.impitOptions,
-            ...(options?.cookieJar ? { cookieJar: options?.cookieJar as any as ToughCookieJar } : {}),
-            proxyUrl: options?.proxyUrl ?? options?.session?.proxyInfo?.url,
-            followRedirects: false,
+            proxyUrl,
+            followRedirects: redirect === 'follow',
         });
 
-        const response = await impit.fetch(request, { timeout: options?.timeout });
-
-        if (this.followRedirects && response.status >= 300 && response.status < 400) {
-            const location = response.headers.get('location');
-            const redirectUrl = new URL(location ?? '', request.url);
-
-            if (!location) {
-                throw new Error('Redirect response missing location header.');
-            }
-
-            return this.getResponse(
-                {
-                    ...request,
-                    url: redirectUrl.href,
-                },
-                {
-                    redirectCount: (redirects?.redirectCount ?? 0) + 1,
-                    redirectUrls: [...(redirects?.redirectUrls ?? []), redirectUrl],
-                },
-            );
-        }
-
-        return {
-            response,
-            redirectUrls: redirects?.redirectUrls ?? [],
-        };
-    }
-
-    /**
-     * @inheritDoc
-     */
-    async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
-        const { response } = await this.getResponse(request, {}, options);
+        // todo - missing support for aborts / timeouts (see https://github.com/apify/impit/issues/348)
+        const response = await impit.fetch(request)
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
         return new ResponseWithUrl((await response.bytes()) as any, response);
-    }
-
-    private getStreamWithProgress(
-        response: ImpitResponse,
-    ): [Readable, () => { percent: number; transferred: number; total: number }] {
-        const responseStream = Readable.fromWeb(response.body as ReadableStream<any>);
-        let transferred = 0;
-        const total = Number(response.headers.get('content-length') ?? 0);
-        responseStream.on('data', (chunk) => {
-            transferred += chunk.length;
-        });
-
-        const getDownloadProgress = () => {
-            return {
-                percent: Math.round((transferred / total) * 100),
-                transferred,
-                total,
-            };
-        };
-
-        return [responseStream, getDownloadProgress];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    async stream(request: Request, options?: StreamOptions): Promise<Response> {
-        const { response } = await this.getResponse(request, {}, options);
-        const [stream] = this.getStreamWithProgress(response);
-
-        // Cast shouldn't be needed here, undici might have a slightly different `ReadableStream` type
-        return new ResponseWithUrl(Readable.toWeb(stream) as any, response);
     }
 }

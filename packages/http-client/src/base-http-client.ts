@@ -1,13 +1,7 @@
-import { Readable } from 'node:stream';
-
 import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
-import type { Options } from 'got-scraping';
 import type { CookieJar } from 'tough-cookie';
-import { gotScraping } from 'got-scraping';
 
-import { ResponseWithUrl } from './base-http-client.js';
-
-interface CustomFetchOptions {
+export interface CustomFetchOptions {
     proxyUrl?: string;
 }
 
@@ -56,6 +50,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             const response = await this.fetch(currentRequest, {
                 signal: abortSignal,
                 proxyUrl,
+                redirect: 'manual',
             });
 
             await this.setCookies(response, cookieJar as CookieJar);
@@ -95,70 +90,5 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
 
             return response;
         }
-    }
-
-    // Temporary compatibility: implement stream to satisfy current interface.
-    // Delegates to sendRequest; clients should rely on sendRequest only.
-    async stream(request: Request, options?: SendRequestOptions): Promise<Response> {
-        return this.sendRequest(request, options);
-    }
-}
-
-/**
- * A HTTP client implementation based on the `got-scraping` library.
- */
-export class GotScrapingHttpClient extends BaseHttpClient {
-    /**
-     * Type guard that validates the HTTP method (excluding CONNECT).
-     * @param request - The HTTP request to validate
-     */
-    private validateRequest(
-        request: Request,
-    ): request is Request & { method: Exclude<Request['method'], 'CONNECT' | 'connect'> } {
-        return !['CONNECT', 'connect'].includes(request.method!);
-    }
-
-    private *iterateHeaders(
-        headers: Record<string, string | string[] | undefined>,
-    ): Generator<[string, string], void, unknown> {
-        for (const [key, value] of Object.entries(headers)) {
-            if (key.startsWith(':') || value === undefined) continue;
-            if (Array.isArray(value)) {
-                for (const v of value) yield [key, v];
-            } else {
-                yield [key, value];
-            }
-        }
-    }
-
-    private parseHeaders(headers: Record<string, string | string[] | undefined>): Headers {
-        return new Headers([...this.iterateHeaders(headers)]);
-    }
-
-    override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        const { proxyUrl } = options ?? {};
-
-        if (!this.validateRequest(request)) {
-            throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
-        }
-
-        const gotResult = await gotScraping({
-            url: request.url!,
-            method: request.method as Options['method'],
-            headers: Object.fromEntries(request.headers.entries()),
-            body: request.body ? Readable.fromWeb(request.body as any) : undefined,
-            proxyUrl: proxyUrl,
-            signal: options?.signal ?? undefined,
-            followRedirect: false,
-        });
-
-        const responseHeaders = this.parseHeaders(gotResult.headers);
-
-        return new ResponseWithUrl(new Uint8Array(gotResult.rawBody), {
-            headers: responseHeaders,
-            status: gotResult.statusCode,
-            statusText: gotResult.statusMessage ?? '',
-            url: gotResult.url,
-        });
     }
 }

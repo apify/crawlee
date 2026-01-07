@@ -38,7 +38,6 @@ import {
     enqueueLinks,
     EnqueueStrategy,
     EventType,
-    GotScrapingHttpClient,
     KeyValueStore,
     mergeCookies,
     NonRetryableError,
@@ -79,6 +78,7 @@ import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
+import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {}
 

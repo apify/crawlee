@@ -1,4 +1,4 @@
-import { ImpitHttpClient } from '@crawlee/impit-client';
+import { FetchHttpClient } from '@crawlee/http-client';
 import type { BaseHttpClient } from '@crawlee/types';
 import ow from 'ow';
 
@@ -52,7 +52,7 @@ export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Pr
         encoding = 'utf8',
         urlRegExp = URL_NO_COMMAS_REGEX,
         proxyUrl,
-        httpClient = new ImpitHttpClient(),
+        httpClient = new FetchHttpClient(),
     } = options;
 
     // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.

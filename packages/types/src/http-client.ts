@@ -75,10 +75,6 @@ export interface HttpRequestOptions extends HttpRequest {
     password?: string;
 }
 
-export interface IResponseWithUrl extends Response {
-    url: string;
-}
-
 /**
  * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
  */

@@ -1,5 +1,5 @@
 {
-    "name": "@crawlee/basic",
+    "name": "@crawlee/got-scraping-client",
     "version": "4.0.0",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
@@ -10,6 +10,14 @@
         ".": "./dist/index.js",
         "./package.json": "./package.json"
     },
+    "keywords": [
+        "apify",
+        "headless",
+        "chrome",
+        "puppeteer",
+        "crawler",
+        "scraper"
+    ],
     "author": {
         "name": "Apify",
         "email": "support@apify.com",
@@ -39,19 +47,6 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/log": "^2.5.18",
-        "@apify/timeout": "^0.3.2",
-        "@apify/utilities": "^2.15.5",
-        "@crawlee/core": "4.0.0",
-        "@crawlee/got-scraping-client": "4.0.0",
-        "@crawlee/types": "4.0.0",
-        "@crawlee/utils": "4.0.0",
-        "csv-stringify": "^6.5.2",
-        "fs-extra": "^11.3.0",
-        "got-scraping": "^4.1.1",
-        "ow": "^2.0.0",
-        "tldts": "^7.0.6",
-        "tslib": "^2.8.1",
-        "type-fest": "^4.41.0"
+        "@crawlee/http-client": "4.0.0"
     }
 }

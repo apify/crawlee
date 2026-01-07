@@ -21,10 +21,10 @@ import {
     mergeCookies,
     processHttpRequestOptions,
     RequestState,
-    ResponseWithUrl,
     Router,
     SessionError,
 } from '@crawlee/basic';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { LoadedRequest } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';

@@ -4,7 +4,7 @@ import { PassThrough, pipeline, Readable, Transform } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
-import { ImpitHttpClient } from '@crawlee/impit-client';
+import { FetchHttpClient } from '@crawlee/http-client';
 import type { BaseHttpClient } from '@crawlee/types';
 import { fileTypeStream } from 'file-type';
 import sax from 'sax';
@@ -204,7 +204,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     options?: T,
 ): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
     const {
-        httpClient = new ImpitHttpClient(),
+        httpClient = new FetchHttpClient(),
         emitNestedSitemaps = false,
         maxDepth = Infinity,
         sitemapRetries = 3,
