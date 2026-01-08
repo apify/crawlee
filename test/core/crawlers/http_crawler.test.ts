@@ -3,8 +3,8 @@ import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
 import { HttpCrawler } from '@crawlee/http';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import { ResponseWithUrl } from '@crawlee/http-client';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
