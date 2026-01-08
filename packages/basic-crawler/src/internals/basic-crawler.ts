@@ -841,6 +841,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                             'and all requests that were in progress at that time have now finished. ' +
                             `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
                     );
+                    this.shouldLogShuttingDown = false;
                     return true;
                 }
 
@@ -848,6 +849,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     this.log.info(
                         'The crawler has finished all the remaining ongoing requests and will shut down now.',
                     );
+                    this.shouldLogShuttingDown = false;
                     return true;
                 }
 
