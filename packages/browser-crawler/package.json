@@ -63,6 +63,7 @@
         "type-fest": "^4.0.0"
     },
     "peerDependencies": {
+        "@opentelemetry/api": "^1.0.0",
         "playwright": "*",
         "puppeteer": "*"
     },
@@ -73,5 +74,8 @@
         "puppeteer": {
             "optional": true
         }
+    },
+    "devDependencies": {
+        "@opentelemetry/api": "^1.0.0"
     }
 }

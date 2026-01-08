@@ -505,92 +505,96 @@ export class HttpCrawler<
      * Wrapper around requestHandler that opens and closes pages etc.
      */
     protected override async _runRequestHandler(crawlingContext: Context) {
-        const { request, session } = crawlingContext;
+        await this.withSpan('crawlee.runRequestHandler', {}, async () => {
+            const { request, session } = crawlingContext;
 
-        if (this.proxyConfiguration) {
-            const sessionId = session ? session.id : undefined;
-            crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
-        }
+            if (this.proxyConfiguration) {
+                const sessionId = session ? session.id : undefined;
+                crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
+            }
 
-        if (!request.skipNavigation) {
-            await this._handleNavigation(crawlingContext);
-            tryCancel();
+            if (!request.skipNavigation) {
+                await this._handleNavigation(crawlingContext);
+                tryCancel();
 
-            const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
-            const response = parsed.response!;
-            const contentType = parsed.contentType!;
-            tryCancel();
+                const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
+                const response = parsed.response!;
+                const contentType = parsed.contentType!;
+                tryCancel();
 
-            // `??=` because descendant classes may already set optimized version
-            crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
-                const $ = cheerio.load(parsed.body!.toString());
+                // `??=` because descendant classes may already set optimized version
+                crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
+                    const $ = cheerio.load(parsed.body!.toString());
 
-                if ($(selector).get().length === 0) {
-                    throw new Error(`Selector '${selector}' not found.`);
+                    if ($(selector).get().length === 0) {
+                        throw new Error(`Selector '${selector}' not found.`);
+                    }
+                };
+                crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
+                    const $ = cheerio.load(parsed.body!.toString());
+
+                    if (selector) {
+                        await crawlingContext.waitForSelector(selector, timeoutMs);
+                    }
+
+                    return $;
+                };
+
+                if (this.useSessionPool) {
+                    this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
                 }
-            };
-            crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
-                const $ = cheerio.load(parsed.body!.toString());
 
-                if (selector) {
-                    await crawlingContext.waitForSelector(selector, timeoutMs);
+                if (this.persistCookiesPerSession) {
+                    crawlingContext.session!.setCookiesFromResponse(response);
                 }
 
-                return $;
-            };
+                request.loadedUrl = response.url;
 
-            if (this.useSessionPool) {
-                this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
+                if (!this.requestMatchesEnqueueStrategy(request)) {
+                    this.log.debug(
+                        // eslint-disable-next-line dot-notation
+                        `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+                    );
+
+                    request.noRetry = true;
+                    request.state = RequestState.SKIPPED;
+
+                    await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
+                    return;
+                }
+
+                Object.assign(crawlingContext, parsed);
+
+                Object.defineProperty(crawlingContext, 'json', {
+                    get() {
+                        if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
+                        const jsonString = parsed.body!.toString(contentType.encoding);
+                        return JSON.parse(jsonString);
+                    },
+                });
             }
 
-            if (this.persistCookiesPerSession) {
-                crawlingContext.session!.setCookiesFromResponse(response);
+            if (this.retryOnBlocked) {
+                const error = await this.isRequestBlocked(crawlingContext);
+                if (error) throw new SessionError(error);
             }
 
-            request.loadedUrl = response.url;
-
-            if (!this.requestMatchesEnqueueStrategy(request)) {
-                this.log.debug(
-                    // eslint-disable-next-line dot-notation
-                    `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
-                );
-
-                request.noRetry = true;
-                request.state = RequestState.SKIPPED;
-
-                await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
-
-                return;
-            }
-
-            Object.assign(crawlingContext, parsed);
-
-            Object.defineProperty(crawlingContext, 'json', {
-                get() {
-                    if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
-                    const jsonString = parsed.body!.toString(contentType.encoding);
-                    return JSON.parse(jsonString);
-                },
+            request.state = RequestState.REQUEST_HANDLER;
+            await this.withSpan('crawlee.userRequestHandler', {}, async () => {
+                try {
+                    await addTimeoutToPromise(
+                        async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
+                        this.userRequestHandlerTimeoutMillis,
+                        `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
+                    );
+                    request.state = RequestState.DONE;
+                } catch (e: any) {
+                    request.state = RequestState.ERROR;
+                    throw e;
+                }
             });
-        }
-
-        if (this.retryOnBlocked) {
-            const error = await this.isRequestBlocked(crawlingContext);
-            if (error) throw new SessionError(error);
-        }
-
-        request.state = RequestState.REQUEST_HANDLER;
-        try {
-            await addTimeoutToPromise(
-                async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
-                this.userRequestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
-            );
-            request.state = RequestState.DONE;
-        } catch (e: any) {
-            request.state = RequestState.ERROR;
-            throw e;
-        }
+        });
     }
 
     protected override async isRequestBlocked(crawlingContext: Context): Promise<string | false> {
@@ -619,32 +623,42 @@ export class HttpCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        const gotOptions = {} as OptionsInit;
-        const { request, session } = crawlingContext;
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
+        await this.withSpan('crawlee.handleNavigation', {}, async () => {
+            const gotOptions = {} as OptionsInit;
+            const { request, session } = crawlingContext;
+            const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
-        request.state = RequestState.BEFORE_NAV;
-        // Execute pre navigation hooks before applying session pool cookies,
-        // as they may also set cookies in the session
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
-        tryCancel();
+            request.state = RequestState.BEFORE_NAV;
+            // Execute pre navigation hooks before applying session pool cookies,
+            // as they may also set cookies in the session
+            if (this.preNavigationHooks.length) {
+                await this.withSpan('crawlee.preNavigationHooks', {}, async () => {
+                    await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
+                });
+            }
+            tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
+            const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
-        this._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
+            this._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
 
-        const proxyUrl = crawlingContext.proxyInfo?.url;
+            const proxyUrl = crawlingContext.proxyInfo?.url;
 
-        crawlingContext.response = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
-            this.navigationTimeoutMillis,
-            `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
-        );
-        tryCancel();
+            crawlingContext.response = await addTimeoutToPromise(
+                async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
+                this.navigationTimeoutMillis,
+                `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+            );
+            tryCancel();
 
-        request.state = RequestState.AFTER_NAV;
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
-        tryCancel();
+            request.state = RequestState.AFTER_NAV;
+            if (this.postNavigationHooks.length) {
+                await this.withSpan('crawlee.postNavigationHooks', {}, async () => {
+                    await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
+                });
+            }
+            tryCancel();
+        });
     }
 
     /**

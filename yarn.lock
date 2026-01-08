@@ -471,6 +471,7 @@ __metadata:
     "@crawlee/core": "npm:3.15.3"
     "@crawlee/types": "npm:3.15.3"
     "@crawlee/utils": "npm:3.15.3"
+    "@opentelemetry/api": "npm:^1.0.0"
     csv-stringify: "npm:^6.2.0"
     fs-extra: "npm:^11.0.0"
     got-scraping: "npm:^4.0.0"
@@ -478,6 +479,8 @@ __metadata:
     tldts: "npm:^7.0.0"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
+  peerDependencies:
+    "@opentelemetry/api": ^1.0.0
   languageName: unknown
   linkType: soft
 
@@ -519,10 +522,12 @@ __metadata:
     "@crawlee/browser-pool": "npm:3.15.3"
     "@crawlee/types": "npm:3.15.3"
     "@crawlee/utils": "npm:3.15.3"
+    "@opentelemetry/api": "npm:^1.0.0"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
   peerDependencies:
+    "@opentelemetry/api": ^1.0.0
     playwright: "*"
     puppeteer: "*"
   peerDependenciesMeta:
@@ -600,6 +605,7 @@ __metadata:
     "@crawlee/basic": "npm:3.15.3"
     "@crawlee/types": "npm:3.15.3"
     "@crawlee/utils": "npm:3.15.3"
+    "@opentelemetry/api": "npm:^1.0.0"
     "@types/content-type": "npm:^1.1.5"
     cheerio: "npm:1.0.0-rc.12"
     content-type: "npm:^1.0.4"
@@ -609,6 +615,8 @@ __metadata:
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
+  peerDependencies:
+    "@opentelemetry/api": ^1.0.0
   languageName: unknown
   linkType: soft
 
@@ -2206,6 +2214,13 @@ __metadata:
   dependencies:
     "@octokit/openapi-types": "npm:^24.2.0"
   checksum: 10c0/f66a401b89d653ec28e5c1529abdb7965752db4d9d40fa54c80e900af4c6bf944af6bd0a83f5b4f1eecb72e3d646899dfb27ffcf272ac243552de7e3b97a038d
+  languageName: node
+  linkType: hard
+
+"@opentelemetry/api@npm:^1.0.0":
+  version: 1.9.0
+  resolution: "@opentelemetry/api@npm:1.9.0"
+  checksum: 10c0/9aae2fe6e8a3a3eeb6c1fdef78e1939cf05a0f37f8a4fae4d6bf2e09eb1e06f966ece85805626e01ba5fab48072b94f19b835449e58b6d26720ee19a58298add
   languageName: node
   linkType: hard
 

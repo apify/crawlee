@@ -13,6 +13,7 @@ export * from './internals/iterables';
 export * from './internals/robots';
 export * from './internals/sitemap';
 export * from './internals/url';
+export * from './internals/otelAttributes';
 
 export { getCurrentCpuTicksV2 } from './internals/systemInfoV2/cpu-info';
 export { getMemoryInfoV2 } from './internals/systemInfoV2/memory-info';
