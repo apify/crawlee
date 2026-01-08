@@ -1,5 +1,5 @@
 import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
-import type { CookieJar } from 'tough-cookie';
+import { CookieJar } from 'tough-cookie';
 
 export interface CustomFetchOptions {
     proxyUrl?: string;
@@ -41,7 +41,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
-        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar;
+        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
 
         while (true) {
             await this.applyCookies(currentRequest, cookieJar as CookieJar);
