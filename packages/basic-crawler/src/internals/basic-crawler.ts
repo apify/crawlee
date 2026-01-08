@@ -563,9 +563,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
-    private shouldLogMaxProcessedRequestsExceeded = true;
     private shouldLogMaxEnqueuedRequestsExceeded = true;
-    private shouldLogUnexpectedStop = true;
+    private shouldLogShuttingDown = true;
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
@@ -812,23 +811,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    if (this.shouldLogMaxProcessedRequestsExceeded) {
+                    if (this.shouldLogShuttingDown) {
                         log.info(
                             'Crawler reached the maxRequestsPerCrawl limit of ' +
                                 `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
                         );
-                        this.shouldLogMaxProcessedRequestsExceeded = false;
+                        this.shouldLogShuttingDown = false;
                     }
                     return false;
                 }
 
                 if (this.unexpectedStop) {
-                    if (this.shouldLogUnexpectedStop) {
+                    if (this.shouldLogShuttingDown) {
                         this.log.info(
                             'No new requests are allowed because the `stop()` method has been called. ' +
                                 'Ongoing requests will be allowed to complete.',
                         );
-                        this.shouldLogUnexpectedStop = false;
+                        this.shouldLogShuttingDown = false;
                     }
                     return false;
                 }
@@ -999,9 +998,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         this.unexpectedStop = false;
         this.running = true;
-        this.shouldLogMaxProcessedRequestsExceeded = true;
         this.shouldLogMaxEnqueuedRequestsExceeded = true;
-        this.shouldLogUnexpectedStop = true;
+        this.shouldLogShuttingDown = true;
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
