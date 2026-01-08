@@ -803,7 +803,7 @@ describe('CheerioCrawler', () => {
                             numberOfRotations++;
                             throw new Error('Proxy responded with 400 - Bad request');
                         }
-                        return await impit.stream(request);
+                        return await impit.sendRequest(request);
                     },
                 },
             });
@@ -831,7 +831,7 @@ describe('CheerioCrawler', () => {
                         if (session?.proxyInfo?.url.includes('localhost')) {
                             throw new Error(proxyError);
                         }
-                        return await impit.stream(request);
+                        return impit.sendRequest(request);
                     },
                 },
             });
