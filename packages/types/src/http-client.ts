@@ -75,10 +75,6 @@ export interface HttpRequestOptions extends HttpRequest {
     password?: string;
 }
 
-export interface IResponseWithUrl extends Response {
-    url: string;
-}
-
 /**
  * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
  */
@@ -111,9 +107,4 @@ export interface BaseHttpClient {
      * Perform an HTTP Request and return the complete response.
      */
     sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
-
-    /**
-     * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
-     */
-    stream(request: Request, options?: StreamOptions): Promise<Response>;
 }

@@ -21,11 +21,11 @@ import {
     mergeCookies,
     processHttpRequestOptions,
     RequestState,
-    ResponseWithUrl,
     Router,
     SessionError,
 } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -818,7 +818,7 @@ export class HttpCrawler<
             opts.headers?.set('Cookie', cookieString);
         }
 
-        const response = await this.httpClient.stream(
+        const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
                 body: opts.body ? (Readable.toWeb(opts.body) as any) : undefined,
                 headers: new Headers(opts.headers),
@@ -829,16 +829,6 @@ export class HttpCrawler<
             {
                 session,
                 timeout: opts.timeout,
-                onRedirect: (redirectResponse, updatedRequest) => {
-                    if (this.persistCookiesPerSession) {
-                        session!.setCookiesFromResponse(redirectResponse);
-
-                        const cookieStringRedirected = session!.getCookieString(updatedRequest.url!.toString());
-                        if (cookieStringRedirected !== '') {
-                            updatedRequest.headers.set('Cookie', cookieStringRedirected);
-                        }
-                    }
-                },
             },
         );
 

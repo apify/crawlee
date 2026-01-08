@@ -38,7 +38,6 @@ import {
     enqueueLinks,
     EnqueueStrategy,
     EventType,
-    GotScrapingHttpClient,
     KeyValueStore,
     mergeCookies,
     NonRetryableError,
@@ -57,6 +56,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
+import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 import type {
     Awaitable,
     BaseHttpClient,
