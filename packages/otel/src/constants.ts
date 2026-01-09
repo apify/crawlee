@@ -1,7 +1,7 @@
-import { type Exception } from "@opentelemetry/api";
+import { type Exception } from '@opentelemetry/api';
 
-import type { CrawleeInstrumentation } from "./instrumentation";
-import type { ClassMethodToInstrument, CrawleeInstrumentationConfig } from "./types";
+import type { CrawleeInstrumentation } from './instrumentation';
+import type { ClassMethodToInstrument, CrawleeInstrumentationConfig } from './types';
 
 export const baseConfig: CrawleeInstrumentationConfig = {
     enabled: true,
@@ -16,26 +16,30 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
         className: 'BasicCrawler',
         methodName: 'run',
         spanName: 'crawlee.crawler.run',
-        spanOptions: (self: any) => ({attributes: {
-            'crawlee.crawler.type': self.constructor.name,
-        }}),
+        spanOptions: (self: any) => ({
+            attributes: {
+                'crawlee.crawler.type': self.constructor.name,
+            },
+        }),
         // theres no easy way to hook into the requestHandler method as it is passed into the constructor
         // we cannot patch the constructor itself due to ESM restrictions so we need to wrap the method between creation and the crawler being run
         onInvokeHook: (self: any, _args: unknown[], instrumentation: CrawleeInstrumentation) => {
             const WRAPPED = Symbol.for('crawlee.requestHandler.wrapped');
             const originalRequestHandler = self.requestHandler;
             if (!self[WRAPPED]) {
-                self.requestHandler = function(this: any, ...requestHandlerArgs: unknown[]) {
-                    return instrumentation.getTracer().startActiveSpan('crawlee.crawler.requestHandler', async (span) => {
-                    try {
-                        return await originalRequestHandler.call(this, ...requestHandlerArgs);
-                    } catch (err) {
-                        span.recordException(err as Exception);
-                        throw err;
-                    } finally {
-                        span.end();
-                    }
-                    });
+                self.requestHandler = function (this: any, ...requestHandlerArgs: unknown[]) {
+                    return instrumentation
+                        .getTracer()
+                        .startActiveSpan('crawlee.crawler.requestHandler', async (span) => {
+                            try {
+                                return await originalRequestHandler.call(this, ...requestHandlerArgs);
+                            } catch (err) {
+                                span.recordException(err as Exception);
+                                throw err;
+                            } finally {
+                                span.end();
+                            }
+                        });
                 };
             }
             Object.defineProperty(self, WRAPPED, {

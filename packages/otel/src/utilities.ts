@@ -78,32 +78,36 @@ export function buildModuleDefinitions(methodsToInstrument: ClassMethodToInstrum
     const definitions: ModuleDefinition[] = [];
 
     for (const method of methodsToInstrument) {
-      let definition = definitions.find(d => d.moduleName === method.moduleName);
-      if (!definition) {
-        if (!method.moduleName.startsWith('@crawlee/')) {
-          diag.warn(`Module ${method.moduleName} is not a valid Crawlee module. Skipping.`);
-          continue;
+        let definition = definitions.find((d) => d.moduleName === method.moduleName);
+        if (!definition) {
+            if (!method.moduleName.startsWith('@crawlee/')) {
+                diag.warn(`Module ${method.moduleName} is not a valid Crawlee module. Skipping.`);
+                continue;
+            }
+            definition = {
+                moduleName: method.moduleName,
+                classMethodPatches: [],
+            };
+            definitions.push(definition);
         }
-        definition = {
-          moduleName: method.moduleName,
-          classMethodPatches: [],
-        };
-        definitions.push(definition);
-      }
-      if (!definition.classMethodPatches.find(p => p.className === method.className && p.methodName === method.methodName)) {
-        definition.classMethodPatches.push({
-          className: method.className,
-          methodName: method.methodName,
-          onInvokeHook: method.onInvokeHook,
-          onSpanStartHook: method.onSpanStartHook,
-          onSpanEndHook: method.onSpanEndHook,
-          spanName: method.spanName,
-          spanOptions: method.spanOptions,
-        });
-      } else {
-        diag.warn(`Method ${method.className}.${method.methodName} is already instrumented. Skipping.`);
-        continue;
-      }
+        if (
+            !definition.classMethodPatches.find(
+                (p) => p.className === method.className && p.methodName === method.methodName,
+            )
+        ) {
+            definition.classMethodPatches.push({
+                className: method.className,
+                methodName: method.methodName,
+                onInvokeHook: method.onInvokeHook,
+                onSpanStartHook: method.onSpanStartHook,
+                onSpanEndHook: method.onSpanEndHook,
+                spanName: method.spanName,
+                spanOptions: method.spanOptions,
+            });
+        } else {
+            diag.warn(`Method ${method.className}.${method.methodName} is already instrumented. Skipping.`);
+            continue;
+        }
     }
     return definitions;
-  }
+}

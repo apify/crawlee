@@ -1,6 +1,6 @@
-import type { Span, SpanOptions } from "@opentelemetry/api";
+import type { Span, SpanOptions } from '@opentelemetry/api';
 
-import type { CrawleeInstrumentation } from "./instrumentation";
+import type { CrawleeInstrumentation } from './instrumentation';
 
 export interface ModuleDefinition {
     moduleName: string;

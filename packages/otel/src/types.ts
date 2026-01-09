@@ -1,6 +1,6 @@
-import type { InstrumentationConfig } from "@opentelemetry/instrumentation";
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 
-import type { ClassMethodPatchDefinition } from "./internal-types";
+import type { ClassMethodPatchDefinition } from './internal-types';
 
 export interface CrawleeInstrumentationConfig extends InstrumentationConfig {
     requestHandlingInstrumentation?: boolean;
@@ -10,5 +10,4 @@ export interface CrawleeInstrumentationConfig extends InstrumentationConfig {
 
 export interface ClassMethodToInstrument extends ClassMethodPatchDefinition {
     moduleName: string;
-
 }
