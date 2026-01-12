@@ -141,10 +141,10 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
      */
     override createBrowserPlugin(): StagehandPlugin {
         return new StagehandPlugin(this.launcher as BrowserType, {
+            ...this.otherLaunchContextProps,
             proxyUrl: this.proxyUrl,
             launchOptions: this.createLaunchOptions(),
-            stagehandOptions: this.stagehandOptions,
-            ...this.otherLaunchContextProps,
+            stagehandOptions: this.stagehandOptions,  // Set AFTER to override any unresolved options
         });
     }
 }

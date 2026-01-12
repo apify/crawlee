@@ -374,6 +374,10 @@ export class StagehandCrawler extends BrowserCrawler<
                     browserPlugins: [launcher.createBrowserPlugin()],
                     // Enable fingerprinting by default for anti-blocking
                     useFingerprints: browserPoolOptions.useFingerprints ?? true,
+                    // Stagehand's AI methods (extract, act, etc.) operate on the "current" page,
+                    // so running multiple pages per browser would cause AI operations to target
+                    // the wrong page. Force one page per browser for correct behavior.
+                    maxOpenPagesPerBrowser: 1,
                 },
             },
             config,
@@ -382,17 +386,41 @@ export class StagehandCrawler extends BrowserCrawler<
 
     /**
      * Overrides the request handler to enhance the page with Stagehand AI methods.
+     *
+     * The pattern here is:
+     * 1. Store the original userProvidedRequestHandler
+     * 2. Replace it with a wrapper that enhances the page first
+     * 3. Call super (which creates page/browserController, then calls our wrapper)
+     * 4. Our wrapper enhances the page and calls the original handler
+     * 5. Restore the original handler
+     *
+     * This is similar to how PlaywrightCrawler adds utility methods via registerUtilsToContext,
+     * but we need to actually transform the page object to add Stagehand AI methods.
      */
     protected override async _runRequestHandler(crawlingContext: StagehandCrawlingContext): Promise<void> {
-        // Get Stagehand instance from controller
-        const stagehand = (crawlingContext.browserController as StagehandController).getStagehand();
-        crawlingContext.stagehand = stagehand;
+        // Store the original handler (could be this.requestHandler or this.router)
+        const originalHandler = this.userProvidedRequestHandler!;
 
-        // Enhance page with AI methods (page.act(), page.extract(), etc.)
-        crawlingContext.page = enhancePageWithStagehand(crawlingContext.page, stagehand) as StagehandPage;
+        // Replace with a wrapper that enhances the page before calling the user's handler
+        this.userProvidedRequestHandler = async (ctx: any) => {
+            // Get Stagehand instance from controller
+            const stagehand = (ctx.browserController as StagehandController).getStagehand();
+            ctx.stagehand = stagehand;
 
-        // Call parent request handler
-        await super._runRequestHandler(crawlingContext);
+            // Enhance page with AI methods (page.act(), page.extract(), etc.)
+            ctx.page = enhancePageWithStagehand(ctx.page, stagehand) as StagehandPage;
+
+            // Call the original user handler
+            return originalHandler(ctx);
+        };
+
+        try {
+            // Call parent - this creates the page and eventually calls our wrapped handler
+            await super._runRequestHandler(crawlingContext);
+        } finally {
+            // Restore original handler
+            this.userProvidedRequestHandler = originalHandler;
+        }
     }
 
     /**
