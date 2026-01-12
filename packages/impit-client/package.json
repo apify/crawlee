@@ -49,7 +49,7 @@
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
         "@crawlee/http-client": "4.0.0",
-        "impit": "^0.7.0",
+        "impit": "^0.8.2",
         "tough-cookie": "^6.0.0"
     }
 }

@@ -40,7 +40,7 @@ export class ImpitHttpClient extends BaseHttpClient {
         return client;
     }
 
-    constructor(options?: Omit<ImpitOptions, 'proxyUrl'>) {
+    constructor(options?: Omit<ImpitOptions, 'proxyUrl' | 'timeout'>) {
         super();
         this.impitOptions = options ?? {};
     }
@@ -49,7 +49,7 @@ export class ImpitHttpClient extends BaseHttpClient {
      * @inheritDoc
      */
     async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        const { proxyUrl, redirect } = options ?? {};
+        const { proxyUrl, redirect, signal } = options ?? {};
 
         const impit = this.getClient({
             ...this.impitOptions,
@@ -57,8 +57,7 @@ export class ImpitHttpClient extends BaseHttpClient {
             followRedirects: redirect === 'follow',
         });
 
-        // todo - missing support for aborts / timeouts (see https://github.com/apify/impit/issues/348)
-        const response = await impit.fetch(request);
+        const response = await impit.fetch(request, { signal: signal ?? undefined });
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
         return new ResponseWithUrl((await response.bytes()) as any, response);
