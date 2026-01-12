@@ -1,0 +1,31 @@
+{
+    "name": "test-stagehand-claude",
+    "version": "0.0.1",
+    "description": "Stagehand Test - Claude/Anthropic",
+    "dependencies": {
+        "apify": "next",
+        "@apify/storage-local": "^2.1.3",
+        "@browserbasehq/stagehand": "^3.0.7",
+        "@crawlee/basic": "file:./packages/basic-crawler",
+        "@crawlee/browser": "file:./packages/browser-crawler",
+        "@crawlee/browser-pool": "file:./packages/browser-pool",
+        "@crawlee/core": "file:./packages/core",
+        "@crawlee/memory-storage": "file:./packages/memory-storage",
+        "@crawlee/stagehand": "file:./packages/stagehand-crawler",
+        "@crawlee/types": "file:./packages/types",
+        "@crawlee/utils": "file:./packages/utils",
+        "playwright": "*",
+        "zod": "^3.24.1"
+    },
+    "overrides": {
+        "apify": {
+            "@crawlee/core": "file:./packages/core",
+            "@crawlee/utils": "file:./packages/utils"
+        }
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
+}

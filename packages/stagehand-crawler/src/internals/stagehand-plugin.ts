@@ -1,6 +1,9 @@
 import type { BrowserController, BrowserPluginOptions, LaunchContext } from '@crawlee/browser-pool';
 import { BrowserPlugin } from '@crawlee/browser-pool';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
+// Stagehand is built on CDP (Chrome DevTools Protocol), which only works with Chromium-based browsers.
+// Firefox and WebKit are not supported by Stagehand.
+import { chromium } from 'playwright';
 
 import { StagehandController } from './stagehand-controller';
 import type { StagehandOptions } from './stagehand-crawler';
@@ -90,17 +93,15 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             // Initialize Stagehand (launches browser)
             await stagehand.init();
 
-            // In Stagehand v3, we need to connect to the CDP endpoint to get the Playwright browser
-            // Get the CDP WebSocket URL
+            // Stagehand manages its own browser instance. We connect to it via CDP to get a Playwright Browser handle.
+            // Note: CDP only works with Chromium, so Firefox/WebKit are not supported.
             const cdpUrl = stagehand.connectURL();
 
             if (!cdpUrl) {
                 throw new Error('Failed to get CDP URL from Stagehand');
             }
 
-            // Connect Playwright to the CDP endpoint
-            const playwright = await import('playwright');
-            const browser = await playwright.chromium.connectOverCDP(cdpUrl);
+            const browser = await chromium.connectOverCDP(cdpUrl);
 
             // Store the Stagehand instance so the controller can access it
             this.stagehandInstances.set(browser, stagehand);
@@ -109,7 +110,14 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         } catch (error) {
             // Clean up on failure
             await stagehand.close().catch(() => {});
-            throw this._augmentLaunchError(error, launchContext);
+
+            // Augment the error with helpful context
+            const augmentedError = this._augmentLaunchError(error, launchContext);
+
+            // Log the error to make it visible since BrowserPool might swallow it
+            console.error('❌ Stagehand browser launch failed:', augmentedError.message);
+
+            throw augmentedError;
         }
     }
 
@@ -148,17 +156,34 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     }
 
     /**
-     * Augments launch errors with helpful context.
+     * Augments launch errors with helpful context and Stagehand-specific guidance.
      */
     private _augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
         const message = error instanceof Error ? error.message : String(error);
+        const model = this.stagehandOptions.model ?? 'openai/gpt-4o';
+        const env = this.stagehandOptions.env ?? 'LOCAL';
+
+        let helpText = '';
+
+        // Add model-specific help if error might be API key related
+        if (typeof model === 'string') {
+            const modelStr = model.toLowerCase();
+            if (modelStr.startsWith('openai/')) {
+                helpText += '\nNote: OpenAI models require OPENAI_API_KEY environment variable.';
+                helpText += '\nExample: export OPENAI_API_KEY="sk-..."';
+            } else if (modelStr.startsWith('anthropic/')) {
+                helpText += '\nNote: Anthropic models require ANTHROPIC_API_KEY environment variable.';
+                helpText += '\nExample: export ANTHROPIC_API_KEY="sk-ant-..."';
+            } else if (modelStr.startsWith('google/')) {
+                helpText += '\nNote: Google models require GOOGLE_API_KEY environment variable.';
+            }
+        }
 
         return new Error(
             `Stagehand browser launch failed: ${message}\n` +
                 `Executable path: ${launchContext.launchOptions?.executablePath ?? 'default'}\n` +
-                `Environment: ${this.stagehandOptions.env ?? 'LOCAL'}\n` +
-                `Tip: Make sure Stagehand and Playwright are properly installed.\n` +
-                `Try running: npm install @browserbase/stagehand playwright`,
+                `Environment: ${env}\n` +
+                `Model: ${model}${helpText}`,
             { cause: error },
         );
     }

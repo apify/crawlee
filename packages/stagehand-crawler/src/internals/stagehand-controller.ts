@@ -43,10 +43,18 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
             // Create new page through Stagehand's context
             const page = await stagehand.context.newPage(contextOptions);
 
-            // Track active pages
-            page.once('close', () => {
-                this.activePages--;
-            });
+            // Track active pages - check if page has event emitter methods
+            // CDP-connected browsers might not support all events
+            if (typeof page.once === 'function') {
+                try {
+                    page.once('close', () => {
+                        this.activePages--;
+                    });
+                } catch {
+                    // Stagehand pages via CDP don't support the 'close' event
+                    // This is expected behavior, we just can't track page closure
+                }
+            }
 
             return page;
         } catch (error) {
@@ -81,42 +89,32 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
 
     /**
      * Sets cookies in the browser context (abstract method implementation).
+     *
+     * NOTE: Stagehand v3 removed cookie management APIs when migrating away from Playwright.
+     * Cookie persistence is not currently supported. See: https://github.com/browserbase/stagehand/issues/1250
      */
-    protected async _setCookies(page: Page, cookies: Cookie[]): Promise<void> {
-        // Convert Crawlee cookies to Playwright cookie format
-        // Note: Both Crawlee and Playwright use Unix timestamps (seconds since epoch) for expires
-        const playwrightCookies = cookies.map((cookie) => ({
-            name: cookie.name,
-            value: cookie.value,
-            domain: cookie.domain,
-            path: cookie.path,
-            expires: cookie.expires, // Already in correct format (seconds)
-            httpOnly: cookie.httpOnly,
-            secure: cookie.secure,
-            sameSite: cookie.sameSite as 'Strict' | 'Lax' | 'None' | undefined,
-        }));
+    protected async _setCookies(_page: Page, _cookies: Cookie[]): Promise<void> {
+        // Stagehand v3 doesn't provide cookie management APIs yet
+        // This is a known limitation tracked in GitHub issue #1250
+        // For now, we silently skip cookie operations to allow the crawler to function
 
-        await page.context().addCookies(playwrightCookies);
+        // TODO: Implement when Stagehand v3 adds cookie management support
+        // Potential approach: Use CDP directly via stagehand.context or page CDP session
     }
 
     /**
      * Gets cookies from the browser context (abstract method implementation).
+     *
+     * NOTE: Stagehand v3 removed cookie management APIs when migrating away from Playwright.
+     * Cookie persistence is not currently supported. See: https://github.com/browserbase/stagehand/issues/1250
      */
-    protected async _getCookies(page: Page): Promise<Cookie[]> {
-        const playwrightCookies = await page.context().cookies();
+    protected async _getCookies(_page: Page): Promise<Cookie[]> {
+        // Stagehand v3 doesn't provide cookie management APIs yet
+        // Return empty array to allow crawler to function
+        return [];
 
-        // Convert Playwright cookies to Crawlee cookie format
-        // Note: Playwright expires is in seconds, Crawlee expects seconds as well
-        return playwrightCookies.map((cookie) => ({
-            name: cookie.name,
-            value: cookie.value,
-            domain: cookie.domain,
-            path: cookie.path,
-            expires: cookie.expires !== -1 ? cookie.expires : undefined,
-            httpOnly: cookie.httpOnly,
-            secure: cookie.secure,
-            sameSite: cookie.sameSite,
-        }));
+        // TODO: Implement when Stagehand v3 adds cookie management support
+        // Potential approach: Use CDP directly via stagehand.context or page CDP session
     }
 
     /**
