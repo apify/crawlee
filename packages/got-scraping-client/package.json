@@ -47,6 +47,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/http-client": "4.0.0"
+        "@crawlee/http-client": "4.0.0",
+        "got-scraping": "^4.1.3"
     }
 }

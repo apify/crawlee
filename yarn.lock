@@ -662,6 +662,7 @@ __metadata:
   resolution: "@crawlee/got-scraping-client@workspace:packages/got-scraping-client"
   dependencies:
     "@crawlee/http-client": "npm:4.0.0"
+    got-scraping: "npm:^4.1.3"
   languageName: unknown
   linkType: soft
 
@@ -7616,6 +7617,21 @@ __metadata:
     quick-lru: "npm:^7.0.0"
     tslib: "npm:^2.6.2"
   checksum: 10c0/66b9bd88fea1c7a1248fec6e9c9757300b70e6039d2b2e0cf1c70e44e88be80f02a26e2e36d5f9c3acb4ec963558d72b0d236a7f11a7a6c87b39b5615afcf7db
+  languageName: node
+  linkType: hard
+
+"got-scraping@npm:^4.1.3":
+  version: 4.1.3
+  resolution: "got-scraping@npm:4.1.3"
+  dependencies:
+    got: "npm:^14.2.1"
+    header-generator: "npm:^2.1.41"
+    http2-wrapper: "npm:^2.2.0"
+    mimic-response: "npm:^4.0.0"
+    ow: "npm:^1.1.1"
+    quick-lru: "npm:^7.0.0"
+    tslib: "npm:^2.6.2"
+  checksum: 10c0/bad55048f569d84f2dc83ac3ff3c7cf9ce591f2e200f99b88c67a948eaef78c8b4c702c725f241fd596c1dc7cb7bbae6386f96db9901421cb7a7fbd71e05599d
   languageName: node
   linkType: hard
 
