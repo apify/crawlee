@@ -49,7 +49,8 @@ describe('enhancePageWithStagehand', () => {
 
         const result = await enhancedPage.act('Click the button');
 
-        expect(mockStagehand.act).toHaveBeenCalledWith('Click the button', undefined);
+        // Verify act was called with the page option for concurrent page support
+        expect(mockStagehand.act).toHaveBeenCalledWith('Click the button', { page: enhancedPage });
         expect(result).toEqual({
             success: true,
             message: 'Action completed',
@@ -70,7 +71,8 @@ describe('enhancePageWithStagehand', () => {
 
         const result = await enhancedPage.extract('Get product info', schema);
 
-        expect(mockStagehand.extract).toHaveBeenCalledWith('Get product info', schema);
+        // Verify extract was called with the page option for concurrent page support
+        expect(mockStagehand.extract).toHaveBeenCalledWith('Get product info', schema, { page: enhancedPage });
         expect(result).toEqual({
             title: 'Test Page',
             price: 42,
@@ -84,7 +86,8 @@ describe('enhancePageWithStagehand', () => {
 
         const result = await enhancedPage.observe();
 
-        expect(mockStagehand.observe).toHaveBeenCalled();
+        // Verify observe was called with the page option for concurrent page support
+        expect(mockStagehand.observe).toHaveBeenCalledWith({ page: enhancedPage });
         expect(result).toEqual([{ selector: '.button', description: 'Click button' }]);
     });
 
@@ -93,9 +96,10 @@ describe('enhancePageWithStagehand', () => {
 
         expect(typeof enhancedPage.agent).toBe('function');
 
-        const agent = enhancedPage.agent({ task: 'Find and click submit' });
+        // AgentConfig uses systemPrompt, model, etc. - task is passed to execute()
+        const agent = enhancedPage.agent({ systemPrompt: 'Find and click submit' });
 
-        expect(mockStagehand.agent).toHaveBeenCalledWith({ task: 'Find and click submit' });
+        expect(mockStagehand.agent).toHaveBeenCalledWith({ systemPrompt: 'Find and click submit' });
         expect(agent).toBeDefined();
     });
 
@@ -136,7 +140,9 @@ describe('enhancePageWithStagehand', () => {
 
         const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand) as StagehandPage;
 
-        expect(() => enhancedPage.agent({ task: 'test' })).toThrow('Stagehand agent() failed: Agent creation failed');
+        expect(() => enhancedPage.agent({ systemPrompt: 'test' })).toThrow(
+            'Stagehand agent() failed: Agent creation failed',
+        );
     });
 
     test('should preserve original page methods', () => {
@@ -154,6 +160,7 @@ describe('enhancePageWithStagehand', () => {
         const options = { timeout: 5000 };
         await enhancedPage.act('Click button', options);
 
-        expect(mockStagehand.act).toHaveBeenCalledWith('Click button', options);
+        // Options should be merged with the page option
+        expect(mockStagehand.act).toHaveBeenCalledWith('Click button', { timeout: 5000, page: enhancedPage });
     });
 });

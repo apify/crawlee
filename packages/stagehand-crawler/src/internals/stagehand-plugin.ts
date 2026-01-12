@@ -1,3 +1,4 @@
+import type { Stagehand, V3Options } from '@browserbasehq/stagehand';
 import type { BrowserController, BrowserPluginOptions, LaunchContext } from '@crawlee/browser-pool';
 import { BrowserPlugin } from '@crawlee/browser-pool';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
@@ -20,13 +21,22 @@ export interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptio
 
 /**
  * StagehandPlugin integrates Stagehand with Crawlee's BrowserPool.
- * It manages the browser lifecycle and passes fingerprinted launch options to Stagehand.
+ *
+ * Architecture:
+ * - Stagehand launches and manages the browser
+ * - We connect Playwright to the same browser via CDP to get a compatible handle
+ * - AI operations (extract, act, observe) pass the specific page via the `page` option
+ *   for correct concurrent page support
+ *
+ * Limitations:
+ * - Only Chromium is supported (Stagehand uses CDP)
+ * - Some fingerprinting options may not be fully applied (Stagehand controls browser launch)
  *
  * @ignore
  */
 export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, PlaywrightBrowser> {
-    private readonly stagehandOptions: StagehandOptions;
-    private readonly stagehandInstances: WeakMap<PlaywrightBrowser, any> = new WeakMap();
+    readonly stagehandOptions: StagehandOptions;
+    private readonly stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand> = new WeakMap();
 
     constructor(library: BrowserType, options: StagehandPluginOptions = {}) {
         super(library, options);
@@ -34,17 +44,16 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     }
 
     /**
-     * Launches a browser using Stagehand with fingerprinted options from BrowserPool.
+     * Launches a browser using Stagehand and connects Playwright to it via CDP.
      */
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
-        const { launchOptions = {}, proxyUrl } = launchContext;
+        const { launchOptions = {} } = launchContext;
 
         // Import Stagehand dynamically to avoid peer dependency issues
         const { Stagehand } = await import('@browserbasehq/stagehand');
 
-        // Map Playwright launch options to Stagehand's localBrowserLaunchOptions
-        // The launchOptions at this point already include fingerprinted values (user agent, viewport, args)
-        const stagehandConfig: any = {
+        // Build Stagehand configuration
+        const stagehandConfig: V3Options = {
             env: this.stagehandOptions.env ?? 'LOCAL',
             model: this.stagehandOptions.model,
             verbose: this.stagehandOptions.verbose,
@@ -56,68 +65,69 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             cacheDir: this.stagehandOptions.cacheDir,
         };
 
-        // For LOCAL environment, pass fingerprinted launch options
+        // For LOCAL environment, pass launch options
         if (this.stagehandOptions.env === 'LOCAL' || !this.stagehandOptions.env) {
             stagehandConfig.localBrowserLaunchOptions = {
                 headless: launchOptions.headless,
                 args: launchOptions.args,
                 executablePath: launchOptions.executablePath,
-                // Pass proxy configuration
                 proxy: launchOptions.proxy,
+                // Pass fingerprinted viewport if available
+                viewport: (launchOptions as Record<string, unknown>).viewport as { width: number; height: number },
             };
-
-            // Include fingerprinted user agent and viewport if available
-            // Note: These might be applied at context level by Stagehand
-            if ((launchOptions as any).userAgent) {
-                stagehandConfig.localBrowserLaunchOptions.userAgent = (launchOptions as any).userAgent;
-            }
-            if ((launchOptions as any).viewport) {
-                stagehandConfig.localBrowserLaunchOptions.viewport = (launchOptions as any).viewport;
-            }
         }
 
         // For BROWSERBASE environment, pass API credentials
         if (this.stagehandOptions.env === 'BROWSERBASE') {
             stagehandConfig.apiKey = this.stagehandOptions.apiKey;
             stagehandConfig.projectId = this.stagehandOptions.projectId;
-            stagehandConfig.browserbaseSessionCreateParams = {
-                // Pass proxy if provided
-                ...(proxyUrl ? { proxies: [{ type: 'http', server: proxyUrl }] } : {}),
-            };
         }
 
-        // Create Stagehand instance
         const stagehand = new Stagehand(stagehandConfig);
 
         try {
             // Initialize Stagehand (launches browser)
             await stagehand.init();
 
-            // Stagehand manages its own browser instance. We connect to it via CDP to get a Playwright Browser handle.
-            // Note: CDP only works with Chromium, so Firefox/WebKit are not supported.
+            // Get CDP URL and connect Playwright to the same browser
             const cdpUrl = stagehand.connectURL();
-
             if (!cdpUrl) {
                 throw new Error('Failed to get CDP URL from Stagehand');
             }
 
             const browser = await chromium.connectOverCDP(cdpUrl);
 
-            // Store the Stagehand instance so the controller can access it
+            // Store the Stagehand instance for AI operations
             this.stagehandInstances.set(browser, stagehand);
+
+            // Handle browser disconnection
+            browser.on('disconnected', async () => {
+                await this._cleanupStagehand(browser);
+            });
 
             return browser;
         } catch (error) {
             // Clean up on failure
             await stagehand.close().catch(() => {});
 
-            // Augment the error with helpful context
             const augmentedError = this._augmentLaunchError(error, launchContext);
-
-            // Log the error to make it visible since BrowserPool might swallow it
             console.error('❌ Stagehand browser launch failed:', augmentedError.message);
-
             throw augmentedError;
+        }
+    }
+
+    /**
+     * Cleans up Stagehand instance when browser disconnects.
+     */
+    private async _cleanupStagehand(browser: PlaywrightBrowser): Promise<void> {
+        const stagehand = this.stagehandInstances.get(browser);
+        if (stagehand) {
+            try {
+                await stagehand.close();
+            } catch {
+                // Ignore cleanup errors
+            }
+            this.stagehandInstances.delete(browser);
         }
     }
 
@@ -156,24 +166,20 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     }
 
     /**
-     * Augments launch errors with helpful context and Stagehand-specific guidance.
+     * Augments launch errors with helpful context.
      */
     private _augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
         const message = error instanceof Error ? error.message : String(error);
         const model = this.stagehandOptions.model ?? 'openai/gpt-4o';
-        const env = this.stagehandOptions.env ?? 'LOCAL';
 
         let helpText = '';
 
-        // Add model-specific help if error might be API key related
         if (typeof model === 'string') {
             const modelStr = model.toLowerCase();
             if (modelStr.startsWith('openai/')) {
                 helpText += '\nNote: OpenAI models require OPENAI_API_KEY environment variable.';
-                helpText += '\nExample: export OPENAI_API_KEY="sk-..."';
             } else if (modelStr.startsWith('anthropic/')) {
                 helpText += '\nNote: Anthropic models require ANTHROPIC_API_KEY environment variable.';
-                helpText += '\nExample: export ANTHROPIC_API_KEY="sk-ant-..."';
             } else if (modelStr.startsWith('google/')) {
                 helpText += '\nNote: Google models require GOOGLE_API_KEY environment variable.';
             }
@@ -182,7 +188,6 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         return new Error(
             `Stagehand browser launch failed: ${message}\n` +
                 `Executable path: ${launchContext.launchOptions?.executablePath ?? 'default'}\n` +
-                `Environment: ${env}\n` +
                 `Model: ${model}${helpText}`,
             { cause: error },
         );
@@ -191,7 +196,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Gets the Stagehand instance for a given browser.
      */
-    getStagehandForBrowser(browser: PlaywrightBrowser): any {
+    getStagehandForBrowser(browser: PlaywrightBrowser): Stagehand | undefined {
         return this.stagehandInstances.get(browser);
     }
 }

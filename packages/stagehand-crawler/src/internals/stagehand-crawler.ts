@@ -1,4 +1,17 @@
 import type {
+    Action,
+    ActOptions,
+    ActResult,
+    AgentConfig,
+    ExtractOptions,
+    LLMClient,
+    ModelConfiguration,
+    NonStreamingAgentInstance,
+    ObserveOptions,
+    Stagehand,
+    StreamingAgentInstance,
+} from '@browserbasehq/stagehand';
+import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
@@ -45,13 +58,13 @@ export interface StagehandOptions {
 
     /**
      * AI model to use for act(), extract(), observe() operations.
-     * Can be a string like "openai/gpt-4o" or a detailed ModelConfig object.
+     * Can be a string like "openai/gpt-4o" or a detailed ModelConfiguration object.
      * Can also be set via STAGEHAND_MODEL environment variable.
      * @default 'openai/gpt-4o'
      * @example "openai/gpt-4o"
-     * @example "anthropic/claude-3-5-sonnet-20241022"
+     * @example "anthropic/claude-sonnet-4-20250514"
      */
-    model?: string | any; // ModelConfig type from Stagehand
+    model?: ModelConfiguration;
 
     /**
      * Logging verbosity level.
@@ -60,7 +73,7 @@ export interface StagehandOptions {
      * - 2: Debug logging
      * @default 0
      */
-    verbose?: number;
+    verbose?: 0 | 1 | 2;
 
     /**
      * Enable automatic error recovery for failed AI operations.
@@ -77,7 +90,7 @@ export interface StagehandOptions {
     /**
      * Custom LLM client for AI operations.
      */
-    llmClient?: any; // LLMClient type from Stagehand
+    llmClient?: LLMClient;
 
     /**
      * Custom system prompt for AI operations.
@@ -105,7 +118,7 @@ export interface StagehandPage extends Page {
      *
      * @param instruction - Natural language instruction for the action
      * @param options - Optional configuration for the action
-     * @returns Promise that resolves when the action is complete
+     * @returns Promise that resolves with the action result
      *
      * @example
      * ```typescript
@@ -114,13 +127,14 @@ export interface StagehandPage extends Page {
      * await page.act('Scroll down to load more items');
      * ```
      */
-    act(instruction: string, options?: any): Promise<void>;
+    act(instruction: string, options?: Omit<ActOptions, 'page'>): Promise<ActResult>;
 
     /**
      * Extract structured data from the page using natural language and a Zod schema.
      *
      * @param instruction - Natural language description of what to extract
      * @param schema - Zod schema defining the structure of the data
+     * @param options - Optional configuration for the extraction
      * @returns Promise that resolves with the extracted data matching the schema
      *
      * @example
@@ -134,11 +148,12 @@ export interface StagehandPage extends Page {
      * );
      * ```
      */
-    extract<T>(instruction: string, schema: z.ZodSchema<T>): Promise<T>;
+    extract<T>(instruction: string, schema: z.ZodSchema<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
 
     /**
      * Observe the page and get AI-suggested actions.
      *
+     * @param options - Optional configuration for the observation
      * @returns Promise that resolves with available actions on the page
      *
      * @example
@@ -147,7 +162,7 @@ export interface StagehandPage extends Page {
      * console.log('Available actions:', suggestions);
      * ```
      */
-    observe(): Promise<any>; // ActionSuggestions type from Stagehand
+    observe(options?: Omit<ObserveOptions, 'page'>): Promise<Action[]>;
 
     /**
      * Create an autonomous agent for multi-step workflows.
@@ -161,7 +176,8 @@ export interface StagehandPage extends Page {
      * await agent.execute();
      * ```
      */
-    agent(config?: any): any; // AgentInstance type from Stagehand
+    agent(config: AgentConfig & { stream: true }): StreamingAgentInstance;
+    agent(config?: AgentConfig & { stream?: false }): NonStreamingAgentInstance;
 }
 
 /**
@@ -179,7 +195,7 @@ export interface StagehandCrawlingContext<UserData extends Dictionary = Dictiona
      * Stagehand instance for advanced control.
      * Usually you don't need to access this directly - use the enhanced page methods instead.
      */
-    stagehand: any;
+    stagehand: Stagehand;
 }
 
 /**
@@ -374,10 +390,6 @@ export class StagehandCrawler extends BrowserCrawler<
                     browserPlugins: [launcher.createBrowserPlugin()],
                     // Enable fingerprinting by default for anti-blocking
                     useFingerprints: browserPoolOptions.useFingerprints ?? true,
-                    // Stagehand's AI methods (extract, act, etc.) operate on the "current" page,
-                    // so running multiple pages per browser would cause AI operations to target
-                    // the wrong page. Force one page per browser for correct behavior.
-                    maxOpenPagesPerBrowser: 1,
                 },
             },
             config,

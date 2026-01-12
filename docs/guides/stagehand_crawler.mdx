@@ -1,0 +1,234 @@
+---
+id: stagehand-crawler-guide
+title: "StagehandCrawler guide"
+sidebar_label: "StagehandCrawler"
+description: AI-powered web crawling with natural language browser automation
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import StagehandBasicSource from '!!raw-loader!./stagehand_crawler_basic.ts';
+import StagehandExtractSource from '!!raw-loader!./stagehand_crawler_extract.ts';
+
+&#8203;<ApiLink to="stagehand/class/StagehandCrawler">`StagehandCrawler`</ApiLink> combines Crawlee's powerful crawling infrastructure with [Stagehand's](https://github.com/browserbase/stagehand) AI-powered browser automation. Instead of writing CSS selectors or XPath queries, you can interact with web pages using natural language instructions.
+
+## What is Stagehand
+
+[Stagehand](https://github.com/browserbase/stagehand) is an AI-powered browser automation library from Browserbase. It allows you to control a browser using natural language commands like "click the login button" or "extract the product price". Under the hood, Stagehand uses large language models (OpenAI, Anthropic, or Google) to understand the page structure and execute your instructions.
+
+## How StagehandCrawler works
+
+StagehandCrawler extends <ApiLink to="browser-crawler/class/BrowserCrawler">`BrowserCrawler`</ApiLink> and enhances each page with AI-powered methods. Here's the architecture:
+
+1. **Stagehand launches the browser** - When a new browser is needed, Stagehand initializes and launches a Chromium browser
+2. **Playwright connects via CDP** - Crawlee connects Playwright to the same browser using Chrome DevTools Protocol (CDP)
+3. **Pages are enhanced with AI methods** - Each page gets `act()`, `extract()`, `observe()`, and `agent()` methods
+4. **BrowserPool manages scaling** - Crawlee's BrowserPool handles browser lifecycle, retries, and concurrency
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    StagehandCrawler                      │
+├─────────────────────────────────────────────────────────┤
+│  BrowserPool (manages browser lifecycle & concurrency)   │
+├─────────────────────────────────────────────────────────┤
+│  Stagehand Instance                                      │
+│  ├── Launches Chromium browser                          │
+│  ├── Provides CDP endpoint                              │
+│  └── Handles AI operations (act/extract/observe)        │
+├─────────────────────────────────────────────────────────┤
+│  Playwright (connected via CDP)                          │
+│  └── Standard page operations (goto, click, type, etc.) │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Key features
+
+The enhanced page object provides four AI-powered methods:
+
+### `page.act(instruction)` - Perform actions
+
+Execute actions on the page using natural language:
+
+```ts
+await page.act('Click the "Add to Cart" button');
+await page.act('Fill in the email field with test@example.com');
+await page.act('Scroll down to load more products');
+```
+
+### `page.extract(instruction, schema)` - Extract structured data
+
+Extract data from the page using a Zod schema for type safety:
+
+```ts
+import { z } from 'zod';
+
+const productSchema = z.object({
+    title: z.string(),
+    price: z.number(),
+    description: z.string(),
+});
+
+const product = await page.extract('Get the product details', productSchema);
+// product is typed as { title: string, price: number, description: string }
+```
+
+### `page.observe()` - Get suggested actions
+
+Analyze the page and get AI-suggested actions:
+
+```ts
+const suggestions = await page.observe();
+// Returns available actions like clicking buttons, filling forms, etc.
+```
+
+### `page.agent(config)` - Autonomous agents
+
+Create an autonomous agent for complex multi-step workflows:
+
+```ts
+const agent = page.agent({ model: 'gpt-4o' });
+const result = await agent.execute('Find the cheapest laptop and add it to cart');
+```
+
+## Limitations
+
+Before using StagehandCrawler, be aware of these limitations:
+
+### Chromium only
+
+Stagehand is built on Chrome DevTools Protocol (CDP), which only works with Chromium-based browsers. Firefox and WebKit are not supported.
+
+### Reduced fingerprinting control
+
+Since Stagehand controls the browser launch, some Crawlee fingerprinting features may not be fully applied. Stagehand does provide its own anti-detection measures, but you have less granular control compared to PlaywrightCrawler.
+
+### API key required
+
+You need an API key for the AI model you want to use:
+- **OpenAI**: Set `OPENAI_API_KEY` environment variable
+- **Anthropic**: Set `ANTHROPIC_API_KEY` environment variable
+- **Google**: Set `GOOGLE_API_KEY` environment variable
+
+### Cost and latency
+
+Each AI operation makes API calls to the LLM provider, which:
+- Adds latency (typically 1-5 seconds per operation)
+- Incurs costs based on your LLM provider's pricing
+- May have rate limits
+
+## When to use StagehandCrawler
+
+**Use StagehandCrawler when:**
+- Pages have complex, dynamic structures that are hard to scrape with selectors
+- You need to interact with pages in ways that are difficult to express programmatically
+- You want to quickly prototype scrapers without writing detailed selectors
+- The target website frequently changes its structure
+
+**Consider alternatives when:**
+- You need maximum performance (use CheerioCrawler or PlaywrightCrawler)
+- You need to minimize costs (LLM API calls add up)
+- You need fine-grained browser control (use PlaywrightCrawler)
+- You need Firefox or WebKit support (use PlaywrightCrawler)
+
+## Basic example
+
+Here's a simple example that extracts code examples from the Crawlee website:
+
+<CodeBlock language="ts" title="src/main.ts">{StagehandBasicSource}</CodeBlock>
+
+## Data extraction example
+
+Here's an example showing structured data extraction with Zod schemas:
+
+<CodeBlock language="ts" title="src/main.ts">{StagehandExtractSource}</CodeBlock>
+
+## Configuration options
+
+### Stagehand options
+
+Configure the AI behavior through `stagehandOptions`:
+
+```ts
+const crawler = new StagehandCrawler({
+    stagehandOptions: {
+        // Environment: 'LOCAL' or 'BROWSERBASE'
+        env: 'LOCAL',
+
+        // AI model to use (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4-20250514')
+        model: 'openai/gpt-4o',
+
+        // Logging verbosity: 0 (minimal), 1 (standard), 2 (debug)
+        verbose: 1,
+
+        // Enable automatic error recovery
+        selfHeal: true,
+
+        // Timeout for DOM to stabilize (ms)
+        domSettleTimeout: 30000,
+    },
+});
+```
+
+### Environment variables
+
+You can also configure Stagehand via environment variables:
+
+- `STAGEHAND_ENV` - 'LOCAL' or 'BROWSERBASE'
+- `STAGEHAND_MODEL` - Model to use (e.g., 'openai/gpt-4o')
+- `STAGEHAND_VERBOSE` - Logging level (0, 1, or 2)
+- `OPENAI_API_KEY` - OpenAI API key
+- `ANTHROPIC_API_KEY` - Anthropic API key
+- `GOOGLE_API_KEY` - Google API key
+
+## Using with Browserbase
+
+For cloud browser infrastructure, you can use [Browserbase](https://browserbase.com/):
+
+```ts
+const crawler = new StagehandCrawler({
+    stagehandOptions: {
+        env: 'BROWSERBASE',
+        apiKey: process.env.BROWSERBASE_API_KEY,
+        projectId: process.env.BROWSERBASE_PROJECT_ID,
+        model: 'openai/gpt-4o',
+    },
+});
+```
+
+## Combining AI and standard methods
+
+You can mix AI-powered methods with standard Playwright methods:
+
+```ts
+async requestHandler({ page, request, log }) {
+    // Use standard Playwright navigation
+    await page.goto(request.url);
+
+    // Use AI to interact with the page
+    await page.act('Accept the cookie consent banner');
+
+    // Use standard Playwright for precise operations
+    await page.waitForSelector('.product-list');
+
+    // Use AI for complex extraction
+    const products = await page.extract(
+        'Get all product names and prices',
+        z.array(z.object({
+            name: z.string(),
+            price: z.number(),
+        }))
+    );
+
+    // Use standard Playwright for screenshots
+    await page.screenshot({ path: 'products.png' });
+}
+```
+
+## Further reading
+
+- [Stagehand documentation](https://docs.stagehand.dev/)
+- [Browserbase documentation](https://docs.browserbase.com/)
+- <ApiLink to="stagehand/class/StagehandCrawler">`StagehandCrawler` API reference</ApiLink>

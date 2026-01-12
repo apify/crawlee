@@ -1,5 +1,3 @@
-import type { Page } from 'playwright';
-
 import { StagehandController } from '../../packages/stagehand-crawler/src/internals/stagehand-controller';
 import type { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin';
 
@@ -79,14 +77,10 @@ describe('StagehandController', () => {
         expect(() => controller.getStagehand()).toThrow('Stagehand instance not found for browser');
     });
 
-    test('should set cookies', async () => {
+    test('should set cookies (stubbed - Stagehand v3 limitation)', async () => {
         const controller = new StagehandController(mockPlugin, stagehandInstances);
 
-        const mockPage: any = {
-            context: vi.fn().mockReturnValue({
-                addCookies: vi.fn().mockResolvedValue(undefined),
-            }),
-        };
+        const mockPage: any = {};
 
         const cookies = [
             {
@@ -101,81 +95,32 @@ describe('StagehandController', () => {
             },
         ];
 
-        await (controller as any)._setCookies(mockPage, cookies);
-
-        expect(mockPage.context().addCookies).toHaveBeenCalledWith([
-            {
-                name: 'test_cookie',
-                value: 'test_value',
-                domain: 'example.com',
-                path: '/',
-                expires: 1234567890,
-                httpOnly: true,
-                secure: true,
-                sameSite: 'Lax',
-            },
-        ]);
+        // Should complete without error even though it doesn't actually set cookies
+        // This is a known limitation - Stagehand v3 doesn't have cookie management APIs
+        await expect((controller as any)._setCookies(mockPage, cookies)).resolves.toBeUndefined();
     });
 
-    test('should get cookies', async () => {
+    test('should get cookies (stubbed - Stagehand v3 limitation)', async () => {
         const controller = new StagehandController(mockPlugin, stagehandInstances);
 
-        const mockPage: any = {
-            context: vi.fn().mockReturnValue({
-                cookies: vi.fn().mockResolvedValue([
-                    {
-                        name: 'test_cookie',
-                        value: 'test_value',
-                        domain: 'example.com',
-                        path: '/',
-                        expires: 1234567890,
-                        httpOnly: true,
-                        secure: true,
-                        sameSite: 'Lax' as const,
-                    },
-                ]),
-            }),
-        };
+        const mockPage: any = {};
 
+        // Should return empty array since Stagehand v3 doesn't have cookie management APIs
+        // This is a known limitation tracked in GitHub issue #1250
         const cookies = await (controller as any)._getCookies(mockPage);
 
-        expect(cookies).toEqual([
-            {
-                name: 'test_cookie',
-                value: 'test_value',
-                domain: 'example.com',
-                path: '/',
-                expires: 1234567890,
-                httpOnly: true,
-                secure: true,
-                sameSite: 'Lax',
-            },
-        ]);
+        expect(cookies).toEqual([]);
     });
 
-    test('should handle cookies without expiration', async () => {
+    test('should handle cookies without expiration (stubbed - Stagehand v3 limitation)', async () => {
         const controller = new StagehandController(mockPlugin, stagehandInstances);
 
-        const mockPage: any = {
-            context: vi.fn().mockReturnValue({
-                cookies: vi.fn().mockResolvedValue([
-                    {
-                        name: 'session_cookie',
-                        value: 'session_value',
-                        domain: 'example.com',
-                        path: '/',
-                        expires: -1,
-                        httpOnly: false,
-                        secure: false,
-                        sameSite: 'None' as const,
-                    },
-                ]),
-            }),
-        };
+        const mockPage: any = {};
 
+        // Should return empty array since Stagehand v3 doesn't have cookie management APIs
         const cookies = await (controller as any)._getCookies(mockPage);
 
-        expect(cookies[0].expires).toBeUndefined();
+        expect(cookies).toEqual([]);
     });
 
     test('should close Stagehand on controller close', async () => {
