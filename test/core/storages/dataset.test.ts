@@ -391,6 +391,68 @@ describe('dataset', () => {
             expect(result!.foo).toBe(5);
             expect(calledForIndexes).toEqual([1, 2, 3]);
         });
+
+        test('values() should work', async () => {
+            const dataset = await Dataset.open();
+
+            await dataset.pushData([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+
+            const values: Dictionary[] = [];
+
+            for await (const value of dataset.values()) {
+                values.push(value);
+            }
+
+            expect(values).toEqual([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+        });
+
+        test('values() should allow breaking out of iteration', async () => {
+            const dataset = await Dataset.open();
+
+            await dataset.pushData([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+
+            const values: Dictionary[] = [];
+            for await (const value of dataset.values()) {
+                values.push(value);
+                if (value.foo === 'b') break;
+            }
+
+            expect(values).toEqual([{ foo: 'a' }, { foo: 'b' }]);
+        });
+
+        test('entries() should work', async () => {
+            const dataset = await Dataset.open();
+
+            await dataset.pushData([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+
+            const entries: [number, Dictionary][] = [];
+            for await (const entry of dataset.entries()) {
+                entries.push(entry);
+            }
+
+            expect(entries).toEqual([
+                [0, { foo: 'a' }],
+                [1, { foo: 'b' }],
+                [2, { foo: 'c' }],
+            ]);
+        });
+
+        test('should allow breaking out of iteration', async () => {
+            const dataset = await Dataset.open();
+
+            await dataset.pushData([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+
+            const entries: [number, Dictionary][] = [];
+            for await (const entry of dataset.entries()) {
+                entries.push(entry);
+                if (entry[0] === 1) break;
+            }
+
+            expect(entries).toEqual([
+                [0, { foo: 'a' }],
+                [1, { foo: 'b' }],
+            ]);
+        });
     });
 
     describe('pushData', () => {

@@ -607,6 +607,77 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
+     * Iterates over dataset items using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open();
+     * for await (const item of dataset.values()) {
+     *   console.log(item);
+     * }
+     * ```
+     *
+     * @param options Options for value iteration.
+     */
+    async *values(options: DatasetIteratorOptions = {}): AsyncGenerator<Data, void, undefined> {
+        checkStorageAccess();
+
+        const limit = options.limit ?? DATASET_ITERATORS_DEFAULT_LIMIT;
+        let offset = options.offset ?? 0;
+
+        while (true) {
+            const response = await this.getData({ ...options, offset, limit });
+
+            for (const item of response.items) {
+                yield item;
+            }
+
+            offset += response.count;
+
+            if (offset >= response.total) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Iterates over dataset entries (index-value pairs) using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open();
+     * for await (const [index, item] of dataset.entries()) {
+     *   console.log(`${index}: ${JSON.stringify(item)}`);
+     * }
+     * ```
+     *
+     * @param options Options for entry iteration.
+     */
+    async *entries(options: DatasetIteratorOptions = {}): AsyncGenerator<[number, Data], void, undefined> {
+        checkStorageAccess();
+
+        const limit = options.limit ?? DATASET_ITERATORS_DEFAULT_LIMIT;
+        let offset = options.offset ?? 0;
+        let index = offset;
+
+        while (true) {
+            const response = await this.getData({ ...options, offset, limit });
+
+            for (const item of response.items) {
+                yield [index++, item];
+            }
+
+            offset += response.count;
+
+            if (offset >= response.total) {
+                break;
+            }
+        }
+    }
+
+    /**
      * Removes the dataset either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      */
