@@ -1,5 +1,4 @@
-import type { Dictionary, ProxyInfo } from '@crawlee/types';
-import type { OptionsInit } from 'got-scraping';
+import type { BaseHttpClient, Dictionary, ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
@@ -139,7 +138,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
     ): Promise<unknown>;
 
     /**
-     * Fires HTTP request via [`got-scraping`](https://crawlee.dev/js/docs/guides/got-scraping), allowing to override the request
+     * Fires HTTP request via the internal HTTP client, allowing to override the request
      * options on the fly.
      *
      * This is handy when you work with a browser crawler but want to execute some requests outside it (e.g. API requests).
@@ -155,7 +154,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * },
      * ```
      */
-    sendRequest(overrideOptions?: Partial<OptionsInit>): Promise<Response>;
+    sendRequest: BaseHttpClient['sendRequest'];
 
     /**
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
