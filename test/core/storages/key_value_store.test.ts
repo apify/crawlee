@@ -604,4 +604,110 @@ describe('KeyValueStore', () => {
             });
         });
     });
+
+    describe('keys', () => {
+        test('should iterate over all keys', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', 'value1');
+            await store.setValue('key2', 'value2');
+            await store.setValue('key3', 'value3');
+
+            const keys: string[] = [];
+            for await (const key of store.keys()) {
+                keys.push(key);
+            }
+
+            expect(keys).toEqual(['key1', 'key2', 'key3']);
+        });
+
+        test('should allow breaking out of iteration', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', 'value1');
+            await store.setValue('key2', 'value2');
+            await store.setValue('key3', 'value3');
+
+            const keys: string[] = [];
+            for await (const key of store.keys()) {
+                keys.push(key);
+                if (key === 'key2') break;
+            }
+
+            expect(keys).toEqual(['key1', 'key2']);
+        });
+    });
+
+    describe('values', () => {
+        test('should iterate over all values', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', { data: 'value1' });
+            await store.setValue('key2', { data: 'value2' });
+            await store.setValue('key3', { data: 'value3' });
+
+            const values: { data: string }[] = [];
+            for await (const value of store.values<{ data: string }>()) {
+                values.push(value);
+            }
+
+            expect(values).toEqual([{ data: 'value1' }, { data: 'value2' }, { data: 'value3' }]);
+        });
+
+        test('should allow breaking out of iteration', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', 'value1');
+            await store.setValue('key2', 'value2');
+            await store.setValue('key3', 'value3');
+
+            const values: string[] = [];
+            for await (const value of store.values<string>()) {
+                values.push(value);
+                if (value === 'value2') break;
+            }
+
+            expect(values).toEqual(['value1', 'value2']);
+        });
+    });
+
+    describe('entries', () => {
+        test('should iterate over all entries', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', { data: 'value1' });
+            await store.setValue('key2', { data: 'value2' });
+            await store.setValue('key3', { data: 'value3' });
+
+            const entries: [string, { data: string }][] = [];
+            for await (const entry of store.entries<{ data: string }>()) {
+                entries.push(entry);
+            }
+
+            expect(entries).toEqual([
+                ['key1', { data: 'value1' }],
+                ['key2', { data: 'value2' }],
+                ['key3', { data: 'value3' }],
+            ]);
+        });
+
+        test('should allow breaking out of iteration', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', 'value1');
+            await store.setValue('key2', 'value2');
+            await store.setValue('key3', 'value3');
+
+            const entries: [string, string][] = [];
+            for await (const entry of store.entries<string>()) {
+                entries.push(entry);
+                if (entry[0] === 'key2') break;
+            }
+
+            expect(entries).toEqual([
+                ['key1', 'value1'],
+                ['key2', 'value2'],
+            ]);
+        });
+    });
 });
