@@ -27,10 +27,9 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     }
 
     private async setCookies(response: Response, cookieJar: CookieJar): Promise<void> {
-        const setCookieHeader = response.headers.get('set-cookie');
-        if (setCookieHeader) {
-            await cookieJar.setCookie(setCookieHeader, response.url);
-        }
+        const setCookieHeaders = response.headers.getSetCookie();
+
+        await Promise.all(setCookieHeaders.map((header) => cookieJar.setCookie(header, response.url)));
     }
 
     /**
@@ -72,7 +71,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                     nextMethod = 'GET';
                     nextBody = null;
                 } else {
-                    nextBody = (currentRequest as any).body ?? null;
+                    nextBody = currentRequest.body;
                 }
 
                 const nextHeaders = new Headers();
