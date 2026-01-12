@@ -542,6 +542,15 @@ export class KeyValueStore {
     async *values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<T, void, undefined> {
         checkStorageAccess();
 
+        ow(
+            options,
+            ow.object.exactShape({
+                exclusiveStartKey: ow.optional.string,
+                prefix: ow.optional.string,
+                collection: ow.optional.string,
+            }),
+        );
+
         for await (const key of this.keys(options)) {
             const value = await this.getValue<T>(key);
             if (value !== null) {
