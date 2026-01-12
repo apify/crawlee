@@ -11,7 +11,7 @@ export const Browser = {
 } as const;
 
 /**
- * A HTTP client implementation based on the `impit library.
+ * A HTTP client implementation based on the `impit` library.
  */
 export class ImpitHttpClient extends BaseHttpClient {
     private impitOptions: ImpitOptions;
