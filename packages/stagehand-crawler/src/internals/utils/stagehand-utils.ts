@@ -1,10 +1,15 @@
+import type { ActOptions, AgentConfig, ExtractOptions, ObserveOptions, Stagehand } from '@browserbasehq/stagehand';
 import type { Page } from 'playwright';
+import type { ZodSchema } from 'zod';
 
 import type { StagehandPage } from '../stagehand-crawler';
 
 /**
  * Enhances a Playwright Page with Stagehand AI methods.
  * Adds page.act(), page.extract(), page.observe(), and page.agent() methods.
+ *
+ * The key feature is that each AI method passes the specific page to Stagehand,
+ * allowing multiple pages to use AI operations concurrently without interference.
  *
  * @param page - The Playwright page to enhance
  * @param stagehand - The Stagehand instance to bind methods from
@@ -19,16 +24,18 @@ import type { StagehandPage } from '../stagehand-crawler';
  *
  * @ignore
  */
-export function enhancePageWithStagehand(page: Page, stagehand: any): StagehandPage {
-    // Cast to any to add properties
-    const enhancedPage = page as any;
+export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): StagehandPage {
+    // Cast to StagehandPage to add properties
+    const enhancedPage = page as StagehandPage;
 
     /**
      * Perform an action on the page using natural language.
+     * Passes this specific page to Stagehand so it operates on the correct page.
      */
-    enhancedPage.act = async (instruction: string, options?: any) => {
+    enhancedPage.act = async (instruction: string, options?: Omit<ActOptions, 'page'>) => {
         try {
-            return await stagehand.act(instruction, options);
+            // Pass the page option to ensure Stagehand operates on this specific page
+            return await stagehand.act(instruction, { ...options, page });
         } catch (error) {
             throw new Error(`Stagehand act() failed: ${error instanceof Error ? error.message : String(error)}`, {
                 cause: error,
@@ -38,10 +45,16 @@ export function enhancePageWithStagehand(page: Page, stagehand: any): StagehandP
 
     /**
      * Extract structured data from the page using natural language and a Zod schema.
+     * Passes this specific page to Stagehand so it operates on the correct page.
      */
-    enhancedPage.extract = async (instruction: string, schema: any) => {
+    enhancedPage.extract = async <T>(
+        instruction: string,
+        schema: ZodSchema<T>,
+        options?: Omit<ExtractOptions, 'page'>,
+    ): Promise<T> => {
         try {
-            return await stagehand.extract(instruction, schema);
+            // Pass the page option to ensure Stagehand operates on this specific page
+            return await stagehand.extract(instruction, schema, { ...options, page });
         } catch (error) {
             throw new Error(`Stagehand extract() failed: ${error instanceof Error ? error.message : String(error)}`, {
                 cause: error,
@@ -51,10 +64,12 @@ export function enhancePageWithStagehand(page: Page, stagehand: any): StagehandP
 
     /**
      * Observe the page and get AI-suggested actions.
+     * Passes this specific page to Stagehand so it operates on the correct page.
      */
-    enhancedPage.observe = async () => {
+    enhancedPage.observe = async (options?: Omit<ObserveOptions, 'page'>) => {
         try {
-            return await stagehand.observe();
+            // Pass the page option to ensure Stagehand operates on this specific page
+            return await stagehand.observe({ ...options, page });
         } catch (error) {
             throw new Error(`Stagehand observe() failed: ${error instanceof Error ? error.message : String(error)}`, {
                 cause: error,
@@ -64,10 +79,14 @@ export function enhancePageWithStagehand(page: Page, stagehand: any): StagehandP
 
     /**
      * Create an autonomous agent for multi-step workflows.
+     * Note: Agent operates on the page context.
      */
-    enhancedPage.agent = (config?: any) => {
+    (enhancedPage as any).agent = (config?: AgentConfig) => {
         try {
-            return stagehand.agent(config);
+            if (config?.stream === true) {
+                return stagehand.agent(config as AgentConfig & { stream: true });
+            }
+            return stagehand.agent(config as AgentConfig & { stream?: false });
         } catch (error) {
             throw new Error(`Stagehand agent() failed: ${error instanceof Error ? error.message : String(error)}`, {
                 cause: error,
@@ -75,5 +94,5 @@ export function enhancePageWithStagehand(page: Page, stagehand: any): StagehandP
         }
     };
 
-    return enhancedPage as StagehandPage;
+    return enhancedPage;
 }

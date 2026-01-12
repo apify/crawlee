@@ -70,7 +70,11 @@ export function resolveStagehandOptions(options?: StagehandOptions): StagehandOp
         apiKey: options?.apiKey ?? process.env.STAGEHAND_API_KEY,
         projectId: options?.projectId ?? process.env.STAGEHAND_PROJECT_ID,
         model: options?.model ?? process.env.STAGEHAND_MODEL ?? 'openai/gpt-4o',
-        verbose: options?.verbose ?? (process.env.STAGEHAND_VERBOSE ? parseInt(process.env.STAGEHAND_VERBOSE, 10) : 0),
+        verbose:
+            options?.verbose ??
+            (process.env.STAGEHAND_VERBOSE
+                ? (Math.min(2, Math.max(0, parseInt(process.env.STAGEHAND_VERBOSE, 10))) as 0 | 1 | 2)
+                : 0),
         selfHeal: options?.selfHeal ?? process.env.STAGEHAND_SELF_HEAL !== 'false',
         domSettleTimeout:
             options?.domSettleTimeout ??
@@ -144,7 +148,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             ...this.otherLaunchContextProps,
             proxyUrl: this.proxyUrl,
             launchOptions: this.createLaunchOptions(),
-            stagehandOptions: this.stagehandOptions,  // Set AFTER to override any unresolved options
+            stagehandOptions: this.stagehandOptions, // Set AFTER to override any unresolved options
         });
     }
 }

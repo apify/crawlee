@@ -50,11 +50,7 @@ await Actor.main(async () => {
     });
 
     // Run with 3 different URLs to force concurrency
-    await crawler.run([
-        'https://crawlee.dev',
-        'https://apify.com',
-        'https://blog.apify.com',
-    ]);
+    await crawler.run(['https://crawlee.dev', 'https://apify.com', 'https://blog.apify.com']);
 
     // Log how many browser instances were used
     console.log(`[Test] Used ${browserIds.size} browser instances for 3 requests`);

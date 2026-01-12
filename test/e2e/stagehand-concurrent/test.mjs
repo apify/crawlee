@@ -17,9 +17,18 @@ await expect(browserIds.size >= 2, 'Multiple browser instances used');
 
 // Verify all URLs were processed
 const urls = datasetItems.map((item) => item.url);
-await expect(urls.some((u) => u.includes('crawlee.dev')), 'crawlee.dev processed');
-await expect(urls.some((u) => u.includes('apify.com')), 'apify.com processed');
-await expect(urls.some((u) => u.includes('blog.apify.com')), 'blog.apify.com processed');
+await expect(
+    urls.some((u) => u.includes('crawlee.dev')),
+    'crawlee.dev processed',
+);
+await expect(
+    urls.some((u) => u.includes('apify.com')),
+    'apify.com processed',
+);
+await expect(
+    urls.some((u) => u.includes('blog.apify.com')),
+    'blog.apify.com processed',
+);
 
 // Verify titles were extracted
 for (const item of datasetItems) {

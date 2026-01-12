@@ -74,3 +74,16 @@ export type { StagehandLaunchContext } from './internals/stagehand-launcher';
 
 // Export utilities as namespace
 export * as stagehandUtils from './internals/utils/stagehand-utils';
+
+// Re-export key types from Stagehand for convenience
+export type {
+    ActOptions,
+    ActResult,
+    Action,
+    AgentConfig,
+    AgentResult,
+    ExtractOptions,
+    ModelConfiguration,
+    ObserveOptions,
+    Stagehand,
+} from '@browserbasehq/stagehand';
