@@ -587,6 +587,22 @@ export class KeyValueStore {
     }
 
     /**
+     * Default iterator for the key-value store, allowing the use of `for await...of` syntax
+     * directly on the store instance. Iterates over entries (key-value pairs).
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * for await (const [key, value] of store) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     */
+    [Symbol.asyncIterator](): AsyncGenerator<[string, unknown], void, undefined> {
+        return this.entries();
+    }
+
+    /**
      * Returns a file URL for the given key.
      */
     getPublicUrl(key: string): string {

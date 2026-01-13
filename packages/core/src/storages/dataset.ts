@@ -678,6 +678,22 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
+     * Default iterator for the dataset, allowing the use of `for await...of` syntax
+     * directly on the dataset instance. Iterates over values (items).
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open();
+     * for await (const item of dataset) {
+     *   console.log(item);
+     * }
+     * ```
+     */
+    [Symbol.asyncIterator](): AsyncGenerator<Data, void, undefined> {
+        return this.values();
+    }
+
+    /**
      * Removes the dataset either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      */

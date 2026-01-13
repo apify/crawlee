@@ -710,4 +710,44 @@ describe('KeyValueStore', () => {
             ]);
         });
     });
+
+    describe('Symbol.asyncIterator', () => {
+        test('should allow direct iteration over store using for await...of', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', { data: 'value1' });
+            await store.setValue('key2', { data: 'value2' });
+            await store.setValue('key3', { data: 'value3' });
+
+            const entries: [string, unknown][] = [];
+            for await (const entry of store) {
+                entries.push(entry);
+            }
+
+            expect(entries).toEqual([
+                ['key1', { data: 'value1' }],
+                ['key2', { data: 'value2' }],
+                ['key3', { data: 'value3' }],
+            ]);
+        });
+
+        test('should allow breaking out of direct iteration', async () => {
+            const store = await KeyValueStore.open();
+
+            await store.setValue('key1', 'value1');
+            await store.setValue('key2', 'value2');
+            await store.setValue('key3', 'value3');
+
+            const entries: [string, unknown][] = [];
+            for await (const entry of store) {
+                entries.push(entry);
+                if (entry[0] === 'key2') break;
+            }
+
+            expect(entries).toEqual([
+                ['key1', 'value1'],
+                ['key2', 'value2'],
+            ]);
+        });
+    });
 });

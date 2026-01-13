@@ -437,7 +437,7 @@ describe('dataset', () => {
             ]);
         });
 
-        test('should allow breaking out of iteration', async () => {
+        test('entries() should allow breaking out of iteration', async () => {
             const dataset = await Dataset.open();
 
             await dataset.pushData([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
@@ -452,6 +452,33 @@ describe('dataset', () => {
                 [0, { foo: 'a' }],
                 [1, { foo: 'b' }],
             ]);
+        });
+
+        test('Symbol.asyncIterator should allow direct iteration over dataset', async () => {
+            const dataset = await Dataset.open();
+
+            await dataset.pushData([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+
+            const items: Dictionary[] = [];
+            for await (const item of dataset) {
+                items.push(item);
+            }
+
+            expect(items).toEqual([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+        });
+
+        test('Symbol.asyncIterator should allow breaking out of direct iteration', async () => {
+            const dataset = await Dataset.open();
+
+            await dataset.pushData([{ foo: 'a' }, { foo: 'b' }, { foo: 'c' }]);
+
+            const items: Dictionary[] = [];
+            for await (const item of dataset) {
+                items.push(item);
+                if (item.foo === 'b') break;
+            }
+
+            expect(items).toEqual([{ foo: 'a' }, { foo: 'b' }]);
         });
     });
 
