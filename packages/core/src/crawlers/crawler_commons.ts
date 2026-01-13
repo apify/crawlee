@@ -1,4 +1,4 @@
-import type { BaseHttpClient, Dictionary, ProxyInfo } from '@crawlee/types';
+import type { Dictionary, HttpRequestOptions, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
@@ -138,8 +138,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
     ): Promise<unknown>;
 
     /**
-     * Fires HTTP request via the internal HTTP client, allowing to override the request
-     * options on the fly.
+     * Fires HTTP request via the internal HTTP client, allowing to override the request options on the fly.
      *
      * This is handy when you work with a browser crawler but want to execute some requests outside it (e.g. API requests).
      * Check the [Skipping navigations for certain requests](https://crawlee.dev/js/docs/examples/skip-navigation) example for
@@ -154,7 +153,10 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * },
      * ```
      */
-    sendRequest: BaseHttpClient['sendRequest'];
+    sendRequest: (
+        requestOverrides: Partial<HttpRequestOptions>,
+        optionsOverrides: SendRequestOptions,
+    ) => Promise<Response>;
 
     /**
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.

@@ -36,6 +36,7 @@ import ow from 'ow';
 import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+
 import { parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
 
 let TimeoutError: typeof TimeoutErrorClass;

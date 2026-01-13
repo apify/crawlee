@@ -15,16 +15,16 @@ export function createSendRequest(
     session: Session | undefined,
 ) {
     return async (
-        overrideRequest: Partial<HttpRequestOptions> = {},
-        overrideOptions: SendRequestOptions = {},
+        requestOverrides: Partial<HttpRequestOptions> = {},
+        optionsOverrides: SendRequestOptions = {},
     ): Promise<Response> => {
         const baseRequest = originRequest.intoFetchAPIRequest();
-        const mergedUrl = overrideRequest.url ?? baseRequest.url;
-        const mergedMethod = overrideRequest.method ?? baseRequest.method;
+        const mergedUrl = requestOverrides.url ?? baseRequest.url;
+        const mergedMethod = requestOverrides.method ?? baseRequest.method;
 
         const mergedHeaders = new Headers(baseRequest.headers);
-        if (overrideRequest.headers) {
-            overrideRequest.headers.forEach((value, key) => {
+        if (requestOverrides.headers) {
+            requestOverrides.headers.forEach((value, key) => {
                 mergedHeaders.set(key, value);
             });
         }
@@ -32,13 +32,13 @@ export function createSendRequest(
         const request = new Request(mergedUrl, {
             method: mergedMethod,
             headers: mergedHeaders,
-            body: overrideRequest.body ?? baseRequest.body,
+            body: requestOverrides.body ?? baseRequest.body,
         } as RequestInit);
 
         return httpClient.sendRequest(request, {
             session,
-            cookieJar: overrideOptions?.cookieJar ?? (session?.cookieJar as any),
-            timeout: overrideOptions.timeout,
+            cookieJar: optionsOverrides?.cookieJar ?? (session?.cookieJar as any),
+            timeout: optionsOverrides.timeout,
         });
     };
 }
