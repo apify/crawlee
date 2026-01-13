@@ -599,7 +599,10 @@ describe.each(
                 const [host, portStr] = (req.url ?? '').split(':');
                 const port = portStr ? Number(portStr) : 443;
 
-                const upstreamSocket = net.connect(port, host ?? '127.0.0.1', () => {
+                // Use IPv4 loopback for `localhost` to avoid relying on OS DNS result order (IPv4 vs IPv6).
+                const connectHost = host === 'localhost' ? '127.0.0.1' : (host ?? '127.0.0.1');
+
+                const upstreamSocket = net.connect(port, connectHost, () => {
                     clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
                     if (head && head.length) upstreamSocket.write(head);
                     upstreamSocket.pipe(clientSocket);
@@ -617,7 +620,7 @@ describe.each(
                     new Promise<void>((resolve) => workingProxy.listen(0, '127.0.0.1', resolve)),
                 ]);
 
-                const httpsUrl = `https://127.0.0.1:${(httpsServer.address() as AddressInfo).port}/hello.html`;
+                const httpsUrl = `https://localhost:${(httpsServer.address() as AddressInfo).port}/hello.html`;
                 const hangingProxyUrl = `http://127.0.0.1:${(hangingProxy.address() as AddressInfo).port}`;
                 const workingProxyUrl = `http://127.0.0.1:${(workingProxy.address() as AddressInfo).port}`;
 
