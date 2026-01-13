@@ -1809,6 +1809,65 @@ describe('BasicCrawler', () => {
             // Should only have added the first 2 requests (since 2 were already processed and 1 is in progress, limit allows 2 more)
             expect(addRequestsBatchedSpy).toHaveBeenCalledTimes(2);
         });
+
+        test('enqueueLinks limit log message should only be logged once', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            // Will try to add 10 requests with a limit of 2
+            const requestsToAdd = Array.from({ length: 10 }, (_, i) => `http://example.com/${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 2, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            await crawler.run(['http://example.com']);
+
+            // The enqueueLinks limit message should only appear once, not 8 times (for each skipped request)
+            const enqueueLimitMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('enqueueLinks limit'),
+            );
+            expect(enqueueLimitMessages).toHaveLength(1);
+        });
+
+        test('enqueueLinks limit log message should be logged again on subsequent runs', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const requestsToAdd = Array.from({ length: 5 }, (_, i) => `http://example.com/${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 1, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            // First run
+            await crawler.run(['http://example.com/first']);
+
+            // Second run with a new start URL
+            await crawler.run(['http://example.com/second']);
+
+            // The enqueueLinks limit message should appear twice (once per run)
+            const enqueueLimitMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('enqueueLinks limit'),
+            );
+            expect(enqueueLimitMessages).toHaveLength(2);
+        });
     });
 
     describe('addRequests input validation', () => {
