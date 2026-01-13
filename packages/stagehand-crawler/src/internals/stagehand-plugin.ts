@@ -6,6 +6,8 @@ import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'p
 // Firefox and WebKit are not supported by Stagehand.
 import { chromium } from 'playwright';
 
+import log from '@apify/log';
+
 import { StagehandController } from './stagehand-controller';
 import type { StagehandOptions } from './stagehand-crawler';
 
@@ -37,6 +39,13 @@ export interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptio
 export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, PlaywrightBrowser> {
     readonly stagehandOptions: StagehandOptions;
     private readonly stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand> = new WeakMap();
+
+    /**
+     * Proxy credentials stored for use in page setup.
+     * Stagehand doesn't handle proxy authentication, so we handle it via CDP on each page.
+     * @internal
+     */
+    _proxyCredentials: { username: string; password: string } | null = null;
 
     constructor(library: BrowserType, options: StagehandPluginOptions = {}) {
         super(library, options);
@@ -83,6 +92,15 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             stagehandConfig.projectId = this.stagehandOptions.projectId;
         }
 
+        // Store proxy credentials separately - Stagehand doesn't handle proxy auth
+        // We'll use these credentials in the controller when creating new pages
+        if (launchOptions.proxy?.username) {
+            this._proxyCredentials = {
+                username: launchOptions.proxy.username,
+                password: launchOptions.proxy.password ?? '',
+            };
+        }
+
         const stagehand = new Stagehand(stagehandConfig);
 
         try {
@@ -111,7 +129,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             await stagehand.close().catch(() => {});
 
             const augmentedError = this._augmentLaunchError(error, launchContext);
-            console.error('❌ Stagehand browser launch failed:', augmentedError.message);
+            log.error('Stagehand browser launch failed', { message: augmentedError.message });
             throw augmentedError;
         }
     }
