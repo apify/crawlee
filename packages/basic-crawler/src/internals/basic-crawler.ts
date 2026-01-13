@@ -564,6 +564,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private shouldLogMaxEnqueuedRequestsExceeded = true;
+    private shouldLogEnqueueLinksLimitExceeded = true;
     private shouldLogShuttingDown = true;
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
@@ -1001,6 +1002,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.unexpectedStop = false;
         this.running = true;
         this.shouldLogMaxEnqueuedRequestsExceeded = true;
+        this.shouldLogEnqueueLinksLimitExceeded = true;
         this.shouldLogShuttingDown = true;
 
         await purgeDefaultStorages({
@@ -1162,10 +1164,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
 
-        if (options.reason === 'enqueueLimit') {
+        if (options.reason === 'enqueueLimit' && this.shouldLogEnqueueLinksLimitExceeded) {
             const enqueuedRequestLimit = this.calculateEnqueuedRequestLimit();
             if (enqueuedRequestLimit === undefined || enqueuedRequestLimit !== 0) {
                 this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
+                this.shouldLogEnqueueLinksLimitExceeded = false;
             }
         }
 
