@@ -43,7 +43,7 @@
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
         "@crawlee/core": "4.0.0",
-        "@crawlee/got-scraping-client": "4.0.0",
+        "@crawlee/impit-client": "4.0.0",
         "@crawlee/types": "4.0.0",
         "@crawlee/utils": "4.0.0",
         "csv-stringify": "^6.5.2",
