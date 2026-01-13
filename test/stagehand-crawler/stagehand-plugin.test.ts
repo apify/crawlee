@@ -146,4 +146,71 @@ describe('StagehandPlugin', () => {
 
         expect(isChromium).toBe(true);
     });
+
+    describe('Proxy Credentials Storage', () => {
+        test('should initialize with null proxy credentials', () => {
+            const plugin = new StagehandPlugin(playwright.chromium, {
+                stagehandOptions: {
+                    env: 'LOCAL',
+                },
+            });
+
+            expect(plugin._proxyCredentials).toBeNull();
+        });
+
+        test('should store proxy credentials after adding proxy to launch options', async () => {
+            const plugin = new StagehandPlugin(playwright.chromium, {
+                stagehandOptions: {
+                    env: 'LOCAL',
+                },
+            });
+
+            const launchContext = plugin.createLaunchContext({
+                proxyUrl: 'http://myuser:mypass@proxy.example.com:8080',
+            });
+
+            // Add proxy to launch options (this sets up launchOptions.proxy)
+            await (plugin as any)._addProxyToLaunchOptions(launchContext);
+
+            // Verify proxy was parsed correctly
+            expect(launchContext.launchOptions?.proxy?.username).toBe('myuser');
+            expect(launchContext.launchOptions?.proxy?.password).toBe('mypass');
+        });
+
+        test('should handle URL-encoded proxy credentials', async () => {
+            const plugin = new StagehandPlugin(playwright.chromium, {
+                stagehandOptions: {
+                    env: 'LOCAL',
+                },
+            });
+
+            // URL-encoded special characters: user@domain -> user%40domain
+            const launchContext = plugin.createLaunchContext({
+                proxyUrl: 'http://user%40domain:p%40ss%3Dword@proxy.example.com:8080',
+            });
+
+            await (plugin as any)._addProxyToLaunchOptions(launchContext);
+
+            expect(launchContext.launchOptions?.proxy?.username).toBe('user@domain');
+            expect(launchContext.launchOptions?.proxy?.password).toBe('p@ss=word');
+        });
+
+        test('should handle proxy without credentials', async () => {
+            const plugin = new StagehandPlugin(playwright.chromium, {
+                stagehandOptions: {
+                    env: 'LOCAL',
+                },
+            });
+
+            const launchContext = plugin.createLaunchContext({
+                proxyUrl: 'http://proxy.example.com:8080',
+            });
+
+            await (plugin as any)._addProxyToLaunchOptions(launchContext);
+
+            expect(launchContext.launchOptions?.proxy?.server).toContain('proxy.example.com');
+            expect(launchContext.launchOptions?.proxy?.username).toBe('');
+            expect(launchContext.launchOptions?.proxy?.password).toBe('');
+        });
+    });
 });
