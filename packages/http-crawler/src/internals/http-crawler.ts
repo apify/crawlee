@@ -19,7 +19,6 @@ import {
     Configuration,
     ContextPipeline,
     mergeCookies,
-    processHttpRequestOptions,
     RequestState,
     Router,
     SessionError,
@@ -37,8 +36,7 @@ import ow from 'ow';
 import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-
-import { parseContentTypeFromResponse } from './utils.js';
+import { parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
 
 let TimeoutError: typeof TimeoutErrorClass;
 
