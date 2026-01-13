@@ -8,10 +8,10 @@ const crawler = new PlaywrightCrawler({
         // The request should have the navigation skipped
         if (request.skipNavigation) {
             // Request the image and get its buffer back
-            const imageResponse = await sendRequest({ responseType: 'buffer' });
+            const imageResponse = await sendRequest();
 
             // Save the image in the key-value store
-            await imageStore.setValue(`${request.userData.key}.png`, imageResponse.body);
+            await imageStore.setValue(`${request.userData.key}.svg`, await imageResponse.bytes(), { contentType: 'image/svg+xml' });
 
             // Prevent executing the rest of the code as we do not need it
             return;
