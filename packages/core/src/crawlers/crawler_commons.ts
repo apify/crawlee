@@ -154,8 +154,8 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * ```
      */
     sendRequest: (
-        requestOverrides: Partial<HttpRequestOptions>,
-        optionsOverrides: SendRequestOptions,
+        requestOverrides?: Partial<HttpRequestOptions>,
+        optionsOverrides?: SendRequestOptions,
     ) => Promise<Response>;
 
     /**
