@@ -807,7 +807,10 @@ export class HttpCrawler<
             proxyUrl,
             timeout: { request: this.navigationTimeoutMillis },
             cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
-            sessionToken: session,
+            // `got-scraping` uses a global ALPN resolve queue when `sessionToken` is not set.
+            // That queue key does not include the proxy URL, so a hanging proxy CONNECT from one attempt can poison retries that rotate proxies.
+            // Providing a unique token per proxied request forces `got-scraping` to scope those caches per request attempt.
+            sessionToken: session ?? (proxyUrl ? { proxyUrl } : undefined),
             ...gotOptions,
             headers: { ...request.headers, ...gotOptions?.headers },
             https: {
