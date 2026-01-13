@@ -11,7 +11,9 @@ const crawler = new PlaywrightCrawler({
             const imageResponse = await sendRequest();
 
             // Save the image in the key-value store
-            await imageStore.setValue(`${request.userData.key}.svg`, await imageResponse.bytes(), { contentType: 'image/svg+xml' });
+            await imageStore.setValue(`${request.userData.key}.svg`, await imageResponse.bytes(), {
+                contentType: 'image/svg+xml',
+            });
 
             // Prevent executing the rest of the code as we do not need it
             return;
