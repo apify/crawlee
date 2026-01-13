@@ -666,9 +666,9 @@ export class HttpCrawler<
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${status} - Internal Server Error: ${body.slice(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            return { response, contentType, body: await response.text() };
+            return { response, contentType, body: await reencodedResponse.text() };
         } else {
-            const body = Buffer.from(await response.bytes());
+            const body = Buffer.from(await reencodedResponse.bytes());
             return {
                 body,
                 response,

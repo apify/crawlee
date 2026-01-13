@@ -60,6 +60,6 @@ export class ImpitHttpClient extends BaseHttpClient {
         const response = await impit.fetch(request, { signal: signal ?? undefined });
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
-        return new ResponseWithUrl((await response.bytes()) as any, response);
+        return new ResponseWithUrl(response.body, response);
     }
 }

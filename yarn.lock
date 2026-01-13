@@ -505,7 +505,7 @@ __metadata:
     "@apify/timeout": "npm:^0.3.2"
     "@apify/utilities": "npm:^2.15.5"
     "@crawlee/core": "npm:4.0.0"
-    "@crawlee/impit-client": "npm:4.0.0"
+    "@crawlee/got-scraping-client": "npm:4.0.0"
     "@crawlee/types": "npm:4.0.0"
     "@crawlee/utils": "npm:4.0.0"
     csv-stringify: "npm:^6.5.2"
@@ -655,7 +655,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@crawlee/got-scraping-client@workspace:packages/got-scraping-client":
+"@crawlee/got-scraping-client@npm:4.0.0, @crawlee/got-scraping-client@workspace:packages/got-scraping-client":
   version: 0.0.0-use.local
   resolution: "@crawlee/got-scraping-client@workspace:packages/got-scraping-client"
   dependencies:
@@ -695,7 +695,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/impit-client@npm:4.0.0, @crawlee/impit-client@workspace:packages/impit-client":
+"@crawlee/impit-client@workspace:packages/impit-client":
   version: 0.0.0-use.local
   resolution: "@crawlee/impit-client@workspace:packages/impit-client"
   dependencies:

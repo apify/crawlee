@@ -56,7 +56,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
-import { ImpitHttpClient } from '@crawlee/impit-client';
+import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 import type {
     Awaitable,
     BaseHttpClient,
@@ -743,7 +743,7 @@ export class BasicCrawler<
             this.requestQueue = requestQueue;
         }
 
-        this.httpClient = httpClient ?? new ImpitHttpClient();
+        this.httpClient = httpClient ?? new GotScrapingHttpClient();
         this.proxyConfiguration = proxyConfiguration;
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
