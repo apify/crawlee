@@ -41,5 +41,3 @@ const crawler = new StagehandCrawler({
 
 await crawler.run(['https://example.com']);
 ```
-
-For detailed configuration and advanced usage, see the [StagehandCrawler guide](https://crawlee.dev/js/docs/guides/stagehand-crawler-guide) and [API reference](https://crawlee.dev/js/api/stagehand-crawler/class/StagehandCrawler).
