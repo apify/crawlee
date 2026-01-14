@@ -12,6 +12,7 @@ import CodeBlock from '@theme/CodeBlock';
 
 import StagehandBasicSource from '!!raw-loader!./stagehand_crawler_basic.ts';
 import StagehandExtractSource from '!!raw-loader!./stagehand_crawler_extract.ts';
+import StagehandCombinedSource from '!!raw-loader!./stagehand_crawler_combined.ts';
 
 &#8203;<ApiLink to="stagehand-crawler/class/StagehandCrawler">`StagehandCrawler`</ApiLink> combines Crawlee's powerful crawling infrastructure with [Stagehand's](https://github.com/browserbase/stagehand) AI-powered browser automation. Instead of writing CSS selectors or XPath queries, you can interact with web pages using natural language instructions.
 
@@ -75,49 +76,68 @@ const product = await page.extract('Get the product details', productSchema);
 // product is typed as { title: string, price: number, description: string }
 ```
 
-### `page.observe()` - Get suggested actions
+### `page.observe()` - Discover page actions
 
-Analyze the page and get AI-suggested actions:
+Analyze the page and get AI-suggested actions. This is useful for exploring unfamiliar pages or building adaptive scrapers:
 
 ```ts
-const suggestions = await page.observe();
-// Returns available actions like clicking buttons, filling forms, etc.
+const actions = await page.observe();
+// Returns available actions like:
+// [
+//   { action: 'click', element: 'Load More button', selector: '.load-more' },
+//   { action: 'click', element: 'Next Page link', selector: 'a.pagination-next' },
+//   { action: 'fill', element: 'Search input', selector: '#search' },
+// ]
+
+// Use observe to find pagination dynamically
+for (const action of actions) {
+    if (action.element?.toLowerCase().includes('next page')) {
+        await page.act(`Click the ${action.element}`);
+        break;
+    }
+}
 ```
 
 ### `page.agent(config)` - Autonomous agents
 
-Create an autonomous agent for complex multi-step workflows:
+Create an autonomous agent for complex multi-step workflows. Unlike `act()` which executes a single action, `agent()` can plan and execute multiple steps autonomously to achieve a goal:
 
 ```ts
 const agent = page.agent({ model: 'gpt-4o' });
 const result = await agent.execute('Find the cheapest laptop and add it to cart');
 ```
 
+**When to use `act()` vs `agent()`:**
+- Use `act()` for single, discrete actions ("click this button", "fill this form")
+- Use `agent()` for goals requiring multiple steps with decision-making ("find and purchase the cheapest item")
+
+Note that `agent()` makes multiple LLM calls and can be slower and more expensive than sequential `act()` calls where you control the flow.
+
+## Requirements
+
+StagehandCrawler requires an API key for the AI model provider. Set the appropriate environment variable:
+
+- **OpenAI**: `OPENAI_API_KEY`
+- **Anthropic**: `ANTHROPIC_API_KEY`
+- **Google**: `GOOGLE_API_KEY`
+
 ## Limitations
 
-Before using StagehandCrawler, be aware of these limitations:
+Some Crawlee features work differently or are unavailable with StagehandCrawler:
 
 ### Chromium only
 
-Stagehand is built on Chrome DevTools Protocol (CDP), which only works with Chromium-based browsers. Firefox and WebKit are not supported.
+Stagehand uses Chrome DevTools Protocol (CDP), so only Chromium browsers are supported. The `launcher` option is ignored - you cannot use Firefox or WebKit.
 
 ### Reduced fingerprinting control
 
-Since Stagehand controls the browser launch, some Crawlee fingerprinting features may not be fully applied. Stagehand does provide its own anti-detection measures, but you have less granular control compared to PlaywrightCrawler.
+Since Stagehand controls the browser launch process, Crawlee's advanced fingerprinting features are limited:
 
-### API key required
+- **Browser fingerprints** - Basic fingerprinting (viewport, user-agent) is applied, but low-level browser properties cannot be modified
+- **`launchOptions`** - Only a subset of Playwright launch options are passed through to Stagehand (`headless`, `args`, `executablePath`, `proxy`, `viewport`)
+- **Browser context options** - Custom context configurations are not fully supported since Stagehand manages the browser context
 
-You need an API key for the AI model you want to use:
-- **OpenAI**: Set `OPENAI_API_KEY` environment variable
-- **Anthropic**: Set `ANTHROPIC_API_KEY` environment variable
-- **Google**: Set `GOOGLE_API_KEY` environment variable
-
-### Cost and latency
-
-Each AI operation makes API calls to the LLM provider, which:
-- Adds latency (typically 1-5 seconds per operation)
-- Incurs costs based on your LLM provider's pricing
-- May have rate limits
+Stagehand provides its own anti-detection measures, but you have less granular control compared to PlaywrightCrawler.
 
 ## When to use StagehandCrawler
 
@@ -174,14 +194,15 @@ const crawler = new StagehandCrawler({
 
 ### Environment variables
 
-You can also configure Stagehand via environment variables:
+Stagehand options can alternatively be set via environment variables. Programmatic options take precedence:
 
-- `STAGEHAND_ENV` - 'LOCAL' or 'BROWSERBASE'
-- `STAGEHAND_MODEL` - Model to use (e.g., 'openai/gpt-4o')
-- `STAGEHAND_VERBOSE` - Logging level (0, 1, or 2)
-- `OPENAI_API_KEY` - OpenAI API key
-- `ANTHROPIC_API_KEY` - Anthropic API key
-- `GOOGLE_API_KEY` - Google API key
+| Environment variable | Option |
+|---------------------|--------|
+| `STAGEHAND_ENV` | `env` |
+| `STAGEHAND_MODEL` | `model` |
+| `STAGEHAND_VERBOSE` | `verbose` |
+| `STAGEHAND_API_KEY` | `apiKey` (Browserbase) |
+| `STAGEHAND_PROJECT_ID` | `projectId` (Browserbase) |
 
 ## Using with Browserbase
 
@@ -202,30 +223,7 @@ const crawler = new StagehandCrawler({
 
 You can mix AI-powered methods with standard Playwright methods:
 
-```ts
-async requestHandler({ page, request, log }) {
-    // Use standard Playwright navigation
-    await page.goto(request.url);
-
-    // Use AI to interact with the page
-    await page.act('Accept the cookie consent banner');
-
-    // Use standard Playwright for precise operations
-    await page.waitForSelector('.product-list');
-
-    // Use AI for complex extraction
-    const products = await page.extract(
-        'Get all product names and prices',
-        z.array(z.object({
-            name: z.string(),
-            price: z.number(),
-        }))
-    );
-
-    // Use standard Playwright for screenshots
-    await page.screenshot({ path: 'products.png' });
-}
-```
+<CodeBlock language="ts" title="src/main.ts">{StagehandCombinedSource}</CodeBlock>
 
 ## Further reading
 

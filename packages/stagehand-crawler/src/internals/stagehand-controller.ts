@@ -8,13 +8,14 @@ import log from '@apify/log';
 import type { StagehandPlugin } from './stagehand-plugin';
 
 /**
- * StagehandController wraps a Stagehand-managed browser and provides Crawlee integration.
+ * StagehandController manages the lifecycle of a Stagehand-controlled browser for Crawlee's BrowserPool.
  *
- * Architecture:
- * - Stagehand launches and controls the browser
- * - Pages are created through Stagehand's context
- * - AI operations (act, extract, observe) pass the specific page via the `page` option
- *   allowing concurrent page support
+ * This controller bridges Crawlee's browser management system with Stagehand:
+ * - Created by StagehandPlugin when a new browser is needed
+ * - Provides page creation via Playwright (connected to Stagehand's browser via CDP)
+ * - Exposes the Stagehand instance so crawling context can access AI methods (act/extract/observe)
+ * - Handles browser cleanup by delegating to Stagehand's close method
+ * - Manages proxy authentication via CDP (since Stagehand doesn't handle proxy auth natively)
  *
  * @ignore
  */
@@ -44,7 +45,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
      * Creates a new page using the browser's default context.
      * We use Playwright's browser API directly since we connected via CDP.
      */
-    protected async _newPage(_contextOptions?: unknown): Promise<Page> {
+    protected override async _newPage(_contextOptions?: unknown): Promise<Page> {
         try {
             // Get the default context from the Playwright browser (connected via CDP)
             const contexts = this.browser.contexts();
@@ -147,7 +148,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
      * Sets cookies in the browser context.
      * Uses Playwright's browser context API directly.
      */
-    protected async _setCookies(page: Page, cookies: Cookie[]): Promise<void> {
+    protected override async _setCookies(page: Page, cookies: Cookie[]): Promise<void> {
         try {
             const context = page.context();
             await context.addCookies(cookies);
@@ -160,7 +161,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
      * Gets cookies from the browser context.
      * Uses Playwright's browser context API directly.
      */
-    protected async _getCookies(page: Page): Promise<Cookie[]> {
+    protected override async _getCookies(page: Page): Promise<Cookie[]> {
         try {
             const context = page.context();
             const cookies = await context.cookies();
@@ -173,7 +174,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
     /**
      * Closes the browser and cleans up Stagehand resources.
      */
-    protected async _close(): Promise<void> {
+    protected override async _close(): Promise<void> {
         const stagehand = this.getStagehand();
 
         try {
@@ -186,7 +187,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
     /**
      * Kills the browser process forcefully.
      */
-    protected async _kill(): Promise<void> {
+    protected override async _kill(): Promise<void> {
         const stagehand = this.getStagehand();
 
         try {
