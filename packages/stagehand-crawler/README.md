@@ -2,9 +2,9 @@
 
 Provides AI-powered web crawling using [Stagehand](https://github.com/browserbase/stagehand) for natural language browser automation. The enhanced page object offers `page.act()` to perform actions with plain English, `page.extract()` to get structured data with Zod schemas, and `page.observe()` to discover available actions.
 
-Since `StagehandCrawler` uses AI models for page interaction, it is useful for crawling websites with complex or frequently changing layouts where traditional CSS selectors are difficult to maintain. If the target website has a stable structure, consider using [PlaywrightCrawler](https://crawlee.dev/docs/guides/playwright-crawler-guide), which is faster and doesn't require AI API keys.
+Since `StagehandCrawler` uses AI models for page interaction, it is useful for crawling websites with complex or frequently changing layouts where traditional CSS selectors are difficult to maintain. If the target website has a stable structure, consider using [PlaywrightCrawler](https://crawlee.dev/js/api/playwright-crawler/class/PlaywrightCrawler), which is faster and doesn't require AI API keys.
 
-The crawler extends [BrowserCrawler](https://crawlee.dev/docs/guides/browser-crawler-guide) and supports all standard Crawlee features including request queues, proxy rotation, autoscaling, and browser fingerprinting.
+The crawler extends [BrowserCrawler](https://crawlee.dev/js/api/browser-crawler/class/BrowserCrawler) and supports all standard Crawlee features including request queues, proxy rotation, autoscaling, and browser fingerprinting.
 
 Note: Stagehand requires an AI model API key (OpenAI, Anthropic, or Google) set via environment variables.
 
@@ -42,4 +42,4 @@ const crawler = new StagehandCrawler({
 await crawler.run(['https://example.com']);
 ```
 
-For detailed configuration and advanced usage, see the [StagehandCrawler guide](https://crawlee.dev/docs/guides/stagehand-crawler-guide).
+For detailed configuration and advanced usage, see the [StagehandCrawler guide](https://crawlee.dev/js/docs/guides/stagehand-crawler-guide) and [API reference](https://crawlee.dev/js/api/stagehand-crawler/class/StagehandCrawler).
