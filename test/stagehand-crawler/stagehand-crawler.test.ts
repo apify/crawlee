@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { createStagehandRouter, StagehandCrawler } from '../../packages/stagehand-crawler/src';
+import { enhancePageWithStagehand } from '../../packages/stagehand-crawler/src/internals/utils/stagehand-utils';
 
 // Mock Stagehand to avoid actual browser launches and API calls
 vi.mock('@browserbasehq/stagehand', () => {
@@ -106,29 +107,6 @@ describe('StagehandCrawler', () => {
 
         expect(crawler).toBeDefined();
     });
-
-    test.skip('should enhance page with AI methods', async () => {
-        // This test is skipped because it requires a full browser launch
-        // and we're mocking Stagehand
-        let enhancedPage: any;
-
-        const crawler = new StagehandCrawler({
-            stagehandOptions: {
-                env: 'LOCAL',
-            },
-            maxRequestsPerCrawl: 1,
-            requestHandler: async ({ page }) => {
-                enhancedPage = page;
-                // Verify AI methods are available
-                expect(typeof page.act).toBe('function');
-                expect(typeof page.extract).toBe('function');
-                expect(typeof page.observe).toBe('function');
-                expect(typeof page.agent).toBe('function');
-            },
-        });
-
-        await crawler.run(['https://example.com']);
-    });
 });
 
 describe('createStagehandRouter', () => {
@@ -152,5 +130,139 @@ describe('createStagehandRouter', () => {
         });
 
         expect(router).toBeDefined();
+    });
+});
+
+describe('enhancePageWithStagehand', () => {
+    test('should add AI methods to page', () => {
+        const mockPage = {} as any;
+        const mockStagehand = {
+            act: vi.fn(),
+            extract: vi.fn(),
+            observe: vi.fn(),
+            agent: vi.fn(),
+        } as any;
+
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+
+        expect(typeof enhancedPage.act).toBe('function');
+        expect(typeof enhancedPage.extract).toBe('function');
+        expect(typeof enhancedPage.observe).toBe('function');
+        expect(typeof enhancedPage.agent).toBe('function');
+    });
+
+    test('act() should forward to stagehand with page option', async () => {
+        const mockPage = { url: () => 'https://example.com' } as any;
+        const mockStagehand = {
+            act: vi.fn().mockResolvedValue({ success: true, message: 'Done', actions: [] }),
+            extract: vi.fn(),
+            observe: vi.fn(),
+            agent: vi.fn(),
+        } as any;
+
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+        await enhancedPage.act('Click the button');
+
+        expect(mockStagehand.act).toHaveBeenCalledWith('Click the button', { page: mockPage });
+    });
+
+    test('act() should pass additional options', async () => {
+        const mockPage = {} as any;
+        const mockStagehand = {
+            act: vi.fn().mockResolvedValue({ success: true, message: 'Done', actions: [] }),
+            extract: vi.fn(),
+            observe: vi.fn(),
+            agent: vi.fn(),
+        } as any;
+
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+        await enhancedPage.act('Click the button', { timeout: 5000 });
+
+        expect(mockStagehand.act).toHaveBeenCalledWith('Click the button', {
+            page: mockPage,
+            timeout: 5000,
+        });
+    });
+
+    test('extract() should forward to stagehand with page option', async () => {
+        const mockPage = {} as any;
+        const mockStagehand = {
+            act: vi.fn(),
+            extract: vi.fn().mockResolvedValue({ title: 'Test', price: 42 }),
+            observe: vi.fn(),
+            agent: vi.fn(),
+        } as any;
+
+        const schema = z.object({ title: z.string(), price: z.number() });
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+        const result = await enhancedPage.extract('Get product info', schema);
+
+        expect(mockStagehand.extract).toHaveBeenCalledWith('Get product info', schema, { page: mockPage });
+        expect(result).toEqual({ title: 'Test', price: 42 });
+    });
+
+    test('observe() should forward to stagehand with page option', async () => {
+        const mockPage = {} as any;
+        const mockActions = [{ action: 'click', element: 'Button', selector: '.btn' }];
+        const mockStagehand = {
+            act: vi.fn(),
+            extract: vi.fn(),
+            observe: vi.fn().mockResolvedValue(mockActions),
+            agent: vi.fn(),
+        } as any;
+
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+        const result = await enhancedPage.observe();
+
+        expect(mockStagehand.observe).toHaveBeenCalledWith({ page: mockPage });
+        expect(result).toEqual(mockActions);
+    });
+
+    test('agent() should forward to stagehand', () => {
+        const mockPage = {} as any;
+        const mockAgentInstance = { execute: vi.fn() };
+        const mockStagehand = {
+            act: vi.fn(),
+            extract: vi.fn(),
+            observe: vi.fn(),
+            agent: vi.fn().mockReturnValue(mockAgentInstance),
+        } as any;
+
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+        const agent = enhancedPage.agent({ model: 'gpt-4o' });
+
+        expect(mockStagehand.agent).toHaveBeenCalledWith({ model: 'gpt-4o' });
+        expect(agent).toBe(mockAgentInstance);
+    });
+
+    test('act() should wrap errors', async () => {
+        const mockPage = {} as any;
+        const mockStagehand = {
+            act: vi.fn().mockRejectedValue(new Error('LLM API error')),
+            extract: vi.fn(),
+            observe: vi.fn(),
+            agent: vi.fn(),
+        } as any;
+
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+
+        await expect(enhancedPage.act('Click button')).rejects.toThrow('Stagehand act() failed: LLM API error');
+    });
+
+    test('extract() should wrap errors', async () => {
+        const mockPage = {} as any;
+        const mockStagehand = {
+            act: vi.fn(),
+            extract: vi.fn().mockRejectedValue(new Error('Schema validation failed')),
+            observe: vi.fn(),
+            agent: vi.fn(),
+        } as any;
+
+        const schema = z.object({ title: z.string() });
+        const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
+
+        await expect(enhancedPage.extract('Get data', schema)).rejects.toThrow(
+            'Stagehand extract() failed: Schema validation failed',
+        );
     });
 });

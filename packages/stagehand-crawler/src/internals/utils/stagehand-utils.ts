@@ -80,6 +80,10 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
     /**
      * Create an autonomous agent for multi-step workflows.
      * Note: Agent operates on the page context.
+     *
+     * The `as any` cast is needed because stagehand.agent() has two overloaded signatures
+     * (streaming vs non-streaming) that TypeScript struggles to reconcile when assigning
+     * to a property.
      */
     (enhancedPage as any).agent = (config?: AgentConfig) => {
         try {
