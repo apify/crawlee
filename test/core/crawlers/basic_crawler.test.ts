@@ -1868,6 +1868,72 @@ describe('BasicCrawler', () => {
             );
             expect(enqueueLimitMessages).toHaveLength(2);
         });
+
+        test('enqueueLinks limit log message should be logged once per request handler, not once per run', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            // Each handler will try to add 5 URLs with a limit of 1
+            const requestsToAdd = Array.from({ length: 5 }, (_, i) => `http://example.com/child${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label === 'child') {
+                        return;
+                    }
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 1, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            // Single run with two initial requests - both will trigger the limit
+            await crawler.run(['http://example.com/first', 'http://example.com/second']);
+
+            // The enqueueLinks limit message should appear twice (once per request handler that triggered the limit)
+            const enqueueLimitMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('enqueueLinks limit'),
+            );
+            expect(enqueueLimitMessages).toHaveLength(2);
+        });
+
+        test('maxCrawlDepth limit log message should only be logged once per run', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            // Each handler will try to add URLs that exceed maxCrawlDepth
+            const requestsToAdd = Array.from({ length: 5 }, (_, i) => `http://example.com/child${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxCrawlDepth: 1, // Only allow depth 0 (initial) and depth 1 (first level children)
+                requestHandler: async (context) => {
+                    // Stop processing at depth 2 to avoid infinite loops
+                    if (context.request.crawlDepth >= 2) {
+                        return;
+                    }
+
+                    // This will add requests at depth+1, so initial requests add at depth 1 (allowed)
+                    // and depth 1 requests add at depth 2 (blocked by maxCrawlDepth)
+                    await context.enqueueLinks({
+                        urls: requestsToAdd,
+                        label: `depth-${context.request.crawlDepth + 1}`,
+                    });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            // Run with two initial requests
+            // Each will enqueue children at depth 1, then those children will try to enqueue at depth 2 (blocked)
+            await crawler.run(['http://example.com/first', 'http://example.com/second']);
+
+            // The maxCrawlDepth limit message should only appear once per run, even though multiple requests triggered it
+            const maxCrawlDepthMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('maxCrawlDepth'),
+            );
+            expect(maxCrawlDepthMessages).toHaveLength(1);
+        });
     });
 
     describe('addRequests input validation', () => {

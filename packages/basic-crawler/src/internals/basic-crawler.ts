@@ -1154,14 +1154,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
         }
 
-        if (options.reason === 'enqueueLimit') {
-            const enqueuedRequestLimit = this.calculateEnqueuedRequestLimit();
-            if (enqueuedRequestLimit === undefined || enqueuedRequestLimit !== 0) {
-                this.logOncePerRun(
-                    'enqueueLinksLimit',
-                    'The number of requests enqueued by the crawler reached the enqueueLinks limit.',
-                );
-            }
+        if (options.reason === 'depth') {
+            this.logOncePerRun(
+                'maxCrawlDepth',
+                `The crawler reached the maxCrawlDepth limit of ${this.maxCrawlDepth} and no further requests will be enqueued.`,
+            );
         }
 
         await this.onSkippedRequest?.(options);
@@ -1714,10 +1711,24 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return options.transformRequestFunction?.(newRequest) ?? newRequest;
         };
 
+        // Create a request-scoped callback that logs enqueueLimit once per request handler call
+        let loggedEnqueueLimitForThisRequest = false;
+        const onSkippedRequest: SkippedRequestCallback = async (skippedOptions) => {
+            if (skippedOptions.reason === 'enqueueLimit' && !loggedEnqueueLimitForThisRequest) {
+                const enqueuedRequestLimit = this.calculateEnqueuedRequestLimit();
+                if (enqueuedRequestLimit === undefined || enqueuedRequestLimit !== 0) {
+                    this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
+                    loggedEnqueueLimitForThisRequest = true;
+                }
+            }
+
+            await this.handleSkippedRequest(skippedOptions);
+        };
+
         return enqueueLinks({
             requestQueue,
             robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-            onSkippedRequest: this.handleSkippedRequest,
+            onSkippedRequest,
             limit: this.calculateEnqueuedRequestLimit(options.limit),
 
             // Allow user options to override defaults set above ⤴
