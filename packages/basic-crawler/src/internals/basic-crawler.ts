@@ -1712,13 +1712,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         // Create a request-scoped callback that logs enqueueLimit once per request handler call
+        // Only log if an explicit limit was passed to enqueueLinks (not the internal maxRequestsPerCrawl-derived limit)
         let loggedEnqueueLimitForThisRequest = false;
-        const effectiveLimit = this.calculateEnqueuedRequestLimit(options.limit);
         const onSkippedRequest: SkippedRequestCallback = async (skippedOptions) => {
             if (skippedOptions.reason === 'enqueueLimit') {
-                if (!loggedEnqueueLimitForThisRequest && (effectiveLimit === undefined || effectiveLimit !== 0)) {
+                if (!loggedEnqueueLimitForThisRequest && options.limit !== undefined) {
                     this.log.info(
-                        `Skipping URLs from enqueueLinks in the handler for ${request.url} due to the enqueueLinks limit of ${effectiveLimit}.`,
+                        `Skipping URLs in the handler for ${request.url} due to the enqueueLinks limit of ${options.limit}.`,
                     );
                     loggedEnqueueLimitForThisRequest = true;
                 }
