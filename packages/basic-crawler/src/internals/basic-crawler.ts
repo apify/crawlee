@@ -1713,11 +1713,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // Create a request-scoped callback that logs enqueueLimit once per request handler call
         let loggedEnqueueLimitForThisRequest = false;
+        const effectiveLimit = this.calculateEnqueuedRequestLimit(options.limit);
         const onSkippedRequest: SkippedRequestCallback = async (skippedOptions) => {
-            if (skippedOptions.reason === 'enqueueLimit' && !loggedEnqueueLimitForThisRequest) {
-                const enqueuedRequestLimit = this.calculateEnqueuedRequestLimit();
-                if (enqueuedRequestLimit === undefined || enqueuedRequestLimit !== 0) {
-                    this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
+            if (skippedOptions.reason === 'enqueueLimit') {
+                if (!loggedEnqueueLimitForThisRequest && (effectiveLimit === undefined || effectiveLimit !== 0)) {
+                    this.log.info(
+                        `Skipping URLs from enqueueLinks in the handler for ${request.url} due to the enqueueLinks limit of ${effectiveLimit}.`,
+                    );
                     loggedEnqueueLimitForThisRequest = true;
                 }
             }
