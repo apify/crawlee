@@ -10,7 +10,10 @@ const crawler = new PlaywrightCrawler({
             // Request the image and get its buffer back
             const imageResponse = await sendRequest();
 
-            // Save the image in the key-value store
+            // Saves the image in the key-value store.
+            //
+            // Note: For large-scale file downloads, consider using FileDownload crawler:
+            // https://crawlee.dev/js/api/http-crawler/class/FileDownload
             await imageStore.setValue(`${request.userData.key}.svg`, await imageResponse.bytes(), {
                 contentType: 'image/svg+xml',
             });
