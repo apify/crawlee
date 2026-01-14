@@ -50,6 +50,7 @@
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
         "@crawlee/basic": "4.0.0",
+        "@crawlee/http-client": "4.0.0",
         "@crawlee/types": "4.0.0",
         "@crawlee/utils": "4.0.0",
         "@types/content-type": "^1.1.8",

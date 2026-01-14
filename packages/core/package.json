@@ -60,7 +60,6 @@
         "@vladfrangu/async_event_emitter": "^2.4.6",
         "csv-stringify": "^6.5.2",
         "fs-extra": "^11.3.0",
-        "got-scraping": "^4.1.1",
         "json5": "^2.2.3",
         "minimatch": "^10.0.1",
         "ow": "^2.0.0",

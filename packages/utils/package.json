@@ -43,7 +43,7 @@
     "dependencies": {
         "@apify/log": "^2.5.18",
         "@apify/ps-tree": "^1.2.0",
-        "@crawlee/impit-client": "4.0.0",
+        "@crawlee/http-client": "4.0.0",
         "@crawlee/types": "4.0.0",
         "@types/sax": "^1.2.7",
         "cheerio": "^1.0.0",
