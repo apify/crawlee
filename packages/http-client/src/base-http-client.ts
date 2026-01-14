@@ -32,6 +32,56 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         await Promise.all(setCookieHeaders.map((header) => cookieJar.setCookie(header, response.url)));
     }
 
+    private resolveRequestContext(options?: SendRequestOptions): {
+        proxyUrl?: string;
+        cookieJar: CookieJar;
+        timeout?: number;
+    } {
+        const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
+        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
+        const timeout = options?.timeout;
+        return { proxyUrl, cookieJar: cookieJar as CookieJar, timeout };
+    }
+
+    private createAbortSignal(timeout?: number): AbortSignal | undefined {
+        return timeout ? AbortSignal.timeout(timeout) : undefined;
+    }
+
+    private isRedirect(response: Response): boolean {
+        const status = response.status;
+        return status >= 300 && status < 400 && !!response.headers.get('location');
+    }
+
+    private buildRedirectRequest(currentRequest: Request, response: Response): Request {
+        const location = response.headers.get('location')!;
+        const nextUrl = new URL(location, response.url || currentRequest.url);
+
+        const prevMethod = (currentRequest.method || 'GET').toUpperCase();
+        let nextMethod = prevMethod;
+        let nextBody: BodyInit | null = null;
+
+        if (
+            response.status === 303 ||
+            ((response.status === 301 || response.status === 302) && prevMethod === 'POST')
+        ) {
+            nextMethod = 'GET';
+            nextBody = null;
+        } else {
+            nextBody = currentRequest.body;
+        }
+
+        const nextHeaders = new Headers();
+        currentRequest.headers.forEach((value, key) => nextHeaders.set(key, value));
+
+        return new Request(nextUrl.toString(), {
+            method: nextMethod,
+            headers: nextHeaders,
+            body: nextBody,
+            credentials: (currentRequest as any).credentials,
+            redirect: 'manual',
+        });
+    }
+
     /**
      * Public fetch-like method that handles redirects and uses provided proxy and cookie jar.
      */
@@ -39,51 +89,25 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         const maxRedirects = 10;
         let currentRequest = initialRequest;
         let redirectCount = 0;
-        const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
-        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
+
+        const { proxyUrl, cookieJar, timeout } = this.resolveRequestContext(options);
 
         while (true) {
-            await this.applyCookies(currentRequest, cookieJar as CookieJar);
+            await this.applyCookies(currentRequest, cookieJar);
 
-            const abortSignal = options?.timeout ? AbortSignal.timeout(options?.timeout) : undefined;
             const response = await this.fetch(currentRequest, {
-                signal: abortSignal,
+                signal: this.createAbortSignal(timeout),
                 proxyUrl,
                 redirect: 'manual',
             });
 
-            await this.setCookies(response, cookieJar as CookieJar);
+            await this.setCookies(response, cookieJar);
 
-            const status = response.status;
-            const location = response.headers.get('location');
-            if (location && status >= 300 && status < 400) {
+            if (this.isRedirect(response)) {
                 if (redirectCount++ >= maxRedirects) {
                     throw new Error(`Too many redirects (${maxRedirects}) while requesting ${currentRequest.url}`);
                 }
-
-                const nextUrl = new URL(location, response.url || currentRequest.url);
-
-                const prevMethod = (currentRequest.method || 'GET').toUpperCase();
-                let nextMethod = prevMethod;
-                let nextBody: BodyInit | null = null;
-
-                if (status === 303 || ((status === 301 || status === 302) && prevMethod === 'POST')) {
-                    nextMethod = 'GET';
-                    nextBody = null;
-                } else {
-                    nextBody = currentRequest.body;
-                }
-
-                const nextHeaders = new Headers();
-                currentRequest.headers.forEach((value, key) => nextHeaders.set(key, value));
-
-                currentRequest = new Request(nextUrl.toString(), {
-                    method: nextMethod,
-                    headers: nextHeaders,
-                    body: nextBody,
-                    credentials: (currentRequest as any).credentials,
-                    redirect: 'manual',
-                });
+                currentRequest = this.buildRedirectRequest(currentRequest, response);
                 continue;
             }
 
