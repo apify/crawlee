@@ -52,11 +52,11 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         return status >= 300 && status < 400 && !!response.headers.get('location');
     }
 
-    private buildRedirectRequest(currentRequest: Request, response: Response): Request {
+    private buildRedirectRequest(currentRequest: Request, response: Response, initialRequest: Request): Request {
         const location = response.headers.get('location')!;
-        const nextUrl = new URL(location, response.url || currentRequest.url);
+        const nextUrl = new URL(location, response.url ?? currentRequest.url);
 
-        const prevMethod = (currentRequest.method || 'GET').toUpperCase();
+        const prevMethod = (currentRequest.method ?? 'GET').toUpperCase();
         let nextMethod = prevMethod;
         let nextBody: BodyInit | null = null;
 
@@ -67,7 +67,8 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             nextMethod = 'GET';
             nextBody = null;
         } else {
-            nextBody = currentRequest.body;
+            const clonedRequest = initialRequest.clone();
+            nextBody = clonedRequest.body;
         }
 
         const nextHeaders = new Headers();
@@ -91,6 +92,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let redirectCount = 0;
 
         const { proxyUrl, cookieJar, timeout } = this.resolveRequestContext(options);
+        currentRequest = initialRequest.clone();
 
         while (true) {
             await this.applyCookies(currentRequest, cookieJar);
@@ -107,7 +109,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 if (redirectCount++ >= maxRedirects) {
                     throw new Error(`Too many redirects (${maxRedirects}) while requesting ${currentRequest.url}`);
                 }
-                currentRequest = this.buildRedirectRequest(currentRequest, response);
+                currentRequest = this.buildRedirectRequest(currentRequest, response, initialRequest);
                 continue;
             }
 
