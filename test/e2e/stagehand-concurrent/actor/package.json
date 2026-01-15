@@ -15,7 +15,7 @@
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
         "playwright": "*",
-        "zod": "^3.24.1"
+        "zod": "^4.3.5"
     },
     "overrides": {
         "apify": {
