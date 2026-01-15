@@ -51,7 +51,7 @@ The enhanced page object provides four AI-powered methods:
 
 ### `page.act(instruction)` - Perform actions
 
-Execute actions on the page using natural language:
+Execute actions on the page using natural language. See [Stagehand act() documentation](https://docs.stagehand.dev/reference/act) for more details.
 
 ```ts
 await page.act('Click the "Add to Cart" button');
@@ -61,7 +61,7 @@ await page.act('Scroll down to load more products');
 
 ### `page.extract(instruction, schema)` - Extract structured data
 
-Extract data from the page using a Zod schema for type safety:
+Extract data from the page using a Zod schema for type safety. See [Stagehand extract() documentation](https://docs.stagehand.dev/reference/extract) for more details.
 
 ```ts
 import { z } from 'zod';
@@ -78,7 +78,7 @@ const product = await page.extract('Get the product details', productSchema);
 
 ### `page.observe()` - Discover page actions
 
-Analyze the page and get AI-suggested actions. This is useful for exploring unfamiliar pages or building adaptive scrapers:
+Analyze the page and get AI-suggested actions. This is useful for exploring unfamiliar pages or building adaptive scrapers. See [Stagehand observe() documentation](https://docs.stagehand.dev/reference/observe) for more details.
 
 ```ts
 const actions = await page.observe();
@@ -100,7 +100,7 @@ for (const action of actions) {
 
 ### `page.agent(config)` - Autonomous agents
 
-Create an autonomous agent for complex multi-step workflows. Unlike `act()` which executes a single action, `agent()` can plan and execute multiple steps autonomously to achieve a goal:
+Create an autonomous agent for complex multi-step workflows. Unlike `act()` which executes a single action, `agent()` can plan and execute multiple steps autonomously to achieve a goal. See [Stagehand agent() documentation](https://docs.stagehand.dev/reference/agent) for more details.
 
 ```ts
 const agent = page.agent({ model: 'gpt-4o' });
@@ -115,11 +115,24 @@ Note that `agent()` makes multiple LLM calls and can be slower and more expensiv
 
 ## Requirements
 
-StagehandCrawler requires an API key for the AI model provider. Set the appropriate environment variable:
+StagehandCrawler requires an API key for the AI model provider. The recommended way is to use the `modelApiKey` option:
+
+```ts
+const crawler = new StagehandCrawler({
+    stagehandOptions: {
+        model: 'openai/gpt-4o',
+        modelApiKey: 'sk-...', // Your OpenAI API key
+    },
+});
+```
+
+You can also override the API key using environment variables:
 
 - **OpenAI**: `OPENAI_API_KEY`
 - **Anthropic**: `ANTHROPIC_API_KEY`
 - **Google**: `GOOGLE_API_KEY`
+
+When set, environment variables take precedence over `modelApiKey`.
 
 ## Limitations
 
@@ -180,6 +193,9 @@ const crawler = new StagehandCrawler({
         // AI model to use (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4-20250514')
         model: 'openai/gpt-4o',
 
+        // API key for the LLM provider (can be overridden by environment variables)
+        modelApiKey: process.env.OPENAI_API_KEY,
+
         // Logging verbosity: 0 (minimal), 1 (standard), 2 (debug)
         verbose: 1,
 
@@ -194,15 +210,18 @@ const crawler = new StagehandCrawler({
 
 ### Environment variables
 
-Stagehand options can alternatively be set via environment variables. Programmatic options take precedence:
+Stagehand options can alternatively be set via environment variables. Programmatic options take precedence, except for LLM API keys where environment variables override `modelApiKey`:
 
-| Environment variable | Option |
-|---------------------|--------|
-| `STAGEHAND_ENV` | `env` |
-| `STAGEHAND_MODEL` | `model` |
-| `STAGEHAND_VERBOSE` | `verbose` |
-| `STAGEHAND_API_KEY` | `apiKey` (Browserbase) |
-| `STAGEHAND_PROJECT_ID` | `projectId` (Browserbase) |
+| Environment variable | Option | Notes |
+|---------------------|--------|-------|
+| `OPENAI_API_KEY` | `modelApiKey` | Overrides `modelApiKey` for OpenAI models |
+| `ANTHROPIC_API_KEY` | `modelApiKey` | Overrides `modelApiKey` for Anthropic models |
+| `GOOGLE_API_KEY` | `modelApiKey` | Overrides `modelApiKey` for Google models |
+| `STAGEHAND_ENV` | `env` | |
+| `STAGEHAND_MODEL` | `model` | |
+| `STAGEHAND_VERBOSE` | `verbose` | |
+| `STAGEHAND_API_KEY` | `apiKey` | Browserbase API key |
+| `STAGEHAND_PROJECT_ID` | `projectId` | Browserbase project ID |
 
 ## Using with Browserbase
 

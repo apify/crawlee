@@ -67,6 +67,25 @@ export interface StagehandOptions {
     model?: ModelConfiguration;
 
     /**
+     * API key for the LLM provider (OpenAI, Anthropic, or Google).
+     * This is the recommended way to provide the API key.
+     *
+     * Can be overridden by environment variables:
+     * - OpenAI: `OPENAI_API_KEY`
+     * - Anthropic: `ANTHROPIC_API_KEY`
+     * - Google: `GOOGLE_API_KEY`
+     *
+     * @example
+     * ```typescript
+     * stagehandOptions: {
+     *   model: 'openai/gpt-4o',
+     *   modelApiKey: 'sk-...',
+     * }
+     * ```
+     */
+    modelApiKey?: string;
+
+    /**
      * Logging verbosity level.
      * - 0: Minimal logging
      * - 1: Standard logging

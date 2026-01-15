@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { Dataset, StagehandCrawler } from '@crawlee/stagehand';
+import { StagehandCrawler } from '@crawlee/stagehand';
 import { z } from 'zod';
 
 const mainOptions = {
