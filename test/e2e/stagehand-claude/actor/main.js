@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { StagehandCrawler } from '@crawlee/stagehand';
+import { Actor } from 'apify';
 import { z } from 'zod';
 
 const mainOptions = {
@@ -14,7 +14,7 @@ await Actor.main(async () => {
     const crawler = new StagehandCrawler({
         stagehandOptions: {
             env: 'LOCAL',
-            model: 'anthropic/claude-sonnet-4-20250514',
+            model: 'anthropic/claude-haiku-4-5-20251001',
             verbose: 0,
         },
         maxRequestsPerCrawl: 1,
