@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { Dataset, StagehandCrawler } from '@crawlee/stagehand';
+import { StagehandCrawler } from '@crawlee/stagehand';
 import { z } from 'zod';
 
 const mainOptions = {
@@ -25,7 +25,7 @@ await Actor.main(async () => {
             model: 'anthropic/claude-sonnet-4-20250514',
             verbose: 0,
         },
-        async requestHandler({ page, request, browserController, log }) {
+        async requestHandler({ page, request, browserController, log, pushData }) {
             log.info(`Processing ${request.loadedUrl}`);
 
             // Track which browser instance handled this request
@@ -41,7 +41,7 @@ await Actor.main(async () => {
             log.info(`Extracted: ${result.title} (browser: ${browserId})`);
 
             // Save to dataset
-            await Dataset.pushData({
+            await pushData({
                 url: request.loadedUrl,
                 title: result.title,
                 browserId,

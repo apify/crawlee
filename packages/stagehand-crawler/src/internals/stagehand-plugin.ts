@@ -61,10 +61,33 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         // Import Stagehand dynamically to avoid peer dependency issues
         const { Stagehand } = await import('@browserbasehq/stagehand');
 
+        // Build model configuration with apiKey if provided (env vars take precedence)
+        let modelConfig = this.stagehandOptions.model;
+        if (this.stagehandOptions.modelApiKey) {
+            const modelName =
+                typeof modelConfig === 'string' ? modelConfig : (modelConfig?.modelName ?? 'openai/gpt-4o');
+            const modelStr = modelName.toLowerCase();
+
+            // Check if the corresponding env var is set - env vars take precedence
+            const hasEnvVar =
+                (modelStr.startsWith('openai/') && process.env.OPENAI_API_KEY) ||
+                (modelStr.startsWith('anthropic/') && process.env.ANTHROPIC_API_KEY) ||
+                (modelStr.startsWith('google/') && process.env.GOOGLE_API_KEY);
+
+            // Only use modelApiKey if no env var is set
+            if (!hasEnvVar) {
+                modelConfig = {
+                    ...(typeof modelConfig === 'object' ? modelConfig : {}),
+                    modelName,
+                    apiKey: this.stagehandOptions.modelApiKey,
+                } as any;
+            }
+        }
+
         // Build Stagehand configuration
         const stagehandConfig: V3Options = {
             env: this.stagehandOptions.env ?? 'LOCAL',
-            model: this.stagehandOptions.model,
+            model: modelConfig,
             verbose: this.stagehandOptions.verbose,
             selfHeal: this.stagehandOptions.selfHeal,
             domSettleTimeout: this.stagehandOptions.domSettleTimeout,

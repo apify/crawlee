@@ -6,7 +6,26 @@ Since `StagehandCrawler` uses AI models for page interaction, it is useful for c
 
 The crawler extends [BrowserCrawler](https://crawlee.dev/js/api/browser-crawler/class/BrowserCrawler) and supports all standard Crawlee features including request queues, proxy rotation, autoscaling, and browser fingerprinting.
 
-Note: Stagehand requires an AI model API key (OpenAI, Anthropic, or Google) set via environment variables.
+## LLM API Key Configuration
+
+Stagehand requires an API key for the LLM provider (OpenAI, Anthropic, or Google). The recommended way is to use the `modelApiKey` option:
+
+```typescript
+const crawler = new StagehandCrawler({
+    stagehandOptions: {
+        model: 'openai/gpt-4o',
+        modelApiKey: 'sk-...', // Your OpenAI API key
+    },
+    // ...
+});
+```
+
+You can also override the API key using environment variables:
+- OpenAI: `OPENAI_API_KEY`
+- Anthropic: `ANTHROPIC_API_KEY`
+- Google: `GOOGLE_API_KEY`
+
+When set, environment variables take precedence over `modelApiKey`.
 
 ## Example usage
 

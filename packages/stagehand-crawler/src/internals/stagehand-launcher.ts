@@ -70,6 +70,7 @@ export function resolveStagehandOptions(options?: StagehandOptions): StagehandOp
         apiKey: options?.apiKey ?? process.env.STAGEHAND_API_KEY,
         projectId: options?.projectId ?? process.env.STAGEHAND_PROJECT_ID,
         model: options?.model ?? process.env.STAGEHAND_MODEL ?? 'openai/gpt-4o',
+        modelApiKey: options?.modelApiKey,
         verbose:
             options?.verbose ??
             (process.env.STAGEHAND_VERBOSE
