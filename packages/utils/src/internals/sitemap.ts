@@ -4,6 +4,14 @@ import { PassThrough, pipeline, Readable, Transform } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
+import {
+    BaseHttpClient,
+    GotScrapingHttpClient,
+    mergeAsyncIterables,
+    type ProxyConfiguration,
+    RobotsFile,
+    urlExists,
+} from 'crawlee';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types
 import type { Delays } from 'got-scraping';
 import sax from 'sax';
@@ -434,5 +442,98 @@ export class Sitemap {
         }
 
         return new Sitemap(urls);
+    }
+}
+
+/**
+ * Given a list of URLs, discover related sitemap files for these domains by checking the `robots.txt` file,
+ * the default `sitemap.xml` file and the URLs themselves.
+ * @param urls The list of URLs to discover sitemaps for.
+ * @param proxy The proxy configuration instance to use for the request making.
+ * @returns An async iterable with the discovered sitemap URLs.
+ */
+export async function* discoverValidSitemaps(
+    urls: string[],
+    {
+        proxyConfiguration,
+        httpClient = new GotScrapingHttpClient(),
+    }: {
+        proxyConfiguration?: ProxyConfiguration;
+        httpClient?: BaseHttpClient;
+    } = {},
+): AsyncIterable<string> {
+    const sitemapUrls = new Set<string>();
+
+    const addSitemapUrl = (url: string): string | undefined => {
+        const sizeBefore = sitemapUrls.size;
+
+        sitemapUrls.add(url);
+
+        if (sitemapUrls.size > sizeBefore) {
+            return url;
+        }
+
+        return undefined;
+    };
+
+    const proxyUrl = await proxyConfiguration?.newUrl();
+
+    const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
+        if (!hostname) {
+            return;
+        }
+
+        try {
+            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl);
+
+            for (const sitemapUrl of robotsFile.getSitemaps()) {
+                if (addSitemapUrl(sitemapUrl)) {
+                    yield sitemapUrl;
+                }
+            }
+        } catch (err) {
+            log.warning(`Failed to fetch robots.txt file for ${hostname}`, { error: err });
+        }
+
+        const sitemapUrl = domainUrls.find((url) => /sitemap\.(?:xml|txt)(?:\.gz)?$/i.test(url));
+
+        if (sitemapUrl !== undefined) {
+            if (addSitemapUrl(sitemapUrl)) {
+                yield sitemapUrl;
+            }
+        } else {
+            const firstUrl = new URL(domainUrls[0]);
+            firstUrl.pathname = '/sitemap.xml';
+            if (
+                await urlExists(firstUrl.toString(), {
+                    proxyUrl,
+                    httpClient,
+                })
+            ) {
+                if (addSitemapUrl(firstUrl.toString())) {
+                    yield firstUrl.toString();
+                }
+            }
+
+            firstUrl.pathname = '/sitemap.txt';
+            if (
+                await urlExists(firstUrl.toString(), {
+                    proxyUrl,
+                    httpClient,
+                })
+            ) {
+                if (addSitemapUrl(firstUrl.toString())) {
+                    yield firstUrl.toString();
+                }
+            }
+        }
+    };
+
+    const iterables = Object.entries(Object.groupBy(urls, (url) => new URL(url)?.hostname ?? '')).map(
+        ([hostname, domainUrls]) => discoverSitemapsForDomainUrls(hostname, domainUrls ?? []),
+    );
+
+    for await (const url of mergeAsyncIterables(...iterables)) {
+        yield url;
     }
 }
