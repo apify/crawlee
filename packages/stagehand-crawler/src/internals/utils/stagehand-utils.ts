@@ -4,6 +4,12 @@ import type { ZodSchema } from 'zod';
 
 import type { StagehandPage } from '../stagehand-crawler';
 
+const PROVIDER_ENV_VARS: Record<string, string> = {
+    OpenAI: 'OPENAI_API_KEY',
+    Anthropic: 'ANTHROPIC_API_KEY',
+    Google: 'GOOGLE_API_KEY',
+};
+
 /**
  * Improves error messages for common Stagehand errors.
  * Replaces confusing Stagehand API key error messages with ones that reference our options.
@@ -13,21 +19,14 @@ function improveErrorMessage(error: unknown): string {
 
     // Improve API key error messages to reference our options
     if (message.includes('API key is missing')) {
-        const provider = message.includes('OpenAI')
-            ? 'OpenAI'
-            : message.includes('Anthropic')
-              ? 'Anthropic'
-              : message.includes('Google')
-                ? 'Google'
-                : 'LLM provider';
-        const envVar =
-            provider === 'OpenAI'
-                ? 'OPENAI_API_KEY'
-                : provider === 'Anthropic'
-                  ? 'ANTHROPIC_API_KEY'
-                  : provider === 'Google'
-                    ? 'GOOGLE_API_KEY'
-                    : '<PROVIDER>_API_KEY';
+        let provider = 'LLM provider';
+        for (const name of Object.keys(PROVIDER_ENV_VARS)) {
+            if (message.includes(name)) {
+                provider = name;
+                break;
+            }
+        }
+        const envVar = PROVIDER_ENV_VARS[provider] ?? '<PROVIDER>_API_KEY';
 
         return `${provider} API key is missing. Pass it via 'stagehandOptions.modelApiKey' or set the ${envVar} environment variable.`;
     }

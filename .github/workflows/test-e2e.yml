@@ -72,3 +72,4 @@ jobs:
                 env:
                     STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
                     APIFY_HTTPBIN_TOKEN: ${{ secrets.APIFY_HTTPBIN_TOKEN }}
+                    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
