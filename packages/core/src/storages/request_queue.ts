@@ -72,8 +72,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
  * ```
  * @category Sources
- *
- * @deprecated RequestQueue v1 is deprecated and will be removed in the future. Please use {@apilink RequestQueue} instead.
  */
 class RequestQueue extends RequestProvider {
     private queryQueueHeadPromise?: Promise<{
