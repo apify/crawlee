@@ -5,6 +5,37 @@ import type { ZodSchema } from 'zod';
 import type { StagehandPage } from '../stagehand-crawler';
 
 /**
+ * Improves error messages for common Stagehand errors.
+ * Replaces confusing Stagehand API key error messages with ones that reference our options.
+ */
+function improveErrorMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+
+    // Improve API key error messages to reference our options
+    if (message.includes('API key is missing')) {
+        const provider = message.includes('OpenAI')
+            ? 'OpenAI'
+            : message.includes('Anthropic')
+              ? 'Anthropic'
+              : message.includes('Google')
+                ? 'Google'
+                : 'LLM provider';
+        const envVar =
+            provider === 'OpenAI'
+                ? 'OPENAI_API_KEY'
+                : provider === 'Anthropic'
+                  ? 'ANTHROPIC_API_KEY'
+                  : provider === 'Google'
+                    ? 'GOOGLE_API_KEY'
+                    : '<PROVIDER>_API_KEY';
+
+        return `${provider} API key is missing. Pass it via 'stagehandOptions.modelApiKey' or set the ${envVar} environment variable.`;
+    }
+
+    return message;
+}
+
+/**
  * Enhances a Playwright Page with Stagehand AI methods.
  * Adds page.act(), page.extract(), page.observe(), and page.agent() methods.
  *
@@ -37,7 +68,7 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
             // Pass the page option to ensure Stagehand operates on this specific page
             return await stagehand.act(instruction, { ...options, page });
         } catch (error) {
-            throw new Error(`Stagehand act() failed: ${error instanceof Error ? error.message : String(error)}`, {
+            throw new Error(`Stagehand act() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
             });
         }
@@ -56,7 +87,7 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
             // Pass the page option to ensure Stagehand operates on this specific page
             return await stagehand.extract(instruction, schema, { ...options, page });
         } catch (error) {
-            throw new Error(`Stagehand extract() failed: ${error instanceof Error ? error.message : String(error)}`, {
+            throw new Error(`Stagehand extract() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
             });
         }
@@ -71,7 +102,7 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
             // Pass the page option to ensure Stagehand operates on this specific page
             return await stagehand.observe({ ...options, page });
         } catch (error) {
-            throw new Error(`Stagehand observe() failed: ${error instanceof Error ? error.message : String(error)}`, {
+            throw new Error(`Stagehand observe() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
             });
         }
@@ -92,7 +123,7 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
             }
             return stagehand.agent(config as AgentConfig & { stream?: false });
         } catch (error) {
-            throw new Error(`Stagehand agent() failed: ${error instanceof Error ? error.message : String(error)}`, {
+            throw new Error(`Stagehand agent() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
             });
         }
