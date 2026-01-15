@@ -427,6 +427,7 @@ describe('BrowserCrawler', () => {
         await localStorageEmulator.init();
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
+        vitest.useFakeTimers({ shouldAdvanceTime: true });
         try {
             const requestList = await RequestList.open({
                 sources: [{ url: `${serverAddress}/?q=1` }],
@@ -452,6 +453,7 @@ describe('BrowserCrawler', () => {
             expect(callSpy).toBeCalledTimes(1);
             expect(callSpy).toBeCalledWith('good');
         } finally {
+            vitest.useRealTimers();
             await localStorageEmulator.destroy();
         }
     });
