@@ -518,15 +518,18 @@ export async function* discoverValidSitemaps(
         }
     };
 
-    const groupedUrls = urls.reduce((acc, url) => {
-        const hostname = new URL(url)?.hostname ?? '';
-        acc[hostname] ??= [];
-        acc[hostname].push(url);
-        return acc;
-    }, {} as Record<string, string[]>);
+    const groupedUrls = urls.reduce(
+        (acc, url) => {
+            const hostname = new URL(url)?.hostname ?? '';
+            acc[hostname] ??= [];
+            acc[hostname].push(url);
+            return acc;
+        },
+        {} as Record<string, string[]>,
+    );
 
-    const iterables = Object.entries(groupedUrls).map(
-        ([hostname, domainUrls]) => discoverSitemapsForDomainUrls(hostname, domainUrls),
+    const iterables = Object.entries(groupedUrls).map(([hostname, domainUrls]) =>
+        discoverSitemapsForDomainUrls(hostname, domainUrls),
     );
 
     for await (const url of mergeAsyncIterables(...iterables)) {
