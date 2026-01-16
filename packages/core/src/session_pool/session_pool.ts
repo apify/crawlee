@@ -522,14 +522,14 @@ export class SessionPool extends EventEmitter {
         if (this.sessions.length === 0) {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
-        
-        const usableSessions = this.sessions.filter(s => s.isUsable());
+
+        const usableSessions = this.sessions.filter((s) => s.isUsable());
         if (usableSessions.length === 0) {
             // Fallback to any session if no usable ones
             this.roundRobinIndex = (this.roundRobinIndex + 1) % this.sessions.length;
             return this.sessions[this.roundRobinIndex];
         }
-        
+
         // Find next usable session starting from current index
         let attempts = 0;
         while (attempts < this.sessions.length) {
@@ -540,7 +540,7 @@ export class SessionPool extends EventEmitter {
             }
             attempts++;
         }
-        
+
         // Fallback
         return this.sessions[this.roundRobinIndex];
     }
@@ -552,18 +552,18 @@ export class SessionPool extends EventEmitter {
         if (this.sessions.length === 0) {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
-        
+
         if (this.lastUsedSession && this.lastUsedSession.isUsable()) {
             return this.lastUsedSession;
         }
-        
+
         // Find a new usable session
-        const usableSession = this.sessions.find(s => s.isUsable());
+        const usableSession = this.sessions.find((s) => s.isUsable());
         if (usableSession) {
             this.lastUsedSession = usableSession;
             return usableSession;
         }
-        
+
         // Fallback to random if no usable session
         const session = this.sessions[this._getRandomIndex()];
         this.lastUsedSession = session;
@@ -577,18 +577,18 @@ export class SessionPool extends EventEmitter {
         if (this.sessions.length === 0) {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
-        
-        const usableSessions = this.sessions.filter(s => s.isUsable());
-        
+
+        const usableSessions = this.sessions.filter((s) => s.isUsable());
+
         if (usableSessions.length === 0) {
             // Fallback to random if no usable sessions
             return this.sessions[this._getRandomIndex()];
         }
-        
+
         // Find session with oldest lastUsedAt (or never used)
         let lruSession = usableSessions[0];
         let oldestTime = lruSession.lastUsedAt?.getTime() ?? 0;
-        
+
         for (const session of usableSessions) {
             const sessionTime = session.lastUsedAt?.getTime() ?? 0;
             if (sessionTime < oldestTime) {
@@ -596,7 +596,7 @@ export class SessionPool extends EventEmitter {
                 lruSession = session;
             }
         }
-        
+
         return lruSession;
     }
 
