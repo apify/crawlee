@@ -1,4 +1,4 @@
-import { Readable, Transform } from 'node:stream';
+import { pipeline, Readable, Transform } from 'node:stream';
 import { type ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
@@ -217,7 +217,9 @@ export class ImpitHttpClient implements BaseHttpClient {
             },
         });
 
-        responseStream.pipe(counter);
+        pipeline(responseStream, counter, (err) => {
+            if (err) counter.destroy(err);
+        });
 
         const getDownloadProgress = () => ({
             percent: total > 0 ? Math.round((transferred / total) * 100) : 0,
