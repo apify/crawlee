@@ -20,7 +20,9 @@ import { runExampleComServer } from 'test/shared/_helper';
 
 import { createProxyServer } from './create-proxy-server';
 
-vitest.setConfig({ testTimeout: 120_000 });
+// Firefox browser launch is significantly slower than Chromium/WebKit (~12s vs <1s).
+// Under CPU load from parallel tests, it can exceed 2 minutes. Use 5 minute timeout.
+vitest.setConfig({ testTimeout: 300_000 });
 
 let port: number;
 let server: Server;
