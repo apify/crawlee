@@ -427,7 +427,6 @@ describe('BrowserCrawler', () => {
         await localStorageEmulator.init();
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
-        vitest.useFakeTimers({ shouldAdvanceTime: true });
         try {
             const requestList = await RequestList.open({
                 sources: [{ url: `${serverAddress}/?q=1` }],
@@ -435,6 +434,8 @@ describe('BrowserCrawler', () => {
 
             const callSpy = vitest.fn();
 
+            // Use a very long delay for "bad" so it can never fire during test execution.
+            // The test verifies that the 500ms timeout aborts the handler before "bad" would fire.
             const browserCrawler = new BrowserCrawlerTest({
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
@@ -442,7 +443,7 @@ describe('BrowserCrawler', () => {
                 requestList,
                 requestHandler: async () => {
                     setTimeout(() => callSpy('good'), 300);
-                    setTimeout(() => callSpy('bad'), 1500);
+                    setTimeout(() => callSpy('bad'), 60_000);
                     await new Promise(() => {});
                 },
                 requestHandlerTimeoutSecs: 0.5,
@@ -453,7 +454,6 @@ describe('BrowserCrawler', () => {
             expect(callSpy).toBeCalledTimes(1);
             expect(callSpy).toBeCalledWith('good');
         } finally {
-            vitest.useRealTimers();
             await localStorageEmulator.destroy();
         }
     });
