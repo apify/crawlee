@@ -509,6 +509,9 @@ export class SessionPool extends EventEmitter {
      * Picks a random session from the pool.
      */
     protected _pickSessionRandom(): Session {
+        if (this.sessions.length === 0) {
+            throw new Error('SessionPool is empty - cannot pick a session');
+        }
         return this.sessions[this._getRandomIndex()];
     }
 
@@ -516,6 +519,10 @@ export class SessionPool extends EventEmitter {
      * Picks sessions in a round-robin fashion, sequentially rotating through all sessions.
      */
     protected _pickSessionRoundRobin(): Session {
+        if (this.sessions.length === 0) {
+            throw new Error('SessionPool is empty - cannot pick a session');
+        }
+        
         const usableSessions = this.sessions.filter(s => s.isUsable());
         if (usableSessions.length === 0) {
             // Fallback to any session if no usable ones
@@ -542,6 +549,10 @@ export class SessionPool extends EventEmitter {
      * Keeps using the same session until it becomes unusable.
      */
     protected _pickSessionUseUntilFailure(): Session {
+        if (this.sessions.length === 0) {
+            throw new Error('SessionPool is empty - cannot pick a session');
+        }
+        
         if (this.lastUsedSession && this.lastUsedSession.isUsable()) {
             return this.lastUsedSession;
         }
@@ -563,6 +574,10 @@ export class SessionPool extends EventEmitter {
      * Picks the session that hasn't been used for the longest time.
      */
     protected _pickSessionLeastRecentlyUsed(): Session {
+        if (this.sessions.length === 0) {
+            throw new Error('SessionPool is empty - cannot pick a session');
+        }
+        
         const usableSessions = this.sessions.filter(s => s.isUsable());
         
         if (usableSessions.length === 0) {
