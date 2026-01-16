@@ -206,8 +206,13 @@ export class ImpitHttpClient implements BaseHttpClient {
 
     private getStreamWithProgress(
         response: ImpitResponse,
-    ): [Readable, () => { percent: number; transferred: number; total: number }] {
-        const responseStream = Readable.fromWeb(response.body as ReadableStream<any>); 
+    ): [
+        Readable,
+        () => { percent: number; transferred: number; total: number },
+    ] {
+        const responseStream = Readable.fromWeb(
+            response.body as ReadableStream<any>,
+        );
         let transferred = 0;
         const total = Number(response.headers.get('content-length') ?? 0);
         const counter = new Transform({
@@ -216,15 +221,15 @@ export class ImpitHttpClient implements BaseHttpClient {
                 cb(null, chunk);
             },
         });
-        
+
         responseStream.pipe(counter);
-        
+
         const getDownloadProgress = () => ({
             percent: total > 0 ? Math.round((transferred / total) * 100) : 0,
             transferred,
             total,
         });
-        
+
         return [counter, getDownloadProgress];
     }
 
