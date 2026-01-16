@@ -1,0 +1,36 @@
+diff --git a/node_modules/@docusaurus/core/lib/client/ClientLifecyclesDispatcher.js b/node_modules/@docusaurus/core/lib/client/ClientLifecyclesDispatcher.js
+index 903f8dc..b6b60bf 100644
+--- a/node_modules/@docusaurus/core/lib/client/ClientLifecyclesDispatcher.js
++++ b/node_modules/@docusaurus/core/lib/client/ClientLifecyclesDispatcher.js
+@@ -30,9 +30,11 @@ function scrollAfterNavigation({ location, previousLocation, }) {
+         window.scrollTo(0, 0);
+     }
+     else {
+-        const id = decodeURIComponent(hash.substring(1));
+-        const element = document.getElementById(id);
+-        element?.scrollIntoView();
++        setTimeout(() => {
++            const id = decodeURIComponent(hash.substring(1));
++            const element = document.getElementById(id);
++            element?.scrollIntoView();
++        }, 100);
+     }
+ }
+ function ClientLifecyclesDispatcher({ children, location, previousLocation, }) {
+diff --git a/node_modules/@docusaurus/core/lib/client/exports/ComponentCreator.js b/node_modules/@docusaurus/core/lib/client/exports/ComponentCreator.js
+index f3a55a4..a2a8480 100644
+--- a/node_modules/@docusaurus/core/lib/client/exports/ComponentCreator.js
++++ b/node_modules/@docusaurus/core/lib/client/exports/ComponentCreator.js
+@@ -78,8 +78,12 @@ export default function ComponentCreator(path, hash) {
+                 // `{ default: "foo", 0: "f", 1: "o", 2: "o" }`. Just to be safe, we
+                 // first make sure that the chunk is non-primitive.
+                 if (typeof chunk === 'object' || typeof chunk === 'function') {
++                    // Filter out properties that can't be assigned to functions
++                    // (like length, name, arguments, caller, prototype)
++                    const nonWritableProps = new Set(['length', 'name', 'arguments', 'caller', 'prototype']);
+                     Object.keys(loadedModule)
+                         .filter((k) => k !== 'default')
++                        .filter((k) => typeof chunk !== 'function' || !nonWritableProps.has(k))
+                         .forEach((nonDefaultKey) => {
+                         chunk[nonDefaultKey] =
+                             loadedModule[nonDefaultKey];
