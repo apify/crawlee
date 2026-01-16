@@ -442,19 +442,21 @@ export class Sitemap {
 
 /**
  * Given a list of URLs, discover related sitemap files for these domains by checking the `robots.txt` file,
- * the default `sitemap.xml` file and the URLs themselves.
- * @param urls The list of URLs to discover sitemaps for.
- * @param proxy The proxy configuration instance to use for the request making.
+ * the default `sitemap.xml` & `sitemap.txt` files and the URLs themselves.
+ * @param `urls` The list of URLs to discover sitemaps for.
+ * @param `options` Options for sitemap discovery
  * @returns An async iterable with the discovered sitemap URLs.
  */
 export async function* discoverValidSitemaps(
     urls: string[],
-    {
-        proxyUrl,
-    }: {
+    options: {
+        /**
+         * Proxy URL to be used for network requests.
+         */
         proxyUrl?: string;
     } = {},
 ): AsyncIterable<string> {
+    const { proxyUrl } = options;
     const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
 

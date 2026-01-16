@@ -463,9 +463,11 @@ describe('discoverValidSitemaps', () => {
     it('extracts sitemap from robots.txt', async () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
-            .reply(200, 'Sitemap: http://sitemap-discovery.com/sitemap.xml')
-            .head('/sitemap.xml')
+            .reply(200, 'Sitemap: http://sitemap-discovery.com/some-sitemap.xml')
+            .head('/some-sitemap.xml')
             .reply(200, '')
+            .head('/sitemap.xml')
+            .reply(404, '')
             .head('/sitemap.txt')
             .reply(404, '');
 
@@ -474,7 +476,7 @@ describe('discoverValidSitemaps', () => {
             urls.push(url);
         }
 
-        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.xml']);
+        expect(urls).toEqual(['http://sitemap-discovery.com/some-sitemap.xml']);
     });
 
     it('extracts sitemap from well-known paths if robots.txt is missing', async () => {
