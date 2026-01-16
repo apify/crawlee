@@ -482,6 +482,127 @@ export class KeyValueStore {
     }
 
     /**
+     * Iterates over key-value store keys using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * for await (const key of store.keys()) {
+     *   console.log(key);
+     * }
+     * ```
+     *
+     * @param options Options for key iteration.
+     */
+    async *keys(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<string, void, undefined> {
+        checkStorageAccess();
+
+        const { prefix, collection } = options;
+        let { exclusiveStartKey } = options;
+
+        ow(
+            options,
+            ow.object.exactShape({
+                exclusiveStartKey: ow.optional.string,
+                prefix: ow.optional.string,
+                collection: ow.optional.string,
+            }),
+        );
+
+        while (true) {
+            const response = await this.client.listKeys({ exclusiveStartKey, prefix, collection });
+
+            for (const item of response.items) {
+                yield item.key;
+            }
+
+            if (!response.isTruncated) {
+                break;
+            }
+
+            exclusiveStartKey = response.nextExclusiveStartKey;
+        }
+    }
+
+    /**
+     * Iterates over key-value store values using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * for await (const value of store.values()) {
+     *   console.log(value);
+     * }
+     * ```
+     *
+     * @param options Options for value iteration.
+     */
+    async *values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<T, void, undefined> {
+        checkStorageAccess();
+
+        ow(
+            options,
+            ow.object.exactShape({
+                exclusiveStartKey: ow.optional.string,
+                prefix: ow.optional.string,
+                collection: ow.optional.string,
+            }),
+        );
+
+        for await (const key of this.keys(options)) {
+            const value = await this.getValue<T>(key);
+            if (value !== null) {
+                yield value;
+            }
+        }
+    }
+
+    /**
+     * Iterates over key-value store entries (key-value pairs) using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * for await (const [key, value] of store.entries()) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     *
+     * @param options Options for entry iteration.
+     */
+    async *entries<T = unknown>(
+        options: KeyValueStoreIteratorOptions = {},
+    ): AsyncGenerator<[string, T], void, undefined> {
+        checkStorageAccess();
+
+        for await (const key of this.keys(options)) {
+            const value = await this.getValue<T>(key);
+            if (value !== null) {
+                yield [key, value];
+            }
+        }
+    }
+
+    /**
+     * Default iterator for the key-value store, allowing the use of `for await...of` syntax
+     * directly on the store instance. Iterates over entries (key-value pairs).
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * for await (const [key, value] of store) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     */
+    [Symbol.asyncIterator](): AsyncGenerator<[string, unknown], void, undefined> {
+        return this.entries();
+    }
+
+    /**
      * Returns a file URL for the given key.
      */
     getPublicUrl(key: string): string {
