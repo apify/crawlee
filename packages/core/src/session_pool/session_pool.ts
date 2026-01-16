@@ -162,7 +162,7 @@ export class SessionPool extends EventEmitter {
     protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
     protected sessionPoolReuseStrategy: SessionPoolReuseStrategy;
-    
+
     // For round-robin strategy
     private roundRobinIndex = 0;
     // For use-until-failure strategy
