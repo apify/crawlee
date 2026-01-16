@@ -1,4 +1,4 @@
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { type ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
@@ -207,24 +207,25 @@ export class ImpitHttpClient implements BaseHttpClient {
     private getStreamWithProgress(
         response: ImpitResponse,
     ): [Readable, () => { percent: number; transferred: number; total: number }] {
-        const responseStream = Readable.fromWeb(response.body as ReadableStream<any>);
+        const responseStream = Readable.fromWeb(response.body as ReadableStream<any>); 
         let transferred = 0;
         const total = Number(response.headers.get('content-length') ?? 0);
-        responseStream.on('data', (chunk) => {
-            transferred += chunk.length;
+        const counter = new Transform({
+            transform(chunk, _enc, cb) {
+                transferred += chunk.length;
+                cb(null, chunk);
+            },
         });
-
-        responseStream.pause();
-
-        const getDownloadProgress = () => {
-            return {
-                percent: Math.round((transferred / total) * 100),
-                transferred,
-                total,
-            };
-        };
-
-        return [responseStream, getDownloadProgress];
+        
+        responseStream.pipe(counter);
+        
+        const getDownloadProgress = () => ({
+            percent: total > 0 ? Math.round((transferred / total) * 100) : 0,
+            transferred,
+            total,
+        });
+        
+        return [counter, getDownloadProgress];
     }
 
     /**
