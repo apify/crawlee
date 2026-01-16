@@ -1,5 +1,3 @@
-import { type BaseHttpClient, GotScrapingHttpClient } from 'crawlee';
-
 export type SearchParams = string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
 
 /**
