@@ -1,4 +1,4 @@
-import { Configuration, EventType, KeyValueStore, Session, SessionPool } from '@crawlee/core';
+import { Configuration, EventType, KeyValueStore, Session, SessionPool, SessionPoolReuseStrategy } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
@@ -440,7 +440,6 @@ describe('SessionPool - testing session pool', () => {
 
     describe('Session reuse strategies', () => {
         test('ROUND_ROBIN should distribute sessions evenly', async () => {
-            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
             sessionPool = await SessionPool.open({
                 maxPoolSize: 3,
                 sessionPoolReuseStrategy: SessionPoolReuseStrategy.ROUND_ROBIN,
@@ -466,7 +465,6 @@ describe('SessionPool - testing session pool', () => {
         });
 
         test('USE_UNTIL_FAILURE should reuse same session until it fails', async () => {
-            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
             sessionPool = await SessionPool.open({
                 maxPoolSize: 5,
                 sessionPoolReuseStrategy: SessionPoolReuseStrategy.USE_UNTIL_FAILURE,
@@ -498,7 +496,6 @@ describe('SessionPool - testing session pool', () => {
         });
 
         test('LEAST_RECENTLY_USED should pick least recently used session', async () => {
-            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
             sessionPool = await SessionPool.open({
                 maxPoolSize: 3,
                 sessionPoolReuseStrategy: SessionPoolReuseStrategy.LEAST_RECENTLY_USED,
@@ -537,7 +534,6 @@ describe('SessionPool - testing session pool', () => {
         });
 
         test('RANDOM should pick sessions randomly (default behavior)', async () => {
-            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
             sessionPool = await SessionPool.open({
                 maxPoolSize: 10,
                 sessionPoolReuseStrategy: SessionPoolReuseStrategy.RANDOM,
@@ -578,7 +574,6 @@ describe('SessionPool - testing session pool', () => {
         });
 
         test('lastUsedAt should be persisted and restored', async () => {
-            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
             sessionPool = await SessionPool.open({
                 maxPoolSize: 2,
                 sessionPoolReuseStrategy: SessionPoolReuseStrategy.LEAST_RECENTLY_USED,
