@@ -214,6 +214,8 @@ export class ImpitHttpClient implements BaseHttpClient {
             transferred += chunk.length;
         });
 
+        responseStream.pause();
+
         const getDownloadProgress = () => {
             return {
                 percent: Math.round((transferred / total) * 100),
