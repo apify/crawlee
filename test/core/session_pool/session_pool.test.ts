@@ -437,4 +437,177 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
     });
+
+    describe('Session reuse strategies', () => {
+        test('ROUND_ROBIN should distribute sessions evenly', async () => {
+            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
+            sessionPool = await SessionPool.open({
+                maxPoolSize: 3,
+                sessionPoolReuseStrategy: SessionPoolReuseStrategy.ROUND_ROBIN,
+            });
+
+            // Fill the pool
+            await sessionPool.addSession({ id: 'session_1' });
+            await sessionPool.addSession({ id: 'session_2' });
+            await sessionPool.addSession({ id: 'session_3' });
+
+            // Get sessions in round-robin order
+            const session1 = await sessionPool.getSession();
+            const session2 = await sessionPool.getSession();
+            const session3 = await sessionPool.getSession();
+            const session4 = await sessionPool.getSession();
+
+            // Should cycle through sessions
+            expect(session1.id).not.toBe(session2.id);
+            expect(session2.id).not.toBe(session3.id);
+            expect(session3.id).not.toBe(session1.id);
+            // Should wrap around
+            expect(session4.id).toBe(session1.id);
+        });
+
+        test('USE_UNTIL_FAILURE should reuse same session until it fails', async () => {
+            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
+            sessionPool = await SessionPool.open({
+                maxPoolSize: 5,
+                sessionPoolReuseStrategy: SessionPoolReuseStrategy.USE_UNTIL_FAILURE,
+            });
+
+            // Fill the pool
+            for (let i = 1; i <= 5; i++) {
+                await sessionPool.addSession({ id: `session_${i}` });
+            }
+
+            // Get session multiple times - should be the same
+            const session1 = await sessionPool.getSession();
+            const session2 = await sessionPool.getSession();
+            const session3 = await sessionPool.getSession();
+
+            expect(session1.id).toBe(session2.id);
+            expect(session2.id).toBe(session3.id);
+
+            // Mark it as bad to retire it
+            session1.retire();
+
+            // Next session should be different
+            const session4 = await sessionPool.getSession();
+            expect(session4.id).not.toBe(session1.id);
+
+            // But should keep using this new one
+            const session5 = await sessionPool.getSession();
+            expect(session5.id).toBe(session4.id);
+        });
+
+        test('LEAST_RECENTLY_USED should pick least recently used session', async () => {
+            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
+            sessionPool = await SessionPool.open({
+                maxPoolSize: 3,
+                sessionPoolReuseStrategy: SessionPoolReuseStrategy.LEAST_RECENTLY_USED,
+            });
+
+            // Fill the pool
+            await sessionPool.addSession({ id: 'session_1' });
+            await sessionPool.addSession({ id: 'session_2' });
+            await sessionPool.addSession({ id: 'session_3' });
+
+            // Use session_1
+            const s1 = await sessionPool.getSession();
+            expect(s1.id).toBe('session_1');
+            s1.markGood();
+
+            // Small delay to ensure different timestamps
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            // Should pick session_2 (never used)
+            const s2 = await sessionPool.getSession();
+            expect(s2.id).toBe('session_2');
+            s2.markGood();
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            // Should pick session_3 (never used)
+            const s3 = await sessionPool.getSession();
+            expect(s3.id).toBe('session_3');
+            s3.markGood();
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            // Should pick session_1 again (oldest usage)
+            const s4 = await sessionPool.getSession();
+            expect(s4.id).toBe('session_1');
+        });
+
+        test('RANDOM should pick sessions randomly (default behavior)', async () => {
+            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
+            sessionPool = await SessionPool.open({
+                maxPoolSize: 10,
+                sessionPoolReuseStrategy: SessionPoolReuseStrategy.RANDOM,
+            });
+
+            // Fill the pool
+            for (let i = 1; i <= 10; i++) {
+                await sessionPool.addSession({ id: `session_${i}` });
+            }
+
+            const pickedSessions = new Set<string>();
+            // Pick sessions multiple times
+            for (let i = 0; i < 20; i++) {
+                const session = await sessionPool.getSession();
+                pickedSessions.add(session.id);
+            }
+
+            // With random picking, we should see multiple different sessions
+            // (not guaranteed, but very likely with 10 sessions and 20 picks)
+            expect(pickedSessions.size).toBeGreaterThan(1);
+        });
+
+        test('Session lastUsedAt should be updated when marked good/bad', async () => {
+            sessionPool = await SessionPool.open();
+            const session = await sessionPool.getSession();
+
+            expect(session.lastUsedAt).toBeUndefined();
+
+            session.markGood();
+            expect(session.lastUsedAt).toBeInstanceOf(Date);
+
+            const firstUsedAt = session.lastUsedAt;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            session.markBad();
+            expect(session.lastUsedAt).toBeInstanceOf(Date);
+            expect(session.lastUsedAt!.getTime()).toBeGreaterThan(firstUsedAt!.getTime());
+        });
+
+        test('lastUsedAt should be persisted and restored', async () => {
+            const { SessionPoolReuseStrategy } = await import('@crawlee/core');
+            sessionPool = await SessionPool.open({
+                maxPoolSize: 2,
+                sessionPoolReuseStrategy: SessionPoolReuseStrategy.LEAST_RECENTLY_USED,
+            });
+
+            const session1 = await sessionPool.getSession();
+            session1.markGood();
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            const session2 = await sessionPool.getSession();
+            session2.markGood();
+
+            const originalLastUsed1 = session1.lastUsedAt;
+            const originalLastUsed2 = session2.lastUsedAt;
+
+            await sessionPool.persistState();
+
+            const newSessionPool = await SessionPool.open({
+                maxPoolSize: 2,
+                sessionPoolReuseStrategy: SessionPoolReuseStrategy.LEAST_RECENTLY_USED,
+            });
+
+            const restoredSession1 = await newSessionPool.getSession(session1.id);
+            const restoredSession2 = await newSessionPool.getSession(session2.id);
+
+            expect(restoredSession1?.lastUsedAt?.getTime()).toBe(originalLastUsed1?.getTime());
+            expect(restoredSession2?.lastUsedAt?.getTime()).toBe(originalLastUsed2?.getTime());
+
+            await newSessionPool.teardown();
+        });
+    });
 });

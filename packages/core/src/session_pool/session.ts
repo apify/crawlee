@@ -92,7 +92,6 @@ export interface SessionOptions {
     cookieJar?: CookieJar;
     lastUsedAt?: Date;
 }
-}
 
 /**
  * Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
