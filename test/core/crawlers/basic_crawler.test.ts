@@ -975,9 +975,10 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = async () => queue.pop()!;
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        // Add requests with buffer time for crawler startup
-        setTimeout(() => queue.push(request0), 150);
-        setTimeout(() => queue.push(request1), 350);
+        // Add requests with buffer time for crawler startup.
+        // Use longer delays to avoid flakiness under CPU load from parallel tests.
+        setTimeout(() => queue.push(request0), 500);
+        setTimeout(() => queue.push(request1), 1000);
 
         await basicCrawler.run();
 
@@ -1024,11 +1025,12 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 100);
-        setTimeout(() => queue.push(request1), 250);
+        // Use longer delays to avoid flakiness under CPU load from parallel tests.
+        setTimeout(() => queue.push(request0), 500);
+        setTimeout(() => queue.push(request1), 1000);
         setTimeout(() => {
             void basicCrawler.teardown();
-        }, 650);
+        }, 3000);
 
         await basicCrawler.run();
 
