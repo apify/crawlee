@@ -57,6 +57,9 @@ jobs:
             -   name: Login to Apify
                 run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
+            -   name: Add Apify secrets for E2E tests
+                run: npx -y apify-cli@beta secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
+
             -   name: Install Dependencies
                 run: yarn
 
