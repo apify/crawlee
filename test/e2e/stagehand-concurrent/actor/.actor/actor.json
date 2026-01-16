@@ -3,5 +3,7 @@
 	"name": "test-stagehand-concurrent",
 	"version": "0.0",
 	"buildTag": "latest",
-	"env": null
+	"environmentVariables": {
+		"ANTHROPIC_API_KEY": "@anthropicApiKey"
+	}
 }
