@@ -12,7 +12,7 @@ import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
 import { KeyValueStore } from '../storages/key_value_store';
-import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts';
+import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY, SessionPoolReuseStrategy } from './consts';
 import type { SessionOptions } from './session';
 import { Session } from './session';
 
@@ -67,6 +67,18 @@ export interface SessionPoolOptions {
      * Control how and when to persist the state of the session pool.
      */
     persistenceOptions?: PersistenceOptions;
+
+    /**
+     * Strategy for selecting sessions from the session pool.
+     * 
+     * - `RANDOM` - Picks a random session from the pool (default behavior)
+     * - `ROUND_ROBIN` - Sequentially rotates through sessions in order
+     * - `USE_UNTIL_FAILURE` - Keeps using the same session until it fails or becomes unusable
+     * - `LEAST_RECENTLY_USED` - Uses the session that hasn't been used for the longest time
+     * 
+     * @default SessionPoolReuseStrategy.RANDOM
+     */
+    sessionPoolReuseStrategy?: SessionPoolReuseStrategy;
 }
 
 /**
@@ -149,6 +161,12 @@ export class SessionPool extends EventEmitter {
     protected readonly blockedStatusCodes: number[];
     protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
+    protected sessionPoolReuseStrategy: SessionPoolReuseStrategy;
+    
+    // For round-robin strategy
+    private roundRobinIndex = 0;
+    // For use-until-failure strategy
+    private lastUsedSession?: Session;
 
     private queue = new AsyncQueue();
 
@@ -172,6 +190,7 @@ export class SessionPool extends EventEmitter {
                 blockedStatusCodes: ow.optional.array.ofType(ow.number),
                 log: ow.optional.object,
                 persistenceOptions: ow.optional.object,
+                sessionPoolReuseStrategy: ow.optional.string,
             }),
         );
 
@@ -186,6 +205,7 @@ export class SessionPool extends EventEmitter {
             persistenceOptions = {
                 enable: true,
             },
+            sessionPoolReuseStrategy = SessionPoolReuseStrategy.RANDOM,
         } = options;
 
         this.config = config;
@@ -193,6 +213,7 @@ export class SessionPool extends EventEmitter {
         this.events = config.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
+        this.sessionPoolReuseStrategy = sessionPoolReuseStrategy;
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
@@ -467,11 +488,101 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Picks random session from the `SessionPool`.
+     * Picks a session from the `SessionPool` based on the configured strategy.
      * @returns Picked `Session`.
      */
     protected _pickSession(): Session {
-        return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
+        switch (this.sessionPoolReuseStrategy) {
+            case SessionPoolReuseStrategy.ROUND_ROBIN:
+                return this._pickSessionRoundRobin();
+            case SessionPoolReuseStrategy.USE_UNTIL_FAILURE:
+                return this._pickSessionUseUntilFailure();
+            case SessionPoolReuseStrategy.LEAST_RECENTLY_USED:
+                return this._pickSessionLeastRecentlyUsed();
+            case SessionPoolReuseStrategy.RANDOM:
+            default:
+                return this._pickSessionRandom();
+        }
+    }
+
+    /**
+     * Picks a random session from the pool.
+     */
+    protected _pickSessionRandom(): Session {
+        return this.sessions[this._getRandomIndex()];
+    }
+
+    /**
+     * Picks sessions in a round-robin fashion, sequentially rotating through all sessions.
+     */
+    protected _pickSessionRoundRobin(): Session {
+        const usableSessions = this.sessions.filter(s => s.isUsable());
+        if (usableSessions.length === 0) {
+            // Fallback to any session if no usable ones
+            this.roundRobinIndex = (this.roundRobinIndex + 1) % this.sessions.length;
+            return this.sessions[this.roundRobinIndex];
+        }
+        
+        // Find next usable session starting from current index
+        let attempts = 0;
+        while (attempts < this.sessions.length) {
+            this.roundRobinIndex = (this.roundRobinIndex + 1) % this.sessions.length;
+            const session = this.sessions[this.roundRobinIndex];
+            if (session.isUsable()) {
+                return session;
+            }
+            attempts++;
+        }
+        
+        // Fallback
+        return this.sessions[this.roundRobinIndex];
+    }
+
+    /**
+     * Keeps using the same session until it becomes unusable.
+     */
+    protected _pickSessionUseUntilFailure(): Session {
+        if (this.lastUsedSession && this.lastUsedSession.isUsable()) {
+            return this.lastUsedSession;
+        }
+        
+        // Find a new usable session
+        const usableSession = this.sessions.find(s => s.isUsable());
+        if (usableSession) {
+            this.lastUsedSession = usableSession;
+            return usableSession;
+        }
+        
+        // Fallback to random if no usable session
+        const session = this.sessions[this._getRandomIndex()];
+        this.lastUsedSession = session;
+        return session;
+    }
+
+    /**
+     * Picks the session that hasn't been used for the longest time.
+     */
+    protected _pickSessionLeastRecentlyUsed(): Session {
+        const usableSessions = this.sessions.filter(s => s.isUsable());
+        
+        if (usableSessions.length === 0) {
+            // Fallback to random if no usable sessions
+            return this.sessions[this._getRandomIndex()];
+        }
+        
+        // Find session with oldest lastUsedAt (or never used)
+        let lruSession = usableSessions[0];
+        let oldestTime = lruSession.lastUsedAt?.getTime() ?? 0;
+        
+        for (const session of usableSessions) {
+            const sessionTime = session.lastUsedAt?.getTime() ?? 0;
+            if (sessionTime < oldestTime) {
+                oldestTime = sessionTime;
+                lruSession = session;
+            }
+        }
+        
+        return lruSession;
     }
 
     /**
@@ -493,6 +604,9 @@ export class SessionPool extends EventEmitter {
             sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
+            if (sessionObject.lastUsedAt) {
+                sessionObject.lastUsedAt = new Date(sessionObject.lastUsedAt as string);
+            }
             const recreatedSession = await this.createSessionFunction(this, { sessionOptions: sessionObject });
 
             if (recreatedSession.isUsable()) {
