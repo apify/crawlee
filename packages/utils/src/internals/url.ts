@@ -38,32 +38,3 @@ export function applySearchParams(url: URL, searchParams: SearchParams | undefin
 
     url.search = newSearchParams.toString();
 }
-
-/**
- * Check if a document with the given URL exists by making a `HEAD` request to it.
- * @param url The URL to check.
- * @param proxyUrl The proxy URL to use for the request.
- * @returns A `Promise` that resolves to `true` if the URL exists, `false` otherwise.
- */
-export async function urlExists(
-    url: string,
-    {
-        proxyUrl,
-        httpClient = new GotScrapingHttpClient(),
-    }: {
-        proxyUrl?: string;
-        httpClient?: BaseHttpClient;
-    } = {},
-): Promise<boolean> {
-    const response = await httpClient.sendRequest({
-        proxyUrl,
-        url,
-        method: 'HEAD',
-    });
-
-    if (response.statusCode < 200 || response.statusCode >= 400) {
-        return false;
-    }
-
-    return true;
-}

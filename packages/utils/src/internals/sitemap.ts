@@ -4,20 +4,15 @@ import { PassThrough, pipeline, Readable, Transform } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
-import {
-    BaseHttpClient,
-    GotScrapingHttpClient,
-    mergeAsyncIterables,
-    type ProxyConfiguration,
-    RobotsFile,
-    urlExists,
-} from 'crawlee';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types
 import type { Delays } from 'got-scraping';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
 import log from '@apify/log';
+
+import { mergeAsyncIterables } from './iterables';
+import { RobotsFile } from './robots';
 
 interface SitemapUrlData {
     loc: string;
@@ -455,13 +450,12 @@ export class Sitemap {
 export async function* discoverValidSitemaps(
     urls: string[],
     {
-        proxyConfiguration,
-        httpClient = new GotScrapingHttpClient(),
+        proxyUrl,
     }: {
-        proxyConfiguration?: ProxyConfiguration;
-        httpClient?: BaseHttpClient;
+        proxyUrl?: string;
     } = {},
 ): AsyncIterable<string> {
+    const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
 
     const addSitemapUrl = (url: string): string | undefined => {
@@ -476,7 +470,12 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
-    const proxyUrl = await proxyConfiguration?.newUrl();
+    const urlExists = (url: string) =>
+        gotScraping({
+            proxyUrl,
+            url,
+            method: 'HEAD',
+        }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
         if (!hostname) {
@@ -504,24 +503,14 @@ export async function* discoverValidSitemaps(
         } else {
             const firstUrl = new URL(domainUrls[0]);
             firstUrl.pathname = '/sitemap.xml';
-            if (
-                await urlExists(firstUrl.toString(), {
-                    proxyUrl,
-                    httpClient,
-                })
-            ) {
+            if (await urlExists(firstUrl.toString())) {
                 if (addSitemapUrl(firstUrl.toString())) {
                     yield firstUrl.toString();
                 }
             }
 
             firstUrl.pathname = '/sitemap.txt';
-            if (
-                await urlExists(firstUrl.toString(), {
-                    proxyUrl,
-                    httpClient,
-                })
-            ) {
+            if (await urlExists(firstUrl.toString())) {
                 if (addSitemapUrl(firstUrl.toString())) {
                     yield firstUrl.toString();
                 }
