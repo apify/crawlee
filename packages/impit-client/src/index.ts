@@ -206,13 +206,8 @@ export class ImpitHttpClient implements BaseHttpClient {
 
     private getStreamWithProgress(
         response: ImpitResponse,
-    ): [
-        Readable,
-        () => { percent: number; transferred: number; total: number },
-    ] {
-        const responseStream = Readable.fromWeb(
-            response.body as ReadableStream<any>,
-        );
+    ): [Readable, () => { percent: number; transferred: number; total: number }] {
+        const responseStream = Readable.fromWeb(response.body as ReadableStream<any>); 
         let transferred = 0;
         const total = Number(response.headers.get('content-length') ?? 0);
         const counter = new Transform({
