@@ -32,6 +32,7 @@ export interface SessionState {
     maxUsageCount: number;
     expiresAt: string;
     createdAt: string;
+    lastUsedAt?: string;
 }
 
 export interface SessionOptions {
@@ -89,6 +90,7 @@ export interface SessionOptions {
     log?: Log;
     errorScore?: number;
     cookieJar?: CookieJar;
+    lastUsedAt?: Date;
 }
 
 /**
@@ -111,6 +113,7 @@ export class Session {
     private _errorScore: number;
     private _cookieJar: CookieJar;
     private log: Log;
+    private _lastUsedAt?: Date;
 
     get errorScore() {
         return this._errorScore;
@@ -144,6 +147,10 @@ export class Session {
         return this._cookieJar;
     }
 
+    get lastUsedAt() {
+        return this._lastUsedAt;
+    }
+
     /**
      * Session configuration.
      */
@@ -164,6 +171,7 @@ export class Session {
                 errorScore: ow.optional.number,
                 maxUsageCount: ow.optional.number,
                 log: ow.optional.object,
+                lastUsedAt: ow.optional.date,
             }),
         );
 
@@ -180,6 +188,7 @@ export class Session {
             errorScore = 0,
             maxUsageCount = 50,
             log = defaultLog,
+            lastUsedAt,
         } = options;
 
         const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
@@ -200,6 +209,7 @@ export class Session {
         this._errorScore = errorScore; // indicates number of markBaded request with the session
         this._maxUsageCount = maxUsageCount;
         this.sessionPool = sessionPool;
+        this._lastUsedAt = lastUsedAt;
     }
 
     /**
@@ -241,6 +251,7 @@ export class Session {
      */
     markGood() {
         this._usageCount += 1;
+        this._lastUsedAt = new Date();
 
         if (this._errorScore > 0) {
             this._errorScore -= this._errorScoreDecrement;
@@ -265,6 +276,7 @@ export class Session {
             usageCount: this.usageCount,
             maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
+            lastUsedAt: this._lastUsedAt?.toISOString(),
         };
     }
 
@@ -279,6 +291,7 @@ export class Session {
         // mark it as an invalid by increasing the error score count.
         this._errorScore += this._maxErrorScore;
         this._usageCount += 1;
+        this._lastUsedAt = new Date();
 
         // emit event so we can retire browser in puppeteer pool
         this.sessionPool.emit(EVENT_SESSION_RETIRED, this);
@@ -291,6 +304,7 @@ export class Session {
     markBad() {
         this._errorScore += 1;
         this._usageCount += 1;
+        this._lastUsedAt = new Date();
 
         this._maybeSelfRetire();
     }
