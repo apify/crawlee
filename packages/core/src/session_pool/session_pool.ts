@@ -70,12 +70,12 @@ export interface SessionPoolOptions {
 
     /**
      * Strategy for selecting sessions from the session pool.
-     * 
+     *
      * - `RANDOM` - Picks a random session from the pool (default behavior)
      * - `ROUND_ROBIN` - Sequentially rotates through sessions in order
      * - `USE_UNTIL_FAILURE` - Keeps using the same session until it fails or becomes unusable
      * - `LEAST_RECENTLY_USED` - Uses the session that hasn't been used for the longest time
-     * 
+     *
      * @default SessionPoolReuseStrategy.RANDOM
      */
     sessionPoolReuseStrategy?: SessionPoolReuseStrategy;
