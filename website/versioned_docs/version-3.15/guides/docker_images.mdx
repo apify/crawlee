@@ -69,14 +69,37 @@ FROM apify/actor-node-playwright-chrome:20-1.10.0-beta
 
 ## Best practices
 
-- Node.js version tag should **always** be used.
-- The automation library version tag should be used for **added security**.
-- Asterisk `*` should be used as the automation library version in our `package.json` files.
+For production crawlers, we recommend pinning both the Node.js version **and** the automation library version in your Dockerfile tag. This ensures reproducible builds and prevents unexpected behavior when new versions are released.
 
-It makes sure the pre-installed version of Puppeteer or Playwright is not re-installed on build. This is important, because those libraries are only guaranteed to work with specific versions of browsers, and those browsers come pre-installed in the image.
+### Recommended approach: Pin both versions
+
+Match the automation library version in your `package.json` with the version in your Docker image tag:
 
 ```dockerfile
-FROM apify/actor-node-playwright-chrome:20
+FROM apify/actor-node-playwright-chrome:22-1.52.0
+```
+
+```json
+{
+    "dependencies": {
+        "crawlee": "^3.0.0",
+        "playwright": "1.52.0"
+    }
+}
+```
+
+:::warning Why version matching matters
+
+If you pin the Docker image to `22-1.52.0` but install a different Playwright version via `package.json`, you may encounter browser compatibility issues. The browsers pre-installed in the image are specifically built for that Playwright version.
+
+:::
+
+### Alternative approach: Using asterisk `*`
+
+You can also use asterisk `*` as the automation library version in your `package.json`:
+
+```dockerfile
+FROM apify/actor-node-playwright-chrome:22
 ```
 
 ```json
@@ -86,6 +109,25 @@ FROM apify/actor-node-playwright-chrome:20
         "playwright": "*"
     }
 }
+```
+
+This makes sure the pre-installed version of Puppeteer or Playwright is not re-installed on build. However, this approach is less predictable because you'll get whatever version was latest when the Docker image was built.
+
+## Finding available tags
+
+To see all available tags for each image, you can visit Docker Hub directly:
+
+- [apify/actor-node](https://hub.docker.com/r/apify/actor-node/tags)
+- [apify/actor-node-puppeteer-chrome](https://hub.docker.com/r/apify/actor-node-puppeteer-chrome/tags)
+- [apify/actor-node-playwright](https://hub.docker.com/r/apify/actor-node-playwright/tags)
+- [apify/actor-node-playwright-chrome](https://hub.docker.com/r/apify/actor-node-playwright-chrome/tags)
+- [apify/actor-node-playwright-firefox](https://hub.docker.com/r/apify/actor-node-playwright-firefox/tags)
+- [apify/actor-node-playwright-webkit](https://hub.docker.com/r/apify/actor-node-playwright-webkit/tags)
+
+You can also query available tags programmatically:
+
+```bash
+curl -s "https://registry.hub.docker.com/v2/repositories/apify/actor-node-playwright-chrome/tags?page_size=50" | jq '.results[].name'
 ```
 
 ### Warning about image size
