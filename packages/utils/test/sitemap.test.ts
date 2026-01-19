@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import log from '@apify/log';
 
 import type { SitemapUrl } from '../src/internals/sitemap.js';
-import { parseSitemap, Sitemap } from '../src/internals/sitemap.js';
+import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap.js';
 import { FetchHttpClient } from './mock-http-client.js';
 
 describe('Sitemap', () => {
@@ -484,5 +484,116 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=83&desc=vacation_usa',
             ]),
         );
+    });
+});
+
+describe('discoverValidSitemaps', () => {
+    beforeEach(() => {
+        nock.disableNetConnect();
+    });
+
+    afterEach(() => {
+        nock.cleanAll();
+        nock.enableNetConnect();
+    });
+
+    it('extracts sitemap from robots.txt', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(200, 'Sitemap: http://sitemap-discovery.com/some-sitemap.xml')
+            .head('/some-sitemap.xml')
+            .reply(200, '')
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/some-sitemap.xml']);
+    });
+
+    it('extracts sitemap from well-known paths if robots.txt is missing', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(404)
+            .head('/sitemap.xml')
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.xml']);
+    });
+
+    it('extracts sitemap from well-known paths if robots.txt is missing (txt)', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(404)
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(200, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.txt']);
+    });
+
+    it('extracts sitemap from input url', async () => {
+        nock('http://sitemap-discovery.com').get('/robots.txt').reply(404);
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com/sitemap.xml'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.xml']);
+    });
+
+    it('extracts sitemaps from multiple domains with mixed order', async () => {
+        nock('http://domain-a.com')
+            .get('/robots.txt')
+            .delay(10)
+            .reply(404)
+            .head('/sitemap.xml')
+            .delay(30)
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .delay(50)
+            .reply(200, '');
+
+        nock('http://domain-b.com')
+            .get('/robots.txt')
+            .delay(20)
+            .reply(404)
+            .head('/sitemap.xml')
+            .delay(40)
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .delay(60)
+            .reply(200, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://domain-a.com', 'http://domain-b.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual([
+            'http://domain-a.com/sitemap.xml',
+            'http://domain-b.com/sitemap.xml',
+            'http://domain-a.com/sitemap.txt',
+            'http://domain-b.com/sitemap.txt',
+        ]);
     });
 });
