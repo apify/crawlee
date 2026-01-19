@@ -525,9 +525,7 @@ export class SessionPool extends EventEmitter {
 
         const usableSessions = this.sessions.filter((s) => s.isUsable());
         if (usableSessions.length === 0) {
-            // Fallback to any session if no usable ones
-            this.roundRobinIndex = (this.roundRobinIndex + 1) % this.sessions.length;
-            return this.sessions[this.roundRobinIndex];
+            throw new Error('SessionPool has no usable sessions');
         }
 
         // Find next usable session starting from current index
@@ -541,8 +539,8 @@ export class SessionPool extends EventEmitter {
             attempts++;
         }
 
-        // Fallback
-        return this.sessions[this.roundRobinIndex];
+        // This should never happen as we already checked for usable sessions
+        throw new Error('SessionPool has no usable sessions');
     }
 
     /**
@@ -564,10 +562,7 @@ export class SessionPool extends EventEmitter {
             return usableSession;
         }
 
-        // Fallback to random if no usable session
-        const session = this.sessions[this._getRandomIndex()];
-        this.lastUsedSession = session;
-        return session;
+        throw new Error('SessionPool has no usable sessions');
     }
 
     /**
@@ -581,8 +576,7 @@ export class SessionPool extends EventEmitter {
         const usableSessions = this.sessions.filter((s) => s.isUsable());
 
         if (usableSessions.length === 0) {
-            // Fallback to random if no usable sessions
-            return this.sessions[this._getRandomIndex()];
+            throw new Error('SessionPool has no usable sessions');
         }
 
         // Find session with oldest lastUsedAt (or never used)
