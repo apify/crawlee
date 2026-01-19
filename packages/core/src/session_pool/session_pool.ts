@@ -167,6 +167,8 @@ export class SessionPool extends EventEmitter {
     private roundRobinIndex = 0;
     // For use-until-failure strategy
     private lastUsedSession?: Session;
+    // For least-recently-used strategy - sessions ordered by last use (oldest first)
+    private lruQueue: Session[] = [];
 
     private queue = new AsyncQueue();
 
@@ -426,6 +428,15 @@ export class SessionPool extends EventEmitter {
             if (storedSession.isUsable()) return true;
 
             this.sessionMap.delete(storedSession.id);
+            
+            // Remove from LRU queue if using that strategy
+            if (this.sessionPoolReuseStrategy === SessionPoolReuseStrategy.LEAST_RECENTLY_USED) {
+                const lruIndex = this.lruQueue.indexOf(storedSession);
+                if (lruIndex !== -1) {
+                    this.lruQueue.splice(lruIndex, 1);
+                }
+            }
+            
             this.log.debug(`Removed Session - ${storedSession.id}`);
 
             return false;
@@ -439,6 +450,11 @@ export class SessionPool extends EventEmitter {
     protected _addSession(newSession: Session) {
         this.sessions.push(newSession);
         this.sessionMap.set(newSession.id, newSession);
+        
+        // Add to LRU queue if using that strategy (new sessions go to the end as "recently used")
+        if (this.sessionPoolReuseStrategy === SessionPoolReuseStrategy.LEAST_RECENTLY_USED) {
+            this.lruQueue.push(newSession);
+        }
     }
 
     /**
@@ -567,31 +583,26 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Picks the session that hasn't been used for the longest time.
+     * Uses an optimized approach with a queue - sessions are ordered by last use,
+     * with least recently used at the front.
      */
     protected _pickSessionLeastRecentlyUsed(): Session {
         if (this.sessions.length === 0) {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
 
-        const usableSessions = this.sessions.filter((s) => s.isUsable());
-
-        if (usableSessions.length === 0) {
-            throw new Error('SessionPool has no usable sessions');
-        }
-
-        // Find session with oldest lastUsedAt (or never used)
-        let lruSession = usableSessions[0];
-        let oldestTime = lruSession.lastUsedAt?.getTime() ?? 0;
-
-        for (const session of usableSessions) {
-            const sessionTime = session.lastUsedAt?.getTime() ?? 0;
-            if (sessionTime < oldestTime) {
-                oldestTime = sessionTime;
-                lruSession = session;
+        // Find the first usable session in the LRU queue
+        for (let i = 0; i < this.lruQueue.length; i++) {
+            const session = this.lruQueue[i];
+            if (session.isUsable()) {
+                // Move this session to the end of the queue (mark as recently used)
+                this.lruQueue.splice(i, 1);
+                this.lruQueue.push(session);
+                return session;
             }
         }
 
-        return lruSession;
+        throw new Error('SessionPool has no usable sessions');
     }
 
     /**
@@ -609,7 +620,18 @@ export class SessionPool extends EventEmitter {
             persistStateKey: this.persistStateKey,
         });
 
-        for (const sessionObject of loadedSessionPool.sessions) {
+        const sessionsToLoad = loadedSessionPool.sessions;
+        
+        // For LRU strategy, sort sessions by lastUsedAt (oldest first) before loading
+        if (this.sessionPoolReuseStrategy === SessionPoolReuseStrategy.LEAST_RECENTLY_USED) {
+            sessionsToLoad.sort((a, b) => {
+                const timeA = a.lastUsedAt ? new Date(a.lastUsedAt as string).getTime() : 0;
+                const timeB = b.lastUsedAt ? new Date(b.lastUsedAt as string).getTime() : 0;
+                return timeA - timeB;
+            });
+        }
+
+        for (const sessionObject of sessionsToLoad) {
             sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
