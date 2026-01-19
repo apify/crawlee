@@ -336,8 +336,7 @@ export class SessionPool extends EventEmitter {
             if (sessionId) {
                 const session = this.sessionMap.get(sessionId);
                 if (session && session.isUsable()) {
-                    // Mark session as in use
-                    this.sessionsInUse.add(session.id);
+                    this._markSessionInUse(session.id);
                     return session;
                 }
                 return undefined;
@@ -345,22 +344,19 @@ export class SessionPool extends EventEmitter {
 
             if (this._hasSpaceForSession()) {
                 const newSession = await this._createSession();
-                // Mark new session as in use
-                this.sessionsInUse.add(newSession.id);
+                this._markSessionInUse(newSession.id);
                 return newSession;
             }
 
             const pickedSession = this._pickSession();
             if (pickedSession.isUsable()) {
-                // Mark session as in use
-                this.sessionsInUse.add(pickedSession.id);
+                this._markSessionInUse(pickedSession.id);
                 return pickedSession;
             }
 
             this._removeRetiredSessions();
             const createdSession = await this._createSession();
-            // Mark new session as in use
-            this.sessionsInUse.add(createdSession.id);
+            this._markSessionInUse(createdSession.id);
             return createdSession;
         } finally {
             this.queue.shift();
@@ -536,18 +532,61 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Picks a random session from the pool.
+     * Checks if a session is available (usable and not currently in use).
      */
-    protected _pickSessionRandom(): Session {
+    protected _isSessionAvailable(session: Session): boolean {
+        return session.isUsable() && !this.sessionsInUse.has(session.id);
+    }
+
+    /**
+     * Gets all available sessions (usable and not in use).
+     */
+    protected _getAvailableSessions(): Session[] {
+        return this.sessions.filter((s) => this._isSessionAvailable(s));
+    }
+
+    /**
+     * Validates that the pool has sessions and throws if empty.
+     */
+    protected _validatePoolNotEmpty(): void {
         if (this.sessions.length === 0) {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
-        
-        // Filter out sessions that are in use
-        const availableSessions = this.sessions.filter((s) => s.isUsable() && !this.sessionsInUse.has(s.id));
+    }
+
+    /**
+     * Validates that there are available sessions and throws if none.
+     */
+    protected _validateHasAvailableSessions(availableSessions: Session[]): void {
         if (availableSessions.length === 0) {
             throw new Error('SessionPool has no available sessions');
         }
+    }
+
+    /**
+     * Marks a session as in use (checked out).
+     * @internal
+     */
+    _markSessionInUse(sessionId: string): void {
+        this.sessionsInUse.add(sessionId);
+    }
+
+    /**
+     * Releases a session from the in-use set (checked in).
+     * @internal
+     */
+    _releaseSession(sessionId: string): void {
+        this.sessionsInUse.delete(sessionId);
+    }
+
+    /**
+     * Picks a random session from the pool.
+     */
+    protected _pickSessionRandom(): Session {
+        this._validatePoolNotEmpty();
+        
+        const availableSessions = this._getAvailableSessions();
+        this._validateHasAvailableSessions(availableSessions);
         
         const randomIndex = Math.floor(Math.random() * availableSessions.length);
         return availableSessions[randomIndex];
@@ -557,21 +596,17 @@ export class SessionPool extends EventEmitter {
      * Picks sessions in a round-robin fashion, sequentially rotating through all sessions.
      */
     protected _pickSessionRoundRobin(): Session {
-        if (this.sessions.length === 0) {
-            throw new Error('SessionPool is empty - cannot pick a session');
-        }
-
-        const availableSessions = this.sessions.filter((s) => s.isUsable() && !this.sessionsInUse.has(s.id));
-        if (availableSessions.length === 0) {
-            throw new Error('SessionPool has no available sessions');
-        }
+        this._validatePoolNotEmpty();
+        
+        const availableSessions = this._getAvailableSessions();
+        this._validateHasAvailableSessions(availableSessions);
 
         // Find next available session starting from current index
         let attempts = 0;
         while (attempts < this.sessions.length) {
             this.roundRobinIndex = (this.roundRobinIndex + 1) % this.sessions.length;
             const session = this.sessions[this.roundRobinIndex];
-            if (session.isUsable() && !this.sessionsInUse.has(session.id)) {
+            if (this._isSessionAvailable(session)) {
                 return session;
             }
             attempts++;
@@ -585,16 +620,14 @@ export class SessionPool extends EventEmitter {
      * Keeps using the same session until it becomes unusable.
      */
     protected _pickSessionUseUntilFailure(): Session {
-        if (this.sessions.length === 0) {
-            throw new Error('SessionPool is empty - cannot pick a session');
-        }
+        this._validatePoolNotEmpty();
 
-        if (this.lastUsedSession && this.lastUsedSession.isUsable() && !this.sessionsInUse.has(this.lastUsedSession.id)) {
+        if (this.lastUsedSession && this._isSessionAvailable(this.lastUsedSession)) {
             return this.lastUsedSession;
         }
 
         // Find a new available session
-        const availableSession = this.sessions.find((s) => s.isUsable() && !this.sessionsInUse.has(s.id));
+        const availableSession = this.sessions.find((s) => this._isSessionAvailable(s));
         if (availableSession) {
             this.lastUsedSession = availableSession;
             return availableSession;
@@ -609,14 +642,12 @@ export class SessionPool extends EventEmitter {
      * with least recently used at the front.
      */
     protected _pickSessionLeastRecentlyUsed(): Session {
-        if (this.sessions.length === 0) {
-            throw new Error('SessionPool is empty - cannot pick a session');
-        }
+        this._validatePoolNotEmpty();
 
         // Find the first available session in the LRU queue
         for (let i = 0; i < this.lruQueue.length; i++) {
             const session = this.lruQueue[i];
-            if (session.isUsable() && !this.sessionsInUse.has(session.id)) {
+            if (this._isSessionAvailable(session)) {
                 // Move this session to the end of the queue (mark as recently used)
                 this.lruQueue.splice(i, 1);
                 this.lruQueue.push(session);
