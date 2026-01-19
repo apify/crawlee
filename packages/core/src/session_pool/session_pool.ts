@@ -169,6 +169,8 @@ export class SessionPool extends EventEmitter {
     private lastUsedSession?: Session;
     // For least-recently-used strategy - sessions ordered by last use (oldest first)
     private lruQueue: Session[] = [];
+    // Track sessions that are currently in use to prevent concurrent access
+    private sessionsInUse = new Set<string>();
 
     private queue = new AsyncQueue();
 
@@ -333,21 +335,33 @@ export class SessionPool extends EventEmitter {
 
             if (sessionId) {
                 const session = this.sessionMap.get(sessionId);
-                if (session && session.isUsable()) return session;
+                if (session && session.isUsable()) {
+                    // Mark session as in use
+                    this.sessionsInUse.add(session.id);
+                    return session;
+                }
                 return undefined;
             }
 
             if (this._hasSpaceForSession()) {
-                return await this._createSession();
+                const newSession = await this._createSession();
+                // Mark new session as in use
+                this.sessionsInUse.add(newSession.id);
+                return newSession;
             }
 
             const pickedSession = this._pickSession();
             if (pickedSession.isUsable()) {
+                // Mark session as in use
+                this.sessionsInUse.add(pickedSession.id);
                 return pickedSession;
             }
 
             this._removeRetiredSessions();
-            return await this._createSession();
+            const createdSession = await this._createSession();
+            // Mark new session as in use
+            this.sessionsInUse.add(createdSession.id);
+            return createdSession;
         } finally {
             this.queue.shift();
         }
@@ -528,7 +542,15 @@ export class SessionPool extends EventEmitter {
         if (this.sessions.length === 0) {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
-        return this.sessions[this._getRandomIndex()];
+        
+        // Filter out sessions that are in use
+        const availableSessions = this.sessions.filter((s) => s.isUsable() && !this.sessionsInUse.has(s.id));
+        if (availableSessions.length === 0) {
+            throw new Error('SessionPool has no available sessions');
+        }
+        
+        const randomIndex = Math.floor(Math.random() * availableSessions.length);
+        return availableSessions[randomIndex];
     }
 
     /**
@@ -539,24 +561,24 @@ export class SessionPool extends EventEmitter {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
 
-        const usableSessions = this.sessions.filter((s) => s.isUsable());
-        if (usableSessions.length === 0) {
-            throw new Error('SessionPool has no usable sessions');
+        const availableSessions = this.sessions.filter((s) => s.isUsable() && !this.sessionsInUse.has(s.id));
+        if (availableSessions.length === 0) {
+            throw new Error('SessionPool has no available sessions');
         }
 
-        // Find next usable session starting from current index
+        // Find next available session starting from current index
         let attempts = 0;
         while (attempts < this.sessions.length) {
             this.roundRobinIndex = (this.roundRobinIndex + 1) % this.sessions.length;
             const session = this.sessions[this.roundRobinIndex];
-            if (session.isUsable()) {
+            if (session.isUsable() && !this.sessionsInUse.has(session.id)) {
                 return session;
             }
             attempts++;
         }
 
-        // This should never happen as we already checked for usable sessions
-        throw new Error('SessionPool has no usable sessions');
+        // This should never happen as we already checked for available sessions
+        throw new Error('SessionPool has no available sessions');
     }
 
     /**
@@ -567,18 +589,18 @@ export class SessionPool extends EventEmitter {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
 
-        if (this.lastUsedSession && this.lastUsedSession.isUsable()) {
+        if (this.lastUsedSession && this.lastUsedSession.isUsable() && !this.sessionsInUse.has(this.lastUsedSession.id)) {
             return this.lastUsedSession;
         }
 
-        // Find a new usable session
-        const usableSession = this.sessions.find((s) => s.isUsable());
-        if (usableSession) {
-            this.lastUsedSession = usableSession;
-            return usableSession;
+        // Find a new available session
+        const availableSession = this.sessions.find((s) => s.isUsable() && !this.sessionsInUse.has(s.id));
+        if (availableSession) {
+            this.lastUsedSession = availableSession;
+            return availableSession;
         }
 
-        throw new Error('SessionPool has no usable sessions');
+        throw new Error('SessionPool has no available sessions');
     }
 
     /**
@@ -591,10 +613,10 @@ export class SessionPool extends EventEmitter {
             throw new Error('SessionPool is empty - cannot pick a session');
         }
 
-        // Find the first usable session in the LRU queue
+        // Find the first available session in the LRU queue
         for (let i = 0; i < this.lruQueue.length; i++) {
             const session = this.lruQueue[i];
-            if (session.isUsable()) {
+            if (session.isUsable() && !this.sessionsInUse.has(session.id)) {
                 // Move this session to the end of the queue (mark as recently used)
                 this.lruQueue.splice(i, 1);
                 this.lruQueue.push(session);
@@ -602,7 +624,7 @@ export class SessionPool extends EventEmitter {
             }
         }
 
-        throw new Error('SessionPool has no usable sessions');
+        throw new Error('SessionPool has no available sessions');
     }
 
     /**

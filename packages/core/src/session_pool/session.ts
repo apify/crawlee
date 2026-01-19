@@ -258,6 +258,9 @@ export class Session {
         }
 
         this._maybeSelfRetire();
+        
+        // Release session from "in use" set
+        (this.sessionPool as any).sessionsInUse?.delete(this.id);
     }
 
     /**
@@ -293,6 +296,9 @@ export class Session {
         this._usageCount += 1;
         this._lastUsedAt = new Date();
 
+        // Release session from "in use" set
+        (this.sessionPool as any).sessionsInUse?.delete(this.id);
+
         // emit event so we can retire browser in puppeteer pool
         this.sessionPool.emit(EVENT_SESSION_RETIRED, this);
     }
@@ -307,6 +313,9 @@ export class Session {
         this._lastUsedAt = new Date();
 
         this._maybeSelfRetire();
+        
+        // Release session from "in use" set
+        (this.sessionPool as any).sessionsInUse?.delete(this.id);
     }
 
     /**

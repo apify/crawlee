@@ -454,13 +454,17 @@ describe('SessionPool - testing session pool', () => {
             const session1 = await sessionPool.getSession();
             const session2 = await sessionPool.getSession();
             const session3 = await sessionPool.getSession();
-            const session4 = await sessionPool.getSession();
 
             // Should cycle through sessions
             expect(session1.id).not.toBe(session2.id);
             expect(session2.id).not.toBe(session3.id);
             expect(session3.id).not.toBe(session1.id);
-            // Should wrap around
+            
+            // Mark first session as good to release it from "in use" state
+            session1.markGood();
+            
+            // Should now be able to get session1 again since it's been released
+            const session4 = await sessionPool.getSession();
             expect(session4.id).toBe(session1.id);
         });
 
