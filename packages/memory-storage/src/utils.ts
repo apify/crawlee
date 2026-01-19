@@ -71,3 +71,81 @@ interface MetadataUpdate<Type extends EntityType, DataType> {
     writeMetadata: boolean;
     persistStorage: boolean;
 }
+
+/**
+ * Creates a hybrid Promise + AsyncIterable for offset-based pagination (Dataset.listItems).
+ *
+ * The returned object can be:
+ * - Awaited directly to get the first page (backward compatible)
+ * - Used with `for await...of` to iterate through all items
+ */
+export function createPaginatedList<Data>(
+    getPage: (offset: number, limit: number) => Promise<storage.PaginatedList<Data>>,
+    options: { offset?: number; limit?: number } = {},
+): AsyncIterable<Data> & Promise<storage.PaginatedList<Data>> {
+    const initialOffset = options.offset ?? 0;
+    const requestedLimit = options.limit;
+
+    // Immediately fetch the first page
+    const firstPagePromise = getPage(initialOffset, requestedLimit ?? Infinity);
+
+    async function* asyncGenerator(): AsyncGenerator<Data> {
+        const firstPage = await firstPagePromise;
+        yield* firstPage.items;
+
+        // Calculate how many items we still need to fetch
+        const maxItems = requestedLimit ?? firstPage.total;
+        let fetchedCount = firstPage.items.length;
+        let currentOffset = initialOffset + firstPage.count;
+
+        while (fetchedCount < maxItems && currentOffset < firstPage.total) {
+            const remainingItems = maxItems - fetchedCount;
+            const page = await getPage(currentOffset, remainingItems);
+
+            if (page.items.length === 0) break;
+
+            yield* page.items;
+            fetchedCount += page.items.length;
+            currentOffset += page.count;
+        }
+    }
+
+    return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
+        value: asyncGenerator,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+    }) as AsyncIterable<Data> & Promise<storage.PaginatedList<Data>>;
+}
+
+/**
+ * Creates a hybrid Promise + AsyncIterable for cursor-based pagination (KeyValueStore.listKeys).
+ *
+ * The returned object can be:
+ * - Awaited directly to get the first page (backward compatible)
+ * - Used with `for await...of` to iterate through all keys
+ */
+export function createKeyList(
+    getPage: (exclusiveStartKey?: string) => Promise<storage.KeyValueStoreClientListData>,
+    options: { exclusiveStartKey?: string } = {},
+): AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData> {
+    // Immediately fetch the first page
+    const firstPagePromise = getPage(options.exclusiveStartKey);
+
+    async function* asyncGenerator(): AsyncGenerator<storage.KeyValueStoreItemData> {
+        let currentPage = await firstPagePromise;
+        yield* currentPage.items;
+
+        while (currentPage.isTruncated && currentPage.nextExclusiveStartKey) {
+            currentPage = await getPage(currentPage.nextExclusiveStartKey);
+            yield* currentPage.items;
+        }
+    }
+
+    return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
+        value: asyncGenerator,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+    }) as AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData>;
+}

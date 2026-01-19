@@ -15,7 +15,7 @@ import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 import type { MemoryStorage } from '../index';
-import { isBuffer, isStream } from '../utils';
+import { createKeyList, isBuffer, isStream } from '../utils';
 import { BaseClient } from './common/base-client';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
@@ -118,12 +118,10 @@ export class KeyValueStoreClient extends BaseClient {
         }
     }
 
-    async listKeys(options: storage.KeyValueStoreClientListOptions = {}): Promise<storage.KeyValueStoreClientListData> {
-        const {
-            limit = DEFAULT_API_PARAM_LIMIT,
-            exclusiveStartKey,
-            prefix,
-        } = s
+    listKeys(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData> {
+        const { limit, exclusiveStartKey, prefix } = s
             .object({
                 limit: s.number.greaterThan(0).optional,
                 exclusiveStartKey: s.string.optional,
@@ -131,6 +129,22 @@ export class KeyValueStoreClient extends BaseClient {
                 prefix: s.string.optional,
             })
             .parse(options);
+
+        return createKeyList(
+            (pageExclusiveStartKey) =>
+                this.listKeysPage({
+                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
+                    exclusiveStartKey: pageExclusiveStartKey,
+                    prefix,
+                }),
+            { exclusiveStartKey },
+        );
+    }
+
+    private async listKeysPage(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): Promise<storage.KeyValueStoreClientListData> {
+        const { limit = DEFAULT_API_PARAM_LIMIT, exclusiveStartKey, prefix } = options;
 
         // Check by id
         const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
