@@ -607,6 +607,68 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
+     * Iterates over dataset items using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * for await (const item of dataset.values()) {
+     *   console.log(item);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    async *values(options: DatasetIteratorOptions = {}): AsyncGenerator<Data, void, undefined> {
+        checkStorageAccess();
+
+        for await (const item of this.client.listItems(options)) {
+            yield item;
+        }
+    }
+
+    /**
+     * Iterates over dataset entries (index-value pairs) using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * for await (const [index, item] of dataset.entries()) {
+     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    async *entries(options: DatasetIteratorOptions = {}): AsyncGenerator<[number, Data], void, undefined> {
+        checkStorageAccess();
+
+        let index = options.offset ?? 0;
+
+        for await (const item of this.client.listItems(options)) {
+            yield [index++, item];
+        }
+    }
+
+    /**
+     * Default async iterator for the dataset, iterating over items.
+     * Allows using the dataset directly in a `for await...of` loop.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * for await (const item of dataset) {
+     *   console.log(item);
+     * }
+     * ```
+     */
+    async *[Symbol.asyncIterator](): AsyncGenerator<Data, void, undefined> {
+        yield* this.values();
+    }
+
+    /**
      * Removes the dataset either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      */
