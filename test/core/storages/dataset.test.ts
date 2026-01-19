@@ -573,5 +573,95 @@ describe('dataset', () => {
                 expect(exported).toContain('age');
             });
         });
+
+        describe('async iterators', () => {
+            const testData = [
+                { id: 1, name: 'Alice' },
+                { id: 2, name: 'Bob' },
+                { id: 3, name: 'Charlie' },
+            ];
+
+            test('values() should iterate over all items', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items: { id: number; name: string }[] = [];
+                for await (const item of dataset.values()) {
+                    items.push(item);
+                }
+
+                expect(items).toEqual(testData);
+            });
+
+            test('entries() should iterate over index-item pairs', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const entries: [number, { id: number; name: string }][] = [];
+                for await (const [index, item] of dataset.entries()) {
+                    entries.push([index, item]);
+                }
+
+                expect(entries).toEqual([
+                    [0, { id: 1, name: 'Alice' }],
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+            });
+
+            test('entries() should respect offset option', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const entries: [number, { id: number; name: string }][] = [];
+                for await (const [index, item] of dataset.entries({ offset: 1 })) {
+                    entries.push([index, item]);
+                }
+
+                expect(entries).toEqual([
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+            });
+
+            test('Symbol.asyncIterator should iterate over items', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items: { id: number; name: string }[] = [];
+                for await (const item of dataset) {
+                    items.push(item);
+                }
+
+                expect(items).toEqual(testData);
+            });
+
+            test('should allow breaking from iteration early', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items: { id: number; name: string }[] = [];
+                for await (const item of dataset.values()) {
+                    items.push(item);
+                    if (items.length === 2) break;
+                }
+
+                expect(items).toEqual([
+                    { id: 1, name: 'Alice' },
+                    { id: 2, name: 'Bob' },
+                ]);
+            });
+
+            test('should work with empty dataset', async () => {
+                const dataset = await Dataset.open();
+
+                const items: unknown[] = [];
+                for await (const item of dataset.values()) {
+                    items.push(item);
+                }
+
+                expect(items).toEqual([]);
+            });
+        });
     });
 });
