@@ -1,4 +1,4 @@
-import { ImpitHttpClient } from '@crawlee/impit-client';
+import { FetchHttpClient } from '@crawlee/http-client';
 import type { BaseHttpClient } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
@@ -60,7 +60,7 @@ export class RobotsTxtFile {
         url: string,
         options?: { proxyUrl?: string; httpClient?: BaseHttpClient },
     ): Promise<RobotsTxtFile> {
-        const { proxyUrl, httpClient = new ImpitHttpClient({ followRedirects: true }) } = options || {};
+        const { proxyUrl, httpClient = new FetchHttpClient() } = options || {};
 
         const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
             proxyUrl,

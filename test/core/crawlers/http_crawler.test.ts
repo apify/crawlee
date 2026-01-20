@@ -2,7 +2,8 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
-import { HttpCrawler, ResponseWithUrl } from '@crawlee/http';
+import { HttpCrawler } from '@crawlee/http';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
@@ -388,18 +389,7 @@ test('works with a custom HttpClient', async () => {
         },
         httpClient: {
             async sendRequest(request) {
-                return new ResponseWithUrl('Hello from sendRequest()', {
-                    url: request.url.toString(),
-                    status: 200,
-                    headers: {},
-                });
-            },
-            async stream(request) {
-                const stream = new Readable();
-                stream.push('<html><head><title>Schmexample Domain</title></head></html>');
-                stream.push(null);
-
-                return new ResponseWithUrl(Readable.toWeb(stream) as any, {
+                return new ResponseWithUrl('<html><head><title>Schmexample Domain</title></head></html>', {
                     url: request.url.toString(),
                     status: 200,
                     headers: { 'content-type': 'text/html; charset=utf-8' },
@@ -411,5 +401,5 @@ test('works with a custom HttpClient', async () => {
     await crawler.run([url]);
 
     expect(results[0].includes('Schmexample Domain')).toBeTruthy();
-    expect(results[1].includes('Hello')).toBeTruthy();
+    expect(results[1].includes('Schmexample Domain')).toBeTruthy();
 });

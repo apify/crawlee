@@ -19,13 +19,12 @@ import {
     Configuration,
     ContextPipeline,
     mergeCookies,
-    processHttpRequestOptions,
     RequestState,
-    ResponseWithUrl,
     Router,
     SessionError,
 } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -38,7 +37,7 @@ import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
-import { parseContentTypeFromResponse } from './utils.js';
+import { parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
 
 let TimeoutError: typeof TimeoutErrorClass;
 
@@ -667,9 +666,9 @@ export class HttpCrawler<
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${status} - Internal Server Error: ${body.slice(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            return { response, contentType, body: await response.text() };
+            return { response, contentType, body: await reencodedResponse.text() };
         } else {
-            const body = Buffer.from(await response.bytes());
+            const body = Buffer.from(await reencodedResponse.bytes());
             return {
                 body,
                 response,
@@ -818,7 +817,7 @@ export class HttpCrawler<
             opts.headers?.set('Cookie', cookieString);
         }
 
-        const response = await this.httpClient.stream(
+        const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
                 body: opts.body ? (Readable.toWeb(opts.body) as any) : undefined,
                 headers: new Headers(opts.headers),
@@ -829,16 +828,6 @@ export class HttpCrawler<
             {
                 session,
                 timeout: opts.timeout,
-                onRedirect: (redirectResponse, updatedRequest) => {
-                    if (this.persistCookiesPerSession) {
-                        session!.setCookiesFromResponse(redirectResponse);
-
-                        const cookieStringRedirected = session!.getCookieString(updatedRequest.url!.toString());
-                        if (cookieStringRedirected !== '') {
-                            updatedRequest.headers.set('Cookie', cookieStringRedirected);
-                        }
-                    }
-                },
             },
         );
 
