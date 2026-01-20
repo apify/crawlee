@@ -1,6 +1,6 @@
 import type { Stagehand, V3Options } from '@browserbasehq/stagehand';
 import type { BrowserController, BrowserPluginOptions, LaunchContext } from '@crawlee/browser-pool';
-import { BrowserPlugin } from '@crawlee/browser-pool';
+import { BrowserPlugin, anonymizeProxySugar } from '@crawlee/browser-pool';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
 // Stagehand is built on CDP (Chrome DevTools Protocol), which only works with Chromium-based browsers.
 // Firefox and WebKit are not supported by Stagehand.
@@ -40,13 +40,6 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     readonly stagehandOptions: StagehandOptions;
     private readonly stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand> = new WeakMap();
 
-    /**
-     * Proxy credentials stored for use in page setup.
-     * Stagehand doesn't handle proxy authentication, so we handle it via CDP on each page.
-     * @internal
-     */
-    _proxyCredentials: { username: string; password: string } | null = null;
-
     constructor(library: BrowserType, options: StagehandPluginOptions = {}) {
         super(library, options);
         this.stagehandOptions = options.stagehandOptions ?? {};
@@ -56,7 +49,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
      * Launches a browser using Stagehand and connects Playwright to it via CDP.
      */
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
-        const { launchOptions = {} } = launchContext;
+        const { launchOptions = {}, proxyUrl } = launchContext;
 
         // Import Stagehand dynamically to avoid peer dependency issues
         const { Stagehand } = await import('@browserbasehq/stagehand');
@@ -76,6 +69,10 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         }
         // If modelApiKey is not provided, Stagehand's dependencies will read from env vars automatically
 
+        // Use anonymizeProxy to handle proxy authentication transparently
+        // This creates a local proxy server that handles auth, avoiding CDP complexity
+        const [anonymizedProxyUrl, closeAnonymizedProxy] = await anonymizeProxySugar(proxyUrl);
+
         // Build Stagehand configuration
         const stagehandConfig: V3Options = {
             env: this.stagehandOptions.env ?? 'LOCAL',
@@ -91,11 +88,14 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
 
         // For LOCAL environment, pass launch options
         if (this.stagehandOptions.env === 'LOCAL' || !this.stagehandOptions.env) {
+            // Use anonymized proxy URL if available (handles auth transparently)
+            const proxyConfig = anonymizedProxyUrl ? { server: anonymizedProxyUrl } : launchOptions.proxy;
+
             stagehandConfig.localBrowserLaunchOptions = {
                 headless: launchOptions.headless,
                 args: launchOptions.args,
                 executablePath: launchOptions.executablePath,
-                proxy: launchOptions.proxy,
+                proxy: proxyConfig,
                 // Pass fingerprinted viewport if available
                 viewport: (launchOptions as Record<string, unknown>).viewport as { width: number; height: number },
             };
@@ -105,15 +105,6 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         if (this.stagehandOptions.env === 'BROWSERBASE') {
             stagehandConfig.apiKey = this.stagehandOptions.apiKey;
             stagehandConfig.projectId = this.stagehandOptions.projectId;
-        }
-
-        // Store proxy credentials separately - Stagehand doesn't handle proxy auth
-        // We'll use these credentials in the controller when creating new pages
-        if (launchOptions.proxy?.username) {
-            this._proxyCredentials = {
-                username: launchOptions.proxy.username,
-                password: launchOptions.proxy.password ?? '',
-            };
         }
 
         const stagehand = new Stagehand(stagehandConfig);
@@ -133,15 +124,17 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             // Store the Stagehand instance for AI operations
             this.stagehandInstances.set(browser, stagehand);
 
-            // Handle browser disconnection
+            // Handle browser disconnection - cleanup both Stagehand and anonymized proxy
             browser.on('disconnected', async () => {
                 await this._cleanupStagehand(browser);
+                await closeAnonymizedProxy();
             });
 
             return browser;
         } catch (error) {
             // Clean up on failure
             await stagehand.close().catch(() => {});
+            await closeAnonymizedProxy();
 
             const augmentedError = this._augmentLaunchError(error, launchContext);
             log.error('Stagehand browser launch failed', { message: augmentedError.message });
