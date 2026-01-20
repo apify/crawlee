@@ -104,20 +104,11 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             config,
         );
 
-        // Apply defaults to Stagehand options
+        // Apply defaults to Stagehand options (env and model are the main ones we customize)
         this.stagehandOptions = {
-            env: stagehandOptions.env ?? 'LOCAL',
-            apiKey: stagehandOptions.apiKey,
-            projectId: stagehandOptions.projectId,
-            model: stagehandOptions.model ?? 'openai/gpt-4o',
-            modelApiKey: stagehandOptions.modelApiKey,
-            verbose: stagehandOptions.verbose ?? 0,
-            selfHeal: stagehandOptions.selfHeal ?? true,
-            domSettleTimeout: stagehandOptions.domSettleTimeout ?? 30000,
-            llmClient: stagehandOptions.llmClient,
-            systemPrompt: stagehandOptions.systemPrompt,
-            logInferenceToFile: stagehandOptions.logInferenceToFile ?? false,
-            cacheDir: stagehandOptions.cacheDir,
+            env: 'LOCAL',
+            model: 'openai/gpt-4o',
+            ...stagehandOptions,
         };
 
         this.Plugin = StagehandPlugin;
