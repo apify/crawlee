@@ -57,28 +57,6 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
 }
 
 /**
- * Resolves Stagehand options, passing through explicit options or using Stagehand defaults.
- *
- * @ignore
- */
-export function resolveStagehandOptions(options?: StagehandOptions): StagehandOptions {
-    return {
-        env: options?.env ?? 'LOCAL',
-        apiKey: options?.apiKey,
-        projectId: options?.projectId,
-        model: options?.model ?? 'openai/gpt-4o',
-        modelApiKey: options?.modelApiKey,
-        verbose: options?.verbose ?? 0,
-        selfHeal: options?.selfHeal ?? true,
-        domSettleTimeout: options?.domSettleTimeout ?? 30000,
-        llmClient: options?.llmClient,
-        systemPrompt: options?.systemPrompt,
-        logInferenceToFile: options?.logInferenceToFile ?? false,
-        cacheDir: options?.cacheDir,
-    };
-}
-
-/**
  * StagehandLauncher is based on BrowserLauncher and creates StagehandPlugin instances.
  * It manages the lifecycle of Stagehand browsers with fingerprinting and anti-blocking features.
  *
@@ -126,8 +104,21 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             config,
         );
 
-        // Resolve Stagehand options from various sources
-        this.stagehandOptions = resolveStagehandOptions(stagehandOptions);
+        // Apply defaults to Stagehand options
+        this.stagehandOptions = {
+            env: stagehandOptions.env ?? 'LOCAL',
+            apiKey: stagehandOptions.apiKey,
+            projectId: stagehandOptions.projectId,
+            model: stagehandOptions.model ?? 'openai/gpt-4o',
+            modelApiKey: stagehandOptions.modelApiKey,
+            verbose: stagehandOptions.verbose ?? 0,
+            selfHeal: stagehandOptions.selfHeal ?? true,
+            domSettleTimeout: stagehandOptions.domSettleTimeout ?? 30000,
+            llmClient: stagehandOptions.llmClient,
+            systemPrompt: stagehandOptions.systemPrompt,
+            logInferenceToFile: stagehandOptions.logInferenceToFile ?? false,
+            cacheDir: stagehandOptions.cacheDir,
+        };
 
         this.Plugin = StagehandPlugin;
     }
