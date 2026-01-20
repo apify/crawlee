@@ -1,8 +1,8 @@
 import { HttpCrawler } from 'crawlee';
-import { FetchHttpClient } from './implementation.js';
+import { CustomFetchClient } from './implementation.js';
 
 const crawler = new HttpCrawler({
-    httpClient: new FetchHttpClient(),
+    httpClient: new CustomFetchClient(),
     async requestHandler() {
         /* ... */
     },

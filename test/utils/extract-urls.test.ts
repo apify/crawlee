@@ -18,9 +18,6 @@ describe('downloadListOfUrls()', () => {
             async sendRequest() {
                 return new Response(text);
             },
-            async stream() {
-                return new Response(text);
-            },
         };
 
         await expect(
