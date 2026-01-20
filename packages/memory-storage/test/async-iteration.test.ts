@@ -122,17 +122,24 @@ describe('Async iteration support', () => {
             expect(items).toStrictEqual(keys);
         });
 
-        test('limit option controls page size, iteration fetches all keys', async () => {
+        test('respects limit option when iterating (10 items, limit 2)', async () => {
+            // Create a fresh store with exactly 10 items to match the reported bug scenario
+            const { id } = await storage.keyValueStores().getOrCreate('limit-test-kvs');
+            const testStore = storage.keyValueStore(id);
+
+            for (let i = 0; i < 10; i++) {
+                await testStore.setRecord({ key: `key-${i}`, value: `value-${i}` });
+            }
+
             const items: string[] = [];
 
-            // limit controls page size, but iteration fetches all pages
-            for await (const item of kvStore.listKeys({ limit: 10 })) {
+            // This should only return 2 items, matching apify-client behavior
+            for await (const item of testStore.listKeys({ limit: 2 })) {
                 items.push(item.key);
             }
 
-            // All keys are fetched across multiple pages
-            expect(items).toHaveLength(25);
-            expect(items).toStrictEqual(keys);
+            // Should only get 2 items, not all 10
+            expect(items).toHaveLength(2);
         });
 
         test('respects exclusiveStartKey option when iterating', async () => {
