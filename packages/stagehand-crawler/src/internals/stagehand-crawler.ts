@@ -45,45 +45,47 @@ export interface StagehandOptions {
     env?: 'LOCAL' | 'BROWSERBASE';
 
     /**
-     * Browserbase API key (required when env is 'BROWSERBASE').
-     * Can also be set via STAGEHAND_API_KEY environment variable.
-     */
-    apiKey?: string;
-
-    /**
-     * Browserbase project ID (required when env is 'BROWSERBASE').
-     * Can also be set via STAGEHAND_PROJECT_ID environment variable.
-     */
-    projectId?: string;
-
-    /**
-     * AI model to use for act(), extract(), observe() operations.
-     * Can be a string like "openai/gpt-4o" or a detailed ModelConfiguration object.
-     * Can also be set via STAGEHAND_MODEL environment variable.
-     * @default 'openai/gpt-4o'
-     * @example "openai/gpt-4o"
-     * @example "anthropic/claude-sonnet-4-20250514"
-     */
-    model?: ModelConfiguration;
-
-    /**
-     * API key for the LLM provider (OpenAI, Anthropic, or Google).
-     * This is the recommended way to provide the API key.
+     * API key - interpreted based on the `env` setting:
+     * - When `env: 'LOCAL'`: LLM provider API key (OpenAI, Anthropic, or Google)
+     * - When `env: 'BROWSERBASE'`: Browserbase API key
      *
-     * Can be overridden by environment variables:
+     * For LOCAL env, can also be set via environment variables:
      * - OpenAI: `OPENAI_API_KEY`
      * - Anthropic: `ANTHROPIC_API_KEY`
      * - Google: `GOOGLE_API_KEY`
      *
      * @example
      * ```typescript
+     * // Local with OpenAI
      * stagehandOptions: {
+     *   env: 'LOCAL',
      *   model: 'openai/gpt-4o',
-     *   modelApiKey: 'sk-...',
+     *   apiKey: 'sk-...',
+     * }
+     *
+     * // Browserbase cloud
+     * stagehandOptions: {
+     *   env: 'BROWSERBASE',
+     *   apiKey: 'bb-...',
+     *   projectId: 'proj-...',
      * }
      * ```
      */
-    modelApiKey?: string;
+    apiKey?: string;
+
+    /**
+     * Browserbase project ID (required when env is 'BROWSERBASE').
+     */
+    projectId?: string;
+
+    /**
+     * AI model to use for act(), extract(), observe() operations.
+     * Can be a string like "openai/gpt-4o" or a detailed ModelConfiguration object.
+     * @default 'openai/gpt-4o'
+     * @example "openai/gpt-4o"
+     * @example "anthropic/claude-sonnet-4-20250514"
+     */
+    model?: ModelConfiguration;
 
     /**
      * Logging verbosity level.

@@ -54,23 +54,22 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         // Import Stagehand dynamically to avoid peer dependency issues
         const { Stagehand } = await import('@browserbasehq/stagehand');
 
-        // Build model configuration - explicit modelApiKey takes precedence over env vars
+        const isLocal = this.stagehandOptions.env === 'LOCAL' || !this.stagehandOptions.env;
+
+        // Build model configuration
+        // For LOCAL env, apiKey is the LLM API key; for BROWSERBASE, it's the Browserbase key
         let modelConfig = this.stagehandOptions.model;
-        if (this.stagehandOptions.modelApiKey) {
+        if (isLocal && this.stagehandOptions.apiKey) {
             const modelName =
                 typeof modelConfig === 'string' ? modelConfig : (modelConfig?.modelName ?? 'openai/gpt-4o');
-
-            // Always use modelApiKey when explicitly provided (takes precedence over env vars)
             modelConfig = {
                 ...(typeof modelConfig === 'object' ? modelConfig : {}),
                 modelName,
-                apiKey: this.stagehandOptions.modelApiKey,
+                apiKey: this.stagehandOptions.apiKey,
             } as any;
         }
-        // If modelApiKey is not provided, Stagehand's dependencies will read from env vars automatically
 
         // Use anonymizeProxy to handle proxy authentication transparently
-        // This creates a local proxy server that handles auth, avoiding CDP complexity
         const [anonymizedProxyUrl, closeAnonymizedProxy] = await anonymizeProxySugar(proxyUrl);
 
         // Build Stagehand configuration
@@ -86,8 +85,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             cacheDir: this.stagehandOptions.cacheDir,
         };
 
-        // For LOCAL environment, pass launch options
-        if (this.stagehandOptions.env === 'LOCAL' || !this.stagehandOptions.env) {
+        if (isLocal) {
             // Use anonymized proxy URL if available (handles auth transparently)
             const proxyConfig = anonymizedProxyUrl ? { server: anonymizedProxyUrl } : launchOptions.proxy;
 
@@ -96,13 +94,10 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
                 args: launchOptions.args,
                 executablePath: launchOptions.executablePath,
                 proxy: proxyConfig,
-                // Pass fingerprinted viewport if available
                 viewport: (launchOptions as Record<string, unknown>).viewport as { width: number; height: number },
             };
-        }
-
-        // For BROWSERBASE environment, pass API credentials
-        if (this.stagehandOptions.env === 'BROWSERBASE') {
+        } else {
+            // BROWSERBASE: apiKey is the Browserbase API key
             stagehandConfig.apiKey = this.stagehandOptions.apiKey;
             stagehandConfig.projectId = this.stagehandOptions.projectId;
         }
@@ -203,11 +198,11 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         if (typeof model === 'string') {
             const modelStr = model.toLowerCase();
             if (modelStr.startsWith('openai/')) {
-                helpText += '\nNote: OpenAI models require OPENAI_API_KEY environment variable.';
+                helpText += '\nNote: OpenAI models require apiKey option or OPENAI_API_KEY environment variable.';
             } else if (modelStr.startsWith('anthropic/')) {
-                helpText += '\nNote: Anthropic models require ANTHROPIC_API_KEY environment variable.';
+                helpText += '\nNote: Anthropic models require apiKey option or ANTHROPIC_API_KEY environment variable.';
             } else if (modelStr.startsWith('google/')) {
-                helpText += '\nNote: Google models require GOOGLE_API_KEY environment variable.';
+                helpText += '\nNote: Google models require apiKey option or GOOGLE_API_KEY environment variable.';
             }
         }
 
