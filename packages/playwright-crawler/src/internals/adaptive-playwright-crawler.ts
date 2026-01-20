@@ -270,6 +270,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
     private preventDirectStorageAccess: boolean;
     declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
+    private inFlightRenderingTypeDetections = 0;
 
     /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink AdaptivePlaywrightCrawlerOptions.requestHandler|`requestHandler`}.
@@ -325,6 +326,13 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         this.preventDirectStorageAccess = preventDirectStorageAccess;
     }
 
+    /**
+     * Returns the number of rendering type detections currently in progress.
+     */
+    get inFlightRenderingTypeDetectionCount(): number {
+        return this.inFlightRenderingTypeDetections;
+    }
+
     protected override async _init(): Promise<void> {
         await this.renderingTypePredictor.initialize();
         return await super._init();
@@ -334,77 +342,89 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const renderingTypePrediction = this.renderingTypePredictor.predict(crawlingContext.request);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
-        if (!shouldDetectRenderingType) {
-            crawlingContext.log.debug(
-                `Predicted rendering type ${renderingTypePrediction.renderingType} for ${crawlingContext.request.url}`,
-            );
-        }
-
-        if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
-            crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
-            this.stats.trackHttpOnlyRequestHandlerRun();
-
-            const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext);
-
-            if (plainHTTPRun.ok && this.resultChecker(plainHTTPRun.result)) {
-                crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
-                plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
-                await this.commitResult(crawlingContext, plainHTTPRun.result);
-                return;
-            }
-            if (!plainHTTPRun.ok) {
-                crawlingContext.log.exception(
-                    plainHTTPRun.error as Error,
-                    `HTTP-only request handler failed for ${crawlingContext.request.url}`,
-                );
-            } else {
-                crawlingContext.log.warning(
-                    `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
-                );
-                this.stats.trackRenderingTypeMisprediction();
-            }
-        }
-
-        crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
-        this.stats.trackBrowserRequestHandlerRun();
-
-        // Run the request handler in a browser. The copy of the crawler state is kept so that we can perform
-        // a rendering type detection if necessary. Without this measure, the HTTP request handler would run
-        // under different conditions, which could change its behavior. Changes done to the crawler state by
-        // the HTTP request handler will not be committed to the actual storage.
-        const { result: browserRun, initialStateCopy } = await this.runRequestHandlerInBrowser(crawlingContext);
-
-        if (!browserRun.ok) {
-            throw browserRun.error;
-        }
-
-        await this.commitResult(crawlingContext, browserRun.result);
-
         if (shouldDetectRenderingType) {
-            crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
-            const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext, initialStateCopy);
+            this.inFlightRenderingTypeDetections++;
+        }
 
-            const detectionResult: RenderingType | undefined = (() => {
+        try {
+            if (!shouldDetectRenderingType) {
+                crawlingContext.log.debug(
+                    `Predicted rendering type ${renderingTypePrediction.renderingType} for ${crawlingContext.request.url}`,
+                );
+            }
+
+            if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
+                crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
+                this.stats.trackHttpOnlyRequestHandlerRun();
+
+                const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext);
+
+                if (plainHTTPRun.ok && this.resultChecker(plainHTTPRun.result)) {
+                    crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
+                    plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
+                    await this.commitResult(crawlingContext, plainHTTPRun.result);
+                    return;
+                }
                 if (!plainHTTPRun.ok) {
-                    return 'clientOnly';
+                    crawlingContext.log.exception(
+                        plainHTTPRun.error as Error,
+                        `HTTP-only request handler failed for ${crawlingContext.request.url}`,
+                    );
+                } else {
+                    crawlingContext.log.warning(
+                        `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
+                    );
+                    this.stats.trackRenderingTypeMisprediction();
                 }
+            }
 
-                const comparisonResult = this.resultComparator(plainHTTPRun.result, browserRun.result);
-                if (comparisonResult === true || comparisonResult === 'equal') {
-                    return 'static';
+            crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
+            this.stats.trackBrowserRequestHandlerRun();
+
+            // Run the request handler in a browser. The copy of the crawler state is kept so that we can perform
+            // a rendering type detection if necessary. Without this measure, the HTTP request handler would run
+            // under different conditions, which could change its behavior. Changes done to the crawler state by
+            // the HTTP request handler will not be committed to the actual storage.
+            const { result: browserRun, initialStateCopy } = await this.runRequestHandlerInBrowser(crawlingContext);
+
+            if (!browserRun.ok) {
+                throw browserRun.error;
+            }
+
+            await this.commitResult(crawlingContext, browserRun.result);
+
+            if (shouldDetectRenderingType) {
+                crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
+                const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext, initialStateCopy);
+
+                const detectionResult: RenderingType | undefined = (() => {
+                    if (!plainHTTPRun.ok) {
+                        return 'clientOnly';
+                    }
+
+                    const comparisonResult = this.resultComparator(plainHTTPRun.result, browserRun.result);
+                    if (comparisonResult === true || comparisonResult === 'equal') {
+                        return 'static';
+                    }
+
+                    if (comparisonResult === false || comparisonResult === 'different') {
+                        return 'clientOnly';
+                    }
+
+                    return undefined;
+                })();
+
+                crawlingContext.log.debug(
+                    `Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`,
+                );
+
+                if (detectionResult !== undefined) {
+                    this.renderingTypePredictor.storeResult(crawlingContext.request, detectionResult);
                 }
-
-                if (comparisonResult === false || comparisonResult === 'different') {
-                    return 'clientOnly';
-                }
-
-                return undefined;
-            })();
-
-            crawlingContext.log.debug(`Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`);
-
-            if (detectionResult !== undefined) {
-                this.renderingTypePredictor.storeResult(crawlingContext.request, detectionResult);
+            }
+        } finally {
+            if (shouldDetectRenderingType) {
+                this.inFlightRenderingTypeDetections--;
             }
         }
     }
