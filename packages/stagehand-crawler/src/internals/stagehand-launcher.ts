@@ -104,7 +104,6 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             config,
         );
 
-        // Apply defaults to Stagehand options (env and model are the main ones we customize)
         this.stagehandOptions = {
             env: 'LOCAL',
             model: 'openai/gpt-4o',

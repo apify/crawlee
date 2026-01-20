@@ -1,6 +1,6 @@
 import type { Stagehand, V3Options } from '@browserbasehq/stagehand';
 import type { BrowserController, BrowserPluginOptions, LaunchContext } from '@crawlee/browser-pool';
-import { BrowserPlugin, anonymizeProxySugar } from '@crawlee/browser-pool';
+import { anonymizeProxySugar, BrowserPlugin } from '@crawlee/browser-pool';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
 // Stagehand is built on CDP (Chrome DevTools Protocol), which only works with Chromium-based browsers.
 // Firefox and WebKit are not supported by Stagehand.
