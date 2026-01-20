@@ -797,16 +797,13 @@ describe('CheerioCrawler', () => {
                 requestHandler: async () => {},
                 failedRequestHandler,
                 httpClient: {
-                    sendRequest: async () => {
-                        throw new Error("Don't");
-                    },
-                    stream: async (request, opts) => {
+                    sendRequest: async (request, opts) => {
                         const { session } = opts ?? {};
                         if (session?.proxyInfo?.url.includes('localhost')) {
                             numberOfRotations++;
                             throw new Error('Proxy responded with 400 - Bad request');
                         }
-                        return await impit.stream(request);
+                        return await impit.sendRequest(request);
                     },
                 },
             });
@@ -829,15 +826,12 @@ describe('CheerioCrawler', () => {
                 maxSessionRotations: 1,
                 requestHandler: async () => {},
                 httpClient: {
-                    sendRequest: async () => {
-                        throw new Error("Don't");
-                    },
-                    stream: async (request, opts) => {
+                    sendRequest: async (request, opts) => {
                         const { session } = opts ?? {};
                         if (session?.proxyInfo?.url.includes('localhost')) {
                             throw new Error(proxyError);
                         }
-                        return await impit.stream(request);
+                        return impit.sendRequest(request);
                     },
                 },
             });

@@ -10,14 +10,34 @@ import CodeBlock from '@theme/CodeBlock';
 import ImplementationSource from '!!raw-loader!./implementation.ts';
 import UsageSource from '!!raw-loader!./usage.ts';
 
-The <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink> class allows you to configure the HTTP client implementation using the `httpClient` constructor option. This might be useful for testing or if you need to swap out the default implementation based on `got-scraping` for something else, such as `curl-impersonate` or `axios`.
+The <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink> class allows you to configure the HTTP client implementation using the `httpClient` constructor option. This might be useful for testing or if you need to swap out the default implementation based on `got-scraping` for something else, such as `curl-impersonate`.
 
-The HTTP client implementation needs to conform to the <ApiLink to="core/interface/BaseHttpClient">`BaseHttpClient`</ApiLink> interface. For a rough idea on how it might look, see a skeleton implementation that uses the standard `fetch` interface:
+## Built-in HTTP clients
+
+Crawlee provides several HTTP client implementations out of the box:
+
+- **`GotScrapingHttpClient`** (default) - Uses the `got-scraping` library for browser-like requests with support for custom headers, browser fingerprints, and proxies.
+- **`ImpitHttpClient`** - Uses the `impit` library for making requests that closely mimic browser behavior.
+- **`FetchHttpClient`** - Simple implementation using the native `fetch` API (does not support proxies).
+
+## Implementing a custom HTTP client
+
+To create a custom HTTP client, extend the <ApiLink to="http-client/class/BaseHttpClient">`BaseHttpClient`</ApiLink> abstract class from `@crawlee/http-client`. The base class handles common functionality like cookie management, redirect following, session integration, proxy support, and timeout handling.
+
+Your custom implementation only needs to override the `fetch` method to perform the actual network request:
 
 <CodeBlock language="ts">{ImplementationSource}</CodeBlock>
+
+By extending `BaseHttpClient`, your implementation automatically gets:
+- Cookie jar management (applying cookies before requests, saving cookies from responses)
+- Automatic redirect following (up to 10 redirects)
+- Session integration (proxy URL and cookies from session)
+- Timeout handling via AbortSignal
+- Proxy URL support
 
 You may then instantiate it and pass to a crawler constructor:
 
 <CodeBlock language="ts">{UsageSource}</CodeBlock>
 
-Please note that the interface is experimental and it will likely change with Crawlee version 4.
+Alternatively, you can implement the <ApiLink to="types/interface/BaseHttpClient">`BaseHttpClient`</ApiLink> interface directly if you need full control over all aspects of the HTTP request handling, including cookies, redirects, and sessions. However, this approach requires implementing significantly more logic yourself.
+

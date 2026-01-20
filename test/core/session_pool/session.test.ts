@@ -1,4 +1,5 @@
-import { EVENT_SESSION_RETIRED, ResponseWithUrl, Session, SessionPool } from '@crawlee/core';
+import { EVENT_SESSION_RETIRED, Session, SessionPool } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import { entries, sleep } from '@crawlee/utils';
 import { CookieJar } from 'tough-cookie';
 

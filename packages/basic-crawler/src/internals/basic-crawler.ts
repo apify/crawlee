@@ -38,7 +38,6 @@ import {
     enqueueLinks,
     EnqueueStrategy,
     EventType,
-    GotScrapingHttpClient,
     KeyValueStore,
     mergeCookies,
     NonRetryableError,
@@ -58,6 +57,7 @@ import {
     validateUserData,
     validators,
 } from '@crawlee/core';
+import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 import type {
     Awaitable,
     BaseHttpClient,
@@ -1705,7 +1705,7 @@ export class BasicCrawler<
             },
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request!, session) as CrawlingContext['sendRequest'],
+            sendRequest: createSendRequest(this.httpClient, request!, session),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
             registerDeferredCleanup: (cleanup) => {
                 deferredCleanup.push(cleanup);
