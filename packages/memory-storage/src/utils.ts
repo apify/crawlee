@@ -83,38 +83,32 @@ export function createPaginatedList<Data>(
     getPage: (offset: number, limit: number) => Promise<storage.PaginatedList<Data>>,
     options: { offset?: number; limit?: number } = {},
 ): AsyncIterable<Data> & Promise<storage.PaginatedList<Data>> {
-    const initialOffset = options.offset ?? 0;
-    const requestedLimit = options.limit;
+    const offset = options.offset ?? 0;
 
-    // Immediately fetch the first page
-    const firstPagePromise = getPage(initialOffset, requestedLimit ?? Infinity);
+    // Immediately fetch the first page (Infinity is used when no limit, gets clamped by Math.min downstream)
+    const firstPagePromise = getPage(offset, options.limit ?? Infinity);
 
     async function* asyncGenerator(): AsyncGenerator<Data> {
-        const firstPage = await firstPagePromise;
-        yield* firstPage.items;
+        let currentPage = await firstPagePromise;
+        yield* currentPage.items;
 
-        // Calculate how many items we still need to fetch
-        const maxItems = requestedLimit ?? firstPage.total;
-        let fetchedCount = firstPage.items.length;
-        let currentOffset = initialOffset + firstPage.count;
+        const limit = Math.min(options.limit ?? currentPage.total, currentPage.total);
+        let currentOffset = offset + currentPage.items.length;
+        let remainingItems = Math.min(currentPage.total - offset, limit) - currentPage.items.length;
 
-        while (fetchedCount < maxItems && currentOffset < firstPage.total) {
-            const remainingItems = maxItems - fetchedCount;
-            const page = await getPage(currentOffset, remainingItems);
-
-            if (page.items.length === 0) break;
-
-            yield* page.items;
-            fetchedCount += page.items.length;
-            currentOffset += page.count;
+        while (
+            currentPage.items.length > 0 && // Continue only if at least some items were returned in the last page.
+            remainingItems > 0
+        ) {
+            currentPage = await getPage(currentOffset, remainingItems);
+            yield* currentPage.items;
+            currentOffset += currentPage.items.length;
+            remainingItems -= currentPage.items.length;
         }
     }
 
     return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
         value: asyncGenerator,
-        writable: false,
-        enumerable: false,
-        configurable: false,
     }) as AsyncIterable<Data> & Promise<storage.PaginatedList<Data>>;
 }
 
@@ -153,8 +147,5 @@ export function createKeyList(
 
     return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
         value: asyncGenerator,
-        writable: false,
-        enumerable: false,
-        configurable: false,
     }) as AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData>;
 }
