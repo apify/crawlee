@@ -585,7 +585,7 @@ describe('dataset', () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const items: { id: number; name: string }[] = [];
+                const items = [];
                 for await (const item of dataset.values()) {
                     items.push(item);
                 }
@@ -597,7 +597,7 @@ describe('dataset', () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const entries: [number, { id: number; name: string }][] = [];
+                const entries = [];
                 for await (const [index, item] of dataset.entries()) {
                     entries.push([index, item]);
                 }
@@ -613,7 +613,7 @@ describe('dataset', () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const entries: [number, { id: number; name: string }][] = [];
+                const entries = [];
                 for await (const [index, item] of dataset.entries({ offset: 1 })) {
                     entries.push([index, item]);
                 }
@@ -628,7 +628,7 @@ describe('dataset', () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const items: { id: number; name: string }[] = [];
+                const items = [];
                 for await (const item of dataset) {
                     items.push(item);
                 }
@@ -640,7 +640,7 @@ describe('dataset', () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const items: { id: number; name: string }[] = [];
+                const items = [];
                 for await (const item of dataset.values()) {
                     items.push(item);
                     if (items.length === 2) break;
