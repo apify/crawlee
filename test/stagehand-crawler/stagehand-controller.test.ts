@@ -241,7 +241,7 @@ describe('StagehandController', () => {
             expect(mockContext.newCDPSession).not.toHaveBeenCalled();
         });
 
-        test('should provide credentials when auth is required', async () => {
+        test('should provide credentials when proxy auth is required', async () => {
             const pluginWithProxy = {
                 ...mockPlugin,
                 _proxyCredentials: {
@@ -263,17 +263,59 @@ describe('StagehandController', () => {
 
             await (controller as any)._newPage();
 
-            // Simulate auth required event
+            // Simulate proxy auth required event (source: 'Proxy')
             expect(authRequiredHandler).not.toBeNull();
-            await authRequiredHandler!({ requestId: 'req123' });
+            await authRequiredHandler!({
+                requestId: 'req123',
+                authChallenge: { source: 'Proxy' },
+            });
 
-            // Verify credentials were sent
+            // Verify credentials were sent for proxy auth
             expect(mockCdpSession.send).toHaveBeenCalledWith('Fetch.continueWithAuth', {
                 requestId: 'req123',
                 authChallengeResponse: {
                     response: 'ProvideCredentials',
                     username: 'proxyuser',
                     password: 'proxypass',
+                },
+            });
+        });
+
+        test('should cancel auth for server challenges to prevent credential leaking', async () => {
+            const pluginWithProxy = {
+                ...mockPlugin,
+                _proxyCredentials: {
+                    username: 'proxyuser',
+                    password: 'proxypass',
+                },
+            } as any;
+
+            let authRequiredHandler: ((event: any) => Promise<void>) | null = null;
+
+            mockCdpSession.on = vi.fn().mockImplementation((event, handler) => {
+                if (event === 'Fetch.authRequired') {
+                    authRequiredHandler = handler;
+                }
+            });
+
+            const controller = new StagehandController(pluginWithProxy, stagehandInstances);
+            (controller as any).browser = mockBrowser;
+
+            await (controller as any)._newPage();
+
+            // Simulate server auth required event (source: 'Server')
+            // This could be a malicious server trying to steal proxy credentials
+            expect(authRequiredHandler).not.toBeNull();
+            await authRequiredHandler!({
+                requestId: 'req123',
+                authChallenge: { source: 'Server' },
+            });
+
+            // Verify auth was cancelled (not providing credentials to server)
+            expect(mockCdpSession.send).toHaveBeenCalledWith('Fetch.continueWithAuth', {
+                requestId: 'req123',
+                authChallengeResponse: {
+                    response: 'CancelAuth',
                 },
             });
         });

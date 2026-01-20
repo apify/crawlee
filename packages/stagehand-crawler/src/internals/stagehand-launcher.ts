@@ -57,29 +57,20 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
 }
 
 /**
- * Resolves Stagehand options from various sources with priority:
- * 1. Explicit options passed to constructor
- * 2. Environment variables
- * 3. Defaults
+ * Resolves Stagehand options, passing through explicit options or using Stagehand defaults.
  *
  * @ignore
  */
 export function resolveStagehandOptions(options?: StagehandOptions): StagehandOptions {
     return {
-        env: options?.env ?? (process.env.STAGEHAND_ENV as 'LOCAL' | 'BROWSERBASE') ?? 'LOCAL',
-        apiKey: options?.apiKey ?? process.env.STAGEHAND_API_KEY,
-        projectId: options?.projectId ?? process.env.STAGEHAND_PROJECT_ID,
-        model: options?.model ?? process.env.STAGEHAND_MODEL ?? 'openai/gpt-4o',
+        env: options?.env ?? 'LOCAL',
+        apiKey: options?.apiKey,
+        projectId: options?.projectId,
+        model: options?.model ?? 'openai/gpt-4o',
         modelApiKey: options?.modelApiKey,
-        verbose:
-            options?.verbose ??
-            (process.env.STAGEHAND_VERBOSE
-                ? (Math.min(2, Math.max(0, parseInt(process.env.STAGEHAND_VERBOSE, 10))) as 0 | 1 | 2)
-                : 0),
-        selfHeal: options?.selfHeal ?? process.env.STAGEHAND_SELF_HEAL !== 'false',
-        domSettleTimeout:
-            options?.domSettleTimeout ??
-            (process.env.STAGEHAND_DOM_SETTLE_TIMEOUT ? parseInt(process.env.STAGEHAND_DOM_SETTLE_TIMEOUT, 10) : 30000),
+        verbose: options?.verbose ?? 0,
+        selfHeal: options?.selfHeal ?? true,
+        domSettleTimeout: options?.domSettleTimeout ?? 30000,
         llmClient: options?.llmClient,
         systemPrompt: options?.systemPrompt,
         logInferenceToFile: options?.logInferenceToFile ?? false,

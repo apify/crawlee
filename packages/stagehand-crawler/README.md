@@ -20,12 +20,10 @@ const crawler = new StagehandCrawler({
 });
 ```
 
-You can also override the API key using environment variables:
+Alternatively, you can use environment variables (used as fallback when `modelApiKey` is not provided):
 - OpenAI: `OPENAI_API_KEY`
 - Anthropic: `ANTHROPIC_API_KEY`
 - Google: `GOOGLE_API_KEY`
-
-When set, environment variables take precedence over `modelApiKey`.
 
 ## Example usage
 

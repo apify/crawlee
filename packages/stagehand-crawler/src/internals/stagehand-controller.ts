@@ -92,14 +92,26 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
 
             cdpSession.on('Fetch.authRequired', async (event) => {
                 try {
-                    await cdpSession.send('Fetch.continueWithAuth', {
-                        requestId: event.requestId,
-                        authChallengeResponse: {
-                            response: 'ProvideCredentials',
-                            username: credentials.username,
-                            password: credentials.password,
-                        },
-                    });
+                    // Only respond with credentials for proxy auth challenges, not server auth
+                    // This prevents leaking proxy credentials to malicious servers
+                    if (event.authChallenge?.source === 'Proxy') {
+                        await cdpSession.send('Fetch.continueWithAuth', {
+                            requestId: event.requestId,
+                            authChallengeResponse: {
+                                response: 'ProvideCredentials',
+                                username: credentials.username,
+                                password: credentials.password,
+                            },
+                        });
+                    } else {
+                        // For server auth challenges, cancel the auth request
+                        await cdpSession.send('Fetch.continueWithAuth', {
+                            requestId: event.requestId,
+                            authChallengeResponse: {
+                                response: 'CancelAuth',
+                            },
+                        });
+                    }
                 } catch {
                     // Request might have been cancelled
                 }
