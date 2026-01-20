@@ -127,7 +127,7 @@ export function createPaginatedList<Data>(
  */
 export function createKeyList(
     getPage: (exclusiveStartKey?: string) => Promise<storage.KeyValueStoreClientListData>,
-    options: { exclusiveStartKey?: string } = {},
+    options: { exclusiveStartKey?: string; limit?: number } = {},
 ): AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData> {
     // Immediately fetch the first page
     const firstPagePromise = getPage(options.exclusiveStartKey);
@@ -136,9 +136,18 @@ export function createKeyList(
         let currentPage = await firstPagePromise;
         yield* currentPage.items;
 
-        while (currentPage.isTruncated && currentPage.nextExclusiveStartKey) {
+        let remainingItems = options.limit ? options.limit - currentPage.items.length : undefined;
+
+        while (
+            currentPage.items.length > 0 &&
+            currentPage.nextExclusiveStartKey !== undefined &&
+            (remainingItems === undefined || remainingItems > 0)
+        ) {
             currentPage = await getPage(currentPage.nextExclusiveStartKey);
             yield* currentPage.items;
+            if (remainingItems !== undefined) {
+                remainingItems -= currentPage.items.length;
+            }
         }
     }
 

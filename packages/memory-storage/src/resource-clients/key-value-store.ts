@@ -137,7 +137,7 @@ export class KeyValueStoreClient extends BaseClient {
                     exclusiveStartKey: pageExclusiveStartKey,
                     prefix,
                 }),
-            { exclusiveStartKey },
+            { exclusiveStartKey, limit },
         );
     }
 
