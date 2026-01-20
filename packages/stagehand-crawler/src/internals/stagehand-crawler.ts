@@ -59,7 +59,7 @@ export interface StagehandOptions {
      * // Local with OpenAI
      * stagehandOptions: {
      *   env: 'LOCAL',
-     *   model: 'openai/gpt-4o',
+     *   model: 'openai/gpt-4.1-mini',
      *   apiKey: 'sk-...',
      * }
      *
@@ -80,9 +80,9 @@ export interface StagehandOptions {
 
     /**
      * AI model to use for act(), extract(), observe() operations.
-     * Can be a string like "openai/gpt-4o" or a detailed ModelConfiguration object.
-     * @default 'openai/gpt-4o'
-     * @example "openai/gpt-4o"
+     * Can be a string like "openai/gpt-4.1-mini" or a detailed ModelConfiguration object.
+     * @default 'openai/gpt-4.1-mini'
+     * @example "openai/gpt-4.1-mini"
      * @example "anthropic/claude-sonnet-4-20250514"
      */
     model?: ModelConfiguration;
@@ -333,7 +333,7 @@ export interface StagehandCrawlerOptions
  * const crawler = new StagehandCrawler({
  *   stagehandOptions: {
  *     env: 'LOCAL',
- *     model: 'openai/gpt-4o',
+ *     model: 'openai/gpt-4.1-mini',
  *     verbose: 1,
  *   },
  *   maxConcurrency: 3,

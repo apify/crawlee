@@ -103,7 +103,7 @@ for (const action of actions) {
 Create an autonomous agent for complex multi-step workflows. Unlike `act()` which executes a single action, `agent()` can plan and execute multiple steps autonomously to achieve a goal. See [Stagehand agent() documentation](https://docs.stagehand.dev/reference/agent) for more details.
 
 ```ts
-const agent = page.agent({ model: 'gpt-4o' });
+const agent = page.agent({ model: 'gpt-4.1-mini' });
 const result = await agent.execute('Find the cheapest laptop and add it to cart');
 ```
 
@@ -115,18 +115,18 @@ Note that `agent()` makes multiple LLM calls and can be slower and more expensiv
 
 ## Requirements
 
-StagehandCrawler requires an API key for the AI model provider. The recommended way is to use the `modelApiKey` option:
+StagehandCrawler requires an API key for the AI model provider. The recommended way is to use the `apiKey` option:
 
 ```ts
 const crawler = new StagehandCrawler({
     stagehandOptions: {
-        model: 'openai/gpt-4o',
-        modelApiKey: 'sk-...', // Your OpenAI API key
+        model: 'openai/gpt-4.1-mini',
+        apiKey: 'sk-...', // Your OpenAI API key
     },
 });
 ```
 
-Alternatively, you can use environment variables (used as fallback when `modelApiKey` is not provided):
+Alternatively, you can use environment variables (used as fallback when `apiKey` is not provided):
 
 - **OpenAI**: `OPENAI_API_KEY`
 - **Anthropic**: `ANTHROPIC_API_KEY`
@@ -188,11 +188,11 @@ const crawler = new StagehandCrawler({
         // Environment: 'LOCAL' or 'BROWSERBASE'
         env: 'LOCAL',
 
-        // AI model to use (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4-20250514')
-        model: 'openai/gpt-4o',
+        // AI model to use (e.g., 'openai/gpt-4.1-mini', 'anthropic/claude-sonnet-4-20250514')
+        model: 'openai/gpt-4.1-mini',
 
         // API key for the LLM provider (can be overridden by environment variables)
-        modelApiKey: process.env.OPENAI_API_KEY,
+        apiKey: process.env.OPENAI_API_KEY,
 
         // Logging verbosity: 0 (minimal), 1 (standard), 2 (debug)
         verbose: 1,
@@ -208,13 +208,13 @@ const crawler = new StagehandCrawler({
 
 ### Environment variables
 
-Stagehand options can alternatively be set via environment variables. Programmatic options take precedence, except for LLM API keys where environment variables override `modelApiKey`:
+Stagehand options can alternatively be set via environment variables. Programmatic options always take precedence over environment variables:
 
 | Environment variable | Option | Notes |
 |---------------------|--------|-------|
-| `OPENAI_API_KEY` | `modelApiKey` | Overrides `modelApiKey` for OpenAI models |
-| `ANTHROPIC_API_KEY` | `modelApiKey` | Overrides `modelApiKey` for Anthropic models |
-| `GOOGLE_API_KEY` | `modelApiKey` | Overrides `modelApiKey` for Google models |
+| `OPENAI_API_KEY` | `apiKey` | Fallback for OpenAI models |
+| `ANTHROPIC_API_KEY` | `apiKey` | Fallback for Anthropic models |
+| `GOOGLE_API_KEY` | `apiKey` | Fallback for Google models |
 | `STAGEHAND_ENV` | `env` | |
 | `STAGEHAND_MODEL` | `model` | |
 | `STAGEHAND_VERBOSE` | `verbose` | |
@@ -231,7 +231,7 @@ const crawler = new StagehandCrawler({
         env: 'BROWSERBASE',
         apiKey: process.env.BROWSERBASE_API_KEY,
         projectId: process.env.BROWSERBASE_PROJECT_ID,
-        model: 'openai/gpt-4o',
+        model: 'openai/gpt-4.1-mini',
     },
 });
 ```

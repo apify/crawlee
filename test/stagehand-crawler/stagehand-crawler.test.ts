@@ -87,7 +87,7 @@ describe('StagehandCrawler', () => {
         const crawler = new StagehandCrawler({
             stagehandOptions: {
                 env: 'LOCAL',
-                model: 'openai/gpt-4o',
+                model: 'openai/gpt-4.1-mini',
                 verbose: 1,
                 selfHeal: true,
             },
@@ -229,9 +229,9 @@ describe('enhancePageWithStagehand', () => {
         } as any;
 
         const enhancedPage = enhancePageWithStagehand(mockPage, mockStagehand);
-        const agent = enhancedPage.agent({ model: 'gpt-4o' });
+        const agent = enhancedPage.agent({ model: 'gpt-4.1-mini' });
 
-        expect(mockStagehand.agent).toHaveBeenCalledWith({ model: 'gpt-4o' });
+        expect(mockStagehand.agent).toHaveBeenCalledWith({ model: 'gpt-4.1-mini' });
         expect(agent).toBe(mockAgentInstance);
     });
 

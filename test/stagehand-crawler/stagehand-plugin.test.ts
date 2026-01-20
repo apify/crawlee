@@ -54,7 +54,7 @@ describe('StagehandPlugin', () => {
         const plugin = new StagehandPlugin(playwright.chromium, {
             stagehandOptions: {
                 env: 'LOCAL',
-                model: 'openai/gpt-4o',
+                model: 'openai/gpt-4.1-mini',
                 verbose: 1,
             },
         });

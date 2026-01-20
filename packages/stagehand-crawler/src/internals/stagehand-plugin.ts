@@ -56,51 +56,39 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
 
         const isLocal = this.stagehandOptions.env === 'LOCAL' || !this.stagehandOptions.env;
 
+        // Use anonymizeProxy to handle proxy authentication transparently
+        const [anonymizedProxyUrl, closeAnonymizedProxy] = await anonymizeProxySugar(proxyUrl);
+
         // Build model configuration
-        // For LOCAL env, apiKey is the LLM API key; for BROWSERBASE, it's the Browserbase key
+        // For LOCAL env, we merge apiKey into the model config since Stagehand expects it there
         let modelConfig = this.stagehandOptions.model;
         if (isLocal && this.stagehandOptions.apiKey) {
-            const modelName =
-                typeof modelConfig === 'string' ? modelConfig : (modelConfig?.modelName ?? 'openai/gpt-4o');
+            const modelName = typeof modelConfig === 'string' ? modelConfig : modelConfig?.modelName;
             modelConfig = {
                 ...(typeof modelConfig === 'object' ? modelConfig : {}),
-                modelName,
+                ...(modelName ? { modelName } : {}),
                 apiKey: this.stagehandOptions.apiKey,
             } as any;
         }
 
-        // Use anonymizeProxy to handle proxy authentication transparently
-        const [anonymizedProxyUrl, closeAnonymizedProxy] = await anonymizeProxySugar(proxyUrl);
-
-        // Build Stagehand configuration
+        // Build Stagehand configuration by spreading our options and adding launch options
         const stagehandConfig: V3Options = {
+            ...this.stagehandOptions,
             env: this.stagehandOptions.env ?? 'LOCAL',
             model: modelConfig,
-            verbose: this.stagehandOptions.verbose,
-            selfHeal: this.stagehandOptions.selfHeal,
-            domSettleTimeout: this.stagehandOptions.domSettleTimeout,
-            llmClient: this.stagehandOptions.llmClient,
-            systemPrompt: this.stagehandOptions.systemPrompt,
-            logInferenceToFile: this.stagehandOptions.logInferenceToFile,
-            cacheDir: this.stagehandOptions.cacheDir,
+            localBrowserLaunchOptions: isLocal
+                ? {
+                      headless: launchOptions.headless,
+                      args: launchOptions.args,
+                      executablePath: launchOptions.executablePath,
+                      proxy: anonymizedProxyUrl ? { server: anonymizedProxyUrl } : launchOptions.proxy,
+                      viewport: (launchOptions as Record<string, unknown>).viewport as {
+                          width: number;
+                          height: number;
+                      },
+                  }
+                : undefined,
         };
-
-        if (isLocal) {
-            // Use anonymized proxy URL if available (handles auth transparently)
-            const proxyConfig = anonymizedProxyUrl ? { server: anonymizedProxyUrl } : launchOptions.proxy;
-
-            stagehandConfig.localBrowserLaunchOptions = {
-                headless: launchOptions.headless,
-                args: launchOptions.args,
-                executablePath: launchOptions.executablePath,
-                proxy: proxyConfig,
-                viewport: (launchOptions as Record<string, unknown>).viewport as { width: number; height: number },
-            };
-        } else {
-            // BROWSERBASE: apiKey is the Browserbase API key
-            stagehandConfig.apiKey = this.stagehandOptions.apiKey;
-            stagehandConfig.projectId = this.stagehandOptions.projectId;
-        }
 
         const stagehand = new Stagehand(stagehandConfig);
 
@@ -191,7 +179,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
      */
     private _augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
         const message = error instanceof Error ? error.message : String(error);
-        const model = this.stagehandOptions.model ?? 'openai/gpt-4o';
+        const model = this.stagehandOptions.model;
 
         let helpText = '';
 

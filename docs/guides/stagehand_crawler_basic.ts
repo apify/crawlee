@@ -4,7 +4,7 @@ import { z } from 'zod';
 const crawler = new StagehandCrawler({
     stagehandOptions: {
         env: 'LOCAL',
-        model: 'openai/gpt-4o',
+        model: 'openai/gpt-4.1-mini',
         verbose: 1,
     },
     async requestHandler({ page, request, log, pushData }) {

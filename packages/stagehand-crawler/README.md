@@ -15,7 +15,7 @@ The `apiKey` option is interpreted based on the `env` setting:
 ```typescript
 const crawler = new StagehandCrawler({
     stagehandOptions: {
-        model: 'openai/gpt-4o',
+        model: 'openai/gpt-4.1-mini',
         apiKey: 'sk-...', // LLM API key for LOCAL env
     },
     // ...
@@ -35,7 +35,7 @@ import { z } from 'zod';
 
 const crawler = new StagehandCrawler({
     stagehandOptions: {
-        model: 'openai/gpt-4o',
+        model: 'openai/gpt-4.1-mini',
     },
     async requestHandler({ page, request, log }) {
         log.info(`Processing ${request.url}`);

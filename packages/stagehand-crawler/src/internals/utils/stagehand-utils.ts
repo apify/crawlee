@@ -28,7 +28,7 @@ function improveErrorMessage(error: unknown): string {
         }
         const envVar = PROVIDER_ENV_VARS[provider] ?? '<PROVIDER>_API_KEY';
 
-        return `${provider} API key is missing. Pass it via 'stagehandOptions.modelApiKey' or set the ${envVar} environment variable.`;
+        return `${provider} API key is missing. Pass it via 'stagehandOptions.apiKey' or set the ${envVar} environment variable.`;
     }
 
     return message;

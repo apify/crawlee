@@ -21,7 +21,7 @@
  * const crawler = new StagehandCrawler({
  *   stagehandOptions: {
  *     env: 'LOCAL',
- *     model: 'openai/gpt-4o',
+ *     model: 'openai/gpt-4.1-mini',
  *   },
  *   async requestHandler({ page, request, log }) {
  *     log.info(`Processing ${request.url}`);
