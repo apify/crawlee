@@ -623,9 +623,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     async *values(options: DatasetIteratorOptions = {}): AsyncGenerator<Data, void, undefined> {
         checkStorageAccess();
 
-        for await (const item of this.client.listItems(options)) {
-            yield item;
-        }
+        yield* this.client.listItems(options);
     }
 
     /**
