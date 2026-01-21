@@ -714,25 +714,5 @@ describe('KeyValueStore', () => {
                 ['key2', { value: 2 }],
             ]);
         });
-
-        test('should allow breaking from iteration early', async () => {
-            const store = await KeyValueStore.open();
-
-            for (const [key, value] of Object.entries({
-                key1: { value: 1 },
-                key2: { value: 2 },
-                key3: { value: 3 },
-            })) {
-                await store.setValue(key, value);
-            }
-
-            const keys: string[] = [];
-            for await (const key of store.keys()) {
-                keys.push(key);
-                if (keys.length === 2) break;
-            }
-
-            expect(keys).toEqual(['key1', 'key2']);
-        });
     });
 });

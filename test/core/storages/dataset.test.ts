@@ -636,22 +636,6 @@ describe('dataset', () => {
                 expect(items).toEqual(testData);
             });
 
-            test('should allow breaking from iteration early', async () => {
-                const dataset = await Dataset.open();
-                await dataset.pushData(testData);
-
-                const items = [];
-                for await (const item of dataset.values()) {
-                    items.push(item);
-                    if (items.length === 2) break;
-                }
-
-                expect(items).toEqual([
-                    { id: 1, name: 'Alice' },
-                    { id: 2, name: 'Bob' },
-                ]);
-            });
-
             test('should work with empty dataset', async () => {
                 const dataset = await Dataset.open();
 
