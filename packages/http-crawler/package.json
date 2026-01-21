@@ -56,7 +56,6 @@
         "@types/content-type": "^1.1.8",
         "cheerio": "^1.0.0",
         "content-type": "^1.0.5",
-        "got-scraping": "^4.1.1",
         "iconv-lite": "^0.7.0",
         "mime-types": "^3.0.1",
         "ow": "^2.0.0",
