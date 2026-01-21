@@ -30,7 +30,6 @@ import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-import type { TimeoutError as TimeoutErrorClass } from 'got-scraping';
 import iconv from 'iconv-lite';
 import ow from 'ow';
 import type { JsonValue } from 'type-fest';
@@ -38,8 +37,6 @@ import type { JsonValue } from 'type-fest';
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import { parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
-
-let TimeoutError: typeof TimeoutErrorClass;
 
 /**
  * Default mime types, which HttpScraper supports.
@@ -608,17 +605,12 @@ export class HttpCrawler<
         proxyUrl,
         cookieString,
     }: RequestFunctionOptions): Promise<Response> {
-        if (!TimeoutError) {
-            // @ts-ignore
-            ({ TimeoutError } = await import('got-scraping'));
-        }
-
         const opts = this._getRequestOptions(request, session, proxyUrl);
 
         try {
             return await this._requestAsBrowser(opts, session, cookieString);
         } catch (e) {
-            if (e instanceof TimeoutError) {
+            if (e instanceof Error && e.name === 'TimeoutError') {
                 this._handleRequestTimeout(session);
                 return new Response(); // this will never happen, as _handleRequestTimeout always throws
             }
