@@ -2,6 +2,7 @@ import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
 
 type PromiseVoid = () => Promise<void>;
 
+/** @internal */
 export const anonymizeProxySugar = async (
     proxyUrl?: string,
     username?: string,
