@@ -1,0 +1,139 @@
+---
+id: impit-http-client
+title: Impit HTTP Client
+description: Browser impersonation for HTTP requests using the Impit library
+---
+
+import CodeBlock from '@theme/CodeBlock';
+
+import BasicUsageSource from '!!raw-loader!./basic-usage.ts';
+import CheerioCrawlerSource from '!!raw-loader!./cheerio-crawler.ts';
+import HttpCrawlerSource from '!!raw-loader!./http-crawler.ts';
+import AdvancedConfigSource from '!!raw-loader!./advanced-config.ts';
+
+## Introduction
+
+The `ImpitHttpClient` is an HTTP client implementation based on the [Impit](https://github.com/apify/impit) library. It enables browser impersonation for HTTP requests, helping you bypass bot detection systems without running an actual browser.
+
+:::info Successor to got-scraping
+
+Impit is the successor to `got-scraping`, which is no longer actively maintained. We recommend using `ImpitHttpClient` for all new projects. Impit provides better anti-bot evasion through TLS fingerprinting and HTTP/3 support, while maintaining a smaller package size.
+
+**Impit will become the default HTTP client in the next major version of Crawlee.**
+
+:::
+
+### Why use Impit?
+
+Websites increasingly use sophisticated bot detection that analyzes:
+
+- **HTTP fingerprints**: User-Agent strings, header ordering, HTTP/2 pseudo-header sequences
+- **TLS fingerprints**: Cipher suites, TLS extensions, and cryptographic details in the ClientHello message
+
+Standard HTTP clients like `fetch` or `axios` are easily detected because their fingerprints don't match real browsers. Unlike `got-scraping` which only handles HTTP-level fingerprinting, Impit also mimics TLS fingerprints, making requests appear to come from real browsers.
+
+## Installation
+
+Install the `@crawlee/impit-client` package:
+
+```bash npm2yarn
+npm install @crawlee/impit-client
+```
+
+:::note
+
+The `impit` package includes native binaries and supports Windows, macOS (including ARM), and Linux out of the box.
+
+:::
+
+## Basic usage
+
+Pass the `ImpitHttpClient` instance to the `httpClient` option of any Crawlee crawler:
+
+<CodeBlock language="ts">{BasicUsageSource}</CodeBlock>
+
+## Usage with different crawlers
+
+### CheerioCrawler
+
+<CodeBlock language="ts">{CheerioCrawlerSource}</CodeBlock>
+
+### HttpCrawler
+
+<CodeBlock language="ts">{HttpCrawlerSource}</CodeBlock>
+
+## Configuration options
+
+The `ImpitHttpClient` constructor accepts the following options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `browser` | `'chrome'` \| `'firefox'` | `undefined` | Browser to impersonate. Affects TLS fingerprint and default headers. |
+| `http3` | `boolean` | `false` | Enable HTTP/3 (QUIC) protocol support. |
+| `ignoreTlsErrors` | `boolean` | `false` | Ignore TLS certificate errors. Useful for testing or self-signed certificates. |
+
+### Browser impersonation
+
+Use the `Browser` enum to specify which browser to impersonate:
+
+```ts
+import { ImpitHttpClient, Browser } from '@crawlee/impit-client';
+
+// Impersonate Firefox
+const firefoxClient = new ImpitHttpClient({ browser: Browser.Firefox });
+
+// Impersonate Chrome
+const chromeClient = new ImpitHttpClient({ browser: Browser.Chrome });
+```
+
+### Advanced configuration
+
+<CodeBlock language="ts">{AdvancedConfigSource}</CodeBlock>
+
+## Proxy support
+
+Proxies are configured per-request through Crawlee's proxy management system, not on the `ImpitHttpClient` itself. Use `ProxyConfiguration` as you normally would:
+
+```ts
+import { CheerioCrawler, ProxyConfiguration } from 'crawlee';
+import { ImpitHttpClient, Browser } from '@crawlee/impit-client';
+
+const proxyConfiguration = new ProxyConfiguration({
+    proxyUrls: ['http://proxy1.example.com:8080', 'http://proxy2.example.com:8080'],
+});
+
+const crawler = new CheerioCrawler({
+    httpClient: new ImpitHttpClient({ browser: Browser.Chrome }),
+    proxyConfiguration,
+    async requestHandler({ $, request }) {
+        console.log(`Scraped ${request.url}`);
+    },
+});
+```
+
+## How it works
+
+Impit achieves browser impersonation at two levels:
+
+1. **HTTP level**: Mimics browser-specific header ordering, HTTP/2 settings, and pseudo-header sequences that antibot services analyze.
+
+2. **TLS level**: Uses a patched version of `rustls` to replicate the exact TLS ClientHello message that browsers send, including cipher suites and extensions.
+
+This dual-layer approach makes requests appear to come from a real browser, significantly reducing blocks from bot detection systems.
+
+## Comparison with other solutions
+
+| Feature | got-scraping | curl-impersonate | Impit |
+|---------|--------------|------------------|-------|
+| TLS fingerprinting | No | Yes | Yes |
+| HTTP/3 support | No | Yes | Yes |
+| Native Node.js package | Yes | No (child process) | Yes |
+| Windows/macOS ARM | Yes | No | Yes |
+| Package size | ~10 MB | ~20 MB | ~8 MB |
+
+**Related links**
+
+- [Impit GitHub repository](https://github.com/apify/impit)
+- [Custom HTTP Client guide](./custom-http-client)
+- [Proxy Management guide](./proxy-management)
+- [Avoiding blocking guide](./avoid-blocking)
