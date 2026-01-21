@@ -610,7 +610,7 @@ export class HttpCrawler<
         try {
             return await this._requestAsBrowser(opts, session, cookieString);
         } catch (e) {
-            if (e instanceof Error && e.name === 'TimeoutError') {
+            if (e instanceof Error && e.constructor.name === 'TimeoutError') {
                 this._handleRequestTimeout(session);
                 return new Response(); // this will never happen, as _handleRequestTimeout always throws
             }
