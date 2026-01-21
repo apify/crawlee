@@ -41,6 +41,7 @@ module.exports = {
                 'guides/scaling-crawlers',
                 'guides/avoid-blocking',
                 'guides/jsdom-crawler-guide',
+                'guides/impit-http-client/impit-http-client',
                 'guides/got-scraping',
                 'guides/typescript-project',
                 'guides/docker-images',
