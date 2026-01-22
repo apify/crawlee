@@ -1,0 +1,90 @@
+{
+    "name": "@crawlee/stagehand",
+    "version": "3.15.3",
+    "description": "AI-powered web crawling with Stagehand integration for Crawlee - enables natural language browser automation with act(), extract(), and observe() methods.",
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "crawlee",
+        "stagehand",
+        "ai",
+        "crawler",
+        "scraper",
+        "automation",
+        "playwright",
+        "browserbase"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "contributors": [
+        "Jan Curn <jan@apify.com>",
+        "Marek Trunkat <marek@apify.com>",
+        "Ondra Urban <ondra@apify.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/crawlee"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/crawlee/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "yarn clean && yarn compile && yarn copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+        "copy": "tsx ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@apify/log": "^2.4.0",
+        "@apify/timeout": "^0.3.1",
+        "@crawlee/browser": "3.15.3",
+        "@crawlee/browser-pool": "3.15.3",
+        "@crawlee/core": "3.15.3",
+        "@crawlee/types": "3.15.3",
+        "@crawlee/utils": "3.15.3",
+        "ow": "^0.28.1",
+        "tslib": "^2.4.0"
+    },
+    "peerDependencies": {
+        "@browserbasehq/stagehand": "^3.0.0",
+        "playwright": "*",
+        "zod": "^3.0.0 || ^4.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@browserbasehq/stagehand": {
+            "optional": false
+        },
+        "playwright": {
+            "optional": true
+        },
+        "zod": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@browserbasehq/stagehand": "^3.0.7",
+        "playwright": "^1.57.0",
+        "zod": "^4.3.5"
+    }
+}

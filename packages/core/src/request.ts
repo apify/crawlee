@@ -125,7 +125,12 @@ export class Request<UserData extends Dictionary = Dictionary> {
     /** Private store for the custom user data assigned to the request. */
     private _userData: Record<string, any> = {};
 
-    /** Custom user data assigned to the request. */
+    /**
+     * Custom user data assigned to the request.
+     *
+     * All data stored in `userData` must be JSON-serializable.
+     * Storing non-serializable values (e.g. functions, symbols) may result in unexpected results.
+     */
     userData: UserData = {} as UserData;
 
     /**
@@ -486,6 +491,9 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     /**
      * Custom user data assigned to the request. Use this to save any request related data to the
      * request's scope, keeping them accessible on retries, failures etc.
+     *
+     * All data stored in `userData` must be JSON-serializable.
+     * Storing non-serializable values (e.g. functions, symbols) may result in unexpected results.
      */
     userData?: UserData;
 

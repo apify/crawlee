@@ -536,6 +536,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     running = false;
     hasFinishedBefore = false;
+    protected unexpectedStop = false;
 
     readonly log: Log;
     protected requestHandler!: RequestHandler<Context>;
@@ -562,8 +563,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
-    private shouldLogMaxProcessedRequestsExceeded = true;
-    private shouldLogMaxEnqueuedRequestsExceeded = true;
+    private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
@@ -810,13 +810,20 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    if (this.shouldLogMaxProcessedRequestsExceeded) {
-                        log.info(
-                            'Crawler reached the maxRequestsPerCrawl limit of ' +
-                                `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
-                        );
-                        this.shouldLogMaxProcessedRequestsExceeded = false;
-                    }
+                    this.logOncePerRun(
+                        'shuttingDown',
+                        'Crawler reached the maxRequestsPerCrawl limit of ' +
+                            `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
+                    );
+                    return false;
+                }
+
+                if (this.unexpectedStop) {
+                    this.logOncePerRun(
+                        'shuttingDown',
+                        'No new requests are allowed because the `stop()` method has been called. ' +
+                            'Ongoing requests will be allowed to complete.',
+                    );
                     return false;
                 }
 
@@ -828,6 +835,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.maxRequestsPerCrawl} requests ` +
                             'and all requests that were in progress at that time have now finished. ' +
                             `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
+                    );
+                    return true;
+                }
+
+                if (this.unexpectedStop) {
+                    this.log.info(
+                        'The crawler has finished all the remaining ongoing requests and will shut down now.',
                     );
                     return true;
                 }
@@ -977,9 +991,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this.sessionPool?.resetStore();
         }
 
+        this.unexpectedStop = false;
         this.running = true;
-        this.shouldLogMaxProcessedRequestsExceeded = true;
-        this.shouldLogMaxEnqueuedRequestsExceeded = true;
+        this.loggedPerRun.clear();
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
@@ -1079,16 +1093,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      *
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
-    stop(message = 'The crawler has been gracefully stopped.'): void {
-        // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
-        this.autoscaledPool
-            ?.pause()
-            // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
-            .then(async () => this.autoscaledPool?.abort())
-            .then(() => this.log.info(message))
-            .catch((err) => {
-                this.log.error('An error occurred when stopping the crawler:', err);
-            });
+    stop(reason = 'The crawler has been gracefully stopped.'): void {
+        if (this.unexpectedStop) {
+            return;
+        }
+        this.log.info(reason);
+        this.unexpectedStop = true;
     }
 
     async getRequestQueue(): Promise<RequestProvider> {
@@ -1136,22 +1146,29 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
-        if (options.reason === 'limit' && this.shouldLogMaxEnqueuedRequestsExceeded) {
-            this.log.info(
+        if (options.reason === 'limit') {
+            this.logOncePerRun(
+                'maxRequestsPerCrawl',
                 'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
                     `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
             );
-            this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
 
-        if (options.reason === 'enqueueLimit') {
-            const enqueuedRequestLimit = this.calculateEnqueuedRequestLimit();
-            if (enqueuedRequestLimit === undefined || enqueuedRequestLimit !== 0) {
-                this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
-            }
+        if (options.reason === 'depth') {
+            this.logOncePerRun(
+                'maxCrawlDepth',
+                `The crawler reached the maxCrawlDepth limit of ${this.maxCrawlDepth} and no further requests will be enqueued.`,
+            );
         }
 
         await this.onSkippedRequest?.(options);
+    }
+
+    private logOncePerRun(key: string, message: string): void {
+        if (!this.loggedPerRun.has(key)) {
+            this.log.info(message);
+            this.loggedPerRun.add(key);
+        }
     }
 
     /**
@@ -1694,10 +1711,26 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return options.transformRequestFunction?.(newRequest) ?? newRequest;
         };
 
+        // Create a request-scoped callback that logs enqueueLimit once per request handler call
+        // Only log if an explicit limit was passed to enqueueLinks (not the internal maxRequestsPerCrawl-derived limit)
+        let loggedEnqueueLimitForThisRequest = false;
+        const onSkippedRequest: SkippedRequestCallback = async (skippedOptions) => {
+            if (skippedOptions.reason === 'enqueueLimit') {
+                if (!loggedEnqueueLimitForThisRequest && options.limit !== undefined) {
+                    this.log.info(
+                        `Skipping URLs in the handler for ${request.url} due to the enqueueLinks limit of ${options.limit}.`,
+                    );
+                    loggedEnqueueLimitForThisRequest = true;
+                }
+            }
+
+            await this.handleSkippedRequest(skippedOptions);
+        };
+
         return enqueueLinks({
             requestQueue,
             robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-            onSkippedRequest: this.handleSkippedRequest,
+            onSkippedRequest,
             limit: this.calculateEnqueuedRequestLimit(options.limit),
 
             // Allow user options to override defaults set above ⤴

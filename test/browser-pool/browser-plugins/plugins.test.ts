@@ -20,7 +20,9 @@ import { runExampleComServer } from 'test/shared/_helper';
 
 import { createProxyServer } from './create-proxy-server';
 
-vitest.setConfig({ testTimeout: 120_000 });
+// Firefox browser launch is significantly slower than Chromium/WebKit (~12s vs <1s).
+// Under CPU load from parallel tests, it can exceed 2 minutes. Use 5 minute timeout.
+vitest.setConfig({ testTimeout: 300_000 });
 
 let port: number;
 let server: Server;
@@ -44,26 +46,20 @@ const runPluginTest = <
     Controller: C,
     library: L,
 ) => {
-    let plugin = new Plugin(library as never);
-
-    describe(`${plugin.constructor.name} - ${'name' in library ? library.name!() : ''} general`, () => {
-        let browser: playwright.Browser | UnwrapPromise<ReturnType<(typeof puppeteer)['launch']>> | undefined;
-
-        beforeEach(() => {
-            plugin = new Plugin(library as never);
+    describe(`${library.constructor.name} - ${'name' in library ? library.name!() : ''} general`, () => {
+        test.concurrent('should launch browser', async () => {
+            const plugin = new Plugin(library as never);
+            const browser = await plugin.launch();
+            try {
+                expect(typeof browser.newPage).toBe('function');
+                expect(typeof browser.close).toBe('function');
+            } finally {
+                await browser.close();
+            }
         });
 
-        afterEach(async () => {
-            await browser?.close();
-        });
-
-        test('should launch browser', async () => {
-            browser = await plugin.launch();
-            expect(typeof browser.newPage).toBe('function');
-            expect(typeof browser.close).toBe('function');
-        });
-
-        test('should create launch context', () => {
+        test.concurrent('should create launch context', () => {
+            const plugin = new Plugin(library as never);
             const id = 'abc';
             const launchOptions = { foo: 'bar' };
             const proxyUrl = 'http://proxy.com/';
@@ -100,10 +96,10 @@ const runPluginTest = <
             expect(context.useIncognitoPages).toEqual(desiredObject.useIncognitoPages);
         });
 
-        test('should get default launchContext values from plugin options', async () => {
+        test.concurrent('should get default launchContext values from plugin options', async () => {
             const proxyUrl = 'http://apify1234@10.10.10.0:8080/';
 
-            plugin = new Plugin(library as never, {
+            const plugin = new Plugin(library as never, {
                 proxyUrl,
                 userDataDir: 'test',
                 useIncognitoPages: true,
@@ -116,51 +112,62 @@ const runPluginTest = <
             expect(context.userDataDir).toEqual('test');
         });
 
-        test('should create browser controller', () => {
+        test.concurrent('should create browser controller', () => {
+            const plugin = new Plugin(library as never);
             const browserController = plugin.createController();
             expect(browserController).toBeInstanceOf(Controller);
         });
 
-        test('should work with cookies', async () => {
+        test.concurrent('should work with cookies', async () => {
+            const plugin = new Plugin(library as never);
             const browserController = plugin.createController();
             const context = plugin.createLaunchContext();
 
-            browser = await plugin.launch(context as never);
+            const browser = await plugin.launch(context as never);
 
-            browserController.assignBrowser(browser as never, context as never);
-            browserController.activate();
+            try {
+                browserController.assignBrowser(browser as never, context as never);
+                browserController.activate();
 
-            const page = await browserController.newPage();
-            await browserController.setCookies(page as never, [
-                { name: 'TEST', value: 'TESTER-COOKIE', url: serverAddress },
-            ]);
-            await page.goto(serverAddress, { waitUntil: 'domcontentloaded' });
+                const page = await browserController.newPage();
+                await browserController.setCookies(page as never, [
+                    { name: 'TEST', value: 'TESTER-COOKIE', url: serverAddress },
+                ]);
+                await page.goto(serverAddress, { waitUntil: 'domcontentloaded' });
 
-            const cookies = await browserController.getCookies(page as never);
-            expect(cookies[0].name).toBe('TEST');
-            expect(cookies[0].value).toBe('TESTER-COOKIE');
+                const cookies = await browserController.getCookies(page as never);
+                expect(cookies[0].name).toBe('TEST');
+                expect(cookies[0].value).toBe('TESTER-COOKIE');
+            } finally {
+                await browser.close();
+            }
         });
 
-        test('newPage options cannot be used with persistent context', async () => {
+        test.concurrent('newPage options cannot be used with persistent context', async () => {
+            const plugin = new Plugin(library as never);
             const browserController = plugin.createController();
 
             const context = plugin.createLaunchContext({
                 useIncognitoPages: false,
             });
 
-            browser = await plugin.launch(context as never);
-            browserController.assignBrowser(browser as never, context as never);
-            browserController.activate();
-
+            const browser = await plugin.launch(context as never);
             try {
-                const page = await browserController.newPage({});
-                await page.close();
+                browserController.assignBrowser(browser as never, context as never);
+                browserController.activate();
 
-                expect(false).toBe(true);
-            } catch (error: any) {
-                expect(error.message).toBe(
-                    'A new page can be created with provided context only when using incognito pages or experimental containers.',
-                );
+                try {
+                    const page = await browserController.newPage({});
+                    await page.close();
+
+                    expect(false).toBe(true);
+                } catch (error: any) {
+                    expect(error.message).toBe(
+                        'A new page can be created with provided context only when using incognito pages or experimental containers.',
+                    );
+                }
+            } finally {
+                await browser.close();
             }
         });
     });
@@ -192,13 +199,7 @@ describe('Plugins', () => {
     });
 
     describe('Puppeteer specifics', () => {
-        let browser: Browser;
-
-        afterEach(async () => {
-            await browser.close();
-        });
-
-        test('should work with non authenticated proxyUrl', async () => {
+        test.concurrent('should work with non authenticated proxyUrl', async () => {
             const proxyUrl = `http://127.0.0.2:${unprotectedProxy.port}`;
             const plugin = new PuppeteerPlugin(puppeteer);
 
@@ -214,19 +215,23 @@ describe('Plugins', () => {
                 },
             });
 
-            browser = await plugin.launch(context);
+            const browser = await plugin.launch(context);
 
-            const page = await browser.newPage();
-            const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
+            try {
+                const page = await browser.newPage();
+                const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
 
-            const text = await response!.text();
+                const text = await response!.text();
 
-            expect(text).toBe('127.0.0.2');
+                expect(text).toBe('127.0.0.2');
 
-            await page.close();
+                await page.close();
+            } finally {
+                await browser.close();
+            }
         });
 
-        test('should work with authenticated proxyUrl', async () => {
+        test.concurrent('should work with authenticated proxyUrl', async () => {
             const proxyUrl = `http://foo:bar@127.0.0.3:${protectedProxy.port}`;
             const plugin = new PuppeteerPlugin(puppeteer);
 
@@ -242,53 +247,63 @@ describe('Plugins', () => {
                 },
             });
 
-            browser = await plugin.launch(context);
+            const browser = await plugin.launch(context);
 
-            const page = await browser.newPage();
-            const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
+            try {
+                const page = await browser.newPage();
+                const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
 
-            const text = await response!.text();
+                const text = await response!.text();
 
-            expect(text).toBe('127.0.0.3');
+                expect(text).toBe('127.0.0.3');
 
-            await page.close();
-
-            await browser.close();
+                await page.close();
+            } finally {
+                await browser.close();
+            }
         });
 
-        test('should use persistent context by default', async () => {
+        test.concurrent('should use persistent context by default', async () => {
             const plugin = new PuppeteerPlugin(puppeteer);
             const browserController = plugin.createController();
 
             const launchContext = plugin.createLaunchContext();
 
-            browser = await plugin.launch(launchContext);
-            browserController.assignBrowser(browser, launchContext);
-            browserController.activate();
+            const browser = await plugin.launch(launchContext);
+            try {
+                browserController.assignBrowser(browser, launchContext);
+                browserController.activate();
 
-            const page = await browserController.newPage();
-            const browserContext = page.browserContext();
+                const page = await browserController.newPage();
+                const browserContext = page.browserContext();
 
-            expect(browserContext.id).toBeFalsy();
+                expect(browserContext.id).toBeFalsy();
+            } finally {
+                await browser.close();
+            }
         });
 
-        test('should use incognito pages by option', async () => {
+        test.concurrent('should use incognito pages by option', async () => {
             const plugin = new PuppeteerPlugin(puppeteer);
             const browserController = plugin.createController();
 
             const launchContext = plugin.createLaunchContext({ useIncognitoPages: true });
 
-            browser = await plugin.launch(launchContext);
-            browserController.assignBrowser(browser, launchContext);
-            browserController.activate();
+            const browser = await plugin.launch(launchContext);
+            try {
+                browserController.assignBrowser(browser, launchContext);
+                browserController.activate();
 
-            const page = await browserController.newPage();
-            const browserContext = page.browserContext();
+                const page = await browserController.newPage();
+                const browserContext = page.browserContext();
 
-            expect(browserContext.id).toBeTruthy();
+                expect(browserContext.id).toBeTruthy();
+            } finally {
+                await browser.close();
+            }
         });
 
-        test('should pass launch options to browser', async () => {
+        test.concurrent('should pass launch options to browser', async () => {
             const plugin = new PuppeteerPlugin(puppeteer);
 
             const userAgent = 'HelloWorld';
@@ -298,12 +313,16 @@ describe('Plugins', () => {
             };
 
             const launchContext = plugin.createLaunchContext({ launchOptions });
-            browser = await plugin.launch(launchContext);
+            const browser = await plugin.launch(launchContext);
 
-            expect(await browser.userAgent()).toBe(userAgent);
+            try {
+                expect(await browser.userAgent()).toBe(userAgent);
+            } finally {
+                await browser.close();
+            }
         });
 
-        test('proxyUsername and proxyPassword as newPage options', async () => {
+        test.concurrent('proxyUsername and proxyPassword as newPage options', async () => {
             const plugin = new PuppeteerPlugin(puppeteer);
             const browserController = new PuppeteerController(plugin);
 
@@ -311,23 +330,27 @@ describe('Plugins', () => {
                 useIncognitoPages: true,
             });
 
-            browser = await plugin.launch(launchContext);
-            browserController.assignBrowser(browser, launchContext);
-            browserController.activate();
+            const browser = await plugin.launch(launchContext);
+            try {
+                browserController.assignBrowser(browser, launchContext);
+                browserController.activate();
 
-            const page = await browserController.newPage({
-                proxyServer: `http://127.0.0.3:${protectedProxy.port}`,
-                proxyUsername: 'foo',
-                proxyPassword: 'bar',
-                proxyBypassList: ['<-loopback>'],
-            });
+                const page = await browserController.newPage({
+                    proxyServer: `http://127.0.0.3:${protectedProxy.port}`,
+                    proxyUsername: 'foo',
+                    proxyPassword: 'bar',
+                    proxyBypassList: ['<-loopback>'],
+                });
 
-            const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
-            const text = await response!.text();
+                const response = await page.goto(`http://127.0.0.1:${(target.address() as AddressInfo).port}`);
+                const text = await response!.text();
 
-            expect(text).toBe('127.0.0.3');
+                expect(text).toBe('127.0.0.3');
 
-            await page.close();
+                await page.close();
+            } finally {
+                await browser.close();
+            }
         });
     });
 

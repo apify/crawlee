@@ -163,6 +163,17 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
     const fileUrl = new URL(`/file?size=${5 * 1024}&seed=789&throttle=1000`, url).toString();
     await crawler.run([fileUrl]);
 
+    // Wait for the stream to finish (pipeline is async)
+    await new Promise<void>((resolve) => {
+        if (bufferingStream.writableFinished) {
+            resolve(undefined);
+        } else {
+            bufferingStream.once('finish', resolve);
+            // Timeout fallback
+            void setTimeout(1000).then(resolve);
+        }
+    });
+
     // the stream should be finished once the crawler finishes.
     expect(bufferingStream.writableFinished).toBe(true);
 
