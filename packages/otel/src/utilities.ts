@@ -79,12 +79,14 @@ export function wrapWithSpan<Args extends unknown[], Return>(
 ): (...args: Args) => Return {
     return function (this: unknown, ...args: Args): Return {
         const tracer = options?.tracer ?? trace.getTracer('crawlee');
-        const spanName = typeof options?.spanName === 'function'
-            ? options.spanName.apply(this, args)
-            : options?.spanName ?? (fn.name || 'anonymous');
-        const spanOptions = typeof options?.spanOptions === 'function'
-            ? options.spanOptions.apply(this, args)
-            : options?.spanOptions ?? {};
+        const spanName =
+            typeof options?.spanName === 'function'
+                ? options.spanName.apply(this, args)
+                : (options?.spanName ?? (fn.name || 'anonymous'));
+        const spanOptions =
+            typeof options?.spanOptions === 'function'
+                ? options.spanOptions.apply(this, args)
+                : (options?.spanOptions ?? {});
 
         return tracer.startActiveSpan(spanName, spanOptions, async (span) => {
             try {

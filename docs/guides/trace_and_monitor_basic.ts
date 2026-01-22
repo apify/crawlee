@@ -19,4 +19,3 @@ await crawler.run(['https://crawlee.dev']);
 // Ensure all telemetry is flushed before exiting
 await sdk.shutdown();
 console.log('Crawl complete. View traces at http://localhost:16686');
-

@@ -5,10 +5,7 @@ import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { CrawleeInstrumentation } from '@crawlee/otel';
-import {
-    ATTR_SERVICE_NAME,
-    ATTR_SERVICE_VERSION,
-} from '@opentelemetry/semantic-conventions';
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 // Create a resource that identifies your service
 const resource = resourceFromAttributes({
@@ -47,4 +44,3 @@ process.on('SIGTERM', async () => {
     await sdk.shutdown();
     process.exit(0);
 });
-

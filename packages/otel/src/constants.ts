@@ -58,13 +58,16 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
         className: 'BrowserCrawler',
         methodName: '_runRequestHandler',
         spanName: 'crawlee.browser.runRequestHandler',
-        spanOptions(context: any) { // Request context from BrowserCrawler
-            return { attributes: {
-                'crawlee.request.id': context.request.id,
-                'crawlee.request.url': context.request.url,
-                'crawlee.request.method': context.request.method,
-                'crawlee.request.retry_count': context.request.retryCount,
-            }}
+        spanOptions(context: any) {
+            // Request context from BrowserCrawler
+            return {
+                attributes: {
+                    'crawlee.request.id': context.request.id,
+                    'crawlee.request.url': context.request.url,
+                    'crawlee.request.method': context.request.method,
+                    'crawlee.request.retry_count': context.request.retryCount,
+                },
+            };
         },
     },
     {
@@ -78,22 +81,24 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
         className: 'HttpCrawler',
         methodName: '_runRequestHandler',
         spanName: 'crawlee.http.runRequestHandler',
-        spanOptions(context: any) { // Request context from HttpCrawler
-            return { attributes: {
-                'crawlee.request.id': context.request.id,
-                'crawlee.request.url': context.request.url,
-                'crawlee.request.method': context.request.method,
-                'crawlee.request.retry_count': context.request.retryCount,
-            }}
+        spanOptions(context: any) {
+            // Request context from HttpCrawler
+            return {
+                attributes: {
+                    'crawlee.request.id': context.request.id,
+                    'crawlee.request.url': context.request.url,
+                    'crawlee.request.method': context.request.method,
+                    'crawlee.request.retry_count': context.request.retryCount,
+                },
+            };
         },
     },
 ] as const;
 
-
 /**
  * Maps Apify log levels to OpenTelemetry severity numbers.
  * See https://github.com/apify/apify-shared-js/blob/83d46cf72a338ff671f89dcbc2b0db7dd571e29f/packages/log/src/log_consts.ts#L1
- * 
+ *
  * ```typescript
  * export enum LogLevel {
  *      // Turns off logging completely

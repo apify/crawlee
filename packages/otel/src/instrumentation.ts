@@ -93,7 +93,7 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
                     instrumentation.logger.emit({
                         severityNumber: apifyLogLevelMap[level],
                         body: message,
-                        attributes: {...exception, ...data},
+                        attributes: { ...exception, ...data },
                     });
                 }
                 return original.apply(this, [level, message, data, exception]);
@@ -101,5 +101,3 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
         };
     }
 }
-
-

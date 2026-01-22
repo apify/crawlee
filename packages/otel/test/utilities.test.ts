@@ -102,9 +102,7 @@ describe('buildModuleDefinitions', () => {
 
         expect(definitions).toHaveLength(1);
         expect(definitions[0].moduleName).toBe('@crawlee/basic');
-        expect(diagWarnSpy).toHaveBeenCalledWith(
-            'Module some-other-package is not a valid Crawlee module. Skipping.',
-        );
+        expect(diagWarnSpy).toHaveBeenCalledWith('Module some-other-package is not a valid Crawlee module. Skipping.');
     });
 
     test('skips duplicate method instrumentation and logs warning', () => {
@@ -128,9 +126,7 @@ describe('buildModuleDefinitions', () => {
         expect(definitions).toHaveLength(1);
         expect(definitions[0].classMethodPatches).toHaveLength(1);
         expect(definitions[0].classMethodPatches[0].spanName).toBe('first-span');
-        expect(diagWarnSpy).toHaveBeenCalledWith(
-            'Method BasicCrawler.run is already instrumented. Skipping.',
-        );
+        expect(diagWarnSpy).toHaveBeenCalledWith('Method BasicCrawler.run is already instrumented. Skipping.');
     });
 
     test('allows same method name on different classes', () => {
@@ -223,4 +219,3 @@ describe('buildModuleDefinitions', () => {
         expect(httpDef?.classMethodPatches).toHaveLength(1);
     });
 });
-
