@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
-import { diag } from '@opentelemetry/api';
+import type { SpanOptions, Tracer } from '@opentelemetry/api';
+import { diag, trace } from '@opentelemetry/api';
 
 import type { ModuleDefinition } from './internal-types';
 import type { ClassMethodToInstrument } from './types';
@@ -22,56 +23,6 @@ export function getPackageVersion() {
 
 export function getCompatibleVersions() {
     return `^${getPackageVersion()}`;
-}
-
-type AttributeValue =
-    | string
-    | number
-    | boolean
-    | (null | undefined | string)[]
-    | (null | undefined | number)[]
-    | (null | undefined | boolean)[];
-
-function isPrimitive(v: unknown): v is string | number | boolean {
-    return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
-}
-
-function isValidArray(v: unknown): v is AttributeValue {
-    if (!Array.isArray(v)) return false;
-
-    let seenType: 'string' | 'number' | 'boolean' | null = null;
-
-    for (const item of v) {
-        if (item === null || item === undefined) continue;
-
-        if (!isPrimitive(item)) return false;
-
-        const t = typeof item;
-        if (seenType === null) {
-            seenType = t as 'string' | 'number' | 'boolean';
-        } else if (seenType !== t) {
-            // mixed primitive arrays are NOT allowed by OTEL
-            return false;
-        }
-    }
-
-    return true;
-}
-
-export function toOtelAttributeValue(value: unknown): AttributeValue {
-    if (isPrimitive(value)) {
-        return value;
-    }
-
-    if (isValidArray(value)) {
-        return value;
-    }
-
-    try {
-        return JSON.stringify(value) || String(value);
-    } catch {
-        return String(value);
-    }
 }
 
 export function buildModuleDefinitions(methodsToInstrument: ClassMethodToInstrument[]): ModuleDefinition[] {
@@ -98,9 +49,6 @@ export function buildModuleDefinitions(methodsToInstrument: ClassMethodToInstrum
             definition.classMethodPatches.push({
                 className: method.className,
                 methodName: method.methodName,
-                onInvokeHook: method.onInvokeHook,
-                onSpanStartHook: method.onSpanStartHook,
-                onSpanEndHook: method.onSpanEndHook,
                 spanName: method.spanName,
                 spanOptions: method.spanOptions,
             });
@@ -110,4 +58,46 @@ export function buildModuleDefinitions(methodsToInstrument: ClassMethodToInstrum
         }
     }
     return definitions;
+}
+
+/**
+ * Wraps a function with OpenTelemetry span instrumentation.
+ * Uses separate Args/Return generics to enable TypeScript contextual typing -
+ * the types flow from the expected handler type (e.g. requestHandler) to the callbacks.
+ *
+ * Note: If the wrapped function is an arrow function, `this` binding will not be
+ * propagated (arrow functions use lexical `this`). Use a regular function expression
+ * if you need access to `this`.
+ */
+export function wrapWithSpan<Args extends unknown[], Return>(
+    fn: (...args: Args) => Return,
+    options?: {
+        spanName?: string | ((...args: Args) => string);
+        spanOptions?: SpanOptions | ((...args: Args) => SpanOptions);
+        tracer?: Tracer;
+    },
+): (...args: Args) => Return {
+    return function (this: unknown, ...args: Args): Return {
+        const tracer = options?.tracer ?? trace.getTracer('crawlee');
+        const spanName = typeof options?.spanName === 'function'
+            ? options.spanName.apply(this, args)
+            : options?.spanName ?? (fn.name || 'anonymous');
+        const spanOptions = typeof options?.spanOptions === 'function'
+            ? options.spanOptions.apply(this, args)
+            : options?.spanOptions ?? {};
+
+        return tracer.startActiveSpan(spanName, spanOptions, async (span) => {
+            try {
+                const result = await fn.apply(this, args);
+                span.setStatus({ code: 1 }); // OK
+                return result;
+            } catch (err) {
+                span.recordException(err as Error);
+                span.setStatus({ code: 2 }); // ERROR
+                throw err;
+            } finally {
+                span.end();
+            }
+        }) as Return;
+    };
 }
