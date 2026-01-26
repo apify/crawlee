@@ -84,7 +84,7 @@
     },
     "devDependencies": {
         "@browserbasehq/stagehand": "^3.0.7",
-        "playwright": "^1.57.0",
+        "playwright": "^1.58.0",
         "zod": "^4.3.5"
     }
 }
