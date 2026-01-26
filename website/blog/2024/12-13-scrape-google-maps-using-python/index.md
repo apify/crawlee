@@ -549,6 +549,6 @@ You've successfully built a comprehensive Google Maps scraper that collects and 
 We’ve handpicked some great resources to help you further explore web scraping:
 
 - [Scrapy vs. Crawlee: Choosing the right tool](https://www.crawlee.dev/blog/scrapy-vs-crawlee)
-- [Mastering proxy management with Crawlee](https://wwww.crawlee.dev/blog/proxy-management-in-crawlee)
+- [Mastering proxy management with Crawlee](https://www.crawlee.dev/blog/proxy-management-in-crawlee)
 - [Think like a web scraping expert: 12 pro tips](https://www.crawlee.dev/blog/web-scraping-tips)
 - [Building a LinkedIn job scraper](https://www.crawlee.dev/blog/linkedin-job-scraper-python)
