@@ -3,7 +3,8 @@ import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } f
 import { apifyLogLevelMap, baseConfig, requestHandlingInstrumentationMethods } from './constants';
 import type { ClassMethodPatchDefinition, ModuleDefinition } from './internal-types';
 import type { CrawleeInstrumentationConfig } from './types';
-import { buildModuleDefinitions, getCompatibleVersions, getPackageVersion, wrapWithSpan } from './utilities';
+import { buildModuleDefinitions, getCompatibleVersions, getPackageVersion } from './utilities';
+import { SpanWrapper, wrapWithSpan } from './wrapWithSpan';
 
 export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumentationConfig> {
     constructor(config: CrawleeInstrumentationConfig = {}) {
@@ -71,14 +72,11 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
     }
 
     private applyClassMethodPatch(patch: ClassMethodPatchDefinition): (original: any) => any {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const instrumentation = this;
-
+        SpanWrapper.getInstance().setTracer(this.tracer);
         return function wrap(original: (...args: unknown[]) => any) {
             return wrapWithSpan(original, {
                 spanName: patch.spanName,
                 spanOptions: patch.spanOptions,
-                tracer: instrumentation.tracer,
             });
         };
     }
