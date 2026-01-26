@@ -1,4 +1,4 @@
-import type { SpanOptions, Tracer } from "@opentelemetry/api";
+import type { SpanOptions, Tracer } from '@opentelemetry/api';
 
 export class SpanWrapper {
     static _instance: SpanWrapper;
@@ -38,7 +38,7 @@ export class SpanWrapper {
                 typeof options?.spanOptions === 'function'
                     ? options.spanOptions.apply(this, args)
                     : (options?.spanOptions ?? {});
-    
+
             return tracer.startActiveSpan(spanName, spanOptions, async (span) => {
                 try {
                     const result = await fn.apply(this, args);
