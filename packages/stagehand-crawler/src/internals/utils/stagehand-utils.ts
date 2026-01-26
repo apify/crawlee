@@ -65,7 +65,8 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
     enhancedPage.act = async (instruction: string, options?: Omit<ActOptions, 'page'>) => {
         try {
             // Pass the page option to ensure Stagehand operates on this specific page
-            return await stagehand.act(instruction, { ...options, page });
+            // Cast needed because Stagehand types reference older playwright-core versions
+            return await stagehand.act(instruction, { ...options, page: page as ActOptions['page'] });
         } catch (error) {
             throw new Error(`Stagehand act() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
@@ -84,7 +85,8 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
     ): Promise<T> => {
         try {
             // Pass the page option to ensure Stagehand operates on this specific page
-            return await stagehand.extract(instruction, schema, { ...options, page });
+            // Cast needed because Stagehand types reference older playwright-core versions
+            return await stagehand.extract(instruction, schema, { ...options, page: page as ExtractOptions['page'] });
         } catch (error) {
             throw new Error(`Stagehand extract() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
@@ -99,7 +101,8 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
     enhancedPage.observe = async (options?: Omit<ObserveOptions, 'page'>) => {
         try {
             // Pass the page option to ensure Stagehand operates on this specific page
-            return await stagehand.observe({ ...options, page });
+            // Cast needed because Stagehand types reference older playwright-core versions
+            return await stagehand.observe({ ...options, page: page as ObserveOptions['page'] });
         } catch (error) {
             throw new Error(`Stagehand observe() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
