@@ -43,16 +43,43 @@ export interface RenderingTypePredictorOptions {
  * @experimental
  */
 export class RenderingTypePredictor {
-    private renderingTypeDetectionResults = new Map<RenderingType, Map<string | undefined, URLComponents[]>>();
     private detectionRatio: number;
-    private state: RecoverableState<{ logreg: LogisticRegression }>;
+    private state: RecoverableState<{
+        logreg: LogisticRegression;
+        detectionResults: Map<RenderingType, Map<string | undefined, URLComponents[]>>;
+    }>;
 
     constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
         this.detectionRatio = detectionRatio;
         this.state = new RecoverableState({
-            defaultState: { logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }) },
-            serialize: (state) => JSON.stringify({ logreg: state.logreg.toJSON() }),
-            deserialize: (serializedState) => ({ logreg: LogisticRegression.load(JSON.parse(serializedState).logreg) }),
+            defaultState: {
+                logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }),
+                detectionResults: new Map<RenderingType, Map<string | undefined, URLComponents[]>>(),
+            },
+            serialize: (state) =>
+                JSON.stringify({
+                    logreg: state.logreg.toJSON(),
+                    detectionResults: state.detectionResults.entries().map(([renderingType, urlPartsByLabel]) => ({
+                        renderingType,
+                        urlPartsByLabel: urlPartsByLabel.entries().map(([label, urlParts]) => ({
+                            label,
+                            urlParts,
+                        })),
+                    })),
+                }),
+            deserialize: (serializedState) => {
+                const { logreg, detectionResults = [] } = JSON.parse(serializedState);
+
+                return {
+                    logreg: LogisticRegression.load(logreg),
+                    detectionResults: new Map(
+                        detectionResults.map((serializedItem: any) => [
+                            serializedItem.renderingType,
+                            new Map(serializedItem.urlPartsByLabel.map((item: any) => [item.label, item.urlParts])),
+                        ]),
+                    ),
+                };
+            },
             persistStateKey: 'rendering-type-predictor-state',
             persistenceEnabled: true,
             ...persistenceOptions,
@@ -97,25 +124,27 @@ export class RenderingTypePredictor {
      * Store the rendering type for a given URL and request label. This updates the underlying prediction model, which may be costly.
      */
     public storeResult(requests: Request | Request[], renderingType: RenderingType) {
+        const state = this.state.currentValue;
+
         for (const { url, loadedUrl, label } of Array.isArray(requests) ? requests : [requests]) {
             const resultUrl = new URL(loadedUrl ?? url);
 
-            if (!this.renderingTypeDetectionResults.has(renderingType)) {
-                this.renderingTypeDetectionResults.set(renderingType, new Map());
+            if (!state.detectionResults.has(renderingType)) {
+                state.detectionResults.set(renderingType, new Map());
             }
 
-            if (!this.renderingTypeDetectionResults.get(renderingType)!.has(label)) {
-                this.renderingTypeDetectionResults.get(renderingType)!.set(label, []);
+            if (!state.detectionResults.get(renderingType)!.has(label)) {
+                state.detectionResults.get(renderingType)!.set(label, []);
             }
 
-            this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(resultUrl));
+            state.detectionResults.get(renderingType)!.get(label)!.push(urlComponents(resultUrl));
         }
 
         this.retrain();
     }
 
     private resultCount(label: string | undefined): number {
-        return Array.from(this.renderingTypeDetectionResults.values())
+        return Array.from(this.state.currentValue.detectionResults.values())
             .map((results) => results.get(label)?.length ?? 0)
             .reduce((acc, value) => acc + value, 0);
     }
@@ -123,12 +152,12 @@ export class RenderingTypePredictor {
     protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
             mean(
-                (this.renderingTypeDetectionResults.get('static')?.get(label) ?? []).map(
+                (this.state.currentValue.detectionResults.get('static')?.get(label) ?? []).map(
                     (otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0,
                 ),
             ) ?? 0,
             mean(
-                (this.renderingTypeDetectionResults.get('clientOnly')?.get(label) ?? []).map(
+                (this.state.currentValue.detectionResults.get('clientOnly')?.get(label) ?? []).map(
                     (otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0,
                 ),
             ) ?? 0,
@@ -142,7 +171,7 @@ export class RenderingTypePredictor {
         ];
         const Y: number[] = [0, 1];
 
-        for (const [renderingType, urlsByLabel] of this.renderingTypeDetectionResults.entries()) {
+        for (const [renderingType, urlsByLabel] of this.state.currentValue.detectionResults.entries()) {
             for (const [label, urls] of urlsByLabel) {
                 for (const url of urls) {
                     X.push(this.calculateFeatureVector(url, label));
