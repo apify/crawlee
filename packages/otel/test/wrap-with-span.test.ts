@@ -1,8 +1,9 @@
-import { wrapWithSpan } from '@crawlee/otel';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+
+import { SpanWrapper, wrapWithSpan } from '../src/wrapWithSpan';
 
 describe('wrapWithSpan', () => {
     let provider: NodeTracerProvider;
@@ -29,7 +30,10 @@ describe('wrapWithSpan', () => {
     describe('basic functionality', () => {
         test('wraps a sync function and creates a span', async () => {
             const fn = vi.fn(() => 'result');
-            const wrapped = wrapWithSpan(fn, { spanName: 'test-span' });
+            const wrapped = wrapWithSpan(fn, {
+                spanName: 'test-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             const result = await wrapped();
 
@@ -49,7 +53,10 @@ describe('wrapWithSpan', () => {
                 await new Promise((resolve) => setTimeout(resolve, 10));
                 return 'async-result';
             });
-            const wrapped = wrapWithSpan(fn, { spanName: 'async-span' });
+            const wrapped = wrapWithSpan(fn, {
+                spanName: 'async-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             const result = await wrapped();
 
@@ -66,7 +73,10 @@ describe('wrapWithSpan', () => {
 
         test('passes arguments to the wrapped function', async () => {
             const fn = vi.fn((a: number, b: string) => `${a}-${b}`);
-            const wrapped = wrapWithSpan(fn, { spanName: 'args-span' });
+            const wrapped = wrapWithSpan(fn, {
+                spanName: 'args-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             const result = await wrapped(42, 'hello');
 
@@ -78,7 +88,9 @@ describe('wrapWithSpan', () => {
             function namedFunction() {
                 return 'named';
             }
-            const wrapped = wrapWithSpan(namedFunction);
+            const wrapped = wrapWithSpan(namedFunction, {
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             // wrapWithSpan always returns a Promise at runtime
             await Promise.resolve(wrapped());
@@ -90,7 +102,9 @@ describe('wrapWithSpan', () => {
         });
 
         test('uses "anonymous" as span name for anonymous functions without spanName', async () => {
-            const wrapped = wrapWithSpan(() => 'anon');
+            const wrapped = wrapWithSpan(() => 'anon', {
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             // wrapWithSpan always returns a Promise at runtime
             await Promise.resolve(wrapped());
@@ -108,7 +122,10 @@ describe('wrapWithSpan', () => {
             const fn = vi.fn(() => {
                 throw error;
             });
-            const wrapped = wrapWithSpan(fn, { spanName: 'error-span' });
+            const wrapped = wrapWithSpan(fn, {
+                spanName: 'error-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             await expect(wrapped()).rejects.toThrow('Test error');
 
@@ -127,7 +144,10 @@ describe('wrapWithSpan', () => {
                 await new Promise((resolve) => setTimeout(resolve, 5));
                 throw new Error('Async error');
             });
-            const wrapped = wrapWithSpan(fn, { spanName: 'async-error-span' });
+            const wrapped = wrapWithSpan(fn, {
+                spanName: 'async-error-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             await expect(wrapped()).rejects.toThrow('Async error');
 
@@ -144,6 +164,7 @@ describe('wrapWithSpan', () => {
             const fn = vi.fn((url: string) => `fetched: ${url}`);
             const wrapped = wrapWithSpan(fn, {
                 spanName: (url: string) => `fetch ${url}`,
+                tracer: provider.getTracer('test-tracer'),
             });
 
             await wrapped('https://example.com');
@@ -159,6 +180,7 @@ describe('wrapWithSpan', () => {
             const fn = vi.fn((a: number, b: number) => a + b);
             const wrapped = wrapWithSpan(fn, {
                 spanName: (a: number, b: number) => `add-${a}-${b}`,
+                tracer: provider.getTracer('test-tracer'),
             });
 
             await wrapped(1, 2);
@@ -182,6 +204,7 @@ describe('wrapWithSpan', () => {
                         'custom.number': 42,
                     },
                 },
+                tracer: provider.getTracer('test-tracer'),
             });
 
             await wrapped();
@@ -209,6 +232,7 @@ describe('wrapWithSpan', () => {
                         'request.method': req.method,
                     },
                 }),
+                tracer: provider.getTracer('test-tracer'),
             });
 
             await wrapped({ url: 'https://example.com', method: 'GET' });
@@ -226,8 +250,14 @@ describe('wrapWithSpan', () => {
         test('multiple wrapped calls create separate spans', async () => {
             const fn1 = vi.fn(() => 'result1');
             const fn2 = vi.fn(() => 'result2');
-            const wrapped1 = wrapWithSpan(fn1, { spanName: 'span-1' });
-            const wrapped2 = wrapWithSpan(fn2, { spanName: 'span-2' });
+            const wrapped1 = wrapWithSpan(fn1, {
+                spanName: 'span-1',
+                tracer: provider.getTracer('test-tracer'),
+            });
+            const wrapped2 = wrapWithSpan(fn2, {
+                spanName: 'span-2',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             await wrapped1();
             await wrapped2();
@@ -247,6 +277,7 @@ describe('wrapWithSpan', () => {
 
             const wrapped = wrapWithSpan(fn, {
                 spanName: (id: number) => `concurrent-span-${id}`,
+                tracer: provider.getTracer('test-tracer'),
             });
 
             await Promise.all([wrapped(1), wrapped(2), wrapped(3)]);
@@ -264,12 +295,18 @@ describe('wrapWithSpan', () => {
 
         test('nested wrapWithSpan creates multiple spans', async () => {
             const innerFn = vi.fn(() => 'inner');
-            const wrappedInner = wrapWithSpan(innerFn, { spanName: 'inner-span' });
+            const wrappedInner = wrapWithSpan(innerFn, {
+                spanName: 'inner-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             const outerFn = vi.fn(async () => {
                 return wrappedInner();
             });
-            const wrappedOuter = wrapWithSpan(outerFn, { spanName: 'outer-span' });
+            const wrappedOuter = wrapWithSpan(outerFn, {
+                spanName: 'outer-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
 
             await wrappedOuter();
 
@@ -310,6 +347,8 @@ describe('wrapWithSpan', () => {
 
         test('defaults to crawlee tracer', async () => {
             const fn = vi.fn(() => 'result');
+            const tracer = trace.getTracer('crawlee');
+            SpanWrapper.getInstance().setTracer(tracer);
             const wrapped = wrapWithSpan(fn);
 
             await wrapped();
