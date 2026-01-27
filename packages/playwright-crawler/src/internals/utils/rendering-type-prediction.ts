@@ -96,18 +96,21 @@ export class RenderingTypePredictor {
     /**
      * Store the rendering type for a given URL and request label. This updates the underlying prediction model, which may be costly.
      */
-    public storeResult({ url, loadedUrl, label }: Request, renderingType: RenderingType) {
-        const resultUrl = new URL(loadedUrl ?? url);
+    public storeResult(requests: Request | Request[], renderingType: RenderingType) {
+        for (const { url, loadedUrl, label } of Array.isArray(requests) ? requests : [requests]) {
+            const resultUrl = new URL(loadedUrl ?? url);
 
-        if (!this.renderingTypeDetectionResults.has(renderingType)) {
-            this.renderingTypeDetectionResults.set(renderingType, new Map());
+            if (!this.renderingTypeDetectionResults.has(renderingType)) {
+                this.renderingTypeDetectionResults.set(renderingType, new Map());
+            }
+
+            if (!this.renderingTypeDetectionResults.get(renderingType)!.has(label)) {
+                this.renderingTypeDetectionResults.get(renderingType)!.set(label, []);
+            }
+
+            this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(resultUrl));
         }
 
-        if (!this.renderingTypeDetectionResults.get(renderingType)!.has(label)) {
-            this.renderingTypeDetectionResults.get(renderingType)!.set(label, []);
-        }
-
-        this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(resultUrl));
         this.retrain();
     }
 
