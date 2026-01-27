@@ -59,16 +59,14 @@ export class RenderingTypePredictor {
             serialize: (state) =>
                 JSON.stringify({
                     logreg: state.logreg.toJSON(),
-                    detectionResults: Array.from(
-                        state.detectionResults.entries().map(([renderingType, urlPartsByLabel]) => ({
+                    detectionResults: Array.from(state.detectionResults.entries()).map(
+                        ([renderingType, urlPartsByLabel]) => ({
                             renderingType,
-                            urlPartsByLabel: Array.from(
-                                urlPartsByLabel.entries().map(([label, urlParts]) => ({
-                                    label,
-                                    urlParts,
-                                })),
-                            ),
-                        })),
+                            urlPartsByLabel: Array.from(urlPartsByLabel.entries()).map(([label, urlParts]) => ({
+                                label,
+                                urlParts,
+                            })),
+                        }),
                     ),
                 }),
             deserialize: (serializedState) => {
