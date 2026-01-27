@@ -35,8 +35,8 @@ describe('RenderingTypePredictor', () => {
 
             // Persist the state
             const store = localStorageEmulator.getKeyValueStore();
-            const state = predictor['state']; // Access private state for persistence
-            await state.persistState();
+            // eslint-disable-next-line dot-notation
+            await predictor['state'].persistState(); // Access private state for persistence
 
             // Verify state was persisted
             const persistedRecord = await store.getRecord(persistStateKey);
