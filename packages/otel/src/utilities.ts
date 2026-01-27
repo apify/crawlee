@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import type { SpanOptions, Tracer } from '@opentelemetry/api';
-import { diag, trace } from '@opentelemetry/api';
+import { diag } from '@opentelemetry/api';
 
 import type { ModuleDefinition } from './internal-types';
 import type { ClassMethodToInstrument } from './types';
