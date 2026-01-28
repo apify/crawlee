@@ -12,7 +12,7 @@ import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
 import { KeyValueStore } from '../storages/key_value_store';
-import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts';
+import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY, SessionPoolReuseStrategy } from './consts';
 import type { SessionOptions } from './session';
 import { Session } from './session';
 
@@ -67,6 +67,18 @@ export interface SessionPoolOptions {
      * Control how and when to persist the state of the session pool.
      */
     persistenceOptions?: PersistenceOptions;
+
+    /**
+     * Strategy for selecting sessions from the session pool.
+     *
+     * - `RANDOM` - Picks a random session from the pool (default behavior)
+     * - `ROUND_ROBIN` - Sequentially rotates through sessions in order
+     * - `USE_UNTIL_FAILURE` - Keeps using the same session until it fails or becomes unusable
+     * - `LEAST_RECENTLY_USED` - Uses the session that hasn't been used for the longest time
+     *
+     * @default SessionPoolReuseStrategy.RANDOM
+     */
+    sessionPoolReuseStrategy?: SessionPoolReuseStrategy;
 }
 
 /**
@@ -149,6 +161,16 @@ export class SessionPool extends EventEmitter {
     protected readonly blockedStatusCodes: number[];
     protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
+    protected sessionPoolReuseStrategy: SessionPoolReuseStrategy;
+
+    // For round-robin strategy
+    private roundRobinIndex = 0;
+    // For use-until-failure strategy
+    private lastUsedSession?: Session;
+    // For least-recently-used strategy - sessions ordered by last use (oldest first)
+    private lruQueue: Session[] = [];
+    // Track sessions that are currently in use to prevent concurrent access
+    private sessionsInUse = new Set<string>();
 
     private queue = new AsyncQueue();
 
@@ -172,6 +194,7 @@ export class SessionPool extends EventEmitter {
                 blockedStatusCodes: ow.optional.array.ofType(ow.number),
                 log: ow.optional.object,
                 persistenceOptions: ow.optional.object,
+                sessionPoolReuseStrategy: ow.optional.string,
             }),
         );
 
@@ -186,6 +209,7 @@ export class SessionPool extends EventEmitter {
             persistenceOptions = {
                 enable: true,
             },
+            sessionPoolReuseStrategy = SessionPoolReuseStrategy.RANDOM,
         } = options;
 
         this.config = config;
@@ -193,6 +217,7 @@ export class SessionPool extends EventEmitter {
         this.events = config.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
+        this.sessionPoolReuseStrategy = sessionPoolReuseStrategy;
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
@@ -310,21 +335,29 @@ export class SessionPool extends EventEmitter {
 
             if (sessionId) {
                 const session = this.sessionMap.get(sessionId);
-                if (session && session.isUsable()) return session;
+                if (session && session.isUsable()) {
+                    this._markSessionInUse(session.id);
+                    return session;
+                }
                 return undefined;
             }
 
             if (this._hasSpaceForSession()) {
-                return await this._createSession();
+                const newSession = await this._createSession();
+                this._markSessionInUse(newSession.id);
+                return newSession;
             }
 
             const pickedSession = this._pickSession();
             if (pickedSession.isUsable()) {
+                this._markSessionInUse(pickedSession.id);
                 return pickedSession;
             }
 
             this._removeRetiredSessions();
-            return await this._createSession();
+            const createdSession = await this._createSession();
+            this._markSessionInUse(createdSession.id);
+            return createdSession;
         } finally {
             this.queue.shift();
         }
@@ -405,6 +438,15 @@ export class SessionPool extends EventEmitter {
             if (storedSession.isUsable()) return true;
 
             this.sessionMap.delete(storedSession.id);
+            
+            // Remove from LRU queue if using that strategy
+            if (this.sessionPoolReuseStrategy === SessionPoolReuseStrategy.LEAST_RECENTLY_USED) {
+                const lruIndex = this.lruQueue.indexOf(storedSession);
+                if (lruIndex !== -1) {
+                    this.lruQueue.splice(lruIndex, 1);
+                }
+            }
+            
             this.log.debug(`Removed Session - ${storedSession.id}`);
 
             return false;
@@ -418,6 +460,11 @@ export class SessionPool extends EventEmitter {
     protected _addSession(newSession: Session) {
         this.sessions.push(newSession);
         this.sessionMap.set(newSession.id, newSession);
+        
+        // Add to LRU queue if using that strategy (new sessions go to the end as "recently used")
+        if (this.sessionPoolReuseStrategy === SessionPoolReuseStrategy.LEAST_RECENTLY_USED) {
+            this.lruQueue.push(newSession);
+        }
     }
 
     /**
@@ -467,11 +514,148 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Picks random session from the `SessionPool`.
+     * Picks a session from the `SessionPool` based on the configured strategy.
      * @returns Picked `Session`.
      */
     protected _pickSession(): Session {
-        return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
+        switch (this.sessionPoolReuseStrategy) {
+            case SessionPoolReuseStrategy.ROUND_ROBIN:
+                return this._pickSessionRoundRobin();
+            case SessionPoolReuseStrategy.USE_UNTIL_FAILURE:
+                return this._pickSessionUseUntilFailure();
+            case SessionPoolReuseStrategy.LEAST_RECENTLY_USED:
+                return this._pickSessionLeastRecentlyUsed();
+            case SessionPoolReuseStrategy.RANDOM:
+            default:
+                return this._pickSessionRandom();
+        }
+    }
+
+    /**
+     * Checks if a session is available (usable and not currently in use).
+     */
+    protected _isSessionAvailable(session: Session): boolean {
+        return session.isUsable() && !this.sessionsInUse.has(session.id);
+    }
+
+    /**
+     * Gets all available sessions (usable and not in use).
+     */
+    protected _getAvailableSessions(): Session[] {
+        return this.sessions.filter((s) => this._isSessionAvailable(s));
+    }
+
+    /**
+     * Validates that the pool has sessions and throws if empty.
+     */
+    protected _validatePoolNotEmpty(): void {
+        if (this.sessions.length === 0) {
+            throw new Error('SessionPool is empty - cannot pick a session');
+        }
+    }
+
+    /**
+     * Validates that there are available sessions and throws if none.
+     */
+    protected _validateHasAvailableSessions(availableSessions: Session[]): void {
+        if (availableSessions.length === 0) {
+            throw new Error('SessionPool has no available sessions');
+        }
+    }
+
+    /**
+     * Marks a session as in use (checked out).
+     * @internal
+     */
+    _markSessionInUse(sessionId: string): void {
+        this.sessionsInUse.add(sessionId);
+    }
+
+    /**
+     * Releases a session from the in-use set (checked in).
+     * @internal
+     */
+    _releaseSession(sessionId: string): void {
+        this.sessionsInUse.delete(sessionId);
+    }
+
+    /**
+     * Picks a random session from the pool.
+     */
+    protected _pickSessionRandom(): Session {
+        this._validatePoolNotEmpty();
+        
+        const availableSessions = this._getAvailableSessions();
+        this._validateHasAvailableSessions(availableSessions);
+        
+        const randomIndex = Math.floor(Math.random() * availableSessions.length);
+        return availableSessions[randomIndex];
+    }
+
+    /**
+     * Picks sessions in a round-robin fashion, sequentially rotating through all sessions.
+     */
+    protected _pickSessionRoundRobin(): Session {
+        this._validatePoolNotEmpty();
+        
+        const availableSessions = this._getAvailableSessions();
+        this._validateHasAvailableSessions(availableSessions);
+
+        // Find next available session starting from current index
+        let attempts = 0;
+        while (attempts < this.sessions.length) {
+            this.roundRobinIndex = (this.roundRobinIndex + 1) % this.sessions.length;
+            const session = this.sessions[this.roundRobinIndex];
+            if (this._isSessionAvailable(session)) {
+                return session;
+            }
+            attempts++;
+        }
+
+        // This should never happen as we already checked for available sessions
+        throw new Error('SessionPool has no available sessions');
+    }
+
+    /**
+     * Keeps using the same session until it becomes unusable.
+     */
+    protected _pickSessionUseUntilFailure(): Session {
+        this._validatePoolNotEmpty();
+
+        if (this.lastUsedSession && this._isSessionAvailable(this.lastUsedSession)) {
+            return this.lastUsedSession;
+        }
+
+        // Find a new available session
+        const availableSession = this.sessions.find((s) => this._isSessionAvailable(s));
+        if (availableSession) {
+            this.lastUsedSession = availableSession;
+            return availableSession;
+        }
+
+        throw new Error('SessionPool has no available sessions');
+    }
+
+    /**
+     * Picks the session that hasn't been used for the longest time.
+     * Uses an optimized approach with a queue - sessions are ordered by last use,
+     * with least recently used at the front.
+     */
+    protected _pickSessionLeastRecentlyUsed(): Session {
+        this._validatePoolNotEmpty();
+
+        // Find the first available session in the LRU queue
+        for (let i = 0; i < this.lruQueue.length; i++) {
+            const session = this.lruQueue[i];
+            if (this._isSessionAvailable(session)) {
+                // Move this session to the end of the queue (mark as recently used)
+                this.lruQueue.splice(i, 1);
+                this.lruQueue.push(session);
+                return session;
+            }
+        }
+
+        throw new Error('SessionPool has no available sessions');
     }
 
     /**
@@ -489,10 +673,24 @@ export class SessionPool extends EventEmitter {
             persistStateKey: this.persistStateKey,
         });
 
-        for (const sessionObject of loadedSessionPool.sessions) {
+        const sessionsToLoad = loadedSessionPool.sessions;
+        
+        // For LRU strategy, sort sessions by lastUsedAt (oldest first) before loading
+        if (this.sessionPoolReuseStrategy === SessionPoolReuseStrategy.LEAST_RECENTLY_USED) {
+            sessionsToLoad.sort((a, b) => {
+                const timeA = a.lastUsedAt ? new Date(a.lastUsedAt as string).getTime() : 0;
+                const timeB = b.lastUsedAt ? new Date(b.lastUsedAt as string).getTime() : 0;
+                return timeA - timeB;
+            });
+        }
+
+        for (const sessionObject of sessionsToLoad) {
             sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
+            if (sessionObject.lastUsedAt) {
+                sessionObject.lastUsedAt = new Date(sessionObject.lastUsedAt as string);
+            }
             const recreatedSession = await this.createSessionFunction(this, { sessionOptions: sessionObject });
 
             if (recreatedSession.isUsable()) {
