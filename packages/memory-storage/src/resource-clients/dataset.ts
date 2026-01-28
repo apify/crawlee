@@ -14,6 +14,7 @@ import { StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createDatasetStorageImplementation } from '../fs/dataset';
 import type { MemoryStorage } from '../index';
+import { createPaginatedList } from '../utils';
 import { BaseClient } from './common/base-client';
 
 /**
@@ -128,18 +129,30 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         throw new Error('This method is not implemented in @crawlee/memory-storage');
     }
 
-    async listItems(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
-        const {
-            limit = LIST_ITEMS_LIMIT,
-            offset = 0,
-            desc,
-        } = s
+    listItems(
+        options: storage.DatasetClientListOptions = {},
+    ): AsyncIterable<Data> & Promise<storage.PaginatedList<Data>> {
+        const { desc, limit, offset } = s
             .object({
                 desc: s.boolean.optional,
                 limit: s.number.int.optional,
                 offset: s.number.int.optional,
             })
             .parse(options);
+
+        return createPaginatedList<Data>(
+            (pageOffset, pageLimit) =>
+                this.listItemsPage({
+                    desc,
+                    offset: pageOffset,
+                    limit: Math.min(pageLimit, LIST_ITEMS_LIMIT),
+                }),
+            { offset, limit },
+        );
+    }
+
+    private async listItemsPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+        const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);

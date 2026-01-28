@@ -482,6 +482,96 @@ export class KeyValueStore {
     }
 
     /**
+     * Iterates over key-value store keys using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const key of keyValueStore.keys()) {
+     *   console.log(key);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    async *keys(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<string, void, undefined> {
+        checkStorageAccess();
+
+        for await (const item of this.client.listKeys(options)) {
+            yield item.key;
+        }
+    }
+
+    /**
+     * Iterates over key-value store values using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const value of keyValueStore.values()) {
+     *   console.log(value);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    async *values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<T, void, undefined> {
+        checkStorageAccess();
+
+        for await (const item of this.client.listKeys(options)) {
+            const record = await this.client.getRecord(item.key);
+            if (record) {
+                yield record.value as T;
+            }
+        }
+    }
+
+    /**
+     * Iterates over key-value store entries (key-value pairs) using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const [key, value] of keyValueStore.entries()) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    async *entries<T = unknown>(
+        options: KeyValueStoreIteratorOptions = {},
+    ): AsyncGenerator<[string, T], void, undefined> {
+        checkStorageAccess();
+
+        for await (const item of this.client.listKeys(options)) {
+            const record = await this.client.getRecord(item.key);
+            if (record) {
+                yield [item.key, record.value as T];
+            }
+        }
+    }
+
+    /**
+     * Default async iterator for the key-value store, iterating over entries (key-value pairs).
+     * Allows using the store directly in a `for await...of` loop.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const [key, value] of keyValueStore) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     */
+    async *[Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined> {
+        yield* this.entries<T>();
+    }
+
+    /**
      * Returns a file URL for the given key.
      */
     getPublicUrl(key: string): string {
