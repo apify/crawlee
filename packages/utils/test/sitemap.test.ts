@@ -506,6 +506,8 @@ describe('discoverValidSitemaps', () => {
             .head('/sitemap.xml')
             .reply(404, '')
             .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -523,6 +525,8 @@ describe('discoverValidSitemaps', () => {
             .head('/sitemap.xml')
             .reply(200, '')
             .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -540,7 +544,9 @@ describe('discoverValidSitemaps', () => {
             .head('/sitemap.xml')
             .reply(404, '')
             .head('/sitemap.txt')
-            .reply(200, '');
+            .reply(200, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
 
         const urls = [];
         for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
@@ -548,6 +554,25 @@ describe('discoverValidSitemaps', () => {
         }
 
         expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.txt']);
+    });
+
+    it('extracts sitemap from well-known paths if robots.txt is missing (sitemap_index.xml)', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(404)
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(200, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap_index.xml']);
     });
 
     it('extracts sitemap from input url', async () => {
@@ -571,7 +596,9 @@ describe('discoverValidSitemaps', () => {
             .reply(200, '')
             .head('/sitemap.txt')
             .delay(50)
-            .reply(200, '');
+            .reply(200, '')
+            .head('/sitemap_index.xml')
+            .reply(404);
 
         nock('http://domain-b.com')
             .get('/robots.txt')
@@ -582,7 +609,9 @@ describe('discoverValidSitemaps', () => {
             .reply(200, '')
             .head('/sitemap.txt')
             .delay(60)
-            .reply(200, '');
+            .reply(200, '')
+            .head('/sitemap_index.xml')
+            .reply(404);
 
         const urls = [];
         for await (const url of discoverValidSitemaps(['http://domain-a.com', 'http://domain-b.com'])) {
