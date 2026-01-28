@@ -504,17 +504,13 @@ export async function* discoverValidSitemaps(
             }
         } else {
             const firstUrl = new URL(domainUrls[0]);
-            firstUrl.pathname = '/sitemap.xml';
-            if (await urlExists(firstUrl.toString())) {
-                if (addSitemapUrl(firstUrl.toString())) {
-                    yield firstUrl.toString();
-                }
-            }
-
-            firstUrl.pathname = '/sitemap.txt';
-            if (await urlExists(firstUrl.toString())) {
-                if (addSitemapUrl(firstUrl.toString())) {
-                    yield firstUrl.toString();
+            const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
+            for (const pathname of possibleSitemapPathnames) {
+                firstUrl.pathname = pathname;
+                if (await urlExists(firstUrl.toString())) {
+                    if (addSitemapUrl(firstUrl.toString())) {
+                        yield firstUrl.toString();
+                    }
                 }
             }
         }
