@@ -6,7 +6,7 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { Request, RequestOptions } from '../request.js';
+import { Request, type RequestOptions } from '../request.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -50,8 +50,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /**
      * Sets {@apilink Request.label} for newly enqueued requests.
      *
-     * Note that the request options specified in `globs`, `regexps`, or `pseudoUrls` objects
-     * have priority over this option.
+     * This option has the lowest priority and can be overwritten by request options
+     * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as by `transformRequestFunction`.
      */
     label?: string;
 
@@ -126,8 +126,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     pseudoUrls?: readonly PseudoUrlInput[];
 
     /**
-     * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
-     * to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
+     * After {@apilink Request} objects are constructed and filtered, this function can be used
+     * to remove them or modify their contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
      * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
      * or to dynamically update or create `userData`.
      *
@@ -145,8 +145,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * }
      * ```
      *
-     * Note that the request options specified in `globs`, `regexps`, or `pseudoUrls` objects
-     * have priority over this function. Some request options returned by `transformRequestFunction` may be overwritten by pattern-based options from `globs`, `regexps`, or `pseudoUrls`.
+     * Note that `transformRequestFunction` has the highest priority and can overwrite request options
+     * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
      */
     transformRequestFunction?: RequestTransform;
 
@@ -437,58 +437,69 @@ export async function enqueueLinks(
         await reportSkippedRequests(skippedRequests, 'robotsTxt');
     }
 
-    if (transformRequestFunction) {
-        const skippedRequests: RequestOptions[] = [];
-
-        requestOptions = requestOptions
-            .map((request) => {
-                const transformedRequest = transformRequestFunction(request);
-                if (!transformedRequest) {
-                    skippedRequests.push(request);
-                }
-                return transformedRequest;
-            })
-            .filter((r) => Boolean(r)) as RequestOptions[];
-
-        await reportSkippedRequests(skippedRequests, 'filters');
-    }
-
     async function createFilteredRequests() {
         const skippedRequests: string[] = [];
 
         // No user provided patterns means we can skip an extra filtering step
+        let requests: Request[];
         if (urlPatternObjects.length === 0) {
-            return createRequests(
+            requests = createRequests(
                 requestOptions,
                 enqueueStrategyPatterns,
                 urlExcludePatternObjects,
                 options.strategy,
                 (url) => skippedRequests.push(url),
             );
+        } else {
+            // Generate requests based on the user patterns first
+            const generatedRequestsFromUserFilters = createRequests(
+                requestOptions,
+                urlPatternObjects,
+                urlExcludePatternObjects,
+                options.strategy,
+                (url) => skippedRequests.push(url),
+            );
+            // ...then filter them by the enqueue links strategy (making this an AND check)
+            requests = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (url) =>
+                skippedRequests.push(url),
+            );
         }
-
-        // Generate requests based on the user patterns first
-        const generatedRequestsFromUserFilters = createRequests(
-            requestOptions,
-            urlPatternObjects,
-            urlExcludePatternObjects,
-            options.strategy,
-            (url) => skippedRequests.push(url),
-        );
-        // ...then filter them by the enqueue links strategy (making this an AND check)
-        const filtered = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (url) =>
-            skippedRequests.push(url),
-        );
 
         await reportSkippedRequests(
             skippedRequests.map((url) => ({ url })),
             'filters',
         );
 
-        return filtered;
+        // Apply transformRequestFunction after filtering - it has the highest priority
+        if (transformRequestFunction) {
+            const skippedByTransform: Request[] = [];
+
+            requests = requests
+                .map((request) => {
+                    // Cast Request to RequestOptions for the transform function
+                    // Request objects are compatible with RequestOptions interface
+                    const transformedRequest = transformRequestFunction(request as unknown as RequestOptions);
+                    if (!transformedRequest) {
+                        skippedByTransform.push(request);
+                        return null;
+                    }
+                    // If transformRequestFunction returns a plain object (instead of modifying the Request in place),
+                    // we need to create a new Request since we're now operating on Request instances
+                    if (!(transformedRequest instanceof Request)) {
+                        return new Request(transformedRequest);
+                    }
+                    return transformedRequest;
+                })
+                .filter((r): r is Request => r !== null);
+
+            await reportSkippedRequests(skippedByTransform, 'filters');
+        }
+
+        return requests;
     }
 
     let requests = await createFilteredRequests();
+
     if (typeof limit === 'number' && limit < requests.length) {
         await reportSkippedRequests(requests.slice(limit), 'enqueueLimit');
         requests = requests.slice(0, limit);
