@@ -1,8 +1,7 @@
-import { checkAndSerialize, chunkBySize, Configuration, Dataset, KeyValueStore } from '@crawlee/core';
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
+import { Configuration, checkAndSerialize, chunkBySize, Dataset, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
-
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 const localStorageEmulator = new MemoryStorageEmulator();
 
@@ -591,6 +590,41 @@ describe('dataset', () => {
                 }
 
                 expect(items).toEqual(testData);
+            });
+
+            test('values() can be awaited directly (hybrid usage)', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const result = await dataset.values();
+
+                expect(result.items).toEqual(testData);
+                expect(result.total).toBe(3);
+                expect(result.count).toBe(3);
+                expect(result.offset).toBe(0);
+            });
+
+            test('values() respects limit when awaited directly', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const result = await dataset.values({ limit: 2 });
+
+                expect(result.items).toHaveLength(2);
+                expect(result.items).toEqual(testData.slice(0, 2));
+                expect(result.total).toBe(3);
+                expect(result.count).toBe(2);
+            });
+
+            test('values() respects offset when awaited directly', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const result = await dataset.values({ offset: 1 });
+
+                expect(result.items).toHaveLength(2);
+                expect(result.items).toEqual(testData.slice(1));
+                expect(result.offset).toBe(1);
             });
 
             test('entries() should iterate over index-item pairs', async () => {

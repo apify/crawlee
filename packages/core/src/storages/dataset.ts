@@ -1,8 +1,7 @@
-import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@crawlee/types';
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
+import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
-
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration';
 import { type Log, log } from '../log';
@@ -620,10 +619,10 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * @param options Options for the iteration.
      */
-    async *values(options: DatasetIteratorOptions = {}): AsyncGenerator<Data, void, undefined> {
+    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
         checkStorageAccess();
 
-        yield* this.client.listItems(options);
+        return this.client.listItems(options);
     }
 
     /**
