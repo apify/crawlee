@@ -658,6 +658,51 @@ describe('dataset', () => {
                 ]);
             });
 
+            test('entries() can be awaited directly (hybrid usage)', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const result = await dataset.entries();
+
+                expect(result.items).toEqual([
+                    [0, { id: 1, name: 'Alice' }],
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+                expect(result.total).toBe(3);
+                expect(result.count).toBe(3);
+                expect(result.offset).toBe(0);
+            });
+
+            test('entries() respects limit when awaited directly', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const result = await dataset.entries({ limit: 2 });
+
+                expect(result.items).toHaveLength(2);
+                expect(result.items).toEqual([
+                    [0, { id: 1, name: 'Alice' }],
+                    [1, { id: 2, name: 'Bob' }],
+                ]);
+                expect(result.total).toBe(3);
+                expect(result.count).toBe(2);
+            });
+
+            test('entries() respects offset when awaited directly', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const result = await dataset.entries({ offset: 1 });
+
+                expect(result.items).toHaveLength(2);
+                expect(result.items).toEqual([
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+                expect(result.offset).toBe(1);
+            });
+
             test('Symbol.asyncIterator should iterate over items', async () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);

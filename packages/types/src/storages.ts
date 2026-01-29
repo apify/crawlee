@@ -87,6 +87,9 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     delete(): Promise<void>;
     downloadItems(...args: unknown[]): Promise<Buffer>;
     listItems(options?: DatasetClientListOptions): AsyncIterable<Data> & Promise<PaginatedList<Data>>;
+    listEntries(
+        options?: DatasetClientListOptions,
+    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>>;
     pushItems(items: Data | Data[] | string | string[]): Promise<void>;
 }
 

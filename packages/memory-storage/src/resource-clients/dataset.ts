@@ -2,9 +2,8 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
-
-import type { Dictionary } from '@crawlee/types';
 import type * as storage from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
 
@@ -14,7 +13,7 @@ import { StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createDatasetStorageImplementation } from '../fs/dataset';
 import type { MemoryStorage } from '../index';
-import { createPaginatedList } from '../utils';
+import { createPaginatedEntryList, createPaginatedList } from '../utils';
 import { BaseClient } from './common/base-client';
 
 /**
@@ -141,6 +140,28 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             .parse(options);
 
         return createPaginatedList<Data>(
+            (pageOffset, pageLimit) =>
+                this.listItemsPage({
+                    desc,
+                    offset: pageOffset,
+                    limit: Math.min(pageLimit, LIST_ITEMS_LIMIT),
+                }),
+            { offset, limit },
+        );
+    }
+
+    listEntries(
+        options: storage.DatasetClientListOptions = {},
+    ): AsyncIterable<[number, Data]> & Promise<storage.PaginatedList<[number, Data]>> {
+        const { desc, limit, offset } = s
+            .object({
+                desc: s.boolean.optional,
+                limit: s.number.int.optional,
+                offset: s.number.int.optional,
+            })
+            .parse(options);
+
+        return createPaginatedEntryList<Data>(
             (pageOffset, pageLimit) =>
                 this.listItemsPage({
                     desc,

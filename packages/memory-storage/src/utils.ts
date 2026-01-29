@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import defaultLog from '@apify/log';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-
-import defaultLog from '@apify/log';
 
 import { REQUEST_ID_LENGTH } from './consts';
 
@@ -148,4 +146,35 @@ export function createKeyList(
     return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
         value: asyncGenerator,
     }) as AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData>;
+}
+
+/**
+ * Creates a hybrid Promise + AsyncIterable for offset-based pagination with index-value entries (Dataset.listEntries).
+ *
+ * The returned object can be:
+ * - Awaited directly to get the first page with [index, item] tuples (backward compatible)
+ * - Used with `for await...of` to iterate through all entries as [index, item] tuples
+ */
+export function createPaginatedEntryList<Data>(
+    getPage: (offset: number, limit: number) => Promise<storage.PaginatedList<Data>>,
+    options: { offset?: number; limit?: number } = {},
+): AsyncIterable<[number, Data]> & Promise<storage.PaginatedList<[number, Data]>> {
+    const offset = options.offset ?? 0;
+
+    // Immediately fetch the first page and transform items to entries
+    const firstPagePromise = getPage(offset, options.limit ?? Infinity).then((result) => ({
+        ...result,
+        items: result.items.map((item, i) => [offset + i, item] as [number, Data]),
+    }));
+
+    async function* asyncGenerator(): AsyncGenerator<[number, Data]> {
+        let currentIndex = offset;
+        for await (const item of createPaginatedList(getPage, options)) {
+            yield [currentIndex++, item];
+        }
+    }
+
+    return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
+        value: asyncGenerator,
+    }) as AsyncIterable<[number, Data]> & Promise<storage.PaginatedList<[number, Data]>>;
 }

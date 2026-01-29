@@ -639,14 +639,12 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * @param options Options for the iteration.
      */
-    async *entries(options: DatasetIteratorOptions = {}): AsyncGenerator<[number, Data], void, undefined> {
+    entries(
+        options: DatasetIteratorOptions = {},
+    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>> {
         checkStorageAccess();
 
-        let index = options.offset ?? 0;
-
-        for await (const item of this.client.listItems(options)) {
-            yield [index++, item];
-        }
+        return this.client.listEntries(options);
     }
 
     /**
