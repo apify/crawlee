@@ -87,7 +87,7 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     delete(): Promise<void>;
     downloadItems(...args: unknown[]): Promise<Buffer>;
     listItems(options?: DatasetClientListOptions): AsyncIterable<Data> & Promise<PaginatedList<Data>>;
-    listEntries(
+    listEntries?(
         options?: DatasetClientListOptions,
     ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>>;
     pushItems(items: Data | Data[] | string | string[]): Promise<void>;
@@ -172,11 +172,11 @@ export interface KeyValueStoreClient {
     listKeys(
         options?: KeyValueStoreClientListOptions,
     ): AsyncIterable<KeyValueStoreItemData> & Promise<KeyValueStoreClientListData>;
-    keys(options?: KeyValueStoreClientListOptions): AsyncIterable<string> & Promise<KeyValueStoreClientListData>;
-    values(
+    keys?(options?: KeyValueStoreClientListOptions): AsyncIterable<string> & Promise<KeyValueStoreClientListData>;
+    values?(
         options?: KeyValueStoreClientListOptions,
     ): AsyncIterable<KeyValueStoreRecord> & Promise<KeyValueStoreRecord[]>;
-    entries(
+    entries?(
         options?: KeyValueStoreClientListOptions,
     ): AsyncIterable<[string, KeyValueStoreRecord]> & Promise<[string, KeyValueStoreRecord][]>;
     recordExists(key: string): Promise<boolean>;
