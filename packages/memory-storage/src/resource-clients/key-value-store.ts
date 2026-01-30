@@ -164,6 +164,38 @@ export class KeyValueStoreClient extends BaseClient {
         );
     }
 
+    values(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): AsyncIterable<storage.KeyValueStoreRecord> & Promise<storage.KeyValueStoreRecord[]> {
+        const self = this;
+
+        // Fetch first page of keys and their records for the Promise
+        const firstPagePromise = (async () => {
+            const firstPageKeys = await this.keys(options);
+            const records: storage.KeyValueStoreRecord[] = [];
+            for (const item of firstPageKeys.items) {
+                const record = await self.getRecord(item.key);
+                if (record) {
+                    records.push(record);
+                }
+            }
+            return records;
+        })();
+
+        async function* asyncGenerator(): AsyncGenerator<storage.KeyValueStoreRecord> {
+            for await (const key of self.keys(options)) {
+                const record = await self.getRecord(key);
+                if (record) {
+                    yield record;
+                }
+            }
+        }
+
+        return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
+            value: asyncGenerator,
+        }) as AsyncIterable<storage.KeyValueStoreRecord> & Promise<storage.KeyValueStoreRecord[]>;
+    }
+
     private async listKeysPage(
         options: storage.KeyValueStoreClientListOptions = {},
     ): Promise<storage.KeyValueStoreClientListData> {

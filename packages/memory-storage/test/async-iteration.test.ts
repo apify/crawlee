@@ -253,4 +253,96 @@ describe('Async iteration support', () => {
             expect(items).toStrictEqual(keys.slice(5, 10));
         });
     });
+
+    describe('KeyValueStore.values', () => {
+        const keys = Array.from({ length: 25 }, (_, i) => `key-${String(i).padStart(2, '0')}`);
+        let kvStore: KeyValueStoreClient;
+
+        beforeAll(async () => {
+            const { id } = await storage.keyValueStores().getOrCreate('async-iteration-kvs-values');
+            kvStore = storage.keyValueStore(id);
+
+            for (const key of keys) {
+                await kvStore.setRecord({ key, value: { data: key } });
+            }
+        });
+
+        test('can be awaited directly (backward compatibility)', async () => {
+            const records = await kvStore.values({ limit: 10 });
+
+            expect(records).toHaveLength(10);
+            expect(Array.isArray(records)).toBe(true);
+            expect(records.map((r) => r.key)).toStrictEqual(keys.slice(0, 10));
+            expect(records[0].value).toStrictEqual({ data: 'key-00' });
+        });
+
+        test('can be used with for await...of to iterate all values', async () => {
+            const records: { key: string; value: unknown }[] = [];
+
+            for await (const record of kvStore.values()) {
+                records.push(record);
+            }
+
+            expect(records).toHaveLength(25);
+            expect(records.map((r) => r.key)).toStrictEqual(keys);
+            expect(records.every((r) => r.value && typeof r.value === 'object')).toBe(true);
+        });
+
+        test('yields KeyValueStoreRecord objects with key, value, and contentType', async () => {
+            for await (const record of kvStore.values()) {
+                expect(record).toHaveProperty('key');
+                expect(record).toHaveProperty('value');
+                expect(record).toHaveProperty('contentType');
+                expect(typeof record.key).toBe('string');
+                break; // Only need to check the first one
+            }
+        });
+
+        test('respects limit option when iterating', async () => {
+            const records: { key: string; value: unknown }[] = [];
+
+            for await (const record of kvStore.values({ limit: 10 })) {
+                records.push(record);
+            }
+
+            expect(records).toHaveLength(10);
+            expect(records.map((r) => r.key)).toStrictEqual(keys.slice(0, 10));
+        });
+
+        test('respects exclusiveStartKey option when iterating', async () => {
+            const records: { key: string; value: unknown }[] = [];
+
+            // Start after key-04 (index 4), should get keys 5-24
+            for await (const record of kvStore.values({ exclusiveStartKey: 'key-04' })) {
+                records.push(record);
+            }
+
+            expect(records).toHaveLength(20);
+            expect(records.map((r) => r.key)).toStrictEqual(keys.slice(5));
+        });
+
+        test('respects prefix option when iterating', async () => {
+            const records: { key: string; value: unknown }[] = [];
+
+            // Only keys starting with 'key-0' (key-00 to key-09)
+            for await (const record of kvStore.values({ prefix: 'key-0' })) {
+                records.push(record);
+            }
+
+            expect(records).toHaveLength(10);
+            expect(records.map((r) => r.key)).toStrictEqual(keys.slice(0, 10));
+        });
+
+        test('fetches actual record values', async () => {
+            const records: { key: string; value: unknown }[] = [];
+
+            for await (const record of kvStore.values({ limit: 3 })) {
+                records.push(record);
+            }
+
+            expect(records[0].value).toStrictEqual({ data: 'key-00' });
+            expect(records[1].value).toStrictEqual({ data: 'key-01' });
+            expect(records[2].value).toStrictEqual({ data: 'key-02' });
+        });
+    });
 });
