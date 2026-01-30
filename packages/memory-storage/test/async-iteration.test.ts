@@ -385,13 +385,11 @@ describe('Async iteration support', () => {
         test('yields [key, record] tuples', async () => {
             // eslint-disable-next-line no-unreachable-loop
             for await (const [key, record] of kvStore.entries()) {
-                expect(Array.isArray(entry)).toBe(true);
-                expect(entry).toHaveLength(2);
-                expect(typeof entry.key).toBe('string');
-                expect(entry.record).toHaveProperty('key');
-                expect(entry.record).toHaveProperty('value');
-                expect(entry.record).toHaveProperty('contentType');
-                expect(entry.key).toBe(record.key);
+                expect(typeof key).toBe('string');
+                expect(record).toHaveProperty('key');
+                expect(record).toHaveProperty('value');
+                expect(record).toHaveProperty('contentType');
+                expect(key).toBe(record.key);
                 break; // Only need to check the first one
             }
         });
