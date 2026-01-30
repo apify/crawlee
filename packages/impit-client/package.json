@@ -60,7 +60,7 @@
     },
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
-        "impit": "^0.8.0",
+        "impit": "^0.9.0",
         "tough-cookie": "^6.0.0"
     }
 }
