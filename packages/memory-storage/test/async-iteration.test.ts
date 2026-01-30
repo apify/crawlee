@@ -166,4 +166,91 @@ describe('Async iteration support', () => {
             expect(items).toStrictEqual(keys.slice(0, 10));
         });
     });
+
+    describe('KeyValueStore.keys', () => {
+        const keys = Array.from({ length: 25 }, (_, i) => `key-${String(i).padStart(2, '0')}`);
+        let kvStore: KeyValueStoreClient;
+
+        beforeAll(async () => {
+            const { id } = await storage.keyValueStores().getOrCreate('async-iteration-kvs-keys');
+            kvStore = storage.keyValueStore(id);
+
+            for (const key of keys) {
+                await kvStore.setRecord({ key, value: { data: key } });
+            }
+        });
+
+        test('can be awaited directly (backward compatibility)', async () => {
+            const result = await kvStore.keys({ limit: 10 });
+
+            // When awaited, returns the same structure as listKeys
+            expect(result.items).toHaveLength(10);
+            expect(result.isTruncated).toBe(true);
+            expect(result.items.map((i) => i.key)).toStrictEqual(keys.slice(0, 10));
+        });
+
+        test('can be used with for await...of to iterate all keys as strings', async () => {
+            const items: string[] = [];
+
+            for await (const key of kvStore.keys()) {
+                items.push(key);
+            }
+
+            expect(items).toHaveLength(25);
+            expect(items).toStrictEqual(keys);
+        });
+
+        test('yields strings directly, not objects', async () => {
+            for await (const key of kvStore.keys()) {
+                expect(typeof key).toBe('string');
+                break; // Only need to check the first one
+            }
+        });
+
+        test('respects limit option when iterating', async () => {
+            const items: string[] = [];
+
+            for await (const key of kvStore.keys({ limit: 10 })) {
+                items.push(key);
+            }
+
+            expect(items).toHaveLength(10);
+            expect(items).toStrictEqual(keys.slice(0, 10));
+        });
+
+        test('respects exclusiveStartKey option when iterating', async () => {
+            const items: string[] = [];
+
+            // Start after key-04 (index 4), should get keys 5-24
+            for await (const key of kvStore.keys({ exclusiveStartKey: 'key-04' })) {
+                items.push(key);
+            }
+
+            expect(items).toHaveLength(20);
+            expect(items).toStrictEqual(keys.slice(5));
+        });
+
+        test('respects prefix option when iterating', async () => {
+            const items: string[] = [];
+
+            // Only keys starting with 'key-0' (key-00 to key-09)
+            for await (const key of kvStore.keys({ prefix: 'key-0' })) {
+                items.push(key);
+            }
+
+            expect(items).toHaveLength(10);
+            expect(items).toStrictEqual(keys.slice(0, 10));
+        });
+
+        test('respects both exclusiveStartKey and limit options', async () => {
+            const items: string[] = [];
+
+            for await (const key of kvStore.keys({ exclusiveStartKey: 'key-04', limit: 5 })) {
+                items.push(key);
+            }
+
+            expect(items).toHaveLength(5);
+            expect(items).toStrictEqual(keys.slice(5, 10));
+        });
+    });
 });

@@ -15,7 +15,7 @@ import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 import type { MemoryStorage } from '../index';
-import { createKeyList, isBuffer, isStream } from '../utils';
+import { createKeyList, createKeyStringList, isBuffer, isStream } from '../utils';
 import { BaseClient } from './common/base-client';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
@@ -131,6 +131,29 @@ export class KeyValueStoreClient extends BaseClient {
             .parse(options);
 
         return createKeyList(
+            (pageExclusiveStartKey) =>
+                this.listKeysPage({
+                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
+                    exclusiveStartKey: pageExclusiveStartKey,
+                    prefix,
+                }),
+            { exclusiveStartKey, limit },
+        );
+    }
+
+    keys(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): AsyncIterable<string> & Promise<storage.KeyValueStoreClientListData> {
+        const { limit, exclusiveStartKey, prefix } = s
+            .object({
+                limit: s.number.greaterThan(0).optional,
+                exclusiveStartKey: s.string.optional,
+                collection: s.string.optional,
+                prefix: s.string.optional,
+            })
+            .parse(options);
+
+        return createKeyStringList(
             (pageExclusiveStartKey) =>
                 this.listKeysPage({
                     limit: limit ?? DEFAULT_API_PARAM_LIMIT,

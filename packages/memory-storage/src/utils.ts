@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import defaultLog from '@apify/log';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-
-import defaultLog from '@apify/log';
 
 import { REQUEST_ID_LENGTH } from './consts';
 
@@ -148,6 +146,48 @@ export function createKeyList(
     return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
         value: asyncGenerator,
     }) as AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData>;
+}
+
+/**
+ * Creates a hybrid Promise + AsyncIterable that yields only key strings (KeyValueStore.keys).
+ *
+ * The returned object can be:
+ * - Awaited directly to get the first page (backward compatible)
+ * - Used with `for await...of` to iterate through all key strings
+ */
+export function createKeyStringList(
+    getPage: (exclusiveStartKey?: string) => Promise<storage.KeyValueStoreClientListData>,
+    options: { exclusiveStartKey?: string; limit?: number } = {},
+): AsyncIterable<string> & Promise<storage.KeyValueStoreClientListData> {
+    // Immediately fetch the first page
+    const firstPagePromise = getPage(options.exclusiveStartKey);
+
+    async function* asyncGenerator(): AsyncGenerator<string> {
+        let currentPage = await firstPagePromise;
+        for (const item of currentPage.items) {
+            yield item.key;
+        }
+
+        let remainingItems = options.limit ? options.limit - currentPage.items.length : undefined;
+
+        while (
+            currentPage.items.length > 0 &&
+            currentPage.nextExclusiveStartKey !== undefined &&
+            (remainingItems === undefined || remainingItems > 0)
+        ) {
+            currentPage = await getPage(currentPage.nextExclusiveStartKey);
+            for (const item of currentPage.items) {
+                yield item.key;
+            }
+            if (remainingItems !== undefined) {
+                remainingItems -= currentPage.items.length;
+            }
+        }
+    }
+
+    return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
+        value: asyncGenerator,
+    }) as AsyncIterable<string> & Promise<storage.KeyValueStoreClientListData>;
 }
 
 /**
