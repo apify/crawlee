@@ -201,6 +201,7 @@ describe('Async iteration support', () => {
         });
 
         test('yields strings directly, not objects', async () => {
+            // eslint-disable-next-line no-unreachable-loop
             for await (const key of kvStore.keys()) {
                 expect(typeof key).toBe('string');
                 break; // Only need to check the first one
@@ -289,6 +290,7 @@ describe('Async iteration support', () => {
         });
 
         test('yields KeyValueStoreRecord objects with key, value, and contentType', async () => {
+            // eslint-disable-next-line no-unreachable-loop
             for await (const record of kvStore.values()) {
                 expect(record).toHaveProperty('key');
                 expect(record).toHaveProperty('value');
@@ -381,15 +383,15 @@ describe('Async iteration support', () => {
         });
 
         test('yields [key, record] tuples', async () => {
-            for await (const entry of kvStore.entries()) {
+            // eslint-disable-next-line no-unreachable-loop
+            for await (const [key, record] of kvStore.entries()) {
                 expect(Array.isArray(entry)).toBe(true);
                 expect(entry).toHaveLength(2);
-                const [key, record] = entry;
-                expect(typeof key).toBe('string');
-                expect(record).toHaveProperty('key');
-                expect(record).toHaveProperty('value');
-                expect(record).toHaveProperty('contentType');
-                expect(key).toBe(record.key);
+                expect(typeof entry.key).toBe('string');
+                expect(entry.record).toHaveProperty('key');
+                expect(entry.record).toHaveProperty('value');
+                expect(entry.record).toHaveProperty('contentType');
+                expect(entry.key).toBe(record.key);
                 break; // Only need to check the first one
             }
         });

@@ -167,11 +167,12 @@ export class KeyValueStoreClient extends BaseClient {
     values(
         options: storage.KeyValueStoreClientListOptions = {},
     ): AsyncIterable<storage.KeyValueStoreRecord> & Promise<storage.KeyValueStoreRecord[]> {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
         // Fetch first page of keys and their records for the Promise
         const firstPagePromise = (async () => {
-            const firstPageKeys = await this.keys(options);
+            const firstPageKeys = await self.keys(options);
             const records: storage.KeyValueStoreRecord[] = [];
             for (const item of firstPageKeys.items) {
                 const record = await self.getRecord(item.key);
@@ -199,11 +200,12 @@ export class KeyValueStoreClient extends BaseClient {
     entries(
         options: storage.KeyValueStoreClientListOptions = {},
     ): AsyncIterable<[string, storage.KeyValueStoreRecord]> & Promise<[string, storage.KeyValueStoreRecord][]> {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
         // Fetch first page of keys and their records for the Promise
         const firstPagePromise = (async () => {
-            const firstPageKeys = await this.keys(options);
+            const firstPageKeys = await self.keys(options);
             const entries: [string, storage.KeyValueStoreRecord][] = [];
             for (const item of firstPageKeys.items) {
                 const record = await self.getRecord(item.key);
