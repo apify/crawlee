@@ -176,6 +176,9 @@ export interface KeyValueStoreClient {
     values(
         options?: KeyValueStoreClientListOptions,
     ): AsyncIterable<KeyValueStoreRecord> & Promise<KeyValueStoreRecord[]>;
+    entries(
+        options?: KeyValueStoreClientListOptions,
+    ): AsyncIterable<[string, KeyValueStoreRecord]> & Promise<[string, KeyValueStoreRecord][]>;
     recordExists(key: string): Promise<boolean>;
     getRecord(key: string, options?: KeyValueStoreClientGetRecordOptions): Promise<KeyValueStoreRecord | undefined>;
     setRecord(record: KeyValueStoreRecord, options?: KeyValueStoreRecordOptions): Promise<void>;
