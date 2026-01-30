@@ -261,7 +261,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                                 method: 'GET',
                                 timeout: networkTimeouts,
                                 headers: {
-                                    accept: 'text/plain, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
+                                    accept: '*/*',
                                 },
                             });
                             request.on('response', () => resolve(request));
