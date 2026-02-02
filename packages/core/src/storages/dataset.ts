@@ -1,7 +1,8 @@
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
+
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration';
 import { type Log, log } from '../log';
