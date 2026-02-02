@@ -62,7 +62,7 @@
         "cheerio": "1.0.0-rc.12",
         "devtools-protocol": "*",
         "idcac-playwright": "^0.2.0",
-        "jquery": "^3.6.0",
+        "jquery": "^4.0.0",
         "ow": "^0.28.1",
         "tslib": "^2.4.0"
     },
