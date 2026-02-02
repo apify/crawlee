@@ -1,13 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
-import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
-import JSON5 from 'json5';
-import ow, { ArgumentError } from 'ow';
-
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import log from '@apify/log';
 import { jsonStringifyExtended } from '@apify/utilities';
+import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
+import JSON5 from 'json5';
+import ow, { ArgumentError } from 'ow';
 
 import { Configuration } from '../configuration';
 import type { Awaitable } from '../typedefs';
@@ -498,9 +496,11 @@ export class KeyValueStore {
     async *keys(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<string, void, undefined> {
         checkStorageAccess();
 
-        for await (const item of this.client.listKeys(options)) {
-            yield item.key;
+        if (!this.client.keys) {
+            throw new Error('Resource client does not implement keys function.');
         }
+
+        yield* this.client.keys(options);
     }
 
     /**
@@ -520,11 +520,12 @@ export class KeyValueStore {
     async *values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<T, void, undefined> {
         checkStorageAccess();
 
-        for await (const item of this.client.listKeys(options)) {
-            const record = await this.client.getRecord(item.key);
-            if (record) {
-                yield record.value as T;
-            }
+        if (!this.client.values) {
+            throw new Error('Resource client does not implement values function.');
+        }
+
+        for await (const record of this.client.values(options)) {
+            yield record.value as T;
         }
     }
 
@@ -547,11 +548,12 @@ export class KeyValueStore {
     ): AsyncGenerator<[string, T], void, undefined> {
         checkStorageAccess();
 
-        for await (const item of this.client.listKeys(options)) {
-            const record = await this.client.getRecord(item.key);
-            if (record) {
-                yield [item.key, record.value as T];
-            }
+        if (!this.client.entries) {
+            throw new Error('Resource client does not implement entries function.');
+        }
+
+        for await (const [key, record] of this.client.entries(options)) {
+            yield [key, record.value as T];
         }
     }
 
