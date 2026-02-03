@@ -1,8 +1,7 @@
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
-
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration';
 import { type Log, log } from '../log';
@@ -646,7 +645,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         if (!this.client.listEntries) {
-            throw new Error('Resource client does not implement listEntries function.');
+            throw new Error('Resource client is missing the "listEntries" method.');
         }
 
         return this.client.listEntries(options);

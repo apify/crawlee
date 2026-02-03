@@ -1,13 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
-import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
-import JSON5 from 'json5';
-import ow, { ArgumentError } from 'ow';
-
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import log from '@apify/log';
 import { jsonStringifyExtended } from '@apify/utilities';
+import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
+import JSON5 from 'json5';
+import ow, { ArgumentError } from 'ow';
 
 import { Configuration } from '../configuration';
 import type { Awaitable } from '../typedefs';
@@ -499,7 +497,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         if (!this.client.keys) {
-            throw new Error('Resource client does not implement keys function.');
+            throw new Error('Resource client is missing the "keys" method.');
         }
 
         yield* this.client.keys(options);
@@ -523,7 +521,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         if (!this.client.values) {
-            throw new Error('Resource client does not implement values function.');
+            throw new Error('Resource client is missing the "values" method.');
         }
 
         for await (const record of this.client.values(options)) {
@@ -551,7 +549,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         if (!this.client.entries) {
-            throw new Error('Resource client does not implement entries function.');
+            throw new Error('Resource client is missing the "entries" method.');
         }
 
         for await (const [key, record] of this.client.entries(options)) {
