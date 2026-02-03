@@ -937,6 +937,7 @@ export class BasicCrawler<
                             await this._requestFunctionErrorHandler(
                                 unwrappedError,
                                 crawlingContext as CrawlingContext,
+                                request,
                                 this.requestManager!,
                             );
                             crawlingContext.session?.markBad();
@@ -1871,7 +1872,7 @@ export class BasicCrawler<
             try {
                 request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    async () => this._requestFunctionErrorHandler(err, crawlingContext, requestSource),
+                    async () => this._requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${
                         this.internalTimeoutMillis / 1e3
@@ -2052,13 +2053,15 @@ export class BasicCrawler<
 
     /**
      * Handles errors thrown by user provided requestHandler()
+     *
+     * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
+        request: Request,
         source: IRequestList | IRequestManager,
     ): Promise<void> {
-        const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
         if (error instanceof CriticalError) {
