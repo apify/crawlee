@@ -59,3 +59,9 @@ export class RequestHandlerError extends Error {
         super(undefined, { cause: error, ...options });
     }
 }
+
+/**
+ * Thrown by crawlers when `skipNavigation` is used on a request.
+ * Subclasses can catch this error to skip their own navigation-dependent logic.
+ */
+export class NavigationSkippedError extends NonRetryableError {}
