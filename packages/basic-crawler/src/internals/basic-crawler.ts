@@ -44,6 +44,7 @@ import {
     KeyValueStore,
     LogLevel,
     mergeCookies,
+    NavigationSkippedError,
     NonRetryableError,
     purgeDefaultStorages,
     RequestHandlerError,
@@ -2259,6 +2260,17 @@ export class BasicCrawler<
     }
 
     private requestMatchesEnqueueStrategy(request: Request) {
+        // If `skipNavigation` was used, just return `true`
+        try {
+            request.loadedUrl;
+        } catch (err) {
+            if (err instanceof NavigationSkippedError) {
+                return true;
+            }
+
+            throw err;
+        }
+
         const { url, loadedUrl } = request;
 
         // eslint-disable-next-line dot-notation -- private access
