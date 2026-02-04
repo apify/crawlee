@@ -24,7 +24,7 @@ describe('SessionPool - testing session pool', () => {
 
     test('should initialize with default values for first time', async () => {
         // @ts-expect-error private symbol
-        expect(sessionPool.sessions.length).toBeDefined();
+        expect(sessionPool.sessions.size).toBeDefined();
         // @ts-expect-error private symbol
         expect(sessionPool.maxPoolSize).toBeDefined();
         // @ts-expect-error private symbol
@@ -94,8 +94,8 @@ describe('SessionPool - testing session pool', () => {
             sessionPool = await SessionPool.open({ sessionOptions: { maxAgeSecs: 100, maxUsageCount: 10 } });
             const session = await sessionPool.getSession();
             // @ts-expect-error private symbol
-            expect(sessionPool.sessions.length).toBe(1);
-            expect(session.id).toBeDefined();
+            expect(sessionPool.sessions.size).toBe(1);
+            expect(session?.id).toBeDefined();
             // @ts-expect-error Accessing private property
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             // @ts-expect-error Accessing private property
@@ -104,42 +104,30 @@ describe('SessionPool - testing session pool', () => {
             expect(session.sessionPool).toEqual(sessionPool);
         });
 
-        test('should pick session when pool is full', async () => {
-            // @ts-expect-error private symbol
-            sessionPool.maxPoolSize = 2;
-            await sessionPool.getSession();
-            await sessionPool.getSession();
-            let isCalled = false;
-            // @ts-expect-error Accessing private property
-            const oldPick = sessionPool._pickSession; //eslint-disable-line
-
-            // @ts-expect-error Overriding private property
-            sessionPool._pickSession = () => {
-                //eslint-disable-line
-                isCalled = true;
-                return oldPick.bind(sessionPool)();
-            };
-
-            await sessionPool.getSession();
-
-            expect(isCalled).toBe(true); //eslint-disable-line
-        });
-
         test('should delete picked session when it is unusable and create a new one', async () => {
             // @ts-expect-error private symbol
             sessionPool.maxPoolSize = 1;
-            await sessionPool.addSession();
 
             const session = await sessionPool.getSession();
-            // @ts-expect-error private symbol
-            expect(sessionPool.sessions[0].id === session.id).toBe(true);
+
+            if (!session) {
+                expect(false);
+                return;
+            }
+
+            const oldSessionId = session.id;
 
             // @ts-expect-error Overriding private property
             session._errorScore += session.maxErrorScore;
-            await sessionPool.getSession();
+            await sessionPool.reclaimSession(session);
 
-            // @ts-expect-error private symbol
-            expect(sessionPool.sessions[0].id === session.id).toBe(false);
+            const secondSession = await sessionPool.getSession();
+            if (!secondSession) {
+                expect(false);
+                return;
+            }
+
+            expect(secondSession.id).not.toEqual(oldSessionId);
             // @ts-expect-error private symbol
             expect(sessionPool.sessions).toHaveLength(1);
         });
@@ -153,13 +141,16 @@ describe('SessionPool - testing session pool', () => {
         ];
 
         const newSession = await sessionPool.getSession();
-        newSession.setCookies(cookies, url);
+        newSession?.setCookies(cookies, url);
 
         const state = sessionPool.getState();
-        expect(state).toBeInstanceOf(Object);
-        expect(state).toHaveProperty('usableSessionsCount');
-        expect(state).toHaveProperty('retiredSessionsCount');
-        expect(state).toHaveProperty('sessions');
+        expect(state).toBeInstanceOf(Array);
+
+        const sessions = Array.from(state);
+
+        expect(sessions).toHaveLength(1);
+        expect(sessions[0]).toHaveProperty('id');
+        expect(sessions[0]).toHaveProperty('cookieJar');
     });
 
     test('should persist state and recreate it from storage', async () => {
@@ -172,27 +163,21 @@ describe('SessionPool - testing session pool', () => {
             sessionPool.persistStateKey,
         );
 
-        entries(sessionPoolSaved!).forEach(([key, value]) => {
-            if (key !== 'sessions') {
-                expect(value).toEqual(sessionPool[key]);
-            }
-        });
-
         // @ts-expect-error private symbol
-        expect(sessionPoolSaved.sessions.length).toEqual(sessionPool.sessions.length);
+        expect(Array.from(sessionPoolSaved).length).toEqual(sessionPool.sessions.size);
 
-        sessionPoolSaved!.sessions.forEach((session, index) => {
+        sessionPoolSaved!.forEach((session, index) => {
             entries(session).forEach(([key, value]) => {
                 // @ts-expect-error private symbol
-                if (sessionPool.sessions[index][key] instanceof Date) {
+                if (sessionPool.sessions.get(session.id)?.session[key] instanceof Date) {
                     // @ts-expect-error private symbol
-                    expect(value).toEqual((sessionPool.sessions[index][key] as Date).toISOString());
+                    expect(value).toEqual((sessionPool.sessions.get(session.id)?.session[key] as Date).toISOString());
                 } else if (key === 'cookieJar') {
                     // @ts-expect-error private symbol
-                    expect(value).toEqual(sessionPool.sessions[index][key].toJSON());
+                    expect(value).toEqual(sessionPool.sessions.get(session.id)?.session[key].toJSON());
                 } else {
                     // @ts-expect-error private symbol
-                    expect(sessionPool.sessions[index][key]).toEqual(value);
+                    expect(sessionPool.sessions.get(session.id)?.session[key]).toEqual(value);
                 }
             });
         });
@@ -201,7 +186,7 @@ describe('SessionPool - testing session pool', () => {
 
         await loadedSessionPool.initialize();
         // @ts-expect-error private symbol
-        expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.length);
+        expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.size);
         // @ts-expect-error private symbol
         expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
         // @ts-expect-error private symbol
@@ -216,16 +201,7 @@ describe('SessionPool - testing session pool', () => {
             await sessionPool.getSession();
         }
         // @ts-expect-error private symbol
-        expect(sessionPool.sessions.length).toEqual(sessionPool.maxPoolSize);
-    });
-
-    test('should create session', async () => {
-        // @ts-expect-error private symbol
-        await sessionPool._createSession();
-        // @ts-expect-error private symbol
-        expect(sessionPool.sessions.length).toBe(1);
-        // @ts-expect-error private symbol
-        expect(sessionPool.sessions[0].id).toBeDefined();
+        expect(sessionPool.sessions.size).toEqual(sessionPool.maxPoolSize);
     });
 
     describe('should persist state', () => {
@@ -244,7 +220,7 @@ describe('SessionPool - testing session pool', () => {
             await sessionPool.getSession();
 
             // @ts-expect-error private symbol
-            expect(sessionPool.sessions.length).toBe(1);
+            expect(sessionPool.sessions.size).toBe(1);
 
             events.emit(EventType.PERSIST_STATE);
 
@@ -269,18 +245,21 @@ describe('SessionPool - testing session pool', () => {
     test('should remove retired sessions', async () => {
         // @ts-expect-error private symbol
         sessionPool.maxPoolSize = 1;
-        await sessionPool.getSession();
+        const oldSession = (await sessionPool.getSession())!;
 
         // @ts-expect-error private symbol
-        const session = sessionPool.sessions[0];
-        // @ts-expect-error Overriding private property
-        session._errorScore += session.maxErrorScore;
-        const { id: retiredSessionId } = session;
+        oldSession._errorScore += oldSession.maxErrorScore;
+        const { id: retiredSessionId } = oldSession;
 
-        await sessionPool.getSession();
+        await sessionPool.reclaimSession(oldSession);
 
         // @ts-expect-error private symbol
-        expect(sessionPool.sessions.find((s) => s.id === retiredSessionId)).toEqual(undefined);
+        expect(
+            sessionPool.sessions
+                .values()
+                .toArray()
+                .find((s) => s.id === retiredSessionId),
+        ).toEqual(undefined);
     });
 
     test('should recreate only usable sessions', async () => {
@@ -294,8 +273,6 @@ describe('SessionPool - testing session pool', () => {
                 invalidSessionsCount += 1;
             }
         }
-        expect(sessionPool.retiredSessionsCount).toEqual(invalidSessionsCount);
-
         await sessionPool.persistState();
 
         const newSessionPool = new SessionPool();
@@ -315,7 +292,7 @@ describe('SessionPool - testing session pool', () => {
 
         const recreatedSession = await loadedSessionPool.getSession();
 
-        expect(recreatedSession.maxUsageCount).toEqual(66);
+        expect(recreatedSession?.maxUsageCount).toEqual(66);
     });
 
     test('should persist state on teardown', async () => {
@@ -340,10 +317,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         expect(newSessionPool.persistStateKey).toBeDefined();
         expect(state).toBeDefined();
-        expect(state).toBeInstanceOf(Object);
-        expect(state).toHaveProperty('usableSessionsCount');
-        expect(state).toHaveProperty('retiredSessionsCount');
-        expect(state).toHaveProperty('sessions');
+        expect(state).toBeInstanceOf(Array);
     });
 
     test('should createSessionFunction work', async () => {
@@ -356,7 +330,7 @@ describe('SessionPool - testing session pool', () => {
         const newSessionPool = await SessionPool.open({ createSessionFunction });
         const session = await newSessionPool.getSession();
         expect(isCalled).toBe(true);
-        expect(session.constructor.name).toBe('Session');
+        expect(session?.constructor.name).toBe('Session');
     });
 
     it('should remove persist state event listener', async () => {
@@ -366,41 +340,24 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should be able to create session with provided id', async () => {
-        await sessionPool.addSession({ id: 'test-session' });
-        // @ts-expect-error private symbol
-        const session = sessionPool.sessions[0];
-        expect(session.id).toBe('test-session');
-    });
-
-    test('should be able to add session instance and create new session with provided sessionOptions with addSession() ', async () => {
-        const session = new Session({ sessionPool, id: 'test-session-instance' });
-        await sessionPool.addSession(session);
-
-        await sessionPool.addSession({ id: 'test-session' });
-
-        expect(await sessionPool.getSession('test-session')).toBeDefined();
-        expect(await sessionPool.getSession('test-session-instance')).toBeDefined();
+        const session = await sessionPool.getSession({ id: 'test-session' });
+        expect(session?.id).toBe('test-session');
     });
 
     test('should not be able to add session to the pool with id already in the pool', async () => {
-        try {
-            await sessionPool.addSession({ id: 'test-session' });
-            await sessionPool.addSession({ id: 'test-session' });
-        } catch (e) {
-            expect((e as Error).message).toBe(
-                "Cannot add session with id 'test-session' as it already exists in the pool",
-            );
-        }
-        expect.assertions(1);
+        const fst = await sessionPool.getSession({ id: 'test-session' });
+        const snd = await sessionPool.getSession({ id: 'test-session' });
+
+        expect(fst).toBeDefined();
+        expect(snd).toBeUndefined();
     });
 
     test('should be able to retrieve session with provided id', async () => {
-        await sessionPool.addSession();
-        await sessionPool.addSession({ id: 'test-session' });
-        await sessionPool.addSession({ id: 'another-test-session' });
+        await sessionPool.reclaimSession((await sessionPool.getSession())!);
+        await sessionPool.reclaimSession((await sessionPool.getSession())!);
 
-        const session = await sessionPool.getSession('test-session');
-        expect(session.id).toBe('test-session');
+        const session = await sessionPool.getSession({ id: 'test-session' });
+        expect(session?.id).toBe('test-session');
     });
 
     test('should correctly populate session array and session map', async () => {
@@ -408,13 +365,8 @@ describe('SessionPool - testing session pool', () => {
         sessionPool.maxPoolSize = 10;
 
         for (let i = 0; i < 20; i++) await sessionPool.getSession();
-
         // @ts-expect-error private symbol
-        expect(sessionPool.sessions.length).toEqual(10);
-        // @ts-expect-error private symbol
-        expect(sessionPool.sessionMap.size).toEqual(10);
-        // @ts-expect-error private symbol
-        expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
+        expect(sessionPool.sessions.size).toEqual(10);
     });
 
     test('should correctly remove retired sessions both from array and session map', async () => {
@@ -422,19 +374,16 @@ describe('SessionPool - testing session pool', () => {
         sessionPool.maxPoolSize = 10;
 
         for (let i = 0; i < 10; i++) {
-            await sessionPool.addSession({ id: `session_${i}` });
-            const session = await sessionPool.getSession(`session_${i}`);
+            const session = await sessionPool.getSession({ id: `session_${i}` });
             // @ts-expect-error Overriding private property
             session._errorScore += session.maxErrorScore;
+
+            await sessionPool.reclaimSession(session!);
         }
 
         await sessionPool.getSession();
 
         // @ts-expect-error private symbol
-        expect(sessionPool.sessions.length).toEqual(1);
-        // @ts-expect-error private symbol
-        expect(sessionPool.sessionMap.size).toEqual(1);
-        // @ts-expect-error private symbol
-        expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
+        expect(sessionPool.sessions.size).toEqual(1);
     });
 });

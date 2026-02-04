@@ -903,8 +903,8 @@ describe('CheerioCrawler', () => {
 
             // @ts-expect-error private symbol
             const sessions = cheerioCrawler.sessionPool!.sessions;
-            expect(sessions.length).toBe(4);
-            sessions.forEach((session) => {
+            expect(sessions.size).toBe(4);
+            sessions.forEach(({ session }) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
                 if (session.errorScore !== 1) {
                     console.log('SESSIONS:');
@@ -945,7 +945,7 @@ describe('CheerioCrawler', () => {
                 expect(crawler.sessionPool.sessions.length).toBe(4);
                 // @ts-expect-error private symbol
 
-                crawler.sessionPool.sessions.forEach((session) => {
+                crawler.sessionPool.sessions.forEach(({ session }) => {
                     expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
                 });
 
