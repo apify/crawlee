@@ -253,12 +253,12 @@ describe('SessionPool - testing session pool', () => {
 
         await sessionPool.reclaimSession(oldSession);
 
-        // @ts-expect-error private symbol
         expect(
+            // @ts-expect-error private symbol
             sessionPool.sessions
                 .values()
                 .toArray()
-                .find((s) => s.id === retiredSessionId),
+                .find(({ session }) => session.id === retiredSessionId),
         ).toEqual(undefined);
     });
 
