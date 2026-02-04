@@ -63,7 +63,7 @@
         "@playwright/browser-chromium": "1.58.1",
         "@playwright/browser-firefox": "1.58.1",
         "@playwright/browser-webkit": "1.58.1",
-        "@stylistic/eslint-plugin": "^4.2.0",
+        "@stylistic/eslint-plugin": "^5.0.0",
         "@types/content-type": "^1.1.5",
         "@types/deep-equal": "^1.0.1",
         "@types/domhandler": "^2.4.2",
