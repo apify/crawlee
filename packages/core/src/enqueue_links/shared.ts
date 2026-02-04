@@ -293,13 +293,13 @@ function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
 }
 
 /**
- * Takes an Apify {@apilink RequestOptions} object and changes its attributes in a desired way. This user-function is used
- * {@apilink enqueueLinks} to modify requests before enqueuing them.
+ * Takes a {@apilink Request} object and changes its attributes in a desired way. This user-function is used
+ * by {@apilink enqueueLinks} to modify requests before enqueuing them.
  */
 export interface RequestTransform {
     /**
-     * @param original Request options to be modified.
-     * @returns The modified request options to enqueue.
+     * @param original Request to be modified.
+     * @returns The modified request or request options to enqueue, or a falsy value to skip the request.
      */
-    (original: RequestOptions): RequestOptions | false | undefined | null;
+    (original: Request): RequestOptions | Request | false | undefined | null;
 }

@@ -147,6 +147,9 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *
      * Note that `transformRequestFunction` has the highest priority and can overwrite request options
      * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
+     *
+     * The function receives a {@apilink Request} instance and can return either the modified request,
+     * a {@apilink RequestOptions} object (which will be converted to a new Request), or a falsy value to skip the request.
      */
     transformRequestFunction?: RequestTransform;
 
@@ -476,9 +479,7 @@ export async function enqueueLinks(
 
             requests = requests
                 .map((request) => {
-                    // Cast Request to RequestOptions for the transform function
-                    // Request objects are compatible with RequestOptions interface
-                    const transformedRequest = transformRequestFunction(request as unknown as RequestOptions);
+                    const transformedRequest = transformRequestFunction(request);
                     if (!transformedRequest) {
                         skippedByTransform.push(request);
                         return null;
