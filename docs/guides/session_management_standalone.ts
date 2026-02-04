@@ -11,11 +11,18 @@ const sessionPool = await SessionPool.open(sessionPoolOptions);
 // Get session.
 const session = await sessionPool.getSession();
 
-// Increase the errorScore.
-session.markBad();
+if (session) {
+    // Increase the errorScore.
+    session.markBad();
 
-// Throw away the session.
-session.retire();
+    // Throw away the session.
+    session.retire();
 
-// Lower the errorScore and mark the session good.
-session.markGood();
+    // Lower the errorScore and mark the session good.
+    session.markGood();
+
+    // Return the session to the pool, so it can be reused
+    sessionPool.reclaimSession(session);
+}
+
+
