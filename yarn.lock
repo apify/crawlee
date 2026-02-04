@@ -1066,7 +1066,7 @@ __metadata:
     "@playwright/browser-chromium": "npm:1.58.1"
     "@playwright/browser-firefox": "npm:1.58.1"
     "@playwright/browser-webkit": "npm:1.58.1"
-    "@stylistic/eslint-plugin-ts": "npm:^4.2.0"
+    "@stylistic/eslint-plugin": "npm:^4.2.0"
     "@types/content-type": "npm:^1.1.5"
     "@types/deep-equal": "npm:^1.0.1"
     "@types/domhandler": "npm:^2.4.2"
@@ -3078,16 +3078,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stylistic/eslint-plugin-ts@npm:^4.2.0":
+"@stylistic/eslint-plugin@npm:^4.2.0":
   version: 4.4.1
-  resolution: "@stylistic/eslint-plugin-ts@npm:4.4.1"
+  resolution: "@stylistic/eslint-plugin@npm:4.4.1"
   dependencies:
     "@typescript-eslint/utils": "npm:^8.32.1"
     eslint-visitor-keys: "npm:^4.2.0"
     espree: "npm:^10.3.0"
+    estraverse: "npm:^5.3.0"
+    picomatch: "npm:^4.0.2"
   peerDependencies:
     eslint: ">=9.0.0"
-  checksum: 10c0/9b2d88364dc39441666a3963783fdbf2420689e6af88d58556472ee6fd8a6f115f8f42713f0be64db58b03df8c5ebbde2547872cee9372215ec32123f81d33a9
+  checksum: 10c0/94160bfc172a3934dd35be87887f43f7e3ffe9d1645096860a4e4c61877bb0fb62eb20a90e50ad74767ee794ed10f334f7165952cf9bcbd8bae6b80dc10c0d62
   languageName: node
   linkType: hard
 
@@ -6778,7 +6780,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"estraverse@npm:^5.1.0, estraverse@npm:^5.2.0":
+"estraverse@npm:^5.1.0, estraverse@npm:^5.2.0, estraverse@npm:^5.3.0":
   version: 5.3.0
   resolution: "estraverse@npm:5.3.0"
   checksum: 10c0/1ff9447b96263dec95d6d67431c5e0771eb9776427421260a3e2f0fdd5d6bd4f8e37a7338f5ad2880c9f143450c9b1e4fc2069060724570a49cf9cf0312bd107
