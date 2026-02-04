@@ -137,8 +137,7 @@ export class SessionPool extends EventEmitter {
     protected maxPoolSize: number;
     protected createSessionFunction: CreateSession;
     protected keyValueStore!: KeyValueStore;
-    protected sessions: Session[] = [];
-    protected sessionMap = new Map<string, Session>();
+    protected sessions = new Map<string, { busy: boolean; session: Session }>();
     protected sessionOptions: SessionOptions;
     protected persistStateKeyValueStoreId?: string;
     protected persistStateKey: string;
@@ -293,18 +292,32 @@ export class SessionPool extends EventEmitter {
         return newSession;
     }
 
-    /**
-     * Gets session.
-     * If there is space for new session, it creates and returns new session.
-     * If the session pool is full, it picks a session from the pool,
-     * If the picked session is usable it is returned, otherwise it creates and returns a new one.
-     */
-    async getSession(): Promise<Session>;
+    private async markAsBusy(session: Session) {
+        this._throwIfNotInitialized();
 
-    /**
-     * Gets session based on the provided session id or `undefined.
-     */
-    async getSession(sessionId: string): Promise<Session>;
+        const sessionData = this.sessions.get(session.id);
+        if (!sessionData) {
+            throw new Error('Marking session as busy that is not in the pool');
+        }
+
+        sessionData.busy = true;
+    }
+
+    async reclaimSession(session: Session): Promise<void> {
+        this._throwIfNotInitialized();
+
+        if (!session.isUsable()) {
+            this.sessions.delete(session.id);
+            return;
+        }
+
+        const sessionData = this.sessions.get(session.id);
+        if (!sessionData) {
+            throw new Error('Reclaiming session that is not in the pool');
+        }
+
+        sessionData.busy = false;
+    }
 
     /**
      * Gets session.
@@ -319,23 +332,30 @@ export class SessionPool extends EventEmitter {
         try {
             this._throwIfNotInitialized();
 
-            if (sessionId) {
-                const session = this.sessionMap.get(sessionId);
-                if (session && session.isUsable()) return session;
-                return undefined;
+            // TODO use the custom fetch strategy here
+            let idleSession = this.sessions.values().find((s) => {
+                if (s.busy) return false;
+
+                for (const [key, value] of entries(options)) {
+                    if (s.session[key] !== value) return false;
+                }
+
+                return true;
+            })?.session;
+
+            if (!idleSession) {
+                // The user has requested a specific session, and it's present (but busy)
+                if (options.id && this.sessions.has(options.id)) {
+                    return undefined;
+                }
+
+                if (this.sessions.size < this.maxPoolSize) {
+                    idleSession = await this.newSession(options);
+                }
             }
 
-            if (this._hasSpaceForSession()) {
-                return await this._createSession();
-            }
-
-            const pickedSession = this._pickSession();
-            if (pickedSession.isUsable()) {
-                return pickedSession;
-            }
-
-            this._removeRetiredSessions();
-            return await this._createSession();
+            if (idleSession) await this.markAsBusy(idleSession);
+            return idleSession;
         } finally {
             this.queue.shift();
         }
@@ -357,11 +377,7 @@ export class SessionPool extends EventEmitter {
      * Note that the object's fields can change in future releases.
      */
     getState() {
-        return {
-            usableSessionsCount: this.usableSessionsCount,
-            retiredSessionsCount: this.retiredSessionsCount,
-            sessions: this.sessions.map((session) => session.getState()),
-        };
+        return [...this.sessions.values().map(({ session }) => session.getState())];
     }
 
     /**
@@ -426,16 +442,8 @@ export class SessionPool extends EventEmitter {
      * Adds `Session` instance to `SessionPool`.
      * @param newSession `Session` instance to be added.
      */
-    protected _addSession(newSession: Session) {
-        this.sessions.push(newSession);
-        this.sessionMap.set(newSession.id, newSession);
-    }
-
-    /**
-     * Gets random index.
-     */
-    protected _getRandomIndex(): number {
-        return Math.floor(Math.random() * this.sessions.length);
+    protected _addSession(session: Session) {
+        this.sessions.set(session.id, { busy: false, session });
     }
 
     /**
@@ -491,9 +499,9 @@ export class SessionPool extends EventEmitter {
      * If the state was persisted it loads the `SessionPool` from the persisted state.
      */
     protected async _maybeLoadSessionPool(): Promise<void> {
-        const loadedSessionPool = await this.keyValueStore.getValue<{ sessions: Dictionary[] }>(this.persistStateKey);
+        const loadedSessions = await this.keyValueStore.getValue<Dictionary[]>(this.persistStateKey);
 
-        if (!loadedSessionPool) return;
+        if (!loadedSessions) return;
 
         // Invalidate old sessions and load active sessions only
         this.log.debug('Recreating state from KeyValueStore', {
@@ -501,18 +509,18 @@ export class SessionPool extends EventEmitter {
             persistStateKey: this.persistStateKey,
         });
 
-        for (const sessionObject of loadedSessionPool.sessions) {
-            sessionObject.sessionPool = this;
-            sessionObject.createdAt = new Date(sessionObject.createdAt as string);
-            sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
-            const recreatedSession = await this.createSessionFunction(this, { sessionOptions: sessionObject });
+        for (const session of sessions) {
+            session.sessionPool = this;
+            session.createdAt = new Date(session.createdAt as string);
+            session.expiresAt = new Date(session.expiresAt as string);
+            const recreatedSession = await this.createSessionFunction(this, { sessionOptions: session });
 
             if (recreatedSession.isUsable()) {
                 this._addSession(recreatedSession);
             }
         }
 
-        this.log.debug(`${this.usableSessionsCount} active sessions loaded from KeyValueStore`);
+        this.log.debug(`${this.sessions.size} sessions loaded from KeyValueStore`);
     }
 
     /**
