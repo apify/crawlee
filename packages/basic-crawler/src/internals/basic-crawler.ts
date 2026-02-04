@@ -1573,6 +1573,12 @@ export class BasicCrawler<
         const source = this.requestManager;
         if (!source) throw new Error('Request provider is not initialized!');
 
+        const request = await this._timeoutAndRetry(
+            this._fetchNextRequest.bind(this),
+            this.internalTimeoutMillis,
+            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+        );
+
         tryCancel();
         const session = this.useSessionPool
             ? await this._timeoutAndRetry(
@@ -1589,12 +1595,6 @@ export class BasicCrawler<
                   `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
               )
             : undefined;
-
-        const request = await this._timeoutAndRetry(
-            this._fetchNextRequest.bind(this),
-            this.internalTimeoutMillis,
-            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-        );
 
         tryCancel();
 

@@ -24,5 +24,3 @@ if (session) {
     // Return the session to the pool, so it can be reused
     sessionPool.reclaimSession(session);
 }
-
-
