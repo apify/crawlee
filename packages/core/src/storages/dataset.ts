@@ -1,4 +1,5 @@
 import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
+import { isAsyncIterable } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
@@ -623,7 +624,13 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
         checkStorageAccess();
 
-        return this.client.listItems(options);
+        const result = this.client.listItems(options);
+
+        if (!isAsyncIterable(result)) {
+            throw new Error('Resource client "listItems" method does not return an async iterable.');
+        }
+
+        return result as AsyncIterable<Data> & Promise<PaginatedList<Data>>;
     }
 
     /**
@@ -649,7 +656,13 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             throw new Error('Resource client is missing the "listEntries" method.');
         }
 
-        return this.client.listEntries(options);
+        const result = this.client.listEntries(options);
+
+        if (!isAsyncIterable(result)) {
+            throw new Error('Resource client "listEntries" method does not return an async iterable.');
+        }
+
+        return result as AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>>;
     }
 
     /**

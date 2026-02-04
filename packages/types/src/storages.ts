@@ -86,10 +86,10 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     update(newFields: DatasetClientUpdateOptions): Promise<Partial<DatasetInfo>>;
     delete(): Promise<void>;
     downloadItems(...args: unknown[]): Promise<Buffer>;
-    listItems(options?: DatasetClientListOptions): AsyncIterable<Data> & Promise<PaginatedList<Data>>;
+    listItems(options?: DatasetClientListOptions): Partial<AsyncIterable<Data>> & Promise<PaginatedList<Data>>;
     listEntries?(
         options?: DatasetClientListOptions,
-    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>>;
+    ): Partial<AsyncIterable<[number, Data]>> & Promise<PaginatedList<[number, Data]>>;
     pushItems(items: Data | Data[] | string | string[]): Promise<void>;
 }
 
@@ -171,14 +171,16 @@ export interface KeyValueStoreClient {
     delete(): Promise<void>;
     listKeys(
         options?: KeyValueStoreClientListOptions,
-    ): AsyncIterable<KeyValueStoreItemData> & Promise<KeyValueStoreClientListData>;
-    keys?(options?: KeyValueStoreClientListOptions): AsyncIterable<string> & Promise<KeyValueStoreClientListData>;
+    ): Partial<AsyncIterable<KeyValueStoreItemData>> & Promise<KeyValueStoreClientListData>;
+    keys?(
+        options?: KeyValueStoreClientListOptions,
+    ): Partial<AsyncIterable<string>> & Promise<KeyValueStoreClientListData>;
     values?(
         options?: KeyValueStoreClientListOptions,
-    ): AsyncIterable<KeyValueStoreRecord> & Promise<KeyValueStoreRecord[]>;
+    ): Partial<AsyncIterable<KeyValueStoreRecord>> & Promise<KeyValueStoreRecord[]>;
     entries?(
         options?: KeyValueStoreClientListOptions,
-    ): AsyncIterable<[string, KeyValueStoreRecord]> & Promise<[string, KeyValueStoreRecord][]>;
+    ): Partial<AsyncIterable<[string, KeyValueStoreRecord]>> & Promise<[string, KeyValueStoreRecord][]>;
     recordExists(key: string): Promise<boolean>;
     getRecord(key: string, options?: KeyValueStoreClientGetRecordOptions): Promise<KeyValueStoreRecord | undefined>;
     setRecord(record: KeyValueStoreRecord, options?: KeyValueStoreRecordOptions): Promise<void>;

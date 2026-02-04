@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
+import { isAsyncIterable } from '@crawlee/utils';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
@@ -502,7 +503,13 @@ export class KeyValueStore {
             throw new Error('Resource client is missing the "keys" method.');
         }
 
-        yield* this.client.keys(options);
+        const result = this.client.keys(options);
+
+        if (!isAsyncIterable(result)) {
+            throw new Error('Resource client "keys" method does not return an async iterable.');
+        }
+
+        yield* result;
     }
 
     /**
@@ -526,7 +533,13 @@ export class KeyValueStore {
             throw new Error('Resource client is missing the "values" method.');
         }
 
-        for await (const record of this.client.values(options)) {
+        const result = this.client.values(options);
+
+        if (!isAsyncIterable(result)) {
+            throw new Error('Resource client "values" method does not return an async iterable.');
+        }
+
+        for await (const record of result) {
             yield record.value as T;
         }
     }
@@ -554,7 +567,13 @@ export class KeyValueStore {
             throw new Error('Resource client is missing the "entries" method.');
         }
 
-        for await (const [key, record] of this.client.entries(options)) {
+        const result = this.client.entries(options);
+
+        if (!isAsyncIterable(result)) {
+            throw new Error('Resource client "entries" method does not return an async iterable.');
+        }
+
+        for await (const [key, record] of result) {
             yield [key, record.value as T];
         }
     }
