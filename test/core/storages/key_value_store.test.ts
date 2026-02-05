@@ -660,7 +660,7 @@ describe('KeyValueStore', () => {
             }
 
             const values: { value: number }[] = [];
-            for await (const value of store.values<{ value: number }>()) {
+            for await (const value of store.values()) {
                 values.push(value);
             }
 
@@ -681,7 +681,7 @@ describe('KeyValueStore', () => {
             }
 
             const entries: [string, { value: number }][] = [];
-            for await (const [key, value] of store.entries<{ value: number }>()) {
+            for await (const [key, value] of store.entries()) {
                 entries.push([key, value]);
             }
 
