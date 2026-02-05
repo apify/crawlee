@@ -4,6 +4,7 @@ import util from 'node:util';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
+    ContextPipeline,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -17,7 +18,6 @@ import {
     BasicCrawler,
     BLOCKED_STATUS_CODES,
     Configuration,
-    ContextPipeline,
     mergeCookies,
     RequestState,
     Router,

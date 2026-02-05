@@ -583,6 +583,7 @@ export class BasicCrawler<
         contextPipelineBuilder: () => ContextPipeline<any, any>;
         extendContext: (context: Context) => Awaitable<ContextExtension>;
     };
+
     protected useSessionPool: boolean;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
@@ -833,17 +834,10 @@ export class BasicCrawler<
                         error instanceof ContextPipelineInitializationError || error instanceof SessionError;
                     if (isPipelineError && crawlingContext.request) {
                         const unwrappedError = this.unwrapError(error);
-                        try {
-                            await this._requestFunctionErrorHandler(
-                                unwrappedError,
-                                crawlingContext,
-                                this.requestManager!,
-                            );
-                            crawlingContext.session?.markBad();
-                            return;
-                        } catch (secondaryError) {
-                            throw secondaryError;
-                        }
+
+                        await this._requestFunctionErrorHandler(unwrappedError, crawlingContext, this.requestManager!);
+                        crawlingContext.session?.markBad();
+                        return;
                     }
                     throw this.unwrapError(error);
                 }
@@ -969,7 +963,7 @@ export class BasicCrawler<
             })
             .compose({
                 action: async ({ request, session }) => {
-                    const enqueueLinks: CrawlingContext['enqueueLinks'] = async (options) => {
+                    const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
                         const requestQueue = await this.getRequestQueue();
 
                         return await this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
@@ -983,7 +977,7 @@ export class BasicCrawler<
 
                     const sendRequest = createSendRequest(this.httpClient, request!, session);
 
-                    return { enqueueLinks, addRequests, sendRequest };
+                    return { enqueueLinks: enqueueLinksWrapper, addRequests, sendRequest };
                 },
             });
     }
