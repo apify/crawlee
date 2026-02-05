@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreClient, KeyValueStoreRecord, StorageClient } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
@@ -519,14 +519,16 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    async *values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<T, void, undefined> {
+    values(
+        options: KeyValueStoreIteratorOptions = {},
+    ): AsyncIterable<KeyValueStoreRecord> & Promise<KeyValueStoreRecord[]> {
         checkStorageAccess();
 
         if (!this.client.values) {
             throw new Error('Resource client is missing the "values" method.');
         }
 
-        yield* this.client.values(options);
+        return this.client.values(options);
     }
 
     /**
@@ -543,16 +545,16 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    async *entries<T = unknown>(
+    entries(
         options: KeyValueStoreIteratorOptions = {},
-    ): AsyncGenerator<[string, T], void, undefined> {
+    ): AsyncIterable<[string, KeyValueStoreRecord]> & Promise<[string, KeyValueStoreRecord][]> {
         checkStorageAccess();
 
         if (!this.client.entries) {
             throw new Error('Resource client is missing the "entries" method.');
         }
 
-        yield* this.client.entries(options);
+        return this.client.entries(options);
     }
 
     /**
@@ -567,8 +569,8 @@ export class KeyValueStore {
      * }
      * ```
      */
-    async *[Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined> {
-        yield* this.entries<T>();
+    async *[Symbol.asyncIterator](): AsyncGenerator<[string, KeyValueStoreRecord], void, undefined> {
+        yield* this.entries();
     }
 
     /**
