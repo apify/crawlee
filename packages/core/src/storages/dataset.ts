@@ -627,8 +627,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         if (!(Symbol.asyncIterator in result)) {
             Object.defineProperty(result, Symbol.asyncIterator, {
-                async *value() {
-                    yield* (await (result as Promise<PaginatedList<Data>>)).items;
+                get() {
+                    throw new Error('Resource client "listItems" method does not return an async iterable.');
                 },
             });
         }
