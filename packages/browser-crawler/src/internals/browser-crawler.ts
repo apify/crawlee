@@ -416,11 +416,11 @@ export abstract class BrowserCrawler<
         });
     }
 
-    protected buildContextPipeline(): ContextPipeline<
+    protected override buildContextPipeline(): ContextPipeline<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>
     > {
-        return ContextPipeline.create<CrawlingContext>().compose({
+        return super.buildContextPipeline().compose({
             action: this.preparePage.bind(this),
             cleanup: async (context: {
                 page: Page;

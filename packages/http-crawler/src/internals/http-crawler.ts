@@ -415,8 +415,9 @@ export class HttpCrawler<
         }
     }
 
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>()
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
+        return super
+            .buildContextPipeline()
             .compose({
                 action: this.makeHttpRequest.bind(this),
             })
