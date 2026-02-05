@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Dictionary, KeyValueStoreClient, KeyValueStoreRecord, StorageClient } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
