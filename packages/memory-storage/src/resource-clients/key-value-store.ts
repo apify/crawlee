@@ -164,70 +164,68 @@ export class KeyValueStoreClient extends BaseClient {
         );
     }
 
-    values(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<storage.KeyValueStoreRecord> & Promise<storage.KeyValueStoreRecord[]> {
+    values(options: storage.KeyValueStoreClientListOptions = {}): AsyncIterable<unknown> & Promise<unknown[]> {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
-        // Fetch first page of keys and their records for the Promise
+        // Fetch first page of keys and their values for the Promise
         const firstPagePromise = (async () => {
             const firstPageKeys = await self.keys(options);
-            const records: storage.KeyValueStoreRecord[] = [];
+            const values: unknown[] = [];
             for (const item of firstPageKeys.items) {
                 const record = await self.getRecord(item.key);
                 if (record) {
-                    records.push(record);
+                    values.push(record.value);
                 }
             }
-            return records;
+            return values;
         })();
 
-        async function* asyncGenerator(): AsyncGenerator<storage.KeyValueStoreRecord> {
+        async function* asyncGenerator(): AsyncGenerator<unknown> {
             for await (const key of self.keys(options)) {
                 const record = await self.getRecord(key);
                 if (record) {
-                    yield record;
+                    yield record.value;
                 }
             }
         }
 
         return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
             value: asyncGenerator,
-        }) as AsyncIterable<storage.KeyValueStoreRecord> & Promise<storage.KeyValueStoreRecord[]>;
+        }) as AsyncIterable<unknown> & Promise<unknown[]>;
     }
 
     entries(
         options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<[string, storage.KeyValueStoreRecord]> & Promise<[string, storage.KeyValueStoreRecord][]> {
+    ): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]> {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
-        // Fetch first page of keys and their records for the Promise
+        // Fetch first page of keys and their values for the Promise
         const firstPagePromise = (async () => {
             const firstPageKeys = await self.keys(options);
-            const entries: [string, storage.KeyValueStoreRecord][] = [];
+            const entries: [string, unknown][] = [];
             for (const item of firstPageKeys.items) {
                 const record = await self.getRecord(item.key);
                 if (record) {
-                    entries.push([item.key, record]);
+                    entries.push([item.key, record.value]);
                 }
             }
             return entries;
         })();
 
-        async function* asyncGenerator(): AsyncGenerator<[string, storage.KeyValueStoreRecord]> {
+        async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {
             for await (const key of self.keys(options)) {
                 const record = await self.getRecord(key);
                 if (record) {
-                    yield [key, record];
+                    yield [key, record.value];
                 }
             }
         }
 
         return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
             value: asyncGenerator,
-        }) as AsyncIterable<[string, storage.KeyValueStoreRecord]> & Promise<[string, storage.KeyValueStoreRecord][]>;
+        }) as AsyncIterable<[string, unknown]> & Promise<[string, unknown][]>;
     }
 
     private async listKeysPage(

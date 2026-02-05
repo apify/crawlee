@@ -519,16 +519,14 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    values(
-        options: KeyValueStoreIteratorOptions = {},
-    ): AsyncIterable<KeyValueStoreRecord> & Promise<KeyValueStoreRecord[]> {
+    values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
         checkStorageAccess();
 
         if (!this.client.values) {
             throw new Error('Resource client is missing the "values" method.');
         }
 
-        return this.client.values(options);
+        return this.client.values(options) as AsyncIterable<T> & Promise<T[]>;
     }
 
     /**
@@ -545,16 +543,16 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    entries(
+    entries<T = unknown>(
         options: KeyValueStoreIteratorOptions = {},
-    ): AsyncIterable<[string, KeyValueStoreRecord]> & Promise<[string, KeyValueStoreRecord][]> {
+    ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
         checkStorageAccess();
 
         if (!this.client.entries) {
             throw new Error('Resource client is missing the "entries" method.');
         }
 
-        return this.client.entries(options);
+        return this.client.entries(options) as AsyncIterable<[string, T]> & Promise<[string, T][]>;
     }
 
     /**
@@ -569,8 +567,8 @@ export class KeyValueStore {
      * }
      * ```
      */
-    async *[Symbol.asyncIterator](): AsyncGenerator<[string, KeyValueStoreRecord], void, undefined> {
-        yield* this.entries();
+    async *[Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined> {
+        yield* this.entries<T>();
     }
 
     /**
