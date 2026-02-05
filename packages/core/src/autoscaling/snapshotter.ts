@@ -2,14 +2,13 @@ import type { StorageClient } from '@crawlee/types';
 import { getMemoryInfo, isContainerized } from '@crawlee/utils';
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
-import { log as defaultLog } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import type { SystemInfo } from './system_status.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
@@ -59,7 +58,7 @@ export interface SnapshotterOptions {
     snapshotHistorySecs?: number;
 
     /** @internal */
-    log?: Log;
+    log?: CrawleeLogger;
 
     /** @internal */
     client?: StorageClient;
@@ -116,7 +115,7 @@ interface ClientSnapshot {
  * @category Scaling
  */
 export class Snapshotter {
-    log: Log;
+    log: CrawleeLogger;
     client: StorageClient;
     config: Configuration;
     events: EventManager;
@@ -164,8 +163,8 @@ export class Snapshotter {
             maxBlockedMillis = 50,
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
-            log = defaultLog,
             config = Configuration.getGlobalConfig(),
+            log = config.getLogger(),
             client = config.getStorageClient(),
         } = options;
 
