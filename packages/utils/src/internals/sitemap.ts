@@ -478,7 +478,7 @@ export async function* discoverValidSitemaps(
         httpClient?: BaseHttpClient;
     } = {},
 ): AsyncIterable<string> {
-    const { proxyUrl, httpClient } = options;
+    const { proxyUrl, httpClient = new FetchHttpClient() } = options;
     const sitemapUrls = new Set<string>();
 
     const addSitemapUrl = (url: string): string | undefined => {
@@ -549,7 +549,13 @@ export async function* discoverValidSitemaps(
         discoverSitemapsForDomainUrls(hostname, domainUrls),
     );
 
+    const discoveredUrls = new Set<string>();
+
     for await (const url of mergeAsyncIterables(...iterables)) {
+        if (discoveredUrls.has(url)) {
+            continue;
+        }
+        discoveredUrls.add(url);
         yield url;
     }
 }
