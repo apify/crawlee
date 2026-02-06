@@ -28,29 +28,6 @@ export function field<T extends z.ZodType>(schema: T, options: { env?: string | 
     return { schema, envKeys };
 }
 
-/**
- * Extends an existing field with additional environment variable mappings.
- * The new env vars are checked first, then the base field's env vars.
- *
- * @example
- * ```ts
- * // In Apify SDK - no need to repeat CRAWLEE_DEFAULT_DATASET_ID
- * defaultDatasetId: extendField(crawleeConfigFields.defaultDatasetId, {
- *     env: ['ACTOR_DEFAULT_DATASET_ID', 'APIFY_DEFAULT_DATASET_ID'],
- * }),
- * ```
- */
-export function extendField<T extends z.ZodType>(
-    baseField: ConfigField<T>,
-    options: { env?: string | string[] } = {},
-): ConfigField<T> {
-    const newEnvKeys = options.env ? (Array.isArray(options.env) ? options.env : [options.env]) : [];
-    return {
-        schema: baseField.schema,
-        envKeys: [...newEnvKeys, ...baseField.envKeys],
-    };
-}
-
 export interface ConfigField<T extends z.ZodType = z.ZodType> {
     schema: T;
     envKeys: string[];
@@ -287,6 +264,33 @@ export class Configuration<
      * Override in subclasses to add new fields.
      */
     static fields: FieldDefinitions = crawleeConfigFields;
+
+    /**
+     * Extends an existing field with additional environment variable mappings.
+     * The new env vars are checked first, then the base field's env vars.
+     * Intended for use when extending Configuration in other packages (e.g., Apify SDK).
+     *
+     * @example
+     * ```ts
+     * const apifyConfigFields = {
+     *     ...crawleeConfigFields,
+     *     // Adds ACTOR_* and APIFY_* aliases, keeps CRAWLEE_* from base
+     *     defaultDatasetId: Configuration.extendField(crawleeConfigFields.defaultDatasetId, {
+     *         env: ['ACTOR_DEFAULT_DATASET_ID', 'APIFY_DEFAULT_DATASET_ID'],
+     *     }),
+     * };
+     * ```
+     */
+    static extendField<T extends z.ZodType>(
+        baseField: ConfigField<T>,
+        options: { env?: string | string[] } = {},
+    ): ConfigField<T> {
+        const newEnvKeys = options.env ? (Array.isArray(options.env) ? options.env : [options.env]) : [];
+        return {
+            schema: baseField.schema,
+            envKeys: [...newEnvKeys, ...baseField.envKeys],
+        };
+    }
 
     /**
      * Provides access to the current-instance-scoped Configuration without passing it around in parameters.
