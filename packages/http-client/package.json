@@ -1,6 +1,7 @@
 {
     "name": "@crawlee/http-client",
     "version": "4.0.0",
+    "private": true,
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=22.0.0"
