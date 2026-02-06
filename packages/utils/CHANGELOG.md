@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Bug Fixes
+
+* more permissive accept ([#3373](https://github.com/apify/crawlee/issues/3373)) ([d03af1b](https://github.com/apify/crawlee/commit/d03af1bee6bceae54f18e36386bbeaabdeaf3c2a)), closes [#3242](https://github.com/apify/crawlee/issues/3242)
+
+
+### Features
+
+* **utils:** add `discoverValidSitemaps` utility ([#3339](https://github.com/apify/crawlee/issues/3339)) ([29f52ed](https://github.com/apify/crawlee/commit/29f52eddd4992b6b78b96c27e5424074a33f2496))
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 **Note:** Version bump only for package @crawlee/utils

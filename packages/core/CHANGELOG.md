@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Bug Fixes
+
+* remove deprecation from `RequestQueueV1` ([#3341](https://github.com/apify/crawlee/issues/3341)) ([89309bc](https://github.com/apify/crawlee/commit/89309bc00e903f3f5381fa7ef89e566eb3c80706))
+* suppress info message for undefined maxRequestsPerCrawl ([#3237](https://github.com/apify/crawlee/issues/3237)) ([f3d9a79](https://github.com/apify/crawlee/commit/f3d9a7967da19fc55837b2433b5dfae312e4b8a7))
+
+
+### Features
+
+* implements async iterators ([#3352](https://github.com/apify/crawlee/issues/3352)) ([7f7a4ab](https://github.com/apify/crawlee/commit/7f7a4ab3e21b801983c7d3be2aff84f4a0e83f6e)), closes [#3338](https://github.com/apify/crawlee/issues/3338)
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 **Note:** Version bump only for package @crawlee/core
