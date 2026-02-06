@@ -23,12 +23,32 @@ import type { Constructor } from './typedefs.js';
 /**
  * Defines a configuration field with its schema and optional environment variable mapping.
  */
-export function field<T extends z.ZodType>(
-    schema: T,
-    options: { env?: string | string[] } = {},
-): ConfigField<T> {
+export function field<T extends z.ZodType>(schema: T, options: { env?: string | string[] } = {}): ConfigField<T> {
     const envKeys = options.env ? (Array.isArray(options.env) ? options.env : [options.env]) : [];
     return { schema, envKeys };
+}
+
+/**
+ * Extends an existing field with additional environment variable mappings.
+ * The new env vars are checked first, then the base field's env vars.
+ *
+ * @example
+ * ```ts
+ * // In Apify SDK - no need to repeat CRAWLEE_DEFAULT_DATASET_ID
+ * defaultDatasetId: extendField(crawleeConfigFields.defaultDatasetId, {
+ *     env: ['ACTOR_DEFAULT_DATASET_ID', 'APIFY_DEFAULT_DATASET_ID'],
+ * }),
+ * ```
+ */
+export function extendField<T extends z.ZodType>(
+    baseField: ConfigField<T>,
+    options: { env?: string | string[] } = {},
+): ConfigField<T> {
+    const newEnvKeys = options.env ? (Array.isArray(options.env) ? options.env : [options.env]) : [];
+    return {
+        schema: baseField.schema,
+        envKeys: [...newEnvKeys, ...baseField.envKeys],
+    };
 }
 
 export interface ConfigField<T extends z.ZodType = z.ZodType> {
