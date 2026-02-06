@@ -114,3 +114,19 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 ## `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
+
+## Configuration priority change
+
+The priority of configuration options has changed. Previously, environment variables always took precedence over constructor options:
+
+```text
+crawlee.json < constructor options < environment variables
+```
+
+Now, constructor options take the highest precedence, allowing you to programmatically override environment variables:
+
+```text
+constructor options > environment variables > crawlee.json > defaults
+```
+
+This means that if you have `CRAWLEE_HEADLESS=true` set in your environment, you can now override it by passing `new Configuration({ headless: false })`. Previously, the environment variable would always win.

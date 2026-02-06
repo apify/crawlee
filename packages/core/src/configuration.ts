@@ -204,12 +204,12 @@ export interface ConfigurationOptions {
  * const crawler = new BasicCrawler({ ... }, config);
  * ```
  *
- * The configuration provided via environment variables always takes precedence. We can also
- * define the `crawlee.json` file in the project root directory which will serve as a baseline,
- * so the options provided in constructor will override those. In other words, the precedence is:
+ * Options explicitly provided in the constructor take the highest precedence, followed by
+ * environment variables, then the `crawlee.json` file in the project root directory, and finally
+ * the default values. In other words, the precedence is:
  *
  * ```text
- * crawlee.json < constructor options < environment variables
+ * constructor options > environment variables > crawlee.json > defaults
  * ```
  *
  * ## Supported Configuration Options
@@ -296,6 +296,7 @@ export class Configuration {
     static storage = new AsyncLocalStorage<Configuration>();
 
     protected options!: Map<keyof ConfigurationOptions, ConfigurationOptions[keyof ConfigurationOptions]>;
+    protected userOptions!: Set<keyof ConfigurationOptions>;
     protected services = new Map<string, unknown>();
 
     /** @internal */
@@ -304,7 +305,7 @@ export class Configuration {
     public readonly storageManagers = new Map<Constructor, StorageManager>();
 
     /**
-     * Creates new `Configuration` instance with provided options. Env vars will have precedence over those.
+     * Creates new `Configuration` instance with provided options. Constructor options take precedence over env vars.
      */
     constructor(options: ConfigurationOptions = {}) {
         this.buildOptions(options);
@@ -324,12 +325,18 @@ export class Configuration {
     }
 
     /**
-     * Returns configured value. First checks the environment variables, then provided configuration,
+     * Returns configured value. First checks options explicitly provided in the constructor,
+     * then environment variables, then options from crawlee.json, and finally
      * fallbacks to the `defaultValue` argument if provided, otherwise uses the default value as described
      * in the above section.
      */
     get<T extends keyof ConfigurationOptions, U extends ConfigurationOptions[T]>(key: T, defaultValue?: U): U {
-        // prefer env vars, always iterate through the whole map as there might be duplicate env vars for the same option
+        // 1. Check if user explicitly provided this option (highest priority)
+        if (this.userOptions.has(key) && this.options.has(key)) {
+            return this.options.get(key) as U;
+        }
+
+        // 2. Check environment variables (second priority)
         let envValue: string | undefined;
 
         for (const [k, v] of entries(Configuration.ENV_MAP)) {
@@ -346,13 +353,13 @@ export class Configuration {
             return this._castEnvValue(key, envValue) as U;
         }
 
-        // check instance level options
+        // 3. Check options from crawlee.json (third priority)
         if (this.options.has(key)) {
             return this.options.get(key) as U;
         }
 
-        // fallback to defaults
-        return (defaultValue ?? Configuration.DEFAULTS[key as keyof typeof Configuration.DEFAULTS] ?? envValue) as U;
+        // 4. Fallback to defaults (lowest priority)
+        return (defaultValue ?? Configuration.DEFAULTS[key as keyof typeof Configuration.DEFAULTS]) as U;
     }
 
     protected _castEnvValue(key: keyof ConfigurationOptions, value: number | string | boolean) {
@@ -492,14 +499,18 @@ export class Configuration {
     }
 
     protected buildOptions(options: ConfigurationOptions) {
-        // try to load configuration from crawlee.json as the baseline
+        // Track which options were explicitly provided by the user
+        this.userOptions = new Set(Object.keys(options) as (keyof ConfigurationOptions)[]);
+
+        // Load crawlee.json as baseline, then merge user options on top
         const path = join(process.cwd(), 'crawlee.json');
 
         if (pathExistsSync(path)) {
             try {
                 const file = readFileSync(path);
                 const optionsFromFileConfig = JSON.parse(file.toString());
-                Object.assign(options, optionsFromFileConfig);
+                // Merge file config first, then user options override
+                options = { ...optionsFromFileConfig, ...options };
             } catch {
                 // ignore
             }
