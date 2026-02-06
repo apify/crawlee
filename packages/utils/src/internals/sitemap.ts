@@ -12,8 +12,8 @@ import MIMEType from 'whatwg-mimetype';
 
 import log from '@apify/log';
 
-import { mergeAsyncIterables } from './iterables';
-import { RobotsFile } from './robots';
+import { mergeAsyncIterables } from './iterables.js';
+import { RobotsFile } from './robots.js';
 
 interface SitemapUrlData {
     loc: string;
@@ -472,10 +472,13 @@ export async function* discoverValidSitemaps(
          * Proxy URL to be used for network requests.
          */
         proxyUrl?: string;
+        /**
+         * HTTP client to be used for network requests.
+         */
+        httpClient?: BaseHttpClient;
     } = {},
 ): AsyncIterable<string> {
-    const { proxyUrl } = options;
-    const { gotScraping } = await import('got-scraping');
+    const { proxyUrl, httpClient } = options;
     const sitemapUrls = new Set<string>();
 
     const addSitemapUrl = (url: string): string | undefined => {
@@ -491,11 +494,9 @@ export async function* discoverValidSitemaps(
     };
 
     const urlExists = (url: string) =>
-        gotScraping({
-            proxyUrl,
-            url,
-            method: 'HEAD',
-        }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
+        httpClient
+            ?.sendRequest(new Request(url, { method: 'HEAD' }), { proxyUrl })
+            .then((response) => response.status >= 200 && response.status < 400);
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
         if (!hostname) {
@@ -503,7 +504,7 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl);
+            const robotsFile = await RobotsFile.find(domainUrls[0], { proxyUrl, httpClient });
 
             for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
