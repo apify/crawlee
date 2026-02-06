@@ -165,15 +165,16 @@ export class KeyValueStoreClient extends BaseClient {
     }
 
     values(options: storage.KeyValueStoreClientListOptions = {}): AsyncIterable<unknown> & Promise<unknown[]> {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const self = this;
+        const keys = this.keys.bind(this);
+        const getRecord = this.getRecord.bind(this);
 
-        // Fetch first page of keys and their values for the Promise
-        const firstPagePromise = (async () => {
-            const firstPageKeys = await self.keys(options);
+        const firstPageKeysPromise = keys(options);
+
+        const firstPageValuesPromise = (async () => {
+            const firstPageKeys = await firstPageKeysPromise;
             const values: unknown[] = [];
             for (const item of firstPageKeys.items) {
-                const record = await self.getRecord(item.key);
+                const record = await getRecord(item.key);
                 if (record) {
                     values.push(record.value);
                 }
@@ -182,15 +183,26 @@ export class KeyValueStoreClient extends BaseClient {
         })();
 
         async function* asyncGenerator(): AsyncGenerator<unknown> {
-            for await (const key of self.keys(options)) {
-                const record = await self.getRecord(key);
+            const firstPageKeys = await firstPageKeysPromise;
+
+            for (const item of firstPageKeys.items) {
+                const record = await getRecord(item.key);
                 if (record) {
                     yield record.value;
                 }
             }
+
+            if (firstPageKeys.nextExclusiveStartKey) {
+                for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                    const record = await getRecord(key);
+                    if (record) {
+                        yield record.value;
+                    }
+                }
+            }
         }
 
-        return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
+        return Object.defineProperty(firstPageValuesPromise, Symbol.asyncIterator, {
             value: asyncGenerator,
         }) as AsyncIterable<unknown> & Promise<unknown[]>;
     }
@@ -198,15 +210,16 @@ export class KeyValueStoreClient extends BaseClient {
     entries(
         options: storage.KeyValueStoreClientListOptions = {},
     ): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]> {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const self = this;
+        const keys = this.keys.bind(this);
+        const getRecord = this.getRecord.bind(this);
 
-        // Fetch first page of keys and their values for the Promise
-        const firstPagePromise = (async () => {
-            const firstPageKeys = await self.keys(options);
+        const firstPageKeysPromise = keys(options);
+
+        const firstPageEntriesPromise = (async () => {
+            const firstPageKeys = await firstPageKeysPromise;
             const entries: [string, unknown][] = [];
             for (const item of firstPageKeys.items) {
-                const record = await self.getRecord(item.key);
+                const record = await getRecord(item.key);
                 if (record) {
                     entries.push([item.key, record.value]);
                 }
@@ -215,15 +228,27 @@ export class KeyValueStoreClient extends BaseClient {
         })();
 
         async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {
-            for await (const key of self.keys(options)) {
-                const record = await self.getRecord(key);
+            const firstPageKeys = await firstPageKeysPromise;
+
+            // Yield first page entries
+            for (const item of firstPageKeys.items) {
+                const record = await getRecord(item.key);
                 if (record) {
-                    yield [key, record.value];
+                    yield [item.key, record.value];
+                }
+            }
+
+            if (firstPageKeys.nextExclusiveStartKey) {
+                for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                    const record = await getRecord(key);
+                    if (record) {
+                        yield [key, record.value];
+                    }
                 }
             }
         }
 
-        return Object.defineProperty(firstPagePromise, Symbol.asyncIterator, {
+        return Object.defineProperty(firstPageEntriesPromise, Symbol.asyncIterator, {
             value: asyncGenerator,
         }) as AsyncIterable<[string, unknown]> & Promise<[string, unknown][]>;
     }
