@@ -511,33 +511,32 @@ export class AdaptivePlaywrightCrawler<
 
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
+        // These helpers need to be applied after the pipeline runs to avoid being overwritten
+        // by the base crawler's helpers.
         const resultBoundContextHelpers = {
             addRequests: result.addRequests,
             pushData: result.pushData,
             useState: this.allowStorageAccess(useStateFunction),
             getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
-            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
-                return await this.enqueueLinks(options, context.request, result);
-            },
             log: this.createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
 
-        const subCrawlerContext = { ...context, ...resultBoundContextHelpers };
+        const subCrawlerContext = { ...context };
         this.resultObjects.set(subCrawlerContext, result);
 
         try {
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
-                    await this.staticContextPipeline.call(
-                        subCrawlerContext,
-                        async (finalContext) => await this.requestHandler(finalContext),
-                    );
+                    await this.staticContextPipeline.call(subCrawlerContext, async (finalContext) => {
+                        Object.assign(finalContext, resultBoundContextHelpers);
+                        await this.requestHandler(finalContext);
+                    });
                 } else if (renderingType === 'clientOnly') {
-                    await this.browserContextPipeline.call(
-                        subCrawlerContext,
-                        async (finalContext) => await this.requestHandler(finalContext),
-                    );
+                    await this.browserContextPipeline.call(subCrawlerContext, async (finalContext) => {
+                        Object.assign(finalContext, resultBoundContextHelpers);
+                        await this.requestHandler(finalContext);
+                    });
                 }
             };
 

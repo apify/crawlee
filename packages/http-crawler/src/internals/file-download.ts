@@ -2,7 +2,7 @@ import { Transform } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
-import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
+import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 
@@ -161,7 +161,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
         super({
             ...options,
             contextPipelineBuilder: () =>
-                ContextPipeline.create<CrawlingContext>().compose({
+                this.buildContextPipeline().compose({
                     action: async (context) => this.initiateDownload(context),
                     cleanup: async (context) => {
                         await (context.response.body ? finished(context.response.body as any) : Promise.resolve());
