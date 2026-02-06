@@ -58,7 +58,7 @@
         "@crawlee/http": "3.16.0",
         "@crawlee/types": "3.16.0",
         "@crawlee/utils": "3.16.0",
-        "@types/jsdom": "^21.0.0",
+        "@types/jsdom": "^27.0.0",
         "cheerio": "1.0.0-rc.12",
         "jsdom": "^26.0.0",
         "ow": "^0.28.2",
