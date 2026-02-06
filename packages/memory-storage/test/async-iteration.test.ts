@@ -297,6 +297,16 @@ describe('Async iteration support', () => {
             }
         });
 
+        test('respects limit option when iterating', async () => {
+            const values: unknown[] = [];
+
+            for await (const value of kvStore.values({ limit: 10 })) {
+                values.push(value);
+            }
+
+            expect(values).toHaveLength(10);
+        });
+
         test('respects exclusiveStartKey option when iterating', async () => {
             const values: unknown[] = [];
 
@@ -321,12 +331,9 @@ describe('Async iteration support', () => {
 
         test('fetches actual record values', async () => {
             const values: unknown[] = [];
-            let count = 0;
 
-            for await (const value of kvStore.values()) {
+            for await (const value of kvStore.values({ limit: 3 })) {
                 values.push(value);
-                count++;
-                if (count >= 3) break;
             }
 
             expect(values[0]).toStrictEqual({ data: 'key-00' });
@@ -379,6 +386,17 @@ describe('Async iteration support', () => {
                 expect(value).not.toHaveProperty('contentType');
                 break; // Only need to check the first one
             }
+        });
+
+        test('respects limit option when iterating', async () => {
+            const entries: [string, unknown][] = [];
+
+            for await (const entry of kvStore.entries({ limit: 10 })) {
+                entries.push(entry);
+            }
+
+            expect(entries).toHaveLength(10);
+            expect(entries.map(([key]) => key)).toStrictEqual(keys.slice(0, 10));
         });
 
         test('respects exclusiveStartKey option when iterating', async () => {

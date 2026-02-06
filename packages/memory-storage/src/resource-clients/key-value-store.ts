@@ -167,6 +167,7 @@ export class KeyValueStoreClient extends BaseClient {
     values(options: storage.KeyValueStoreClientListOptions = {}): AsyncIterable<unknown> & Promise<unknown[]> {
         const keys = this.keys.bind(this);
         const getRecord = this.getRecord.bind(this);
+        const limit = options.limit;
 
         const firstPageKeysPromise = keys(options);
 
@@ -174,6 +175,7 @@ export class KeyValueStoreClient extends BaseClient {
             const firstPageKeys = await firstPageKeysPromise;
             const values: unknown[] = [];
             for (const item of firstPageKeys.items) {
+                if (limit !== undefined && values.length >= limit) break;
                 const record = await getRecord(item.key);
                 if (record) {
                     values.push(record.value);
@@ -183,20 +185,24 @@ export class KeyValueStoreClient extends BaseClient {
         })();
 
         async function* asyncGenerator(): AsyncGenerator<unknown> {
-            const firstPageKeys = await firstPageKeysPromise;
+            // Reuse the already-fetched first page values
+            const firstPageValues = await firstPageValuesPromise;
+            let yielded = 0;
 
-            for (const item of firstPageKeys.items) {
-                const record = await getRecord(item.key);
-                if (record) {
-                    yield record.value;
-                }
+            for (const value of firstPageValues) {
+                if (limit !== undefined && yielded >= limit) return;
+                yield value;
+                yielded++;
             }
 
-            if (firstPageKeys.nextExclusiveStartKey) {
+            const firstPageKeys = await firstPageKeysPromise;
+            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
                 for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                    if (limit !== undefined && yielded >= limit) return;
                     const record = await getRecord(key);
                     if (record) {
                         yield record.value;
+                        yielded++;
                     }
                 }
             }
@@ -212,6 +218,7 @@ export class KeyValueStoreClient extends BaseClient {
     ): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]> {
         const keys = this.keys.bind(this);
         const getRecord = this.getRecord.bind(this);
+        const limit = options.limit;
 
         const firstPageKeysPromise = keys(options);
 
@@ -219,6 +226,7 @@ export class KeyValueStoreClient extends BaseClient {
             const firstPageKeys = await firstPageKeysPromise;
             const entries: [string, unknown][] = [];
             for (const item of firstPageKeys.items) {
+                if (limit !== undefined && entries.length >= limit) break;
                 const record = await getRecord(item.key);
                 if (record) {
                     entries.push([item.key, record.value]);
@@ -228,21 +236,23 @@ export class KeyValueStoreClient extends BaseClient {
         })();
 
         async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {
-            const firstPageKeys = await firstPageKeysPromise;
+            const firstPageEntries = await firstPageEntriesPromise;
+            let yielded = 0;
 
-            // Yield first page entries
-            for (const item of firstPageKeys.items) {
-                const record = await getRecord(item.key);
-                if (record) {
-                    yield [item.key, record.value];
-                }
+            for (const entry of firstPageEntries) {
+                if (limit !== undefined && yielded >= limit) return;
+                yield entry;
+                yielded++;
             }
 
-            if (firstPageKeys.nextExclusiveStartKey) {
+            const firstPageKeys = await firstPageKeysPromise;
+            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
                 for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                    if (limit !== undefined && yielded >= limit) return;
                     const record = await getRecord(key);
                     if (record) {
                         yield [key, record.value];
+                        yielded++;
                     }
                 }
             }
