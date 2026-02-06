@@ -493,10 +493,17 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
-    const urlExists = (url: string) =>
-        httpClient
-            ?.sendRequest(new Request(url, { method: 'HEAD' }), { proxyUrl })
-            .then((response) => response.status >= 200 && response.status < 400);
+    const urlExists = async (url: string): Promise<boolean> => {
+        if (!httpClient) {
+            return false;
+        }
+        try {
+            const response = await httpClient.sendRequest(new Request(url, { method: 'HEAD' }), { proxyUrl });
+            return response.status >= 200 && response.status < 400;
+        } catch {
+            return false;
+        }
+    };
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
         if (!hostname) {
