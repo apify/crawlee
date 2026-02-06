@@ -1,5 +1,5 @@
 import type { Server } from 'node:http';
-
+import log, { Log } from '@apify/log';
 import type { BasicCrawlingContext, CheerioCrawlingContext, CheerioRequestHandler, Source } from '@crawlee/cheerio';
 import {
     CheerioCrawler,
@@ -15,12 +15,9 @@ import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
-import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
 import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
-
-import log, { Log } from '@apify/log';
 
 let server: Server;
 let port: number;
@@ -215,6 +212,31 @@ describe('CheerioCrawler', () => {
 
         // @ts-expect-error Accessing private prop
         expect(cheerioCrawler.ignoreSslErrors).toBeTruthy();
+    });
+
+    test('should work with skipNavigation', async () => {
+        const processed: Request[] = [];
+        const failed: Request[] = [];
+
+        const cheerioCrawler = new CheerioCrawler({
+            maxConcurrency: 1,
+            requestHandler: ({ request }) => {
+                processed.push(request);
+            },
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await cheerioCrawler.run([
+            {
+                url: 'http://example.com/',
+                skipNavigation: true,
+            },
+        ]);
+
+        expect(processed).toHaveLength(1);
+        expect(failed).toHaveLength(0);
     });
 
     test('should work with not encoded urls', async () => {

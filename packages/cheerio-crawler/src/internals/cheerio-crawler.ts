@@ -12,7 +12,13 @@ import type {
     RouterRoutes,
     SkippedRequestCallback,
 } from '@crawlee/http';
-import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
+import {
+    enqueueLinks,
+    HttpCrawler,
+    NavigationSkippedError,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    Router,
+} from '@crawlee/http';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio, type RobotsTxtFile } from '@crawlee/utils';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
@@ -192,19 +198,40 @@ export class CheerioCrawler<
     }
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
-        const isXml = crawlingContext.contentType.type.includes('xml');
-        const body = Buffer.isBuffer(crawlingContext.body)
-            ? crawlingContext.body.toString(crawlingContext.contentType.encoding)
-            : crawlingContext.body;
-        const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
-        const $ = cheerio.load(dom, {
-            xml: { decodeEntities: true, xmlMode: isXml },
-        } as CheerioOptions);
+        try {
+            const isXml = crawlingContext.contentType.type.includes('xml');
+            const body = Buffer.isBuffer(crawlingContext.body)
+                ? crawlingContext.body.toString(crawlingContext.contentType.encoding)
+                : crawlingContext.body;
+            const dom = parseDocument(body, { decodeEntities: true, xmlMode: isXml });
+            const $ = cheerio.load(dom, {
+                xml: { decodeEntities: true, xmlMode: isXml },
+            } as CheerioOptions);
 
-        return {
-            $,
-            body,
-        };
+            return {
+                $,
+                body,
+            };
+        } catch (err) {
+            if (err instanceof NavigationSkippedError) {
+                return {
+                    get body(): string {
+                        throw new NavigationSkippedError(
+                            'The `body` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                    get $(): CheerioAPI {
+                        throw new NavigationSkippedError(
+                            'The `$` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                };
+            }
+
+            throw err;
+        }
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { $: CheerioAPI }) {
