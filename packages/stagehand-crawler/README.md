@@ -16,7 +16,7 @@ The `apiKey` option is interpreted based on the `env` setting:
 const crawler = new StagehandCrawler({
     stagehandOptions: {
         model: 'openai/gpt-4.1-mini',
-        apiKey: 'sk-...', // LLM API key for LOCAL env
+        apiKey: 'your-api-key', // LLM API key for LOCAL env
     },
     // ...
 });

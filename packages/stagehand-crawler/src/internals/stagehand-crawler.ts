@@ -60,13 +60,13 @@ export interface StagehandOptions {
      * stagehandOptions: {
      *   env: 'LOCAL',
      *   model: 'openai/gpt-4.1-mini',
-     *   apiKey: 'sk-...',
+     *   apiKey: 'your-api-key',
      * }
      *
      * // Browserbase cloud
      * stagehandOptions: {
      *   env: 'BROWSERBASE',
-     *   apiKey: 'bb-...',
+     *   apiKey: 'your-browserbase-api-key',
      *   projectId: 'proj-...',
      * }
      * ```
