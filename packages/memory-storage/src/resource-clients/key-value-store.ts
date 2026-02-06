@@ -15,7 +15,7 @@ import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 import type { MemoryStorage } from '../index';
-import { isBuffer, isStream } from '../utils';
+import { createKeyList, createKeyStringList, isBuffer, isStream } from '../utils';
 import { BaseClient } from './common/base-client';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
@@ -118,12 +118,10 @@ export class KeyValueStoreClient extends BaseClient {
         }
     }
 
-    async listKeys(options: storage.KeyValueStoreClientListOptions = {}): Promise<storage.KeyValueStoreClientListData> {
-        const {
-            limit = DEFAULT_API_PARAM_LIMIT,
-            exclusiveStartKey,
-            prefix,
-        } = s
+    listKeys(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData> {
+        const { limit, exclusiveStartKey, prefix } = s
             .object({
                 limit: s.number.greaterThan(0).optional,
                 exclusiveStartKey: s.string.optional,
@@ -131,6 +129,144 @@ export class KeyValueStoreClient extends BaseClient {
                 prefix: s.string.optional,
             })
             .parse(options);
+
+        return createKeyList(
+            (pageExclusiveStartKey) =>
+                this.listKeysPage({
+                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
+                    exclusiveStartKey: pageExclusiveStartKey,
+                    prefix,
+                }),
+            { exclusiveStartKey, limit },
+        );
+    }
+
+    keys(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): AsyncIterable<string> & Promise<storage.KeyValueStoreClientListData> {
+        const { limit, exclusiveStartKey, prefix } = s
+            .object({
+                limit: s.number.greaterThan(0).optional,
+                exclusiveStartKey: s.string.optional,
+                collection: s.string.optional,
+                prefix: s.string.optional,
+            })
+            .parse(options);
+
+        return createKeyStringList(
+            (pageExclusiveStartKey) =>
+                this.listKeysPage({
+                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
+                    exclusiveStartKey: pageExclusiveStartKey,
+                    prefix,
+                }),
+            { exclusiveStartKey, limit },
+        );
+    }
+
+    values(options: storage.KeyValueStoreClientListOptions = {}): AsyncIterable<unknown> & Promise<unknown[]> {
+        const keys = this.keys.bind(this);
+        const getRecord = this.getRecord.bind(this);
+        const limit = options.limit;
+
+        const firstPageKeysPromise = keys(options);
+
+        const firstPageValuesPromise = (async () => {
+            const firstPageKeys = await firstPageKeysPromise;
+            const values: unknown[] = [];
+            for (const item of firstPageKeys.items) {
+                if (limit !== undefined && values.length >= limit) break;
+                const record = await getRecord(item.key);
+                if (record) {
+                    values.push(record.value);
+                }
+            }
+            return values;
+        })();
+
+        async function* asyncGenerator(): AsyncGenerator<unknown> {
+            // Reuse the already-fetched first page values
+            const firstPageValues = await firstPageValuesPromise;
+            let yielded = 0;
+
+            for (const value of firstPageValues) {
+                if (limit !== undefined && yielded >= limit) return;
+                yield value;
+                yielded++;
+            }
+
+            const firstPageKeys = await firstPageKeysPromise;
+            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
+                for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                    if (limit !== undefined && yielded >= limit) return;
+                    const record = await getRecord(key);
+                    if (record) {
+                        yield record.value;
+                        yielded++;
+                    }
+                }
+            }
+        }
+
+        return Object.defineProperty(firstPageValuesPromise, Symbol.asyncIterator, {
+            value: asyncGenerator,
+        }) as AsyncIterable<unknown> & Promise<unknown[]>;
+    }
+
+    entries(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]> {
+        const keys = this.keys.bind(this);
+        const getRecord = this.getRecord.bind(this);
+        const limit = options.limit;
+
+        const firstPageKeysPromise = keys(options);
+
+        const firstPageEntriesPromise = (async () => {
+            const firstPageKeys = await firstPageKeysPromise;
+            const entries: [string, unknown][] = [];
+            for (const item of firstPageKeys.items) {
+                if (limit !== undefined && entries.length >= limit) break;
+                const record = await getRecord(item.key);
+                if (record) {
+                    entries.push([item.key, record.value]);
+                }
+            }
+            return entries;
+        })();
+
+        async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {
+            const firstPageEntries = await firstPageEntriesPromise;
+            let yielded = 0;
+
+            for (const entry of firstPageEntries) {
+                if (limit !== undefined && yielded >= limit) return;
+                yield entry;
+                yielded++;
+            }
+
+            const firstPageKeys = await firstPageKeysPromise;
+            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
+                for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                    if (limit !== undefined && yielded >= limit) return;
+                    const record = await getRecord(key);
+                    if (record) {
+                        yield [key, record.value];
+                        yielded++;
+                    }
+                }
+            }
+        }
+
+        return Object.defineProperty(firstPageEntriesPromise, Symbol.asyncIterator, {
+            value: asyncGenerator,
+        }) as AsyncIterable<[string, unknown]> & Promise<[string, unknown][]>;
+    }
+
+    private async listKeysPage(
+        options: storage.KeyValueStoreClientListOptions = {},
+    ): Promise<storage.KeyValueStoreClientListData> {
+        const { limit = DEFAULT_API_PARAM_LIMIT, exclusiveStartKey, prefix } = options;
 
         // Check by id
         const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);

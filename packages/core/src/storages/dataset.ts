@@ -1,4 +1,4 @@
-import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@crawlee/types';
+import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
@@ -604,6 +604,78 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         await this.forEach(wrappedFunc, options);
         return currentMemo;
+    }
+
+    /**
+     * Iterates over dataset items using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * for await (const item of dataset.values()) {
+     *   console.log(item);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
+        checkStorageAccess();
+
+        const result = this.client.listItems(options) as AsyncIterable<Data> & Promise<PaginatedList<Data>>;
+
+        if (!(Symbol.asyncIterator in result)) {
+            Object.defineProperty(result, Symbol.asyncIterator, {
+                get() {
+                    throw new Error('Resource client "listItems" method does not return an async iterable.');
+                },
+            });
+        }
+
+        return result;
+    }
+
+    /**
+     * Iterates over dataset entries (index-value pairs) using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * for await (const [index, item] of dataset.entries()) {
+     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    entries(
+        options: DatasetIteratorOptions = {},
+    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>> {
+        checkStorageAccess();
+
+        if (!this.client.listEntries) {
+            throw new Error('Resource client is missing the "listEntries" method.');
+        }
+
+        return this.client.listEntries(options);
+    }
+
+    /**
+     * Default async iterator for the dataset, iterating over items.
+     * Allows using the dataset directly in a `for await...of` loop.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * for await (const item of dataset) {
+     *   console.log(item);
+     * }
+     * ```
+     */
+    async *[Symbol.asyncIterator](): AsyncGenerator<Data, void, undefined> {
+        yield* this.values();
     }
 
     /**

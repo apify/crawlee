@@ -604,4 +604,115 @@ describe('KeyValueStore', () => {
             });
         });
     });
+
+    describe('async iterators', () => {
+        test('keys() should iterate over all keys', async () => {
+            const store = await KeyValueStore.open();
+
+            const testData = {
+                key1: { value: 1 },
+                key2: { value: 2 },
+                key3: { value: 3 },
+            };
+
+            for (const [key, value] of Object.entries(testData)) {
+                await store.setValue(key, value);
+            }
+
+            const keys: string[] = [];
+            for await (const key of store.keys()) {
+                keys.push(key);
+            }
+
+            expect(keys).toEqual(['key1', 'key2', 'key3']);
+        });
+
+        test('keys() should respect prefix option', async () => {
+            const store = await KeyValueStore.open();
+
+            for (const [key, value] of Object.entries({
+                'img-key1': 'PAYLOAD',
+                'img-key2': 'PAYLOAD',
+                'txt-key1': 'PAYLOAD',
+            })) {
+                await store.setValue(key, value);
+            }
+
+            const imgKeys: string[] = [];
+            for await (const key of store.keys({ prefix: 'img-' })) {
+                imgKeys.push(key);
+            }
+
+            expect(imgKeys).toEqual(['img-key1', 'img-key2']);
+        });
+
+        test('values() should iterate over all values', async () => {
+            const store = await KeyValueStore.open();
+
+            const testData = {
+                key1: { value: 1 },
+                key2: { value: 2 },
+                key3: { value: 3 },
+            };
+
+            for (const [key, value] of Object.entries(testData)) {
+                await store.setValue(key, value);
+            }
+
+            const values: { value: number }[] = [];
+            for await (const value of store.values<{ value: number }>()) {
+                values.push(value);
+            }
+
+            expect(values).toEqual([{ value: 1 }, { value: 2 }, { value: 3 }]);
+        });
+
+        test('entries() should iterate over all key-value pairs', async () => {
+            const store = await KeyValueStore.open();
+
+            const testData = {
+                key1: { value: 1 },
+                key2: { value: 2 },
+                key3: { value: 3 },
+            };
+
+            for (const [key, value] of Object.entries(testData)) {
+                await store.setValue(key, value);
+            }
+
+            const entries: [string, { value: number }][] = [];
+            for await (const [key, value] of store.entries<{ value: number }>()) {
+                entries.push([key, value]);
+            }
+
+            expect(entries).toEqual([
+                ['key1', { value: 1 }],
+                ['key2', { value: 2 }],
+                ['key3', { value: 3 }],
+            ]);
+        });
+
+        test('Symbol.asyncIterator should iterate over entries', async () => {
+            const store = await KeyValueStore.open();
+
+            const testData = {
+                key1: { value: 1 },
+                key2: { value: 2 },
+            };
+
+            for (const [key, value] of Object.entries(testData)) {
+                await store.setValue(key, value);
+            }
+
+            const entries: [string, { value: number }][] = [];
+            for await (const [key, value] of store) {
+                entries.push([key, value as { value: number }]);
+            }
+
+            expect(entries).toEqual([
+                ['key1', { value: 1 }],
+                ['key2', { value: 2 }],
+            ]);
+        });
+    });
 });

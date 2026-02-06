@@ -482,6 +482,96 @@ export class KeyValueStore {
     }
 
     /**
+     * Iterates over key-value store keys using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const key of keyValueStore.keys()) {
+     *   console.log(key);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    async *keys(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<string, void, undefined> {
+        checkStorageAccess();
+
+        if (!this.client.keys) {
+            throw new Error('Resource client is missing the "keys" method.');
+        }
+
+        yield* this.client.keys(options);
+    }
+
+    /**
+     * Iterates over key-value store values using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const value of keyValueStore.values()) {
+     *   console.log(value);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
+        checkStorageAccess();
+
+        if (!this.client.values) {
+            throw new Error('Resource client is missing the "values" method.');
+        }
+
+        return this.client.values(options) as AsyncIterable<T> & Promise<T[]>;
+    }
+
+    /**
+     * Iterates over key-value store entries (key-value pairs) using an async generator,
+     * allowing the use of `for await...of` syntax.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const [key, value] of keyValueStore.entries()) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    entries<T = unknown>(
+        options: KeyValueStoreIteratorOptions = {},
+    ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
+        checkStorageAccess();
+
+        if (!this.client.entries) {
+            throw new Error('Resource client is missing the "entries" method.');
+        }
+
+        return this.client.entries(options) as AsyncIterable<[string, T]> & Promise<[string, T][]>;
+    }
+
+    /**
+     * Default async iterator for the key-value store, iterating over entries (key-value pairs).
+     * Allows using the store directly in a `for await...of` loop.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const [key, value] of keyValueStore) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     */
+    async *[Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined> {
+        yield* this.entries<T>();
+    }
+
+    /**
      * Returns a file URL for the given key.
      */
     getPublicUrl(key: string): string {
