@@ -20,13 +20,10 @@ describe('anonymizeProxySugar', () => {
         ['http://username:password@proxy:1000/', 'http://username:password@proxy:1000'],
         ['socks://username:password@proxy:1000', 'socks://username:password@proxy:1000'],
         ['socks://username:password@proxy:1000/', 'socks://username:password@proxy:1000'],
-    ])(
-        'should call anonymizeProxy from proxy-chain with correctly pre-processed URL: %s',
-        async (input, expectedOutput) => {
-            const [anonymized] = await anonymizeProxySugar(input);
+    ])('should call anonymizeProxy from proxy-chain with correctly pre-processed URL: %s', async (input, expectedOutput) => {
+        const [anonymized] = await anonymizeProxySugar(input);
 
-            expect(anonymizeProxy).toHaveBeenCalledWith(expectedOutput);
-            expect(anonymized).toBeTypeOf('string');
-        },
-    );
+        expect(anonymizeProxy).toHaveBeenCalledWith(expectedOutput);
+        expect(anonymized).toBeTypeOf('string');
+    });
 });
