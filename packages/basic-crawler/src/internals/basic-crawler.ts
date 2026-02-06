@@ -927,7 +927,7 @@ export class BasicCrawler<
             })
             .compose({
                 action: async (context) => {
-                    if (context.request) return;
+                    if (context.request) return {};
 
                     const request = await this._timeoutAndRetry(
                         this._fetchNextRequest.bind(this),
