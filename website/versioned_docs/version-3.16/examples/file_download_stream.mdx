@@ -1,0 +1,17 @@
+---
+id: file-download-stream
+title: Download a file with Node.js streams
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import FileDownloadSource from '!!raw-loader!roa-loader!./file_download_stream.ts';
+
+For larger files, it is more efficient to use Node.js streams to download and transfer the files. This example demonstrates how to download files using streams.
+
+The script uses the <ApiLink to="http-crawler/class/FileDownload">`FileDownload`</ApiLink> crawler class to download files with streams, log the progress, and store the data in the key-value store.
+In local configuration, the data will be stored as files in `./storage/key_value_stores/default`.
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{FileDownloadSource}
+</RunnableCodeBlock>

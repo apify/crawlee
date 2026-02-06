@@ -1,0 +1,61 @@
+---
+id: jsdom-crawler-guide
+title: "JSDOMCrawler guide"
+sidebar_label: "JSDOMCrawler"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+&#8203;<ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink> is very useful for scraping with the Window API.
+
+## How the crawler works
+
+&#8203;<ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink> crawls by making plain HTTP requests to the provided URLs using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client. The URLs are fed to the crawler using <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. The HTTP responses it gets back are usually HTML pages. The same pages you would get in your browser when you first load a URL. But it can handle any content types with the help of the <ApiLink to="jsdom-crawler/interface/JSDOMCrawlerOptions#additionalMimeTypes">`additionalMimeTypes`</ApiLink> option.
+
+:::info
+
+Modern web pages often do not serve all of their content in the first HTML response, but rather the first HTML contains links to other resources such as CSS and JavaScript that get downloaded afterwards, and together they create the final page. To crawl those, see <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>.
+
+:::
+
+Once the page's HTML is retrieved, the crawler will pass it to [JSDOM](https://www.npmjs.com/package/jsdom) for parsing. The result is a `window` property, which should be familiar to frontend developers. You can use the Window API to do all sorts of lookups and manipulation of the page's HTML, but in scraping, you will mostly use it to find specific HTML elements and extract their data.
+
+Example use of browser JavaScript:
+
+```ts
+// Return the page title
+document.title; // browsers
+window.document.title; // JSDOM
+```
+
+## When to use `JSDOMCrawler`
+
+`JSDOMCrawler` really shines when `CheerioCrawler` is just not enough. There is an entire set of [APIs](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API) available!
+
+**Advantages:**
+
+-   Easy to set up
+-   Familiar for frontend developers
+-   Content can be manipulated
+-   Automatically avoids some anti-scraping bans
+
+**Disadvantages:**
+
+-   Slower than `CheerioCrawler`
+-   Does not work for websites that require JavaScript rendering
+-   May easily overload the target website with requests
+
+## Example use of Element API
+
+### Find all links on a page
+
+This snippet finds all `<a>` elements which have the `href` attribute and extracts the hrefs into an array.
+
+```js
+Array.from(document.querySelectorAll('a[href]')).map((a) => a.href);
+```
+
+### Other examples
+
+Visit the [Examples](../examples) section to browse examples of `JSDOMCrawler` usage. Almost all examples show `JSDOMCrawler` code in their code tabs.
