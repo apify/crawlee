@@ -509,9 +509,19 @@ export async function* discoverValidSitemaps(
          * Defaults to `20000` ms (20 seconds).
          */
         requestTimeoutMillis?: number;
+        /**
+         * HTTP client to be used for network requests.
+         */
+        httpClient?: BaseHttpClient;
     } = {},
 ): AsyncIterable<string> {
-    const { proxyUrl, timeoutMillis = 60_000, signal: externalSignal, requestTimeoutMillis = 20_000 } = options;
+    const {
+        proxyUrl,
+        timeoutMillis = 60_000,
+        signal: externalSignal,
+        requestTimeoutMillis = 20_000,
+        httpClient = new FetchHttpClient(),
+    } = options;
     const controller = new AbortController();
 
     const timeoutHandle = setTimeout(() => controller.abort(), timeoutMillis);
@@ -525,7 +535,6 @@ export async function* discoverValidSitemaps(
     }
 
     const signal = controller.signal;
-    const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
 
     const addSitemapUrl = (url: string): string | undefined => {
@@ -540,18 +549,16 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
-    const urlExists = async (url: string) => {
-        const response = await gotScraping({
-            url,
-            method: 'HEAD',
-            proxyUrl,
-            timeout: {
-                request: requestTimeoutMillis,
-            },
-            signal,
-        });
-
-        return response.statusCode >= 200 && response.statusCode < 400;
+    const urlExists = async (url: string): Promise<boolean> => {
+        if (!httpClient) {
+            return false;
+        }
+        try {
+            const response = await httpClient.sendRequest(new Request(url, { method: 'HEAD' }), { proxyUrl });
+            return response.status >= 200 && response.status < 400;
+        } catch {
+            return false;
+        }
     };
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
@@ -560,7 +567,8 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl, {
+            const robotsFile = await RobotsFile.find(domainUrls[0], {
+                proxyUrl,
                 timeoutMillis: requestTimeoutMillis,
                 signal,
             });
@@ -618,8 +626,14 @@ export async function* discoverValidSitemaps(
         discoverSitemapsForDomainUrls(hostname, domainUrls),
     );
 
+    const discoveredUrls = new Set<string>();
+
     try {
         for await (const url of mergeAsyncIterables(...iterables)) {
+            if (discoveredUrls.has(url)) {
+                continue;
+            }
+            discoveredUrls.add(url);
             yield url;
         }
     } finally {
