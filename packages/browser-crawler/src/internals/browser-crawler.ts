@@ -705,7 +705,7 @@ export abstract class BrowserCrawler<
         const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
 
         if (this.sessionPool) {
-            launchContextExtends.session = await this.sessionPool.newSession({
+            launchContextExtends.session = await this.sessionPool.getSession({
                 proxyInfo: await this.proxyConfiguration?.newProxyInfo({
                     // cannot pass a request here, since session is created on browser launch
                 }),
