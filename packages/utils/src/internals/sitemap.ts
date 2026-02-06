@@ -12,6 +12,9 @@ import MIMEType from 'whatwg-mimetype';
 
 import log from '@apify/log';
 
+import { mergeAsyncIterables } from './iterables.js';
+import { RobotsFile } from './robots.js';
+
 interface SitemapUrlData {
     loc: string;
     lastmod?: Date;
@@ -452,5 +455,114 @@ export class Sitemap {
         }
 
         return new Sitemap(urls);
+    }
+}
+
+/**
+ * Given a list of URLs, discover related sitemap files for these domains by checking the `robots.txt` file,
+ * the default `sitemap.xml` & `sitemap.txt` files and the URLs themselves.
+ * @param `urls` The list of URLs to discover sitemaps for.
+ * @param `options` Options for sitemap discovery
+ * @returns An async iterable with the discovered sitemap URLs.
+ */
+export async function* discoverValidSitemaps(
+    urls: string[],
+    options: {
+        /**
+         * Proxy URL to be used for network requests.
+         */
+        proxyUrl?: string;
+        /**
+         * HTTP client to be used for network requests.
+         */
+        httpClient?: BaseHttpClient;
+    } = {},
+): AsyncIterable<string> {
+    const { proxyUrl, httpClient = new FetchHttpClient() } = options;
+    const sitemapUrls = new Set<string>();
+
+    const addSitemapUrl = (url: string): string | undefined => {
+        const sizeBefore = sitemapUrls.size;
+
+        sitemapUrls.add(url);
+
+        if (sitemapUrls.size > sizeBefore) {
+            return url;
+        }
+
+        return undefined;
+    };
+
+    const urlExists = async (url: string): Promise<boolean> => {
+        if (!httpClient) {
+            return false;
+        }
+        try {
+            const response = await httpClient.sendRequest(new Request(url, { method: 'HEAD' }), { proxyUrl });
+            return response.status >= 200 && response.status < 400;
+        } catch {
+            return false;
+        }
+    };
+
+    const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
+        if (!hostname) {
+            return;
+        }
+
+        try {
+            const robotsFile = await RobotsFile.find(domainUrls[0], { proxyUrl, httpClient });
+
+            for (const sitemapUrl of robotsFile.getSitemaps()) {
+                if (addSitemapUrl(sitemapUrl)) {
+                    yield sitemapUrl;
+                }
+            }
+        } catch (err) {
+            log.warning(`Failed to fetch robots.txt file for ${hostname}`, { error: err });
+        }
+
+        const sitemapUrl = domainUrls.find((url) => /sitemap\.(?:xml|txt)(?:\.gz)?$/i.test(url));
+
+        if (sitemapUrl !== undefined) {
+            if (addSitemapUrl(sitemapUrl)) {
+                yield sitemapUrl;
+            }
+        } else {
+            const firstUrl = new URL(domainUrls[0]);
+            const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
+            for (const pathname of possibleSitemapPathnames) {
+                firstUrl.pathname = pathname;
+                if (await urlExists(firstUrl.toString())) {
+                    if (addSitemapUrl(firstUrl.toString())) {
+                        yield firstUrl.toString();
+                    }
+                }
+            }
+        }
+    };
+
+    const groupedUrls = urls.reduce(
+        (acc, url) => {
+            const hostname = new URL(url)?.hostname ?? '';
+            acc[hostname] ??= [];
+            acc[hostname].push(url);
+            return acc;
+        },
+        {} as Record<string, string[]>,
+    );
+
+    const iterables = Object.entries(groupedUrls).map(([hostname, domainUrls]) =>
+        discoverSitemapsForDomainUrls(hostname, domainUrls),
+    );
+
+    const discoveredUrls = new Set<string>();
+
+    for await (const url of mergeAsyncIterables(...iterables)) {
+        if (discoveredUrls.has(url)) {
+            continue;
+        }
+        discoveredUrls.add(url);
+        yield url;
     }
 }
