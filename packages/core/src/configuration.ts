@@ -270,6 +270,7 @@ export class Configuration<
      * The new env vars are checked first, then the base field's env vars.
      * Intended for use when extending Configuration in other packages (e.g., Apify SDK).
      *
+     * @internal
      * @example
      * ```ts
      * const apifyConfigFields = {
