@@ -120,7 +120,7 @@ export type RequireContextPipeline<
     FinalContextType extends DefaultContextType,
 > = DefaultContextType extends FinalContextType
     ? {}
-    : { contextPipelineBuilder: () => ContextPipeline<CrawlingContext, FinalContextType> };
+    : { contextPipelineBuilder: () => ContextPipeline<{}, FinalContextType> };
 
 export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
@@ -174,7 +174,7 @@ export interface BasicCrawlerOptions<
      *
      * The option is not required if your crawler subclass does not extend the crawling context with custom information or helpers.
      */
-    contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
+    contextPipelineBuilder?: () => ContextPipeline<{}, Context>;
 
     /**
      * Static list of URLs to be processed.
@@ -550,9 +550,9 @@ export class BasicCrawler<
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    private _contextPipeline?: ContextPipeline<CrawlingContext, ExtendedContext>;
+    private _contextPipeline?: ContextPipeline<{}, ExtendedContext>;
 
-    get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
+    get contextPipeline(): ContextPipeline<{}, ExtendedContext> {
         if (this._contextPipeline === undefined) {
             this._contextPipeline = this.contextPipelineBuilder();
         }
@@ -811,7 +811,7 @@ export class BasicCrawler<
             maxConcurrency: maxConcurrency ?? autoscaledPoolOptions?.maxConcurrency,
             maxTasksPerMinute: maxRequestsPerMinute ?? autoscaledPoolOptions?.maxTasksPerMinute,
             runTaskFunction: async () => {
-                const crawlingContext = {} as CrawlingContext;
+                const crawlingContext = {} as Partial<CrawlingContext>;
                 try {
                     await this.contextPipeline.call(crawlingContext, this._runTaskFunction.bind(this));
                 } catch (error) {
@@ -819,7 +819,7 @@ export class BasicCrawler<
                     // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                     if (crawlingContext.request && error instanceof ContextPipelineInterruptedError) {
                         await this._timeoutAndRetry(
-                            async () => this.requestManager?.markRequestHandled(crawlingContext.request),
+                            async () => this.requestManager?.markRequestHandled(crawlingContext.request!),
                             this.internalTimeoutMillis,
                             `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
                                 this.internalTimeoutMillis / 1e3
@@ -835,7 +835,7 @@ export class BasicCrawler<
                     if (isPipelineError && crawlingContext.request) {
                         const unwrappedError = this.unwrapError(error);
 
-                        await this._requestFunctionErrorHandler(unwrappedError, crawlingContext, this.requestManager!);
+                        await this._requestFunctionErrorHandler(unwrappedError, crawlingContext as CrawlingContext, this.requestManager!);
                         crawlingContext.session?.markBad();
                         return;
                     }
@@ -889,10 +889,10 @@ export class BasicCrawler<
      * Builds the base context pipeline with core crawling functionality.
      * Subclasses should override this method to extend the pipeline, calling `super.buildContextPipeline()` first.
      */
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext> {
+    protected buildContextPipeline(): ContextPipeline<{}, CrawlingContext> {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
-        return ContextPipeline.create<CrawlingContext>()
+        return ContextPipeline.create<{}>()
             .compose({
                 action: () => {
                     return {
@@ -973,9 +973,9 @@ export class BasicCrawler<
     /**
      * Prepares the context before processing a request.
      */
-    private contextPipelineBuilder(): ContextPipeline<CrawlingContext, ExtendedContext> {
+    private contextPipelineBuilder(): ContextPipeline<{}, ExtendedContext> {
         let contextPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
-            this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
+            this.buildContextPipeline()) as ContextPipeline<{}, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
 
         if (this.contextPipelineOptions.extendContext !== undefined) {
             contextPipeline = contextPipeline.compose({
@@ -1002,7 +1002,7 @@ export class BasicCrawler<
             },
         });
 
-        return contextPipeline as ContextPipeline<CrawlingContext, ExtendedContext>;
+        return contextPipeline as ContextPipeline<{}, ExtendedContext>;
     }
 
     /**

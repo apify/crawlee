@@ -311,7 +311,7 @@ export class AdaptivePlaywrightCrawler<
                 // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
                 // (that would be a logical error in this class)
                 contextPipelineBuilder: () =>
-                    null as unknown as ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext>,
+                    null as unknown as ContextPipeline<{}, AdaptivePlaywrightCrawlerContext>,
             },
             config,
         );

@@ -343,7 +343,7 @@ export abstract class BrowserCrawler<
             ContextExtension,
             ExtendedContext
         > & {
-            contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
+            contextPipelineBuilder: () => ContextPipeline<{}, Context>;
         },
         override readonly config = Configuration.getGlobalConfig(),
     ) {
@@ -417,7 +417,7 @@ export abstract class BrowserCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<
-        CrawlingContext,
+        {},
         BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>
     > {
         return super.buildContextPipeline().compose({
