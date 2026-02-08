@@ -310,8 +310,7 @@ export class AdaptivePlaywrightCrawler<
                 requestHandler,
                 // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
                 // (that would be a logical error in this class)
-                contextPipelineBuilder: () =>
-                    null as unknown as ContextPipeline<{}, AdaptivePlaywrightCrawlerContext>,
+                contextPipelineBuilder: () => null as unknown as ContextPipeline<{}, AdaptivePlaywrightCrawlerContext>,
             },
             config,
         );
@@ -511,8 +510,6 @@ export class AdaptivePlaywrightCrawler<
 
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
-        // These helpers need to be applied after the context pipeline runs to avoid being overwritten
-        // by the base crawler's helpers.
         const resultBoundContextHelpers = {
             addRequests: result.addRequests,
             pushData: result.pushData,

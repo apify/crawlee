@@ -835,7 +835,11 @@ export class BasicCrawler<
                     if (isPipelineError && crawlingContext.request) {
                         const unwrappedError = this.unwrapError(error);
 
-                        await this._requestFunctionErrorHandler(unwrappedError, crawlingContext as CrawlingContext, this.requestManager!);
+                        await this._requestFunctionErrorHandler(
+                            unwrappedError,
+                            crawlingContext as CrawlingContext,
+                            this.requestManager!,
+                        );
                         crawlingContext.session?.markBad();
                         return;
                     }
@@ -912,9 +916,7 @@ export class BasicCrawler<
                 },
             })
             .compose({
-                action: async (context) => {
-                    if (context.request) return {};
-
+                action: async () => {
                     const request = await this._timeoutAndRetry(
                         this._fetchNextRequest.bind(this),
                         this.internalTimeoutMillis,
@@ -926,7 +928,7 @@ export class BasicCrawler<
                         request.loadedUrl = undefined;
                     }
 
-                    return { request };
+                    return { request: request! };
                 },
             })
             .compose({
@@ -954,10 +956,10 @@ export class BasicCrawler<
                     const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
                         const requestQueue = await this.getRequestQueue();
 
-                        return await this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
+                        return await this.enqueueLinksWithCrawlDepth(options, request!, requestQueue);
                     };
                     const addRequests: CrawlingContext['addRequests'] = async (requests, options = {}) => {
-                        const newCrawlDepth = request.crawlDepth + 1;
+                        const newCrawlDepth = request!.crawlDepth + 1;
                         const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
 
                         await this.addRequests(requestsGenerator, options);

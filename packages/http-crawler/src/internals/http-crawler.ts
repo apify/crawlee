@@ -376,8 +376,7 @@ export class HttpCrawler<
                 ...basicCrawlerOptions,
                 autoscaledPoolOptions,
                 contextPipelineBuilder:
-                    contextPipelineBuilder ??
-                    (() => this.buildContextPipeline() as ContextPipeline<{}, Context>),
+                    contextPipelineBuilder ?? (() => this.buildContextPipeline() as ContextPipeline<{}, Context>),
             },
             config,
         );
