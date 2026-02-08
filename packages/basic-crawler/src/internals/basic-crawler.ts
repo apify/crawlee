@@ -888,20 +888,6 @@ export class BasicCrawler<
     /**
      * Builds the base context pipeline with core crawling functionality.
      * Subclasses should override this method to extend the pipeline, calling `super.buildContextPipeline()` first.
-     *
-     * The base pipeline provides:
-     * - `id`: Unique identifier for the request processing
-     * - `log`: Logger instance
-     * - `pushData`: Function to push data to the dataset
-     * - `useState`: Function to access crawler state
-     * - `getKeyValueStore`: Function to access key-value stores
-     * - `registerDeferredCleanup`: Function to register cleanup callbacks
-     * - `request`: The current request being processed
-     * - `session`: The session for the current request (if session pool is enabled)
-     * - `proxyInfo`: Proxy information for the current request
-     * - `enqueueLinks`: Function to enqueue links from the page
-     * - `addRequests`: Function to add new requests to the queue
-     * - `sendRequest`: Function to send HTTP requests
      */
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext> {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
