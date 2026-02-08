@@ -511,13 +511,16 @@ export class AdaptivePlaywrightCrawler<
 
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
-        // These helpers need to be applied after the pipeline runs to avoid being overwritten
+        // These helpers need to be applied after the context pipeline runs to avoid being overwritten
         // by the base crawler's helpers.
         const resultBoundContextHelpers = {
             addRequests: result.addRequests,
             pushData: result.pushData,
             useState: this.allowStorageAccess(useStateFunction),
             getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
+            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
+                return await this.enqueueLinks(options, context.request, result);
+            },
             log: this.createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
