@@ -1,11 +1,9 @@
 import os from 'node:os';
-
-import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
+import log from '@apify/log';
+import { Configuration, EventType, LocalEventManager, Snapshotter, serviceLocator } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';
 import * as utils from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
-
-import log from '@apify/log';
 
 const toBytes = (x: number) => x * 1024 * 1024;
 
@@ -22,14 +20,14 @@ describe('Snapshotter', () => {
 
     test('should collect snapshots with some values', async () => {
         // mock client data
-        const apifyClient = Configuration.getStorageClient();
+        const apifyClient = serviceLocator.getStorageClient();
         const oldStats = apifyClient.stats;
         apifyClient.stats = {} as any;
         apifyClient.stats!.rateLimitErrors = [0, 0, 0];
 
-        const config = new Configuration({ systemInfoIntervalMillis: 100 });
-        const snapshotter = new Snapshotter({ config });
-        const events = config.getEventManager();
+        serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 100 }));
+        const snapshotter = new Snapshotter();
+        const events = serviceLocator.getEventManager();
         await events.init();
         await snapshotter.start();
 
@@ -80,13 +78,13 @@ describe('Snapshotter', () => {
     });
 
     test('should override default timers', async () => {
-        const config = new Configuration({ systemInfoIntervalMillis: 0.1 });
-        const snapshotter = new Snapshotter({ config, eventLoopSnapshotIntervalSecs: 0.05 });
-        await config.getEventManager().init();
+        serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 0.1 }));
+        const snapshotter = new Snapshotter({ eventLoopSnapshotIntervalSecs: 0.05 });
+        await serviceLocator.getEventManager().init();
         await snapshotter.start();
         await sleep(3 * 1e3);
         await snapshotter.stop();
-        await config.getEventManager().close();
+        await serviceLocator.getEventManager().close();
         const memorySnapshots = snapshotter.getMemorySample();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
         const cpuSnapshots = snapshotter.getCpuSample();
@@ -99,7 +97,7 @@ describe('Snapshotter', () => {
     test('correctly marks CPU overloaded using Platform event', async () => {
         let count = 0;
         const emitAndWait = async (delay: number) => {
-            Configuration.getEventManager().emit(EventType.SYSTEM_INFO, {
+            serviceLocator.getEventManager().emit(EventType.SYSTEM_INFO, {
                 isCpuOverloaded: count % 2 === 0,
                 createdAt: new Date().toISOString(),
                 cpuCurrentUsage: 66.6,
@@ -140,11 +138,11 @@ describe('Snapshotter', () => {
         cpusMock.mockReturnValue(fakeCpu as any);
 
         const noop = () => {};
-        const config = new Configuration({ maxUsedCpuRatio: 0.5 });
-        const snapshotter = new Snapshotter({ config });
+        serviceLocator.setConfiguration(new Configuration({ maxUsedCpuRatio: 0.5 }));
+        const snapshotter = new Snapshotter();
         // do not initialize the event intervals as we will fire them manually
         const spy = vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
-        const events = config.getEventManager() as LocalEventManager;
+        const events = serviceLocator.getEventManager() as LocalEventManager;
         await snapshotter.start();
 
         await events.emitSystemInfoEvent(noop);
@@ -215,11 +213,11 @@ describe('Snapshotter', () => {
             childProcessesBytes: toBytes(1000),
         } as MemoryInfo;
         vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
-        const config = new Configuration({ availableMemoryRatio: 1 });
-        const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
+        serviceLocator.setConfiguration(new Configuration({ availableMemoryRatio: 1 }));
+        const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
         // do not initialize the event intervals as we will fire them manually
         vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
-        const events = config.getEventManager() as LocalEventManager;
+        const events = serviceLocator.getEventManager() as LocalEventManager;
         await snapshotter.start();
 
         await events.emitSystemInfoEvent(noop);
@@ -246,8 +244,8 @@ describe('Snapshotter', () => {
 
     test('correctly logs critical memory overload', async () => {
         vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) } as MemoryInfo);
-        const config = new Configuration({ availableMemoryRatio: 1 });
-        const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
+        serviceLocator.setConfiguration(new Configuration({ availableMemoryRatio: 1 }));
+        const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
         await snapshotter.start();
         const warningSpy = vitest.spyOn(snapshotter.log, 'warning').mockImplementation(() => {});
 
@@ -271,7 +269,7 @@ describe('Snapshotter', () => {
     test('correctly marks clientOverloaded', () => {
         const noop = () => {};
         // mock client data
-        const apifyClient = Configuration.getStorageClient();
+        const apifyClient = serviceLocator.getStorageClient();
         const oldStats = apifyClient.stats;
         apifyClient.stats = {} as any;
         apifyClient.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -302,16 +300,15 @@ describe('Snapshotter', () => {
 
     test('.get[.*]Sample limits amount of samples', async () => {
         const SAMPLE_SIZE_MILLIS = 120;
-        const config = new Configuration({ systemInfoIntervalMillis: 10 });
+        serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 10 }));
         const snapshotter = new Snapshotter({
             eventLoopSnapshotIntervalSecs: 0.01,
-            config,
         });
         await snapshotter.start();
-        await config.getEventManager().init();
+        await serviceLocator.getEventManager().init();
         await sleep(1.5e3);
         await snapshotter.stop();
-        await config.getEventManager().close();
+        await serviceLocator.getEventManager().close();
         const memorySnapshots = snapshotter.getMemorySample();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
         const memorySample = snapshotter.getMemorySample(SAMPLE_SIZE_MILLIS);

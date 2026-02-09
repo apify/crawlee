@@ -1,3 +1,4 @@
+import log from '@apify/log';
 import {
     Configuration,
     deserializeArray,
@@ -6,12 +7,11 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
+    serviceLocator,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
-
-import log from '@apify/log';
 
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)
@@ -48,7 +48,7 @@ beforeEach(async () => {
 describe('RequestList', () => {
     let ll: number;
     const emulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
+    const events = serviceLocator.getEventManager();
 
     beforeAll(() => {
         ll = log.getLevel();

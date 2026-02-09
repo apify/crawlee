@@ -1,13 +1,12 @@
-import { Configuration, EventType, KeyValueStore, Session, SessionPool } from '@crawlee/core';
+import { Log } from '@apify/log';
+import { Configuration, EventType, KeyValueStore, Session, SessionPool, serviceLocator } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
-
-import { Log } from '@apify/log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
+    const events = serviceLocator.getEventManager();
 
     beforeEach(async () => {
         await localStorageEmulator.init();

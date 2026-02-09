@@ -1,4 +1,4 @@
-import { Configuration, EventType, Statistics } from '@crawlee/core';
+import { Configuration, EventType, Statistics, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
@@ -9,7 +9,7 @@ describe('Statistics', () => {
 
     let stats: Statistics;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
+    const events = serviceLocator.getEventManager();
 
     beforeAll(async () => {
         vitest.useFakeTimers();

@@ -5,7 +5,13 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import util from 'node:util';
 
-import { BrowserLauncher, Configuration, launchPlaywright, PlaywrightLauncher } from '@crawlee/playwright';
+import {
+    BrowserLauncher,
+    Configuration,
+    launchPlaywright,
+    PlaywrightLauncher,
+    serviceLocator,
+} from '@crawlee/playwright';
 // @ts-expect-error no types
 import basicAuthParser from 'basic-auth-parser';
 import type { Browser, BrowserType } from 'playwright';
@@ -28,7 +34,9 @@ let serverAddress = 'http://localhost:';
 beforeAll(async () => {
     const config = Configuration.getGlobalConfig();
     prevEnvHeadless = config.get('headless');
-    config.set('headless', true);
+    // Recreate global config with headless=true
+    const newConfig = new Configuration({ headless: true });
+    serviceLocator.setConfiguration(newConfig);
 
     [server, port] = await runExampleComServer();
     serverAddress += port;
@@ -66,7 +74,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-    Configuration.getGlobalConfig().set('headless', prevEnvHeadless);
+    serviceLocator.setConfiguration(new Configuration({ headless: prevEnvHeadless }));
 
     server.close();
     if (proxyServer) await util.promisify(proxyServer.close).bind(proxyServer)();
@@ -120,7 +128,7 @@ describe('launchPlaywright()', () => {
 
         beforeAll(() => {
             // Test headless parameter
-            Configuration.getGlobalConfig().set('headless', false);
+            serviceLocator.setConfiguration(new Configuration({ headless: false }));
         });
 
         beforeEach(async () => {
@@ -135,7 +143,7 @@ describe('launchPlaywright()', () => {
         });
 
         afterAll(() => {
-            Configuration.getGlobalConfig().set('headless', true);
+            serviceLocator.setConfiguration(new Configuration({ headless: true }));
         });
 
         test('opens a webpage via proxy with authentication', async () => {

@@ -10,6 +10,7 @@ import {
     puppeteerClickElements,
     puppeteerUtils,
     RequestQueue,
+    serviceLocator,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 import type { Browser as PPBrowser, Target } from 'puppeteer';
@@ -23,11 +24,15 @@ function isPlaywrightBrowser(browser: PPBrowser | PWBrowser): browser is PWBrows
     return (browser as PWBrowser).browserType !== undefined;
 }
 
-const apifyClient = Configuration.getStorageClient();
+const apifyClient = serviceLocator.getStorageClient();
 
 function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+    const requestQueue = new RequestQueue(
+        { id: 'xxx', client: apifyClient },
+        serviceLocator.getConfiguration(),
+        serviceLocator.getEventManager(),
+    );
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
@@ -115,7 +120,11 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
 
         test('accepts forefront option', async () => {
             const addedRequests: { request: Source; options?: RequestQueueOperationOptions }[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+            const requestQueue = new RequestQueue(
+                { id: 'xxx', client: serviceLocator.getStorageClient() },
+                serviceLocator.getConfiguration(),
+                serviceLocator.getEventManager(),
+            );
             requestQueue.addRequests = async (requests, options) => {
                 for await (const request of requests) {
                     addedRequests.push({ request: typeof request === 'string' ? { url: request } : request, options });
