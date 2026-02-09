@@ -916,7 +916,11 @@ export class BasicCrawler<
                 },
             })
             .compose({
-                action: async () => {
+                action: async (context) => {
+                    // AdaptivePlaywrightCrawler passes edited request directly into the pipeline, we don't want to override that
+                    const priorRequest: Request = (context as Record<string, any>).request;
+                    if (priorRequest) return { request: priorRequest };
+
                     const request = await this._timeoutAndRetry(
                         this._fetchNextRequest.bind(this),
                         this.internalTimeoutMillis,

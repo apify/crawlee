@@ -515,9 +515,6 @@ export class AdaptivePlaywrightCrawler<
             pushData: result.pushData,
             useState: this.allowStorageAccess(useStateFunction),
             getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
-            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
-                return await this.enqueueLinks(options, context.request, result);
-            },
             log: this.createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
