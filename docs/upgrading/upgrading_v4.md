@@ -40,6 +40,7 @@ The crawler following options are removed:
 
 - `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
 - `BasicCrawler.isRequestBlocked` (protected)
+- `BasicCrawler.events` (protected) - this should be accessed via `BasicCrawler.serviceLocator`
 - `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
 - `BrowserCrawler.userProvidedRequestHandler` (protected)
 - `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
@@ -114,3 +115,117 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 ## `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
+
+## Service management moved from `Configuration` to `ServiceLocator`
+
+The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class, following the pattern established in Crawlee for Python.
+
+### Breaking changes
+
+The following methods and properties have been removed from `Configuration`:
+
+- `Configuration.getStorageClient()` - moved to `ServiceLocator.getStorageClient()`
+- `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
+- `Configuration.useStorageClient()` - use `ServiceLocator.setStorageClient()` instead
+- `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
+- `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
+- `Configuration.set` - `Configuration` is intended to be immutable, if you need to adjust it, make an updated copy
+
+### Migration guide
+
+If you were using the removed `Configuration` methods directly, you need to update your code:
+
+**Before:**
+```typescript
+import { Configuration } from 'crawlee';
+
+const config = Configuration.getGlobalConfig();
+const storageClient = config.getStorageClient();
+const eventManager = config.getEventManager();
+
+// or static methods
+const storageClient = Configuration.getStorageClient();
+```
+
+**After:**
+```typescript
+import { serviceLocator } from 'crawlee';
+
+const storageClient = serviceLocator.getStorageClient();
+const eventManager = serviceLocator.getEventManager();
+```
+
+### Using per-crawler services (recommended)
+
+The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage clients or event managers for different crawlers:
+
+```typescript
+import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
+import { MemoryStorage } from '@crawlee/memory-storage';
+
+const crawler = new BasicCrawler(
+    {
+        requestHandler: async ({ request, log }) => {
+            log.info(`Processing ${request.url}`);
+        },
+    },
+    new Configuration({ headless: false }),  // custom configuration
+    new MemoryStorage(),                     // custom storage client
+    new LocalEventManager(),                 // custom event manager
+);
+
+await crawler.run(['https://example.com']);
+```
+
+Alternatively, you can pass services via options:
+
+```typescript
+const crawler = new BasicCrawler({
+    requestHandler: async ({ request, log }) => {
+        log.info(`Processing ${request.url}`);
+    },
+    storageClient: new MemoryStorage(),
+    eventManager: new LocalEventManager(),
+});
+```
+
+### Using the global service locator
+
+For most use cases, the global `serviceLocator` singleton works well:
+
+```typescript
+import { serviceLocator, BasicCrawler } from 'crawlee';
+import { MemoryStorage } from '@crawlee/memory-storage';
+
+// Configure global services (optional)
+serviceLocator.setStorageClient(new MemoryStorage());
+
+// All crawlers will use the global service locator by default
+const crawler = new BasicCrawler({
+    requestHandler: async ({ request, log }) => {
+        log.info(`Processing ${request.url}`);
+    },
+});
+```
+
+### Configuration.getGlobalConfig() is now async
+
+If you were calling `Configuration.getGlobalConfig()` directly, you must now `await` it:
+
+**Before:**
+```typescript
+const config = Configuration.getGlobalConfig();
+```
+
+**After:**
+```typescript
+const config = await Configuration.getGlobalConfig();
+```
+
+However, in most cases, you should use `serviceLocator.getConfiguration()` instead, which remains synchronous:
+
+```typescript
+import { serviceLocator } from 'crawlee';
+
+const config = serviceLocator.getConfiguration();
+```

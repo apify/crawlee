@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -8,8 +7,8 @@ import { pathExistsSync } from 'fs-extra/esm';
 
 import log, { LogLevel } from '@apify/log';
 
-import type { StorageManager } from './storages/storage_manager.js';
-import { type Constructor, entries } from './typedefs.js';
+import { serviceLocator } from './service_locator.js';
+import { entries } from './typedefs.js';
 
 export interface ConfigurationOptions {
     /**
@@ -342,31 +341,12 @@ export class Configuration {
     }
 
     /**
-     * Sets value for given option. Only affects this `Configuration` instance, the value will not be propagated down to the env var.
-     * To reset a value, we can omit the `value` argument or pass `undefined` there.
-     */
-    set(key: keyof ConfigurationOptions, value?: any): void {
-        this.options.set(key, value);
-    }
-
-    /**
-     * Sets value for given option. Only affects the global `Configuration` instance, the value will not be propagated down to the env var.
-     * To reset a value, we can omit the `value` argument or pass `undefined` there.
-     */
-    static set(key: keyof ConfigurationOptions, value?: any): void {
-        this.getGlobalConfig().set(key, value);
-    }
-
-    /**
      * Returns the global configuration instance. It will respect the environment variables.
+     *
+     * Delegates to the global ServiceLocator, making it the single source of truth for service management.
      */
     static getGlobalConfig(): Configuration {
-        if (Configuration.storage.getStore()) {
-            return Configuration.storage.getStore()!;
-        }
-
-        Configuration.globalConfig ??= new Configuration();
-        return Configuration.globalConfig;
+        return serviceLocator.getConfiguration();
     }
 
     protected buildOptions(options: ConfigurationOptions) {

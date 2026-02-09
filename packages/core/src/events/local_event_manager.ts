@@ -4,6 +4,7 @@ import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { SystemInfo } from '../autoscaling/system_status.js';
+import { serviceLocator } from '../service_locator.js';
 import { EventManager, EventType } from './event_manager.js';
 
 export class LocalEventManager extends EventManager {
@@ -18,7 +19,7 @@ export class LocalEventManager extends EventManager {
 
         await super.init();
 
-        const systemInfoIntervalMillis = this.config.get('systemInfoIntervalMillis')!;
+        const systemInfoIntervalMillis = serviceLocator.getConfiguration().get('systemInfoIntervalMillis')!;
         this.emitSystemInfoEvent = this.emitSystemInfoEvent.bind(this);
         this.intervals.systemInfo = betterSetInterval(this.emitSystemInfoEvent.bind(this), systemInfoIntervalMillis);
     }
@@ -40,7 +41,7 @@ export class LocalEventManager extends EventManager {
      */
     async emitSystemInfoEvent(intervalCallback: () => unknown) {
         const info = await this.createSystemInfo({
-            maxUsedCpuRatio: this.config.get('maxUsedCpuRatio'),
+            maxUsedCpuRatio: serviceLocator.getConfiguration().get('maxUsedCpuRatio'),
         });
         this.events.emit(EventType.SYSTEM_INFO, info);
         intervalCallback();
@@ -50,7 +51,7 @@ export class LocalEventManager extends EventManager {
      * @internal
      */
     async isContainerizedWrapper() {
-        return this.config.get('containerized', await isContainerized());
+        return serviceLocator.getConfiguration().get('containerized', await isContainerized());
     }
 
     /**

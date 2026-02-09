@@ -1,8 +1,9 @@
-import type { BaseHttpClient, Dictionary, StorageClient } from '@crawlee/types';
+import type { BaseHttpClient, StorageClient } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 
-import { Configuration } from '../configuration.js';
+import type { Configuration } from '../configuration.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
+import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
 
 const DEFAULT_ID_CONFIG_KEYS = {
@@ -28,7 +29,7 @@ export class StorageManager<T extends IStorage = IStorage> {
 
     constructor(
         StorageConstructor: Constructor<T>,
-        private readonly config = Configuration.getGlobalConfig(),
+        private readonly config: Configuration,
     ) {
         this.StorageConstructor = StorageConstructor;
         this.name = this.StorageConstructor.name as 'Dataset' | 'KeyValueStore' | 'RequestQueue';
@@ -38,33 +39,19 @@ export class StorageManager<T extends IStorage = IStorage> {
         storageClass: Constructor<T>,
         idOrName?: string,
         client?: StorageClient,
-        config = Configuration.getGlobalConfig(),
+        config?: Configuration,
     ): Promise<T> {
         return this.getManager(storageClass, config).openStorage(idOrName, client);
     }
 
-    static getManager<T extends IStorage>(
-        storageClass: Constructor<T>,
-        config = Configuration.getGlobalConfig(),
-    ): StorageManager<T> {
-        if (!config.storageManagers.has(storageClass)) {
-            const manager = new StorageManager(storageClass, config);
-            config.storageManagers.set(storageClass, manager);
+    static getManager<T extends IStorage>(storageClass: Constructor<T>, config?: Configuration): StorageManager<T> {
+        let storageManager = serviceLocator.getStorageManager(storageClass);
+        if (storageManager === undefined) {
+            storageManager = new StorageManager(storageClass, config ?? serviceLocator.getConfiguration());
+            serviceLocator.setStorageManager(storageClass, storageManager);
         }
 
-        return config.storageManagers.get(storageClass) as StorageManager<T>;
-    }
-
-    /** @internal */
-    static clearCache(config = Configuration.getGlobalConfig()): void {
-        config.storageManagers.forEach((manager) => {
-            if (manager.name === 'KeyValueStore') {
-                manager.cache.forEach((item) => {
-                    (item as Dictionary).clearCache?.();
-                });
-            }
-        });
-        config.storageManagers.clear();
+        return serviceLocator.getStorageManager(storageClass) as StorageManager<T>;
     }
 
     async openStorage(idOrName?: string | null, client?: StorageClient): Promise<T> {
@@ -79,7 +66,7 @@ export class StorageManager<T extends IStorage = IStorage> {
         let storage = this.cache.get(cacheKey);
 
         if (!storage) {
-            client ??= this.config.getStorageClient();
+            client ??= serviceLocator.getStorageClient();
             const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
             storage = new this.StorageConstructor(
                 {

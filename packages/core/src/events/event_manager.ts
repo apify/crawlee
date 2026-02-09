@@ -4,7 +4,7 @@ import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
 
 export const enum EventType {
     PERSIST_STATE = 'persistState',
@@ -27,7 +27,7 @@ export abstract class EventManager {
     protected intervals: Intervals = {};
     protected log = log.child({ prefix: 'Events' });
 
-    constructor(readonly config = Configuration.getGlobalConfig()) {
+    constructor() {
         this.events.setMaxListeners(50);
     }
 
@@ -40,7 +40,7 @@ export abstract class EventManager {
             return;
         }
 
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         this.intervals.persistState = betterSetInterval((intervalCallback: () => unknown) => {
             this.emit(EventType.PERSIST_STATE, { isMigrating: false });
             intervalCallback();

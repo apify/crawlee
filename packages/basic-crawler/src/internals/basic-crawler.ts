@@ -5,6 +5,7 @@ import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
+    Configuration,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,
@@ -28,7 +29,7 @@ import type {
 } from '@crawlee/core';
 import {
     AutoscaledPool,
-    Configuration,
+    bindMethodsToServiceLocator,
     ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -51,6 +52,8 @@ import {
     RequestState,
     RetryRequestError,
     Router,
+    ServiceLocator,
+    serviceLocator,
     SessionError,
     SessionPool,
     Statistics,
@@ -64,6 +67,7 @@ import type {
     Dictionary,
     ProxyInfo,
     SetStatusMessageOptions,
+    StorageClient,
 } from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
@@ -394,6 +398,24 @@ export interface BasicCrawlerOptions<
     proxyConfiguration?: ProxyConfiguration;
 
     /**
+     * Custom configuration to use for this crawler.
+     * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
+     */
+    configuration?: Configuration;
+
+    /**
+     * Custom storage client to use for this crawler.
+     * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
+     */
+    storageClient?: StorageClient;
+
+    /**
+     * Custom event manager to use for this crawler.
+     * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
+     */
+    eventManager?: EventManager;
+
+    /**
      * A unique identifier for the crawler instance. This ID is used to isolate the state returned by
      * {@apilink BasicCrawler.useState|`crawler.useState()`} from other crawler instances.
      *
@@ -582,7 +604,6 @@ export class BasicCrawler<
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
-    protected events: EventManager;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
@@ -627,6 +648,10 @@ export class BasicCrawler<
         onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
 
+        configuration: ow.optional.object,
+        storageClient: ow.optional.object,
+        eventManager: ow.optional.object,
+
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
         maxConcurrency: ow.optional.number,
@@ -648,7 +673,6 @@ export class BasicCrawler<
     constructor(
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
-        readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
 
@@ -666,6 +690,11 @@ export class BasicCrawler<
             sessionPoolOptions = {},
             useSessionPool = true,
             proxyConfiguration,
+
+            // Service locator options
+            configuration,
+            storageClient,
+            eventManager,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -690,6 +719,12 @@ export class BasicCrawler<
 
             id,
         } = options;
+
+        // Create per-crawler service locator if custom services were provided
+        if (storageClient || eventManager || configuration !== serviceLocator.getConfiguration()) {
+            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient);
+            bindMethodsToServiceLocator(scopedServiceLocator, this);
+        }
 
         // Store whether the user explicitly provided an ID
         this.hasExplicitId = id !== undefined;
@@ -748,7 +783,6 @@ export class BasicCrawler<
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
-        this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
         this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
@@ -788,7 +822,6 @@ export class BasicCrawler<
         this.stats = new Statistics({
             logMessage: `${log.getOptions().prefix} request statistics:`,
             log,
-            config,
             ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
             ...statisticsOptions,
         });
@@ -897,7 +930,7 @@ export class BasicCrawler<
             options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
         this.log.internal(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
 
-        const client = this.config.getStorageClient();
+        const client = serviceLocator.getStorageClient();
 
         if (!client.setStatusMessage) {
             return;
@@ -1002,8 +1035,8 @@ export class BasicCrawler<
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
-            client: this.config.getStorageClient(),
-            config: this.config,
+            client: serviceLocator.getStorageClient(),
+            config: serviceLocator.getConfiguration(),
         });
 
         if (requests) {
@@ -1027,8 +1060,9 @@ export class BasicCrawler<
         // Attach a listener to handle migration and aborting events gracefully.
         const boundPauseOnMigration = this._pauseOnMigration.bind(this);
         process.once('SIGINT', sigintHandler);
-        this.events.on(EventType.MIGRATING, boundPauseOnMigration);
-        this.events.on(EventType.ABORTING, boundPauseOnMigration);
+        const eventManager = serviceLocator.getEventManager();
+        eventManager.on(EventType.MIGRATING, boundPauseOnMigration);
+        eventManager.on(EventType.ABORTING, boundPauseOnMigration);
 
         let stats = {} as FinalStatistics;
 
@@ -1039,8 +1073,8 @@ export class BasicCrawler<
             await this.stats.stopCapturing();
 
             process.off('SIGINT', sigintHandler);
-            this.events.off(EventType.MIGRATING, boundPauseOnMigration);
-            this.events.off(EventType.ABORTING, boundPauseOnMigration);
+            eventManager.off(EventType.MIGRATING, boundPauseOnMigration);
+            eventManager.off(EventType.ABORTING, boundPauseOnMigration);
 
             const finalStats = this.stats.calculate();
             stats = {
@@ -1062,7 +1096,7 @@ export class BasicCrawler<
                 });
             }
 
-            const client = this.config.getStorageClient();
+            const client = serviceLocator.getStorageClient();
 
             if (client.teardown) {
                 let finished = false;
@@ -1133,7 +1167,7 @@ export class BasicCrawler<
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
-        const kvs = await KeyValueStore.open(null, { config: this.config });
+        const kvs = await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
 
         if (this.hasExplicitId) {
             const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.crawlerId}`;
@@ -1292,7 +1326,7 @@ export class BasicCrawler<
      * Retrieves the specified {@apilink Dataset}, or the default crawler {@apilink Dataset}.
      */
     async getDataset(idOrName?: string): Promise<Dataset> {
-        return Dataset.open(idOrName, { config: this.config });
+        return Dataset.open(idOrName, { config: serviceLocator.getConfiguration() });
     }
 
     /**
@@ -1362,18 +1396,20 @@ export class BasicCrawler<
      * Initializes the crawler.
      */
     protected async _init(): Promise<void> {
-        if (!this.events.isInitialized()) {
-            await this.events.init();
+        const eventManager = serviceLocator.getEventManager();
+
+        if (!eventManager.isInitialized()) {
+            await eventManager.init();
             this._closeEvents = true;
         }
 
         // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
         // so that the caller can get a reference to it before awaiting the promise returned from run()
         // (otherwise there would be no way)
-        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
+        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
 
         if (this.useSessionPool) {
-            this.sessionPool = await SessionPool.open(this.sessionPoolOptions, this.config);
+            this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
             // Assuming there are not more than 20 browsers running at once;
             this.sessionPool.setMaxListeners(20);
         }
@@ -1632,7 +1668,8 @@ export class BasicCrawler<
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
             sendRequest: createSendRequest(this.httpClient, request!, session),
-            getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
+            getKeyValueStore: async (idOrName?: string) =>
+                KeyValueStore.open(idOrName, { config: serviceLocator.getConfiguration() }),
             registerDeferredCleanup: (cleanup) => {
                 deferredCleanup.push(cleanup);
             },
@@ -1990,12 +2027,12 @@ export class BasicCrawler<
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
-        this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
+        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
 
         await this.sessionPool?.teardown();
 
         if (this._closeEvents) {
-            await this.events.close();
+            await serviceLocator.getEventManager().close();
         }
 
         await this.autoscaledPool?.abort();
@@ -2020,10 +2057,10 @@ export class BasicCrawler<
                 this._experimentWarnings.requestLocking = true;
             }
 
-            return RequestQueueV1.open(null, { config: this.config });
+            return RequestQueueV1.open(null, { config: serviceLocator.getConfiguration() });
         }
 
-        return RequestQueue.open(null, { config: this.config });
+        return RequestQueue.open(null, { config: serviceLocator.getConfiguration() });
     }
 
     private requestMatchesEnqueueStrategy(request: Request) {

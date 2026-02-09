@@ -6,6 +6,7 @@ import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
 import { type Log, log } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
@@ -648,7 +649,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        options.storageClient ??= serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 

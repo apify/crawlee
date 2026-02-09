@@ -2,10 +2,10 @@ import ow from 'ow';
 
 import type { Log } from '@apify/log';
 
-import { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import { log as defaultLog } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { ErrorTracker } from './error_tracker.js';
 
@@ -84,11 +84,6 @@ export class Statistics {
      */
     readonly requestRetryHistogram: number[] = [];
 
-    /**
-     * Contains the associated Configuration instance
-     */
-    private readonly config: Configuration;
-
     protected keyValueStore?: KeyValueStore = undefined;
     protected persistStateKey: string;
     private logIntervalMillis: number;
@@ -123,7 +118,6 @@ export class Statistics {
             logIntervalSecs = 60,
             logMessage = 'Statistics',
             keyValueStore,
-            config = Configuration.getGlobalConfig(),
             persistenceOptions = {
                 enable: true,
             },
@@ -141,8 +135,7 @@ export class Statistics {
         this.logMessage = logMessage;
         this.keyValueStore = keyValueStore;
         this.listener = this.persistState.bind(this);
-        this.events = config.getEventManager();
-        this.config = config;
+        this.events = serviceLocator.getEventManager();
         this.persistenceOptions = persistenceOptions;
 
         // initialize by "resetting"
@@ -282,7 +275,7 @@ export class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
-        this.keyValueStore ??= await KeyValueStore.open(null, { config: this.config });
+        this.keyValueStore ??= await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
 
         if (this.state.crawlerStartedAt === null) {
             this.state.crawlerStartedAt = new Date();
@@ -335,7 +328,7 @@ export class Statistics {
         this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
             .setValue(this.persistStateKey, this.toJSON(), {
@@ -462,12 +455,6 @@ export interface StatisticsOptions {
      * If not provided, the default one will be used when capturing starts
      */
     keyValueStore?: KeyValueStore;
-
-    /**
-     * Configuration instance to use
-     * @default Configuration.getGlobalConfig()
-     */
-    config?: Configuration;
 
     /**
      * Control how and when to persist the statistics.

@@ -1,6 +1,7 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 
-import { Configuration } from '../configuration.js';
+import type { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { Request, Source } from '../request.js';
 import { checkStorageAccess } from './access_checking.js';
@@ -67,7 +68,7 @@ export class RequestQueue extends RequestProvider {
     private shouldCheckForForefrontRequests = false;
     private dequeuedRequestCount = 0;
 
-    constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
+    constructor(options: RequestProviderOptions, config: Configuration, eventManager: EventManager) {
         super(
             {
                 ...options,
@@ -76,9 +77,8 @@ export class RequestQueue extends RequestProvider {
                 requestCacheMaxSize: MAX_CACHED_REQUESTS,
             },
             config,
+            eventManager,
         );
-
-        const eventManager = config.getEventManager();
 
         eventManager.on(EventType.MIGRATING, async () => {
             await this._clearPossibleLocks();

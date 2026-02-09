@@ -4,7 +4,8 @@ import type { Dictionary } from '@crawlee/types';
 
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 
-import { Configuration } from '../configuration.js';
+import type { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
 import type { Request } from '../request.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider.js';
@@ -89,7 +90,7 @@ class RequestQueue extends RequestProvider {
     /**
      * @internal
      */
-    constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
+    constructor(options: RequestProviderOptions, config: Configuration, eventManager: EventManager) {
         super(
             {
                 ...options,
@@ -98,6 +99,7 @@ class RequestQueue extends RequestProvider {
                 requestCacheMaxSize: MAX_CACHED_REQUESTS,
             },
             config,
+            eventManager,
         );
     }
 
