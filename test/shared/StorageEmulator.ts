@@ -6,7 +6,7 @@ export abstract class StorageEmulator {
     protected localStorageDirectories: string[] = [];
 
     async init(options?: Record<PropertyKey, any>): Promise<void> {
-        serviceLocator.clearStorageManagerCache();
+        serviceLocator.reset();
     }
 
     async destroy() {

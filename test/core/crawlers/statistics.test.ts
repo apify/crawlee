@@ -1,4 +1,4 @@
-import { Configuration, EventType, Statistics, serviceLocator } from '@crawlee/core';
+import { Configuration, EventType, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 

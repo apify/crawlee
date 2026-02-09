@@ -8,8 +8,8 @@ import {
     Request,
     RequestQueueV1 as RequestQueue,
     RequestQueueV2,
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
     serviceLocator,
+    STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import { gotScraping } from 'got-scraping';

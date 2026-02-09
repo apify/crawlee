@@ -2,7 +2,7 @@ import { readFile, rm } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import log from '@apify/log';
+
 import type {
     CrawlingContext,
     EnqueueLinksOptions,
@@ -32,6 +32,8 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
+
+import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
 

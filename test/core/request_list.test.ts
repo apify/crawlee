@@ -1,4 +1,3 @@
-import log from '@apify/log';
 import {
     Configuration,
     deserializeArray,
@@ -12,6 +11,8 @@ import {
 import { sleep } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
+
+import log from '@apify/log';
 
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)

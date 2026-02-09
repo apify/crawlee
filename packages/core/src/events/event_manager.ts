@@ -4,8 +4,6 @@ import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { serviceLocator } from '../service_locator.js';
-
 export const enum EventType {
     PERSIST_STATE = 'persistState',
     SYSTEM_INFO = 'systemInfo',
@@ -40,6 +38,8 @@ export abstract class EventManager {
             return;
         }
 
+        // Lazy import to break circular dependency: event_manager -> service_locator -> local_event_manager -> event_manager
+        const { serviceLocator } = await import('../service_locator.js');
         const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         this.intervals.persistState = betterSetInterval((intervalCallback: () => unknown) => {
             this.emit(EventType.PERSIST_STATE, { isMigrating: false });

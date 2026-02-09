@@ -5,12 +5,9 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 describe('useState', () => {
     const emulator = new MemoryStorageEmulator();
 
-    beforeAll(async () => {
-        serviceLocator.setConfiguration(new Configuration({ persistStateIntervalMillis: 1e3 }));
-    });
-
     beforeEach(async () => {
         await emulator.init();
+        serviceLocator.setConfiguration(new Configuration({ persistStateIntervalMillis: 1e3 }));
     });
 
     afterAll(async () => {
