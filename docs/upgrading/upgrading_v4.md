@@ -157,36 +157,22 @@ const eventManager = serviceLocator.getEventManager();
 
 ### Using per-crawler services (recommended)
 
-The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage clients or event managers for different crawlers:
+The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage clients or event managers for different crawlers by passing them via options:
 
 ```typescript
 import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
 import { MemoryStorage } from '@crawlee/memory-storage';
 
-const crawler = new BasicCrawler(
-    {
-        requestHandler: async ({ request, log }) => {
-            log.info(`Processing ${request.url}`);
-        },
-    },
-    new Configuration({ headless: false }),  // custom configuration
-    new MemoryStorage(),                     // custom storage client
-    new LocalEventManager(),                 // custom event manager
-);
-
-await crawler.run(['https://example.com']);
-```
-
-Alternatively, you can pass services via options:
-
-```typescript
 const crawler = new BasicCrawler({
     requestHandler: async ({ request, log }) => {
         log.info(`Processing ${request.url}`);
     },
+    configuration: new Configuration({ headless: false }),
     storageClient: new MemoryStorage(),
     eventManager: new LocalEventManager(),
 });
+
+await crawler.run(['https://example.com']);
 ```
 
 ### Using the global service locator
@@ -208,21 +194,9 @@ const crawler = new BasicCrawler({
 });
 ```
 
-### Configuration.getGlobalConfig() is now async
+### Accessing configuration
 
-If you were calling `Configuration.getGlobalConfig()` directly, you must now `await` it:
-
-**Before:**
-```typescript
-const config = Configuration.getGlobalConfig();
-```
-
-**After:**
-```typescript
-const config = await Configuration.getGlobalConfig();
-```
-
-However, in most cases, you should use `serviceLocator.getConfiguration()` instead, which remains synchronous:
+`Configuration.getGlobalConfig()` remains as a utility function, but in most cases, you should use `serviceLocator.getConfiguration()` instead:
 
 ```typescript
 import { serviceLocator } from 'crawlee';
