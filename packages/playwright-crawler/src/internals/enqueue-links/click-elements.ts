@@ -4,12 +4,12 @@ import type {
     GlobInput,
     PseudoUrlInput,
     RegExpInput,
-    RequestOptions,
     RequestProvider,
     RequestTransform,
     UrlPatternObject,
 } from '@crawlee/browser';
 import {
+    Request as CrawleeRequest,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
@@ -299,11 +299,22 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleMillis,
         clickOptions,
     });
-    let requestOptions = createRequestOptions(interceptedRequests, options);
+    const requestOptions = createRequestOptions(interceptedRequests, options);
+    let requests = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
     if (transformRequestFunction) {
-        requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r) as RequestOptions[];
+        requests = requests
+            .map((request) => {
+                const transformedRequest = transformRequestFunction(request);
+                if (!transformedRequest) {
+                    return null;
+                }
+                if (!(transformedRequest instanceof CrawleeRequest)) {
+                    return new CrawleeRequest(transformedRequest);
+                }
+                return transformedRequest;
+            })
+            .filter((r): r is CrawleeRequest => r !== null);
     }
-    const requests = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
     const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
