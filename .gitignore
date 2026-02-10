@@ -13,6 +13,7 @@ logs
 pids
 .idea
 .vscode
+.zed
 package-lock.json
 tmp
 jsconfig.json
