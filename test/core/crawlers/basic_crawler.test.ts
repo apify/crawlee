@@ -40,8 +40,6 @@ import { startExpressAppPromise } from '../../shared/_helper.js';
 describe('BasicCrawler', () => {
     let logLevel: number;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = serviceLocator.getEventManager();
-
     const HOSTNAME = '127.0.0.1';
     let port: number;
     let server: Server;
@@ -488,7 +486,7 @@ describe('BasicCrawler', () => {
             const processed: { url: string }[] = [];
             const requestList = await RequestList.open('reqList', sources);
             const requestHandler: RequestHandler = async ({ request }) => {
-                if (request.url.endsWith('200')) events.emit(event);
+                if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
                 processed.push({ url: request.url });
             };
 
@@ -896,7 +894,6 @@ describe('BasicCrawler', () => {
         const requestQueue = new RequestQueue(
             { id: 'xxx', client: serviceLocator.getStorageClient() },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
 
         const requestHandler: RequestHandler = async ({ request }) => {
@@ -971,7 +968,6 @@ describe('BasicCrawler', () => {
         const requestQueue = new RequestQueue(
             { id: 'xxx', client: serviceLocator.getStorageClient() },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
         requestQueue.isEmpty = async () => Promise.resolve(true);
 
@@ -988,7 +984,6 @@ describe('BasicCrawler', () => {
         const requestQueue = new RequestQueue(
             { id: 'xxx', client: serviceLocator.getStorageClient() },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
         const processed: Request[] = [];
         const queue: Request[] = [];
@@ -1057,7 +1052,6 @@ describe('BasicCrawler', () => {
         const requestQueue = new RequestQueue(
             { id: 'xxx', client: serviceLocator.getStorageClient() },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
         const processed: Request[] = [];
         const queue: Request[] = [];
@@ -1161,7 +1155,6 @@ describe('BasicCrawler', () => {
         const requestQueue = new RequestQueue(
             { id: 'id', client: serviceLocator.getStorageClient() },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
@@ -1493,7 +1486,7 @@ describe('BasicCrawler', () => {
         it('should destroy Session pool after it is finished', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
-            events.off(EventType.PERSIST_STATE);
+            serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
 
             const crawler = new BasicCrawler({
                 requestList,
@@ -1510,11 +1503,11 @@ describe('BasicCrawler', () => {
             // @ts-expect-error Accessing private prop
             crawler._loadHandledRequestCount = () => {
                 expect(crawler.sessionPool).toBeDefined();
-                expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
+                expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
             };
 
             await crawler.run();
-            expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
+            expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });

@@ -721,7 +721,11 @@ export class BasicCrawler<
         } = options;
 
         // Create per-crawler service locator if custom services were provided
-        if (storageClient || eventManager || configuration !== serviceLocator.getConfiguration()) {
+        if (
+            storageClient ||
+            eventManager ||
+            (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
+        ) {
             const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient);
             bindMethodsToServiceLocator(scopedServiceLocator, this);
         }

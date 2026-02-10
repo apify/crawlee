@@ -49,8 +49,6 @@ beforeEach(async () => {
 describe('RequestList', () => {
     let ll: number;
     const emulator = new MemoryStorageEmulator();
-    const events = serviceLocator.getEventManager();
-
     beforeAll(() => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
@@ -490,7 +488,7 @@ describe('RequestList', () => {
 
         // Persist state.
         setValueSpy.mockResolvedValueOnce();
-        events.emit(EventType.PERSIST_STATE);
+        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
         expect(requestList.isStatePersisted).toBe(true);
 
@@ -500,7 +498,7 @@ describe('RequestList', () => {
         await requestList.markRequestHandled(request2!);
         expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
-        events.emit(EventType.PERSIST_STATE);
+        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
         expect(requestList.isStatePersisted).toBe(true);
 

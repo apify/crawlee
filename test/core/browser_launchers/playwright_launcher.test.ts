@@ -20,7 +20,6 @@ import portastic from 'portastic';
 import { createProxy } from 'proxy';
 import { runExampleComServer } from 'test/shared/_helper.js';
 
-let prevEnvHeadless: boolean;
 let proxyServer: Server;
 let proxyPort: number;
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
@@ -31,13 +30,11 @@ let server: Server;
 let serverAddress = 'http://localhost:';
 
 // Setup local proxy server for the tests
-beforeAll(async () => {
-    const config = Configuration.getGlobalConfig();
-    prevEnvHeadless = config.get('headless');
-    // Recreate global config with headless=true
-    const newConfig = new Configuration({ headless: true });
-    serviceLocator.setConfiguration(newConfig);
+beforeEach(() => {
+    serviceLocator.setConfiguration(new Configuration({ headless: true }));
+});
 
+beforeAll(async () => {
     [server, port] = await runExampleComServer();
     serverAddress += port;
 
@@ -74,8 +71,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-    serviceLocator.setConfiguration(new Configuration({ headless: prevEnvHeadless }));
-
     server.close();
     if (proxyServer) await util.promisify(proxyServer.close).bind(proxyServer)();
 }, 5000);
@@ -126,12 +121,10 @@ describe('launchPlaywright()', () => {
     describe('headful mode', () => {
         let browser: Browser;
 
-        beforeAll(() => {
-            // Test headless parameter
-            serviceLocator.setConfiguration(new Configuration({ headless: false }));
-        });
-
         beforeEach(async () => {
+            // Test headless parameter - reset first since outer beforeEach already set configuration
+            serviceLocator.reset();
+            serviceLocator.setConfiguration(new Configuration({ headless: false }));
             browser = await launchPlaywright({
                 launchOptions: { headless: true, timeout: 60e3 },
                 proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
@@ -140,10 +133,6 @@ describe('launchPlaywright()', () => {
 
         afterEach(async () => {
             if (browser) await browser.close();
-        });
-
-        afterAll(() => {
-            serviceLocator.setConfiguration(new Configuration({ headless: true }));
         });
 
         test('opens a webpage via proxy with authentication', async () => {

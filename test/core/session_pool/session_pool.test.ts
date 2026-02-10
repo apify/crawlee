@@ -1,7 +1,8 @@
-import { Log } from '@apify/log';
-import { EventType, KeyValueStore, Session, SessionPool, serviceLocator } from '@crawlee/core';
+import { EventType, KeyValueStore, serviceLocator, Session, SessionPool } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+
+import { Log } from '@apify/log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;

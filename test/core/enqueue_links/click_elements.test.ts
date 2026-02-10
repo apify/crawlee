@@ -28,11 +28,7 @@ const apifyClient = serviceLocator.getStorageClient();
 
 function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue(
-        { id: 'xxx', client: apifyClient },
-        serviceLocator.getConfiguration(),
-        serviceLocator.getEventManager(),
-    );
+    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient }, serviceLocator.getConfiguration());
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
@@ -123,7 +119,6 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
             const requestQueue = new RequestQueue(
                 { id: 'xxx', client: serviceLocator.getStorageClient() },
                 serviceLocator.getConfiguration(),
-                serviceLocator.getEventManager(),
             );
             requestQueue.addRequests = async (requests, options) => {
                 for await (const request of requests) {

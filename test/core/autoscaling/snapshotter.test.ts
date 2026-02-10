@@ -21,13 +21,13 @@ describe('Snapshotter', () => {
     });
 
     test('should collect snapshots with some values', async () => {
+        serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 100 }));
+
         // mock client data
         const apifyClient = serviceLocator.getStorageClient();
         const oldStats = apifyClient.stats;
         apifyClient.stats = {} as any;
         apifyClient.stats!.rateLimitErrors = [0, 0, 0];
-
-        serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 100 }));
         const snapshotter = new Snapshotter();
         const events = serviceLocator.getEventManager();
         await events.init();

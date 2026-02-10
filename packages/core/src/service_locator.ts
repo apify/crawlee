@@ -1,9 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-
+import log from '@apify/log';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
-
-import log from '@apify/log';
 
 import { Configuration } from './configuration.js';
 import { ServiceConflictError } from './errors.js';
@@ -245,26 +243,42 @@ const globalServiceLocator = new ServiceLocator();
 
 const serviceLocatorStorage = new AsyncLocalStorage<ServiceLocatorInterface>();
 
+/**
+ * Wraps all methods on `target` so that any code they invoke will see the given
+ * `serviceLocator` via `AsyncLocalStorage`, rather than the global one.
+ *
+ * Walks the prototype chain and replaces each method with a wrapper that calls
+ * `asyncLocalStorage.run(serviceLocator, originalMethod)`.
+ * @internal
+ */
 export function bindMethodsToServiceLocator(serviceLocator: ServiceLocator, target: {}) {
     let proto = Object.getPrototypeOf(target);
 
-    while (proto !== Object.prototype) {
-        proto = Object.getPrototypeOf(proto);
-
+    while (proto !== null && proto !== Object.prototype) {
         for (const propertyName of Object.getOwnPropertyNames(proto)) {
+            const descriptor = Object.getOwnPropertyDescriptor(proto, propertyName);
+
+            // We use property descriptors rather than accessing target[propertyName] directly,
+            // because that would trigger getters and cause unwanted side effects.
+            // Skip getters, setters, and constructors — only wrap regular methods.
             if (
                 propertyName === 'constructor' ||
-                typeof (target as Record<string, unknown>)[propertyName] !== 'function'
+                !descriptor ||
+                descriptor.get ||
+                descriptor.set ||
+                typeof descriptor.value !== 'function'
             )
                 continue;
 
-            const original = (target as Record<string, any>)[propertyName];
+            const original = descriptor.value;
             (target as Record<string, unknown>)[propertyName] = (...args: any[]) => {
                 return serviceLocatorStorage.run(serviceLocator, () => {
                     return original.apply(target, args);
                 });
             };
         }
+
+        proto = Object.getPrototypeOf(proto);
     }
 }
 

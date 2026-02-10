@@ -138,13 +138,15 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
     protected httpClient?: BaseHttpClient;
 
+    protected readonly events: EventManager;
+
     constructor(
         options: InternalRequestProviderOptions,
         protected readonly config: Configuration,
-        protected readonly events: EventManager,
     ) {
         this.id = options.id;
         this.name = options.name;
+        this.events = serviceLocator.getEventManager();
         this.client = options.client.requestQueue(this.id, {
             clientKey: this.clientKey,
             timeoutSecs: this.timeoutSecs,

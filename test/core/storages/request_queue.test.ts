@@ -45,11 +45,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should work', async () => {
-        const queue = new RequestQueue(
-            { id: 'some-id', client: storageClient },
-            serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
-        );
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
         const firstResolveValue = {
             requestId: 'a',
             wasAlreadyHandled: false,
@@ -209,7 +205,6 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue(
             { id: 'batch-requests', client: storageClient },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
         const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
 
@@ -294,11 +289,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should cache new requests locally', async () => {
-        const queue = new RequestQueue(
-            { id: 'some-id', client: storageClient },
-            serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
-        );
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         const requestA = new Request({ url: 'http://example.com/a' });
         const requestB = new Request({ url: 'http://example.com/a' }); // Has same uniqueKey as A
@@ -329,11 +320,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should cache requests locally with info if request was already handled', async () => {
-        const queue = new RequestQueue(
-            { id: 'some-id', client: storageClient },
-            serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
-        );
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         const requestX = new Request({ url: 'http://example.com/x' });
         const requestY = new Request({ url: 'http://example.com/x' }); // Has same uniqueKey as X
@@ -364,11 +351,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should cache requests from queue head', async () => {
-        const queue = new RequestQueue(
-            { id: 'some-id', client: storageClient },
-            serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
-        );
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         // Query queue head with request A
         const listHeadMock = vitest.spyOn(queue.client, 'listHead');
@@ -399,7 +382,6 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue(
             { id: 'some-id', name: 'some-queue', client: storageClient },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
         const listHeadMock = vitest.spyOn(queue.client, 'listHead');
 
@@ -451,11 +433,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should not add handled request to queue head dict', async () => {
-        const queue = new RequestQueue(
-            { id: 'some-id', client: storageClient },
-            serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
-        );
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         const requestA = new Request({ url: 'http://example.com/a' });
 
@@ -485,11 +463,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should accept plain object in addRequest()', async () => {
-        const queue = new RequestQueue(
-            { id: 'some-id', client: storageClient },
-            serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
-        );
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
         const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({
             requestId: 'xxx',
@@ -504,11 +478,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should return correct handledCount', async () => {
-        const queue = new RequestQueue(
-            { id: 'id', client: storageClient },
-            serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
-        );
+        const queue = new RequestQueue({ id: 'id', client: storageClient }, serviceLocator.getConfiguration());
         const getMock = vitest.spyOn(queue.client, 'get');
         getMock.mockResolvedValueOnce({
             handledRequestCount: 33,
@@ -523,7 +493,6 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue(
             { id: 'some-id', name: 'some-name', client: storageClient },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
 
         // Return head with modifiedAt = now so it will retry the call.
@@ -553,7 +522,6 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue(
             { id: queueId, name: 'some-name', client: storageClient },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
 
         expect(queue.assumedTotalCount).toBe(0);
@@ -723,7 +691,6 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue(
             { id: 'some-id', name: 'some-name', client: storageClient },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
 
         const expected = {
@@ -752,7 +719,6 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue(
             { id: 'some-id', name: 'some-name', client: storageClient },
             serviceLocator.getConfiguration(),
-            serviceLocator.getEventManager(),
         );
         const deleteMock = vitest.spyOn(queue.client, 'delete').mockResolvedValueOnce(undefined);
 
