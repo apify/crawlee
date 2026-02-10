@@ -1,4 +1,4 @@
-import { Transform } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
@@ -164,7 +164,15 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
                 ContextPipeline.create<CrawlingContext>().compose({
                     action: async (context) => this.initiateDownload(context),
                     cleanup: async (context) => {
-                        await (context.response.body ? finished(context.response.body as any) : Promise.resolve());
+                        if (!context.response.body) return;
+
+                        if (context.response.body.locked) {
+                            // Someone is actively reading/piping the stream — wait for it to finish.
+                            await finished(Readable.fromWeb(context.response.body as any));
+                        } else {
+                            // Nobody consumed the body — cancel it so we don't hang.
+                            await context.response.body.cancel();
+                        }
                     },
                 }),
         });
