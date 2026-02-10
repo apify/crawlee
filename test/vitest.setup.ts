@@ -1,7 +1,6 @@
 import { beforeEach } from 'vitest';
 
-import { serviceLocator } from '../packages/core/src/service_locator.js';
-
-beforeEach(() => {
+beforeEach(async () => {
+    const { serviceLocator } = await import('../packages/core/src/service_locator.js');
     serviceLocator.reset();
 });
