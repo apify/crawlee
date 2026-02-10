@@ -68,22 +68,30 @@ The `ImpitHttpClient` constructor accepts the following options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `browser` | `'chrome'` \| `'firefox'` | `undefined` | Browser to impersonate. Affects TLS fingerprint and default headers. |
+| `browser` | `'chrome'` \| `'firefox'` \| `...` | `undefined` | Browser to impersonate. Affects TLS fingerprint and default headers. |
 | `http3` | `boolean` | `false` | Enable HTTP/3 (QUIC) protocol support. |
 | `ignoreTlsErrors` | `boolean` | `false` | Ignore TLS certificate errors. Useful for testing or self-signed certificates. |
 
-### Browser impersonation
 
-Use the `Browser` enum to specify which browser to impersonate:
+### Available fingerprints
+
+Impit bundles several realistic browser fingerprints.
+Using version-specific fingerprints can improve success rates against sophisticated bot detection systems that track browser versions and flag outdated signatures.
+
+When using generic fingerprints (`chrome` or `firefox`), Impit automatically selects an appropriate version. For most use cases, the generic options are sufficient.
+However, if you're targeting a site with particularly strict bot detection, or need to match a specific browser environment, you can specify an exact version:
 
 ```ts
-import { ImpitHttpClient, Browser } from '@crawlee/impit-client';
+import { ImpitHttpClient } from '@crawlee/impit-client';
 
-// Impersonate Firefox
-const firefoxClient = new ImpitHttpClient({ browser: Browser.Firefox });
+// Use a generic Chrome fingerprint
+const chromeClient = new ImpitHttpClient({ browser: 'chrome' });
 
-// Impersonate Chrome
-const chromeClient = new ImpitHttpClient({ browser: Browser.Chrome });
+// Use a specific Chrome version
+const chrome131Client = new ImpitHttpClient({ browser: 'chrome131' });
+
+// Or a specific Firefox version
+const firefox144Client = new ImpitHttpClient({ browser: 'firefox144' });
 ```
 
 ### Advanced configuration
