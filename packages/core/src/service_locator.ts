@@ -96,12 +96,12 @@ interface ServiceLocatorInterface {
  * import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
  * import { MemoryStorage } from '@crawlee/memory-storage';
  *
- * const crawler = new BasicCrawler(
- *     { ... },
- *     new Configuration({ ... }),  // custom config
- *     new MemoryStorage(),          // custom storage
- *     new LocalEventManager(),      // custom events
- * );
+ * const crawler = new BasicCrawler({
+ *     requestHandler: async ({ request }) => { ... },
+ *     configuration: new Configuration({ ... }),  // custom config
+ *     storageClient: new MemoryStorage(),          // custom storage
+ *     eventManager: new LocalEventManager(),       // custom events
+ * });
  * // Crawler has its own isolated ServiceLocator instance
  * ```
  */

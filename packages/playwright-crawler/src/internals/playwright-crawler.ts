@@ -226,7 +226,7 @@ export class PlaywrightCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const playwrightLauncher = new PlaywrightLauncher(launchContext);
+        const playwrightLauncher = new PlaywrightLauncher(launchContext, options.configuration);
 
         browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 

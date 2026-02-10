@@ -93,8 +93,15 @@ export class Statistics {
     private readonly log: Log;
     private instanceStart!: number;
     private logInterval: unknown;
-    private events: EventManager;
+    private _events?: EventManager;
     private persistenceOptions: PersistenceOptions;
+
+    private get events(): EventManager {
+        if (!this._events) {
+            this._events = serviceLocator.getEventManager();
+        }
+        return this._events;
+    }
 
     /**
      * @internal
@@ -107,7 +114,6 @@ export class Statistics {
                 logMessage: ow.optional.string,
                 log: ow.optional.object,
                 keyValueStore: ow.optional.object,
-                config: ow.optional.object,
                 persistenceOptions: ow.optional.object,
                 saveErrorSnapshots: ow.optional.boolean,
                 id: ow.optional.any(ow.number, ow.string),
@@ -135,7 +141,6 @@ export class Statistics {
         this.logMessage = logMessage;
         this.keyValueStore = keyValueStore;
         this.listener = this.persistState.bind(this);
-        this.events = serviceLocator.getEventManager();
         this.persistenceOptions = persistenceOptions;
 
         // initialize by "resetting"
@@ -387,7 +392,9 @@ export class Statistics {
 
     protected _teardown(): void {
         // this can be called before a call to startCapturing happens (or in a 'finally' block)
-        this.events.off(EventType.PERSIST_STATE, this.listener);
+        // Only unsubscribe if event manager was already resolved — avoid eagerly resolving it
+        // (e.g. during the constructor's reset() call, which would capture the wrong context)
+        this._events?.off(EventType.PERSIST_STATE, this.listener);
 
         if (this.logInterval) {
             clearInterval(this.logInterval as number);

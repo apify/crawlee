@@ -197,7 +197,7 @@ export class PuppeteerCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext);
+        const puppeteerLauncher = new PuppeteerLauncher(launchContext, options.configuration);
 
         browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 
