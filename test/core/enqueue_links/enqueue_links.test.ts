@@ -1237,10 +1237,11 @@ describe('enqueueLinks()', () => {
                 expect(enqueued).toHaveLength(2);
                 // onSkippedRequest may fire for URLs filtered by globs (another.com, cool.com),
                 // but must NOT fire for URLs that were transformed via plain object return
-                const skippedCalls = onSkippedRequest.mock.calls.map((call: unknown[]) => call[0]);
+                const skippedCalls = onSkippedRequest.mock.calls.map(
+                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                );
                 const falselySkipped = skippedCalls.filter(
-                    (s: { url: string; reason: string }) =>
-                        s.url === 'https://example.com/a/b/first' || s.url === 'https://example.com/a/b/third',
+                    (s) => s.url === 'https://example.com/a/b/first' || s.url === 'https://example.com/a/b/third',
                 );
                 expect(falselySkipped).toHaveLength(0);
             });
@@ -1272,10 +1273,10 @@ describe('enqueueLinks()', () => {
 
                 // onSkippedRequest fires for URLs filtered out by globs (another.com, cool.com)
                 // AND for the URL explicitly skipped by transformRequestFunction
-                const skippedCalls = onSkippedRequest.mock.calls.map((call: unknown[]) => call[0]);
-                const transformSkipped = skippedCalls.filter(
-                    (s: { url: string; reason: string }) => s.url === 'https://example.com/a/b/first',
+                const skippedCalls = onSkippedRequest.mock.calls.map(
+                    (call: unknown[]) => call[0] as { url: string; reason: string },
                 );
+                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
                 expect(transformSkipped[0]).toEqual({
                     url: 'https://example.com/a/b/first',
@@ -1317,19 +1318,17 @@ describe('enqueueLinks()', () => {
 
                 // onSkippedRequest fires for glob-filtered URLs AND the transform-skipped URL
                 // but NOT for the URL where transform returned a new plain object
-                const skippedCalls = onSkippedRequest.mock.calls.map((call: unknown[]) => call[0]);
-                const transformSkipped = skippedCalls.filter(
-                    (s: { url: string; reason: string }) => s.url === 'https://example.com/a/b/first',
+                const skippedCalls = onSkippedRequest.mock.calls.map(
+                    (call: unknown[]) => call[0] as { url: string; reason: string },
                 );
+                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
                 expect(transformSkipped[0]).toEqual({
                     url: 'https://example.com/a/b/first',
                     reason: 'filters',
                 });
                 // The transformed URL (third) should NOT appear in skipped calls
-                const falselySkipped = skippedCalls.filter(
-                    (s: { url: string; reason: string }) => s.url === 'https://example.com/a/b/third',
-                );
+                const falselySkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/third');
                 expect(falselySkipped).toHaveLength(0);
             });
         });
