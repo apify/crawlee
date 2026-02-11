@@ -308,13 +308,21 @@ export interface RequestTransform {
  * Applies a {@apilink RequestTransform} function to a list of requests.
  * Requests for which the transform returns a falsy value are removed from the list.
  * If the transform returns a plain object (not a Request instance), it is converted to a new Request.
+ * @param onSkipped Called with the original request when the transform returns a falsy value (i.e. the request is skipped).
  * @ignore
  */
-export function applyRequestTransform(requests: Request[], transformFn: RequestTransform): Request[] {
+export function applyRequestTransform(
+    requests: Request[],
+    transformFn: RequestTransform,
+    onSkipped?: (request: Request) => void,
+): Request[] {
     return requests
         .map((request) => {
             const transformed = transformFn(request);
             if (!transformed) {
+                if (onSkipped) {
+                    onSkipped(request);
+                }
                 return null;
             }
             if (!(transformed instanceof Request)) {

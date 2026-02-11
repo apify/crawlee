@@ -1209,6 +1209,128 @@ describe('enqueueLinks()', () => {
                 expect(enqueued[1].method).toBe('DELETE');
                 expect(enqueued[1].userData).toEqual({ replaced: true });
             });
+
+            test('transformRequestFunction returning a plain object does not trigger onSkippedRequest', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+                const onSkippedRequest = vi.fn();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        globs: ['https://example.com/**/*'],
+                        transformRequestFunction: (request) => {
+                            // Return a new plain object — should NOT be reported as skipped
+                            return {
+                                url: request.url,
+                                method: 'POST' as const,
+                                userData: { replaced: true },
+                            };
+                        },
+                        onSkippedRequest,
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                // onSkippedRequest may fire for URLs filtered by globs (another.com, cool.com),
+                // but must NOT fire for URLs that were transformed via plain object return
+                const skippedCalls = onSkippedRequest.mock.calls.map((call: unknown[]) => call[0]);
+                const falselySkipped = skippedCalls.filter(
+                    (s: { url: string; reason: string }) =>
+                        s.url === 'https://example.com/a/b/first' || s.url === 'https://example.com/a/b/third',
+                );
+                expect(falselySkipped).toHaveLength(0);
+            });
+
+            test('transformRequestFunction returning falsy correctly triggers onSkippedRequest', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+                const onSkippedRequest = vi.fn();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        globs: ['https://example.com/**/*'],
+                        transformRequestFunction: (request) => {
+                            // Skip the first URL, keep the second
+                            if (request.url.includes('/a/b/first')) {
+                                return false;
+                            }
+                            return request;
+                        },
+                        onSkippedRequest,
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(1);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/third');
+
+                // onSkippedRequest fires for URLs filtered out by globs (another.com, cool.com)
+                // AND for the URL explicitly skipped by transformRequestFunction
+                const skippedCalls = onSkippedRequest.mock.calls.map((call: unknown[]) => call[0]);
+                const transformSkipped = skippedCalls.filter(
+                    (s: { url: string; reason: string }) => s.url === 'https://example.com/a/b/first',
+                );
+                expect(transformSkipped).toHaveLength(1);
+                expect(transformSkipped[0]).toEqual({
+                    url: 'https://example.com/a/b/first',
+                    reason: 'filters',
+                });
+            });
+
+            test('transformRequestFunction returning falsy and plain objects together works correctly', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+                const onSkippedRequest = vi.fn();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        globs: ['https://example.com/**/*'],
+                        transformRequestFunction: (request) => {
+                            if (request.url.includes('/a/b/first')) {
+                                // Skip this one
+                                return false;
+                            }
+                            // Return a new plain object for the other
+                            return {
+                                url: request.url,
+                                method: 'PUT' as const,
+                                userData: { transformed: true },
+                            };
+                        },
+                        onSkippedRequest,
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(1);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/third');
+                expect(enqueued[0].method).toBe('PUT');
+                expect(enqueued[0].userData).toEqual({ transformed: true });
+
+                // onSkippedRequest fires for glob-filtered URLs AND the transform-skipped URL
+                // but NOT for the URL where transform returned a new plain object
+                const skippedCalls = onSkippedRequest.mock.calls.map((call: unknown[]) => call[0]);
+                const transformSkipped = skippedCalls.filter(
+                    (s: { url: string; reason: string }) => s.url === 'https://example.com/a/b/first',
+                );
+                expect(transformSkipped).toHaveLength(1);
+                expect(transformSkipped[0]).toEqual({
+                    url: 'https://example.com/a/b/first',
+                    reason: 'filters',
+                });
+                // The transformed URL (third) should NOT appear in skipped calls
+                const falselySkipped = skippedCalls.filter(
+                    (s: { url: string; reason: string }) => s.url === 'https://example.com/a/b/third',
+                );
+                expect(falselySkipped).toHaveLength(0);
+            });
         });
     });
 });

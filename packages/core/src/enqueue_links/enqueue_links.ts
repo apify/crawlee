@@ -476,10 +476,8 @@ export async function enqueueLinks(
 
         // Apply transformRequestFunction after filtering - it has the highest priority
         if (transformRequestFunction) {
-            const beforeTransform = requests;
-            requests = applyRequestTransform(requests, transformRequestFunction);
-
-            const skippedByTransform = beforeTransform.filter((r) => !requests.includes(r));
+            const skippedByTransform: Request[] = [];
+            requests = applyRequestTransform(requests, transformRequestFunction, (r) => skippedByTransform.push(r));
             await reportSkippedRequests(skippedByTransform, 'filters');
         }
 
