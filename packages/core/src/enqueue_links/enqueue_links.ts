@@ -6,7 +6,7 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import { Request, type RequestOptions } from '../request.js';
+import type { Request, RequestOptions } from '../request.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -23,6 +23,7 @@ import type {
     UrlPatternObject,
 } from './shared.js';
 import {
+    applyRequestTransform,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
@@ -475,24 +476,10 @@ export async function enqueueLinks(
 
         // Apply transformRequestFunction after filtering - it has the highest priority
         if (transformRequestFunction) {
-            const skippedByTransform: Request[] = [];
+            const beforeTransform = requests;
+            requests = applyRequestTransform(requests, transformRequestFunction);
 
-            requests = requests
-                .map((request) => {
-                    const transformedRequest = transformRequestFunction(request);
-                    if (!transformedRequest) {
-                        skippedByTransform.push(request);
-                        return null;
-                    }
-                    // If transformRequestFunction returns a plain object (instead of modifying the Request in place),
-                    // we need to create a new Request since we're now operating on Request instances
-                    if (!(transformedRequest instanceof Request)) {
-                        return new Request(transformedRequest);
-                    }
-                    return transformedRequest;
-                })
-                .filter((r): r is Request => r !== null);
-
+            const skippedByTransform = beforeTransform.filter((r) => !requests.includes(r));
             await reportSkippedRequests(skippedByTransform, 'filters');
         }
 

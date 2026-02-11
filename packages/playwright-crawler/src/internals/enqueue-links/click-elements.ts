@@ -9,7 +9,7 @@ import type {
     UrlPatternObject,
 } from '@crawlee/browser';
 import {
-    Request as CrawleeRequest,
+    applyRequestTransform,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
@@ -302,18 +302,7 @@ export async function enqueueLinksByClickingElements(
     const requestOptions = createRequestOptions(interceptedRequests, options);
     let requests = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
     if (transformRequestFunction) {
-        requests = requests
-            .map((request) => {
-                const transformedRequest = transformRequestFunction(request);
-                if (!transformedRequest) {
-                    return null;
-                }
-                if (!(transformedRequest instanceof CrawleeRequest)) {
-                    return new CrawleeRequest(transformedRequest);
-                }
-                return transformedRequest;
-            })
-            .filter((r): r is CrawleeRequest => r !== null);
+        requests = applyRequestTransform(requests, transformRequestFunction);
     }
     const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
 

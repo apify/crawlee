@@ -303,3 +303,24 @@ export interface RequestTransform {
      */
     (original: Request): RequestOptions | Request | false | undefined | null;
 }
+
+/**
+ * Applies a {@apilink RequestTransform} function to a list of requests.
+ * Requests for which the transform returns a falsy value are removed from the list.
+ * If the transform returns a plain object (not a Request instance), it is converted to a new Request.
+ * @ignore
+ */
+export function applyRequestTransform(requests: Request[], transformFn: RequestTransform): Request[] {
+    return requests
+        .map((request) => {
+            const transformed = transformFn(request);
+            if (!transformed) {
+                return null;
+            }
+            if (!(transformed instanceof Request)) {
+                return new Request(transformed);
+            }
+            return transformed;
+        })
+        .filter((r): r is Request => r !== null);
+}
