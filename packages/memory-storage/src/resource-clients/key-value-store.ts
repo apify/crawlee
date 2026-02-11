@@ -7,7 +7,6 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
 import mime from 'mime-types';
-
 import pLimit from 'p-limit';
 
 import { scheduleBackgroundTask } from '../background-handler';
