@@ -310,6 +310,7 @@ export interface RequestTransform {
  * If the transform returns a plain object (not a Request instance), it is converted to a new Request.
  * @param onSkipped Called with the original request when the transform returns a falsy value (i.e. the request is skipped).
  * @ignore
+ * @internal
  */
 export function applyRequestTransform(
     requests: Request[],

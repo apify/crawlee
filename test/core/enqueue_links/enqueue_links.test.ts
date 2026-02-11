@@ -1167,9 +1167,10 @@ describe('enqueueLinks()', () => {
                 const enqueued: Source[] = [];
                 const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
-                // Custom mock that checks for Request instances
+                // Custom mock that checks for Request instances - we override addRequestsBatched
+                // to verify that plain objects returned by transformRequestFunction are converted to Request instances
                 requestQueue.addRequestsBatched = async (requests) => {
-                    // @ts-expect-error Override method for testing
+                    // @ts-expect-error Iterating over the requests parameter which has a narrower type in the override
                     for (const request of requests) {
                         // This check ensures that plain objects are converted to Request instances
                         if (!(request instanceof Request)) {

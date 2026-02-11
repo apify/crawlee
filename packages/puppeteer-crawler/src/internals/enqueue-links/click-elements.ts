@@ -117,25 +117,26 @@ export interface EnqueueLinksByClickingElementsOptions {
     pseudoUrls?: PseudoUrlInput[];
 
     /**
-     * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
-     * to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
-     * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
-     * or to dynamically update or create `userData`.
-     *
-     * For example: by adding `useExtendedUniqueKey: true` to the `request` object, `uniqueKey` will be computed from
-     * a combination of `url`, `method` and `payload` which enables crawling of websites that navigate using form submits
-     * (POST requests).
+     * After {@apilink Request} objects are constructed and filtered by URL patterns (`globs`, `regexps`, `pseudoUrls`),
+     * this function can be used to remove them or modify their contents such as `userData`, `payload` or, most importantly
+     * `uniqueKey`. This is useful when you need to enqueue multiple `Requests` to the queue that share the same URL,
+     * but differ in methods or payloads, or to dynamically update or create `userData`.
      *
      * **Example:**
      * ```javascript
      * {
      *     transformRequestFunction: (request) => {
      *         request.userData.foo = 'bar';
-     *         request.useExtendedUniqueKey = true;
      *         return request;
      *     }
      * }
      * ```
+     *
+     * Note that `transformRequestFunction` has the highest priority and can overwrite request options
+     * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
+     *
+     * The function receives a {@apilink Request} instance and can return either the modified request,
+     * a {@apilink RequestOptions} object (which will be converted to a new Request), or a falsy value to skip the request.
      */
     transformRequestFunction?: RequestTransform;
 
