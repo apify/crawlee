@@ -343,7 +343,7 @@ export abstract class BrowserCrawler<
             ContextExtension,
             ExtendedContext
         > & {
-            contextPipelineBuilder: () => ContextPipeline<{}, Context>;
+            contextPipelineBuilder: () => ContextPipeline<object, Context>;
         },
         override readonly config = Configuration.getGlobalConfig(),
     ) {

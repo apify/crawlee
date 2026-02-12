@@ -376,7 +376,7 @@ export class HttpCrawler<
                 ...basicCrawlerOptions,
                 autoscaledPoolOptions,
                 contextPipelineBuilder:
-                    contextPipelineBuilder ?? (() => this.buildContextPipeline() as ContextPipeline<{}, Context>),
+                    contextPipelineBuilder ?? (() => this.buildContextPipeline() as ContextPipeline<object, Context>),
             },
             config,
         );
@@ -414,7 +414,7 @@ export class HttpCrawler<
         }
     }
 
-    protected override buildContextPipeline(): ContextPipeline<{}, InternalHttpCrawlingContext> {
+    protected override buildContextPipeline(): ContextPipeline<object, InternalHttpCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({
