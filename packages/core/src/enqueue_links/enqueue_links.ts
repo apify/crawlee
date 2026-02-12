@@ -478,7 +478,7 @@ export async function enqueueLinks(
         if (transformRequestFunction) {
             const skippedByTransform: Request[] = [];
             requests = applyRequestTransform(requests, transformRequestFunction, (r) => skippedByTransform.push(r));
-            await reportSkippedRequests(skippedByTransform, 'filters');
+            await reportSkippedRequests(skippedByTransform, 'transform');
         }
 
         return requests;

@@ -1280,7 +1280,7 @@ describe('enqueueLinks()', () => {
                 expect(transformSkipped).toHaveLength(1);
                 expect(transformSkipped[0]).toEqual({
                     url: 'https://example.com/a/b/first',
-                    reason: 'filters',
+                    reason: 'transform',
                 });
             });
 
@@ -1325,7 +1325,7 @@ describe('enqueueLinks()', () => {
                 expect(transformSkipped).toHaveLength(1);
                 expect(transformSkipped[0]).toEqual({
                     url: 'https://example.com/a/b/first',
-                    reason: 'filters',
+                    reason: 'transform',
                 });
                 // The transformed URL (third) should NOT appear in skipped calls
                 const falselySkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/third');
