@@ -177,18 +177,24 @@ export class CheerioCrawler<
      * All `CheerioCrawler` parameters are passed via an options object.
      */
     constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext>, config?: Configuration) {
+        const { contextPipelineBuilder, ...rest } = options ?? {};
+
         super(
             {
-                ...options,
-                contextPipelineBuilder: () =>
-                    this.buildContextPipeline()
-                        .compose({
-                            action: async (context) => await this.parseContent(context),
-                        })
-                        .compose({ action: async (context) => await this.addHelpers(context) }),
+                ...rest,
+                contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
             },
             config,
         );
+    }
+
+    protected override buildContextPipeline() {
+        return super
+            .buildContextPipeline()
+            .compose({
+                action: async (context) => await this.parseContent(context),
+            })
+            .compose({ action: async (context) => await this.addHelpers(context) });
     }
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {

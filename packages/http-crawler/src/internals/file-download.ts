@@ -160,13 +160,16 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
         super({
             ...options,
-            contextPipelineBuilder: () =>
-                this.buildContextPipeline().compose({
-                    action: async (context) => this.initiateDownload(context),
-                    cleanup: async (context) => {
-                        await (context.response.body ? finished(context.response.body as any) : Promise.resolve());
-                    },
-                }),
+            contextPipelineBuilder: () => this.buildContextPipeline(),
+        });
+    }
+
+    protected override buildContextPipeline() {
+        return super.buildContextPipeline().compose({
+            action: async (context) => this.initiateDownload(context),
+            cleanup: async (context) => {
+                await (context.response.body ? finished(context.response.body as any) : Promise.resolve());
+            },
         });
     }
 

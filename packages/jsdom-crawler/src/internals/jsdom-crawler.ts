@@ -193,27 +193,31 @@ export class JSDOMCrawler<
     protected virtualConsole: VirtualConsole | null = null;
 
     constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}, config?: Configuration) {
-        const { runScripts = false, hideInternalConsole = false, ...httpOptions } = options;
+        const { runScripts = false, hideInternalConsole = false, contextPipelineBuilder, ...httpOptions } = options;
 
         super(
             {
                 ...httpOptions,
-                contextPipelineBuilder: () =>
-                    this.buildContextPipeline()
-                        .compose({
-                            action: async (context) => await this.parseContent(context),
-                            cleanup: async (context) => {
-                                this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
-                                context.window?.close();
-                            },
-                        })
-                        .compose({ action: async (context) => await this.addHelpers(context) }),
+                contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
             },
             config,
         );
 
         this.runScripts = runScripts;
         this.hideInternalConsole = hideInternalConsole;
+    }
+
+    protected override buildContextPipeline() {
+        return super
+            .buildContextPipeline()
+            .compose({
+                action: async (context) => await this.parseContent(context),
+                cleanup: async (context) => {
+                    this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
+                    context.window?.close();
+                },
+            })
+            .compose({ action: async (context) => await this.addHelpers(context) });
     }
 
     /**
