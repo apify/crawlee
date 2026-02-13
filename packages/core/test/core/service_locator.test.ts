@@ -193,7 +193,7 @@ describe('ServiceLocator', () => {
         test('creating separate service locator for crawler', () => {
             const crawlerConfig = new Configuration({ headless: false });
             const crawlerStorage = new MemoryStorage();
-            const crawlerEvents = new LocalEventManager(crawlerConfig);
+            const crawlerEvents = new LocalEventManager();
 
             const crawlerLocator = new ServiceLocator(crawlerConfig, crawlerEvents, crawlerStorage);
 

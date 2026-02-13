@@ -1,9 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-
+import log from '@apify/log';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
-
-import log from '@apify/log';
 
 import { Configuration } from './configuration.js';
 import { ServiceConflictError } from './errors.js';
@@ -155,7 +153,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
         if (!this.eventManager) {
             log.debug('No event manager set, implicitly creating and using default LocalEventManager.');
             if (!this.configuration) {
-                log.debug(
+                log.warning(
                     'Implicit creation of event manager will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
