@@ -892,6 +892,10 @@ export class BasicCrawler<
     /**
      * Builds the base context pipeline with core crawling functionality.
      * Subclasses should override this method to extend the pipeline, calling `super.buildContextPipeline()` first.
+     *
+     * Note that the built pipeline needs to be propagated all the way back to the `BasicCrawler` via the `contextPipelineBuilder` constructor option.
+     * This enforces the type contract of `BasicCrawler<SomeContext>` having access to a `ContextPipeline<object, SomeContext>`,
+     * which cannot be achieved using regular abstract methods.
      */
     protected buildContextPipeline(): ContextPipeline<object, CrawlingContext> {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
