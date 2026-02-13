@@ -16,7 +16,7 @@ import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 import type { MemoryStorage } from '../index';
-import { createKeyList, createKeyStringList, isBuffer, isStream } from '../utils';
+import { createKeyList, createKeyStringList, createLazyIterablePromise, isBuffer, isStream } from '../utils';
 import { BaseClient } from './common/base-client';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
@@ -173,33 +173,32 @@ export class KeyValueStoreClient extends BaseClient {
 
         const firstPageKeysPromise = keys(options);
 
-        const firstPageValuesPromise = (async () => {
+        const firstPageValuesPromise = async () => {
             const firstPageKeys = await firstPageKeysPromise;
             const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
             const limiter = pLimit(GET_RECORD_CONCURRENCY);
-            const results = await Promise.allSettled(keysToFetch.map((item) => limiter(() => getRecord(item.key))));
-            return results
-                .filter(
-                    (r): r is PromiseFulfilledResult<storage.KeyValueStoreRecord> =>
-                        r.status === 'fulfilled' && r.value !== undefined,
-                )
-                .map((r) => r.value.value);
-        })();
+            const results = await Promise.all(keysToFetch.map((item) => limiter(() => getRecord(item.key))));
+            return results.filter((r) => r !== undefined).map((r) => r.value);
+        };
 
         async function* asyncGenerator(): AsyncGenerator<unknown> {
-            // Reuse the already-fetched first page values
-            const firstPageValues = await firstPageValuesPromise;
+            const firstPageKeys = await firstPageKeysPromise;
             let yielded = 0;
 
-            for (const value of firstPageValues) {
+            for (const item of firstPageKeys.items) {
                 if (limit !== undefined && yielded >= limit) return;
-                yield value;
-                yielded++;
+                const record = await getRecord(item.key);
+                if (record) {
+                    yield record.value;
+                    yielded++;
+                }
             }
 
-            const firstPageKeys = await firstPageKeysPromise;
             if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
-                for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                for await (const key of keys({
+                    ...options,
+                    exclusiveStartKey: firstPageKeys.nextExclusiveStartKey,
+                })) {
                     if (limit !== undefined && yielded >= limit) return;
                     const record = await getRecord(key);
                     if (record) {
@@ -210,9 +209,7 @@ export class KeyValueStoreClient extends BaseClient {
             }
         }
 
-        return Object.defineProperty(firstPageValuesPromise, Symbol.asyncIterator, {
-            value: asyncGenerator,
-        }) as AsyncIterable<unknown> & Promise<unknown[]>;
+        return createLazyIterablePromise(firstPageValuesPromise, asyncGenerator);
     }
 
     entries(
@@ -224,36 +221,38 @@ export class KeyValueStoreClient extends BaseClient {
 
         const firstPageKeysPromise = keys(options);
 
-        const firstPageEntriesPromise = (async () => {
+        const firstPageEntriesPromise = async () => {
             const firstPageKeys = await firstPageKeysPromise;
             const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
             const limiter = pLimit(GET_RECORD_CONCURRENCY);
-            const results = await Promise.allSettled(
+            const results = await Promise.all(
                 keysToFetch.map((item) =>
                     limiter(() => getRecord(item.key).then((record) => ({ key: item.key, record }))),
                 ),
             );
             return results
-                .filter(
-                    (r): r is PromiseFulfilledResult<{ key: string; record: storage.KeyValueStoreRecord }> =>
-                        r.status === 'fulfilled' && r.value.record !== undefined,
-                )
-                .map((r) => [r.value.key, r.value.record.value] as [string, unknown]);
-        })();
+                .filter((r) => r.record !== undefined)
+                .map((r) => [r.key, r.record!.value] as [string, unknown]);
+        };
 
         async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {
-            const firstPageEntries = await firstPageEntriesPromise;
+            const firstPageKeys = await firstPageKeysPromise;
             let yielded = 0;
 
-            for (const entry of firstPageEntries) {
+            for (const item of firstPageKeys.items) {
                 if (limit !== undefined && yielded >= limit) return;
-                yield entry;
-                yielded++;
+                const record = await getRecord(item.key);
+                if (record) {
+                    yield [item.key, record.value];
+                    yielded++;
+                }
             }
 
-            const firstPageKeys = await firstPageKeysPromise;
             if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
-                for await (const key of keys({ ...options, exclusiveStartKey: firstPageKeys.nextExclusiveStartKey })) {
+                for await (const key of keys({
+                    ...options,
+                    exclusiveStartKey: firstPageKeys.nextExclusiveStartKey,
+                })) {
                     if (limit !== undefined && yielded >= limit) return;
                     const record = await getRecord(key);
                     if (record) {
@@ -264,9 +263,7 @@ export class KeyValueStoreClient extends BaseClient {
             }
         }
 
-        return Object.defineProperty(firstPageEntriesPromise, Symbol.asyncIterator, {
-            value: asyncGenerator,
-        }) as AsyncIterable<[string, unknown]> & Promise<[string, unknown][]>;
+        return createLazyIterablePromise(firstPageEntriesPromise, asyncGenerator);
     }
 
     private async listKeysPage(
