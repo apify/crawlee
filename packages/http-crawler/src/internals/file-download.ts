@@ -1,5 +1,4 @@
-import { Readable, Transform } from 'node:stream';
-import { finished } from 'node:stream/promises';
+import { Transform } from 'node:stream';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
@@ -9,6 +8,8 @@ import type { Dictionary } from '@crawlee/types';
 import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
 import { Router } from '../index.js';
 import { parseContentTypeFromResponse } from './utils.js';
+
+const kBodyDrained = Symbol('bodyDrained');
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -164,15 +165,13 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
                 ContextPipeline.create<CrawlingContext>().compose({
                     action: async (context) => this.initiateDownload(context),
                     cleanup: async (context) => {
-                        if (!context.response.body) return;
-
-                        if (context.response.body.locked) {
-                            // Someone is actively reading/piping the stream — wait for it to finish.
-                            await finished(Readable.fromWeb(context.response.body as any));
-                        } else {
-                            // Nobody consumed the body — cancel it so we don't hang.
-                            await context.response.body.cancel();
+                        if (!context.response.bodyUsed) {
+                            // Nobody consumed the body — cancel it so the
+                            // underlying connection can be released.
+                            await context.response.body?.cancel();
                         }
+
+                        await (context as { [kBodyDrained]: Promise<void> })[kBodyDrained];
                     },
                 }),
         });
@@ -187,14 +186,43 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         context.request.url = response.url;
 
+        const { response: trackedResponse, bodyDrained } = trackBodyConsumption(response);
+
         const contextExtension = {
             request: context.request as LoadedRequest<Request>,
-            response,
+            response: trackedResponse,
             contentType: { type, encoding },
+            [kBodyDrained]: bodyDrained,
         };
 
         return contextExtension;
     }
+}
+
+/**
+ * Wraps a Response so that we can track when the body stream has been fully
+ * consumed (or errored). Pipes the original body through a TransformStream;
+ * the readable side becomes the new Response body, and `pipeTo` gives us a
+ * promise that resolves once the body is fully read or cancelled.
+ */
+function trackBodyConsumption(response: Response): { response: Response; bodyDrained: Promise<void> } {
+    if (!response.body) {
+        return { response, bodyDrained: Promise.resolve() };
+    }
+
+    const passthrough = new TransformStream();
+    const bodyDrained = response.body.pipeTo(passthrough.writable).catch(() => {});
+
+    const trackedResponse = new Response(passthrough.readable, {
+        headers: response.headers,
+        status: response.status,
+        statusText: response.statusText,
+    });
+
+    // Preserve the url property (Response.url is read-only and the constructor ignores it)
+    Object.defineProperty(trackedResponse, 'url', { value: response.url });
+
+    return { response: trackedResponse, bodyDrained };
 }
 
 /**
