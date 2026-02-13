@@ -129,7 +129,6 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.useStorageClient()` - use `ServiceLocator.setStorageClient()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
-- `Configuration.set` - `Configuration` is intended to be immutable, if you need to adjust it, make an updated copy
 
 ### Migration guide
 

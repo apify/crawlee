@@ -267,14 +267,6 @@ export class Configuration {
     protected options!: Map<keyof ConfigurationOptions, ConfigurationOptions[keyof ConfigurationOptions]>;
 
     /**
-     * Sets value for given option. Only affects this `Configuration` instance, the value will not be propagated down to the env var.
-     * To reset a value, we can omit the `value` argument or pass `undefined` there.
-     */
-    set(key: keyof ConfigurationOptions, value?: any): void {
-        this.options.set(key, value);
-    }
-
-    /**
      * Creates new `Configuration` instance with provided options. Env vars will have precedence over those.
      */
     constructor(options: ConfigurationOptions = {}) {
@@ -344,6 +336,14 @@ export class Configuration {
         }
 
         return value;
+    }
+
+    /**
+     * Sets value for given option. Only affects this `Configuration` instance, the value will not be propagated down to the env var.
+     * To reset a value, we can omit the `value` argument or pass `undefined` there.
+     */
+    set(key: keyof ConfigurationOptions, value?: any): void {
+        this.options.set(key, value);
     }
 
     /**
