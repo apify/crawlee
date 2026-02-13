@@ -1,5 +1,5 @@
 import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import path from 'node:path';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { DatasetClient, KeyValueStoreClient } from '@crawlee/types';
@@ -8,7 +8,7 @@ import { vi } from 'vitest';
 import { createLazyIterablePromise } from '../src/utils';
 
 describe('Async iteration support', () => {
-    const localDataDirectory = resolve(__dirname, './tmp/async-iteration');
+    const localDataDirectory = path.resolve(__dirname, './tmp/async-iteration');
     const storage = new MemoryStorage({
         localDataDirectory,
         persistStorage: false,
