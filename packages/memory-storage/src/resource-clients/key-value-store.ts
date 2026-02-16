@@ -173,7 +173,7 @@ export class KeyValueStoreClient extends BaseClient {
 
         const firstPageKeysPromise = keys(options);
 
-        const firstPageValuesPromise = async () => {
+        const getFirstPageValues = async () => {
             const firstPageKeys = await firstPageKeysPromise;
             const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
             const limiter = pLimit(GET_RECORD_CONCURRENCY);
@@ -209,7 +209,7 @@ export class KeyValueStoreClient extends BaseClient {
             }
         }
 
-        return createLazyIterablePromise(firstPageValuesPromise, asyncGenerator);
+        return createLazyIterablePromise(getFirstPageValues, asyncGenerator);
     }
 
     entries(
