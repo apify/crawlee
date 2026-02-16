@@ -550,9 +550,9 @@ export class BasicCrawler<
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    private _contextPipeline?: ContextPipeline<object, ExtendedContext>;
+    private _contextPipeline?: ContextPipeline<{ request?: Request }, ExtendedContext>;
 
-    get contextPipeline(): ContextPipeline<object, ExtendedContext> {
+    get contextPipeline(): ContextPipeline<{ request?: Request }, ExtendedContext> {
         if (this._contextPipeline === undefined) {
             this._contextPipeline = this.buildFinalContextPipeline();
         }
@@ -811,7 +811,8 @@ export class BasicCrawler<
             maxConcurrency: maxConcurrency ?? autoscaledPoolOptions?.maxConcurrency,
             maxTasksPerMinute: maxRequestsPerMinute ?? autoscaledPoolOptions?.maxTasksPerMinute,
             runTaskFunction: async () => {
-                const crawlingContext = {} as Partial<CrawlingContext>;
+                const request = await this.resolveRequest();
+                const crawlingContext = { request } as Partial<CrawlingContext>;
                 try {
                     await this.contextPipeline.call(crawlingContext, this._runTaskFunction.bind(this));
                 } catch (error) {
@@ -897,17 +898,16 @@ export class BasicCrawler<
      * This enforces the type contract of `BasicCrawler<SomeContext>` having access to a `ContextPipeline<object, SomeContext>`,
      * which cannot be achieved using regular abstract methods.
      */
-    protected buildContextPipeline(): ContextPipeline<object, CrawlingContext> {
+    protected buildContextPipeline(): ContextPipeline<{ request?: Request }, CrawlingContext> {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
-        return ContextPipeline.create<object>()
+        return ContextPipeline.create<{ request: Request }>()
             .compose({
                 action: () => this.createBaseContext(deferredCleanup),
                 cleanup: async () => {
                     await Promise.all(deferredCleanup.map((fn) => fn()));
                 },
             })
-            .compose({ action: this.resolveRequest.bind(this) })
             .compose({ action: this.resolveSession.bind(this) })
             .compose({ action: this.createContextHelpers.bind(this) });
     }
@@ -925,11 +925,7 @@ export class BasicCrawler<
         };
     }
 
-    private async resolveRequest(context: Record<string, any>) {
-        // AdaptivePlaywrightCrawler passes edited request directly into the pipeline, we don't want to override that
-        const priorRequest: Request = context.request;
-        if (priorRequest) return { request: priorRequest };
-
+    private async resolveRequest(): Promise<Request> {
         const request = await this._timeoutAndRetry(
             this._fetchNextRequest.bind(this),
             this.internalTimeoutMillis,
@@ -941,7 +937,7 @@ export class BasicCrawler<
             request.loadedUrl = undefined;
         }
 
-        return { request: request! };
+        return request!;
     }
 
     private async resolveSession({ request }: { request: Request }) {
@@ -981,9 +977,9 @@ export class BasicCrawler<
         return { enqueueLinks: enqueueLinksWrapper, addRequests, sendRequest };
     }
 
-    private buildFinalContextPipeline(): ContextPipeline<object, ExtendedContext> {
+    private buildFinalContextPipeline(): ContextPipeline<{ request?: Request }, ExtendedContext> {
         let contextPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
-            this.buildContextPipeline()) as ContextPipeline<object, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
+            this.buildContextPipeline()) as ContextPipeline<{ request?: Request }, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
 
         if (this.contextPipelineOptions.extendContext !== undefined) {
             contextPipeline = contextPipeline.compose({
@@ -1010,7 +1006,7 @@ export class BasicCrawler<
             },
         });
 
-        return contextPipeline as ContextPipeline<object, ExtendedContext>;
+        return contextPipeline as ContextPipeline<{ request?: Request }, ExtendedContext>;
     }
 
     /**
