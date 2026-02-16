@@ -902,82 +902,83 @@ export class BasicCrawler<
 
         return ContextPipeline.create<object>()
             .compose({
-                action: () => {
-                    return {
-                        id: cryptoRandomObjectId(10),
-                        log: this.log,
-                        pushData: this.pushData.bind(this),
-                        useState: this.useState.bind(this),
-                        getKeyValueStore: async (idOrName?: string) =>
-                            KeyValueStore.open(idOrName, { config: this.config }),
-                        registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
-                            deferredCleanup.push(cleanup);
-                        },
-                    };
-                },
+                action: () => this.createBaseContext(deferredCleanup),
                 cleanup: async () => {
                     await Promise.all(deferredCleanup.map((fn) => fn()));
                 },
             })
-            .compose({
-                action: async (context) => {
-                    // AdaptivePlaywrightCrawler passes edited request directly into the pipeline, we don't want to override that
-                    const priorRequest: Request = (context as Record<string, any>).request;
-                    if (priorRequest) return { request: priorRequest };
+            .compose({ action: this.resolveRequest.bind(this) })
+            .compose({ action: this.resolveSession.bind(this) })
+            .compose({ action: this.createContextHelpers.bind(this) });
+    }
 
-                    const request = await this._timeoutAndRetry(
-                        this._fetchNextRequest.bind(this),
-                        this.internalTimeoutMillis,
-                        `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-                    );
+    private createBaseContext(deferredCleanup: (() => Promise<unknown>)[]) {
+        return {
+            id: cryptoRandomObjectId(10),
+            log: this.log,
+            pushData: this.pushData.bind(this),
+            useState: this.useState.bind(this),
+            getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
+            registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
+                deferredCleanup.push(cleanup);
+            },
+        };
+    }
 
-                    // Reset loadedUrl so an old one is not carried over to retries.
-                    if (request) {
-                        request.loadedUrl = undefined;
-                    }
+    private async resolveRequest(context: Record<string, any>) {
+        // AdaptivePlaywrightCrawler passes edited request directly into the pipeline, we don't want to override that
+        const priorRequest: Request = context.request;
+        if (priorRequest) return { request: priorRequest };
 
-                    return { request: request! };
-                },
-            })
-            .compose({
-                action: async ({ request }) => {
-                    const session = this.useSessionPool
-                        ? await this._timeoutAndRetry(
-                              async () => {
-                                  return await this.sessionPool!.newSession({
-                                      proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                                          request: request ?? undefined,
-                                      }),
-                                      maxUsageCount: 1,
-                                  });
-                              },
-                              this.internalTimeoutMillis,
-                              `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-                          )
-                        : undefined;
+        const request = await this._timeoutAndRetry(
+            this._fetchNextRequest.bind(this),
+            this.internalTimeoutMillis,
+            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+        );
 
-                    return { session, proxyInfo: session?.proxyInfo };
-                },
-            })
-            .compose({
-                action: async ({ request, session }) => {
-                    const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
-                        const requestQueue = await this.getRequestQueue();
+        // Reset loadedUrl so an old one is not carried over to retries.
+        if (request) {
+            request.loadedUrl = undefined;
+        }
 
-                        return await this.enqueueLinksWithCrawlDepth(options, request!, requestQueue);
-                    };
-                    const addRequests: CrawlingContext['addRequests'] = async (requests, options = {}) => {
-                        const newCrawlDepth = request!.crawlDepth + 1;
-                        const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
+        return { request: request! };
+    }
 
-                        await this.addRequests(requestsGenerator, options);
-                    };
+    private async resolveSession({ request }: { request: Request }) {
+        const session = this.useSessionPool
+            ? await this._timeoutAndRetry(
+                  async () => {
+                      return await this.sessionPool!.newSession({
+                          proxyInfo: await this.proxyConfiguration?.newProxyInfo({
+                              request: request ?? undefined,
+                          }),
+                          maxUsageCount: 1,
+                      });
+                  },
+                  this.internalTimeoutMillis,
+                  `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+              )
+            : undefined;
 
-                    const sendRequest = createSendRequest(this.httpClient, request!, session);
+        return { session, proxyInfo: session?.proxyInfo };
+    }
 
-                    return { enqueueLinks: enqueueLinksWrapper, addRequests, sendRequest };
-                },
-            });
+    private async createContextHelpers({ request, session }: { request: Request; session?: Session }) {
+        const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
+            const requestQueue = await this.getRequestQueue();
+
+            return await this.enqueueLinksWithCrawlDepth(options, request!, requestQueue);
+        };
+        const addRequests: CrawlingContext['addRequests'] = async (requests, options = {}) => {
+            const newCrawlDepth = request!.crawlDepth + 1;
+            const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
+
+            await this.addRequests(requestsGenerator, options);
+        };
+
+        const sendRequest = createSendRequest(this.httpClient, request!, session);
+
+        return { enqueueLinks: enqueueLinksWrapper, addRequests, sendRequest };
     }
 
     private buildFinalContextPipeline(): ContextPipeline<object, ExtendedContext> {
