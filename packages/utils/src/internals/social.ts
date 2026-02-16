@@ -186,9 +186,9 @@ export function phonesFromUrls(urls: string[]): string[] {
 // - They use a negative lookbehind and lookahead assertions, which are only supported in Node 8+.
 //   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
-const LINKEDIN_REGEX_STRING =
-    '(?<!\\w)(?:(?:http(?:s)?:\\/\\/)?(?:(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-z0-9\\-_%=]{2,60})(?![a-z0-9\\-_%=])))(?:\\/)?';
-
+const LINKEDIN_REGEX_STRING = 
+    '(?<![\\w.-])(?:https?:\\/\\/)?(?:(?:[a-z]{2,3}\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-zA-Z0-9\\-_%=]{2,100})(?:\\/)?(?![\\w])';
+    
 const INSTAGRAM_REGEX_STRING =
     '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
