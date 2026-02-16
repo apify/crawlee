@@ -3,7 +3,7 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, Source } from '@crawlee/basic';
+import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -281,7 +281,7 @@ describe('BasicCrawler', () => {
         });
 
         it('should respect user provided transformRequestFunction', async () => {
-            const transformRequestFunction = vi.fn((req: Request) => req);
+            const transformRequestFunction = vi.fn((req: RequestOptions) => req);
             const optionsWithTransform = { ...options, transformRequestFunction };
 
             await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
@@ -294,7 +294,7 @@ describe('BasicCrawler', () => {
         });
 
         it('should report depth-limited requests with reason "depth" even when user transformRequestFunction is provided', async () => {
-            const transformRequestFunction = vi.fn((req: Request) => req);
+            const transformRequestFunction = vi.fn((req: RequestOptions) => req);
             const requestWithMaxDepth = new Request({ url: 'https://example.com/', crawlDepth: 3 });
             const optionsWithTransform = { ...options, transformRequestFunction };
 

@@ -6,7 +6,6 @@ import { Minimatch } from 'minimatch';
 import { purlToRegExp } from '@apify/pseudo_url';
 
 import type { RequestOptions } from '../request.js';
-import { Request } from '../request.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
 export { tryAbsoluteURL } from '@crawlee/utils';
@@ -168,79 +167,6 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
 
         return regexpObject;
     });
-}
-
-/**
- * @ignore
- */
-export function createRequests(
-    requestOptions: (string | RequestOptions)[],
-    urlPatternObjects?: UrlPatternObject[],
-    excludePatternObjects: UrlPatternObject[] = [],
-    strategy?: EnqueueLinksOptions['strategy'],
-    onSkippedUrl?: (url: string) => void,
-): Request[] {
-    const excludePatternObjectMatchers = excludePatternObjects.map(createPatternObjectMatcher);
-    const urlPatternObjectMatchers = urlPatternObjects?.map(createPatternObjectMatcher);
-
-    return requestOptions
-        .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
-        .filter(({ url }) => {
-            const matchesExcludePatterns = excludePatternObjectMatchers.some(({ match }) => match(url));
-
-            if (matchesExcludePatterns) {
-                onSkippedUrl?.(url);
-            }
-
-            return !matchesExcludePatterns;
-        })
-        .map(({ url, opts }) => {
-            if (!urlPatternObjectMatchers || !urlPatternObjectMatchers.length) {
-                return new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : { ...opts });
-            }
-
-            for (const urlPatternObject of urlPatternObjectMatchers) {
-                const { match, glob, regexp, ...requestRegExpOptions } = urlPatternObject;
-                if (match(url)) {
-                    const request =
-                        typeof opts === 'string'
-                            ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
-                            : { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
-
-                    return new Request(request);
-                }
-            }
-
-            // didn't match any positive pattern
-            onSkippedUrl?.(url);
-            return null;
-        })
-        .filter((request) => request) as Request[];
-}
-
-export function filterRequestsByPatterns(
-    requests: Request[],
-    patterns?: UrlPatternObject[],
-    onSkippedUrl?: (url: string) => void,
-): Request[] {
-    if (!patterns?.length) {
-        return requests;
-    }
-
-    const filtered: Request[] = [];
-    const patternMatchers = patterns?.map(createPatternObjectMatcher);
-
-    for (const request of requests) {
-        const matchingPattern = patternMatchers.find(({ match }) => match(request.url));
-
-        if (matchingPattern !== undefined) {
-            filtered.push(request);
-        } else {
-            onSkippedUrl?.(request.url);
-        }
-    }
-
-    return filtered;
 }
 
 /**

@@ -4,8 +4,10 @@ import type {
     GlobInput,
     PseudoUrlInput,
     RegExpInput,
+    RequestOptions,
     RequestProvider,
     RequestTransform,
+    SkippedRequestCallback,
     UrlPatternObject,
 } from '@crawlee/browser';
 import {
@@ -181,6 +183,13 @@ export interface EnqueueLinksByClickingElementsOptions {
      * @default false
      */
     skipNavigation?: boolean;
+
+    /**
+     * When a request is skipped for some reason, you can use this callback to act on it.
+     * This is fired for requests skipped because they don't match enqueueLinks filters
+     * or because they were removed by `transformRequestFunction`.
+     */
+    onSkippedRequest?: SkippedRequestCallback;
 }
 
 /**
@@ -247,6 +256,7 @@ export async function enqueueLinksByClickingElements(
             label: ow.optional.string,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
+            onSkippedRequest: ow.optional.function,
         }),
     );
 
@@ -263,6 +273,7 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleSecs = 5,
         forefront,
         exclude,
+        onSkippedRequest,
     } = options;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
@@ -302,13 +313,27 @@ export async function enqueueLinksByClickingElements(
         clickOptions,
     });
     const requestOptions = createRequestOptions(interceptedRequests, options);
+    const skippedByFilters: string[] = [];
     let filteredOptions = filterRequestOptionsByPatterns(
         requestOptions,
         urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
         urlExcludePatternObjects,
+        undefined,
+        (url) => skippedByFilters.push(url),
     );
+
+    if (onSkippedRequest && skippedByFilters.length > 0) {
+        await Promise.all(skippedByFilters.map((url) => onSkippedRequest({ url, reason: 'filters' })));
+    }
+
     if (transformRequestFunction) {
-        filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction);
+        const skippedByTransform: RequestOptions[] = [];
+        filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction, (r) =>
+            skippedByTransform.push(r),
+        );
+        if (onSkippedRequest && skippedByTransform.length > 0) {
+            await Promise.all(skippedByTransform.map((r) => onSkippedRequest({ url: r.url, reason: 'transform' })));
+        }
     }
     const requests = filteredOptions.map((opts) => new Request(opts));
     const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
