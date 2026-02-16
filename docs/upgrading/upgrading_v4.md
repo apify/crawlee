@@ -124,7 +124,7 @@ The priority order is now (lowest to highest):
 2. Pattern-specific options from `globs`, `regexps`, or `pseudoUrls` objects
 3. `transformRequestFunction`
 
-Additionally, the `transformRequestFunction` callback now receives a <ApiLink to="core/class/Request">`Request`</ApiLink> instance instead of a plain `RequestOptions` object. The function can return either:
-- The modified `Request` instance
-- A new `RequestOptions` plain object (which will be converted to a `Request`)
+The `transformRequestFunction` callback receives a `RequestOptions` object and can return either:
+- The modified `RequestOptions` object
+- A new `RequestOptions` plain object
 - A falsy value to skip the request
