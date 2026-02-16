@@ -1168,11 +1168,11 @@ describe('enqueueLinks()', () => {
                 const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
                 // Custom mock that checks for Request instances - we override addRequestsBatched
-                // to verify that plain objects returned by transformRequestFunction are converted to Request instances
+                // to verify that request options returned by transformRequestFunction are converted to Request instances
                 requestQueue.addRequestsBatched = async (requests) => {
                     // @ts-expect-error Iterating over the requests parameter which has a narrower type in the override
                     for (const request of requests) {
-                        // This check ensures that plain objects are converted to Request instances
+                        // This check ensures that request options are converted to Request instances
                         if (!(request instanceof Request)) {
                             throw new Error(
                                 `Expected Request instance but got plain object: ${JSON.stringify(request)}`,
@@ -1188,7 +1188,7 @@ describe('enqueueLinks()', () => {
                         selector: '.click',
                         globs: ['https://example.com/**/*'],
                         transformRequestFunction: (request) => {
-                            // Return a new plain object instead of modifying the Request instance
+                            // Return a new plain object instead of modifying in place
                             return {
                                 url: request.url,
                                 method: 'DELETE' as const,
@@ -1202,7 +1202,7 @@ describe('enqueueLinks()', () => {
                 });
 
                 expect(enqueued).toHaveLength(2);
-                // The new plain object should be properly converted to a Request
+                // The request options should be properly converted to a Request
                 expect(enqueued[0].url).toBe('https://example.com/a/b/first');
                 expect(enqueued[0].method).toBe('DELETE');
                 expect(enqueued[0].userData).toEqual({ replaced: true });

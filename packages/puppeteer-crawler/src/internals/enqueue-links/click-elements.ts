@@ -14,7 +14,8 @@ import {
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
-    createRequests,
+    filterRequestOptionsByPatterns,
+    Request,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
@@ -135,8 +136,8 @@ export interface EnqueueLinksByClickingElementsOptions {
      * Note that `transformRequestFunction` has the highest priority and can overwrite request options
      * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
      *
-     * The function receives a {@apilink Request} instance and can return either the modified request,
-     * a {@apilink RequestOptions} object (which will be converted to a new Request), or a falsy value to skip the request.
+     * The function receives a {@apilink RequestOptions} object and can return either the modified options,
+     * or a falsy value to skip the request.
      */
     transformRequestFunction?: RequestTransform;
 
@@ -301,10 +302,15 @@ export async function enqueueLinksByClickingElements(
         clickOptions,
     });
     const requestOptions = createRequestOptions(interceptedRequests, options);
-    let requests = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
+    let filteredOptions = filterRequestOptionsByPatterns(
+        requestOptions,
+        urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
+        urlExcludePatternObjects,
+    );
     if (transformRequestFunction) {
-        requests = applyRequestTransform(requests, transformRequestFunction);
+        filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction);
     }
+    const requests = filteredOptions.map((opts) => new Request(opts));
     const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };

@@ -244,6 +244,49 @@ export function filterRequestsByPatterns(
 }
 
 /**
+ * Filters request options by URL patterns and merges pattern-level options (label, userData, method, payload, headers)
+ * from the first matching pattern into each RequestOptions entry.
+ *
+ * When `includePatterns` is empty/undefined, all options pass through (only exclude filtering applies).
+ * @ignore
+ */
+export function filterRequestOptionsByPatterns(
+    requestOptions: RequestOptions[],
+    includePatterns: UrlPatternObject[] | undefined,
+    excludePatterns: UrlPatternObject[] = [],
+    strategy?: EnqueueLinksOptions['strategy'],
+    onSkippedUrl?: (url: string) => void,
+): RequestOptions[] {
+    const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
+    const includeMatchers = includePatterns?.length ? includePatterns.map(createPatternObjectMatcher) : undefined;
+
+    return requestOptions
+        .filter(({ url }) => {
+            const matchesExclude = excludeMatchers.some(({ match }) => match(url));
+            if (matchesExclude) {
+                onSkippedUrl?.(url);
+            }
+            return !matchesExclude;
+        })
+        .map((opts) => {
+            if (!includeMatchers) {
+                return { ...opts, enqueueStrategy: strategy };
+            }
+
+            for (const { match, glob, regexp, ...patternOptions } of includeMatchers) {
+                if (match(opts.url)) {
+                    return { ...opts, ...patternOptions, enqueueStrategy: strategy };
+                }
+            }
+
+            // didn't match any positive pattern
+            onSkippedUrl?.(opts.url);
+            return null;
+        })
+        .filter((opts) => opts !== null);
+}
+
+/**
  * @ignore
  */
 export function createRequestOptions(
@@ -300,43 +343,39 @@ function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
 }
 
 /**
- * Takes a {@apilink Request} object and changes its attributes in a desired way. This user-function is used
- * by {@apilink enqueueLinks} to modify requests before enqueuing them.
+ * Takes a {@apilink RequestOptions} object and changes its attributes in a desired way. This user-function is used
+ * by {@apilink enqueueLinks} to modify request options before they are converted to {@apilink Request} instances.
  */
 export interface RequestTransform {
     /**
-     * @param original Request to be modified.
-     * @returns The modified request or request options to enqueue, or a falsy value to skip the request.
+     * @param original Request options to be modified.
+     * @returns The modified request options to enqueue, or a falsy value to skip the request.
      */
-    (original: Request): RequestOptions | Request | false | undefined | null;
+    (original: RequestOptions): RequestOptions | false | undefined | null;
 }
 
 /**
- * Applies a {@apilink RequestTransform} function to a list of requests.
- * Requests for which the transform returns a falsy value are removed from the list.
- * If the transform returns a plain object (not a Request instance), it is converted to a new Request.
- * @param onSkipped Called with the original request when the transform returns a falsy value (i.e. the request is skipped).
+ * Applies a {@apilink RequestTransform} function to a list of request options.
+ * Options for which the transform returns a falsy value are removed from the list.
+ * @param onSkipped Called with the original request options when the transform returns a falsy value (i.e. the request is skipped).
  * @ignore
  * @internal
  */
 export function applyRequestTransform(
-    requests: Request[],
+    requestOptions: RequestOptions[],
     transformFn: RequestTransform,
-    onSkipped?: (request: Request) => void,
-): Request[] {
-    return requests
-        .map((request) => {
-            const transformed = transformFn(request);
+    onSkipped?: (requestOptions: RequestOptions) => void,
+): RequestOptions[] {
+    return requestOptions
+        .map((opts) => {
+            const transformed = transformFn(opts);
             if (!transformed) {
                 if (onSkipped) {
-                    onSkipped(request);
+                    onSkipped(opts);
                 }
                 return null;
             }
-            if (!(transformed instanceof Request)) {
-                return new Request(transformed);
-            }
             return transformed;
         })
-        .filter((r): r is Request => r !== null);
+        .filter((r): r is RequestOptions => r !== null);
 }

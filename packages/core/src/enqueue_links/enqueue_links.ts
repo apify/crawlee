@@ -6,7 +6,8 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { Request, RequestOptions } from '../request.js';
+import { Request } from '../request.js';
+import type { RequestOptions } from '../request.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -28,8 +29,7 @@ import {
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
-    createRequests,
-    filterRequestsByPatterns,
+    filterRequestOptionsByPatterns,
 } from './shared.js';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
@@ -127,12 +127,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     pseudoUrls?: readonly PseudoUrlInput[];
 
     /**
-     * After {@apilink Request} objects are constructed and filtered, this function can be used
+     * After request options are filtered by patterns, this function can be used
      * to remove them or modify their contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
      * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
      * or to dynamically update or create `userData`.
      *
-     * For example: by adding `keepUrlFragment: true` to the `request` object, URL fragments will not be removed
+     * For example: by adding `keepUrlFragment: true` to the request options, URL fragments will not be removed
      * when `uniqueKey` is computed.
      *
      * **Example:**
@@ -149,8 +149,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Note that `transformRequestFunction` has the highest priority and can overwrite request options
      * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
      *
-     * The function receives a {@apilink Request} instance and can return either the modified request,
-     * a {@apilink RequestOptions} object (which will be converted to a new Request), or a falsy value to skip the request.
+     * The function receives a {@apilink RequestOptions} object and can return either the modified options,
+     * or a falsy value to skip the request.
      */
     transformRequestFunction?: RequestTransform;
 
@@ -444,28 +444,33 @@ export async function enqueueLinks(
     async function createFilteredRequests() {
         const skippedRequests: string[] = [];
 
-        // No user provided patterns means we can skip an extra filtering step
-        let requests: Request[];
+        // Step 1: Filter request options by exclude patterns, user patterns (globs/regexps), and strategy patterns.
+        // Pattern-level options (label, userData, method, etc.) are merged during this step.
+        let filteredOptions: RequestOptions[];
         if (urlPatternObjects.length === 0) {
-            requests = createRequests(
+            filteredOptions = filterRequestOptionsByPatterns(
                 requestOptions,
-                enqueueStrategyPatterns,
+                enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                 urlExcludePatternObjects,
                 options.strategy,
                 (url) => skippedRequests.push(url),
             );
         } else {
-            // Generate requests based on the user patterns first
-            const generatedRequestsFromUserFilters = createRequests(
+            // Filter by user patterns first (with exclude)
+            const afterUserPatterns = filterRequestOptionsByPatterns(
                 requestOptions,
                 urlPatternObjects,
                 urlExcludePatternObjects,
                 options.strategy,
                 (url) => skippedRequests.push(url),
             );
-            // ...then filter them by the enqueue links strategy (making this an AND check)
-            requests = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (url) =>
-                skippedRequests.push(url),
+            // ...then filter by the enqueue links strategy (making this an AND check)
+            filteredOptions = filterRequestOptionsByPatterns(
+                afterUserPatterns,
+                enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
+                [],
+                options.strategy,
+                (url) => skippedRequests.push(url),
             );
         }
 
@@ -474,14 +479,17 @@ export async function enqueueLinks(
             'filters',
         );
 
-        // Apply transformRequestFunction after filtering - it has the highest priority
+        // Step 2: Apply transformRequestFunction on request options - it has the highest priority
         if (transformRequestFunction) {
-            const skippedByTransform: Request[] = [];
-            requests = applyRequestTransform(requests, transformRequestFunction, (r) => skippedByTransform.push(r));
+            const skippedByTransform: RequestOptions[] = [];
+            filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction, (r) =>
+                skippedByTransform.push(r),
+            );
             await reportSkippedRequests(skippedByTransform, 'transform');
         }
 
-        return requests;
+        // Step 3: Create Request instances from the final request options
+        return filteredOptions.map((opts) => new Request(opts));
     }
 
     let requests = await createFilteredRequests();
