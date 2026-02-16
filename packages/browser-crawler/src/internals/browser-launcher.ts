@@ -68,6 +68,12 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     userAgent?: string;
 
     /**
+     * If set to `true`, TLS certificate errors from the upstream proxy will be ignored.
+     * This is useful when using HTTPS proxies with self-signed certificates.
+     */
+    ignoreProxyCertificate?: boolean;
+
+    /**
      * The type of browser to be launched.
      * By default, `chromium` is used. Other browsers like `webkit` or `firefox` can be used.
      *
@@ -108,6 +114,7 @@ export abstract class BrowserLauncher<
         useIncognitoPages: ow.optional.boolean,
         browserPerProxy: ow.optional.boolean,
         experimentalContainers: ow.optional.boolean,
+        ignoreProxyCertificate: ow.optional.boolean,
         userDataDir: ow.optional.string,
         launchOptions: ow.optional.object,
         userAgent: ow.optional.string,

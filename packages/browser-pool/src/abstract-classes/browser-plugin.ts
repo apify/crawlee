@@ -82,6 +82,11 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * Might cause performance issues, as Crawlee might launch too many browser instances.
      */
     browserPerProxy?: boolean;
+    /**
+     * If set to `true`, TLS certificate errors from the upstream proxy will be ignored.
+     * This is useful when using HTTPS proxies with self-signed certificates.
+     */
+    ignoreProxyCertificate?: boolean;
 }
 
 export interface CreateLaunchContextOptions<
@@ -126,6 +131,8 @@ export abstract class BrowserPlugin<
 
     browserPerProxy?: boolean;
 
+    ignoreProxyCertificate?: boolean;
+
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
         const {
             launchOptions = {} as LibraryOptions,
@@ -134,6 +141,7 @@ export abstract class BrowserPlugin<
             useIncognitoPages = false,
             experimentalContainers = false,
             browserPerProxy = false,
+            ignoreProxyCertificate = false,
         } = options;
 
         this.library = library;
@@ -143,6 +151,7 @@ export abstract class BrowserPlugin<
         this.useIncognitoPages = useIncognitoPages;
         this.experimentalContainers = experimentalContainers;
         this.browserPerProxy = browserPerProxy;
+        this.ignoreProxyCertificate = ignoreProxyCertificate;
     }
 
     /**
@@ -162,6 +171,7 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             experimentalContainers = this.experimentalContainers,
             browserPerProxy = this.browserPerProxy,
+            ignoreProxyCertificate = this.ignoreProxyCertificate,
             proxyTier,
         } = options;
 
@@ -174,6 +184,7 @@ export abstract class BrowserPlugin<
             experimentalContainers,
             userDataDir,
             browserPerProxy,
+            ignoreProxyCertificate,
             proxyTier,
         });
     }

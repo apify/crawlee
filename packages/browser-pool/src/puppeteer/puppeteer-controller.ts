@@ -52,6 +52,7 @@ export class PuppeteerController extends BrowserController<
                     contextOptions.proxyServer,
                     contextOptions.proxyUsername,
                     contextOptions.proxyPassword,
+                    { ignoreProxyCertificate: this.launchContext.ignoreProxyCertificate },
                 );
 
                 if (anonymizedProxyUrl) {

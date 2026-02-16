@@ -403,9 +403,7 @@ export class KeyValueStoreClient extends BaseClient {
                 s.instance(ArrayBuffer),
                 s.typedArray(),
                 // disabling validation will make shapeshift only check the object given is an actual object, not null, nor array
-                s
-                    .object({})
-                    .setValidationEnabled(false),
+                s.object({}).setValidationEnabled(false),
             ),
             contentType: s.string.lengthGreaterThan(0).optional,
         }).parse(record);

@@ -39,7 +39,14 @@ export class PuppeteerPlugin extends BrowserPlugin<
         } catch {
             // ignore
         }
-        const { launchOptions, userDataDir, useIncognitoPages, experimentalContainers, proxyUrl } = launchContext;
+        const {
+            launchOptions,
+            userDataDir,
+            useIncognitoPages,
+            experimentalContainers,
+            proxyUrl,
+            ignoreProxyCertificate,
+        } = launchContext;
 
         if (experimentalContainers) {
             throw new Error('Experimental containers are only available with Playwright');
@@ -62,7 +69,9 @@ export class PuppeteerPlugin extends BrowserPlugin<
         let browser: PuppeteerTypes.Browser;
 
         {
-            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);
+            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
+                ignoreProxyCertificate: launchContext.ignoreProxyCertificate,
+            });
 
             if (proxyUrl) {
                 const proxyArg = `${PROXY_SERVER_ARG}${anonymizedProxyUrl ?? proxyUrl}`;
@@ -133,7 +142,12 @@ export class PuppeteerPlugin extends BrowserPlugin<
                         let page: PuppeteerTypes.Page;
 
                         if (useIncognitoPages) {
-                            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);
+                            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(
+                                proxyUrl,
+                                undefined,
+                                undefined,
+                                { ignoreProxyCertificate },
+                            );
 
                             try {
                                 const context = (await (browser as any)[method]({
