@@ -1,7 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import log from '@apify/log';
+
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
+
+import log from '@apify/log';
 
 import { Configuration } from './configuration.js';
 import { ServiceConflictError } from './errors.js';
@@ -98,7 +100,7 @@ interface ServiceLocatorInterface {
  *     requestHandler: async ({ request }) => { ... },
  *     configuration: new Configuration({ ... }),  // custom config
  *     storageClient: new MemoryStorage(),          // custom storage
- *     eventManager: new LocalEventManager(),       // custom events
+ *     eventManager: LocalEventManager.fromConfig(),  // custom events
  * });
  * // Crawler has its own isolated ServiceLocator instance
  * ```
@@ -158,7 +160,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
-            this.eventManager = new LocalEventManager();
+            this.eventManager = LocalEventManager.fromConfig(this.getConfiguration());
         }
         return this.eventManager;
     }

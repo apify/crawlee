@@ -1,9 +1,11 @@
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import log, { LogLevel } from '@apify/log';
+
 import type { Dictionary } from '@crawlee/types';
 import { pathExistsSync } from 'fs-extra/esm';
+
+import log, { LogLevel } from '@apify/log';
 
 import { serviceLocator } from './service_locator.js';
 import { entries } from './typedefs.js';

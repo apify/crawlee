@@ -132,6 +132,8 @@ The following methods and properties have been removed from `Configuration`:
 
 Additionally, the `RequestQueue` (and `RequestQueueV2`) constructor now requires a `Configuration` instance as a mandatory second argument. In almost all cases, you should be using `RequestQueue.open()` instead of constructing it directly — this change is unlikely to affect you.
 
+The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfig()` factory method to create an instance with intervals derived from a `Configuration` object.
+
 ### Migration guide
 
 If you were using the removed `Configuration` methods directly, you need to update your code:
@@ -170,7 +172,7 @@ const crawler = new BasicCrawler({
     },
     configuration: new Configuration({ headless: false }),
     storageClient: new MemoryStorage(),
-    eventManager: new LocalEventManager(),
+    eventManager: LocalEventManager.fromConfig(),
 });
 
 await crawler.run(['https://example.com']);

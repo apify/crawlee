@@ -4,6 +4,11 @@ import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
+export interface EventManagerOptions {
+    /** Interval between emitted `persistState` events in milliseconds. */
+    persistStateIntervalMillis: number;
+}
+
 export const enum EventType {
     PERSIST_STATE = 'persistState',
     SYSTEM_INFO = 'systemInfo',
@@ -24,13 +29,15 @@ export abstract class EventManager {
     protected initialized = false;
     protected intervals: Intervals = {};
     protected log = log.child({ prefix: 'Events' });
+    private persistStateIntervalMillis: number;
 
-    constructor() {
+    constructor(options: EventManagerOptions) {
+        this.persistStateIntervalMillis = options.persistStateIntervalMillis;
         this.events.setMaxListeners(50);
     }
 
     /**
-     * Initializes the event manager by creating the `persistState` event interval.
+     * Initializes the event manager by starting the `persistState` event interval.
      * This is automatically called at the beginning of `crawler.run()`.
      */
     async init() {
@@ -38,13 +45,11 @@ export abstract class EventManager {
             return;
         }
 
-        // Lazy import to break circular dependency: event_manager -> service_locator -> local_event_manager -> event_manager
-        const { serviceLocator } = await import('../service_locator.js');
-        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         this.intervals.persistState = betterSetInterval((intervalCallback: () => unknown) => {
             this.emit(EventType.PERSIST_STATE, { isMigrating: false });
             intervalCallback();
-        }, persistStateIntervalMillis);
+        }, this.persistStateIntervalMillis);
+
         this.initialized = true;
     }
 
