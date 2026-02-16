@@ -811,7 +811,29 @@ export class BasicCrawler<
             maxConcurrency: maxConcurrency ?? autoscaledPoolOptions?.maxConcurrency,
             maxTasksPerMinute: maxRequestsPerMinute ?? autoscaledPoolOptions?.maxTasksPerMinute,
             runTaskFunction: async () => {
+                const source = this.requestManager;
+                if (!source) throw new Error('Request provider is not initialized!');
+
                 const request = await this.resolveRequest();
+                if (!request || this.delayRequest(request, source)) {
+                    return;
+                }
+
+                if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
+                    this.log.warning(
+                        `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
+                    );
+                    request.state = RequestState.SKIPPED;
+                    request.noRetry = true;
+                    await source.markRequestHandled(request);
+                    await this.handleSkippedRequest({
+                        url: request.url,
+                        reason: 'robotsTxt',
+                    });
+
+                    return;
+                }
+
                 const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                 try {
                     await this.contextPipeline.call(crawlingContext, this._runTaskFunction.bind(this));
@@ -925,7 +947,7 @@ export class BasicCrawler<
         };
     }
 
-    private async resolveRequest(): Promise<Request> {
+    private async resolveRequest(): Promise<Request | null> {
         const request = await this._timeoutAndRetry(
             this._fetchNextRequest.bind(this),
             this.internalTimeoutMillis,
@@ -937,7 +959,7 @@ export class BasicCrawler<
             request.loadedUrl = undefined;
         }
 
-        return request!;
+        return request;
     }
 
     private async resolveSession({ request }: { request: Request }) {
@@ -1690,24 +1712,6 @@ export class BasicCrawler<
         if (!source) throw new Error('Request provider is not initialized!');
 
         const { request } = crawlingContext;
-
-        if (!request || this.delayRequest(request, source)) {
-            return;
-        }
-
-        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
-            this.log.warning(
-                `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
-            );
-            request.state = RequestState.SKIPPED;
-            request.noRetry = true;
-            await source.markRequestHandled(request);
-            await this.handleSkippedRequest({
-                url: request.url,
-                reason: 'robotsTxt',
-            });
-            return;
-        }
 
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
