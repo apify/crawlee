@@ -6,8 +6,8 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import { Request } from '../request.js';
 import type { RequestOptions } from '../request.js';
+import { Request } from '../request.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
