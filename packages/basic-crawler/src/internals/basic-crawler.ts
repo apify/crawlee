@@ -580,7 +580,7 @@ export class BasicCrawler<
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
     protected contextPipelineOptions: {
-        contextPipelineBuilder: () => ContextPipeline<any, any>;
+        contextPipelineBuilder: () => ContextPipeline<{ request: Request }, Context>;
         extendContext: (context: Context) => Awaitable<ContextExtension>;
     };
 
