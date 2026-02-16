@@ -1,5 +1,3 @@
-import { getCurrentCpuTicksV2, getMemoryInfo, isContainerized } from '@crawlee/utils';
-
 import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
@@ -79,6 +77,7 @@ export class LocalEventManager extends EventManager {
      * @internal
      */
     async isContainerizedWrapper() {
+        const { isContainerized } = await import('@crawlee/utils');
         return serviceLocator.getConfiguration().get('containerized', await isContainerized());
     }
 
@@ -94,6 +93,7 @@ export class LocalEventManager extends EventManager {
     }
 
     private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
+        const { getCurrentCpuTicksV2 } = await import('@crawlee/utils');
         const usedCpuRatio = await getCurrentCpuTicksV2(await this.isContainerizedWrapper());
         return {
             cpuCurrentUsage: usedCpuRatio * 100,
@@ -103,6 +103,7 @@ export class LocalEventManager extends EventManager {
 
     private async createMemoryInfo() {
         try {
+            const { getMemoryInfo } = await import('@crawlee/utils');
             const memInfo = await getMemoryInfo(await this.isContainerizedWrapper());
             return {
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
