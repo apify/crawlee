@@ -56,7 +56,10 @@ describe('ServiceLocator', () => {
         });
 
         test('custom event manager', () => {
-            const customEventManager = new LocalEventManager();
+            const customEventManager = new LocalEventManager({
+                persistStateIntervalMillis: 1000,
+                systemInfoIntervalMillis: 1000,
+            });
             serviceLocator.setEventManager(customEventManager);
             const eventManager = serviceLocator.getEventManager();
 
@@ -64,10 +67,16 @@ describe('ServiceLocator', () => {
         });
 
         test('event manager overwrite not possible', () => {
-            const customEventManager = new LocalEventManager();
+            const customEventManager = new LocalEventManager({
+                persistStateIntervalMillis: 1000,
+                systemInfoIntervalMillis: 1000,
+            });
             serviceLocator.setEventManager(customEventManager);
 
-            const anotherCustomEventManager = new LocalEventManager();
+            const anotherCustomEventManager = new LocalEventManager({
+                persistStateIntervalMillis: 1000,
+                systemInfoIntervalMillis: 1000,
+            });
 
             expect(() => {
                 serviceLocator.setEventManager(anotherCustomEventManager);
@@ -78,7 +87,10 @@ describe('ServiceLocator', () => {
             // Retrieve event manager first
             serviceLocator.getEventManager();
 
-            const customEventManager = new LocalEventManager();
+            const customEventManager = new LocalEventManager({
+                persistStateIntervalMillis: 1000,
+                systemInfoIntervalMillis: 1000,
+            });
 
             expect(() => {
                 serviceLocator.setEventManager(customEventManager);
@@ -132,7 +144,10 @@ describe('ServiceLocator', () => {
     describe('Reset functionality', () => {
         test('reset clears all services', () => {
             const customConfig = new Configuration({ headless: false });
-            const customEventManager = new LocalEventManager();
+            const customEventManager = new LocalEventManager({
+                persistStateIntervalMillis: 1000,
+                systemInfoIntervalMillis: 1000,
+            });
             const customStorageClient = new MemoryStorage();
 
             serviceLocator.setConfiguration(customConfig);
@@ -167,7 +182,10 @@ describe('ServiceLocator', () => {
         });
 
         test('setting same event manager instance is allowed', () => {
-            const eventManager = new LocalEventManager();
+            const eventManager = new LocalEventManager({
+                persistStateIntervalMillis: 1000,
+                systemInfoIntervalMillis: 1000,
+            });
             serviceLocator.setEventManager(eventManager);
             serviceLocator.getEventManager();
 
@@ -193,7 +211,10 @@ describe('ServiceLocator', () => {
         test('creating separate service locator for crawler', () => {
             const crawlerConfig = new Configuration({ headless: false });
             const crawlerStorage = new MemoryStorage();
-            const crawlerEvents = new LocalEventManager();
+            const crawlerEvents = new LocalEventManager({
+                persistStateIntervalMillis: 1000,
+                systemInfoIntervalMillis: 1000,
+            });
 
             const crawlerLocator = new ServiceLocator(crawlerConfig, crawlerEvents, crawlerStorage);
 
