@@ -3,6 +3,7 @@ import { Transform } from 'node:stream';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 
 import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
@@ -205,7 +206,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
  * the readable side becomes the new Response body, and `pipeTo` gives us a
  * promise that resolves once the body is fully read or cancelled.
  */
-function trackBodyConsumption(response: Response): { response: Response; bodyDrained: Promise<void> } {
+function trackBodyConsumption(response: Response): { response: ResponseWithUrl; bodyDrained: Promise<void> } {
     if (!response.body) {
         return { response, bodyDrained: Promise.resolve() };
     }
@@ -213,14 +214,12 @@ function trackBodyConsumption(response: Response): { response: Response; bodyDra
     const passthrough = new TransformStream();
     const bodyDrained = response.body.pipeTo(passthrough.writable).catch(() => {});
 
-    const trackedResponse = new Response(passthrough.readable, {
+    const trackedResponse = new ResponseWithUrl(passthrough.readable, {
         headers: response.headers,
         status: response.status,
         statusText: response.statusText,
+        url: response.url,
     });
-
-    // Preserve the url property (Response.url is read-only and the constructor ignores it)
-    Object.defineProperty(trackedResponse, 'url', { value: response.url });
 
     return { response: trackedResponse, bodyDrained };
 }
