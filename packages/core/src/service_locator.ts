@@ -1,9 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-
+import log from '@apify/log';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
-
-import log from '@apify/log';
 
 import { Configuration } from './configuration.js';
 import { ServiceConflictError } from './errors.js';
@@ -251,22 +249,34 @@ const serviceLocatorStorage = new AsyncLocalStorage<ServiceLocatorInterface>();
  * Wraps all methods on `target` so that any code they invoke will see the given
  * `serviceLocator` via `AsyncLocalStorage`, rather than the global one.
  *
- * Walks the prototype chain and replaces each method with a wrapper that calls
- * `asyncLocalStorage.run(serviceLocator, originalMethod)`.
+ * Walks the prototype chain and replaces each method on the *instance* (not the prototype)
+ * with a wrapper that calls `serviceLocatorStorage.run(serviceLocator, originalMethod)`.
+ *
+ * The `AsyncLocalStorage` context propagates through the entire sync/async call tree of each
+ * wrapped method — including `super` calls, since the prototype methods execute within the
+ * context established by the instance-level wrapper.
+ *
  * @internal
+ * @returns Scope control functions: `run` executes a callback within the scoped context,
+ *   `enterScope`/`exitScope` allow entering/leaving the scope imperatively (e.g., for constructor bodies).
  */
-export function bindMethodsToServiceLocator(serviceLocator: ServiceLocator, target: {}) {
+export function bindMethodsToServiceLocator(
+    serviceLocator: ServiceLocator,
+    target: {},
+): { run: <T>(fn: () => T) => T; enterScope: () => void; exitScope: () => void } {
     let proto = Object.getPrototypeOf(target);
 
     while (proto !== null && proto !== Object.prototype) {
-        for (const propertyName of Object.getOwnPropertyNames(proto)) {
-            const descriptor = Object.getOwnPropertyDescriptor(proto, propertyName);
+        const propertyKeys = [...Object.getOwnPropertyNames(proto), ...Object.getOwnPropertySymbols(proto)];
 
-            // We use property descriptors rather than accessing target[propertyName] directly,
+        for (const propertyKey of propertyKeys) {
+            const descriptor = Object.getOwnPropertyDescriptor(proto, propertyKey);
+
+            // We use property descriptors rather than accessing target[propertyKey] directly,
             // because that would trigger getters and cause unwanted side effects.
             // Skip getters, setters, and constructors — only wrap regular methods.
             if (
-                propertyName === 'constructor' ||
+                propertyKey === 'constructor' ||
                 !descriptor ||
                 descriptor.get ||
                 descriptor.set ||
@@ -275,7 +285,7 @@ export function bindMethodsToServiceLocator(serviceLocator: ServiceLocator, targ
                 continue;
 
             const original = descriptor.value;
-            (target as Record<string, unknown>)[propertyName] = (...args: any[]) => {
+            (target as Record<string | symbol, unknown>)[propertyKey] = (...args: any[]) => {
                 return serviceLocatorStorage.run(serviceLocator, () => {
                     return original.apply(target, args);
                 });
@@ -284,6 +294,19 @@ export function bindMethodsToServiceLocator(serviceLocator: ServiceLocator, targ
 
         proto = Object.getPrototypeOf(proto);
     }
+
+    let previousStore: ServiceLocatorInterface | undefined;
+
+    return {
+        run: <T>(fn: () => T): T => serviceLocatorStorage.run(serviceLocator, fn),
+        enterScope: () => {
+            previousStore = serviceLocatorStorage.getStore();
+            serviceLocatorStorage.enterWith(serviceLocator);
+        },
+        exitScope: () => {
+            serviceLocatorStorage.enterWith(previousStore as any); // casting to any so that `undefined` is accepted - this "unsets" the AsyncLocalStorage
+        },
+    };
 }
 
 export const serviceLocator: ServiceLocatorInterface = {
