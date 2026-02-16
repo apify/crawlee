@@ -725,7 +725,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>, this.config);
+        const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>);
         manager.closeStorage(this);
     }
 
@@ -884,7 +884,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager(this as typeof BuiltRequestProvider, options.config);
+        const manager = StorageManager.getManager(this as typeof BuiltRequestProvider);
         const queue = await manager.openStorage(queueIdOrName, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
 

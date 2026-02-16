@@ -39,15 +39,14 @@ export class StorageManager<T extends IStorage = IStorage> {
         storageClass: Constructor<T>,
         idOrName?: string,
         client?: StorageClient,
-        config?: Configuration,
     ): Promise<T> {
-        return this.getManager(storageClass, config).openStorage(idOrName, client);
+        return this.getManager(storageClass).openStorage(idOrName, client);
     }
 
-    static getManager<T extends IStorage>(storageClass: Constructor<T>, config?: Configuration): StorageManager<T> {
+    static getManager<T extends IStorage>(storageClass: Constructor<T>): StorageManager<T> {
         let storageManager = serviceLocator.getStorageManager(storageClass);
         if (storageManager === undefined) {
-            storageManager = new StorageManager(storageClass, config ?? serviceLocator.getConfiguration());
+            storageManager = new StorageManager(storageClass, serviceLocator.getConfiguration());
             serviceLocator.setStorageManager(storageClass, storageManager);
         }
 

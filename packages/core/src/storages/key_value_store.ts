@@ -418,7 +418,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(KeyValueStore, this.config);
+        const manager = StorageManager.getManager(KeyValueStore);
         manager.closeStorage(this);
     }
 
@@ -524,7 +524,7 @@ export class KeyValueStore {
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager(this, options.config);
+        const manager = StorageManager.getManager(this);
 
         return manager.openStorage(storeIdOrName, options.storageClient);
     }

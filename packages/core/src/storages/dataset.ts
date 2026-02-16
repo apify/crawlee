@@ -615,7 +615,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(Dataset, this.config);
+        const manager = StorageManager.getManager(Dataset);
         manager.closeStorage(this);
     }
 
@@ -653,7 +653,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager<Dataset<Data>>(this, options.config);
+        const manager = StorageManager.getManager<Dataset<Data>>(this);
 
         return manager.openStorage(datasetIdOrName, options.storageClient);
     }
