@@ -7,7 +7,7 @@ describe('anonymizeProxySugar', () => {
     // Mock the anonymizeProxy function from proxy-chain
     beforeEach(() => {
         vi.mock('proxy-chain', () => ({
-            anonymizeProxy: vi.fn((url) => Promise.resolve(`anonymized-${url}`)),
+            anonymizeProxy: vi.fn((opts) => Promise.resolve(`anonymized-${opts.url}`)),
         }));
     });
 
@@ -23,7 +23,7 @@ describe('anonymizeProxySugar', () => {
     ])('should call anonymizeProxy from proxy-chain with correctly pre-processed URL: %s', async (input, expectedOutput) => {
         const [anonymized] = await anonymizeProxySugar(input);
 
-        expect(anonymizeProxy).toHaveBeenCalledWith(expectedOutput);
+        expect(anonymizeProxy).toHaveBeenCalledWith(expect.objectContaining({ url: expectedOutput }));
         expect(anonymized).toBeTypeOf('string');
     });
 });
