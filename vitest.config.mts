@@ -1,7 +1,8 @@
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import isCI from 'is-ci';
-import { defineConfig } from 'vitest/config';
+import { defineConfig, mergeConfig } from 'vitest/config';
 
 let threads: { minThreads: number; maxThreads: number } | undefined;
 
@@ -10,7 +11,7 @@ if (isCI) {
     threads = { minThreads: 1, maxThreads: 1 };
 }
 
-export default defineConfig({
+const baseConfig = defineConfig({
     esbuild: {
         target: 'es2022',
         keepNames: true,
@@ -44,3 +45,16 @@ export default defineConfig({
         retry: process.env.RETRY_TESTS ? 3 : 0,
     },
 });
+
+// Check for local config override
+const localConfigPath = resolve(__dirname, './vitest.config.local.mts');
+let finalConfig = baseConfig;
+
+if (existsSync(localConfigPath)) {
+    const localConfigModule = await import(localConfigPath);
+    const localConfig = localConfigModule.default;
+    console.log(`Applying local vitest config overrides`);
+    finalConfig = mergeConfig(baseConfig, localConfig);
+}
+
+export default finalConfig;

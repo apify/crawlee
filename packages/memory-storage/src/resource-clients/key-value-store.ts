@@ -7,6 +7,7 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
 import mime from 'mime-types';
+import pLimit from 'p-limit';
 
 import { scheduleBackgroundTask } from '../background-handler';
 import { maybeParseBody } from '../body-parser';
@@ -19,6 +20,7 @@ import { createKeyList, createKeyStringList, isBuffer, isStream } from '../utils
 import { BaseClient } from './common/base-client';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
+const GET_RECORD_CONCURRENCY = 25;
 
 export interface KeyValueStoreClientOptions {
     name?: string;
@@ -173,15 +175,15 @@ export class KeyValueStoreClient extends BaseClient {
 
         const firstPageValuesPromise = (async () => {
             const firstPageKeys = await firstPageKeysPromise;
-            const values: unknown[] = [];
-            for (const item of firstPageKeys.items) {
-                if (limit !== undefined && values.length >= limit) break;
-                const record = await getRecord(item.key);
-                if (record) {
-                    values.push(record.value);
-                }
-            }
-            return values;
+            const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
+            const limiter = pLimit(GET_RECORD_CONCURRENCY);
+            const results = await Promise.allSettled(keysToFetch.map((item) => limiter(() => getRecord(item.key))));
+            return results
+                .filter(
+                    (r): r is PromiseFulfilledResult<storage.KeyValueStoreRecord> =>
+                        r.status === 'fulfilled' && r.value !== undefined,
+                )
+                .map((r) => r.value.value);
         })();
 
         async function* asyncGenerator(): AsyncGenerator<unknown> {
@@ -224,15 +226,19 @@ export class KeyValueStoreClient extends BaseClient {
 
         const firstPageEntriesPromise = (async () => {
             const firstPageKeys = await firstPageKeysPromise;
-            const entries: [string, unknown][] = [];
-            for (const item of firstPageKeys.items) {
-                if (limit !== undefined && entries.length >= limit) break;
-                const record = await getRecord(item.key);
-                if (record) {
-                    entries.push([item.key, record.value]);
-                }
-            }
-            return entries;
+            const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
+            const limiter = pLimit(GET_RECORD_CONCURRENCY);
+            const results = await Promise.allSettled(
+                keysToFetch.map((item) =>
+                    limiter(() => getRecord(item.key).then((record) => ({ key: item.key, record }))),
+                ),
+            );
+            return results
+                .filter(
+                    (r): r is PromiseFulfilledResult<{ key: string; record: storage.KeyValueStoreRecord }> =>
+                        r.status === 'fulfilled' && r.value.record !== undefined,
+                )
+                .map((r) => [r.value.key, r.value.record.value] as [string, unknown]);
         })();
 
         async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {

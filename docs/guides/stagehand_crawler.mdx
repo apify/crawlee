@@ -31,16 +31,16 @@ StagehandCrawler extends <ApiLink to="browser-crawler/class/BrowserCrawler">`Bro
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    StagehandCrawler                      │
+│                    StagehandCrawler                     │
 ├─────────────────────────────────────────────────────────┤
-│  BrowserPool (manages browser lifecycle & concurrency)   │
+│  BrowserPool (manages browser lifecycle & concurrency)  │
 ├─────────────────────────────────────────────────────────┤
-│  Stagehand Instance                                      │
+│  Stagehand Instance                                     │
 │  ├── Launches Chromium browser                          │
 │  ├── Provides CDP endpoint                              │
 │  └── Handles AI operations (act/extract/observe)        │
 ├─────────────────────────────────────────────────────────┤
-│  Playwright (connected via CDP)                          │
+│  Playwright (connected via CDP)                         │
 │  └── Standard page operations (goto, click, type, etc.) │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -121,7 +121,7 @@ StagehandCrawler requires an API key for the AI model provider. The recommended 
 const crawler = new StagehandCrawler({
     stagehandOptions: {
         model: 'openai/gpt-4.1-mini',
-        apiKey: 'sk-...', // Your OpenAI API key
+        apiKey: 'your-api-key', // Your OpenAI API key
     },
 });
 ```

@@ -991,6 +991,7 @@ __metadata:
     fs-extra: "npm:^11.0.0"
     json5: "npm:^2.2.3"
     mime-types: "npm:^2.1.35"
+    p-limit: "npm:^3.1.0"
     proper-lockfile: "npm:^4.1.2"
     tslib: "npm:^2.4.0"
   languageName: unknown
