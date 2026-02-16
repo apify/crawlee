@@ -176,7 +176,7 @@ export interface ConfigurationOptions {
  * // Create a new configuration
  * const config = new Configuration({ persistStateIntervalMillis: 30_000 });
  * // Pass the configuration to the crawler
- * const crawler = new BasicCrawler({ ... }, config);
+ * const crawler = new BasicCrawler({ configuration: config, ... });
  * ```
  *
  * The configuration provided via environment variables always takes precedence. We can also

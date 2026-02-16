@@ -130,6 +130,8 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
 
+Additionally, the `RequestQueue` (and `RequestQueueV2`) constructor now requires a `Configuration` instance as a mandatory second argument. In almost all cases, you should be using `RequestQueue.open()` instead of constructing it directly — this change is unlikely to affect you.
+
 ### Migration guide
 
 If you were using the removed `Configuration` methods directly, you need to update your code:
