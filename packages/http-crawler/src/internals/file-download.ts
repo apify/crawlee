@@ -1,14 +1,16 @@
 import { Transform } from 'node:stream';
-import { finished } from 'node:stream/promises';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 
 import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
 import { Router } from '../index.js';
 import { parseContentTypeFromResponse } from './utils.js';
+
+const kBodyDrained = Symbol('bodyDrained');
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -164,7 +166,13 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
                 ContextPipeline.create<CrawlingContext>().compose({
                     action: async (context) => this.initiateDownload(context),
                     cleanup: async (context) => {
-                        await (context.response.body ? finished(context.response.body as any) : Promise.resolve());
+                        if (!context.response.bodyUsed) {
+                            // Nobody consumed the body — cancel it so the
+                            // underlying connection can be released.
+                            await context.response.body?.cancel();
+                        }
+
+                        await (context as { [kBodyDrained]: Promise<void> })[kBodyDrained];
                     },
                 }),
         });
@@ -179,14 +187,41 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         context.request.url = response.url;
 
+        const { response: trackedResponse, bodyDrained } = trackBodyConsumption(response);
+
         const contextExtension = {
             request: context.request as LoadedRequest<Request>,
-            response,
+            response: trackedResponse,
             contentType: { type, encoding },
+            [kBodyDrained]: bodyDrained,
         };
 
         return contextExtension;
     }
+}
+
+/**
+ * Wraps a Response so that we can track when the body stream has been fully
+ * consumed (or errored). Pipes the original body through a TransformStream;
+ * the readable side becomes the new Response body, and `pipeTo` gives us a
+ * promise that resolves once the body is fully read or cancelled.
+ */
+function trackBodyConsumption(response: Response): { response: ResponseWithUrl; bodyDrained: Promise<void> } {
+    if (!response.body) {
+        return { response, bodyDrained: Promise.resolve() };
+    }
+
+    const passthrough = new TransformStream();
+    const bodyDrained = response.body.pipeTo(passthrough.writable).catch(() => {});
+
+    const trackedResponse = new ResponseWithUrl(passthrough.readable, {
+        headers: response.headers,
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+    });
+
+    return { response: trackedResponse, bodyDrained };
 }
 
 /**
