@@ -1,9 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-
+import log from '@apify/log';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
-
-import log from '@apify/log';
 
 import { Configuration } from './configuration.js';
 import { ServiceConflictError } from './errors.js';
@@ -221,6 +219,8 @@ export class ServiceLocator implements ServiceLocatorInterface {
     clearStorageManagerCache(): void {
         this.storageManagers.forEach((manager) => {
             // KeyValueStore has a clearCache method on its instances
+            // TODO this uses fragile string matching and `any` casts into private fields - remove as part of
+            //  https://github.com/apify/crawlee/issues/3075 (Storage instance management will be reworked significantly)
             if ((manager as any).name === 'KeyValueStore') {
                 (manager as any).cache?.forEach((item: any) => {
                     item.clearCache?.();
