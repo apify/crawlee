@@ -44,7 +44,7 @@ export {
     BrowserLaunchError,
     DEFAULT_USER_AGENT,
 } from './abstract-classes/browser-plugin.js';
-export { LaunchContext, LaunchContextOptions } from './launch-context.js';
+export { LaunchContext, LaunchContextOptions, ConnectOptions, ConnectOverCDPOptions } from './launch-context.js';
 export {
     BrowserSpecification,
     FingerprintGenerator,
