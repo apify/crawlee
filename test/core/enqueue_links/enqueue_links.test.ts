@@ -6,6 +6,7 @@ import {
     Configuration,
     EnqueueStrategy,
     launchPuppeteer,
+    Request,
     RequestQueue,
 } from '@crawlee/puppeteer';
 import { type CheerioRoot } from '@crawlee/utils';
@@ -1025,6 +1026,271 @@ describe('enqueueLinks()', () => {
             for (let i = 0; i < 5; i++) {
                 expect(enqueued[i].options!.waitForAllRequestsToBeAdded).toBe(true);
             }
+        });
+
+        describe('label precedence', () => {
+            test('global label option is applied if no other label is provided', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        label: 'global-label',
+                        globs: ['https://example.com/**/*'],
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                // Global label should be applied when no pattern-specific label is set
+                expect(enqueued[0].userData).toEqual({ label: 'global-label' });
+                expect(enqueued[1].userData).toEqual({ label: 'global-label' });
+            });
+
+            test('pattern label overrides global label', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        label: 'global-label',
+                        regexps: [
+                            { regexp: /example\.com\/a\/b\/first/, label: 'pattern-label' },
+                            /example\.com\/a\/b\/third/, // No label, should use global
+                        ],
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                // Pattern-specific label should override global label
+                expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+                expect(enqueued[0].userData).toEqual({ label: 'pattern-label' });
+                // URL matching pattern without label should use global label
+                expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+                expect(enqueued[1].userData).toEqual({ label: 'global-label' });
+            });
+
+            test('transformRequestFunction has highest priority and overrides pattern label', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        label: 'global-label',
+                        regexps: [{ regexp: /example\.com/, label: 'pattern-label' }],
+                        transformRequestFunction: (request) => {
+                            if (request.url.includes('/a/b/first')) {
+                                request.label = 'transformed-label';
+                            }
+                            return request;
+                        },
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                // transformRequestFunction should override pattern label
+                expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+                expect(enqueued[0].userData).toEqual({ label: 'transformed-label' });
+                // URL not modified by transformRequestFunction should keep pattern label
+                expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+                expect(enqueued[1].userData).toEqual({ label: 'pattern-label' });
+            });
+
+            test('transformRequestFunction can override all label sources', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        label: 'global-label',
+                        globs: [
+                            { glob: 'https://example.com/a/b/first', label: 'glob-label' },
+                            { glob: 'https://example.com/a/b/third', label: 'glob-label' },
+                            { glob: 'http://cool.com/', label: 'cool-label' },
+                        ],
+                        transformRequestFunction: (request) => {
+                            // Override all labels
+                            request.label = 'final-label';
+                            return request;
+                        },
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(3);
+                // All requests should have the transformed label
+                for (const request of enqueued) {
+                    expect(request.userData).toEqual({ label: 'final-label' });
+                }
+            });
+
+            test('transformRequestFunction can modify other request properties after patterns are applied', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        regexps: [{ regexp: /example\.com/, method: 'POST' as const, userData: { source: 'pattern' } }],
+                        transformRequestFunction: (request) => {
+                            // Change method set by pattern
+                            request.method = 'PUT';
+                            // Add to userData without removing pattern's data
+                            request.userData = { ...request.userData, transformed: true };
+                            return request;
+                        },
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                // transformRequestFunction should override method from pattern
+                expect(enqueued[0].method).toBe('PUT');
+                expect(enqueued[1].method).toBe('PUT');
+                // userData should contain both pattern and transformed data
+                expect(enqueued[0].userData).toEqual({ source: 'pattern', transformed: true });
+                expect(enqueued[1].userData).toEqual({ source: 'pattern', transformed: true });
+            });
+
+            test('transformRequestFunction can return a new plain object instead of modifying in place', async () => {
+                const enqueued: Source[] = [];
+                const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+                // Custom mock that checks for Request instances - we override addRequestsBatched
+                // to verify that request options returned by transformRequestFunction are converted to Request instances
+                requestQueue.addRequestsBatched = async (requests) => {
+                    // @ts-expect-error Iterating over the requests parameter which has a narrower type in the override
+                    for (const request of requests) {
+                        // This check ensures that request options are converted to Request instances
+                        if (!(request instanceof Request)) {
+                            throw new Error(
+                                `Expected Request instance but got plain object: ${JSON.stringify(request)}`,
+                            );
+                        }
+                        enqueued.push(request);
+                    }
+                    return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
+                };
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        globs: ['https://example.com/**/*'],
+                        transformRequestFunction: (request) => {
+                            // Return a new plain object instead of modifying in place
+                            return {
+                                url: request.url,
+                                method: 'DELETE' as const,
+                                userData: { replaced: true },
+                            };
+                        },
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                // The request options should be properly converted to a Request
+                expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+                expect(enqueued[0].method).toBe('DELETE');
+                expect(enqueued[0].userData).toEqual({ replaced: true });
+                expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+                expect(enqueued[1].method).toBe('DELETE');
+                expect(enqueued[1].userData).toEqual({ replaced: true });
+            });
+
+            test('transformRequestFunction supports "skip" and "unchanged" string returns', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+                const onSkippedRequest = vi.fn();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        label: 'global-label',
+                        globs: ['https://example.com/**/*'],
+                        transformRequestFunction: (request) => {
+                            if (request.url.includes('/a/b/first')) {
+                                return 'skip';
+                            }
+                            // 'unchanged' should keep the original options (including global label)
+                            return 'unchanged';
+                        },
+                        onSkippedRequest,
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                // 'skip' should exclude /a/b/first, 'unchanged' should keep /a/b/third as-is
+                expect(enqueued).toHaveLength(1);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/third');
+                expect(enqueued[0].userData).toEqual({ label: 'global-label' });
+
+                // 'skip' should trigger onSkippedRequest with reason 'transform'
+                const skippedCalls = onSkippedRequest.mock.calls.map(
+                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                );
+                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
+                expect(transformSkipped).toHaveLength(1);
+                expect(transformSkipped[0]).toEqual({
+                    url: 'https://example.com/a/b/first',
+                    reason: 'transform',
+                });
+                // 'unchanged' should NOT trigger onSkippedRequest
+                const unchangedSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/third');
+                expect(unchangedSkipped).toHaveLength(0);
+            });
+
+            test('transformRequestFunction returning falsy correctly triggers onSkippedRequest', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+                const onSkippedRequest = vi.fn();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        globs: ['https://example.com/**/*'],
+                        transformRequestFunction: (request) => {
+                            // Skip the first URL, keep the second
+                            if (request.url.includes('/a/b/first')) {
+                                return false;
+                            }
+                            return request;
+                        },
+                        onSkippedRequest,
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(1);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/third');
+
+                // onSkippedRequest fires for URLs filtered out by globs (another.com, cool.com)
+                // AND for the URL explicitly skipped by transformRequestFunction
+                const skippedCalls = onSkippedRequest.mock.calls.map(
+                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                );
+                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
+                expect(transformSkipped).toHaveLength(1);
+                expect(transformSkipped[0]).toEqual({
+                    url: 'https://example.com/a/b/first',
+                    reason: 'transform',
+                });
+            });
         });
     });
 });
