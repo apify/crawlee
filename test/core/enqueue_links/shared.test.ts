@@ -1,10 +1,11 @@
-import type { Request } from '@crawlee/core';
+import type { RequestOptions } from '@crawlee/core';
 import {
+    applyRequestTransform,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
-    createRequests,
+    filterRequestOptionsByPatterns,
     validateGlobPattern,
 } from '@crawlee/core';
 
@@ -72,34 +73,35 @@ describe('Enqueue links shared functions', () => {
         });
     });
 
-    describe('createRequests()', () => {
-        test('should work', () => {
+    describe('filterRequestOptionsByPatterns() + applyRequestTransform()', () => {
+        test('should filter by patterns and apply transform', () => {
             const sources = [
                 'http://example.com/foo',
-                { url: 'https://example.com/bar', method: 'POST', label: 'POST-REQUEST' },
+                { url: 'https://example.com/bar', method: 'POST' as const, label: 'POST-REQUEST' },
                 'https://apify.com',
             ];
             const pseudoUrls = [{ purl: 'http[s?]://example.com/[.*]', userData: { one: 1 } }];
             const urlPatternObjects = constructRegExpObjectsFromPseudoUrls(pseudoUrls);
 
-            const transformRequestFunction = (request: Request) => {
-                request.userData.foo = 'bar';
+            const transformRequestFunction = (request: RequestOptions) => {
+                request.userData = { ...request.userData, foo: 'bar' };
                 return request;
             };
 
             const requestOptions = createRequestOptions(sources);
-            const requests = createRequests(requestOptions, urlPatternObjects)
-                .map(transformRequestFunction)
-                .filter((r) => !!r);
+            const filtered = filterRequestOptionsByPatterns(requestOptions, urlPatternObjects);
+            const transformed = applyRequestTransform(filtered, transformRequestFunction);
 
-            expect(requests).toHaveLength(2);
-            requests.forEach((r) => {
+            expect(transformed).toHaveLength(2);
+            transformed.forEach((r) => {
                 expect(r.url).toMatch(/^https?:\/\/example\.com\//);
                 expect(r.userData).toMatchObject({ foo: 'bar', one: 1 });
             });
-            expect(requests[0].method).toBe('GET');
-            expect(requests[1].method).toBe('POST');
-            expect(requests[1].userData).toEqual({ foo: 'bar', one: 1, label: 'POST-REQUEST' });
+            expect(transformed[0].method).toBeUndefined(); // defaults to GET when Request is constructed
+            expect(transformed[1].method).toBe('POST');
+            // Pattern-level userData { one: 1 } overwrites the source's userData { label: 'POST-REQUEST' },
+            // then the transform adds { foo: 'bar' }
+            expect(transformed[1].userData).toEqual({ foo: 'bar', one: 1 });
         });
     });
 
