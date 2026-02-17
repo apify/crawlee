@@ -311,7 +311,7 @@ export class AdaptivePlaywrightCrawler<
                 // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
                 // (that would be a logical error in this class)
                 contextPipelineBuilder: () =>
-                    null as unknown as ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext>,
+                    null as unknown as ContextPipeline<object, AdaptivePlaywrightCrawlerContext>,
             },
             config,
         );
@@ -516,28 +516,24 @@ export class AdaptivePlaywrightCrawler<
             pushData: result.pushData,
             useState: this.allowStorageAccess(useStateFunction),
             getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
-            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
-                return await this.enqueueLinks(options, context.request, result);
-            },
             log: this.createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
 
-        const subCrawlerContext = { ...context, ...resultBoundContextHelpers };
+        const subCrawlerContext = { ...context };
+
+        for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(resultBoundContextHelpers))) {
+            Object.defineProperty(subCrawlerContext, key, { ...descriptor, configurable: false });
+        }
+
         this.resultObjects.set(subCrawlerContext, result);
 
         try {
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
-                    await this.staticContextPipeline.call(
-                        subCrawlerContext,
-                        async (finalContext) => await this.requestHandler(finalContext),
-                    );
+                    await this.staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 } else if (renderingType === 'clientOnly') {
-                    await this.browserContextPipeline.call(
-                        subCrawlerContext,
-                        async (finalContext) => await this.requestHandler(finalContext),
-                    );
+                    await this.browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 }
             };
 

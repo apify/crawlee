@@ -1,5 +1,7 @@
 import type { Awaitable } from '@crawlee/types';
 
+import log from '@apify/log';
+
 import {
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -129,7 +131,18 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
             for (const { action, cleanup } of middlewares) {
                 try {
                     const contextExtension = await action(crawlingContext);
-                    Object.defineProperties(crawlingContext, Object.getOwnPropertyDescriptors(contextExtension));
+
+                    const extensionDescriptors = Object.getOwnPropertyDescriptors(contextExtension);
+
+                    for (const [key, descriptor] of Object.entries(extensionDescriptors)) {
+                        try {
+                            if (Object.getOwnPropertyDescriptor(crawlingContext, key)?.configurable !== false) {
+                                Object.defineProperty(crawlingContext, key, descriptor);
+                            }
+                        } catch (error: any) {
+                            log.debug(`Context pipeline failed to define property ${key}:`, error);
+                        }
+                    }
 
                     if (cleanup) {
                         cleanupStack.push(cleanup);
