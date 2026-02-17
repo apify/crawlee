@@ -11,6 +11,18 @@ import type { UnwrapPromise } from './utils.js';
  * its `extend` function. This is very useful to keep track of browser-scoped
  * values, such as session IDs.
  */
+export interface ConnectOptions {
+    /** WebSocket endpoint URL for Playwright Server protocol (used with `browserType.connect()`). */
+    wsEndpoint: string;
+    [key: string]: unknown;
+}
+
+export interface ConnectOverCDPOptions {
+    /** CDP endpoint URL (used with `browserType.connectOverCDP()`). */
+    endpointURL: string;
+    [key: string]: unknown;
+}
+
 export interface LaunchContextOptions<
     Library extends CommonLibrary = CommonLibrary,
     LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
@@ -52,6 +64,18 @@ export interface LaunchContextOptions<
     userDataDir?: string;
     proxyUrl?: string;
     proxyTier?: number;
+    /**
+     * Options for connecting to a remote browser via Playwright Server protocol.
+     * When set, the browser will be connected to instead of launched.
+     * Mutually exclusive with `connectOverCDPOptions`.
+     */
+    connectOptions?: ConnectOptions;
+    /**
+     * Options for connecting to a remote browser via Chrome DevTools Protocol.
+     * When set, the browser will be connected to instead of launched.
+     * Mutually exclusive with `connectOptions`.
+     */
+    connectOverCDPOptions?: ConnectOverCDPOptions;
 }
 
 export class LaunchContext<
@@ -68,6 +92,8 @@ export class LaunchContext<
     browserPerProxy?: boolean;
     userDataDir: string;
     proxyTier?: number;
+    connectOptions?: ConnectOptions;
+    connectOverCDPOptions?: ConnectOverCDPOptions;
 
     private _proxyUrl?: string;
     private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
@@ -85,6 +111,8 @@ export class LaunchContext<
             browserPerProxy,
             userDataDir = '',
             proxyTier,
+            connectOptions,
+            connectOverCDPOptions,
         } = options;
 
         this.id = id;
@@ -94,6 +122,9 @@ export class LaunchContext<
         this.useIncognitoPages = useIncognitoPages ?? false;
         this.userDataDir = userDataDir;
         this.proxyTier = proxyTier;
+
+        this.connectOptions = connectOptions;
+        this.connectOverCDPOptions = connectOverCDPOptions;
 
         this._proxyUrl = proxyUrl;
     }
