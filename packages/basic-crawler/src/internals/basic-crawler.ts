@@ -848,6 +848,18 @@ export class BasicCrawler<
                     return false;
                 }
 
+                if (this.sessionPool) {
+                    const session = await this.sessionPool.getSession();
+                    if (!session) {
+                        log.warningOnce(
+                            'The crawler is throttling because of lack of available sessions. Increase the pool size or reduce concurrency.',
+                        );
+                        return false;
+                    }
+
+                    await this.sessionPool.reclaimSession(session);
+                }
+
                 return isTaskReadyFunction ? await isTaskReadyFunction() : await this._isTaskReadyFunction();
             },
             isFinishedFunction: async () => {
@@ -1568,15 +1580,15 @@ export class BasicCrawler<
         );
 
         tryCancel();
-
         const session = this.useSessionPool
             ? await this._timeoutAndRetry(
                   async () => {
-                      return await this.sessionPool!.newSession({
+                      // TODO the `getSession` call can still return undefined here in some cases
+                      // make sure that if `isTaskReadyFunction` resolves to `true`, this will always be defined.
+                      return await this.sessionPool!.getSession({
                           proxyInfo: await this.proxyConfiguration?.newProxyInfo({
                               request: request ?? undefined,
                           }),
-                          maxUsageCount: 1,
                       });
                   },
                   this.internalTimeoutMillis,
@@ -1699,6 +1711,10 @@ export class BasicCrawler<
             crawlingContext.session?.markBad();
         } finally {
             await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
+
+            if (session) {
+                await this.sessionPool?.reclaimSession(session);
+            }
 
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && source instanceof RequestProvider) {
