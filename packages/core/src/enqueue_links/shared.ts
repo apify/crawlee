@@ -6,7 +6,6 @@ import { Minimatch } from 'minimatch';
 import { purlToRegExp } from '@apify/pseudo_url';
 
 import type { RequestOptions } from '../request.js';
-import { Request } from '../request.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
 export { tryAbsoluteURL } from '@crawlee/utils';
@@ -47,7 +46,14 @@ export type RegExpObject = { regexp: RegExp } & Pick<
 
 export type RegExpInput = RegExp | RegExpObject;
 
-export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'redirect' | 'depth';
+export type SkippedRequestReason =
+    | 'robotsTxt'
+    | 'limit'
+    | 'enqueueLimit'
+    | 'filters'
+    | 'transform'
+    | 'redirect'
+    | 'depth';
 
 export type SkippedRequestCallback = (args: { url: string; reason: SkippedRequestReason }) => Awaitable<void>;
 
@@ -164,76 +170,46 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
 }
 
 /**
+ * Filters request options by URL patterns and merges pattern-level options (label, userData, method, payload, headers)
+ * from the first matching pattern into each RequestOptions entry.
+ *
+ * When `includePatterns` is empty/undefined, all options pass through (only exclude filtering applies).
  * @ignore
  */
-export function createRequests(
-    requestOptions: (string | RequestOptions)[],
-    urlPatternObjects?: UrlPatternObject[],
-    excludePatternObjects: UrlPatternObject[] = [],
+export function filterRequestOptionsByPatterns(
+    requestOptions: RequestOptions[],
+    includePatterns: UrlPatternObject[] | undefined,
+    excludePatterns: UrlPatternObject[] = [],
     strategy?: EnqueueLinksOptions['strategy'],
     onSkippedUrl?: (url: string) => void,
-): Request[] {
-    const excludePatternObjectMatchers = excludePatternObjects.map(createPatternObjectMatcher);
-    const urlPatternObjectMatchers = urlPatternObjects?.map(createPatternObjectMatcher);
+): RequestOptions[] {
+    const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
+    const includeMatchers = includePatterns?.length ? includePatterns.map(createPatternObjectMatcher) : undefined;
 
     return requestOptions
-        .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
         .filter(({ url }) => {
-            const matchesExcludePatterns = excludePatternObjectMatchers.some(({ match }) => match(url));
-
-            if (matchesExcludePatterns) {
+            const matchesExclude = excludeMatchers.some(({ match }) => match(url));
+            if (matchesExclude) {
                 onSkippedUrl?.(url);
             }
-
-            return !matchesExcludePatterns;
+            return !matchesExclude;
         })
-        .map(({ url, opts }) => {
-            if (!urlPatternObjectMatchers || !urlPatternObjectMatchers.length) {
-                return new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : { ...opts });
+        .map((opts) => {
+            if (!includeMatchers) {
+                return { ...opts, enqueueStrategy: strategy };
             }
 
-            for (const urlPatternObject of urlPatternObjectMatchers) {
-                const { match, glob, regexp, ...requestRegExpOptions } = urlPatternObject;
-                if (match(url)) {
-                    const request =
-                        typeof opts === 'string'
-                            ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
-                            : { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
-
-                    return new Request(request);
+            for (const { match, glob, regexp, ...patternOptions } of includeMatchers) {
+                if (match(opts.url)) {
+                    return { ...opts, ...patternOptions, enqueueStrategy: strategy };
                 }
             }
 
             // didn't match any positive pattern
-            onSkippedUrl?.(url);
+            onSkippedUrl?.(opts.url);
             return null;
         })
-        .filter((request) => request) as Request[];
-}
-
-export function filterRequestsByPatterns(
-    requests: Request[],
-    patterns?: UrlPatternObject[],
-    onSkippedUrl?: (url: string) => void,
-): Request[] {
-    if (!patterns?.length) {
-        return requests;
-    }
-
-    const filtered: Request[] = [];
-    const patternMatchers = patterns?.map(createPatternObjectMatcher);
-
-    for (const request of requests) {
-        const matchingPattern = patternMatchers.find(({ match }) => match(request.url));
-
-        if (matchingPattern !== undefined) {
-            filtered.push(request);
-        } else {
-            onSkippedUrl?.(request.url);
-        }
-    }
-
-    return filtered;
+        .filter((opts) => opts !== null);
 }
 
 /**
@@ -293,13 +269,45 @@ function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
 }
 
 /**
- * Takes an Apify {@apilink RequestOptions} object and changes its attributes in a desired way. This user-function is used
- * {@apilink enqueueLinks} to modify requests before enqueuing them.
+ * Takes a {@apilink RequestOptions} object and changes its attributes in a desired way. This user-function is used
+ * by {@apilink enqueueLinks} to modify request options before they are converted to {@apilink Request} instances.
  */
 export interface RequestTransform {
     /**
      * @param original Request options to be modified.
-     * @returns The modified request options to enqueue.
+     * @returns The modified request options to enqueue, `'unchanged'` to keep the original options as-is,
+     *   or a falsy value / `'skip'` to exclude the request from the queue.
      */
-    (original: RequestOptions): RequestOptions | false | undefined | null;
+    (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
+}
+
+/**
+ * Applies a {@apilink RequestTransform} function to a list of request options.
+ * Options for which the transform returns a falsy value are removed from the list.
+ * @param onSkipped Called with the original request options when the transform returns a falsy value (i.e. the request is skipped).
+ * @ignore
+ * @internal
+ */
+export function applyRequestTransform(
+    requestOptions: RequestOptions[],
+    transformFn: RequestTransform,
+    onSkipped?: (requestOptions: RequestOptions) => void,
+): RequestOptions[] {
+    return requestOptions
+        .map((opts) => {
+            const transformed = transformFn(opts);
+            if (transformed === 'skip') {
+                onSkipped?.(opts);
+                return null;
+            }
+            if (transformed === 'unchanged') {
+                return opts;
+            }
+            if (!transformed) {
+                onSkipped?.(opts);
+                return null;
+            }
+            return transformed;
+        })
+        .filter((r): r is RequestOptions => r !== null);
 }
