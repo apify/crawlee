@@ -1187,7 +1187,7 @@ __metadata:
     robots-parser: "npm:^3.0.1"
     sax: "npm:^1.4.1"
     tslib: "npm:^2.4.0"
-    whatwg-mimetype: "npm:^4.0.0"
+    whatwg-mimetype: "npm:^5.0.0"
   languageName: unknown
   linkType: soft
 
@@ -14941,6 +14941,13 @@ __metadata:
   version: 4.0.0
   resolution: "whatwg-mimetype@npm:4.0.0"
   checksum: 10c0/a773cdc8126b514d790bdae7052e8bf242970cebd84af62fb2f35a33411e78e981f6c0ab9ed1fe6ec5071b09d5340ac9178e05b52d35a9c4bcf558ba1b1551df
+  languageName: node
+  linkType: hard
+
+"whatwg-mimetype@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "whatwg-mimetype@npm:5.0.0"
+  checksum: 10c0/eead164fe73a00dd82f817af6fc0bd22e9c273e1d55bf4bc6bdf2da7ad8127fca82ef00ea6a37892f5f5641f8e34128e09508f92126086baba126b9e0d57feb4
   languageName: node
   linkType: hard
 
