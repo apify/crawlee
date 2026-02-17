@@ -1800,17 +1800,22 @@ export class BasicCrawler<
         request: Request<Dictionary>,
         requestQueue: RequestProvider,
     ): Promise<BatchAddRequestsResult> {
-        const transformRequestFunctionWrapper: RequestTransform = (newRequest) => {
-            newRequest.crawlDepth = request.crawlDepth + 1;
+        const transformRequestFunctionWrapper: RequestTransform = (requestOptions) => {
+            requestOptions.crawlDepth = request.crawlDepth + 1;
 
-            if (this.maxCrawlDepth !== undefined && newRequest.crawlDepth > this.maxCrawlDepth) {
-                newRequest.skippedReason = 'depth';
+            if (this.maxCrawlDepth !== undefined && requestOptions.crawlDepth! > this.maxCrawlDepth) {
+                // Setting `skippedReason` before returning `false` ensures that `reportSkippedRequests`
+                // reports `'depth'` as the reason (via `request.skippedReason ?? reason` fallback),
+                // rather than the generic `'transform'` reason.
+                requestOptions.skippedReason = 'depth';
                 return false;
             }
 
             // After injecting the crawlDepth, we call the user-provided transform function, if there is one.
             // Its return value is passed through as is, so a falsy one still skips the request.
-            return options.transformRequestFunction ? options.transformRequestFunction(newRequest) : newRequest;
+            return options.transformRequestFunction
+                ? options.transformRequestFunction(requestOptions)
+                : requestOptions;
         };
 
         const limit = this.calculateEnqueuedRequestLimit(options.limit);
