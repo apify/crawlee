@@ -579,11 +579,6 @@ export class BasicCrawler<
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
-    protected contextPipelineOptions: {
-        contextPipelineBuilder: () => ContextPipeline<{ request: Request }, Context>;
-        extendContext: (context: Context) => Awaitable<ContextExtension>;
-    };
-
     protected useSessionPool: boolean;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
@@ -599,6 +594,10 @@ export class BasicCrawler<
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
     private readonly crawlerId: string;
     private readonly hasExplicitId: boolean;
+    private readonly contextPipelineOptions: {
+        contextPipelineBuilder: () => ContextPipeline<{ request: Request }, Context>;
+        extendContext: (context: Context) => Awaitable<ContextExtension>;
+    };
 
     protected static optionsShape = {
         contextPipelineBuilder: ow.optional.object,
@@ -840,7 +839,7 @@ export class BasicCrawler<
                 } catch (error) {
                     // ContextPipelineInterruptedError means the request was intentionally skipped
                     // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
-                    if (crawlingContext.request && error instanceof ContextPipelineInterruptedError) {
+                    if (error instanceof ContextPipelineInterruptedError) {
                         await this._timeoutAndRetry(
                             async () => this.requestManager?.markRequestHandled(crawlingContext.request!),
                             this.internalTimeoutMillis,

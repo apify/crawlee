@@ -417,7 +417,7 @@ export abstract class BrowserCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<
-        {},
+        { request: Request },
         BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>
     > {
         return super.buildContextPipeline().compose({
