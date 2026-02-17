@@ -1,7 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import log from '@apify/log';
+
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
+
+import log from '@apify/log';
 
 import { Configuration } from './configuration.js';
 import { ServiceConflictError } from './errors.js';
