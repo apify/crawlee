@@ -60,6 +60,7 @@ export class PlaywrightController extends BrowserController<
                     contextOptions.proxy.server,
                     contextOptions.proxy.username,
                     contextOptions.proxy.password,
+                    { ignoreProxyCertificate: this.launchContext.ignoreProxyCertificate },
                 );
 
                 if (anonymizedProxyUrl) {

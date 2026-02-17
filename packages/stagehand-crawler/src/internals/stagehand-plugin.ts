@@ -57,7 +57,9 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         const isLocal = this.stagehandOptions.env === 'LOCAL' || !this.stagehandOptions.env;
 
         // Use anonymizeProxy to handle proxy authentication transparently
-        const [anonymizedProxyUrl, closeAnonymizedProxy] = await anonymizeProxySugar(proxyUrl);
+        const [anonymizedProxyUrl, closeAnonymizedProxy] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
+            ignoreProxyCertificate: launchContext.ignoreProxyCertificate,
+        });
 
         // Build model configuration
         // For LOCAL env, we merge apiKey into the model config since Stagehand expects it there

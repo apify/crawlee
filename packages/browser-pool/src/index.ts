@@ -52,4 +52,4 @@ export {
     GetFingerprintReturn,
 } from './fingerprinting/types';
 export { InferBrowserPluginArray, UnwrapPromise } from './utils';
-export { anonymizeProxySugar } from './anonymize-proxy';
+export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy';
