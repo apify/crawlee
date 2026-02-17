@@ -149,8 +149,10 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Note that `transformRequestFunction` has the highest priority and can overwrite request options
      * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
      *
-     * The function receives a {@apilink RequestOptions} object and can return either the modified options,
-     * or a falsy value to skip the request.
+     * The function receives a {@apilink RequestOptions} object and can return either:
+     * - The modified {@apilink RequestOptions} object
+     * - `'unchanged'` to keep the original options as-is
+     * - A falsy value or `'skip'` to exclude the request from the queue
      */
     transformRequestFunction?: RequestTransform;
 

@@ -275,9 +275,10 @@ function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
 export interface RequestTransform {
     /**
      * @param original Request options to be modified.
-     * @returns The modified request options to enqueue, or a falsy value to skip the request.
+     * @returns The modified request options to enqueue, `'unchanged'` to keep the original options as-is,
+     *   or a falsy value / `'skip'` to exclude the request from the queue.
      */
-    (original: RequestOptions): RequestOptions | false | undefined | null;
+    (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
 }
 
 /**
@@ -295,10 +296,15 @@ export function applyRequestTransform(
     return requestOptions
         .map((opts) => {
             const transformed = transformFn(opts);
+            if (transformed === 'skip') {
+                onSkipped?.(opts);
+                return null;
+            }
+            if (transformed === 'unchanged') {
+                return opts;
+            }
             if (!transformed) {
-                if (onSkipped) {
-                    onSkipped(opts);
-                }
+                onSkipped?.(opts);
                 return null;
             }
             return transformed;

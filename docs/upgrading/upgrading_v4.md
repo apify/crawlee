@@ -127,4 +127,5 @@ The priority order is now (lowest to highest):
 The `transformRequestFunction` callback receives a `RequestOptions` object and can return either:
 - The modified `RequestOptions` object
 - A new `RequestOptions` plain object
-- A falsy value to skip the request
+- `'unchanged'` to keep the original options as-is
+- A falsy value or `'skip'` to exclude the request from the queue

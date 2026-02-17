@@ -1211,6 +1211,49 @@ describe('enqueueLinks()', () => {
                 expect(enqueued[1].userData).toEqual({ replaced: true });
             });
 
+            test('transformRequestFunction supports "skip" and "unchanged" string returns', async () => {
+                const { enqueued, requestQueue } = createRequestQueueMock();
+                const onSkippedRequest = vi.fn();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        label: 'global-label',
+                        globs: ['https://example.com/**/*'],
+                        transformRequestFunction: (request) => {
+                            if (request.url.includes('/a/b/first')) {
+                                return 'skip';
+                            }
+                            // 'unchanged' should keep the original options (including global label)
+                            return 'unchanged';
+                        },
+                        onSkippedRequest,
+                    },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                // 'skip' should exclude /a/b/first, 'unchanged' should keep /a/b/third as-is
+                expect(enqueued).toHaveLength(1);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/third');
+                expect(enqueued[0].userData).toEqual({ label: 'global-label' });
+
+                // 'skip' should trigger onSkippedRequest with reason 'transform'
+                const skippedCalls = onSkippedRequest.mock.calls.map(
+                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                );
+                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
+                expect(transformSkipped).toHaveLength(1);
+                expect(transformSkipped[0]).toEqual({
+                    url: 'https://example.com/a/b/first',
+                    reason: 'transform',
+                });
+                // 'unchanged' should NOT trigger onSkippedRequest
+                const unchangedSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/third');
+                expect(unchangedSkipped).toHaveLength(0);
+            });
+
             test('transformRequestFunction returning falsy correctly triggers onSkippedRequest', async () => {
                 const { enqueued, requestQueue } = createRequestQueueMock();
                 const onSkippedRequest = vi.fn();
