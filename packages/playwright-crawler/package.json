@@ -62,7 +62,7 @@
         "@crawlee/types": "3.16.0",
         "@crawlee/utils": "3.16.0",
         "cheerio": "1.0.0-rc.12",
-        "jquery": "^3.6.0",
+        "jquery": "^4.0.0",
         "lodash.isequal": "^4.5.0",
         "ml-logistic-regression": "^2.0.0",
         "ml-matrix": "^6.11.0",
