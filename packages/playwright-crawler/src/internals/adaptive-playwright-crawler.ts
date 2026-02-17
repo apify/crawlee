@@ -521,20 +521,19 @@ export class AdaptivePlaywrightCrawler<
         };
 
         const subCrawlerContext = { ...context };
+
+        for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(resultBoundContextHelpers))) {
+            Object.defineProperty(subCrawlerContext, key, { ...descriptor, configurable: false });
+        }
+
         this.resultObjects.set(subCrawlerContext, result);
 
         try {
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
-                    await this.staticContextPipeline.call(subCrawlerContext, async (finalContext) => {
-                        Object.assign(finalContext, resultBoundContextHelpers);
-                        await this.requestHandler(finalContext);
-                    });
+                    await this.staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 } else if (renderingType === 'clientOnly') {
-                    await this.browserContextPipeline.call(subCrawlerContext, async (finalContext) => {
-                        Object.assign(finalContext, resultBoundContextHelpers);
-                        await this.requestHandler(finalContext);
-                    });
+                    await this.browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 }
             };
 
