@@ -1029,7 +1029,7 @@ describe('enqueueLinks()', () => {
         });
 
         describe('label precedence', () => {
-            test('global label option has lowest priority', async () => {
+            test('global label option is applied if no other label is provided', async () => {
                 const { enqueued, requestQueue } = createRequestQueueMock();
 
                 await cheerioCrawlerEnqueueLinks({
