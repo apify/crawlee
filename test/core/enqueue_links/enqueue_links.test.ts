@@ -1248,7 +1248,6 @@ describe('enqueueLinks()', () => {
                     reason: 'transform',
                 });
             });
-
         });
     });
 });
