@@ -800,7 +800,7 @@ __metadata:
     ow: "npm:^0.28.1"
     tldts: "npm:^7.0.0"
     tslib: "npm:^2.4.0"
-    type-fest: "npm:^4.0.0"
+    type-fest: "npm:^5.0.0"
   languageName: unknown
   linkType: soft
 
@@ -844,7 +844,7 @@ __metadata:
     "@crawlee/utils": "npm:3.16.0"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
-    type-fest: "npm:^4.0.0"
+    type-fest: "npm:^5.0.0"
   peerDependencies:
     playwright: "*"
     puppeteer: "*"
@@ -910,7 +910,7 @@ __metadata:
     tldts: "npm:^7.0.0"
     tough-cookie: "npm:^6.0.0"
     tslib: "npm:^2.4.0"
-    type-fest: "npm:^4.0.0"
+    type-fest: "npm:^5.0.0"
   languageName: unknown
   linkType: soft
 
@@ -931,7 +931,7 @@ __metadata:
     mime-types: "npm:^2.1.35"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
-    type-fest: "npm:^4.0.0"
+    type-fest: "npm:^5.0.0"
   languageName: unknown
   linkType: soft
 
@@ -13857,6 +13857,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tagged-tag@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "tagged-tag@npm:1.0.0"
+  checksum: 10c0/91d25c9ffb86a91f20522cefb2cbec9b64caa1febe27ad0df52f08993ff60888022d771e868e6416cf2e72dab68449d2139e8709ba009b74c6c7ecd4000048d1
+  languageName: node
+  linkType: hard
+
 "tar-fs@npm:^2.0.0":
   version: 2.1.4
   resolution: "tar-fs@npm:2.1.4"
@@ -14387,6 +14394,15 @@ __metadata:
   version: 4.41.0
   resolution: "type-fest@npm:4.41.0"
   checksum: 10c0/f5ca697797ed5e88d33ac8f1fec21921839871f808dc59345c9cf67345bfb958ce41bd821165dbf3ae591cedec2bf6fe8882098dfdd8dc54320b859711a2c1e4
+  languageName: node
+  linkType: hard
+
+"type-fest@npm:^5.0.0":
+  version: 5.4.4
+  resolution: "type-fest@npm:5.4.4"
+  dependencies:
+    tagged-tag: "npm:^1.0.0"
+  checksum: 10c0/bf9c6d7df5383fd720aac71da8ce8690ff1c554459d19cf3c72d61eac98255dba57abe20c628f91f4116f66211791462fdafa90b2be2d7405a5a4c295e4d849d
   languageName: node
   linkType: hard
 
