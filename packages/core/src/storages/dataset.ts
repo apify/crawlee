@@ -5,7 +5,7 @@ import ow from 'ow';
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
-import { type Log, log } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
@@ -234,7 +234,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     name?: string;
     client: DatasetClient<Data>;
     readonly storageObject?: Record<string, unknown>;
-    log: Log = log.child({ prefix: 'Dataset' });
+    log!: CrawleeLogger;
 
     /**
      * @internal
@@ -247,6 +247,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.name = options.name;
         this.client = options.client.dataset(this.id) as DatasetClient<Data>;
         this.storageObject = options.storageObject;
+        this.log = config.getLogger().child({ prefix: 'Dataset' });
     }
 
     /**

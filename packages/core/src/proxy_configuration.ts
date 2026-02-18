@@ -1,7 +1,7 @@
 import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import ow from 'ow';
 
-import log from '@apify/log';
+import { Configuration } from './configuration.js';
 
 import type { Request } from './request.js';
 
@@ -139,7 +139,7 @@ export class ProxyConfiguration {
     protected tieredProxyUrls?: UrlList[];
     protected usedProxyUrls = new Map<string, string | null>();
     protected newUrlFunction?: ProxyConfigurationFunction;
-    protected log = log.child({ prefix: 'ProxyConfiguration' });
+    protected log = Configuration.getGlobalConfig().getLogger().child({ prefix: 'ProxyConfiguration' });
     protected domainTiers = new Map<string, ProxyTierTracker>();
 
     /**
@@ -276,7 +276,7 @@ export class ProxyConfiguration {
             typeof request.userData.__crawlee.lastProxyTier === 'number' &&
             request.userData.__crawlee.lastProxyTier !== tierPrediction
         ) {
-            log.debug(
+            this.log.debug(
                 `Changing proxy tier for domain "${domain}" from ${request.userData.__crawlee.lastProxyTier} to ${tierPrediction}.`,
             );
         }

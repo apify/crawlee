@@ -99,6 +99,13 @@ export interface CrawleeLogger {
      * Internal logging method used by some Crawlee internals.
      */
     internal(level: number, message: string, data?: any, exception?: any): void;
+
+    /**
+     * Map of available log levels.
+     * The default `@apify/log` implementation exposes `LogLevel` values here.
+     * Custom implementations may omit this property.
+     */
+    LEVELS?: typeof LogLevel;
 }
 
 export { log, Log, LogLevel, Logger, LoggerJson, LoggerText };

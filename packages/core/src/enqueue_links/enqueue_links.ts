@@ -4,7 +4,7 @@ import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
-import log from '@apify/log';
+import { Configuration } from '../configuration.js';
 
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
@@ -351,7 +351,9 @@ export async function enqueueLinks(
     }
 
     if (pseudoUrls?.length) {
-        log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
+        Configuration.getGlobalConfig()
+            .getLogger()
+            .deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
         urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
     }
 

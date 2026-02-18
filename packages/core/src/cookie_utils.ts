@@ -1,7 +1,7 @@
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
 
-import { log } from './log.js';
+import { Configuration } from './configuration.js';
 import { CookieParseError } from './session_pool/errors.js';
 
 export interface ResponseLike {
@@ -120,9 +120,11 @@ export function mergeCookies(url: string, sourceCookies: string[]): string {
             });
 
             if (similarKeyCookie) {
-                log.warningOnce(
-                    `Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`,
-                );
+                Configuration.getGlobalConfig()
+                    .getLogger()
+                    .warningOnce(
+                        `Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`,
+                    );
             }
 
             jar.setCookieSync(cookie, url);

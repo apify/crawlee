@@ -1,7 +1,6 @@
 import { Configuration, EventType, KeyValueStore } from '@crawlee/core';
 
-import type { Log } from '@apify/log';
-import log from '@apify/log';
+import type { CrawleeLogger } from '@crawlee/core';
 
 export interface RecoverableStatePersistenceOptions {
     /**
@@ -41,7 +40,7 @@ export interface RecoverableStateOptions<TStateModel = Record<string, unknown>>
     /**
      * A logger instance for logging operations related to state persistence
      */
-    logger?: Log;
+    logger?: CrawleeLogger;
 
     /**
      * Configuration instance to use
@@ -80,7 +79,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
     private readonly persistStateKvsName?: string;
     private readonly persistStateKvsId?: string;
     private keyValueStore: KeyValueStore | null = null;
-    private readonly log: Log;
+    private readonly log: CrawleeLogger;
     private readonly config: Configuration;
     private readonly serialize: (state: TStateModel) => string;
     private readonly deserialize: (serializedState: string) => TStateModel;
@@ -96,8 +95,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
         this.persistenceEnabled = options.persistenceEnabled ?? false;
         this.persistStateKvsName = options.persistStateKvsName;
         this.persistStateKvsId = options.persistStateKvsId;
-        this.log = options.logger ?? log.child({ prefix: 'RecoverableState' });
         this.config = options.config ?? Configuration.getGlobalConfig();
+        this.log = options.logger ?? this.config.getLogger().child({ prefix: 'RecoverableState' });
         this.serialize = options.serialize ?? JSON.stringify;
         this.deserialize = options.deserialize ?? JSON.parse;
 
