@@ -355,6 +355,24 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         }
     }
 
+    /**
+     * Reason for skipping this request.
+     */
+    get skippedReason(): SkippedRequestReason | undefined {
+        return this.userData.__crawlee?.skippedReason;
+    }
+
+    /**
+     * Reason for skipping this request.
+     */
+    set skippedReason(value: SkippedRequestReason | undefined) {
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { skippedReason: value };
+        } else {
+            this.userData.__crawlee.skippedReason = value;
+        }
+    }
+
     private get enqueueStrategy(): EnqueueLinksOptions['strategy'] | undefined {
         return this.userData.__crawlee?.enqueueStrategy;
     }

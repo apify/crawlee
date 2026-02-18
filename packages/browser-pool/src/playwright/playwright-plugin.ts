@@ -21,6 +21,41 @@ export class PlaywrightPlugin extends BrowserPlugin<
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
+        const { connectOptions, connectOverCDPOptions } = launchContext;
+
+        // If connect options are provided, connect to a remote browser instead of launching locally.
+        if (connectOptions || connectOverCDPOptions) {
+            return this._connect(launchContext);
+        }
+
+        return this._launchLocal(launchContext);
+    }
+
+    /**
+     * Connects to a remote browser via Playwright Server protocol or Chrome DevTools Protocol.
+     */
+    private async _connect(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
+        const { connectOptions, connectOverCDPOptions } = launchContext;
+
+        let browser: PlaywrightBrowser;
+
+        if (connectOptions) {
+            const { wsEndpoint, ...options } = connectOptions;
+            log.info('Connecting to remote browser via Playwright Server protocol', { wsEndpoint });
+            browser = await this.library.connect(wsEndpoint, options);
+        } else {
+            const { endpointURL, ...options } = connectOverCDPOptions!;
+            log.info('Connecting to remote browser via Chrome DevTools Protocol', { endpointURL });
+            browser = await this.library.connectOverCDP(endpointURL, options);
+        }
+
+        return browser;
+    }
+
+    /**
+     * Launches a local browser instance (the original behavior).
+     */
+    private async _launchLocal(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;
         let browser: PlaywrightBrowser;
 

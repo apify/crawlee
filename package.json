@@ -36,7 +36,7 @@
     "scripts": {
         "postinstall": "npx husky install",
         "prepublishOnly": "turbo run copy",
-        "clean": "turbo run clean",
+        "clean": "turbo run clean && rimraf .turbo packages/*/.turbo packages/*/*.tsbuildinfo",
         "build": "turbo run build && node ./scripts/typescript_fixes.mjs",
         "ci:build": "turbo run build --cache-dir=\".turbo\" && node ./scripts/typescript_fixes.mjs",
         "test": "vitest run --silent",

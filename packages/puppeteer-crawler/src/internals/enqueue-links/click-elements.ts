@@ -7,14 +7,17 @@ import type {
     RequestOptions,
     RequestProvider,
     RequestTransform,
+    SkippedRequestCallback,
     UrlPatternObject,
 } from '@crawlee/browser';
 import {
+    applyRequestTransform,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
-    createRequests,
+    filterRequestOptionsByPatterns,
+    Request,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
@@ -117,25 +120,28 @@ export interface EnqueueLinksByClickingElementsOptions {
     pseudoUrls?: PseudoUrlInput[];
 
     /**
-     * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
-     * to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
-     * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
-     * or to dynamically update or create `userData`.
-     *
-     * For example: by adding `useExtendedUniqueKey: true` to the `request` object, `uniqueKey` will be computed from
-     * a combination of `url`, `method` and `payload` which enables crawling of websites that navigate using form submits
-     * (POST requests).
+     * After {@apilink Request} objects are constructed and filtered by URL patterns (`globs`, `regexps`, `pseudoUrls`),
+     * this function can be used to remove them or modify their contents such as `userData`, `payload` or, most importantly
+     * `uniqueKey`. This is useful when you need to enqueue multiple `Requests` to the queue that share the same URL,
+     * but differ in methods or payloads, or to dynamically update or create `userData`.
      *
      * **Example:**
      * ```javascript
      * {
      *     transformRequestFunction: (request) => {
      *         request.userData.foo = 'bar';
-     *         request.useExtendedUniqueKey = true;
      *         return request;
      *     }
      * }
      * ```
+     *
+     * Note that `transformRequestFunction` has the highest priority and can overwrite request options
+     * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
+     *
+     * The function receives a {@apilink RequestOptions} object and can return either:
+     * - The modified {@apilink RequestOptions} object
+     * - `'unchanged'` to keep the original options as-is
+     * - A falsy value or `'skip'` to exclude the request from the queue
      */
     transformRequestFunction?: RequestTransform;
 
@@ -179,6 +185,13 @@ export interface EnqueueLinksByClickingElementsOptions {
      * @default false
      */
     skipNavigation?: boolean;
+
+    /**
+     * When a request is skipped for some reason, you can use this callback to act on it.
+     * This is fired for requests skipped because they don't match enqueueLinks filters
+     * or because they were removed by `transformRequestFunction`.
+     */
+    onSkippedRequest?: SkippedRequestCallback;
 }
 
 /**
@@ -245,6 +258,7 @@ export async function enqueueLinksByClickingElements(
             label: ow.optional.string,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
+            onSkippedRequest: ow.optional.function,
         }),
     );
 
@@ -261,6 +275,7 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleSecs = 5,
         forefront,
         exclude,
+        onSkippedRequest,
     } = options;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
@@ -299,11 +314,30 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleMillis,
         clickOptions,
     });
-    let requestOptions = createRequestOptions(interceptedRequests, options);
-    if (transformRequestFunction) {
-        requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r) as RequestOptions[];
+    const requestOptions = createRequestOptions(interceptedRequests, options);
+    const skippedByFilters: string[] = [];
+    let filteredOptions = filterRequestOptionsByPatterns(
+        requestOptions,
+        urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
+        urlExcludePatternObjects,
+        undefined,
+        (url) => skippedByFilters.push(url),
+    );
+
+    if (onSkippedRequest && skippedByFilters.length > 0) {
+        await Promise.all(skippedByFilters.map((url) => onSkippedRequest({ url, reason: 'filters' })));
     }
-    const requests = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
+
+    if (transformRequestFunction) {
+        const skippedByTransform: RequestOptions[] = [];
+        filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction, (r) =>
+            skippedByTransform.push(r),
+        );
+        if (onSkippedRequest && skippedByTransform.length > 0) {
+            await Promise.all(skippedByTransform.map((r) => onSkippedRequest({ url: r.url, reason: 'transform' })));
+        }
+    }
+    const requests = filteredOptions.map((opts) => new Request(opts));
     const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };

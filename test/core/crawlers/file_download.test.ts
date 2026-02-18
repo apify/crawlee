@@ -6,6 +6,7 @@ import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
 
 import { FileDownload } from '@crawlee/http';
+import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper.js';
 import { afterAll, beforeAll, expect, test } from 'vitest';
@@ -95,8 +96,9 @@ test('requestHandler - reading bytes synchronously', async () => {
 
     const fileUrl = new URL('/file?size=1024&seed=123', url).toString();
 
-    await crawler.run([fileUrl]);
+    const stats = await crawler.run([fileUrl]);
 
+    expect(stats.requestsFailed).toBe(0);
     expect(results).toHaveLength(1);
     expect(results[0].length).toBe(1024);
     expect(results[0]).toEqual(await ReadableStreamGenerator.getUint8Array(1024, 123));
@@ -116,25 +118,29 @@ test('requestHandler - streaming response body', async () => {
 
     const fileUrl = new URL('/file?size=1024&seed=456', url).toString();
 
-    await crawler.run([fileUrl]);
+    const stats = await crawler.run([fileUrl]);
 
+    expect(stats.requestsFailed).toBe(0);
     expect(result.length).toBe(1024);
     expect(result).toEqual(await ReadableStreamGenerator.getUint8Array(1024, 456));
 });
 
 test('requestHandler receives response', async () => {
+    const fileUrl = new URL('/file?size=1024&seed=321', url).toString();
+
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         requestHandler: async ({ response }) => {
             expect(response?.headers.get('content-type')).toBe('application/octet-stream');
             expect(response?.status).toBe(200);
             expect(response?.statusText).toBe('OK');
+            expect(response?.url).toBe(fileUrl);
         },
     });
 
-    const fileUrl = new URL('/file?size=1024&seed=456', url).toString();
+    const stats = await crawler.run([fileUrl]);
 
-    await crawler.run([fileUrl]);
+    expect(stats.requestsFailed).toBe(0);
 });
 
 test('crawler waits for the stream to be consumed', async () => {
@@ -146,8 +152,12 @@ test('crawler waits for the stream to be consumed', async () => {
         },
     });
 
+    // Use FetchHttpClient so response.body is a real streaming ReadableStream
+    // (the default GotScrapingHttpClient buffers the entire response, making
+    // the body complete instantly and the test a no-op).
     const crawler = new FileDownload({
         maxRequestRetries: 0,
+        httpClient: new FetchHttpClient(),
         requestHandler: async ({ response }) => {
             pipelineWithCallbacks(response.body ?? ReadableStream.from([]), bufferingStream, (err) => {
                 if (!err) {
@@ -162,7 +172,9 @@ test('crawler waits for the stream to be consumed', async () => {
 
     // waits for a second after every kilobyte sent.
     const fileUrl = new URL(`/file?size=${5 * 1024}&seed=789&throttle=1000`, url).toString();
-    await crawler.run([fileUrl]);
+    const stats = await crawler.run([fileUrl]);
+
+    expect(stats.requestsFailed).toBe(0);
 
     // the stream should be finished once the crawler finishes.
     expect(bufferingStream.writableFinished).toBe(true);
