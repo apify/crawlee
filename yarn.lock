@@ -1091,7 +1091,7 @@ __metadata:
     apify-node-curl-impersonate: "npm:^1.0.15"
     basic-auth-parser: "npm:^0.0.2"
     body-parser: "npm:^2.0.0"
-    camoufox-js: "npm:^0.8.0"
+    camoufox-js: "npm:^0.9.0"
     commitlint: "npm:^20.0.0"
     cross-env: "npm:^10.0.0"
     deep-equal: "npm:^2.0.5"
@@ -1903,6 +1903,13 @@ __metadata:
     wrap-ansi: "npm:^8.1.0"
     wrap-ansi-cjs: "npm:wrap-ansi@^7.0.0"
   checksum: 10c0/b1bf42535d49f11dc137f18d5e4e63a28c5569de438a221c369483731e9dac9fb797af554e8bf02b6192d1e5eba6e6402cf93900c3d0ac86391d00d04876789e
+  languageName: node
+  linkType: hard
+
+"@isaacs/cliui@npm:^9.0.0":
+  version: 9.0.0
+  resolution: "@isaacs/cliui@npm:9.0.0"
+  checksum: 10c0/971063b7296419f85053dacd0a0285dcadaa3dfc139228b23e016c1a9848121ad4aa5e7fcca7522062014e1eb6239a7424188b9f2cba893a79c90aae5710319c
   languageName: node
   linkType: hard
 
@@ -4469,6 +4476,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"balanced-match@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "balanced-match@npm:4.0.2"
+  dependencies:
+    jackspeak: "npm:^4.2.3"
+  checksum: 10c0/493eee4bece3f8b270cea8d3d6d1122ce008dd6b0d5aca8a3f1e623be6897be18c926018eadc454bd719bb7cc46d939c39fa2a05fff86b30f65382f020f6926d
+  languageName: node
+  linkType: hard
+
 "bare-events@npm:^2.5.4, bare-events@npm:^2.7.0":
   version: 2.8.2
   resolution: "bare-events@npm:2.8.2"
@@ -4696,6 +4712,15 @@ __metadata:
   dependencies:
     balanced-match: "npm:^1.0.0"
   checksum: 10c0/6d117a4c793488af86b83172deb6af143e94c17bc53b0b3cec259733923b4ca84679d506ac261f4ba3c7ed37c46018e2ff442f9ce453af8643ecd64f4a54e6cf
+  languageName: node
+  linkType: hard
+
+"brace-expansion@npm:^5.0.2":
+  version: 5.0.2
+  resolution: "brace-expansion@npm:5.0.2"
+  dependencies:
+    balanced-match: "npm:^4.0.2"
+  checksum: 10c0/60c765e5df6fc0ceca3d5703202ae6779db61f28ea3bf93a04dbf0d50c22ef8e4644e09d0459c827077cd2d09ba8f199a04d92c36419fcf874601a5565013174
   languageName: node
   linkType: hard
 
@@ -4939,15 +4964,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"camoufox-js@npm:^0.8.0":
-  version: 0.8.0
-  resolution: "camoufox-js@npm:0.8.0"
+"camoufox-js@npm:^0.9.0":
+  version: 0.9.1
+  resolution: "camoufox-js@npm:0.9.1"
   dependencies:
     adm-zip: "npm:^0.5.16"
     better-sqlite3: "npm:^12.2.0"
     commander: "npm:^14.0.0"
     fingerprint-generator: "npm:^2.1.66"
-    impit: "npm:^0.6.0"
+    glob: "npm:^13.0.0"
+    impit: "npm:^0.9.0"
     language-tags: "npm:^2.0.1"
     maxmind: "npm:^5.0.0"
     progress: "npm:^2.0.3"
@@ -4957,7 +4983,7 @@ __metadata:
     playwright-core: "*"
   bin:
     camoufox-js: dist/__main__.js
-  checksum: 10c0/31c8a4b2e314d968b3a94d13be8fdf31be3d27598bfdac72a19ac91481c952bef6ee6cee4c9379e85562e87d5e4d72dc2158b33330e9c900e016fc0a114150fd
+  checksum: 10c0/1dc6dd49b5e58930c5fc9cccd9f72e4040b39d348b139aa9c0b1ff95847ba8d85aff25d56e7643d0eb3ec98a9ed66c92814ad0a81a197ed6c84223519b4332f7
   languageName: node
   linkType: hard
 
@@ -7888,6 +7914,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"glob@npm:^13.0.0":
+  version: 13.0.5
+  resolution: "glob@npm:13.0.5"
+  dependencies:
+    minimatch: "npm:^10.2.1"
+    minipass: "npm:^7.1.2"
+    path-scurry: "npm:^2.0.0"
+  checksum: 10c0/1388527676127f337877eaf3403d6c54d3fa5e5599e10c1532d73108435b4da66d8fff4b00eb5b306388090a180c6a92d70694df1c19171cf820e285fb1dfee5
+  languageName: node
+  linkType: hard
+
 "glob@npm:^9.2.0":
   version: 9.3.5
   resolution: "glob@npm:9.3.5"
@@ -8430,24 +8467,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-arm64@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-darwin-arm64@npm:0.6.1"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
 "impit-darwin-arm64@npm:0.9.0":
   version: 0.9.0
   resolution: "impit-darwin-arm64@npm:0.9.0"
   conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"impit-darwin-x64@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-darwin-x64@npm:0.6.1"
-  conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
@@ -8458,24 +8481,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-arm64-gnu@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-linux-arm64-gnu@npm:0.6.1"
-  conditions: os=linux & cpu=arm64 & libc=glibc
-  languageName: node
-  linkType: hard
-
 "impit-linux-arm64-gnu@npm:0.9.0":
   version: 0.9.0
   resolution: "impit-linux-arm64-gnu@npm:0.9.0"
   conditions: os=linux & cpu=arm64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"impit-linux-arm64-musl@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-linux-arm64-musl@npm:0.6.1"
-  conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
@@ -8486,24 +8495,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-x64-gnu@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-linux-x64-gnu@npm:0.6.1"
-  conditions: os=linux & cpu=x64 & libc=glibc
-  languageName: node
-  linkType: hard
-
 "impit-linux-x64-gnu@npm:0.9.0":
   version: 0.9.0
   resolution: "impit-linux-x64-gnu@npm:0.9.0"
   conditions: os=linux & cpu=x64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"impit-linux-x64-musl@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-linux-x64-musl@npm:0.6.1"
-  conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
@@ -8514,13 +8509,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-win32-arm64-msvc@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-win32-arm64-msvc@npm:0.6.1"
-  conditions: os=win32 & cpu=arm64
-  languageName: node
-  linkType: hard
-
 "impit-win32-arm64-msvc@npm:0.9.0":
   version: 0.9.0
   resolution: "impit-win32-arm64-msvc@npm:0.9.0"
@@ -8528,50 +8516,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-win32-x64-msvc@npm:0.6.1":
-  version: 0.6.1
-  resolution: "impit-win32-x64-msvc@npm:0.6.1"
-  conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
 "impit-win32-x64-msvc@npm:0.9.0":
   version: 0.9.0
   resolution: "impit-win32-x64-msvc@npm:0.9.0"
   conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
-"impit@npm:^0.6.0":
-  version: 0.6.1
-  resolution: "impit@npm:0.6.1"
-  dependencies:
-    impit-darwin-arm64: "npm:0.6.1"
-    impit-darwin-x64: "npm:0.6.1"
-    impit-linux-arm64-gnu: "npm:0.6.1"
-    impit-linux-arm64-musl: "npm:0.6.1"
-    impit-linux-x64-gnu: "npm:0.6.1"
-    impit-linux-x64-musl: "npm:0.6.1"
-    impit-win32-arm64-msvc: "npm:0.6.1"
-    impit-win32-x64-msvc: "npm:0.6.1"
-  dependenciesMeta:
-    impit-darwin-arm64:
-      optional: true
-    impit-darwin-x64:
-      optional: true
-    impit-linux-arm64-gnu:
-      optional: true
-    impit-linux-arm64-musl:
-      optional: true
-    impit-linux-x64-gnu:
-      optional: true
-    impit-linux-x64-musl:
-      optional: true
-    impit-win32-arm64-msvc:
-      optional: true
-    impit-win32-x64-msvc:
-      optional: true
-  checksum: 10c0/deafa6540355ae6aa7dc8bee310b6e551d8928a4d2b412475238bf83486905bc41747b476f29ff27a1b805263a2ba9ed463d4534b73544c3825dd6946e1216e9
   languageName: node
   linkType: hard
 
@@ -9306,6 +9254,15 @@ __metadata:
   dependencies:
     "@isaacs/cliui": "npm:^8.0.2"
   checksum: 10c0/84ec4f8e21d6514db24737d9caf65361511f75e5e424980eebca4199f400874f45e562ac20fa8aeb1dd20ca2f3f81f0788b6e9c3e64d216a5794fd6f30e0e042
+  languageName: node
+  linkType: hard
+
+"jackspeak@npm:^4.2.3":
+  version: 4.2.3
+  resolution: "jackspeak@npm:4.2.3"
+  dependencies:
+    "@isaacs/cliui": "npm:^9.0.0"
+  checksum: 10c0/b5c0c414f1607c2aa0597f4bf2c03b8443897fccd5fd3c2b3e4f77d556b2bc7c3d3413828ba91e0789f6fb40ad90242f7f89fb20aee9e9d705bc1681f7564f67
   languageName: node
   linkType: hard
 
@@ -10402,6 +10359,15 @@ __metadata:
   dependencies:
     "@isaacs/brace-expansion": "npm:^5.0.0"
   checksum: 10c0/c85d44821c71973d636091fddbfbffe62370f5ee3caf0241c5b60c18cd289e916200acb2361b7e987558cd06896d153e25d505db9fc1e43e6b4b6752e2702902
+  languageName: node
+  linkType: hard
+
+"minimatch@npm:^10.2.1":
+  version: 10.2.1
+  resolution: "minimatch@npm:10.2.1"
+  dependencies:
+    brace-expansion: "npm:^5.0.2"
+  checksum: 10c0/86c3ed013630e820fda00336ee786a03098723b60bfae452de6306708fc83619df40a99dc6ec59c97d14e25b3b3371669a04e5bf508b1b00339b20229c4907d2
   languageName: node
   linkType: hard
 
