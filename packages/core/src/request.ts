@@ -8,9 +8,9 @@ import ow from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
 
+import { Configuration } from './configuration.js';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
-import { Configuration } from './configuration.js';
 import type { AllowedHttpMethods } from './typedefs.js';
 import { keys } from './typedefs.js';
 

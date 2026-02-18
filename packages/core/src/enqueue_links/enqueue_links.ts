@@ -5,7 +5,6 @@ import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
 import { Configuration } from '../configuration.js';
-
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
 import type {

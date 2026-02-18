@@ -23,11 +23,11 @@ import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
 import { ListDictionary, LruCache } from '@apify/datastructures';
-import type { CrawleeLogger } from '../log.js';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';

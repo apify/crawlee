@@ -2,7 +2,6 @@ import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import ow from 'ow';
 
 import { Configuration } from './configuration.js';
-
 import type { Request } from './request.js';
 
 export interface ProxyConfigurationFunction {
