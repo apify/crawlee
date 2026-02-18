@@ -1,5 +1,6 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
+import type { ConnectOptions, ConnectOverCDPOptions } from '@crawlee/browser-pool';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
 import ow from 'ow';
 import type { Browser } from 'puppeteer';
@@ -65,6 +66,42 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
      * @default false
      */
     useIncognitoPages?: boolean;
+
+    /**
+     * Options for connecting to a remote browser via WebSocket (`puppeteer.connect({ browserWSEndpoint })`).
+     * When set, the browser will be connected to instead of launched locally.
+     * Mutually exclusive with `connectOverCDPOptions`.
+     *
+     * @example
+     * ```ts
+     * const crawler = new PuppeteerCrawler({
+     *     launchContext: {
+     *         connectOptions: {
+     *             wsEndpoint: 'ws://localhost:3000',
+     *         },
+     *     },
+     * });
+     * ```
+     */
+    connectOptions?: ConnectOptions;
+
+    /**
+     * Options for connecting to a remote browser via CDP endpoint (`puppeteer.connect({ browserURL })`).
+     * When set, the browser will be connected to instead of launched locally.
+     * Mutually exclusive with `connectOptions`.
+     *
+     * @example
+     * ```ts
+     * const crawler = new PuppeteerCrawler({
+     *     launchContext: {
+     *         connectOverCDPOptions: {
+     *             endpointURL: 'http://localhost:9222',
+     *         },
+     *     },
+     * });
+     * ```
+     */
+    connectOverCDPOptions?: ConnectOverCDPOptions;
 }
 
 /**
@@ -75,6 +112,8 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
+        connectOptions: ow.optional.object,
+        connectOverCDPOptions: ow.optional.object,
     };
 
     /**

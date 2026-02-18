@@ -28,6 +28,49 @@ export class PuppeteerPlugin extends BrowserPlugin<
             PuppeteerNewPageOptions
         >,
     ): Promise<PuppeteerTypes.Browser> {
+        const { connectOptions, connectOverCDPOptions } = launchContext;
+
+        // If connect options are provided, connect to a remote browser instead of launching locally.
+        if (connectOptions || connectOverCDPOptions) {
+            return this._connect(launchContext);
+        }
+
+        return this._launchLocal(launchContext);
+    }
+
+    /**
+     * Connects to a remote browser. Puppeteer uses `puppeteer.connect()` for both
+     * WebSocket and CDP connections via the `browserWSEndpoint` or `browserURL` options.
+     */
+    private async _connect(
+        launchContext: LaunchContext<
+            typeof Puppeteer,
+            PuppeteerTypes.LaunchOptions,
+            PuppeteerTypes.Browser,
+            PuppeteerNewPageOptions
+        >,
+    ): Promise<PuppeteerTypes.Browser> {
+        const { connectOptions, connectOverCDPOptions } = launchContext;
+
+        if (connectOptions) {
+            const { wsEndpoint, ...options } = connectOptions;
+            log.info('Connecting to remote browser via WebSocket', { wsEndpoint });
+            return this.library.connect({ browserWSEndpoint: wsEndpoint, ...options } as PuppeteerTypes.ConnectOptions);
+        }
+
+        const { endpointURL, ...options } = connectOverCDPOptions!;
+        log.info('Connecting to remote browser via CDP', { endpointURL });
+        return this.library.connect({ browserURL: endpointURL, ...options } as PuppeteerTypes.ConnectOptions);
+    }
+
+    private async _launchLocal(
+        launchContext: LaunchContext<
+            typeof Puppeteer,
+            PuppeteerTypes.LaunchOptions,
+            PuppeteerTypes.Browser,
+            PuppeteerNewPageOptions
+        >,
+    ): Promise<PuppeteerTypes.Browser> {
         let oldPuppeteerVersion = false;
 
         try {
