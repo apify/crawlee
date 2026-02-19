@@ -1,6 +1,5 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
-import type { ConnectOptions, ConnectOverCDPOptions } from '@crawlee/browser-pool';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
 import ow from 'ow';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
@@ -71,42 +70,6 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
      * If you want to use a different browser you can pass it by this property as e.g. `require("playwright").firefox`
      */
     launcher?: BrowserType;
-
-    /**
-     * Options for connecting to a remote browser via Playwright Server protocol (`browserType.connect()`).
-     * When set, the browser will be connected to instead of launched locally.
-     * Mutually exclusive with `connectOverCDPOptions`.
-     *
-     * @example
-     * ```ts
-     * const crawler = new PlaywrightCrawler({
-     *     launchContext: {
-     *         connectOptions: {
-     *             wsEndpoint: 'ws://playwright-server:3000',
-     *         },
-     *     },
-     * });
-     * ```
-     */
-    connectOptions?: ConnectOptions;
-
-    /**
-     * Options for connecting to a remote browser via Chrome DevTools Protocol (`browserType.connectOverCDP()`).
-     * When set, the browser will be connected to instead of launched locally.
-     * Mutually exclusive with `connectOptions`.
-     *
-     * @example
-     * ```ts
-     * const crawler = new PlaywrightCrawler({
-     *     launchContext: {
-     *         connectOverCDPOptions: {
-     *             endpointURL: 'wss://chrome.browserless.io?token=YOUR_TOKEN',
-     *         },
-     *     },
-     * });
-     * ```
-     */
-    connectOverCDPOptions?: ConnectOverCDPOptions;
 }
 
 /**
@@ -118,8 +81,6 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
         launchContextOptions: ow.optional.object,
-        connectOptions: ow.optional.object,
-        connectOverCDPOptions: ow.optional.object,
     };
 
     /**

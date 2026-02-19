@@ -2,7 +2,7 @@ import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
-import type { ConnectOptions, ConnectOverCDPOptions, LaunchContextOptions } from '../launch-context.js';
+import type { LaunchContextOptions } from '../launch-context.js';
 import { LaunchContext } from '../launch-context.js';
 import type { UnwrapPromise } from '../utils.js';
 import type { BrowserController } from './browser-controller.js';
@@ -76,16 +76,6 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * Might cause performance issues, as Crawlee might launch too many browser instances.
      */
     browserPerProxy?: boolean;
-    /**
-     * Options for connecting to a remote browser via Playwright Server protocol.
-     * When set, the browser will be connected to instead of launched.
-     */
-    connectOptions?: ConnectOptions;
-    /**
-     * Options for connecting to a remote browser via Chrome DevTools Protocol.
-     * When set, the browser will be connected to instead of launched.
-     */
-    connectOverCDPOptions?: ConnectOverCDPOptions;
 }
 
 export interface CreateLaunchContextOptions<
@@ -122,9 +112,6 @@ export abstract class BrowserPlugin<
     useIncognitoPages: boolean;
     browserPerProxy?: boolean;
 
-    connectOptions?: ConnectOptions;
-    connectOverCDPOptions?: ConnectOverCDPOptions;
-
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
         const {
             launchOptions = {} as LibraryOptions,
@@ -132,8 +119,6 @@ export abstract class BrowserPlugin<
             userDataDir,
             useIncognitoPages = false,
             browserPerProxy = false,
-            connectOptions,
-            connectOverCDPOptions,
         } = options;
 
         this.library = library;
@@ -142,8 +127,6 @@ export abstract class BrowserPlugin<
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
         this.browserPerProxy = browserPerProxy;
-        this.connectOptions = connectOptions;
-        this.connectOverCDPOptions = connectOverCDPOptions;
     }
 
     /**
@@ -163,8 +146,6 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             browserPerProxy = this.browserPerProxy,
             proxyTier,
-            connectOptions = this.connectOptions,
-            connectOverCDPOptions = this.connectOverCDPOptions,
         } = options;
 
         return new LaunchContext({
@@ -176,8 +157,6 @@ export abstract class BrowserPlugin<
             userDataDir,
             browserPerProxy,
             proxyTier,
-            connectOptions,
-            connectOverCDPOptions,
         });
     }
 
@@ -201,11 +180,6 @@ export abstract class BrowserPlugin<
             NewPageResult
         > = this.createLaunchContext(),
     ): Promise<LaunchResult> {
-        // When connecting to a remote browser, skip local proxy and Chrome args setup.
-        if (launchContext.connectOptions || launchContext.connectOverCDPOptions) {
-            return this._launch(launchContext);
-        }
-
         launchContext.launchOptions ??= {} as LibraryOptions;
 
         const { proxyUrl, launchOptions } = launchContext;
