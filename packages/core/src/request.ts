@@ -9,13 +9,15 @@ import ow from 'ow';
 import { normalizeUrl } from '@apify/utilities';
 
 import { Configuration } from './configuration.js';
+import type { CrawleeLogger } from './log.js';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
 import type { AllowedHttpMethods } from './typedefs.js';
 import { keys } from './typedefs.js';
 
 // new properties on the Request object breaks serialization
-const getLog = () => Configuration.getGlobalConfig().getLogger().child({ prefix: 'Request' });
+let _log: CrawleeLogger | undefined;
+const getLog = () => (_log ??= Configuration.getGlobalConfig().getLogger().child({ prefix: 'Request' }));
 
 const requestOptionalPredicates = {
     id: ow.optional.string,
