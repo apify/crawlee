@@ -99,7 +99,6 @@ export interface CrawleeLogger {
      * Internal logging method used by some Crawlee internals.
      */
     internal(level: number, message: string, data?: any, exception?: any): void;
-
 }
 
 /**
