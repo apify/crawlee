@@ -11,12 +11,19 @@ import { normalizeUrl } from '@apify/utilities';
 import { Configuration } from './configuration.js';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
+import type { CrawleeLogger } from './log.js';
 import type { AllowedHttpMethods } from './typedefs.js';
 import { keys } from './typedefs.js';
 
-// new properties on the Request object breaks serialization
-const log = Configuration.getGlobalConfig().getLogger().child({ prefix: 'Request' });
+// Lazy singleton — evaluated on first use so a user-configured logger is picked up
+// rather than the default that exists at module load time.
+let _log: CrawleeLogger | undefined;
+const getLog = () => {
+    _log ??= Configuration.getGlobalConfig().getLogger().child({ prefix: 'Request' });
+    return _log;
+};
 
+// new properties on the Request object breaks serialization
 const requestOptionalPredicates = {
     id: ow.optional.string,
     loadedUrl: ow.optional.string.url,
@@ -442,7 +449,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
-                log.warningOnce(
+                getLog().warningOnce(
                     `We've encountered a ${normalizedMethod} Request with a payload. ` +
                         'This is fine. Just letting you know that if your requests point to the same URL ' +
                         'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
