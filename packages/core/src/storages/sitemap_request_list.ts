@@ -199,7 +199,7 @@ export class SitemapRequestList implements IRequestList {
     /**
      * Logger instance.
      */
-    private log!: CrawleeLogger;
+    private log: CrawleeLogger;
 
     private urlExcludePatternObjects: UrlPatternObject[] = [];
     private urlPatternObjects: UrlPatternObject[] = [];

@@ -100,12 +100,6 @@ export interface CrawleeLogger {
      */
     internal(level: number, message: string, data?: any, exception?: any): void;
 
-    /**
-     * Map of available log levels.
-     * The default `@apify/log` implementation exposes `LogLevel` values here.
-     * Custom implementations may omit this property.
-     */
-    LEVELS?: typeof LogLevel;
 }
 
 /**

@@ -234,7 +234,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     name?: string;
     client: DatasetClient<Data>;
     readonly storageObject?: Record<string, unknown>;
-    log!: CrawleeLogger;
+    log: CrawleeLogger;
 
     /**
      * @internal

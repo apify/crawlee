@@ -305,7 +305,7 @@ export interface RequestListOptions {
  * @category Sources
  */
 export class RequestList implements IRequestList {
-    private log!: CrawleeLogger;
+    private log: CrawleeLogger;
 
     /**
      * Array of all requests from all sources, in the order as they appeared in sources.
