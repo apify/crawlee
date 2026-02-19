@@ -98,7 +98,7 @@ export interface CrawleeLogger {
     /**
      * Internal logging method used by some Crawlee internals.
      */
-    internal(level: number, message: string, data?: any, exception?: any): void;
+    internal(level: number, message: string, data?: Record<string, unknown>, exception?: Error): void;
 }
 
 /**
@@ -231,7 +231,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
         this.warningOnce(`[DEPRECATED] ${message}`);
     }
 
-    internal(level: number, message: string, data?: any, exception?: any): void {
+    internal(level: number, message: string, data?: Record<string, unknown>, exception?: Error): void {
         this._log(level, message, { ...data, ...(exception ? { exception } : {}) });
     }
 }

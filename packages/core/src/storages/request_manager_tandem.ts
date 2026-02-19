@@ -23,8 +23,8 @@ export class RequestManagerTandem implements IRequestManager {
     private requestList: IRequestList;
     private requestQueue: IRequestManager;
 
-    constructor(requestList: IRequestList, requestQueue: IRequestManager) {
-        this.log = Configuration.getGlobalConfig().getLogger().child({ prefix: 'RequestManagerTandem' });
+    constructor(requestList: IRequestList, requestQueue: IRequestManager, config = Configuration.getGlobalConfig()) {
+        this.log = config.getLogger().child({ prefix: 'RequestManagerTandem' });
         this.requestList = requestList;
         this.requestQueue = requestQueue;
     }
