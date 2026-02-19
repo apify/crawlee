@@ -1126,7 +1126,7 @@ export class BasicCrawler<
             this.requestManager =
                 this.requestList === undefined
                     ? this.requestQueue
-                    : new RequestManagerTandem(this.requestList, this.requestQueue);
+                    : new RequestManagerTandem(this.requestList, this.requestQueue, this.config);
         }
 
         return this.requestQueue;
@@ -1486,7 +1486,7 @@ export class BasicCrawler<
 
         if (this.requestList && this.requestQueue) {
             // Create a RequestManagerTandem if both RequestList and RequestQueue are provided
-            this.requestManager = new RequestManagerTandem(this.requestList, this.requestQueue);
+            this.requestManager = new RequestManagerTandem(this.requestList, this.requestQueue, this.config);
         } else if (this.requestQueue) {
             // Use RequestQueue directly if only it is provided
             this.requestManager = this.requestQueue;
