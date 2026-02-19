@@ -437,9 +437,10 @@ describe('BasicCrawler', () => {
             });
         }
 
-        const loggerSpy = vitest.spyOn(log, 'warning');
-
         const [crawler1, crawler2] = [createCrawler(), createCrawler()];
+
+        // Spy on the second crawler's logger — it's the one that triggers the shared-state warning
+        const loggerSpy = vitest.spyOn(crawler2.log, 'warningOnce');
 
         await crawler1.run([`http://${HOSTNAME}:${port}/`]);
         await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
