@@ -205,6 +205,8 @@ import { serviceLocator } from 'crawlee';
 const config = serviceLocator.getConfiguration();
 ```
 
+Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+
 ## `transformRequestFunction` precedence in `enqueueLinks`
 
 The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`globs`, `regexps`, `pseudoUrls`) instead of before. This means it has the highest priority and can overwrite any request options set by patterns or the global `label` option.
