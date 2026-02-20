@@ -19,6 +19,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@apify/consts@npm:^2.51.0":
+  version: 2.51.0
+  resolution: "@apify/consts@npm:2.51.0"
+  checksum: 10c0/06902272f1ca99ed515d45aca546ba41130dc8719413e1dd3ceed8c5dd7eeea30a9215227ac393403646b7fbef04bd26ef4f8215c5f04e5d42fa71834304071b
+  languageName: node
+  linkType: hard
+
 "@apify/datastructures@npm:^2.0.0, @apify/datastructures@npm:^2.0.3":
   version: 2.0.3
   resolution: "@apify/datastructures@npm:2.0.3"
@@ -76,6 +83,16 @@ __metadata:
     "@apify/consts": "npm:^2.47.0"
     ansi-colors: "npm:^4.1.1"
   checksum: 10c0/b688c4aa36e8bb8522d2822ac097cfb33431b92d9638505d48b0ed0ef99c60442537ac446741d752db6fb8ef0069c3f126516c181a48abc68f476bc15d6744e5
+  languageName: node
+  linkType: hard
+
+"@apify/log@npm:^2.5.32":
+  version: 2.5.32
+  resolution: "@apify/log@npm:2.5.32"
+  dependencies:
+    "@apify/consts": "npm:^2.51.0"
+    ansi-colors: "npm:^4.1.1"
+  checksum: 10c0/dbe716561ee9df72a5f1b26881837780f3d7d8afb11676fd20f4e529dfce7997a4cc6e240c5902c27efa2b73beb66a8563d72a911dc4b6e641c92e8507dfdefb
   languageName: node
   linkType: hard
 
@@ -668,6 +685,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/http-client@workspace:packages/http-client"
   dependencies:
+    "@apify/log": "npm:^2.5.32"
     "@crawlee/types": "npm:4.0.0"
     tough-cookie: "npm:^6.0.0"
   languageName: unknown
