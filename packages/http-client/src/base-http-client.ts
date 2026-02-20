@@ -19,6 +19,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     constructor(log?: Log) {
         this.log = log ?? defaultLog;
     }
+
     /**
      * Perform the raw network request and return a single Response without any
      * automatic redirect following or special error handling.
