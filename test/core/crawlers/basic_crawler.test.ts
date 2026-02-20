@@ -16,7 +16,7 @@ import {
     RequestList,
     RequestQueue,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
+import { BaseCrawleeLogger, CrawleeLogLevel, RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -428,6 +428,10 @@ describe('BasicCrawler', () => {
     });
 
     test('print a warning on sharing state between two crawlers', async () => {
+        // Reset static class state so this test is isolated
+        (BasicCrawler as any)._log = undefined;
+        (BasicCrawler as any).useStateCrawlerIds = new Set();
+
         function createCrawler() {
             return new BasicCrawler({
                 requestHandler: async ({ request, useState }) => {
@@ -439,8 +443,11 @@ describe('BasicCrawler', () => {
 
         const [crawler1, crawler2] = [createCrawler(), createCrawler()];
 
-        // Spy on the second crawler's logger — it's the one that triggers the shared-state warning
-        const loggerSpy = vitest.spyOn(crawler2.log, 'warningOnce');
+        // Force-initialize the static class logger then spy on it.
+        // The warning fires on the class-level logger (not per-instance) so that it
+        // deduplicates across all crawler instances.
+        (BasicCrawler as any).getClassLog();
+        const loggerSpy = vitest.spyOn((BasicCrawler as any)._log, 'warningOnce');
 
         await crawler1.run([`http://${HOSTNAME}:${port}/`]);
         await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
@@ -454,6 +461,50 @@ describe('BasicCrawler', () => {
         expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/`);
         expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
         expect(loggerSpy).toBeCalledWith(expect.stringContaining('Multiple crawler instances are calling useState()'));
+    });
+
+    test('shared-state warning is emitted only once regardless of crawler count', async () => {
+        // This test guards against a regression where per-instance loggers were used
+        // for a class-level (static) concern: each crawler would emit the warning
+        // independently, producing N warnings for N crawlers instead of just one.
+
+        // Track actual warning emissions via a test logger injected directly into the static field.
+        const warningMessages: string[] = [];
+
+        class TrackingLogger extends BaseCrawleeLogger {
+            protected _log(level: number, message: string): void {
+                if (level === CrawleeLogLevel.WARNING) warningMessages.push(message);
+            }
+
+            protected _createChild(): TrackingLogger {
+                // Child shares the same warningMessages array via closure
+                return new TrackingLogger();
+            }
+        }
+
+        // Inject directly — avoids touching global Configuration
+        (BasicCrawler as any)._log = new TrackingLogger();
+        (BasicCrawler as any).useStateCrawlerIds = new Set();
+
+        try {
+            const crawlers = [
+                new BasicCrawler({ requestHandler: async ({ useState }) => { await useState({ count: 0 }); } }),
+                new BasicCrawler({ requestHandler: async ({ useState }) => { await useState({ count: 0 }); } }),
+                new BasicCrawler({ requestHandler: async ({ useState }) => { await useState({ count: 0 }); } }),
+            ];
+
+            await crawlers[0].run([`http://${HOSTNAME}:${port}/`]);
+            await crawlers[1].run([`http://${HOSTNAME}:${port}/?page=2`]);
+            await crawlers[2].run([`http://${HOSTNAME}:${port}/?page=3`]);
+        } finally {
+            (BasicCrawler as any)._log = undefined;
+            (BasicCrawler as any).useStateCrawlerIds = new Set();
+        }
+
+        const sharedStateWarnings = warningMessages.filter((m) =>
+            m.includes('Multiple crawler instances are calling useState()'),
+        );
+        expect(sharedStateWarnings).toHaveLength(1);
     });
 
     test('crawlers with explicit id have isolated state', async () => {
