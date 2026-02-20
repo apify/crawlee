@@ -364,7 +364,11 @@ export class Session implements ISession {
      * Sets a cookie within this session for the specific URL.
      */
     setCookie(rawCookie: string, url: string): void {
-        this.cookieJar.setCookieSync(rawCookie, url);
+        try {
+            this.cookieJar.setCookieSync(rawCookie, url);
+        } catch (e) {
+            this.log.debug('Could not set cookie.', { url, error: (e as Error).message });
+        }
     }
 
     /**

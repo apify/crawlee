@@ -18,10 +18,15 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     protected abstract fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>;
 
     private async applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
-        const cookies = (await cookieJar.getCookies(request.url)).map((x) => x.cookieString().trim()).filter(Boolean);
+        try {
+            const cookies = (await cookieJar.getCookies(request.url)).map((x) => x.cookieString().trim()).filter(Boolean);
 
-        if (cookies?.length > 0) {
-            request.headers.set('cookie', cookies.join('; '));
+            if (cookies?.length > 0) {
+                request.headers.set('cookie', cookies.join('; '));
+            }
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }
         return request;
     }
@@ -29,7 +34,14 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     private async setCookies(response: Response, cookieJar: CookieJar): Promise<void> {
         const setCookieHeaders = response.headers.getSetCookie();
 
-        await Promise.all(setCookieHeaders.map((header) => cookieJar.setCookie(header, response.url)));
+        for (const header of setCookieHeaders) {
+            try {
+                await cookieJar.setCookie(header, response.url);
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.warn(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
+            }
+        }
     }
 
     private resolveRequestContext(options?: SendRequestOptions): {
