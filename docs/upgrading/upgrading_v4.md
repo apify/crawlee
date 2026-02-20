@@ -130,8 +130,6 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
 
-Additionally, the `RequestQueue` (and `RequestQueueV2`) constructor now requires a `Configuration` instance as a mandatory second argument. In almost all cases, you should be using `RequestQueue.open()` instead of constructing it directly — this change is unlikely to affect you.
-
 The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfig()` factory method to create an instance with intervals derived from a `Configuration` object.
 
 ### Migration guide

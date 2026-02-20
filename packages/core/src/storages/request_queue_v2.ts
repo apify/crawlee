@@ -3,6 +3,7 @@ import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
 import type { Request, Source } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
 import type {
     RequestProviderOptions,
@@ -67,7 +68,7 @@ export class RequestQueue extends RequestProvider {
     private shouldCheckForForefrontRequests = false;
     private dequeuedRequestCount = 0;
 
-    constructor(options: RequestProviderOptions, config: Configuration) {
+    constructor(options: RequestProviderOptions, config: Configuration = serviceLocator.getConfiguration()) {
         super(
             {
                 ...options,
