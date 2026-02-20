@@ -3,14 +3,7 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type {
-    CrawlingContext,
-    EnqueueLinksOptions,
-    ErrorHandler,
-    RequestHandler,
-    RequestOptions,
-    Source,
-} from '@crawlee/basic';
+import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -297,6 +290,26 @@ describe('BasicCrawler', () => {
             const requests = addRequestsBatchedMock.mock.calls[0][0];
             expect(requests).toHaveLength(2);
             expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
+        });
+
+        it('should report depth-limited requests with reason "depth" even when user transformRequestFunction is provided', async () => {
+            const transformRequestFunction = vi.fn((req: RequestOptions) => req);
+            const requestWithMaxDepth = new Request({ url: 'https://example.com/', crawlDepth: 3 });
+            const optionsWithTransform = { ...options, transformRequestFunction };
+
+            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, requestWithMaxDepth, requestQueue);
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(0);
+
+            // Depth-limited requests should not reach the user's transformRequestFunction
+            expect(transformRequestFunction).not.toHaveBeenCalled();
+
+            // The skipped reason should be 'depth', not 'transform'
+            const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
+            expect(skippedRequests).toHaveLength(2);
+            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
+            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
         });
     });
 

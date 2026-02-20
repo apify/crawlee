@@ -204,3 +204,18 @@ import { serviceLocator } from 'crawlee';
 
 const config = serviceLocator.getConfiguration();
 ```
+
+## `transformRequestFunction` precedence in `enqueueLinks`
+
+The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`globs`, `regexps`, `pseudoUrls`) instead of before. This means it has the highest priority and can overwrite any request options set by patterns or the global `label` option.
+
+The priority order is now (lowest to highest):
+1. Global `label` / `userData` options
+2. Pattern-specific options from `globs`, `regexps`, or `pseudoUrls` objects
+3. `transformRequestFunction`
+
+The `transformRequestFunction` callback receives a `RequestOptions` object and can return either:
+- The modified `RequestOptions` object
+- A new `RequestOptions` plain object
+- `'unchanged'` to keep the original options as-is
+- A falsy value or `'skip'` to exclude the request from the queue
