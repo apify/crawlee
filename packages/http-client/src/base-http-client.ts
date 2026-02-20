@@ -1,6 +1,9 @@
 import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 
+import type { Log } from '@apify/log';
+import defaultLog from '@apify/log';
+
 export interface CustomFetchOptions {
     proxyUrl?: string;
 }
@@ -11,6 +14,11 @@ export interface CustomFetchOptions {
  * implement only the low-level network call in `fetch`.
  */
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
+    protected log: Log;
+
+    constructor(log?: Log) {
+        this.log = log ?? defaultLog;
+    }
     /**
      * Perform the raw network request and return a single Response without any
      * automatic redirect following or special error handling.
@@ -27,8 +35,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 request.headers.set('cookie', cookies.join('; '));
             }
         } catch (e) {
-            // eslint-disable-next-line no-console
-            console.warn(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
+            this.log.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }
         return request;
     }
@@ -40,8 +47,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             try {
                 await cookieJar.setCookie(header, response.url);
             } catch (e) {
-                // eslint-disable-next-line no-console
-                console.warn(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
+                this.log.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
             }
         }
     }

@@ -346,8 +346,13 @@ export class Session implements ISession {
      * @param url website url. Only cookies stored for this url will be returned
      */
     getCookies(url: string): CookieObject[] {
-        const cookies = this.cookieJar.getCookiesSync(url);
-        return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
+        try {
+            const cookies = this.cookieJar.getCookiesSync(url);
+            return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
+        } catch (e) {
+            this.log.warning('Could not get cookies from cookie jar.', { url, error: (e as Error).message });
+            return [];
+        }
     }
 
     /**
@@ -357,7 +362,12 @@ export class Session implements ISession {
      * @returns Represents `Cookie` header.
      */
     getCookieString(url: string): string {
-        return this.cookieJar.getCookieStringSync(url, {});
+        try {
+            return this.cookieJar.getCookieStringSync(url, {});
+        } catch (e) {
+            this.log.warning('Could not get cookie string.', { url, error: (e as Error).message });
+            return '';
+        }
     }
 
     /**
@@ -367,7 +377,7 @@ export class Session implements ISession {
         try {
             this.cookieJar.setCookieSync(rawCookie, url);
         } catch (e) {
-            this.log.debug('Could not set cookie.', { url, error: (e as Error).message });
+            this.log.warning('Could not set cookie.', { url, error: (e as Error).message });
         }
     }
 
@@ -388,7 +398,7 @@ export class Session implements ISession {
 
         // if invalid cookies are provided just log the exception. No need to retry the request automatically.
         if (errorMessages.length) {
-            this.log.debug('Could not set cookies.', { errorMessages });
+            this.log.warning('Could not set cookies.', { errorMessages });
         }
     }
 
