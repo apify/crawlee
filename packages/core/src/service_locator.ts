@@ -114,7 +114,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
      * Storage managers for Dataset, KeyValueStore, and RequestQueue.
      * Manages caching and lifecycle of storage instances.
      */
-    private storageManagers = new Map<Constructor, StorageManager>();
+    private storageManagers = new Map<Constructor<IStorage>, StorageManager>();
 
     /**
      * Creates a new ServiceLocator instance.
@@ -215,6 +215,14 @@ export class ServiceLocator implements ServiceLocatorInterface {
     }
 
     setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void {
+        if (this.storageManagers.has(constructor)) {
+            throw new ServiceConflictError(
+                `StorageManager(${constructor.name})`,
+                storageManager,
+                this.storageManagers.get(constructor),
+            );
+        }
+
         this.storageManagers.set(constructor, storageManager);
     }
 
