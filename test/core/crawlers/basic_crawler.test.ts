@@ -488,9 +488,21 @@ describe('BasicCrawler', () => {
 
         try {
             const crawlers = [
-                new BasicCrawler({ requestHandler: async ({ useState }) => { await useState({ count: 0 }); } }),
-                new BasicCrawler({ requestHandler: async ({ useState }) => { await useState({ count: 0 }); } }),
-                new BasicCrawler({ requestHandler: async ({ useState }) => { await useState({ count: 0 }); } }),
+                new BasicCrawler({
+                    requestHandler: async ({ useState }) => {
+                        await useState({ count: 0 });
+                    },
+                }),
+                new BasicCrawler({
+                    requestHandler: async ({ useState }) => {
+                        await useState({ count: 0 });
+                    },
+                }),
+                new BasicCrawler({
+                    requestHandler: async ({ useState }) => {
+                        await useState({ count: 0 });
+                    },
+                }),
             ];
 
             await crawlers[0].run([`http://${HOSTNAME}:${port}/`]);
