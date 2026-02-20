@@ -1,25 +1,22 @@
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { RequestQueueInfo } from '@crawlee/types';
-import { Configuration, RequestQueue } from 'crawlee';
-
-const originalClient = Configuration.getStorageClient();
-Configuration.useStorageClient(new MemoryStorage({ persistStorage: false, writeMetadata: false }));
-
-afterAll(() => {
-    Configuration.useStorageClient(originalClient);
-});
+import { RequestQueue, serviceLocator } from 'crawlee';
 
 let requestQueueInfo: RequestQueueInfo;
 
-beforeAll(async () => {
-    requestQueueInfo = await Configuration.getStorageClient()
+beforeEach(async () => {
+    serviceLocator.setStorageClient(new MemoryStorage({ persistStorage: false, writeMetadata: false }));
+    requestQueueInfo = await serviceLocator
+        .getStorageClient()
         .requestQueues()
         .getOrCreate('test-request-queue-not-called-on-cached-request');
 });
 
 describe('RequestQueue#addRequest should not call the API if the request is already in the queue', () => {
     test('should not call the API if the request is already in the queue', async () => {
-        const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client: Configuration.getStorageClient() });
+        const client = serviceLocator.getStorageClient();
+        const config = serviceLocator.getConfiguration();
+        const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client }, config);
 
         const clientSpy = vitest.spyOn(requestQueue.client, 'addRequest');
 
@@ -41,7 +38,9 @@ describe('RequestQueue#addRequest should not call the API if the request is alre
 
 describe('RequestQueue#addRequests should not call the API if the request is already in the queue', () => {
     test('should not call the API if the request is already in the queue', async () => {
-        const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client: Configuration.getStorageClient() });
+        const client = serviceLocator.getStorageClient();
+        const config = serviceLocator.getConfiguration();
+        const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client }, config);
 
         const clientSpy = vitest.spyOn(requestQueue.client, 'batchAddRequests');
 

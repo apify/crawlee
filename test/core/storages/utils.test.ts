@@ -1,16 +1,13 @@
 import type { Dictionary } from '@crawlee/core';
-import { Configuration, KeyValueStore, useState } from '@crawlee/core';
+import { Configuration, KeyValueStore, serviceLocator, useState } from '@crawlee/core';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 describe('useState', () => {
     const emulator = new MemoryStorageEmulator();
 
-    beforeAll(async () => {
-        Configuration.getGlobalConfig().set('persistStateIntervalMillis', 1e3);
-    });
-
     beforeEach(async () => {
         await emulator.init();
+        serviceLocator.setConfiguration(new Configuration({ persistStateIntervalMillis: 1e3 }));
     });
 
     afterAll(async () => {
@@ -45,7 +42,7 @@ describe('useState', () => {
         state.hello = 'foo';
         state.foo = ['fizz'];
 
-        const manager = Configuration.getEventManager();
+        const manager = serviceLocator.getEventManager();
 
         await manager.init();
 

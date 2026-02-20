@@ -16,7 +16,6 @@ import type {
 import {
     BasicCrawler,
     BLOCKED_STATUS_CODES,
-    Configuration,
     ContextPipeline,
     mergeCookies,
     RequestState,
@@ -349,7 +348,6 @@ export class HttpCrawler<
     constructor(
         options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
-        override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
 
@@ -371,16 +369,13 @@ export class HttpCrawler<
             ...basicCrawlerOptions
         } = options;
 
-        super(
-            {
-                ...basicCrawlerOptions,
-                autoscaledPoolOptions,
-                contextPipelineBuilder:
-                    contextPipelineBuilder ??
-                    (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
-            },
-            config,
-        );
+        super({
+            ...basicCrawlerOptions,
+            autoscaledPoolOptions,
+            contextPipelineBuilder:
+                contextPipelineBuilder ??
+                (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
+        });
 
         // Cookies should be persisted per session only if session pool is used
         if (!this.useSessionPool && persistCookiesPerSession) {
