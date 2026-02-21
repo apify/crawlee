@@ -12,6 +12,7 @@ import log, { LogLevel } from '@apify/log';
 
 import { type EventManager } from './events/event_manager.js';
 import { LocalEventManager } from './events/local_event_manager.js';
+import type { CrawleeLogger } from './log.js';
 import type { StorageManager } from './storages/storage_manager.js';
 import { type Constructor, entries } from './typedefs.js';
 
@@ -171,6 +172,13 @@ export interface ConfigurationOptions {
      * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
      */
     containerized?: boolean;
+
+    /**
+     * Defines the logger implementation to be used.
+     * By default, the logger from `@apify/log` is used.
+     * You can provide your own implementation of the {@apilink CrawleeLogger} interface.
+     */
+    loggerProvider?: CrawleeLogger;
 }
 
 /**
@@ -319,7 +327,7 @@ export class Configuration {
             const level = Number.isFinite(+logLevel)
                 ? +logLevel
                 : LogLevel[String(logLevel).toUpperCase() as unknown as LogLevel];
-            log.setLevel(level as LogLevel);
+            this.getLogger().setLevel(level as LogLevel);
         }
     }
 
@@ -425,6 +433,18 @@ export class Configuration {
     }
 
     /**
+     * Returns the logger instance. If a custom logger provider was configured,
+     * it will be returned. Otherwise, the default `@apify/log` instance is used.
+     */
+    getLogger(): CrawleeLogger {
+        if (this.options.has('loggerProvider')) {
+            return this.options.get('loggerProvider') as CrawleeLogger;
+        }
+
+        return log;
+    }
+
+    /**
      * Creates an instance of MemoryStorage using options as defined in the environment variables or in this `Configuration` instance.
      * @internal
      */
@@ -481,6 +501,13 @@ export class Configuration {
      */
     static getEventManager(): EventManager {
         return this.getGlobalConfig().getEventManager();
+    }
+
+    /**
+     * Gets the default logger instance.
+     */
+    static getLogger(): CrawleeLogger {
+        return this.getGlobalConfig().getLogger();
     }
 
     /**

@@ -1,10 +1,10 @@
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 
-import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
+import type { CrawleeLogger } from '../log.js';
 
 export const enum EventType {
     PERSIST_STATE = 'persistState',
@@ -25,9 +25,10 @@ export abstract class EventManager {
     protected events = new AsyncEventEmitter();
     protected initialized = false;
     protected intervals: Intervals = {};
-    protected log = log.child({ prefix: 'Events' });
+    protected log: CrawleeLogger;
 
     constructor(readonly config = Configuration.getGlobalConfig()) {
+        this.log = config.getLogger().child({ prefix: 'Events' });
         this.events.setMaxListeners(50);
     }
 

@@ -1,11 +1,9 @@
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
-
 import { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
-import { log as defaultLog } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { ErrorTracker } from './error_tracker.js';
 
@@ -95,7 +93,7 @@ export class Statistics {
     private logMessage: string;
     private listener: () => Promise<void>;
     private requestsInProgress = new Map<number | string, Job>();
-    private readonly log: Log;
+    private readonly log: CrawleeLogger;
     private instanceStart!: number;
     private logInterval: unknown;
     private events: EventManager;
@@ -134,7 +132,7 @@ export class Statistics {
         this.id = id ?? String(Statistics.id++);
         this.persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
 
-        this.log = (options.log ?? defaultLog).child({ prefix: 'Statistics' });
+        this.log = (options.log ?? config.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.logIntervalMillis = logIntervalSecs * 1000;
@@ -455,7 +453,7 @@ export interface StatisticsOptions {
      * Parent logger instance, the statistics will create a child logger from this.
      * @default crawler.log
      */
-    log?: Log;
+    log?: CrawleeLogger;
 
     /**
      * Key value store instance to persist the statistics.

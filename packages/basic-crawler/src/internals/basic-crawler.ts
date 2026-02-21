@@ -5,6 +5,7 @@ import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
+    CrawleeLogger,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,
@@ -73,8 +74,7 @@ import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
+import { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
@@ -367,7 +367,7 @@ export interface BasicCrawlerOptions<
     onSkippedRequest?: SkippedRequestCallback;
 
     /** @internal */
-    log?: Log;
+    log?: CrawleeLogger;
 
     /**
      * Enables experimental features of Crawlee, which can alter the behavior of the crawler.
@@ -500,6 +500,15 @@ export class BasicCrawler<
      */
     private static useStateCrawlerIds = new Set<string>();
 
+    // Lazy singleton — used for class-level (static) warnings that must deduplicate
+    // across all crawler instances rather than per-instance.
+    private static _log: CrawleeLogger | undefined;
+
+    private static getClassLog(): CrawleeLogger {
+        BasicCrawler._log ??= Configuration.getGlobalConfig().getLogger().child({ prefix: 'BasicCrawler' });
+        return BasicCrawler._log;
+    }
+
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
      */
@@ -564,7 +573,7 @@ export class BasicCrawler<
     running = false;
     hasFinishedBefore = false;
 
-    readonly log: Log;
+    readonly log: CrawleeLogger;
     protected requestHandler!: RequestHandler<ExtendedContext>;
     protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
@@ -685,7 +694,7 @@ export class BasicCrawler<
             httpClient,
 
             // internal
-            log = defaultLog.child({ prefix: this.constructor.name }),
+            log = config.getLogger().child({ prefix: this.constructor.name }),
             experiments = {},
 
             id,
@@ -1126,7 +1135,7 @@ export class BasicCrawler<
             this.requestManager =
                 this.requestList === undefined
                     ? this.requestQueue
-                    : new RequestManagerTandem(this.requestList, this.requestQueue);
+                    : new RequestManagerTandem(this.requestList, this.requestQueue, this.config);
         }
 
         return this.requestQueue;
@@ -1143,7 +1152,7 @@ export class BasicCrawler<
         BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
 
         if (BasicCrawler.useStateCrawlerIds.size > 1) {
-            defaultLog.warningOnce(
+            BasicCrawler.getClassLog().warningOnce(
                 'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
                     'This means they will share the same state object, which is likely unintended. \n' +
                     'To fix this, provide a unique `id` option to each crawler instance. \n' +
@@ -1486,7 +1495,7 @@ export class BasicCrawler<
 
         if (this.requestList && this.requestQueue) {
             // Create a RequestManagerTandem if both RequestList and RequestQueue are provided
-            this.requestManager = new RequestManagerTandem(this.requestList, this.requestQueue);
+            this.requestManager = new RequestManagerTandem(this.requestList, this.requestQueue, this.config);
         } else if (this.requestQueue) {
             // Use RequestQueue directly if only it is provided
             this.requestManager = this.requestQueue;

@@ -1,6 +1,5 @@
 import { getCurrentCpuTicksV2, getMemoryInfo, isContainerized } from '@crawlee/utils';
 
-import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { SystemInfo } from '../autoscaling/system_status.js';
@@ -79,7 +78,7 @@ export class LocalEventManager extends EventManager {
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
             };
         } catch (err) {
-            log.exception(err as Error, 'Memory snapshot failed.');
+            this.log.exception(err as Error, 'Memory snapshot failed.');
             return {};
         }
     }

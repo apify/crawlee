@@ -8,15 +8,14 @@ import ow from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
 
+import { Configuration } from './configuration.js';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
-import { log as defaultLog } from './log.js';
+import type { CrawleeLogger } from './log.js';
 import type { AllowedHttpMethods } from './typedefs.js';
 import { keys } from './typedefs.js';
 
 // new properties on the Request object breaks serialization
-const log = defaultLog.child({ prefix: 'Request' });
-
 const requestOptionalPredicates = {
     id: ow.optional.string,
     loadedUrl: ow.optional.string.url,
@@ -82,6 +81,15 @@ export enum RequestState {
  * @category Sources
  */
 class CrawleeRequest<UserData extends Dictionary = Dictionary> {
+    // Lazy singleton — evaluated on first use so a user-configured logger is picked up
+    // rather than the default that exists at module load time.
+    private static _log: CrawleeLogger | undefined;
+
+    private static getLog(): CrawleeLogger {
+        CrawleeRequest._log ??= Configuration.getGlobalConfig().getLogger().child({ prefix: 'Request' });
+        return CrawleeRequest._log;
+    }
+
     /** Request ID */
     id?: string;
 
@@ -442,7 +450,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
-                log.warningOnce(
+                CrawleeRequest.getLog().warningOnce(
                     `We've encountered a ${normalizedMethod} Request with a payload. ` +
                         'This is fine. Just letting you know that if your requests point to the same URL ' +
                         'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',

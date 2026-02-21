@@ -3,7 +3,7 @@ import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
-import type { Log } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import type { Session } from '../session_pool/session.js';
 import type { Dataset } from '../storages/dataset.js';
@@ -103,7 +103,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     /**
      * A preconfigured logger for the request handler.
      */
-    log: Log;
+    log: CrawleeLogger;
 }
 
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {

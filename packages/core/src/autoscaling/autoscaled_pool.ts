@@ -1,13 +1,12 @@
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import { CriticalError } from '../errors.js';
-import { log as defaultLog } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import type { SnapshotterOptions } from './snapshotter.js';
 import { Snapshotter } from './snapshotter.js';
 import type { SystemInfo, SystemStatusOptions } from './system_status.js';
@@ -126,7 +125,7 @@ export interface AutoscaledPoolOptions {
      */
     maxTasksPerMinute?: number;
 
-    log?: Log;
+    log?: CrawleeLogger;
 }
 
 /**
@@ -178,7 +177,7 @@ export interface AutoscaledPoolOptions {
  * @category Scaling
  */
 export class AutoscaledPool {
-    private readonly log: Log;
+    private readonly log: CrawleeLogger;
 
     // Configurable properties.
     private readonly desiredConcurrencyRatio: number;
@@ -254,7 +253,7 @@ export class AutoscaledPool {
             autoscaleIntervalSecs = 10,
             systemStatusOptions,
             snapshotterOptions,
-            log = defaultLog,
+            log = this.config.getLogger(),
             maxTasksPerMinute = Infinity,
         } = options;
 
