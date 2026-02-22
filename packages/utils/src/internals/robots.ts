@@ -1,5 +1,5 @@
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { HTTPError as HTTPErrorClass } from 'got-scraping';
+import type { Delays, HTTPError as HTTPErrorClass } from 'got-scraping';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
@@ -36,13 +36,14 @@ export class RobotsTxtFile {
      * Determine the location of a robots.txt file for a URL and fetch it.
      * @param url the URL to fetch robots.txt for
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
+     * @param [networkTimeouts] network timeouts for the HTTP request
      */
-    static async find(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
+    static async find(url: string, proxyUrl?: string, networkTimeouts?: Delays): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
         robotsTxtFileUrl.search = '';
 
-        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl);
+        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl, networkTimeouts);
     }
 
     /**
@@ -55,7 +56,7 @@ export class RobotsTxtFile {
         return new RobotsTxtFile(robotsParser(url, content), proxyUrl);
     }
 
-    protected static async load(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
+    protected static async load(url: string, proxyUrl?: string, networkTimeouts?: Delays): Promise<RobotsTxtFile> {
         if (!HTTPError) {
             HTTPError = (await import('got-scraping')).HTTPError;
         }
@@ -66,6 +67,7 @@ export class RobotsTxtFile {
                 proxyUrl,
                 method: 'GET',
                 responseType: 'text',
+                ...(networkTimeouts ? { timeout: networkTimeouts } : {}),
             });
 
             return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);

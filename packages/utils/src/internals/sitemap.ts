@@ -454,9 +454,15 @@ export async function* discoverValidSitemaps(
          * Proxy URL to be used for network requests.
          */
         proxyUrl?: string;
+        /**
+         * Network timeouts for HTTP requests made during sitemap discovery.
+         * Defaults to `{ request: 60_000 }` (60 seconds) to prevent indefinite hangs.
+         * See [Got documentation](https://github.com/sindresorhus/got/blob/main/documentation/6-timeout.md) for more details.
+         */
+        networkTimeouts?: Delays;
     } = {},
 ): AsyncIterable<string> {
-    const { proxyUrl } = options;
+    const { proxyUrl, networkTimeouts = { request: 60_000 } } = options;
     const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
 
@@ -477,6 +483,7 @@ export async function* discoverValidSitemaps(
             proxyUrl,
             url,
             method: 'HEAD',
+            timeout: networkTimeouts,
         }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
@@ -485,7 +492,7 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl);
+            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl, networkTimeouts);
 
             for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
