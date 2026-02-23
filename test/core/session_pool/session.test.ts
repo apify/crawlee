@@ -224,8 +224,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('setCookie does not throw on malformed raw cookie string', () => {
         session = new Session({ sessionPool });
-        // domain mismatch causes setCookieSync to throw
-        expect(() => session.setCookie('name=value; domain=evil.com', 'https://www.example.com')).not.toThrow();
+        expect(() => session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).not.toThrow();
     });
 
     test('setCookies works with hostOnly cookies', () => {
