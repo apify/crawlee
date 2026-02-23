@@ -4,7 +4,7 @@ import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
-import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
 import type {
@@ -350,7 +350,7 @@ export async function enqueueLinks(
     }
 
     if (pseudoUrls?.length) {
-        Configuration.getGlobalConfig()
+        serviceLocator
             .getLogger()
             .deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
         urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));

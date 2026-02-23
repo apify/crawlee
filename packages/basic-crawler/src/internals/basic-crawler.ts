@@ -416,6 +416,12 @@ export interface BasicCrawlerOptions<
     eventManager?: EventManager;
 
     /**
+     * Custom logger to use for this crawler.
+     * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
+     */
+    logger?: CrawleeLogger;
+
+    /**
      * A unique identifier for the crawler instance. This ID is used to isolate the state returned by
      * {@apilink BasicCrawler.useState|`crawler.useState()`} from other crawler instances.
      *
@@ -527,7 +533,7 @@ export class BasicCrawler<
     private static _log: CrawleeLogger | undefined;
 
     private static getClassLog(): CrawleeLogger {
-        BasicCrawler._log ??= Configuration.getGlobalConfig().getLogger().child({ prefix: 'BasicCrawler' });
+        BasicCrawler._log ??= serviceLocator.getLogger().child({ prefix: 'BasicCrawler' });
         return BasicCrawler._log;
     }
 
@@ -660,6 +666,7 @@ export class BasicCrawler<
         configuration: ow.optional.object,
         storageClient: ow.optional.object,
         eventManager: ow.optional.object,
+        logger: ow.optional.object,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -704,6 +711,7 @@ export class BasicCrawler<
             configuration,
             storageClient,
             eventManager,
+            logger,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -723,7 +731,7 @@ export class BasicCrawler<
             httpClient,
 
             // internal
-            log = config.getLogger().child({ prefix: this.constructor.name }),
+            log: logOverride,
             experiments = {},
 
             id,
@@ -739,14 +747,17 @@ export class BasicCrawler<
         if (
             storageClient ||
             eventManager ||
+            logger ||
             (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
         ) {
-            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient);
+            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient, logger);
             serviceLocatorScope = bindMethodsToServiceLocator(scopedServiceLocator, this);
         }
 
         try {
             serviceLocatorScope.enterScope();
+
+            const log = logOverride ?? serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
             // Store whether the user explicitly provided an ID
             this.hasExplicitId = id !== undefined;
@@ -842,7 +853,7 @@ export class BasicCrawler<
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
             this.maxSessionRotations = maxSessionRotations;
             this.stats = new Statistics({
-                logMessage: `${log.getOptions().prefix} request statistics:`,
+                logMessage: `${log.getOptions().prefix ?? this.constructor.name} request statistics:`,
                 log,
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
@@ -1108,7 +1119,7 @@ export class BasicCrawler<
                 retryHistogram: this.stats.requestRetryHistogram,
                 ...finalStats,
             };
-            this.log.info('Final request statistics:', stats);
+            this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
 
             if (this.stats.errorTracker.total !== 0) {
                 const prettify = ([count, info]: [number, string[]]) =>
@@ -1185,7 +1196,7 @@ export class BasicCrawler<
             this.requestManager =
                 this.requestList === undefined
                     ? this.requestQueue
-                    : new RequestManagerTandem(this.requestList, this.requestQueue, this.config);
+                    : new RequestManagerTandem(this.requestList, this.requestQueue);
         }
 
         return this.requestQueue;
@@ -1547,7 +1558,7 @@ export class BasicCrawler<
 
         if (this.requestList && this.requestQueue) {
             // Create a RequestManagerTandem if both RequestList and RequestQueue are provided
-            this.requestManager = new RequestManagerTandem(this.requestList, this.requestQueue, this.config);
+            this.requestManager = new RequestManagerTandem(this.requestList, this.requestQueue);
         } else if (this.requestQueue) {
             // Use RequestQueue directly if only it is provided
             this.requestManager = this.requestQueue;

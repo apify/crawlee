@@ -4,9 +4,8 @@ import type { Dictionary } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
-
 import type { PersistenceOptions } from '../crawlers/statistics.js';
+import type { CrawleeLogger } from '../log.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import { log as defaultLog } from '../log.js';
@@ -179,7 +178,7 @@ export class SessionPool extends EventEmitter {
             createSessionFunction,
             sessionOptions = {},
             blockedStatusCodes = BLOCKED_STATUS_CODES,
-            log = config.getLogger(),
+            log = serviceLocator.getLogger(),
             persistenceOptions = {
                 enable: true,
             },

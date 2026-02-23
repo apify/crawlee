@@ -57,7 +57,7 @@ export interface SnapshotterOptions {
     snapshotHistorySecs?: number;
 
     /** @internal */
-    log?: Log;
+    log?: CrawleeLogger;
 }
 
 interface MemorySnapshot {
@@ -108,7 +108,7 @@ interface ClientSnapshot {
  * @category Scaling
  */
 export class Snapshotter {
-    log: Log;
+    log: CrawleeLogger;
     eventLoopSnapshotIntervalMillis: number;
     clientSnapshotIntervalMillis: number;
     snapshotHistoryMillis: number;

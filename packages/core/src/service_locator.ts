@@ -9,6 +9,7 @@ import { Configuration } from './configuration.js';
 import { ServiceConflictError } from './errors.js';
 import type { EventManager } from './events/event_manager.js';
 import { LocalEventManager } from './events/local_event_manager.js';
+import type { CrawleeLogger } from './log.js';
 import type { IStorage, StorageManager } from './storages/storage_manager.js';
 import type { Constructor } from './typedefs.js';
 
@@ -54,6 +55,20 @@ interface ServiceLocatorInterface {
      * @throws {ServiceConflictError} If a different storage client has already been retrieved
      */
     setStorageClient(storageClient: StorageClient): void;
+
+    /**
+     * Get the logger.
+     * Returns the default `@apify/log` logger if none has been set.
+     */
+    getLogger(): CrawleeLogger;
+
+    /**
+     * Set the logger.
+     *
+     * @param logger The logger to set
+     * @throws {ServiceConflictError} If a different logger has already been retrieved
+     */
+    setLogger(logger: CrawleeLogger): void;
 
     getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined;
 
@@ -109,6 +124,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
     private configuration?: Configuration;
     private eventManager?: EventManager;
     private storageClient?: StorageClient;
+    private logger?: CrawleeLogger;
 
     /**
      * Storage managers for Dataset, KeyValueStore, and RequestQueue.
@@ -122,16 +138,23 @@ export class ServiceLocator implements ServiceLocatorInterface {
      * @param configuration Optional configuration instance to use
      * @param eventManager Optional event manager instance to use
      * @param storageClient Optional storage client instance to use
+     * @param logger Optional logger instance to use
      */
-    constructor(configuration?: Configuration, eventManager?: EventManager, storageClient?: StorageClient) {
+    constructor(
+        configuration?: Configuration,
+        eventManager?: EventManager,
+        storageClient?: StorageClient,
+        logger?: CrawleeLogger,
+    ) {
         this.configuration = configuration;
         this.eventManager = eventManager;
         this.storageClient = storageClient;
+        this.logger = logger;
     }
 
     getConfiguration(): Configuration {
         if (!this.configuration) {
-            log.debug('No configuration set, implicitly creating and using default Configuration.');
+            this.getLogger().debug('No configuration set, implicitly creating and using default Configuration.');
             this.configuration = new Configuration();
         }
         return this.configuration;
@@ -153,9 +176,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getEventManager(): EventManager {
         if (!this.eventManager) {
-            log.debug('No event manager set, implicitly creating and using default LocalEventManager.');
+            this.getLogger().debug('No event manager set, implicitly creating and using default LocalEventManager.');
             if (!this.configuration) {
-                log.warning(
+                this.getLogger().warning(
                     'Implicit creation of event manager will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
@@ -181,9 +204,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getStorageClient(): StorageClient {
         if (!this.storageClient) {
-            log.debug('No storage client set, implicitly creating and using default MemoryStorage.');
+            this.getLogger().debug('No storage client set, implicitly creating and using default MemoryStorage.');
             if (!this.configuration) {
-                log.warning(
+                this.getLogger().warning(
                     'Implicit creation of storage client will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
@@ -208,6 +231,27 @@ export class ServiceLocator implements ServiceLocatorInterface {
         }
 
         this.storageClient = storageClient;
+    }
+
+    getLogger(): CrawleeLogger {
+        if (!this.logger) {
+            this.logger = log;
+        }
+        return this.logger;
+    }
+
+    setLogger(logger: CrawleeLogger): void {
+        // Same instance, no need to do anything
+        if (this.logger === logger) {
+            return;
+        }
+
+        // Already have a different logger that was retrieved
+        if (this.logger) {
+            throw new ServiceConflictError('Logger', logger, this.logger);
+        }
+
+        this.logger = logger;
     }
 
     getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
@@ -244,6 +288,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.configuration = undefined;
         this.eventManager = undefined;
         this.storageClient = undefined;
+        this.logger = undefined;
         this.clearStorageManagerCache();
     }
 }
@@ -343,6 +388,14 @@ export const serviceLocator: ServiceLocatorInterface = {
     setStorageClient(storageClient: StorageClient): void {
         const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
         currentServiceLocator.setStorageClient(storageClient);
+    },
+    getLogger(): CrawleeLogger {
+        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
+        return currentServiceLocator.getLogger();
+    },
+    setLogger(logger: CrawleeLogger): void {
+        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
+        currentServiceLocator.setLogger(logger);
     },
     getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
         const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;

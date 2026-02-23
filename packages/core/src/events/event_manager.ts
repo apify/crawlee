@@ -3,6 +3,8 @@ import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
+import { log as defaultLog } from '../log.js';
+
 export interface EventManagerOptions {
     /** Interval between emitted `persistState` events in milliseconds. */
     persistStateIntervalMillis: number;
@@ -27,7 +29,7 @@ export abstract class EventManager {
     protected events = new AsyncEventEmitter();
     protected initialized = false;
     protected intervals: Intervals = {};
-    protected log = log.child({ prefix: 'Events' });
+    protected log = defaultLog.child({ prefix: 'Events' });
     private persistStateIntervalMillis: number;
 
     constructor(options: EventManagerOptions) {

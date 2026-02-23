@@ -6,6 +6,7 @@ import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import { CriticalError } from '../errors.js';
 import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import type { SnapshotterOptions } from './snapshotter.js';
 import { Snapshotter } from './snapshotter.js';
 import type { SystemInfo, SystemStatusOptions } from './system_status.js';
@@ -249,7 +250,7 @@ export class AutoscaledPool {
             autoscaleIntervalSecs = 10,
             systemStatusOptions,
             snapshotterOptions,
-            log = this.config.getLogger(),
+            log = serviceLocator.getLogger(),
             maxTasksPerMinute = Infinity,
         } = options;
 
@@ -487,7 +488,7 @@ export class AutoscaledPool {
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
         if (!isSystemIdle && this._currentConcurrency >= this._minConcurrency) {
-            this.log.perf('Task will not be run. System is overloaded.', currentStatus);
+            this.log.perf('Task will not be run. System is overloaded.', currentStatus as unknown as Record<string, unknown>);
             return done();
         }
         // - a task is ready.

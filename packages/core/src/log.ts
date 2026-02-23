@@ -53,22 +53,22 @@ export interface CrawleeLogger {
     /**
      * Logs an `ERROR` message.
      */
-    error(message: string, data?: Record<string, any> | null): void;
+    error(message: string, data?: Record<string, unknown>): void;
 
     /**
      * Logs an `ERROR` level message with a nicely formatted exception.
      */
-    exception(exception: Error, message: string, data?: Record<string, any> | null): void;
+    exception(exception: Error, message: string, data?: Record<string, unknown>): void;
 
     /**
      * Logs a `SOFT_FAIL` level message.
      */
-    softFail(message: string, data?: Record<string, any> | null): void;
+    softFail(message: string, data?: Record<string, unknown>): void;
 
     /**
      * Logs a `WARNING` level message.
      */
-    warning(message: string, data?: Record<string, any> | null): void;
+    warning(message: string, data?: Record<string, unknown>): void;
 
     /**
      * Logs a `WARNING` level message only once.
@@ -78,17 +78,17 @@ export interface CrawleeLogger {
     /**
      * Logs an `INFO` message.
      */
-    info(message: string, data?: Record<string, any> | null): void;
+    info(message: string, data?: Record<string, unknown>): void;
 
     /**
      * Logs a `DEBUG` message.
      */
-    debug(message: string, data?: Record<string, any> | null): void;
+    debug(message: string, data?: Record<string, unknown>): void;
 
     /**
      * Logs a `PERF` level message for performance tracking.
      */
-    perf(message: string, data?: Record<string, any> | null): void;
+    perf(message: string, data?: Record<string, unknown>): void;
 
     /**
      * Logs given message only once as WARNING for deprecated features.
@@ -132,7 +132,7 @@ export const CrawleeLogLevel = {
  *         super(options);
  *     }
  *
- *     protected _log(level: number, message: string, data?: Record<string, any> | null): void {
+ *     protected _log(level: number, message: string, data?: Record<string, unknown>): void {
  *         const winstonLevel = { 1: 'error', 2: 'warn', 3: 'warn', 4: 'info', 5: 'debug', 6: 'debug' }[level] ?? 'info';
  *         this.logger.log(winstonLevel, message, { ...data, prefix: this.getOptions().prefix });
  *     }
@@ -161,7 +161,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
      * @param message The log message
      * @param data Optional structured data to attach to the log entry
      */
-    protected abstract _log(level: number, message: string, data?: Record<string, any> | null): void;
+    protected abstract _log(level: number, message: string, data?: Record<string, unknown>): void;
 
     /**
      * Creates a child logger instance. Subclasses must implement this to define
@@ -189,28 +189,29 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
         return this._createChild(options);
     }
 
-    private _dispatch(level: number, message: string, data?: Record<string, any> | null): void {
+    private _dispatch(level: number, message: string, data?: Record<string, unknown>): void {
         if (level <= this.level) {
             this._log(level, message, data);
         }
     }
 
-    error(message: string, data?: Record<string, any> | null): void {
+    error(message: string, data?: Record<string, unknown>): void {
         this._dispatch(CrawleeLogLevel.ERROR, message, data);
     }
 
-    exception(exception: Error, message: string, data?: Record<string, any> | null): void {
+    exception(exception: Error, message: string, data?: Record<string, unknown>): void {
         this._dispatch(CrawleeLogLevel.ERROR, `${message}: ${exception.message}`, {
             ...data,
             stack: exception.stack,
+            exception,
         });
     }
 
-    softFail(message: string, data?: Record<string, any> | null): void {
+    softFail(message: string, data?: Record<string, unknown>): void {
         this._dispatch(CrawleeLogLevel.SOFT_FAIL, message, data);
     }
 
-    warning(message: string, data?: Record<string, any> | null): void {
+    warning(message: string, data?: Record<string, unknown>): void {
         this._dispatch(CrawleeLogLevel.WARNING, message, data);
     }
 
@@ -221,15 +222,15 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
         }
     }
 
-    info(message: string, data?: Record<string, any> | null): void {
+    info(message: string, data?: Record<string, unknown>): void {
         this._dispatch(CrawleeLogLevel.INFO, message, data);
     }
 
-    debug(message: string, data?: Record<string, any> | null): void {
+    debug(message: string, data?: Record<string, unknown>): void {
         this._dispatch(CrawleeLogLevel.DEBUG, message, data);
     }
 
-    perf(message: string, data?: Record<string, any> | null): void {
+    perf(message: string, data?: Record<string, unknown>): void {
         this._dispatch(CrawleeLogLevel.PERF, `[PERF] ${message}`, data);
     }
 

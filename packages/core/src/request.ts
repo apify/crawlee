@@ -8,7 +8,7 @@ import ow from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
 
-import { Configuration } from './configuration.js';
+import { serviceLocator } from './service_locator.js';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
 import type { CrawleeLogger } from './log.js';
@@ -81,13 +81,8 @@ export enum RequestState {
  * @category Sources
  */
 class CrawleeRequest<UserData extends Dictionary = Dictionary> {
-    // Lazy singleton — evaluated on first use so a user-configured logger is picked up
-    // rather than the default that exists at module load time.
-    private static _log: CrawleeLogger | undefined;
-
     private static getLog(): CrawleeLogger {
-        CrawleeRequest._log ??= Configuration.getGlobalConfig().getLogger().child({ prefix: 'Request' });
-        return CrawleeRequest._log;
+        return serviceLocator.getLogger().child({ prefix: 'Request' });
     }
 
     /** Request ID */

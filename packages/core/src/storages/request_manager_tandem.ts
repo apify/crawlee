@@ -1,7 +1,7 @@
 import type { Dictionary } from '@crawlee/types';
 
-import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import type { Request, Source } from '../request.js';
 import type { IRequestList } from './request_list.js';
 import type {
@@ -23,8 +23,8 @@ export class RequestManagerTandem implements IRequestManager {
     private requestList: IRequestList;
     private requestQueue: IRequestManager;
 
-    constructor(requestList: IRequestList, requestQueue: IRequestManager, config = Configuration.getGlobalConfig()) {
-        this.log = config.getLogger().child({ prefix: 'RequestManagerTandem' });
+    constructor(requestList: IRequestList, requestQueue: IRequestManager) {
+        this.log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
         this.requestList = requestList;
         this.requestQueue = requestQueue;
     }

@@ -1,7 +1,7 @@
 import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import ow from 'ow';
 
-import { Configuration } from './configuration.js';
+import { serviceLocator } from './service_locator.js';
 import type { Request } from './request.js';
 
 export interface ProxyConfigurationFunction {
@@ -138,7 +138,7 @@ export class ProxyConfiguration {
     protected tieredProxyUrls?: UrlList[];
     protected usedProxyUrls = new Map<string, string | null>();
     protected newUrlFunction?: ProxyConfigurationFunction;
-    protected log = Configuration.getGlobalConfig().getLogger().child({ prefix: 'ProxyConfiguration' });
+    protected log = serviceLocator.getLogger().child({ prefix: 'ProxyConfiguration' });
     protected domainTiers = new Map<string, ProxyTierTracker>();
 
     /**

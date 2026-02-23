@@ -287,7 +287,7 @@ export class KeyValueStore {
                         timeoutSecs,
                         doNotRetryTimeouts: true,
                     }).catch((error) =>
-                        this.config.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
+                        serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
                     ),
                 );
             }

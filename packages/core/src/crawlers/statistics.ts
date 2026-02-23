@@ -1,9 +1,8 @@
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
-
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
 import { log as defaultLog } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
@@ -134,7 +133,7 @@ export class Statistics {
         this.id = id ?? String(Statistics.id++);
         this.persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
 
-        this.log = (options.log ?? config.getLogger()).child({ prefix: 'Statistics' });
+        this.log = (options.log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.logIntervalMillis = logIntervalSecs * 1000;

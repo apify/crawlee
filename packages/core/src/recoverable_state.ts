@@ -1,5 +1,5 @@
-import type { Configuration } from '@crawlee/core';
-import { EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
+import type { CrawleeLogger, Configuration } from '@crawlee/core';
+import { EventType, KeyValueStore, log, serviceLocator } from '@crawlee/core';
 
 export interface RecoverableStatePersistenceOptions {
     /**
@@ -78,7 +78,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
     private readonly persistStateKvsName?: string;
     private readonly persistStateKvsId?: string;
     private keyValueStore: KeyValueStore | null = null;
-    private readonly log: Log;
+    private readonly log: CrawleeLogger;
     private readonly serialize: (state: TStateModel) => string;
     private readonly deserialize: (serializedState: string) => TStateModel;
 

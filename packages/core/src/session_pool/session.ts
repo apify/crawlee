@@ -7,7 +7,7 @@ import { CookieJar } from 'tough-cookie';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
 import {
     browserPoolCookieToToughCookie,
     getCookiesFromResponse,
@@ -170,7 +170,7 @@ export class Session implements ISession {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
-            log = Configuration.getGlobalConfig().getLogger(),
+            log = serviceLocator.getLogger(),
         } = options;
 
         const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;

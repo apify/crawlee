@@ -1,4 +1,3 @@
-import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { SystemInfo } from '../autoscaling/system_status.js';

@@ -231,7 +231,7 @@ export class SitemapRequestList implements IRequestList {
 
         const { globs, exclude, regexps } = options;
 
-        this.log = config.getLogger().child({ prefix: 'SitemapRequestList' });
+        this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestList' });
 
         if (exclude?.length) {
             for (const excl of exclude) {

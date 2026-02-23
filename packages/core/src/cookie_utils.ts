@@ -1,7 +1,7 @@
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
 
-import { Configuration } from './configuration.js';
+import { serviceLocator } from './service_locator.js';
 import { CookieParseError } from './session_pool/errors.js';
 
 export interface ResponseLike {
@@ -120,7 +120,7 @@ export function mergeCookies(url: string, sourceCookies: string[]): string {
             });
 
             if (similarKeyCookie) {
-                Configuration.getGlobalConfig()
+                serviceLocator
                     .getLogger()
                     .warningOnce(
                         `Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`,

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { Dictionary } from '@crawlee/types';
 import { pathExistsSync } from 'fs-extra/esm';
 
-import log, { LogLevel } from '@apify/log';
+import { LogLevel } from '@apify/log';
 
 import { serviceLocator } from './service_locator.js';
 import { entries } from './typedefs.js';
@@ -148,13 +148,6 @@ export interface ConfigurationOptions {
      * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
      */
     containerized?: boolean;
-
-    /**
-     * Defines the logger implementation to be used.
-     * By default, the logger from `@apify/log` is used.
-     * You can provide your own implementation of the {@apilink CrawleeLogger} interface.
-     */
-    loggerProvider?: CrawleeLogger;
 }
 
 /**
@@ -291,7 +284,7 @@ export class Configuration {
             const level = Number.isFinite(+logLevel)
                 ? +logLevel
                 : LogLevel[String(logLevel).toUpperCase() as unknown as LogLevel];
-            this.getLogger().setLevel(level as LogLevel);
+            serviceLocator.getLogger().setLevel(level as LogLevel);
         }
     }
 
