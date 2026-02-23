@@ -2,7 +2,6 @@ import type {
     Awaitable,
     BasicCrawlerOptions,
     BasicCrawlingContext,
-    ContextPipeline,
     CrawlingContext,
     Dictionary,
     EnqueueLinksOptions,
@@ -17,6 +16,7 @@ import type {
 import {
     BasicCrawler,
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
+    ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
@@ -342,7 +342,7 @@ export abstract class BrowserCrawler<
             ContextExtension,
             ExtendedContext
         > & {
-            contextPipelineBuilder: () => ContextPipeline<object, Context>;
+            contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         },
     ) {
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
@@ -412,10 +412,10 @@ export abstract class BrowserCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<
-        { request: Request },
+        CrawlingContext,
         BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>
     > {
-        return super.buildContextPipeline().compose({
+        return ContextPipeline.create<CrawlingContext>().compose({
             action: this.preparePage.bind(this),
             cleanup: async (context: {
                 page: Page;

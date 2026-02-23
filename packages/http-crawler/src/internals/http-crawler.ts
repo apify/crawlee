@@ -4,7 +4,6 @@ import util from 'node:util';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
-    ContextPipeline,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -14,7 +13,15 @@ import type {
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
-import { BasicCrawler, BLOCKED_STATUS_CODES, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
+import {
+    BasicCrawler,
+    BLOCKED_STATUS_CODES,
+    ContextPipeline,
+    mergeCookies,
+    RequestState,
+    Router,
+    SessionError,
+} from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -366,7 +373,8 @@ export class HttpCrawler<
             ...basicCrawlerOptions,
             autoscaledPoolOptions,
             contextPipelineBuilder:
-                contextPipelineBuilder ?? (() => this.buildContextPipeline() as ContextPipeline<object, Context>),
+                contextPipelineBuilder ??
+                (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
         });
 
         // Cookies should be persisted per session only if session pool is used
@@ -402,9 +410,8 @@ export class HttpCrawler<
         }
     }
 
-    protected override buildContextPipeline(): ContextPipeline<object, InternalHttpCrawlingContext> {
-        return super
-            .buildContextPipeline()
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
+        return ContextPipeline.create<CrawlingContext>()
             .compose({
                 action: this.makeHttpRequest.bind(this),
             })

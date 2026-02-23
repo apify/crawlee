@@ -124,7 +124,7 @@ export type RequireContextPipeline<
     FinalContextType extends DefaultContextType,
 > = DefaultContextType extends FinalContextType
     ? {}
-    : { contextPipelineBuilder: () => ContextPipeline<{ request: Request }, FinalContextType> };
+    : { contextPipelineBuilder: () => ContextPipeline<CrawlingContext, FinalContextType> };
 
 export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
@@ -178,7 +178,7 @@ export interface BasicCrawlerOptions<
      *
      * The option is not required if your crawler subclass does not extend the crawling context with custom information or helpers.
      */
-    contextPipelineBuilder?: () => ContextPipeline<{ request: Request }, Context>;
+    contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
 
     /**
      * Static list of URLs to be processed.
@@ -572,9 +572,19 @@ export class BasicCrawler<
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    private _contextPipeline?: ContextPipeline<{ request: Request }, ExtendedContext>;
+    private _basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
 
-    get contextPipeline(): ContextPipeline<{ request: Request }, ExtendedContext> {
+    get basicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
+        if (this._basicContextPipeline === undefined) {
+            this._basicContextPipeline = this.buildBasicContextPipeline();
+        }
+
+        return this._basicContextPipeline;
+    }
+
+    private _contextPipeline?: ContextPipeline<CrawlingContext, ExtendedContext>;
+
+    get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         if (this._contextPipeline === undefined) {
             this._contextPipeline = this.buildFinalContextPipeline();
         }
@@ -616,7 +626,7 @@ export class BasicCrawler<
     private readonly crawlerId: string;
     private readonly hasExplicitId: boolean;
     private readonly contextPipelineOptions: {
-        contextPipelineBuilder: () => ContextPipeline<{ request: Request }, Context>;
+        contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         extendContext: (context: Context) => Awaitable<ContextExtension>;
     };
 
@@ -880,7 +890,9 @@ export class BasicCrawler<
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
-                        await this.contextPipeline.call(crawlingContext, this._runTaskFunction.bind(this));
+                        await this.basicContextPipeline.call(crawlingContext, async (basicCtx) => {
+                            await this.contextPipeline.call(basicCtx, this._runTaskFunction.bind(this));
+                        });
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
@@ -960,14 +972,10 @@ export class BasicCrawler<
     }
 
     /**
-     * Builds the base context pipeline with core crawling functionality.
-     * Subclasses should override this method to extend the pipeline, calling `super.buildContextPipeline()` first.
-     *
-     * Note that the built pipeline needs to be propagated all the way back to the `BasicCrawler` via the `contextPipelineBuilder` constructor option.
-     * This enforces the type contract of `BasicCrawler<SomeContext>` having access to a `ContextPipeline<{ request: Request }, SomeContext>`,
-     * which cannot be achieved using regular abstract methods.
+     * Builds the basic context pipeline that transforms `{ request }` into a full `CrawlingContext`.
+     * This handles base context creation, session resolution, and context helpers.
      */
-    protected buildContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
+    protected buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
         return ContextPipeline.create<{ request: Request }>()
@@ -979,6 +987,14 @@ export class BasicCrawler<
             })
             .compose({ action: this.resolveSession.bind(this) })
             .compose({ action: this.createContextHelpers.bind(this) });
+    }
+
+    /**
+     * Builds the subclass-specific context pipeline that transforms a `CrawlingContext` into the crawler's target context type.
+     * Subclasses should override this to add their own pipeline stages.
+     */
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext> {
+        return ContextPipeline.create<CrawlingContext>();
     }
 
     private createBaseContext(deferredCleanup: (() => Promise<unknown>)[]) {
@@ -1046,9 +1062,9 @@ export class BasicCrawler<
         return { enqueueLinks: enqueueLinksWrapper, addRequests, sendRequest };
     }
 
-    private buildFinalContextPipeline(): ContextPipeline<{ request: Request }, ExtendedContext> {
+    private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         let contextPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
-            this.buildContextPipeline()) as ContextPipeline<{ request: Request }, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
+            this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
 
         if (this.contextPipelineOptions.extendContext !== undefined) {
             contextPipeline = contextPipeline.compose({
@@ -1075,7 +1091,7 @@ export class BasicCrawler<
             },
         });
 
-        return contextPipeline as ContextPipeline<{ request: Request }, ExtendedContext>;
+        return contextPipeline as ContextPipeline<CrawlingContext, ExtendedContext>;
     }
 
     /**
