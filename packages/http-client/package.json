@@ -47,6 +47,7 @@
         "access": "public"
     },
     "dependencies": {
+        "@apify/log": "^2.5.32",
         "@crawlee/types": "4.0.0",
         "tough-cookie": "^6.0.0"
     }
