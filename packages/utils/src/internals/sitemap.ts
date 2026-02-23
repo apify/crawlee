@@ -472,12 +472,33 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
+    const discoveryRequestOptions = {
+        proxyUrl,
+        http2: false,
+        useHeaderGenerator: false,
+    };
+
     const urlExists = (url: string) =>
         gotScraping({
-            proxyUrl,
             url,
             method: 'HEAD',
+            ...discoveryRequestOptions,
         }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
+
+    const getSitemapsFromRobotsTxt = async (url: string): Promise<string[]> => {
+        const robotsTxtFileUrl = new URL(url);
+        robotsTxtFileUrl.pathname = '/robots.txt';
+        robotsTxtFileUrl.search = '';
+
+        const response = await gotScraping({
+            url: robotsTxtFileUrl.toString(),
+            method: 'GET',
+            responseType: 'text',
+            ...discoveryRequestOptions,
+        });
+
+        return RobotsFile.from(robotsTxtFileUrl.toString(), response.body ?? '', proxyUrl).getSitemaps();
+    };
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
         if (!hostname) {
@@ -485,9 +506,8 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl);
-
-            for (const sitemapUrl of robotsFile.getSitemaps()) {
+            const robotsSitemapUrls = await getSitemapsFromRobotsTxt(domainUrls[0]);
+            for (const sitemapUrl of robotsSitemapUrls) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
                 }
