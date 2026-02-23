@@ -356,6 +356,64 @@ describe('Plugins', () => {
 
     runPluginTest(PuppeteerPlugin, PuppeteerController, puppeteer);
 
+    describe('normalizeProxyOptions', () => {
+        test.concurrent('PlaywrightController should handle socks5 proxyUrl', () => {
+            const plugin = new PlaywrightPlugin(playwright.chromium);
+            const browserController = new PlaywrightController(plugin);
+
+            const result = browserController.normalizeProxyOptions('socks5://user:pass@proxy.example.com:1080', {});
+
+            expect(result).toMatchObject({
+                proxy: {
+                    server: 'socks5://proxy.example.com:1080',
+                    username: 'user',
+                    password: 'pass',
+                },
+            });
+        });
+
+        test.concurrent('PlaywrightController should handle http proxyUrl', () => {
+            const plugin = new PlaywrightPlugin(playwright.chromium);
+            const browserController = new PlaywrightController(plugin);
+
+            const result = browserController.normalizeProxyOptions('http://user:pass@proxy.example.com:8080', {});
+
+            expect(result).toMatchObject({
+                proxy: {
+                    server: 'http://proxy.example.com:8080',
+                    username: 'user',
+                    password: 'pass',
+                },
+            });
+        });
+
+        test.concurrent('PuppeteerController should handle socks5 proxyUrl', () => {
+            const plugin = new PuppeteerPlugin(puppeteer);
+            const browserController = new PuppeteerController(plugin);
+
+            const result = browserController.normalizeProxyOptions('socks5://user:pass@proxy.example.com:1080', {});
+
+            expect(result).toMatchObject({
+                proxyServer: 'socks5://proxy.example.com:1080',
+                proxyUsername: 'user',
+                proxyPassword: 'pass',
+            });
+        });
+
+        test.concurrent('PuppeteerController should handle http proxyUrl', () => {
+            const plugin = new PuppeteerPlugin(puppeteer);
+            const browserController = new PuppeteerController(plugin);
+
+            const result = browserController.normalizeProxyOptions('http://user:pass@proxy.example.com:8080', {});
+
+            expect(result).toMatchObject({
+                proxyServer: 'http://proxy.example.com:8080',
+                proxyUsername: 'user',
+                proxyPassword: 'pass',
+            });
+        });
+    });
+
     describe('Playwright specifics', () => {
         let browser: playwright.Browser;
 
