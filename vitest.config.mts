@@ -18,6 +18,7 @@ const baseConfig = defineConfig({
     },
     test: {
         globals: true,
+        setupFiles: ['./test/vitest.setup.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'lcov', 'cobertura'],

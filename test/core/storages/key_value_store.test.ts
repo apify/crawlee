@@ -1,6 +1,6 @@
 import { PassThrough } from 'node:stream';
 
-import { Configuration, KeyValueStore, maybeStringify } from '@crawlee/core';
+import { Configuration, KeyValueStore, maybeStringify, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
@@ -15,7 +15,7 @@ afterAll(async () => {
 });
 
 describe('KeyValueStore', () => {
-    const client = Configuration.getStorageClient();
+    const client = serviceLocator.getStorageClient();
 
     beforeEach(async () => {
         vitest.clearAllMocks();

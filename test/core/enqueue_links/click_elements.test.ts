@@ -10,6 +10,7 @@ import {
     puppeteerClickElements,
     puppeteerUtils,
     RequestQueue,
+    serviceLocator,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
@@ -24,11 +25,11 @@ function isPlaywrightBrowser(browser: PPBrowser | PWBrowser): browser is PWBrows
     return (browser as PWBrowser).browserType !== undefined;
 }
 
-const apifyClient = Configuration.getStorageClient();
+const apifyClient = serviceLocator.getStorageClient();
 
 function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient }, serviceLocator.getConfiguration());
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
@@ -116,7 +117,10 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
 
         test('accepts forefront option', async () => {
             const addedRequests: { request: Source; options?: RequestQueueOperationOptions }[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+            const requestQueue = new RequestQueue(
+                { id: 'xxx', client: serviceLocator.getStorageClient() },
+                serviceLocator.getConfiguration(),
+            );
             requestQueue.addRequests = async (requests, options) => {
                 for await (const request of requests) {
                     addedRequests.push({ request: typeof request === 'string' ? { url: request } : request, options });

@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import type { Dictionary, StorageClient } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
 
 /**
@@ -54,8 +55,8 @@ export async function purgeDefaultStorages(
                   config: configOrOptions,
               }
             : (configOrOptions ?? {});
-    const { config = Configuration.getGlobalConfig(), onlyPurgeOnce = false } = options;
-    ({ client = config.getStorageClient() } = options);
+    const { config = serviceLocator.getConfiguration(), onlyPurgeOnce = false } = options;
+    ({ client = serviceLocator.getStorageClient() } = options);
 
     const casted = client as StorageClient & { __purged?: boolean };
 
@@ -90,7 +91,7 @@ export async function useState<State extends Dictionary = Dictionary>(
     options?: UseStateOptions,
 ) {
     const kvStore = await KeyValueStore.open(options?.keyValueStoreName, {
-        config: options?.config || Configuration.getGlobalConfig(),
+        config: options?.config || serviceLocator.getConfiguration(),
     });
     return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
 }

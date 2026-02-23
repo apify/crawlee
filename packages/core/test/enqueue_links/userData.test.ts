@@ -1,11 +1,11 @@
 import type { Source } from '@crawlee/cheerio';
-import { cheerioCrawlerEnqueueLinks, Configuration, RequestQueue } from '@crawlee/cheerio';
+import { cheerioCrawlerEnqueueLinks, RequestQueue, serviceLocator } from '@crawlee/cheerio';
 import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
 
 import log from '@apify/log';
 
-const apifyClient = Configuration.getStorageClient();
+const apifyClient = serviceLocator.getStorageClient();
 
 const HTML = `
 <html>
@@ -23,7 +23,7 @@ const HTML = `
 
 function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient }, serviceLocator.getConfiguration());
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {

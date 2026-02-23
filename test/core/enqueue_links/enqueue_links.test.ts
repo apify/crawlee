@@ -9,6 +9,7 @@ import {
     launchPuppeteer,
     Request,
     RequestQueue,
+    serviceLocator,
 } from '@crawlee/puppeteer';
 import { type CheerioRoot, RobotsTxtFile } from '@crawlee/utils';
 import { load } from 'cheerio';
@@ -18,7 +19,7 @@ import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppete
 
 import log from '@apify/log';
 
-const apifyClient = Configuration.getStorageClient();
+const apifyClient = serviceLocator.getStorageClient();
 
 const HTML = `
 <html>
@@ -49,7 +50,7 @@ const HTML = `
 
 function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient }, serviceLocator.getConfiguration());
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
@@ -974,7 +975,10 @@ describe('enqueueLinks()', () => {
 
         test('accepts forefront option', async () => {
             const enqueued: { request: Source; options?: RequestQueueOperationOptions }[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+            const requestQueue = new RequestQueue(
+                { id: 'xxx', client: apifyClient },
+                serviceLocator.getConfiguration(),
+            );
 
             requestQueue.addRequests = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
@@ -1003,7 +1007,10 @@ describe('enqueueLinks()', () => {
 
         test('accepts waitForAllRequestsToBeAdded option', async () => {
             const enqueued: { request: string | Source; options?: AddRequestsBatchedOptions }[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+            const requestQueue = new RequestQueue(
+                { id: 'xxx', client: apifyClient },
+                serviceLocator.getConfiguration(),
+            );
 
             requestQueue.addRequestsBatched = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,

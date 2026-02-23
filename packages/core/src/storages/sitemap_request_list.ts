@@ -8,11 +8,11 @@ import type { RequiredDeep } from 'type-fest';
 
 import defaultLog from '@apify/log';
 
-import { Configuration } from '../configuration.js';
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
 import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
 import { type EventManager, EventType } from '../events/event_manager.js';
 import { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { IRequestList } from './request_list.js';
 import { purgeDefaultStorages } from './utils.js';
@@ -100,10 +100,6 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      * Advanced options for the underlying `parseSitemap` call.
      */
     parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
-    /**
-     * Crawlee configuration
-     */
-    config?: Configuration;
     /**
      * Custom HTTP client to be used for sitemap loading.
      */
@@ -232,7 +228,7 @@ export class SitemapRequestList implements IRequestList {
             }),
         );
 
-        const { globs, exclude, regexps, config = Configuration.getGlobalConfig() } = options;
+        const { globs, exclude, regexps } = options;
 
         if (exclude?.length) {
             for (const excl of exclude) {
@@ -260,7 +256,7 @@ export class SitemapRequestList implements IRequestList {
         this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
 
         this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
-        this.events = config.getEventManager();
+        this.events = serviceLocator.getEventManager();
 
         this.persistState = this.persistState.bind(this);
     }

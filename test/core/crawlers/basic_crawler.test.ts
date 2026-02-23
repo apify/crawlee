@@ -2,7 +2,7 @@ import { readFile, rm } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-
+import log from '@apify/log';
 import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -18,6 +18,7 @@ import {
     RequestQueue,
     RequestValidationError,
     Router,
+    serviceLocator,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
@@ -29,16 +30,11 @@ import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
 import { z } from 'zod';
 
-import log from '@apify/log';
-
 import { startExpressAppPromise } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 describe('BasicCrawler', () => {
     let logLevel: number;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
-
     const HOSTNAME = '127.0.0.1';
     let port: number;
     let server: Server;
@@ -510,7 +506,7 @@ describe('BasicCrawler', () => {
         const processed: { url: string }[] = [];
         const requestList = await RequestList.open('reqList', sources);
         const requestHandler: RequestHandler = async ({ request }) => {
-            if (request.url.endsWith('200')) events.emit(event);
+            if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
             processed.push({ url: request.url });
         };
 
@@ -914,7 +910,10 @@ describe('BasicCrawler', () => {
         ];
         const processed: Dictionary<Request> = {};
         const requestList = await RequestList.open(null, sources);
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
 
         const requestHandler: RequestHandler = async ({ request }) => {
             await sleep(10);
@@ -985,7 +984,10 @@ describe('BasicCrawler', () => {
     });
 
     test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         requestQueue.isEmpty = async () => Promise.resolve(true);
 
         const crawler = new BasicCrawler({
@@ -998,7 +1000,10 @@ describe('BasicCrawler', () => {
     });
 
     test('should be possible to override isFinishedFunction and isTaskReadyFunction of underlying AutoscaledPool', async () => {
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         const processed: Request[] = [];
         const queue: Request[] = [];
         let isFinished = false;
@@ -1072,7 +1077,10 @@ describe('BasicCrawler', () => {
     });
 
     test('keepAlive', async () => {
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         const processed: Request[] = [];
         const queue: Request[] = [];
 
@@ -1172,8 +1180,11 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(false);
     });
 
-    test('should derive handledRequestCount from Statistics', async () => {
-        const requestQueue = new RequestQueue({ id: 'id', client: Configuration.getStorageClient() });
+    test('should load handledRequestCount from storages', async () => {
+        const requestQueue = new RequestQueue(
+            { id: 'id', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
 
@@ -1459,7 +1470,7 @@ describe('BasicCrawler', () => {
         it('should destroy Session pool after it is finished', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
-            events.off(EventType.PERSIST_STATE);
+            serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
 
             const crawler = new BasicCrawler({
                 requestList,
@@ -1473,8 +1484,14 @@ describe('BasicCrawler', () => {
                 failedRequestHandler: async () => {},
             });
 
+            // @ts-expect-error Accessing private prop
+            crawler._loadHandledRequestCount = () => {
+                expect(crawler.sessionPool).toBeDefined();
+                expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
+            };
+
             await crawler.run();
-            expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
+            expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
@@ -2211,8 +2228,8 @@ describe('BasicCrawler', () => {
         });
 
         test("Crawlers with different Configurations don't share Datasets", async () => {
-            const crawlerA = new BasicCrawler({}, new Configuration({ persistStorage: false }));
-            const crawlerB = new BasicCrawler({}, new Configuration({ persistStorage: false }));
+            const crawlerA = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
+            const crawlerB = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
 
             await crawlerA.pushData(getPayload('A'));
             await crawlerB.pushData(getPayload('B'));
@@ -2223,14 +2240,14 @@ describe('BasicCrawler', () => {
         });
 
         test('Crawlers with different Configurations run separately', async () => {
-            const crawlerA = new BasicCrawler(
-                { requestHandler: () => {} },
-                new Configuration({ persistStorage: false }),
-            );
-            const crawlerB = new BasicCrawler(
-                { requestHandler: () => {} },
-                new Configuration({ persistStorage: false }),
-            );
+            const crawlerA = new BasicCrawler({
+                requestHandler: () => {},
+                configuration: new Configuration({ persistStorage: false }),
+            });
+            const crawlerB = new BasicCrawler({
+                requestHandler: () => {},
+                configuration: new Configuration({ persistStorage: false }),
+            });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
             await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
@@ -2243,15 +2260,17 @@ describe('BasicCrawler', () => {
             const getGlobalConfigSpy = vitest.spyOn(Configuration, 'getGlobalConfig');
 
             const configA = new Configuration({ persistStorage: false });
-            const crawlerA = new BasicCrawler({ requestHandler: () => {} }, configA);
+            const crawlerA = new BasicCrawler({ requestHandler: () => {}, configuration: configA });
             const configB = new Configuration({ persistStorage: false });
-            const crawlerB = new BasicCrawler({ requestHandler: () => {} }, configB);
+            const crawlerB = new BasicCrawler({ requestHandler: () => {}, configuration: configB });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
             await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
 
             expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
+            // @ts-expect-error Accessing protected property for testing
             expect(crawlerA.requestQueue?.config).toBe(configA);
+            // @ts-expect-error Accessing protected property for testing
             expect(crawlerB.requestQueue?.config).toBe(configB);
         });
     });

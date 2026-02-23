@@ -1,8 +1,9 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 
-import { Configuration } from '../configuration.js';
+import type { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
 import type { Request, Source } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
 import type {
     RequestProviderOptions,
@@ -67,7 +68,7 @@ export class RequestQueue extends RequestProvider {
     private shouldCheckForForefrontRequests = false;
     private dequeuedRequestCount = 0;
 
-    constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
+    constructor(options: RequestProviderOptions, config: Configuration = serviceLocator.getConfiguration()) {
         super(
             {
                 ...options,
@@ -78,13 +79,11 @@ export class RequestQueue extends RequestProvider {
             config,
         );
 
-        const eventManager = config.getEventManager();
-
-        eventManager.on(EventType.MIGRATING, async () => {
+        this.events.on(EventType.MIGRATING, async () => {
             await this._clearPossibleLocks();
         });
 
-        eventManager.on(EventType.ABORTING, async () => {
+        this.events.on(EventType.ABORTING, async () => {
             await this._clearPossibleLocks();
         });
     }
