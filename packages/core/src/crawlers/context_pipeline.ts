@@ -132,15 +132,22 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
                 try {
                     const contextExtension = await action(crawlingContext);
 
-                    const extensionDescriptors = Object.getOwnPropertyDescriptors(contextExtension);
+                    const extensionNames = [
+                        ...Object.getOwnPropertyNames(contextExtension),
+                        ...Object.getOwnPropertySymbols(contextExtension),
+                    ];
 
-                    for (const [key, descriptor] of Object.entries(extensionDescriptors)) {
+                    for (const key of extensionNames) {
                         try {
                             if (Object.getOwnPropertyDescriptor(crawlingContext, key)?.configurable !== false) {
-                                Object.defineProperty(crawlingContext, key, descriptor);
+                                Object.defineProperty(
+                                    crawlingContext,
+                                    key,
+                                    Object.getOwnPropertyDescriptor(contextExtension, key)!,
+                                );
                             }
                         } catch (error: any) {
-                            log.debug(`Context pipeline failed to define property ${key}:`, error);
+                            log.debug(`Context pipeline failed to define property ${key.toString()}:`, error);
                         }
                     }
 
