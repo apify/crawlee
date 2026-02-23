@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
-import { Configuration } from 'crawlee';
+import { Configuration, serviceLocator } from 'crawlee';
 import { ensureDir } from 'fs-extra';
 
 import log from '@apify/log';
@@ -22,7 +22,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
 
         this.storage = new MemoryStorage({ localDataDirectory: localStorageDir, persistStorage, writeMetadata: false });
 
-        Configuration.getGlobalConfig().useStorageClient(this.storage);
+        serviceLocator.setStorageClient(this.storage);
         log.debug(`Initialized emulated memory storage in folder ${localStorageDir}`);
     }
 

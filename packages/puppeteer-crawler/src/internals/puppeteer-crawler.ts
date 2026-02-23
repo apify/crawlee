@@ -5,8 +5,9 @@ import type {
     GetUserDataFromRequest,
     RouterRoutes,
 } from '@crawlee/browser';
-import { BrowserCrawler, Configuration, RequestState, Router } from '@crawlee/browser';
+import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
@@ -169,10 +170,7 @@ export class PuppeteerCrawler<
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(
-        options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {},
-        override readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {
@@ -205,27 +203,24 @@ export class PuppeteerCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
+        const puppeteerLauncher = new PuppeteerLauncher(launchContext, options.configuration);
 
         browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 
-        super(
-            {
-                ...(browserCrawlerOptions as BrowserCrawlerOptions<
-                    Page,
-                    HTTPResponse,
-                    PuppeteerController,
-                    PuppeteerCrawlingContext,
-                    ContextExtension,
-                    ExtendedContext
-                >),
-                launchContext,
-                proxyConfiguration,
-                browserPoolOptions,
-                contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
-            },
-            config,
-        );
+        super({
+            ...(browserCrawlerOptions as BrowserCrawlerOptions<
+                Page,
+                HTTPResponse,
+                PuppeteerController,
+                PuppeteerCrawlingContext,
+                ContextExtension,
+                ExtendedContext
+            >),
+            launchContext,
+            proxyConfiguration,
+            browserPoolOptions,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+        });
     }
 
     protected override buildContextPipeline() {
@@ -276,7 +271,7 @@ export class PuppeteerCrawler<
             infiniteScroll: async (options?: InfiniteScrollOptions) =>
                 puppeteerUtils.infiniteScroll(context.page, options),
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                puppeteerUtils.saveSnapshot(context.page, { ...options, config: this.config }),
+                puppeteerUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
             closeCookieModals: async () => puppeteerUtils.closeCookieModals(context.page),
         };
     }

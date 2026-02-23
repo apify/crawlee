@@ -6,7 +6,7 @@ import type {
     RequestHandler,
     RouterRoutes,
 } from '@crawlee/browser';
-import { BrowserCrawler, Configuration, RequestState, Router } from '@crawlee/browser';
+import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
@@ -199,10 +199,7 @@ export class PlaywrightCrawler<
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(
-        options: PlaywrightCrawlerOptions<ExtendedContext> = {},
-        override readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: PlaywrightCrawlerOptions<ExtendedContext> = {}) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
@@ -229,19 +226,16 @@ export class PlaywrightCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const playwrightLauncher = new PlaywrightLauncher(launchContext, config);
+        const playwrightLauncher = new PlaywrightLauncher(launchContext, options.configuration);
 
         browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 
-        super(
-            {
-                ...(browserCrawlerOptions as PlaywrightCrawlerOptions<ExtendedContext>),
-                launchContext,
-                browserPoolOptions,
-                contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
-            },
-            config,
-        );
+        super({
+            ...(browserCrawlerOptions as PlaywrightCrawlerOptions<ExtendedContext>),
+            launchContext,
+            browserPoolOptions,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+        });
     }
 
     protected override buildContextPipeline() {
@@ -287,7 +281,7 @@ export class PlaywrightCrawler<
             infiniteScroll: async (options?: InfiniteScrollOptions) =>
                 playwrightUtils.infiniteScroll(context.page, options),
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                playwrightUtils.saveSnapshot(context.page, { ...options, config: this.config }),
+                playwrightUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
             enqueueLinksByClickingElements: async (
                 options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
             ) =>

@@ -14,15 +14,7 @@ import type {
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
-import {
-    BasicCrawler,
-    BLOCKED_STATUS_CODES,
-    Configuration,
-    mergeCookies,
-    RequestState,
-    Router,
-    SessionError,
-} from '@crawlee/basic';
+import { BasicCrawler, BLOCKED_STATUS_CODES, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -349,7 +341,6 @@ export class HttpCrawler<
     constructor(
         options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
-        override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
 
@@ -371,15 +362,12 @@ export class HttpCrawler<
             ...basicCrawlerOptions
         } = options;
 
-        super(
-            {
-                ...basicCrawlerOptions,
-                autoscaledPoolOptions,
-                contextPipelineBuilder:
-                    contextPipelineBuilder ?? (() => this.buildContextPipeline() as ContextPipeline<object, Context>),
-            },
-            config,
-        );
+        super({
+            ...basicCrawlerOptions,
+            autoscaledPoolOptions,
+            contextPipelineBuilder:
+                contextPipelineBuilder ?? (() => this.buildContextPipeline() as ContextPipeline<object, Context>),
+        });
 
         // Cookies should be persisted per session only if session pool is used
         if (!this.useSessionPool && persistCookiesPerSession) {

@@ -1,7 +1,6 @@
 import { weightedAvg } from '@crawlee/utils';
 import ow from 'ow';
 
-import type { Configuration } from '../configuration.js';
 import { Snapshotter } from './snapshotter.js';
 
 /**
@@ -71,9 +70,6 @@ export interface SystemStatusOptions {
      * The `Snapshotter` instance to be queried for `SystemStatus`.
      */
     snapshotter?: Snapshotter;
-
-    /** @internal */
-    config?: Configuration;
 }
 
 export interface ClientInfo {
@@ -135,7 +131,6 @@ export class SystemStatus {
                 maxCpuOverloadedRatio: ow.optional.number,
                 maxClientOverloadedRatio: ow.optional.number,
                 snapshotter: ow.optional.object,
-                config: ow.optional.object,
             }),
         );
 
@@ -146,7 +141,6 @@ export class SystemStatus {
             maxCpuOverloadedRatio = 0.4,
             maxClientOverloadedRatio = 0.3,
             snapshotter,
-            config,
         } = options;
 
         this.currentHistoryMillis = currentHistorySecs * 1000;
@@ -154,7 +148,7 @@ export class SystemStatus {
         this.maxEventLoopOverloadedRatio = maxEventLoopOverloadedRatio;
         this.maxCpuOverloadedRatio = maxCpuOverloadedRatio;
         this.maxClientOverloadedRatio = maxClientOverloadedRatio;
-        this.snapshotter = snapshotter || new Snapshotter({ config });
+        this.snapshotter = snapshotter || new Snapshotter();
     }
 
     /**

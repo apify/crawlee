@@ -1,6 +1,5 @@
 import type {
     BasicCrawlingContext,
-    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -192,16 +191,13 @@ export class JSDOMCrawler<
     protected hideInternalConsole: boolean;
     protected virtualConsole: VirtualConsole | null = null;
 
-    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}, config?: Configuration) {
+    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         const { runScripts = false, hideInternalConsole = false, contextPipelineBuilder, ...httpOptions } = options;
 
-        super(
-            {
-                ...httpOptions,
-                contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
-            },
-            config,
-        );
+        super({
+            ...httpOptions,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+        });
 
         this.runScripts = runScripts;
         this.hideInternalConsole = hideInternalConsole;
