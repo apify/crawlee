@@ -209,6 +209,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('setCookies will log warning (not throw) on invalid cookies', () => {
         const url = 'https://www.example.com';
+        // domain 'abc.different.domain' does not match the request URL, so tough-cookie rejects it
         const cookies = [{ name: 'cookie1', value: 'my-cookie', domain: 'abc.different.domain' }];
 
         const mockedLog = vitest.mockObject(log, {
@@ -219,6 +220,14 @@ describe('Session - testing session behaviour ', () => {
         session.setCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('');
         expect(mockedLog.warning).toHaveBeenCalledOnce();
+    });
+
+    test('setCookie does not throw on malformed raw cookie string', () => {
+        session = new Session({ sessionPool });
+        vitest.spyOn(session.cookieJar, 'setCookieSync').mockImplementation(() => {
+            throw new Error('malformed cookie');
+        });
+        expect(() => session.setCookie('malformed=🍪; domain=evil.com', 'https://www.example.com')).not.toThrow();
     });
 
     test('setCookies works with hostOnly cookies', () => {
