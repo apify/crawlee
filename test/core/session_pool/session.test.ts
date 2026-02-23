@@ -1,4 +1,4 @@
-import { EVENT_SESSION_RETIRED, Session, SessionPool } from '@crawlee/core';
+import { EVENT_SESSION_RETIRED, log, Session, SessionPool } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import { entries, sleep } from '@crawlee/utils';
 import { CookieJar } from 'tough-cookie';
@@ -205,6 +205,26 @@ describe('Session - testing session behaviour ', () => {
         session = new Session({ sessionPool });
         session.setCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('cookie2=your-cookie');
+    });
+
+    test('setCookies will log warning (not throw) on invalid cookies', () => {
+        const url = 'https://www.example.com';
+        // domain 'abc.different.domain' does not match the request URL, so tough-cookie rejects it
+        const cookies = [{ name: 'cookie1', value: 'my-cookie', domain: 'abc.different.domain' }];
+
+        const mockedLog = vitest.mockObject(log, {
+            spy: true,
+        });
+
+        session = new Session({ sessionPool, log: mockedLog } as any);
+        session.setCookies(cookies, url);
+        expect(session.getCookieString(url)).toBe('');
+        expect(mockedLog.warning).toHaveBeenCalledOnce();
+    });
+
+    test('setCookie does not throw on malformed raw cookie string', () => {
+        session = new Session({ sessionPool });
+        expect(() => session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).not.toThrow();
     });
 
     test('setCookies works with hostOnly cookies', () => {

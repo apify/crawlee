@@ -364,7 +364,11 @@ export class Session implements ISession {
      * Sets a cookie within this session for the specific URL.
      */
     setCookie(rawCookie: string, url: string): void {
-        this.cookieJar.setCookieSync(rawCookie, url);
+        try {
+            this.cookieJar.setCookieSync(rawCookie, url);
+        } catch (e) {
+            this.log.warning('Could not set cookie.', { url, error: (e as Error).message });
+        }
     }
 
     /**
@@ -384,7 +388,7 @@ export class Session implements ISession {
 
         // if invalid cookies are provided just log the exception. No need to retry the request automatically.
         if (errorMessages.length) {
-            this.log.debug('Could not set cookies.', { errorMessages });
+            this.log.warning('Could not set cookies.', { errorMessages });
         }
     }
 
