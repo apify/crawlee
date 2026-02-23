@@ -224,10 +224,8 @@ describe('Session - testing session behaviour ', () => {
 
     test('setCookie does not throw on malformed raw cookie string', () => {
         session = new Session({ sessionPool });
-        vitest.spyOn(session.cookieJar, 'setCookieSync').mockImplementation(() => {
-            throw new Error('malformed cookie');
-        });
-        expect(() => session.setCookie('malformed=🍪; domain=evil.com', 'https://www.example.com')).not.toThrow();
+        // domain mismatch causes setCookieSync to throw
+        expect(() => session.setCookie('name=value; domain=evil.com', 'https://www.example.com')).not.toThrow();
     });
 
     test('setCookies works with hostOnly cookies', () => {
