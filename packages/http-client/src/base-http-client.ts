@@ -1,6 +1,9 @@
 import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 
+import type { Log } from '@apify/log';
+import defaultLog from '@apify/log';
+
 export interface CustomFetchOptions {
     proxyUrl?: string;
 }
@@ -11,6 +14,12 @@ export interface CustomFetchOptions {
  * implement only the low-level network call in `fetch`.
  */
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
+    protected log: Log;
+
+    constructor(log?: Log) {
+        this.log = log ?? defaultLog;
+    }
+
     /**
      * Perform the raw network request and return a single Response without any
      * automatic redirect following or special error handling.
@@ -18,10 +27,16 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     protected abstract fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>;
 
     private async applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
-        const cookies = (await cookieJar.getCookies(request.url)).map((x) => x.cookieString().trim()).filter(Boolean);
+        try {
+            const cookies = (await cookieJar.getCookies(request.url))
+                .map((x) => x.cookieString().trim())
+                .filter(Boolean);
 
-        if (cookies?.length > 0) {
-            request.headers.set('cookie', cookies.join('; '));
+            if (cookies?.length > 0) {
+                request.headers.set('cookie', cookies.join('; '));
+            }
+        } catch (e) {
+            this.log.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }
         return request;
     }
@@ -29,7 +44,13 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     private async setCookies(response: Response, cookieJar: CookieJar): Promise<void> {
         const setCookieHeaders = response.headers.getSetCookie();
 
-        await Promise.all(setCookieHeaders.map((header) => cookieJar.setCookie(header, response.url)));
+        for (const header of setCookieHeaders) {
+            try {
+                await cookieJar.setCookie(header, response.url);
+            } catch (e) {
+                this.log.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
+            }
+        }
     }
 
     private resolveRequestContext(options?: SendRequestOptions): {
