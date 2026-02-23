@@ -59,3 +59,15 @@ export class RequestHandlerError extends Error {
         super(undefined, { cause: error, ...options });
     }
 }
+
+/**
+ * Thrown when attempting to set a different service instance after one has already been retrieved.
+ */
+export class ServiceConflictError extends Error {
+    constructor(serviceName: string, newValue: unknown, existingValue: unknown) {
+        super(
+            `Service ${serviceName} is already in use. ` +
+                `Existing value: ${existingValue}, attempted new value: ${newValue}.`,
+        );
+    }
+}

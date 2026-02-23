@@ -5,7 +5,13 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import util from 'node:util';
 
-import { BrowserLauncher, Configuration, launchPlaywright, PlaywrightLauncher } from '@crawlee/playwright';
+import {
+    BrowserLauncher,
+    Configuration,
+    launchPlaywright,
+    PlaywrightLauncher,
+    serviceLocator,
+} from '@crawlee/playwright';
 // @ts-expect-error no types
 import basicAuthParser from 'basic-auth-parser';
 import type { Browser, BrowserType } from 'playwright';
@@ -14,7 +20,6 @@ import portastic from 'portastic';
 import { createProxy } from 'proxy';
 import { runExampleComServer } from 'test/shared/_helper.js';
 
-let prevEnvHeadless: boolean;
 let proxyServer: Server;
 let proxyPort: number;
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
@@ -25,11 +30,11 @@ let server: Server;
 let serverAddress = 'http://localhost:';
 
 // Setup local proxy server for the tests
-beforeAll(async () => {
-    const config = Configuration.getGlobalConfig();
-    prevEnvHeadless = config.get('headless');
-    config.set('headless', true);
+beforeEach(() => {
+    serviceLocator.setConfiguration(new Configuration({ headless: true }));
+});
 
+beforeAll(async () => {
     [server, port] = await runExampleComServer();
     serverAddress += port;
 
@@ -66,8 +71,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-    Configuration.getGlobalConfig().set('headless', prevEnvHeadless);
-
     server.close();
     if (proxyServer) await util.promisify(proxyServer.close).bind(proxyServer)();
 }, 5000);
@@ -118,12 +121,10 @@ describe('launchPlaywright()', () => {
     describe('headful mode', () => {
         let browser: Browser;
 
-        beforeAll(() => {
-            // Test headless parameter
-            Configuration.getGlobalConfig().set('headless', false);
-        });
-
         beforeEach(async () => {
+            // Test headless parameter - reset first since outer beforeEach already set configuration
+            serviceLocator.reset();
+            serviceLocator.setConfiguration(new Configuration({ headless: false }));
             browser = await launchPlaywright({
                 launchOptions: { headless: true, timeout: 60e3 },
                 proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
@@ -132,10 +133,6 @@ describe('launchPlaywright()', () => {
 
         afterEach(async () => {
             if (browser) await browser.close();
-        });
-
-        afterAll(() => {
-            Configuration.getGlobalConfig().set('headless', true);
         });
 
         test('opens a webpage via proxy with authentication', async () => {

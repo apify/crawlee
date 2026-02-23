@@ -1,4 +1,4 @@
-import { Configuration, EventType, Statistics } from '@crawlee/core';
+import { Configuration, EventType, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
@@ -9,8 +9,6 @@ describe('Statistics', () => {
 
     let stats: Statistics;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
-
     beforeAll(async () => {
         vitest.useFakeTimers();
     });
@@ -21,7 +19,7 @@ describe('Statistics', () => {
     });
 
     afterEach(async () => {
-        events.off(EventType.PERSIST_STATE);
+        serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
         stats = null as any;
     });
 
@@ -157,6 +155,7 @@ describe('Statistics', () => {
         });
 
         test('should remove persist state event listener', async () => {
+            const events = serviceLocator.getEventManager();
             await stats.startCapturing();
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
             await stats.stopCapturing();
@@ -180,7 +179,7 @@ describe('Statistics', () => {
             // @ts-expect-error Accessing private prop
             const setValueSpy = vitest.spyOn(stats.keyValueStore, 'setValue');
 
-            events.emit(EventType.PERSIST_STATE);
+            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
 
             // TODO: these properties don't exist on the calculate return type
             // @ts-expect-error Incorrect types?
