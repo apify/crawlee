@@ -1,6 +1,7 @@
 export * from './errors.js';
 export * from './autoscaling/index.js';
 export * from './configuration.js';
+export * from './service_locator.js';
 export * from './crawlers/index.js';
 export * from './enqueue_links/index.js';
 export * from './events/index.js';

@@ -16,7 +16,6 @@ import type {
 import {
     BasicCrawler,
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
-    Configuration,
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
@@ -347,7 +346,6 @@ export abstract class BrowserCrawler<
         > & {
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         },
-        override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
@@ -366,18 +364,15 @@ export abstract class BrowserCrawler<
             ...basicCrawlerOptions
         } = options;
 
-        super(
-            {
-                ...basicCrawlerOptions,
-                contextPipelineBuilder: () =>
-                    contextPipelineBuilder()
-                        .compose({ action: this.performNavigation.bind(this) })
-                        .compose({ action: this.handleBlockedRequestByContent.bind(this) })
-                        .compose({ action: this.restoreRequestState.bind(this) }),
-                extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
-            },
-            config,
-        );
+        super({
+            ...basicCrawlerOptions,
+            contextPipelineBuilder: () =>
+                contextPipelineBuilder()
+                    .compose({ action: this.performNavigation.bind(this) })
+                    .compose({ action: this.handleBlockedRequestByContent.bind(this) })
+                    .compose({ action: this.restoreRequestState.bind(this) }),
+            extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
+        });
 
         // Cookies should be persisted per session only if session pool is used
         if (!this.useSessionPool && persistCookiesPerSession) {
