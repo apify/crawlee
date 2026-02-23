@@ -3,9 +3,9 @@ import ow from 'ow';
 
 import type { Log } from '@apify/log';
 
-import { Configuration } from '../configuration.js';
-import type { EventManager } from '../events/event_manager.js';
+import type { Configuration } from '../configuration.js';
 import { log as defaultLog } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import type { ClientLoadSignal, ClientSnapshot } from './client_load_signal.js';
 import { createClientLoadSignal } from './client_load_signal.js';
 import type { CpuLoadSignal, CpuSnapshot } from './cpu_load_signal.js';
@@ -99,7 +99,6 @@ export class Snapshotter {
     log: Log;
     client: StorageClient;
     config: Configuration;
-    events: EventManager;
 
     private readonly memorySignal: MemoryLoadSignal;
     private readonly eventLoopSignal: EventLoopLoadSignal;
@@ -158,14 +157,13 @@ export class Snapshotter {
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
             log = defaultLog,
-            config = Configuration.getGlobalConfig(),
-            client = config.getStorageClient(),
+            config = serviceLocator.getConfiguration(),
+            client = serviceLocator.getStorageClient(),
         } = options;
 
         this.log = log.child({ prefix: 'Snapshotter' });
         this.client = client;
         this.config = config;
-        this.events = this.config.getEventManager();
 
         const snapshotHistoryMillis = snapshotHistorySecs * 1000;
 

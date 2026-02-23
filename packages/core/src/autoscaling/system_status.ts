@@ -1,6 +1,5 @@
 import ow from 'ow';
 
-import type { Configuration } from '../configuration.js';
 import type { LoadSignal } from './load_signal.js';
 import { evaluateLoadSignalSample } from './load_signal.js';
 import { Snapshotter } from './snapshotter.js';
@@ -87,9 +86,6 @@ export interface SystemStatusOptions {
      * considered overloaded.
      */
     loadSignals?: LoadSignal[];
-
-    /** @internal */
-    config?: Configuration;
 }
 
 export interface ClientInfo {
@@ -159,7 +155,6 @@ export class SystemStatus {
                 maxClientOverloadedRatio: ow.optional.number,
                 snapshotter: ow.optional.object,
                 loadSignals: ow.optional.array,
-                config: ow.optional.object,
             }),
         );
 
@@ -171,11 +166,10 @@ export class SystemStatus {
             maxClientOverloadedRatio = 0.3,
             snapshotter,
             loadSignals = [],
-            config,
         } = options;
 
         this.currentHistoryMillis = currentHistorySecs * 1000;
-        this.snapshotter = snapshotter || new Snapshotter({ config });
+        this.snapshotter = snapshotter || new Snapshotter();
 
         // Built-in signals from the snapshotter + any custom signals
         this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];

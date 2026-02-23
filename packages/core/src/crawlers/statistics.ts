@@ -2,10 +2,10 @@ import ow from 'ow';
 
 import type { Log } from '@apify/log';
 
-import { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import { log as defaultLog } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { ErrorTracker } from './error_tracker.js';
 
@@ -84,11 +84,6 @@ export class Statistics {
      */
     readonly requestRetryHistogram: number[] = [];
 
-    /**
-     * Contains the associated Configuration instance
-     */
-    private readonly config: Configuration;
-
     protected keyValueStore?: KeyValueStore = undefined;
     protected persistStateKey: string;
     private logIntervalMillis: number;
@@ -98,8 +93,15 @@ export class Statistics {
     private readonly log: Log;
     private instanceStart!: number;
     private logInterval: unknown;
-    private events: EventManager;
+    private _events?: EventManager;
     private persistenceOptions: PersistenceOptions;
+
+    private get events(): EventManager {
+        if (!this._events) {
+            this._events = serviceLocator.getEventManager();
+        }
+        return this._events;
+    }
 
     /**
      * @internal
@@ -112,7 +114,6 @@ export class Statistics {
                 logMessage: ow.optional.string,
                 log: ow.optional.object,
                 keyValueStore: ow.optional.object,
-                config: ow.optional.object,
                 persistenceOptions: ow.optional.object,
                 saveErrorSnapshots: ow.optional.boolean,
                 id: ow.optional.any(ow.number, ow.string),
@@ -123,7 +124,6 @@ export class Statistics {
             logIntervalSecs = 60,
             logMessage = 'Statistics',
             keyValueStore,
-            config = Configuration.getGlobalConfig(),
             persistenceOptions = {
                 enable: true,
             },
@@ -141,8 +141,6 @@ export class Statistics {
         this.logMessage = logMessage;
         this.keyValueStore = keyValueStore;
         this.listener = this.persistState.bind(this);
-        this.events = config.getEventManager();
-        this.config = config;
         this.persistenceOptions = persistenceOptions;
 
         // initialize by "resetting"
@@ -282,7 +280,7 @@ export class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
-        this.keyValueStore ??= await KeyValueStore.open(null, { config: this.config });
+        this.keyValueStore ??= await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
 
         if (this.state.crawlerStartedAt === null) {
             this.state.crawlerStartedAt = new Date();
@@ -335,7 +333,7 @@ export class Statistics {
         this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
             .setValue(this.persistStateKey, this.toJSON(), {
@@ -394,7 +392,9 @@ export class Statistics {
 
     protected _teardown(): void {
         // this can be called before a call to startCapturing happens (or in a 'finally' block)
-        this.events.off(EventType.PERSIST_STATE, this.listener);
+        // Only unsubscribe if event manager was already resolved — avoid eagerly resolving it
+        // (e.g. during the constructor's reset() call, which would capture the wrong context)
+        this._events?.off(EventType.PERSIST_STATE, this.listener);
 
         if (this.logInterval) {
             clearInterval(this.logInterval as number);
@@ -462,12 +462,6 @@ export interface StatisticsOptions {
      * If not provided, the default one will be used when capturing starts
      */
     keyValueStore?: KeyValueStore;
-
-    /**
-     * Configuration instance to use
-     * @default Configuration.getGlobalConfig()
-     */
-    config?: Configuration;
 
     /**
      * Control how and when to persist the statistics.

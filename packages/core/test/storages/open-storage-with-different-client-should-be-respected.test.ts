@@ -1,12 +1,11 @@
 import { MemoryStorage } from '@crawlee/memory-storage';
-import { Configuration, RequestQueue } from 'crawlee';
+import { RequestQueue, serviceLocator } from 'crawlee';
 
-const originalClient = Configuration.getStorageClient();
-const newClient = new MemoryStorage({ persistStorage: false, writeMetadata: false });
-Configuration.useStorageClient(newClient);
+let newClient: MemoryStorage;
 
-afterAll(() => {
-    Configuration.useStorageClient(originalClient);
+beforeEach(() => {
+    newClient = new MemoryStorage({ persistStorage: false, writeMetadata: false });
+    serviceLocator.setStorageClient(newClient);
 });
 
 describe('Opening a storage with a different storage client should be respected', () => {
