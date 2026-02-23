@@ -127,7 +127,7 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
             (other as any).middlewareChain() as Iterable<ContextMiddleware<any, any>>,
         ).reverse();
 
-        let result: ContextPipeline<TContextBase, any> = this;
+        let result: ContextPipeline<TContextBase, any> = this as any;
         for (const middleware of otherMiddlewares) {
             result = result.compose(middleware as any);
         }
