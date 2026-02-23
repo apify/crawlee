@@ -346,13 +346,8 @@ export class Session implements ISession {
      * @param url website url. Only cookies stored for this url will be returned
      */
     getCookies(url: string): CookieObject[] {
-        try {
-            const cookies = this.cookieJar.getCookiesSync(url);
-            return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
-        } catch (e) {
-            this.log.warning('Could not get cookies from cookie jar.', { url, error: (e as Error).message });
-            return [];
-        }
+        const cookies = this.cookieJar.getCookiesSync(url);
+        return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
     }
 
     /**
@@ -362,12 +357,7 @@ export class Session implements ISession {
      * @returns Represents `Cookie` header.
      */
     getCookieString(url: string): string {
-        try {
-            return this.cookieJar.getCookieStringSync(url, {});
-        } catch (e) {
-            this.log.warning('Could not get cookie string.', { url, error: (e as Error).message });
-            return '';
-        }
+        return this.cookieJar.getCookieStringSync(url, {});
     }
 
     /**
