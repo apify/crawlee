@@ -890,9 +890,9 @@ export class BasicCrawler<
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
-                        await this.basicContextPipeline.call(crawlingContext, async (basicCtx) => {
-                            await this.contextPipeline.call(basicCtx, this._runTaskFunction.bind(this));
-                        });
+                        await this.basicContextPipeline
+                            .chain(this.contextPipeline)
+                            .call(crawlingContext, this._runTaskFunction.bind(this));
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.

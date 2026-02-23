@@ -59,6 +59,19 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
     ): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
 
     /**
+     * Chains another pipeline onto this one. The other pipeline's base context must match
+     * this pipeline's output context. Returns a new pipeline that runs this pipeline's
+     * middlewares first, then the other pipeline's middlewares.
+     *
+     * @template TFinalContext - The final context type after the chained pipeline's transformations
+     * @param other - The pipeline to append after this one
+     * @returns A new ContextPipeline combining both pipelines' middlewares
+     */
+    abstract chain<TFinalContext extends TCrawlingContext>(
+        other: ContextPipeline<TCrawlingContext, TFinalContext>,
+    ): ContextPipeline<TContextBase, TFinalContext>;
+
+    /**
      * Executes the middleware pipeline and passes the final context to a consumer function.
      *
      * This method runs the crawling context through the entire middleware chain, enhancing it
@@ -105,6 +118,21 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
             middleware as any,
             this as any,
         );
+    }
+
+    chain<TFinalContext extends TCrawlingContext>(
+        other: ContextPipeline<TCrawlingContext, TFinalContext>,
+    ): ContextPipeline<TContextBase, TFinalContext> {
+        const otherMiddlewares = Array.from(
+            (other as any).middlewareChain() as Iterable<ContextMiddleware<any, any>>,
+        ).reverse();
+
+        let result: ContextPipeline<TContextBase, any> = this;
+        for (const middleware of otherMiddlewares) {
+            result = result.compose(middleware as any);
+        }
+
+        return result as ContextPipeline<TContextBase, TFinalContext>;
     }
 
     private *middlewareChain() {
