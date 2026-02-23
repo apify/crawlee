@@ -1,4 +1,5 @@
-import { Configuration, EventType, KeyValueStore } from '@crawlee/core';
+import type { Configuration } from '@crawlee/core';
+import { EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
 
 import type { Log } from '@apify/log';
 import log from '@apify/log';
@@ -81,7 +82,6 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
     private readonly persistStateKvsId?: string;
     private keyValueStore: KeyValueStore | null = null;
     private readonly log: Log;
-    private readonly config: Configuration;
     private readonly serialize: (state: TStateModel) => string;
     private readonly deserialize: (serializedState: string) => TStateModel;
 
@@ -97,7 +97,6 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
         this.persistStateKvsName = options.persistStateKvsName;
         this.persistStateKvsId = options.persistStateKvsId;
         this.log = options.logger ?? log.child({ prefix: 'RecoverableState' });
-        this.config = options.config ?? Configuration.getGlobalConfig();
         this.serialize = options.serialize ?? JSON.stringify;
         this.deserialize = options.deserialize ?? JSON.parse;
 
@@ -123,13 +122,13 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
         }
 
         this.keyValueStore = await KeyValueStore.open(this.persistStateKvsName ?? this.persistStateKvsId, {
-            config: this.config,
+            config: serviceLocator.getConfiguration(),
         });
 
         await this.loadSavedState();
 
         // Register for persist state events
-        const eventManager = this.config.getEventManager();
+        const eventManager = serviceLocator.getEventManager();
         eventManager.on(EventType.PERSIST_STATE, this.persistState);
 
         return this.currentValue;
@@ -146,7 +145,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
             return;
         }
 
-        const eventManager = this.config.getEventManager();
+        const eventManager = serviceLocator.getEventManager();
         eventManager.off(EventType.PERSIST_STATE, this.persistState);
         await this.persistState();
     }

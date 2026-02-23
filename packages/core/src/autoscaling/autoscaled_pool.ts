@@ -5,7 +5,6 @@ import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration.js';
 import { CriticalError } from '../errors.js';
 import { log as defaultLog } from '../log.js';
 import type { SnapshotterOptions } from './snapshotter.js';
@@ -211,10 +210,7 @@ export class AutoscaledPool {
     private tasksDonePerSecondInterval?: BetterIntervalID;
     private _tasksPerMinute: number[] = Array.from({ length: 60 }, () => 0);
 
-    constructor(
-        options: AutoscaledPoolOptions,
-        private readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: AutoscaledPoolOptions) {
         ow(
             options,
             ow.object.exactShape({
@@ -290,10 +286,7 @@ export class AutoscaledPool {
         ssoCopy.snapshotter ??= new Snapshotter({
             ...snapshotterOptions,
             log: this.log,
-            config: this.config,
-            client: this.config.getStorageClient(),
         });
-        ssoCopy.config ??= this.config;
         this.snapshotter = ssoCopy.snapshotter;
         this.systemStatus = new SystemStatus(ssoCopy);
     }

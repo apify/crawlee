@@ -18,11 +18,11 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import {
-    Configuration,
     RequestHandlerError,
     RequestHandlerResult,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
+    serviceLocator,
     Statistics,
     withCheckedStorageAccess,
 } from '@crawlee/core';
@@ -278,10 +278,7 @@ export class AdaptivePlaywrightCrawler<
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
-    constructor(
-        options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {},
-        override readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {}) {
         const {
             requestHandler,
             renderingTypeDetectionRatio = 0.1,
@@ -300,21 +297,19 @@ export class AdaptivePlaywrightCrawler<
             ...rest
         } = options;
 
-        super(
-            {
-                ...rest,
-                // Pass error handlers to the "main" crawler - we only pluck them from `rest` so that they don't go to the sub crawlers
-                errorHandler,
-                failedRequestHandler,
-                // Same for request handler
-                requestHandler,
-                // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
-                // (that would be a logical error in this class)
-                contextPipelineBuilder: () =>
-                    null as unknown as ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext>,
-            },
-            config,
-        );
+        super({
+            ...rest,
+            // Pass error handlers to the "main" crawler - we only pluck them from `rest` so that they don't go to the sub crawlers
+            errorHandler,
+            failedRequestHandler,
+            // Same for request handler
+            requestHandler,
+            // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
+            // (that would be a logical error in this class)
+            contextPipelineBuilder: () =>
+                null as unknown as ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext>,
+        });
+
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
 
         this.renderingTypePredictor =
@@ -336,55 +331,49 @@ export class AdaptivePlaywrightCrawler<
                 );
             };
         }
-        const staticCrawler = new CheerioCrawler(
-            {
-                ...rest,
-                useSessionPool: false,
-                statisticsOptions: {
-                    persistenceOptions: { enable: false },
-                },
-                preNavigationHooks: [
-                    async (context) => {
-                        for (const hook of preNavigationHooks ?? []) {
-                            await hook(context, undefined);
-                        }
-                    },
-                ],
-                postNavigationHooks: [
-                    async (context) => {
-                        for (const hook of postNavigationHooks ?? []) {
-                            await hook(context, undefined);
-                        }
-                    },
-                ],
+        const staticCrawler = new CheerioCrawler({
+            ...rest,
+            useSessionPool: false,
+            statisticsOptions: {
+                persistenceOptions: { enable: false },
             },
-            config,
-        );
+            preNavigationHooks: [
+                async (context) => {
+                    for (const hook of preNavigationHooks ?? []) {
+                        await hook(context, undefined);
+                    }
+                },
+            ],
+            postNavigationHooks: [
+                async (context) => {
+                    for (const hook of postNavigationHooks ?? []) {
+                        await hook(context, undefined);
+                    }
+                },
+            ],
+        });
 
-        const browserCrawler = new PlaywrightCrawler(
-            {
-                ...rest,
-                useSessionPool: false,
-                statisticsOptions: {
-                    persistenceOptions: { enable: false },
-                },
-                preNavigationHooks: [
-                    async (context, gotoOptions) => {
-                        for (const hook of preNavigationHooks ?? []) {
-                            await hook(context, gotoOptions);
-                        }
-                    },
-                ],
-                postNavigationHooks: [
-                    async (context, gotoOptions) => {
-                        for (const hook of postNavigationHooks ?? []) {
-                            await hook(context, gotoOptions);
-                        }
-                    },
-                ],
+        const browserCrawler = new PlaywrightCrawler({
+            ...rest,
+            useSessionPool: false,
+            statisticsOptions: {
+                persistenceOptions: { enable: false },
             },
-            config,
-        );
+            preNavigationHooks: [
+                async (context, gotoOptions) => {
+                    for (const hook of preNavigationHooks ?? []) {
+                        await hook(context, gotoOptions);
+                    }
+                },
+            ],
+            postNavigationHooks: [
+                async (context, gotoOptions) => {
+                    for (const hook of postNavigationHooks ?? []) {
+                        await hook(context, gotoOptions);
+                    }
+                },
+            ],
+        });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
 
@@ -408,7 +397,6 @@ export class AdaptivePlaywrightCrawler<
 
         this.stats = new AdaptivePlaywrightCrawlerStatistics({
             logMessage: `${this.log.getOptions().prefix} request statistics:`,
-            config,
             ...statisticsOptions,
         });
 
@@ -506,7 +494,10 @@ export class AdaptivePlaywrightCrawler<
         context: CrawlingContext,
         useStateFunction: (defaultValue?: Dictionary) => Promise<Dictionary>,
     ): Promise<Result<RequestHandlerResult>> {
-        const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
+        const result = new RequestHandlerResult(
+            serviceLocator.getConfiguration(),
+            AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY,
+        );
         const logs: LogProxyCall[] = [];
 
         const deferredCleanup: (() => Promise<unknown>)[] = [];

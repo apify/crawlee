@@ -1,6 +1,5 @@
 import type {
     BasicCrawlingContext,
-    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -192,25 +191,22 @@ export class JSDOMCrawler<
     protected hideInternalConsole: boolean;
     protected virtualConsole: VirtualConsole | null = null;
 
-    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}, config?: Configuration) {
+    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         const { runScripts = false, hideInternalConsole = false, ...httpOptions } = options;
 
-        super(
-            {
-                ...httpOptions,
-                contextPipelineBuilder: () =>
-                    this.buildContextPipeline()
-                        .compose({
-                            action: async (context) => await this.parseContent(context),
-                            cleanup: async (context) => {
-                                this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
-                                context.window?.close();
-                            },
-                        })
-                        .compose({ action: async (context) => await this.addHelpers(context) }),
-            },
-            config,
-        );
+        super({
+            ...httpOptions,
+            contextPipelineBuilder: () =>
+                this.buildContextPipeline()
+                    .compose({
+                        action: async (context) => await this.parseContent(context),
+                        cleanup: async (context) => {
+                            this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
+                            context.window?.close();
+                        },
+                    })
+                    .compose({ action: async (context) => await this.addHelpers(context) }),
+        });
 
         this.runScripts = runScripts;
         this.hideInternalConsole = hideInternalConsole;

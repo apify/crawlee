@@ -1,4 +1,4 @@
-import { Configuration, EventType, KeyValueStore, Session, SessionPool } from '@crawlee/core';
+import { EventType, KeyValueStore, serviceLocator, Session, SessionPool } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
@@ -7,7 +7,6 @@ import { Log } from '@apify/log';
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
 
     beforeEach(async () => {
         await localStorageEmulator.init();
@@ -15,7 +14,7 @@ describe('SessionPool - testing session pool', () => {
     });
 
     afterEach(async () => {
-        events.off(EventType.PERSIST_STATE);
+        serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
     });
 
     afterAll(async () => {
@@ -246,7 +245,7 @@ describe('SessionPool - testing session pool', () => {
             // @ts-expect-error private symbol
             expect(sessionPool.sessions.length).toBe(1);
 
-            events.emit(EventType.PERSIST_STATE);
+            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
 
             await new Promise<void>((resolve) => {
                 const interval = setInterval(async () => {
@@ -360,6 +359,7 @@ describe('SessionPool - testing session pool', () => {
     });
 
     it('should remove persist state event listener', async () => {
+        const events = serviceLocator.getEventManager();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
         await sessionPool.teardown();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
