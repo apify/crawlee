@@ -4,11 +4,13 @@ import type { Dictionary } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
-import { Configuration } from '../configuration.js';
+import type { Log } from '@apify/log';
+
 import type { PersistenceOptions } from '../crawlers/statistics.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
-import type { CrawleeLogger } from '../log.js';
+import { log as defaultLog } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
@@ -153,10 +155,7 @@ export class SessionPool extends EventEmitter {
     /**
      * @internal
      */
-    constructor(
-        options: SessionPoolOptions = {},
-        readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: SessionPoolOptions = {}) {
         super();
 
         ow(
@@ -186,9 +185,8 @@ export class SessionPool extends EventEmitter {
             },
         } = options;
 
-        this.config = config;
         this.blockedStatusCodes = blockedStatusCodes;
-        this.events = config.getEventManager();
+        this.events = serviceLocator.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
 
@@ -232,7 +230,9 @@ export class SessionPool extends EventEmitter {
             return;
         }
 
-        this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, { config: this.config });
+        this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, {
+            config: serviceLocator.getConfiguration(),
+        });
         if (!this.persistenceOptions.enable) {
             this.isInitialized = true;
             return;
@@ -382,7 +382,7 @@ export class SessionPool extends EventEmitter {
         });
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
             .setValue(this.persistStateKey, this.getState(), {
@@ -523,8 +523,8 @@ export class SessionPool extends EventEmitter {
      *
      * For more details and code examples, see the {@apilink SessionPool} class.
      */
-    static async open(options?: SessionPoolOptions, config?: Configuration): Promise<SessionPool> {
-        const sessionPool = new SessionPool(options, config);
+    static async open(options?: SessionPoolOptions): Promise<SessionPool> {
+        const sessionPool = new SessionPool(options);
         await sessionPool.initialize();
         return sessionPool;
     }

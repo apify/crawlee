@@ -4,8 +4,9 @@ import type { Dictionary } from '@crawlee/types';
 
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 
-import { Configuration } from '../configuration.js';
+import type { Configuration } from '../configuration.js';
 import type { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider.js';
 import { RequestProvider } from './request_provider.js';
@@ -89,7 +90,7 @@ class RequestQueue extends RequestProvider {
     /**
      * @internal
      */
-    constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
+    constructor(options: RequestProviderOptions, config: Configuration = serviceLocator.getConfiguration()) {
         super(
             {
                 ...options,

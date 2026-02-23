@@ -1,14 +1,13 @@
-import type { StorageClient } from '@crawlee/types';
 import { getMemoryInfo, isContainerized } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration.js';
-import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
+import { log as defaultLog } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import type { SystemInfo } from './system_status.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
@@ -58,13 +57,7 @@ export interface SnapshotterOptions {
     snapshotHistorySecs?: number;
 
     /** @internal */
-    log?: CrawleeLogger;
-
-    /** @internal */
-    client?: StorageClient;
-
-    /** @internal */
-    config?: Configuration;
+    log?: Log;
 }
 
 interface MemorySnapshot {
@@ -115,10 +108,7 @@ interface ClientSnapshot {
  * @category Scaling
  */
 export class Snapshotter {
-    log: CrawleeLogger;
-    client: StorageClient;
-    config: Configuration;
-    events: EventManager;
+    log: Log;
     eventLoopSnapshotIntervalMillis: number;
     clientSnapshotIntervalMillis: number;
     snapshotHistoryMillis: number;
@@ -151,8 +141,6 @@ export class Snapshotter {
                 maxUsedMemoryRatio: ow.optional.number,
                 maxClientErrors: ow.optional.number,
                 log: ow.optional.object,
-                client: ow.optional.object,
-                config: ow.optional.object,
             }),
         );
 
@@ -163,15 +151,10 @@ export class Snapshotter {
             maxBlockedMillis = 50,
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
-            config = Configuration.getGlobalConfig(),
-            log = config.getLogger(),
-            client = config.getStorageClient(),
+            log = defaultLog,
         } = options;
 
         this.log = log.child({ prefix: 'Snapshotter' });
-        this.client = client;
-        this.config = config;
-        this.events = this.config.getEventManager();
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
         this.clientSnapshotIntervalMillis = clientSnapshotIntervalSecs * 1000;
@@ -189,16 +172,18 @@ export class Snapshotter {
      * Starts capturing snapshots at configured intervals.
      */
     async start(): Promise<void> {
-        const memoryMbytes = this.config.get('memoryMbytes', 0);
+        const memoryMbytes = serviceLocator.getConfiguration().get('memoryMbytes', 0);
 
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            const containerized = this.config.get('containerized', await isContainerized());
+            const containerized = serviceLocator.getConfiguration().get('containerized', await isContainerized());
             const memInfo = await getMemoryInfo(containerized);
             const totalBytes = memInfo.totalBytes;
 
-            this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
+            this.maxMemoryBytes = Math.ceil(
+                totalBytes * serviceLocator.getConfiguration().get('availableMemoryRatio')!,
+            );
             this.log.debug(
                 `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
                     'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
@@ -211,8 +196,10 @@ export class Snapshotter {
             this.eventLoopSnapshotIntervalMillis,
         );
         this.clientInterval = betterSetInterval(this._snapshotClient.bind(this), this.clientSnapshotIntervalMillis);
-        this.events.on(EventType.SYSTEM_INFO, this._snapshotCpu);
-        this.events.on(EventType.SYSTEM_INFO, this._snapshotMemory);
+
+        const events = serviceLocator.getEventManager();
+        events.on(EventType.SYSTEM_INFO, this._snapshotCpu);
+        events.on(EventType.SYSTEM_INFO, this._snapshotMemory);
     }
 
     /**
@@ -221,8 +208,11 @@ export class Snapshotter {
     async stop(): Promise<void> {
         betterClearInterval(this.eventLoopInterval);
         betterClearInterval(this.clientInterval);
-        this.events.off(EventType.SYSTEM_INFO, this._snapshotCpu);
-        this.events.off(EventType.SYSTEM_INFO, this._snapshotMemory);
+
+        const events = serviceLocator.getEventManager();
+        events.off(EventType.SYSTEM_INFO, this._snapshotCpu);
+        events.off(EventType.SYSTEM_INFO, this._snapshotMemory);
+
         // Allow microtask queue to unwind before stop returns.
         await new Promise((resolve) => {
             setImmediate(resolve);
@@ -385,7 +375,7 @@ export class Snapshotter {
         const now = new Date();
         this._pruneSnapshots(this.clientSnapshots, now);
 
-        const allErrorCounts = this.client.stats?.rateLimitErrors ?? []; // storage client might not support this
+        const allErrorCounts = serviceLocator.getStorageClient().stats?.rateLimitErrors ?? []; // storage client might not support this
         const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
 
         // Handle empty snapshots array

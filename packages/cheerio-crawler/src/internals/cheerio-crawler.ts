@@ -1,6 +1,5 @@
 import type {
     BasicCrawlingContext,
-    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -176,19 +175,16 @@ export class CheerioCrawler<
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext>, config?: Configuration) {
-        super(
-            {
-                ...options,
-                contextPipelineBuilder: () =>
-                    this.buildContextPipeline()
-                        .compose({
-                            action: async (context) => await this.parseContent(context),
-                        })
-                        .compose({ action: async (context) => await this.addHelpers(context) }),
-            },
-            config,
-        );
+    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext>) {
+        super({
+            ...options,
+            contextPipelineBuilder: () =>
+                this.buildContextPipeline()
+                    .compose({
+                        action: async (context) => await this.parseContent(context),
+                    })
+                    .compose({ action: async (context) => await this.addHelpers(context) }),
+        });
     }
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {

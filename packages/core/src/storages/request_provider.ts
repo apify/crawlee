@@ -26,11 +26,13 @@ import { ListDictionary, LruCache } from '@apify/datastructures';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { IStorage, StorageManagerOptions } from './storage_manager.js';
@@ -135,12 +137,15 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
     protected httpClient?: BaseHttpClient;
 
+    protected readonly events: EventManager;
+
     constructor(
         options: InternalRequestProviderOptions,
-        readonly config = Configuration.getGlobalConfig(),
+        protected readonly config: Configuration,
     ) {
         this.id = options.id;
         this.name = options.name;
+        this.events = serviceLocator.getEventManager();
         this.client = options.client.requestQueue(this.id, {
             clientKey: this.clientKey,
             timeoutSecs: this.timeoutSecs,
@@ -152,9 +157,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
         this.log = config.getLogger().child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
 
-        const eventManager = config.getEventManager();
-
-        eventManager.on(EventType.MIGRATING, async () => {
+        this.events.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;
         });
     }
@@ -721,7 +724,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>, this.config);
+        const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>);
         manager.closeStorage(this);
     }
 
@@ -876,12 +879,11 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             }),
         );
 
-        options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        options.storageClient ??= serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager(this as typeof BuiltRequestProvider, options.config);
+        const manager = StorageManager.getManager(this as typeof BuiltRequestProvider);
         const queue = await manager.openStorage(queueIdOrName, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
 

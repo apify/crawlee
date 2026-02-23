@@ -5,7 +5,8 @@ import ow from 'ow';
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
-import type { CrawleeLogger } from '../log.js';
+import { type Log, log } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
@@ -615,7 +616,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(Dataset, this.config);
+        const manager = StorageManager.getManager(Dataset);
         manager.closeStorage(this);
     }
 
@@ -649,11 +650,11 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        options.storageClient ??= serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager<Dataset<Data>>(this, options.config);
+        const manager = StorageManager.getManager<Dataset<Data>>(this);
 
         return manager.openStorage(datasetIdOrName, options.storageClient);
     }

@@ -9,6 +9,7 @@ import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import { jsonStringifyExtended } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { StorageManagerOptions } from './storage_manager.js';
@@ -277,7 +278,7 @@ export class KeyValueStore {
         const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
 
-        this.config.getEventManager().on('persistState', async () => {
+        serviceLocator.getEventManager().on('persistState', async () => {
             const promises: Promise<void>[] = [];
 
             for (const [key, value] of this.cache) {
@@ -418,7 +419,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(KeyValueStore, this.config);
+        const manager = StorageManager.getManager(KeyValueStore);
         manager.closeStorage(this);
     }
 
@@ -520,11 +521,11 @@ export class KeyValueStore {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        options.storageClient ??= serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager(this, options.config);
+        const manager = StorageManager.getManager(this);
 
         return manager.openStorage(storeIdOrName, options.storageClient);
     }
