@@ -1,4 +1,4 @@
-import type { Configuration,CrawleeLogger } from '@crawlee/core';
+import type { Configuration, CrawleeLogger } from '@crawlee/core';
 import { EventType, KeyValueStore, log, serviceLocator } from '@crawlee/core';
 
 export interface RecoverableStatePersistenceOptions {

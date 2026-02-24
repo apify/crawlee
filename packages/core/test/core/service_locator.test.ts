@@ -296,7 +296,7 @@ describe('ServiceLocator', () => {
                 setLevel: () => {},
                 getOptions: () => ({}),
                 setOptions: () => {},
-                child () {
+                child() {
                     return this;
                 },
                 error: () => {},
