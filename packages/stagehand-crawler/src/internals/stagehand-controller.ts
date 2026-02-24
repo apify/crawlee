@@ -84,7 +84,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
 
         return {
             proxy: {
-                server: url.origin,
+                server: `${url.protocol}//${url.host}`,
                 username,
                 password,
                 bypass: pageOptions?.proxy?.bypass,

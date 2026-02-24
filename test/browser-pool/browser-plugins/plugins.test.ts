@@ -356,6 +356,38 @@ describe('Plugins', () => {
 
     runPluginTest(PuppeteerPlugin, PuppeteerController, puppeteer);
 
+    describe('normalizeProxyOptions', () => {
+        test.each([
+            ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
+            ['http://user:pass@proxy.example.com:8080', 'http://proxy.example.com:8080'],
+        ])('PlaywrightController should handle %s', (proxyUrl, expectedServer) => {
+            const plugin = new PlaywrightPlugin(playwright.chromium);
+            const browserController = new PlaywrightController(plugin);
+
+            const result = browserController.normalizeProxyOptions(proxyUrl, {});
+
+            expect(result).toMatchObject({
+                proxy: { server: expectedServer, username: 'user', password: 'pass' },
+            });
+        });
+
+        test.each([
+            ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
+            ['http://user:pass@proxy.example.com:8080', 'http://proxy.example.com:8080'],
+        ])('PuppeteerController should handle %s', (proxyUrl, expectedServer) => {
+            const plugin = new PuppeteerPlugin(puppeteer);
+            const browserController = new PuppeteerController(plugin);
+
+            const result = browserController.normalizeProxyOptions(proxyUrl, {});
+
+            expect(result).toMatchObject({
+                proxyServer: expectedServer,
+                proxyUsername: 'user',
+                proxyPassword: 'pass',
+            });
+        });
+    });
+
     describe('Playwright specifics', () => {
         let browser: playwright.Browser;
 

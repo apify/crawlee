@@ -31,7 +31,7 @@ export class PuppeteerController extends BrowserController<
         const password = decodeURIComponent(url.password);
 
         return {
-            proxyServer: url.origin,
+            proxyServer: `${url.protocol}//${url.host}`,
             proxyUsername: username,
             proxyPassword: password,
             proxyBypassList: pageOptions?.proxyBypassList,
