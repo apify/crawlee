@@ -22,7 +22,15 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
-import { Configuration, KeyValueStore, type Request, type Session, serviceLocator, SessionError, validators } from '@crawlee/browser';
+import {
+    Configuration,
+    KeyValueStore,
+    type Request,
+    type Session,
+    serviceLocator,
+    SessionError,
+    validators,
+} from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';

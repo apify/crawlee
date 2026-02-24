@@ -438,7 +438,9 @@ function createTargetCreatedHandler(page: Page, requests: Set<string>): (target:
             const createdPage = await target.page();
             await createdPage!.close();
         } catch (err) {
-            getLog().debug('enqueueLinksByClickingElements: Could not close spawned page.', { error: (err as Error).stack });
+            getLog().debug('enqueueLinksByClickingElements: Could not close spawned page.', {
+                error: (err as Error).stack,
+            });
         }
     };
 }

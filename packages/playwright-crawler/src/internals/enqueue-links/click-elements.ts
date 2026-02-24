@@ -430,7 +430,9 @@ function createTargetCreatedHandler(requests: Set<string>): (popup: Page) => Pro
         try {
             await popup.close();
         } catch (err) {
-            getLog().debug('enqueueLinksByClickingElements: Could not close spawned page.', { error: (err as Error).stack });
+            getLog().debug('enqueueLinksByClickingElements: Could not close spawned page.', {
+                error: (err as Error).stack,
+            });
         }
     };
 }
