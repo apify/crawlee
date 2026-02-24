@@ -128,6 +128,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 'version',
                 'on',
                 'process',
+                'pages',
             ] as const
         ).reduce((map, method) => {
             map[method] = browser[method as 'close']?.bind(browser);
@@ -195,8 +196,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                     return boundMethods[property];
                 }
 
-                const value = Reflect.get(target, property, target);
-                return typeof value === 'function' ? value.bind(target) : value;
+                return Reflect.get(target, property, receiver);
             },
         });
 
