@@ -185,11 +185,15 @@ describe('ContextPipeline', () => {
 
             const first = ContextPipeline.create<object>().compose({
                 action: async () => ({}),
-                cleanup: async () => { order.push('first'); },
+                cleanup: async () => {
+                    order.push('first');
+                },
             });
             const second = ContextPipeline.create<object>().compose({
                 action: async () => ({}),
-                cleanup: async () => { order.push('second'); },
+                cleanup: async () => {
+                    order.push('second');
+                },
             });
 
             await first.chain(second).call({}, vi.fn());

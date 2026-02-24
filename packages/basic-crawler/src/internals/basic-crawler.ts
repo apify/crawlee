@@ -574,6 +574,14 @@ export class BasicCrawler<
 
     private _basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
 
+    /**
+     * The basic part of the context pipeline. Unlike the subclass pipeline, this
+     * part has no major side effects (e.g. launching a browser). It also makes typing more explicit, as subclass
+     * pipelines expect the basic crawler fields to already be present in the context at runtime.
+     *
+     * Context built with this pipeline can be passed into multiple crawler pipelines at once.
+     * This is used e.g. in the {@apilink AdaptivePlaywrightCrawler|`AdaptivePlaywrightCrawler`}.
+     */
     get basicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
         if (this._basicContextPipeline === undefined) {
             this._basicContextPipeline = this.buildBasicContextPipeline();
