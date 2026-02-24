@@ -1,5 +1,5 @@
 import type { Configuration, CrawleeLogger } from '@crawlee/core';
-import { EventType, KeyValueStore, log, serviceLocator } from '@crawlee/core';
+import { EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
 
 export interface RecoverableStatePersistenceOptions {
     /**
@@ -93,7 +93,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
         this.persistenceEnabled = options.persistenceEnabled ?? false;
         this.persistStateKvsName = options.persistStateKvsName;
         this.persistStateKvsId = options.persistStateKvsId;
-        this.log = options.logger ?? log.child({ prefix: 'RecoverableState' });
+        this.log = options.logger ?? serviceLocator.getLogger().child({ prefix: 'RecoverableState' });
         this.serialize = options.serialize ?? JSON.stringify;
         this.deserialize = options.deserialize ?? JSON.parse;
 
