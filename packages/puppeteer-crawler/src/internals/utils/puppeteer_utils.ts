@@ -23,7 +23,7 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import type { Request } from '@crawlee/browser';
-import { Configuration, KeyValueStore, validators } from '@crawlee/browser';
+import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -32,7 +32,6 @@ import ow from 'ow';
 import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
 
 import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
 
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
@@ -45,7 +44,7 @@ const jqueryPath = require.resolve('jquery');
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
-const log = log_.child({ prefix: 'Puppeteer Utils' });
+const getLog = () => serviceLocator.getLogger().child({ prefix: 'Puppeteer Utils' });
 
 export interface DirectNavigationOptions {
     /**
@@ -139,7 +138,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
         page.on('framenavigated', async () =>
             page
                 .evaluate(contents)
-                .catch((error) => log.warning('An error occurred during the script injection!', { error })),
+                .catch((error) => getLog().warning('An error occurred during the script injection!', { error })),
         );
     }
 
@@ -224,7 +223,7 @@ export async function parseWithCheerio(
                         }, contents);
                     }
                 } catch (error) {
-                    log.warning(`Failed to extract iframe content: ${error}`);
+                    getLog().warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
         );
@@ -333,7 +332,7 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
  * @deprecated
  */
 export const blockResources = async (page: Page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
-    log.deprecated(
+    getLog().deprecated(
         'utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. ' +
             'Until this resolves, please use utils.puppeteer.blockRequests()',
     );
@@ -369,7 +368,7 @@ export async function cacheResponses(
     ow(cache, ow.object);
     ow(responseUrlRules, ow.array.ofType(ow.any(ow.string, ow.regExp)));
 
-    log.deprecated(
+    getLog().deprecated(
         'utils.puppeteer.cacheResponses() has a high impact on performance ' +
             "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.",
     );
@@ -445,7 +444,7 @@ export function compileScript(scriptString: string, context: Dictionary = Object
     try {
         func = vm.runInNewContext(funcString, context); // "Secure" the context by removing prototypes, unless custom context is provided.
     } catch (err) {
-        log.exception(err as Error, 'Cannot compile script!');
+        getLog().exception(err as Error, 'Cannot compile script!');
         throw err;
     }
 
@@ -494,7 +493,7 @@ export async function gotoExtended(
 
     if (method !== 'GET' || payload || !isEmpty(headers)) {
         // This is not deprecated, we use it to log only once.
-        log.deprecated(
+        getLog().deprecated(
             'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
                 'in recent versions of Puppeteer. Use only when necessary.',
         );
@@ -786,7 +785,7 @@ async function getIdcacPlaywright() {
     try {
         idcacPlaywright = await import('idcac-playwright');
     } catch (error: any) {
-        log.warning(`Failed to import 'idcac-playwright'.
+        getLog().warning(`Failed to import 'idcac-playwright'.
 
 We recently made idcac-playwright an optional dependency due to licensing issues.
 To use this feature, please install it manually by running

@@ -6,7 +6,6 @@ import { tryCancel } from '@apify/timeout';
 
 import { BrowserController } from '../abstract-classes/browser-controller.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
-import { log } from '../logger.js';
 
 export interface PuppeteerNewPageOptions extends PuppeteerTypes.BrowserContextOptions {
     proxyUsername?: string;
@@ -88,7 +87,7 @@ export class PuppeteerController extends BrowserController<
                     try {
                         await context.close();
                     } catch (error: any) {
-                        log.exception(error, 'Failed to close context.');
+                        this.log.exception(error, 'Failed to close context.');
                     } finally {
                         await close();
                     }
@@ -120,7 +119,7 @@ export class PuppeteerController extends BrowserController<
         const browserProcess = this.browser.process();
 
         if (!browserProcess) {
-            log.debug('Browser was connected using the `puppeteer.connect` method no browser to kill.');
+            this.log.debug('Browser was connected using the `puppeteer.connect` method no browser to kill.');
             return;
         }
 
@@ -135,7 +134,7 @@ export class PuppeteerController extends BrowserController<
             await this.browser.close();
             clearTimeout(timeout);
         } catch (error) {
-            log.debug('Browser was already killed.', { error });
+            this.log.debug('Browser was already killed.', { error });
         }
     }
 
