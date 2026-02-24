@@ -1,4 +1,4 @@
-import { type CrawleeLogger,serviceLocator } from '@crawlee/core';
+import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
 import type { Cookie, Dictionary } from '@crawlee/types';
 import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
