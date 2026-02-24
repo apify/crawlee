@@ -3,7 +3,7 @@ import { BaseCrawleeLogger, CrawleeLogLevel } from '../../src/log.js';
 
 /** Minimal concrete implementation for testing. */
 class TestLogger extends BaseCrawleeLogger {
-    protected _log(_level: number, _message: string, _data?: Record<string, any> | null): void {
+    protected _log(_level: number, _message: string, _data?: Record<string, unknown>): void {
         // Captured via vitest.spyOn in tests.
     }
 
