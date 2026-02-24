@@ -164,4 +164,37 @@ describe('ContextPipeline', () => {
 
         expect(consumer).toHaveBeenCalledWith({ a: 3, b: 4 });
     });
+
+    describe('chain', () => {
+        it('should run middlewares from both pipelines in order', async () => {
+            const first = ContextPipeline.create<{ a: number }>().compose({
+                action: async (ctx) => ({ b: ctx.a + 1 }),
+            });
+            const second = ContextPipeline.create<{ a: number; b: number }>().compose({
+                action: async (ctx) => ({ c: ctx.b * 2 }),
+            });
+
+            const consumer = vi.fn();
+            await first.chain(second).call({ a: 1 }, consumer);
+
+            expect(consumer).toHaveBeenCalledWith({ a: 1, b: 2, c: 4 });
+        });
+
+        it('should call cleanup routines from both pipelines', async () => {
+            const order: string[] = [];
+
+            const first = ContextPipeline.create<object>().compose({
+                action: async () => ({}),
+                cleanup: async () => { order.push('first'); },
+            });
+            const second = ContextPipeline.create<object>().compose({
+                action: async () => ({}),
+                cleanup: async () => { order.push('second'); },
+            });
+
+            await first.chain(second).call({}, vi.fn());
+
+            expect(order).toEqual(['second', 'first']);
+        });
+    });
 });
