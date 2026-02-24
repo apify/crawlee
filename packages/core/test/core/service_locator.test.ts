@@ -234,18 +234,19 @@ describe('ServiceLocator', () => {
 
     describe('Reset functionality', () => {
         test('reset clears all services', () => {
+            const customLogger = makeMockLogger();
+            serviceLocator.setLogger(customLogger);
+
             const customConfig = new Configuration({ headless: false });
             const customEventManager = new LocalEventManager({
                 persistStateIntervalMillis: 1000,
                 systemInfoIntervalMillis: 1000,
             });
             const customStorageClient = new MemoryStorage();
-            const customLogger = makeMockLogger();
 
             serviceLocator.setConfiguration(customConfig);
             serviceLocator.setEventManager(customEventManager);
             serviceLocator.setStorageClient(customStorageClient);
-            serviceLocator.setLogger(customLogger);
 
             // Verify they're set
             expect(serviceLocator.getConfiguration()).toBe(customConfig);
