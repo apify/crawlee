@@ -881,21 +881,6 @@ export class BasicCrawler<
                         return;
                     }
 
-                    if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
-                        this.log.warning(
-                            `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
-                        );
-                        request.state = RequestState.SKIPPED;
-                        request.noRetry = true;
-                        await source.markRequestHandled(request);
-                        await this.handleSkippedRequest({
-                            url: request.url,
-                            reason: 'robotsTxt',
-                        });
-
-                        return;
-                    }
-
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
                         await this.basicContextPipeline
@@ -987,6 +972,7 @@ export class BasicCrawler<
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
         return ContextPipeline.create<{ request: Request }>()
+            .compose({ action: this.checkRobotsTxt.bind(this) })
             .compose({
                 action: () => this.createBaseContext(deferredCleanup),
                 cleanup: async () => {
@@ -995,6 +981,24 @@ export class BasicCrawler<
             })
             .compose({ action: this.resolveSession.bind(this) })
             .compose({ action: this.createContextHelpers.bind(this) });
+    }
+
+    private async checkRobotsTxt({ request }: { request: Request }) {
+        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
+            this.log.warning(
+                `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
+            );
+            request.state = RequestState.SKIPPED;
+            request.noRetry = true;
+            await this.handleSkippedRequest({
+                url: request.url,
+                reason: 'robotsTxt',
+            });
+
+            throw new ContextPipelineInterruptedError(`Skipping request ${request.url} as disallowed by robots.txt`);
+        }
+
+        return {};
     }
 
     /**
