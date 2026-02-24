@@ -17,7 +17,7 @@ import {
     RequestQueue,
     serviceLocator,
 } from '@crawlee/basic';
-import { BaseCrawleeLogger, CrawleeLogLevel, RequestState } from '@crawlee/core';
+import { BaseCrawleeLogger, LogLevel, RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -472,7 +472,7 @@ describe('BasicCrawler', () => {
 
         class TrackingLogger extends BaseCrawleeLogger {
             protected _log(level: number, message: string): void {
-                if (level === CrawleeLogLevel.WARNING) warningMessages.push(message);
+                if (level === LogLevel.WARNING) warningMessages.push(message);
             }
 
             protected _createChild(): TrackingLogger {

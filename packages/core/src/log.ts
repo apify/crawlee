@@ -102,20 +102,6 @@ export interface CrawleeLogger {
 }
 
 /**
- * Crawlee log level constants matching `@apify/log`'s LogLevel enum.
- * Use these with {@apilink BaseCrawleeLogger} to avoid depending on `@apify/log` directly.
- */
-export const CrawleeLogLevel = {
-    OFF: 0,
-    ERROR: 1,
-    SOFT_FAIL: 2,
-    WARNING: 3,
-    INFO: 4,
-    DEBUG: 5,
-    PERF: 6,
-} as const;
-
-/**
  * Abstract base class for custom Crawlee logger implementations.
  *
  * Subclasses only need to implement two methods:
@@ -149,7 +135,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     private readonly warningsLogged = new Set<string>();
 
     constructor(options: Partial<CrawleeLoggerOptions> = {}) {
-        this.level = options.level ?? CrawleeLogLevel.INFO;
+        this.level = options.level ?? LogLevel.INFO;
         this.options = options;
     }
 
@@ -157,7 +143,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
      * Core logging method. Subclasses must implement this to dispatch log messages
      * to the underlying logger (Winston, Pino, console, etc.).
      *
-     * @param level Crawlee log level (use {@apilink CrawleeLogLevel} constants)
+     * @param level Crawlee log level (use {@apilink LogLevel} constants)
      * @param message The log message
      * @param data Optional structured data to attach to the log entry
      */
@@ -196,11 +182,11 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     }
 
     error(message: string, data?: Record<string, unknown>): void {
-        this._dispatch(CrawleeLogLevel.ERROR, message, data);
+        this._dispatch(LogLevel.ERROR, message, data);
     }
 
     exception(exception: Error, message: string, data?: Record<string, unknown>): void {
-        this._dispatch(CrawleeLogLevel.ERROR, `${message}: ${exception.message}`, {
+        this._dispatch(LogLevel.ERROR, `${message}: ${exception.message}`, {
             ...data,
             stack: exception.stack,
             exception,
@@ -208,30 +194,30 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     }
 
     softFail(message: string, data?: Record<string, unknown>): void {
-        this._dispatch(CrawleeLogLevel.SOFT_FAIL, message, data);
+        this._dispatch(LogLevel.SOFT_FAIL, message, data);
     }
 
     warning(message: string, data?: Record<string, unknown>): void {
-        this._dispatch(CrawleeLogLevel.WARNING, message, data);
+        this._dispatch(LogLevel.WARNING, message, data);
     }
 
     warningOnce(message: string): void {
         if (!this.warningsLogged.has(message)) {
             this.warningsLogged.add(message);
-            this._dispatch(CrawleeLogLevel.WARNING, message);
+            this._dispatch(LogLevel.WARNING, message);
         }
     }
 
     info(message: string, data?: Record<string, unknown>): void {
-        this._dispatch(CrawleeLogLevel.INFO, message, data);
+        this._dispatch(LogLevel.INFO, message, data);
     }
 
     debug(message: string, data?: Record<string, unknown>): void {
-        this._dispatch(CrawleeLogLevel.DEBUG, message, data);
+        this._dispatch(LogLevel.DEBUG, message, data);
     }
 
     perf(message: string, data?: Record<string, unknown>): void {
-        this._dispatch(CrawleeLogLevel.PERF, `[PERF] ${message}`, data);
+        this._dispatch(LogLevel.PERF, `[PERF] ${message}`, data);
     }
 
     deprecated(message: string): void {

@@ -1,8 +1,8 @@
 import type { CrawleeLogger } from '@crawlee/core';
 import {
     Configuration,
-    CrawleeLogLevel,
     LocalEventManager,
+    LogLevel,
     ServiceConflictError,
     ServiceLocator,
     serviceLocator,
@@ -13,7 +13,7 @@ import log from '@apify/log';
 
 function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
     const logger: CrawleeLogger = {
-        getLevel: () => CrawleeLogLevel.INFO,
+        getLevel: () => LogLevel.INFO,
         setLevel: () => {},
         getOptions: () => ({}),
         setOptions: () => {},
