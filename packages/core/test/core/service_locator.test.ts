@@ -1,8 +1,30 @@
 import type { CrawleeLogger } from '@crawlee/core';
-import { Configuration, LocalEventManager, ServiceConflictError, ServiceLocator, serviceLocator } from '@crawlee/core';
+import { Configuration, CrawleeLogLevel, LocalEventManager, ServiceConflictError, ServiceLocator, serviceLocator } from '@crawlee/core';
 import { MemoryStorage } from '@crawlee/memory-storage';
 
 import log from '@apify/log';
+
+function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
+    const logger: CrawleeLogger = {
+        getLevel: () => CrawleeLogLevel.INFO,
+        setLevel: () => {},
+        getOptions: () => ({}),
+        setOptions: () => {},
+        child: () => logger,
+        error: () => {},
+        exception: () => {},
+        softFail: () => {},
+        warning: () => {},
+        warningOnce: () => {},
+        info: () => {},
+        debug: () => {},
+        perf: () => {},
+        deprecated: () => {},
+        internal: () => {},
+        ...overrides,
+    };
+    return logger;
+}
 
 // Reset global service locator before each test
 beforeEach(() => {
@@ -151,45 +173,13 @@ describe('ServiceLocator', () => {
         });
 
         test('custom logger can be set', () => {
-            const customLogger = {
-                getLevel: () => 4,
-                setLevel: () => {},
-                getOptions: () => ({}),
-                setOptions: () => {},
-                child: () => customLogger,
-                error: () => {},
-                exception: () => {},
-                softFail: () => {},
-                warning: () => {},
-                warningOnce: () => {},
-                info: () => {},
-                debug: () => {},
-                perf: () => {},
-                deprecated: () => {},
-                internal: () => {},
-            } satisfies CrawleeLogger;
+            const customLogger = makeMockLogger();
             serviceLocator.setLogger(customLogger);
             expect(serviceLocator.getLogger()).toBe(customLogger);
         });
 
         test('logger overwrite not possible', () => {
-            const customLogger = {
-                getLevel: () => 4,
-                setLevel: () => {},
-                getOptions: () => ({}),
-                setOptions: () => {},
-                child: () => customLogger,
-                error: () => {},
-                exception: () => {},
-                softFail: () => {},
-                warning: () => {},
-                warningOnce: () => {},
-                info: () => {},
-                debug: () => {},
-                perf: () => {},
-                deprecated: () => {},
-                internal: () => {},
-            } satisfies CrawleeLogger;
+            const customLogger = makeMockLogger();
             serviceLocator.setLogger(customLogger);
 
             const anotherLogger = { ...customLogger };
@@ -203,23 +193,7 @@ describe('ServiceLocator', () => {
             // Retrieve logger first (lazy initialization with log from @apify/log)
             serviceLocator.getLogger();
 
-            const customLogger = {
-                getLevel: () => 4,
-                setLevel: () => {},
-                getOptions: () => ({}),
-                setOptions: () => {},
-                child: () => customLogger,
-                error: () => {},
-                exception: () => {},
-                softFail: () => {},
-                warning: () => {},
-                warningOnce: () => {},
-                info: () => {},
-                debug: () => {},
-                perf: () => {},
-                deprecated: () => {},
-                internal: () => {},
-            } satisfies CrawleeLogger;
+            const customLogger = makeMockLogger();
 
             expect(() => {
                 serviceLocator.setLogger(customLogger);
@@ -230,23 +204,7 @@ describe('ServiceLocator', () => {
         });
 
         test('setting same logger instance is allowed', () => {
-            const customLogger = {
-                getLevel: () => 4,
-                setLevel: () => {},
-                getOptions: () => ({}),
-                setOptions: () => {},
-                child: () => customLogger,
-                error: () => {},
-                exception: () => {},
-                softFail: () => {},
-                warning: () => {},
-                warningOnce: () => {},
-                info: () => {},
-                debug: () => {},
-                perf: () => {},
-                deprecated: () => {},
-                internal: () => {},
-            } satisfies CrawleeLogger;
+            const customLogger = makeMockLogger();
             serviceLocator.setLogger(customLogger);
             serviceLocator.getLogger();
 
@@ -256,23 +214,7 @@ describe('ServiceLocator', () => {
         });
 
         test('reset clears the logger', () => {
-            const customLogger = {
-                getLevel: () => 4,
-                setLevel: () => {},
-                getOptions: () => ({}),
-                setOptions: () => {},
-                child: () => customLogger,
-                error: () => {},
-                exception: () => {},
-                softFail: () => {},
-                warning: () => {},
-                warningOnce: () => {},
-                info: () => {},
-                debug: () => {},
-                perf: () => {},
-                deprecated: () => {},
-                internal: () => {},
-            } satisfies CrawleeLogger;
+            const customLogger = makeMockLogger();
             serviceLocator.setLogger(customLogger);
             expect(serviceLocator.getLogger()).toBe(customLogger);
 
@@ -291,25 +233,7 @@ describe('ServiceLocator', () => {
                 systemInfoIntervalMillis: 1000,
             });
             const customStorageClient = new MemoryStorage();
-            const customLogger = {
-                getLevel: () => 4,
-                setLevel: () => {},
-                getOptions: () => ({}),
-                setOptions: () => {},
-                child() {
-                    return this;
-                },
-                error: () => {},
-                exception: () => {},
-                softFail: () => {},
-                warning: () => {},
-                warningOnce: () => {},
-                info: () => {},
-                debug: () => {},
-                perf: () => {},
-                deprecated: () => {},
-                internal: () => {},
-            } satisfies CrawleeLogger;
+            const customLogger = makeMockLogger();
 
             serviceLocator.setConfiguration(customConfig);
             serviceLocator.setEventManager(customEventManager);
