@@ -41,7 +41,7 @@ import {
     EnqueueStrategy,
     EventType,
     KeyValueStore,
-    mergeCookies,
+ LogLevel,    mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
     RequestHandlerError,
@@ -58,8 +58,7 @@ import {
     SessionError,
     SessionPool,
     Statistics,
-    validators,
-} from '@crawlee/core';
+    validators } from '@crawlee/core';
 import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 import type {
     Awaitable,
@@ -78,7 +77,6 @@ import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
