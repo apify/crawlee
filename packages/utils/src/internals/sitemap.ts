@@ -486,9 +486,7 @@ export async function* discoverValidSitemaps(
         }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
 
     const getSitemapsFromRobotsTxt = async (url: string): Promise<string[]> => {
-        const robotsTxtFileUrl = new URL(url);
-        robotsTxtFileUrl.pathname = '/robots.txt';
-        robotsTxtFileUrl.search = '';
+        const robotsTxtFileUrl = new URL('/robots.txt', url);
 
         const response = await gotScraping({
             url: robotsTxtFileUrl.toString(),
