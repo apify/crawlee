@@ -155,7 +155,9 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
-        this.log = serviceLocator.getLogger().child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
+        this.log = serviceLocator
+            .getLogger()
+            .child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
 
         this.events.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;

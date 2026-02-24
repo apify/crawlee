@@ -295,7 +295,9 @@ describe('ServiceLocator', () => {
                 setLevel: () => {},
                 getOptions: () => ({}),
                 setOptions: () => {},
-                child: function() { return this; },
+                child: function () {
+                    return this;
+                },
                 error: () => {},
                 exception: () => {},
                 softFail: () => {},
