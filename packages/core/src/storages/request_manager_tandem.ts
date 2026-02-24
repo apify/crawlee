@@ -1,8 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
 
 import type { CrawleeLogger } from '../log.js';
-import { serviceLocator } from '../service_locator.js';
 import type { Request, Source } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import type { IRequestList } from './request_list.js';
 import type {
     AddRequestsBatchedOptions,

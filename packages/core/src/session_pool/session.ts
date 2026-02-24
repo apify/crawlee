@@ -7,7 +7,6 @@ import { CookieJar } from 'tough-cookie';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { serviceLocator } from '../service_locator.js';
 import {
     browserPoolCookieToToughCookie,
     getCookiesFromResponse,
@@ -15,6 +14,7 @@ import {
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import { EVENT_SESSION_RETIRED } from './events.js';
 
 export interface SessionOptions {

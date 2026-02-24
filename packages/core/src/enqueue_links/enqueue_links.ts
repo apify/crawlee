@@ -4,9 +4,9 @@ import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
-import { serviceLocator } from '../service_locator.js';
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,

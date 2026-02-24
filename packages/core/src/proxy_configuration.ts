@@ -1,8 +1,8 @@
 import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import ow from 'ow';
 
-import { serviceLocator } from './service_locator.js';
 import type { Request } from './request.js';
+import { serviceLocator } from './service_locator.js';
 
 export interface ProxyConfigurationFunction {
     (options?: { request?: Request }): string | null | Promise<string | null>;

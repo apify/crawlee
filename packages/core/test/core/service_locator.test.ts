@@ -1,6 +1,7 @@
-import { Configuration, LocalEventManager, ServiceConflictError, ServiceLocator, serviceLocator } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
+import { Configuration, LocalEventManager, ServiceConflictError, ServiceLocator, serviceLocator } from '@crawlee/core';
 import { MemoryStorage } from '@crawlee/memory-storage';
+
 import log from '@apify/log';
 
 // Reset global service locator before each test
@@ -295,7 +296,7 @@ describe('ServiceLocator', () => {
                 setLevel: () => {},
                 getOptions: () => ({}),
                 setOptions: () => {},
-                child: function () {
+                child () {
                     return this;
                 },
                 error: () => {},
