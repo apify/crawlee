@@ -1,4 +1,4 @@
-import { serviceLocator, type CrawleeLogger, type TieredProxy } from '@crawlee/core';
+import { type CrawleeLogger, serviceLocator, type TieredProxy } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';

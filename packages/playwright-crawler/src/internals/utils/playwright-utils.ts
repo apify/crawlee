@@ -26,8 +26,8 @@ import {
     Configuration,
     KeyValueStore,
     type Request,
-    type Session,
     serviceLocator,
+    type Session,
     SessionError,
     validators,
 } from '@crawlee/browser';

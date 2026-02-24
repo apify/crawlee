@@ -1,4 +1,4 @@
-import { CriticalError, serviceLocator, type CrawleeLogger } from '@crawlee/core';
+import { type CrawleeLogger,CriticalError, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
