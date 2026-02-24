@@ -900,11 +900,11 @@ export class BasicCrawler<
                             return;
                         }
 
-                        // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error)
-                        // and we have a request in the context, handle it through the normal error flow
+                        // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
+                        // i.e. not in user's requestHandler), handle it through the normal error flow.
                         const isPipelineError =
                             error instanceof ContextPipelineInitializationError || error instanceof SessionError;
-                        if (isPipelineError && crawlingContext.request) {
+                        if (isPipelineError) {
                             const unwrappedError = this.unwrapError(error);
 
                             await this._requestFunctionErrorHandler(
