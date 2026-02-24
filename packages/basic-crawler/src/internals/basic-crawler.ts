@@ -574,6 +574,13 @@ export class BasicCrawler<
 
     private _basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
 
+    /**
+     * The basic (shared) part of the context pipeline. Subclass crawlers (e.g. `PlaywrightCrawler`) split their
+     * pipeline so that this portion can be run multiple times on the same basic context independently - for example,
+     * when `AdaptiveCrawler` retries a request with a different crawler type. Unlike the subclass pipeline, this
+     * part has no major side effects (e.g. launching a browser). It also makes typing more explicit, as subclass
+     * pipelines expect the basic crawler fields to already be present in the context at runtime.
+     */
     get basicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
         if (this._basicContextPipeline === undefined) {
             this._basicContextPipeline = this.buildBasicContextPipeline();
