@@ -195,7 +195,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
                     return boundMethods[property];
                 }
 
-                return Reflect.get(target, property, receiver);
+                const value = Reflect.get(target, property, target);
+                return typeof value === 'function' ? value.bind(target) : value;
             },
         });
 

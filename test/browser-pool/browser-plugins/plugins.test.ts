@@ -303,6 +303,18 @@ describe('Plugins', () => {
             }
         });
 
+        test.concurrent('should allow calling functions on the proxied browser', async () => {
+            const plugin = new PuppeteerPlugin(puppeteer);
+            const launchContext = plugin.createLaunchContext();
+            const browser = await plugin.launch(launchContext);
+
+            try {
+                await expect(browser.pages()).resolves.toBeDefined();
+            } finally {
+                await browser.close();
+            }
+        });
+
         test.concurrent('should pass launch options to browser', async () => {
             const plugin = new PuppeteerPlugin(puppeteer);
 
