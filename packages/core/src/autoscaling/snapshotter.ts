@@ -6,7 +6,6 @@ import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
-import { log as defaultLog } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import type { SystemInfo } from './system_status.js';
 
@@ -151,7 +150,7 @@ export class Snapshotter {
             maxBlockedMillis = 50,
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
-            log = defaultLog,
+            log = serviceLocator.getLogger(),
         } = options;
 
         this.log = log.child({ prefix: 'Snapshotter' });
