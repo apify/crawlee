@@ -8,7 +8,6 @@ import type { PersistenceOptions } from '../crawlers/statistics.js';
 import type { CrawleeLogger } from '../log.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
-import { log as defaultLog } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';

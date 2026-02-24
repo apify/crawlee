@@ -6,7 +6,6 @@ import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
-import { type Log, log } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';

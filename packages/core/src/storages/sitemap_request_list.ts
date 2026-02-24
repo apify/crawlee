@@ -6,8 +6,6 @@ import { minimatch } from 'minimatch';
 import ow from 'ow';
 import type { RequiredDeep } from 'type-fest';
 
-import defaultLog from '@apify/log';
-
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
 import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
 import { type EventManager, EventType } from '../events/event_manager.js';
