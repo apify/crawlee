@@ -41,7 +41,8 @@ import {
     EnqueueStrategy,
     EventType,
     KeyValueStore,
- LogLevel,    mergeCookies,
+    LogLevel,
+    mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
     RequestHandlerError,
@@ -58,7 +59,8 @@ import {
     SessionError,
     SessionPool,
     Statistics,
-    validators } from '@crawlee/core';
+    validators,
+} from '@crawlee/core';
 import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 import type {
     Awaitable,
