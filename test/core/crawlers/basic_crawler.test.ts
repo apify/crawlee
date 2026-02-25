@@ -494,8 +494,8 @@ describe('BasicCrawler', () => {
             (BasicCrawler as any).useStateCrawlerIds = new Set();
         }
 
-        const sharedStateWarnings = warningSpy.mock.calls.filter(([msg]) =>
-            typeof msg === 'string' && msg.includes('Multiple crawler instances are calling useState()'),
+        const sharedStateWarnings = warningSpy.mock.calls.filter(
+            ([msg]) => typeof msg === 'string' && msg.includes('Multiple crawler instances are calling useState()'),
         );
         expect(sharedStateWarnings).toHaveLength(1);
     });

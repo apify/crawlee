@@ -528,7 +528,6 @@ export class BasicCrawler<
      */
     private static useStateCrawlerIds = new Set<string>();
 
-
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
      */
@@ -1205,12 +1204,14 @@ export class BasicCrawler<
         BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
 
         if (BasicCrawler.useStateCrawlerIds.size > 1) {
-            serviceLocator.getLogger().warningOnce(
-                'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
-                    'This means they will share the same state object, which is likely unintended. \n' +
-                    'To fix this, provide a unique `id` option to each crawler instance. \n' +
-                    'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
-            );
+            serviceLocator
+                .getLogger()
+                .warningOnce(
+                    'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
+                        'This means they will share the same state object, which is likely unintended. \n' +
+                        'To fix this, provide a unique `id` option to each crawler instance. \n' +
+                        'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
+                );
         }
 
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);

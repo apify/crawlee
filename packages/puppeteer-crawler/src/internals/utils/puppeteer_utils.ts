@@ -332,10 +332,12 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
  * @deprecated
  */
 export const blockResources = async (page: Page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
-    serviceLocator.getLogger().deprecated(
-        'utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. ' +
-            'Until this resolves, please use utils.puppeteer.blockRequests()',
-    );
+    serviceLocator
+        .getLogger()
+        .deprecated(
+            'utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. ' +
+                'Until this resolves, please use utils.puppeteer.blockRequests()',
+        );
     await addInterceptRequestHandler(page, async (request) => {
         const type = request.resourceType();
         if (resourceTypes.includes(type)) await request.abort();
@@ -368,10 +370,12 @@ export async function cacheResponses(
     ow(cache, ow.object);
     ow(responseUrlRules, ow.array.ofType(ow.any(ow.string, ow.regExp)));
 
-    serviceLocator.getLogger().deprecated(
-        'utils.puppeteer.cacheResponses() has a high impact on performance ' +
-            "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.",
-    );
+    serviceLocator
+        .getLogger()
+        .deprecated(
+            'utils.puppeteer.cacheResponses() has a high impact on performance ' +
+                "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.",
+        );
 
     await addInterceptRequestHandler(page, async (request) => {
         const url = request.url();
@@ -493,10 +497,12 @@ export async function gotoExtended(
 
     if (method !== 'GET' || payload || !isEmpty(headers)) {
         // This is not deprecated, we use it to log only once.
-        serviceLocator.getLogger().deprecated(
-            'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
-                'in recent versions of Puppeteer. Use only when necessary.',
-        );
+        serviceLocator
+            .getLogger()
+            .deprecated(
+                'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
+                    'in recent versions of Puppeteer. Use only when necessary.',
+            );
         let wasCalled = false;
         const interceptRequestHandler = async (interceptedRequest: PuppeteerRequest) => {
             // We want to ensure that this won't get executed again in a case that there is a subsequent request

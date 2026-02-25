@@ -80,7 +80,6 @@ export enum RequestState {
  * @category Sources
  */
 class CrawleeRequest<UserData extends Dictionary = Dictionary> {
-
     /** Request ID */
     id?: string;
 
@@ -441,11 +440,13 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
-                serviceLocator.getLogger().warningOnce(
-                    `We've encountered a ${normalizedMethod} Request with a payload. ` +
-                        'This is fine. Just letting you know that if your requests point to the same URL ' +
-                        'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
-                );
+                serviceLocator
+                    .getLogger()
+                    .warningOnce(
+                        `We've encountered a ${normalizedMethod} Request with a payload. ` +
+                            'This is fine. Just letting you know that if your requests point to the same URL ' +
+                            'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
+                    );
             }
             return normalizedUrl;
         }
