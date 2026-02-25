@@ -241,16 +241,6 @@ export class ServiceLocator implements ServiceLocatorInterface {
     }
 
     setLogger(logger: CrawleeLogger): void {
-        // Same instance, no need to do anything
-        if (this.logger === logger) {
-            return;
-        }
-
-        // Already have a different logger that was retrieved
-        if (this.logger) {
-            throw new ServiceConflictError('Logger', logger, this.logger);
-        }
-
         this.logger = logger;
     }
 
