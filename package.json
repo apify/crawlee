@@ -115,6 +115,9 @@
         "typescript-eslint": "^8.28.0",
         "vitest": "^4.0.16"
     },
+    "lint-staged": {
+        "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"
+    },
     "packageManager": "yarn@4.10.3",
     "volta": {
         "node": "24.13.0",
