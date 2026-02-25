@@ -542,16 +542,16 @@ export async function* discoverValidSitemaps(
             const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
             for (const pathname of possibleSitemapPathnames) {
                 firstUrl.pathname = pathname;
-                const sitemapUrl = firstUrl.toString();
+                const candidateSitemapUrl = firstUrl.toString();
 
                 try {
-                    if (await urlExists(sitemapUrl)) {
-                        if (addSitemapUrl(sitemapUrl)) {
-                            yield sitemapUrl;
+                    if (await urlExists(candidateSitemapUrl)) {
+                        if (addSitemapUrl(candidateSitemapUrl)) {
+                            yield candidateSitemapUrl;
                         }
                     }
                 } catch (err) {
-                    log.debug(`Failed to check sitemap candidate ${sitemapUrl} for ${hostname}`, { error: err });
+                    log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, { error: err });
                 }
             }
         }
