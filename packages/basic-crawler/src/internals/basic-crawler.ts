@@ -528,14 +528,6 @@ export class BasicCrawler<
      */
     private static useStateCrawlerIds = new Set<string>();
 
-    // Lazy singleton — used for class-level (static) warnings that must deduplicate
-    // across all crawler instances rather than per-instance.
-    private static _log: CrawleeLogger | undefined;
-
-    private static getClassLog(): CrawleeLogger {
-        BasicCrawler._log ??= serviceLocator.getLogger().child({ prefix: 'BasicCrawler' });
-        return BasicCrawler._log;
-    }
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
@@ -1213,7 +1205,7 @@ export class BasicCrawler<
         BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
 
         if (BasicCrawler.useStateCrawlerIds.size > 1) {
-            BasicCrawler.getClassLog().warningOnce(
+            serviceLocator.getLogger().warningOnce(
                 'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
                     'This means they will share the same state object, which is likely unintended. \n' +
                     'To fix this, provide a unique `id` option to each crawler instance. \n' +

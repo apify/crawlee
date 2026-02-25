@@ -17,7 +17,7 @@ import {
     RequestQueue,
     serviceLocator,
 } from '@crawlee/basic';
-import { BaseCrawleeLogger, LogLevel, RequestState } from '@crawlee/core';
+import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -427,8 +427,6 @@ describe('BasicCrawler', () => {
     });
 
     test('print a warning on sharing state between two crawlers', async () => {
-        // Reset static class state so this test is isolated
-        (BasicCrawler as any)._log = undefined;
         (BasicCrawler as any).useStateCrawlerIds = new Set();
 
         function createCrawler() {
@@ -442,11 +440,7 @@ describe('BasicCrawler', () => {
 
         const [crawler1, crawler2] = [createCrawler(), createCrawler()];
 
-        // Force-initialize the static class logger then spy on it.
-        // The warning fires on the class-level logger (not per-instance) so that it
-        // deduplicates across all crawler instances.
-        (BasicCrawler as any).getClassLog();
-        const loggerSpy = vitest.spyOn((BasicCrawler as any)._log, 'warningOnce');
+        const loggerSpy = vitest.spyOn(serviceLocator.getLogger(), 'warningOnce');
 
         await crawler1.run([`http://${HOSTNAME}:${port}/`]);
         await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
@@ -467,23 +461,12 @@ describe('BasicCrawler', () => {
         // for a class-level (static) concern: each crawler would emit the warning
         // independently, producing N warnings for N crawlers instead of just one.
 
-        // Track actual warning emissions via a test logger injected directly into the static field.
-        const warningMessages: string[] = [];
-
-        class TrackingLogger extends BaseCrawleeLogger {
-            protected _log(level: number, message: string): void {
-                if (level === LogLevel.WARNING) warningMessages.push(message);
-            }
-
-            protected _createChild(): TrackingLogger {
-                // Child shares the same warningMessages array via closure
-                return new TrackingLogger();
-            }
-        }
-
-        // Inject directly — avoids touching global Configuration
-        (BasicCrawler as any)._log = new TrackingLogger();
+        // Clear the global logger's dedup state so this test is isolated from others.
+        (log as any).warningsOnceLogged.clear();
         (BasicCrawler as any).useStateCrawlerIds = new Set();
+
+        // Spy on the underlying warning dispatch to count actual emissions.
+        const warningSpy = vitest.spyOn(serviceLocator.getLogger(), 'warning');
 
         try {
             const crawlers = [
@@ -508,12 +491,11 @@ describe('BasicCrawler', () => {
             await crawlers[1].run([`http://${HOSTNAME}:${port}/?page=2`]);
             await crawlers[2].run([`http://${HOSTNAME}:${port}/?page=3`]);
         } finally {
-            (BasicCrawler as any)._log = undefined;
             (BasicCrawler as any).useStateCrawlerIds = new Set();
         }
 
-        const sharedStateWarnings = warningMessages.filter((m) =>
-            m.includes('Multiple crawler instances are calling useState()'),
+        const sharedStateWarnings = warningSpy.mock.calls.filter(([msg]) =>
+            typeof msg === 'string' && msg.includes('Multiple crawler instances are calling useState()'),
         );
         expect(sharedStateWarnings).toHaveLength(1);
     });

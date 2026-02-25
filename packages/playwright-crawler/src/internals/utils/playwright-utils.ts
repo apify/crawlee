@@ -207,7 +207,7 @@ export async function gotoExtended(
 
     if (method !== 'GET' || payload || !isEmpty(headers)) {
         // This is not deprecated, we use it to log only once.
-        getLog().deprecated(
+        serviceLocator.getLogger().deprecated(
             'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
                 'in recent versions of Playwright. Use only when necessary.',
         );

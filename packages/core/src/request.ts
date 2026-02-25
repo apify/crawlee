@@ -10,7 +10,6 @@ import { normalizeUrl } from '@apify/utilities';
 
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
-import type { CrawleeLogger } from './log.js';
 import { serviceLocator } from './service_locator.js';
 import type { AllowedHttpMethods } from './typedefs.js';
 import { keys } from './typedefs.js';
@@ -81,9 +80,6 @@ export enum RequestState {
  * @category Sources
  */
 class CrawleeRequest<UserData extends Dictionary = Dictionary> {
-    private static getLog(): CrawleeLogger {
-        return serviceLocator.getLogger().child({ prefix: 'Request' });
-    }
 
     /** Request ID */
     id?: string;
@@ -445,7 +441,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
-                CrawleeRequest.getLog().warningOnce(
+                serviceLocator.getLogger().warningOnce(
                     `We've encountered a ${normalizedMethod} Request with a payload. ` +
                         'This is fine. Just letting you know that if your requests point to the same URL ' +
                         'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',

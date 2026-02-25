@@ -294,7 +294,7 @@ export async function enqueueLinksByClickingElements(
     }
 
     if (pseudoUrls?.length) {
-        getLog().deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
+        serviceLocator.getLogger().deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
         urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
     }
 
