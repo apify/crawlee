@@ -185,39 +185,24 @@ describe('ServiceLocator', () => {
             expect(serviceLocator.getLogger()).toBe(customLogger);
         });
 
-        test('logger overwrite not possible', () => {
-            const customLogger = makeMockLogger();
-            serviceLocator.setLogger(customLogger);
+        test('logger can be overwritten silently', () => {
+            const firstLogger = makeMockLogger();
+            serviceLocator.setLogger(firstLogger);
 
-            const anotherLogger = { ...customLogger };
+            const secondLogger = makeMockLogger();
+            serviceLocator.setLogger(secondLogger);
 
-            expect(() => {
-                serviceLocator.setLogger(anotherLogger);
-            }).toThrow(ServiceConflictError);
+            expect(serviceLocator.getLogger()).toBe(secondLogger);
         });
 
-        test('logger conflict', () => {
-            // Retrieve logger first (lazy initialization with log from @apify/log)
+        test('logger can be replaced after getLogger() has been called', () => {
             serviceLocator.getLogger();
 
             const customLogger = makeMockLogger();
-
-            expect(() => {
-                serviceLocator.setLogger(customLogger);
-            }).toThrow(ServiceConflictError);
-            expect(() => {
-                serviceLocator.setLogger(customLogger);
-            }).toThrow(/Logger is already in use/);
-        });
-
-        test('setting same logger instance is allowed', () => {
-            const customLogger = makeMockLogger();
-            serviceLocator.setLogger(customLogger);
-            serviceLocator.getLogger();
-
             expect(() => {
                 serviceLocator.setLogger(customLogger);
             }).not.toThrow();
+            expect(serviceLocator.getLogger()).toBe(customLogger);
         });
 
         test('reset clears the logger', () => {
