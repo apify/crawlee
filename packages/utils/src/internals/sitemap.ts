@@ -459,6 +459,8 @@ export async function* discoverValidSitemaps(
     const { proxyUrl } = options;
     const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
+    // Keep each probe bounded so discovery cannot stall indefinitely on a single request.
+    const DISCOVERY_REQUEST_TIMEOUT_MILLIS = 20_000;
 
     const addSitemapUrl = (url: string): string | undefined => {
         const sizeBefore = sitemapUrls.size;
@@ -472,30 +474,41 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
-    const discoveryRequestOptions = {
-        proxyUrl,
-        http2: false,
-        useHeaderGenerator: false,
-    };
-
-    const urlExists = (url: string) =>
-        gotScraping({
-            url,
-            method: 'HEAD',
-            ...discoveryRequestOptions,
-        }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
-
-    const getSitemapsFromRobotsTxt = async (url: string): Promise<string[]> => {
-        const robotsTxtFileUrl = new URL('/robots.txt', url);
-
-        const response = await gotScraping({
-            url: robotsTxtFileUrl.toString(),
-            method: 'GET',
-            responseType: 'text',
-            ...discoveryRequestOptions,
+    const runWithTimeout = async <T>(
+        promise: Promise<T>,
+        timeoutMillis: number,
+        timeoutMessage: string,
+    ): Promise<T> => {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeout = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMillis);
         });
 
-        return RobotsFile.from(robotsTxtFileUrl.toString(), response.body ?? '', proxyUrl).getSitemaps();
+        try {
+            return await Promise.race([promise, timeoutPromise]);
+        } finally {
+            if (timeout !== undefined) {
+                clearTimeout(timeout);
+            }
+        }
+    };
+
+    const urlExists = async (url: string) => {
+        const abortController = new AbortController();
+        const timeout = setTimeout(() => abortController.abort(), DISCOVERY_REQUEST_TIMEOUT_MILLIS);
+
+        try {
+            const response = await gotScraping({
+                url,
+                method: 'HEAD',
+                proxyUrl,
+                signal: abortController.signal,
+            });
+
+            return response.statusCode >= 200 && response.statusCode < 400;
+        } finally {
+            clearTimeout(timeout);
+        }
     };
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
@@ -504,8 +517,12 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsSitemapUrls = await getSitemapsFromRobotsTxt(domainUrls[0]);
-            for (const sitemapUrl of robotsSitemapUrls) {
+            const robotsFile = await runWithTimeout(
+                RobotsFile.find(domainUrls[0], proxyUrl),
+                DISCOVERY_REQUEST_TIMEOUT_MILLIS,
+                `Fetching robots.txt timed out for ${hostname}`,
+            );
+            for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
                 }
@@ -525,10 +542,16 @@ export async function* discoverValidSitemaps(
             const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
             for (const pathname of possibleSitemapPathnames) {
                 firstUrl.pathname = pathname;
-                if (await urlExists(firstUrl.toString())) {
-                    if (addSitemapUrl(firstUrl.toString())) {
-                        yield firstUrl.toString();
+                const sitemapUrl = firstUrl.toString();
+
+                try {
+                    if (await urlExists(sitemapUrl)) {
+                        if (addSitemapUrl(sitemapUrl)) {
+                            yield sitemapUrl;
+                        }
                     }
+                } catch (err) {
+                    log.debug(`Failed to check sitemap candidate ${sitemapUrl} for ${hostname}`, { error: err });
                 }
             }
         }
