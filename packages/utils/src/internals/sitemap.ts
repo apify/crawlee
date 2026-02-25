@@ -551,7 +551,9 @@ export async function* discoverValidSitemaps(
                         }
                     }
                 } catch (err) {
-                    log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, { error: err });
+                    log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
+                        error: err,
+                    });
                 }
             }
         }
