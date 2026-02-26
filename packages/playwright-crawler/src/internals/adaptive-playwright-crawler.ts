@@ -6,6 +6,7 @@ import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
+    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     GetUserDataFromRequest,
@@ -17,7 +18,6 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import {
-    ContextPipeline,
     RequestHandlerError,
     RequestHandlerResult,
     resolveBaseUrlForEnqueueLinksFiltering,
@@ -150,7 +150,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<void>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
 interface AdaptiveHook
@@ -302,6 +302,7 @@ export class AdaptivePlaywrightCrawler<
             errorHandler,
             failedRequestHandler,
             requestHandler,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
 
@@ -405,8 +406,11 @@ export class AdaptivePlaywrightCrawler<
         const errorMessage = (prop: string) =>
             `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
 
-        return ContextPipeline.create<CrawlingContext>().compose({
-            action: async () => ({
+        return super.buildContextPipeline().compose({
+            action: async ({ request }) => ({
+                get request(): LoadedRequest<Request<Dictionary>> {
+                    return request as LoadedRequest<Request<Dictionary>>;
+                },
                 get response(): Response {
                     throw new Error(errorMessage('response'));
                 },
@@ -421,9 +425,6 @@ export class AdaptivePlaywrightCrawler<
                 },
                 get parseWithCheerio(): AdaptivePlaywrightCrawlerContext['parseWithCheerio'] {
                     throw new Error(errorMessage('parseWithCheerio'));
-                },
-                get enqueueLinks(): AdaptivePlaywrightCrawlerContext['enqueueLinks'] {
-                    throw new Error(errorMessage('enqueueLinks'));
                 },
             }),
         });
@@ -532,7 +533,10 @@ export class AdaptivePlaywrightCrawler<
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
 
-        const subCrawlerContext = { ...context };
+        const subCrawlerContext = Object.defineProperties(
+            {} as typeof context,
+            Object.getOwnPropertyDescriptors(context),
+        );
 
         for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(resultBoundContextHelpers))) {
             Object.defineProperty(subCrawlerContext, key, { ...descriptor, configurable: false });
