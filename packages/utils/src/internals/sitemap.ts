@@ -456,21 +456,40 @@ export async function* discoverValidSitemaps(
         proxyUrl?: string;
         /**
          * Timeout in milliseconds for the entire `discoverValidSitemaps` call.
-         * An `AbortSignal` is created internally and passed to every HTTP request,
+         * An `AbortController` is created internally and its signal is passed to every HTTP request,
          * so the whole discovery operation is cancelled once the timeout elapses.
          * Defaults to `60_000` ms (60 seconds) to prevent indefinite hangs.
          */
-        timeout?: number;
+        timeoutMillis?: number;
+        /**
+         * An external `AbortSignal` to cancel the entire discovery operation.
+         * If both `signal` and `timeout` are provided, the operation is cancelled
+         * when either the signal is aborted or the timeout elapses (whichever comes first).
+         */
+        signal?: AbortSignal;
+        /**
+         * Timeout in milliseconds for each individual HTTP request during discovery.
+         * Defaults to `20000` ms (20 seconds).
+         */
+        requestTimeoutMillis?: number;
     } = {},
 ): AsyncIterable<string> {
-    const { proxyUrl, timeout = 60_000 } = options;
+    const { proxyUrl, timeoutMillis = 60_000, signal: externalSignal, requestTimeoutMillis = 20_000 } = options;
     const controller = new AbortController();
-    const timeoutHandle = setTimeout(() => controller.abort(), timeout);
+
+    const timeoutHandle = setTimeout(() => controller.abort(), timeoutMillis);
+    const onExternalAbort = () => controller.abort();
+    if (externalSignal) {
+        if (externalSignal.aborted) {
+            controller.abort();
+        } else {
+            externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+        }
+    }
+
     const signal = controller.signal;
     const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
-    // Keep each probe bounded so discovery cannot stall indefinitely on a single request.
-    const DISCOVERY_REQUEST_TIMEOUT_MILLIS = 20_000;
 
     const addSitemapUrl = (url: string): string | undefined => {
         const sizeBefore = sitemapUrls.size;
@@ -484,33 +503,15 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
-    const runWithTimeout = async <T>(
-        promise: Promise<T>,
-        timeoutMillis: number,
-        timeoutMessage: string,
-    ): Promise<T> => {
-        let timeout: ReturnType<typeof setTimeout> | undefined;
-        const timeoutPromise = new Promise<never>((_, reject) => {
-            timeout = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMillis);
-        });
-
-        try {
-            return await Promise.race([promise, timeoutPromise]);
-        } finally {
-            if (timeout !== undefined) {
-                clearTimeout(timeout);
-            }
-        }
-    };
-
     const urlExists = async (url: string) => {
         const response = await gotScraping({
             url,
             method: 'HEAD',
             proxyUrl,
             timeout: {
-                request: DISCOVERY_REQUEST_TIMEOUT_MILLIS,
+                request: timeoutMillis,
             },
+            signal,
         });
 
         return response.statusCode >= 200 && response.statusCode < 400;
@@ -522,11 +523,10 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await runWithTimeout(
-                RobotsFile.find(domainUrls[0], proxyUrl),
-                DISCOVERY_REQUEST_TIMEOUT_MILLIS,
-                `Fetching robots.txt timed out for ${hostname}`,
-            );
+            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl, {
+                timeoutMillis: requestTimeoutMillis,
+                signal,
+            });
             for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
@@ -584,5 +584,6 @@ export async function* discoverValidSitemaps(
         }
     } finally {
         clearTimeout(timeoutHandle);
+        externalSignal?.removeEventListener('abort', onExternalAbort);
     }
 }
