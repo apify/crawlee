@@ -481,61 +481,61 @@ describe('BasicCrawler', () => {
         expect(state2.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
     });
 
-    test.each([
-        EventType.MIGRATING,
-        EventType.ABORTING,
-    ])('should pause on %s event and persist RequestList state', async (event) => {
-        const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
+    test.each([EventType.MIGRATING, EventType.ABORTING])(
+        'should pause on %s event and persist RequestList state',
+        async (event) => {
+            const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
 
-        let persistResolve!: (value?: unknown) => void;
-        const persistPromise = new Promise((res) => {
-            persistResolve = res;
-        });
+            let persistResolve!: (value?: unknown) => void;
+            const persistPromise = new Promise((res) => {
+                persistResolve = res;
+            });
 
-        // Mock the calls to persist sources.
-        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        getValueSpy.mockResolvedValue(null);
+            // Mock the calls to persist sources.
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
+            getValueSpy.mockResolvedValue(null);
 
-        const processed: { url: string }[] = [];
-        const requestList = await RequestList.open('reqList', sources);
-        const requestHandler: RequestHandler = async ({ request }) => {
-            if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
-            processed.push({ url: request.url });
-        };
+            const processed: { url: string }[] = [];
+            const requestList = await RequestList.open('reqList', sources);
+            const requestHandler: RequestHandler = async ({ request }) => {
+                if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
+                processed.push({ url: request.url });
+            };
 
-        const basicCrawler = new BasicCrawler({
-            requestList,
-            minConcurrency: 25,
-            maxConcurrency: 25,
-            requestHandler,
-        });
+            const basicCrawler = new BasicCrawler({
+                requestList,
+                minConcurrency: 25,
+                maxConcurrency: 25,
+                requestHandler,
+            });
 
-        let finished = false;
-        // Mock the call to persist state.
-        setValueSpy.mockImplementationOnce(persistResolve as any);
-        // The crawler will pause after 200 requests
-        const runPromise = basicCrawler.run();
-        void runPromise.then(() => {
-            finished = true;
-        });
+            let finished = false;
+            // Mock the call to persist state.
+            setValueSpy.mockImplementationOnce(persistResolve as any);
+            // The crawler will pause after 200 requests
+            const runPromise = basicCrawler.run();
+            void runPromise.then(() => {
+                finished = true;
+            });
 
-        // need to monkeypatch the stats class, otherwise it will never finish
-        basicCrawler.stats.persistState = async () => Promise.resolve();
-        await persistPromise;
+            // need to monkeypatch the stats class, otherwise it will never finish
+            basicCrawler.stats.persistState = async () => Promise.resolve();
+            await persistPromise;
 
-        expect(finished).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(processed.length).toBe(200);
+            expect(finished).toBe(false);
+            expect(await requestList.isFinished()).toBe(false);
+            expect(await requestList.isEmpty()).toBe(false);
+            expect(processed.length).toBe(200);
 
-        expect(getValueSpy).toBeCalled();
-        expect(setValueSpy).toBeCalled();
+            expect(getValueSpy).toBeCalled();
+            expect(setValueSpy).toBeCalled();
 
-        // clean up
-        // @ts-expect-error Accessing private method
-        await basicCrawler.autoscaledPool!._destroy();
-    });
+            // clean up
+            // @ts-expect-error Accessing private method
+            await basicCrawler.autoscaledPool!._destroy();
+        },
+    );
 
     test('should retry failed requests', async () => {
         const sources = [
