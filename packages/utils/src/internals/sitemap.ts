@@ -509,7 +509,7 @@ export async function* discoverValidSitemaps(
             method: 'HEAD',
             proxyUrl,
             timeout: {
-                request: timeoutMillis,
+                request: requestTimeoutMillis,
             },
             signal,
         });
