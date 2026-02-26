@@ -427,8 +427,6 @@ describe('BasicCrawler', () => {
     });
 
     test('print a warning on sharing state between two crawlers', async () => {
-        (BasicCrawler as any).useStateCrawlerIds = new Set();
-
         function createCrawler() {
             return new BasicCrawler({
                 requestHandler: async ({ request, useState }) => {
@@ -463,36 +461,30 @@ describe('BasicCrawler', () => {
 
         // Clear the global logger's dedup state so this test is isolated from others.
         (log as any).warningsOnceLogged.clear();
-        (BasicCrawler as any).useStateCrawlerIds = new Set();
 
         // Spy on the underlying warning dispatch to count actual emissions.
         const warningSpy = vitest.spyOn(serviceLocator.getLogger(), 'warning');
+        const crawlers = [
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+        ];
 
-        try {
-            const crawlers = [
-                new BasicCrawler({
-                    requestHandler: async ({ useState }) => {
-                        await useState({ count: 0 });
-                    },
-                }),
-                new BasicCrawler({
-                    requestHandler: async ({ useState }) => {
-                        await useState({ count: 0 });
-                    },
-                }),
-                new BasicCrawler({
-                    requestHandler: async ({ useState }) => {
-                        await useState({ count: 0 });
-                    },
-                }),
-            ];
-
-            await crawlers[0].run([`http://${HOSTNAME}:${port}/`]);
-            await crawlers[1].run([`http://${HOSTNAME}:${port}/?page=2`]);
-            await crawlers[2].run([`http://${HOSTNAME}:${port}/?page=3`]);
-        } finally {
-            (BasicCrawler as any).useStateCrawlerIds = new Set();
-        }
+        await crawlers[0].run([`http://${HOSTNAME}:${port}/`]);
+        await crawlers[1].run([`http://${HOSTNAME}:${port}/?page=2`]);
+        await crawlers[2].run([`http://${HOSTNAME}:${port}/?page=3`]);
 
         const sharedStateWarnings = warningSpy.mock.calls.filter(
             ([msg]) => typeof msg === 'string' && msg.includes('Multiple crawler instances are calling useState()'),
