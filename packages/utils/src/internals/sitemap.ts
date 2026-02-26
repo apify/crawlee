@@ -459,6 +459,8 @@ export async function* discoverValidSitemaps(
     const { proxyUrl } = options;
     const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
+    // Keep each probe bounded so discovery cannot stall indefinitely on a single request.
+    const DISCOVERY_REQUEST_TIMEOUT_MILLIS = 20_000;
 
     const addSitemapUrl = (url: string): string | undefined => {
         const sizeBefore = sitemapUrls.size;
@@ -472,12 +474,37 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
-    const urlExists = (url: string) =>
-        gotScraping({
-            proxyUrl,
+    const runWithTimeout = async <T>(
+        promise: Promise<T>,
+        timeoutMillis: number,
+        timeoutMessage: string,
+    ): Promise<T> => {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeout = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMillis);
+        });
+
+        try {
+            return await Promise.race([promise, timeoutPromise]);
+        } finally {
+            if (timeout !== undefined) {
+                clearTimeout(timeout);
+            }
+        }
+    };
+
+    const urlExists = async (url: string) => {
+        const response = await gotScraping({
             url,
             method: 'HEAD',
-        }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
+            proxyUrl,
+            timeout: {
+                request: DISCOVERY_REQUEST_TIMEOUT_MILLIS,
+            },
+        });
+
+        return response.statusCode >= 200 && response.statusCode < 400;
+    };
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
         if (!hostname) {
@@ -485,8 +512,11 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl);
-
+            const robotsFile = await runWithTimeout(
+                RobotsFile.find(domainUrls[0], proxyUrl),
+                DISCOVERY_REQUEST_TIMEOUT_MILLIS,
+                `Fetching robots.txt timed out for ${hostname}`,
+            );
             for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
@@ -507,10 +537,18 @@ export async function* discoverValidSitemaps(
             const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
             for (const pathname of possibleSitemapPathnames) {
                 firstUrl.pathname = pathname;
-                if (await urlExists(firstUrl.toString())) {
-                    if (addSitemapUrl(firstUrl.toString())) {
-                        yield firstUrl.toString();
+                const candidateSitemapUrl = firstUrl.toString();
+
+                try {
+                    if (await urlExists(candidateSitemapUrl)) {
+                        if (addSitemapUrl(candidateSitemapUrl)) {
+                            yield candidateSitemapUrl;
+                        }
                     }
+                } catch (err) {
+                    log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
+                        error: err,
+                    });
                 }
             }
         }
