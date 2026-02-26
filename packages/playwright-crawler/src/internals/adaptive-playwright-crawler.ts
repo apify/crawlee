@@ -6,7 +6,6 @@ import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
-    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     GetUserDataFromRequest,
@@ -18,6 +17,7 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import {
+    ContextPipeline,
     RequestHandlerError,
     RequestHandlerResult,
     resolveBaseUrlForEnqueueLinksFiltering,
@@ -299,14 +299,9 @@ export class AdaptivePlaywrightCrawler<
 
         super({
             ...rest,
-            // Pass error handlers to the "main" crawler - we only pluck them from `rest` so that they don't go to the sub crawlers
             errorHandler,
             failedRequestHandler,
-            // Same for request handler
             requestHandler,
-            // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
-            // (that would be a logical error in this class)
-            contextPipelineBuilder: () => null as unknown as ContextPipeline<object, AdaptivePlaywrightCrawlerContext>,
         });
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
 
@@ -404,6 +399,34 @@ export class AdaptivePlaywrightCrawler<
     protected override async _init(): Promise<void> {
         await this.renderingTypePredictor.initialize();
         return await super._init();
+    }
+
+    protected override buildContextPipeline() {
+        const errorMessage = (prop: string) =>
+            `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
+
+        return ContextPipeline.create<CrawlingContext>().compose({
+            action: async () => ({
+                get response(): Response {
+                    throw new Error(errorMessage('response'));
+                },
+                get page(): Page {
+                    throw new Error(errorMessage('page'));
+                },
+                get querySelector(): AdaptivePlaywrightCrawlerContext['querySelector'] {
+                    throw new Error(errorMessage('querySelector'));
+                },
+                get waitForSelector(): AdaptivePlaywrightCrawlerContext['waitForSelector'] {
+                    throw new Error(errorMessage('waitForSelector'));
+                },
+                get parseWithCheerio(): AdaptivePlaywrightCrawlerContext['parseWithCheerio'] {
+                    throw new Error(errorMessage('parseWithCheerio'));
+                },
+                get enqueueLinks(): AdaptivePlaywrightCrawlerContext['enqueueLinks'] {
+                    throw new Error(errorMessage('enqueueLinks'));
+                },
+            }),
+        });
     }
 
     private async adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
