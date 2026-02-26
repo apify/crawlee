@@ -494,21 +494,16 @@ export async function* discoverValidSitemaps(
     };
 
     const urlExists = async (url: string) => {
-        const abortController = new AbortController();
-        const timeout = setTimeout(() => abortController.abort(), DISCOVERY_REQUEST_TIMEOUT_MILLIS);
+        const response = await gotScraping({
+            url,
+            method: 'HEAD',
+            proxyUrl,
+            timeout: {
+                request: DISCOVERY_REQUEST_TIMEOUT_MILLIS,
+            },
+        });
 
-        try {
-            const response = await gotScraping({
-                url,
-                method: 'HEAD',
-                proxyUrl,
-                signal: abortController.signal,
-            });
-
-            return response.statusCode >= 200 && response.statusCode < 400;
-        } finally {
-            clearTimeout(timeout);
-        }
+        return response.statusCode >= 200 && response.statusCode < 400;
     };
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
