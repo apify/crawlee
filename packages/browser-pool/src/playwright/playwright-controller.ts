@@ -27,7 +27,7 @@ export class PlaywrightController extends BrowserController<
 
         return {
             proxy: {
-                server: url.origin,
+                server: `${url.protocol}//${url.host}`,
                 username,
                 password,
                 bypass: pageOptions?.proxy?.bypass,
