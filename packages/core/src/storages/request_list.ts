@@ -4,7 +4,7 @@ import ow, { ArgumentError } from 'ow';
 
 import type { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
-import { log } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
 import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
 import { createDeserialize, serializeArray } from '../serialization.js';
@@ -305,7 +305,7 @@ export interface RequestListOptions {
  * @category Sources
  */
 export class RequestList implements IRequestList {
-    private log = log.child({ prefix: 'RequestList' });
+    private log: CrawleeLogger = serviceLocator.getLogger().child({ prefix: 'RequestList' });
 
     /**
      * Array of all requests from all sources, in the order as they appeared in sources.

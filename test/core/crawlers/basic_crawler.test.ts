@@ -436,9 +436,9 @@ describe('BasicCrawler', () => {
             });
         }
 
-        const loggerSpy = vitest.spyOn(log, 'warning');
-
         const [crawler1, crawler2] = [createCrawler(), createCrawler()];
+
+        const loggerSpy = vitest.spyOn(serviceLocator.getLogger(), 'warningOnce');
 
         await crawler1.run([`http://${HOSTNAME}:${port}/`]);
         await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
@@ -452,6 +452,44 @@ describe('BasicCrawler', () => {
         expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/`);
         expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
         expect(loggerSpy).toBeCalledWith(expect.stringContaining('Multiple crawler instances are calling useState()'));
+    });
+
+    test('shared-state warning is emitted only once regardless of crawler count', async () => {
+        // This test guards against a regression where per-instance loggers were used
+        // for a class-level (static) concern: each crawler would emit the warning
+        // independently, producing N warnings for N crawlers instead of just one.
+
+        // Clear the global logger's dedup state so this test is isolated from others.
+        (log as any).warningsOnceLogged.clear();
+
+        // Spy on the underlying warning dispatch to count actual emissions.
+        const warningSpy = vitest.spyOn(serviceLocator.getLogger(), 'warning');
+        const crawlers = [
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+        ];
+
+        await crawlers[0].run([`http://${HOSTNAME}:${port}/`]);
+        await crawlers[1].run([`http://${HOSTNAME}:${port}/?page=2`]);
+        await crawlers[2].run([`http://${HOSTNAME}:${port}/?page=3`]);
+
+        const sharedStateWarnings = warningSpy.mock.calls.filter(
+            ([msg]) => typeof msg === 'string' && msg.includes('Multiple crawler instances are calling useState()'),
+        );
+        expect(sharedStateWarnings).toHaveLength(1);
     });
 
     test('crawlers with explicit id have isolated state', async () => {

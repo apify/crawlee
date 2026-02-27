@@ -11,6 +11,7 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
+import { BaseCrawleeLogger } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
@@ -20,7 +21,7 @@ import iconv from 'iconv-lite';
 import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
-import log, { Log } from '@apify/log';
+import log from '@apify/log';
 
 let server: Server;
 let port: number;
@@ -1111,7 +1112,7 @@ describe('CheerioCrawler', () => {
         });
 
         test('mergeCookies()', async () => {
-            const warningSpy = vitest.spyOn(Log.prototype, 'warningOnce');
+            const warningSpy = vitest.spyOn(BaseCrawleeLogger.prototype, 'warningOnce');
             const cookie1 = mergeCookies('https://example.com', [
                 'foo=bar1; other=cookie1 ; coo=kie',
                 'foo=bar2; baz=123',

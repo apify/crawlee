@@ -1,12 +1,11 @@
 import { getMemoryInfo, isContainerized } from '@crawlee/utils';
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import { EventType } from '../events/event_manager.js';
-import { log as defaultLog } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import type { SystemInfo } from './system_status.js';
 
@@ -57,7 +56,7 @@ export interface SnapshotterOptions {
     snapshotHistorySecs?: number;
 
     /** @internal */
-    log?: Log;
+    log?: CrawleeLogger;
 }
 
 interface MemorySnapshot {
@@ -108,7 +107,7 @@ interface ClientSnapshot {
  * @category Scaling
  */
 export class Snapshotter {
-    log: Log;
+    log: CrawleeLogger;
     eventLoopSnapshotIntervalMillis: number;
     clientSnapshotIntervalMillis: number;
     snapshotHistoryMillis: number;
@@ -151,7 +150,7 @@ export class Snapshotter {
             maxBlockedMillis = 50,
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
-            log = defaultLog,
+            log = serviceLocator.getLogger(),
         } = options;
 
         this.log = log.child({ prefix: 'Snapshotter' });

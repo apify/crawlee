@@ -22,7 +22,15 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
-import { Configuration, KeyValueStore, type Request, type Session, SessionError, validators } from '@crawlee/browser';
+import {
+    Configuration,
+    KeyValueStore,
+    type Request,
+    serviceLocator,
+    type Session,
+    SessionError,
+    validators,
+} from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -30,13 +38,12 @@ import ow from 'ow';
 import type { Page, Response, Route } from 'playwright';
 
 import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
 
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
 import { RenderingTypePredictor } from './rendering-type-prediction.js';
 
-const log = log_.child({ prefix: 'Playwright Utils' });
+const getLog = () => serviceLocator.getChildLog('Playwright Utils');
 
 const require = createRequire(import.meta.url);
 const jqueryPath = require.resolve('jquery');
@@ -105,7 +112,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
         page.on('framenavigated', async () =>
             page
                 .evaluate(contents)
-                .catch((error) => log.warning('An error occurred during the script injection!', { error })),
+                .catch((error) => getLog().warning('An error occurred during the script injection!', { error })),
         );
     }
 
@@ -200,7 +207,7 @@ export async function gotoExtended(
 
     if (method !== 'GET' || payload || !isEmpty(headers)) {
         // This is not deprecated, we use it to log only once.
-        log.deprecated(
+        getLog().deprecated(
             'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
                 'in recent versions of Playwright. Use only when necessary.',
         );
@@ -221,7 +228,7 @@ export async function gotoExtended(
                 if (!isEmpty(headers)) overrides.headers = headers;
                 await route.continue(overrides);
             } catch (error) {
-                log.debug('Error inside request interceptor', { error });
+                getLog().debug('Error inside request interceptor', { error });
             }
 
             return undefined;
@@ -300,7 +307,7 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
         await client.send('Network.enable');
         await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
     } catch {
-        log.warning('blockRequests() helper is incompatible with non-Chromium browsers.');
+        getLog().warning('blockRequests() helper is incompatible with non-Chromium browsers.');
     }
 }
 
@@ -344,7 +351,7 @@ export function compileScript(scriptString: string, context: Dictionary = Object
     try {
         func = vm.runInNewContext(funcString, context); // "Secure" the context by removing prototypes, unless custom context is provided.
     } catch (err) {
-        log.exception(err as Error, 'Cannot compile script!');
+        getLog().exception(err as Error, 'Cannot compile script!');
         throw err;
     }
 
@@ -634,7 +641,7 @@ export async function parseWithCheerio(
                         }, contents);
                     }
                 } catch (error) {
-                    log.warning(`Failed to extract iframe content: ${error}`);
+                    getLog().warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
         );
@@ -655,7 +662,7 @@ async function getIdcacPlaywright() {
     try {
         idcacPlaywright = await import('idcac-playwright');
     } catch (error: any) {
-        log.warning(`Failed to import 'idcac-playwright'.
+        getLog().warning(`Failed to import 'idcac-playwright'.
 
 We recently made idcac-playwright an optional dependency due to licensing issues.
 To use this feature, please install it manually by running
@@ -762,7 +769,7 @@ async function handleCloudflareChallenge(
     }
 
     const logLevel = options.verbose ? 'info' : 'debug';
-    log[logLevel](
+    getLog()[logLevel](
         `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
     );
 
@@ -802,7 +809,7 @@ async function handleCloudflareChallenge(
         const xRandomized = x + randomOffset(10);
         const yRandomized = y + randomOffset(10);
 
-        log[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, { x: xRandomized, y: yRandomized });
+        getLog()[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, { x: xRandomized, y: yRandomized });
         await page.mouse.click(xRandomized, yRandomized);
 
         // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)

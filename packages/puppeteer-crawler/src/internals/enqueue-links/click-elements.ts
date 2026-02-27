@@ -18,17 +18,16 @@ import {
     createRequestOptions,
     filterRequestOptionsByPatterns,
     Request,
+    serviceLocator,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
 
-import log_ from '@apify/log';
-
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception.js';
 
 const STARTING_Z_INDEX = 2147400000;
-const log = log_.child({ prefix: 'Puppeteer Click Elements' });
+const getLog = () => serviceLocator.getChildLog('Puppeteer Click Elements');
 
 export interface EnqueueLinksByClickingElementsOptions {
     /**
@@ -295,7 +294,7 @@ export async function enqueueLinksByClickingElements(
     }
 
     if (pseudoUrls?.length) {
-        log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
+        getLog().deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
         urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
     }
 
@@ -439,7 +438,9 @@ function createTargetCreatedHandler(page: Page, requests: Set<string>): (target:
             const createdPage = await target.page();
             await createdPage!.close();
         } catch (err) {
-            log.debug('enqueueLinksByClickingElements: Could not close spawned page.', { error: (err as Error).stack });
+            getLog().debug('enqueueLinksByClickingElements: Could not close spawned page.', {
+                error: (err as Error).stack,
+            });
         }
     };
 }
@@ -509,7 +510,7 @@ async function preventHistoryNavigation(page: Page): Promise<unknown> {
  */
 export async function clickElements(page: Page, selector: string, clickOptions?: ClickOptions): Promise<void> {
     const elementHandles = await page.$$(selector);
-    log.debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
+    getLog().debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
     let clickedElementsCount = 0;
     let zIndex = STARTING_Z_INDEX;
     let shouldLogWarning = true;
@@ -521,17 +522,17 @@ export async function clickElements(page: Page, selector: string, clickOptions?:
         } catch (err) {
             const e = err as Error;
             if (shouldLogWarning && e.stack!.includes('is detached from document')) {
-                log.warning(
+                getLog().warning(
                     `An element with selector ${selector} that you're trying to click has been removed from the page. ` +
                         'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. ' +
                         'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.',
                 );
                 shouldLogWarning = false;
             }
-            log.debug('enqueueLinksByClickingElements: Click failed.', { stack: e.stack });
+            getLog().debug('enqueueLinksByClickingElements: Click failed.', { stack: e.stack });
         }
     }
-    log.debug(
+    getLog().debug(
         `enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`,
     );
 }
@@ -590,7 +591,7 @@ async function waitForPageIdle({
         }
 
         function maxTimeoutHandler() {
-            log.debug(
+            getLog().debug(
                 `enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. ` +
                     'This is probably due to the website itself dispatching requests, but some links may also have been missed.',
             );
@@ -628,7 +629,7 @@ async function restoreHistoryNavigationAndSaveCapturedUrls(page: Page, requests:
             const url = new URL(stateUrl, page.url()).href;
             requests.add(JSON.stringify({ url }));
         } catch (err) {
-            log.debug('enqueueLinksByClickingElements: Failed to ', { error: (err as Error).stack });
+            getLog().debug('enqueueLinksByClickingElements: Failed to ', { error: (err as Error).stack });
         }
     });
 }

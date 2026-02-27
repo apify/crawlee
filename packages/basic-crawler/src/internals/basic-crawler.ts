@@ -6,6 +6,7 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     Configuration,
+    CrawleeLogger,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,
@@ -40,6 +41,7 @@ import {
     EnqueueStrategy,
     EventType,
     KeyValueStore,
+    LogLevel,
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
@@ -77,8 +79,6 @@ import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
@@ -371,7 +371,7 @@ export interface BasicCrawlerOptions<
     onSkippedRequest?: SkippedRequestCallback;
 
     /** @internal */
-    log?: Log;
+    log?: CrawleeLogger;
 
     /**
      * Enables experimental features of Crawlee, which can alter the behavior of the crawler.
@@ -414,6 +414,12 @@ export interface BasicCrawlerOptions<
      * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
      */
     eventManager?: EventManager;
+
+    /**
+     * Custom logger to use for this crawler.
+     * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
+     */
+    logger?: CrawleeLogger;
 
     /**
      * A unique identifier for the crawler instance. This ID is used to isolate the state returned by
@@ -586,7 +592,7 @@ export class BasicCrawler<
     running = false;
     hasFinishedBefore = false;
 
-    readonly log: Log;
+    readonly log: CrawleeLogger;
     protected requestHandler!: RequestHandler<ExtendedContext>;
     protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
@@ -651,6 +657,7 @@ export class BasicCrawler<
         configuration: ow.optional.object,
         storageClient: ow.optional.object,
         eventManager: ow.optional.object,
+        logger: ow.optional.object,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -695,6 +702,7 @@ export class BasicCrawler<
             configuration,
             storageClient,
             eventManager,
+            logger,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -714,7 +722,7 @@ export class BasicCrawler<
             httpClient,
 
             // internal
-            log = defaultLog.child({ prefix: this.constructor.name }),
+            log: logOverride,
             experiments = {},
 
             id,
@@ -730,14 +738,17 @@ export class BasicCrawler<
         if (
             storageClient ||
             eventManager ||
+            logger ||
             (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
         ) {
-            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient);
+            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient, logger);
             serviceLocatorScope = bindMethodsToServiceLocator(scopedServiceLocator, this);
         }
 
         try {
             serviceLocatorScope.enterScope();
+
+            const log = logOverride ?? serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
             // Store whether the user explicitly provided an ID
             this.hasExplicitId = id !== undefined;
@@ -833,7 +844,7 @@ export class BasicCrawler<
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
             this.maxSessionRotations = maxSessionRotations;
             this.stats = new Statistics({
-                logMessage: `${log.getOptions().prefix} request statistics:`,
+                logMessage: `${log.getOptions().prefix ?? this.constructor.name} request statistics:`,
                 log,
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
@@ -944,7 +955,7 @@ export class BasicCrawler<
     async setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data =
             options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
-        this.log.internal(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
+        this.log.logWithLevel(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
 
         const client = serviceLocator.getStorageClient();
 
@@ -1099,7 +1110,7 @@ export class BasicCrawler<
                 retryHistogram: this.stats.requestRetryHistogram,
                 ...finalStats,
             };
-            this.log.info('Final request statistics:', stats);
+            this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
 
             if (this.stats.errorTracker.total !== 0) {
                 const prettify = ([count, info]: [number, string[]]) =>
@@ -1193,12 +1204,14 @@ export class BasicCrawler<
         BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
 
         if (BasicCrawler.useStateCrawlerIds.size > 1) {
-            defaultLog.warningOnce(
-                'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
-                    'This means they will share the same state object, which is likely unintended. \n' +
-                    'To fix this, provide a unique `id` option to each crawler instance. \n' +
-                    'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
-            );
+            serviceLocator
+                .getLogger()
+                .warningOnce(
+                    'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
+                        'This means they will share the same state object, which is likely unintended. \n' +
+                        'To fix this, provide a unique `id` option to each crawler instance. \n' +
+                        'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
+                );
         }
 
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
