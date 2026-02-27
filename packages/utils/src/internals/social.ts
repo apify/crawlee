@@ -96,6 +96,26 @@ const PHONE_REGEXS_STRINGS = [
     // 123 4567
     '[0-9]{2,4} [0-9]{3,8}',
     // All phones might be prefixed with '+' or '00'
+
+    // othere phone might be like this regex
+    // 1. Matches 775123456 (Plain digits, 7-15 length to avoid short IDs)
+    '[0-9]{7,15}',
+
+    // 2. Matches 1(413)555-2378, (303) 494-2320, 1(262)955.95.79
+    // Simplified to handle optional country code, parens, and separators
+    '(?:[0-9]{1,3})?\\s?\\([0-9]{2,4}\\)\\s?[0-9]{2,4}(?:[\\s.-][0-9]{2,6}){1,3}',
+
+    // 3. Matches (51) 5667-9987 or (19)94138-9398
+    '\\([0-9]{2}\\)\\s?[0-9]{4,5}-[0-9]{4}',
+
+    // 4. Matches hyphen-separated: 413-577-1234-564 or 413-577
+    '[0-9]{2,4}(?:-[0-9]{2,6}){1,3}',
+
+    // 5. Matches dot-separated: 413.577.1234.564
+    '[0-9]{2,4}(?:\\.[0-9]{2,6}){1,3}',
+
+    // 6. Matches space-separated: 413 577 1234 564
+    '[0-9]{2,4}(?:\\s[0-9]{2,8}){1,3}'
 ].map((regex) => `(00|\\+)?${regex}`);
 
 // The minimum number of digits a phone number can contain.
@@ -166,9 +186,9 @@ export function phonesFromUrls(urls: string[]): string[] {
 // - They use a negative lookbehind and lookahead assertions, which are only supported in Node 8+.
 //   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
-const LINKEDIN_REGEX_STRING =
-    '(?<!\\w)(?:(?:http(?:s)?:\\/\\/)?(?:(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-z0-9\\-_%=]{2,60})(?![a-z0-9\\-_%=])))(?:\\/)?';
-
+const LINKEDIN_REGEX_STRING = 
+    '(?<![\\w.-])(?:https?:\\/\\/)?(?:(?:[a-z]{2,3}\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-zA-Z0-9\\-_%=]{2,100})(?:\\/)?(?![\\w])';
+    
 const INSTAGRAM_REGEX_STRING =
     '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
