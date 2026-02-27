@@ -76,23 +76,21 @@ export interface CrawleeLogger {
     deprecated(message: string): void;
 
     /**
-     * Internal logging method used by some Crawlee internals.
+     * Logs a message at the given level. Useful when the log level is determined dynamically.
      */
-    internal(level: number, message: string, data?: Record<string, unknown>, exception?: Error): void;
+    logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
 }
 
 /**
  * Abstract base class for custom Crawlee logger implementations.
  *
- * Subclasses must implement four methods:
- * - {@apilink BaseCrawleeLogger.log} — the core logging dispatch
- * - {@apilink BaseCrawleeLogger.getLevel} — returns the current log level from the underlying library
- * - {@apilink BaseCrawleeLogger.setLevel} — sets the log level on the underlying library
+ * Subclasses must implement two methods:
+ * - {@apilink BaseCrawleeLogger.logWithLevel} — the core logging dispatch
  * - {@apilink BaseCrawleeLogger.createChild} — how to create a child logger instance
  *
  * All other `CrawleeLogger` methods (`error`, `warning`, `info`, `debug`, etc.)
  * are derived automatically. Level filtering is entirely the responsibility of the
- * underlying library — `log()` is called for every message.
+ * underlying library — `logWithLevel()` is called for every message.
  *
  * **Example — Winston adapter:**
  * ```typescript
@@ -112,7 +110,7 @@ export interface CrawleeLogger {
  *         this.logger.level = CRAWLEE_TO_WINSTON[level] ?? 'info';
  *     }
  *
- *     protected log(level: number, message: string, data?: Record<string, unknown>): void {
+ *     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
  *         this.logger.log(CRAWLEE_TO_WINSTON[level] ?? 'info', message, { ...data, prefix: this.getOptions().prefix });
  *     }
  *
@@ -141,7 +139,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
      * @param message The log message
      * @param data Optional structured data to attach to the log entry
      */
-    protected abstract log(level: number, message: string, data?: Record<string, unknown>): void;
+    abstract logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
 
     /**
      * Creates a child logger instance. Subclasses must implement this to define
@@ -162,11 +160,11 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     }
 
     error(message: string, data?: Record<string, unknown>): void {
-        this.log(LogLevel.ERROR, message, data);
+        this.logWithLevel(LogLevel.ERROR, message, data);
     }
 
     exception(exception: Error, message: string, data?: Record<string, unknown>): void {
-        this.log(LogLevel.ERROR, `${message}: ${exception.message}`, {
+        this.logWithLevel(LogLevel.ERROR, `${message}: ${exception.message}`, {
             ...data,
             stack: exception.stack,
             exception,
@@ -174,38 +172,60 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     }
 
     softFail(message: string, data?: Record<string, unknown>): void {
-        this.log(LogLevel.SOFT_FAIL, message, data);
+        this.logWithLevel(LogLevel.SOFT_FAIL, message, data);
     }
 
     warning(message: string, data?: Record<string, unknown>): void {
-        this.log(LogLevel.WARNING, message, data);
+        this.logWithLevel(LogLevel.WARNING, message, data);
     }
 
     warningOnce(message: string): void {
         if (!this.warningsLogged.has(message)) {
             this.warningsLogged.add(message);
-            this.log(LogLevel.WARNING, message);
+            this.logWithLevel(LogLevel.WARNING, message);
         }
     }
 
     info(message: string, data?: Record<string, unknown>): void {
-        this.log(LogLevel.INFO, message, data);
+        this.logWithLevel(LogLevel.INFO, message, data);
     }
 
     debug(message: string, data?: Record<string, unknown>): void {
-        this.log(LogLevel.DEBUG, message, data);
+        this.logWithLevel(LogLevel.DEBUG, message, data);
     }
 
     perf(message: string, data?: Record<string, unknown>): void {
-        this.log(LogLevel.PERF, `[PERF] ${message}`, data);
+        this.logWithLevel(LogLevel.PERF, `[PERF] ${message}`, data);
     }
 
     deprecated(message: string): void {
         this.warningOnce(`[DEPRECATED] ${message}`);
     }
+}
 
-    internal(level: number, message: string, data?: Record<string, unknown>, exception?: Error): void {
-        this.log(level, message, { ...data, ...(exception ? { exception } : {}) });
+/**
+ * Adapter that wraps `@apify/log`'s {@apilink Log} instance to implement the {@apilink CrawleeLogger} interface.
+ *
+ * This is the default logger used by Crawlee when no custom logger is configured.
+ * Users who want to use a different logging library should implement {@apilink BaseCrawleeLogger} directly.
+ */
+export class ApifyLogAdapter extends BaseCrawleeLogger {
+    constructor(
+        private readonly apifyLog: Log,
+        options?: Partial<CrawleeLoggerOptions>,
+    ) {
+        super(options ?? {});
+    }
+
+    logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
+        this.apifyLog.internal(level as LogLevel, message, data);
+    }
+
+    protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
+        return new ApifyLogAdapter(this.apifyLog.child({ prefix: options.prefix ?? null }), {
+            ...this.getOptions(),
+            ...options,
+        });
     }
 }
 

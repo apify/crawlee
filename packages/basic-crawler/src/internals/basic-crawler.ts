@@ -955,7 +955,7 @@ export class BasicCrawler<
     async setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data =
             options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
-        this.log.internal(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
+        this.log.logWithLevel(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
 
         const client = serviceLocator.getStorageClient();
 

@@ -3,7 +3,7 @@ import { BaseCrawleeLogger, LogLevel } from '../../src/log.js';
 
 /** Minimal concrete implementation for testing. */
 class TestLogger extends BaseCrawleeLogger {
-    protected log(_level: number, _message: string, _data?: Record<string, unknown>): void {
+    logWithLevel(_level: number, _message: string, _data?: Record<string, unknown>): void {
         // Captured via vitest.spyOn in tests.
     }
 
@@ -14,7 +14,7 @@ class TestLogger extends BaseCrawleeLogger {
 
 function makeLogger(options: Partial<CrawleeLoggerOptions> = {}) {
     const logger = new TestLogger(options);
-    const spy = vitest.spyOn(logger, 'log' as any);
+    const spy = vitest.spyOn(logger, 'logWithLevel');
     return { logger, spy };
 }
 
@@ -33,7 +33,7 @@ describe('BaseCrawleeLogger', () => {
     });
 
     describe('error()', () => {
-        test('calls log with ERROR level and message', () => {
+        test('calls logWithLevel with ERROR level and message', () => {
             const { logger, spy } = makeLogger();
             logger.error('something broke');
             expect(spy).toHaveBeenCalledWith(LogLevel.ERROR, 'something broke', undefined);
@@ -71,7 +71,7 @@ describe('BaseCrawleeLogger', () => {
     });
 
     describe('softFail()', () => {
-        test('calls log with SOFT_FAIL level', () => {
+        test('calls logWithLevel with SOFT_FAIL level', () => {
             const { logger, spy } = makeLogger();
             logger.softFail('non-critical');
             expect(spy).toHaveBeenCalledWith(LogLevel.SOFT_FAIL, 'non-critical', undefined);
@@ -131,22 +131,17 @@ describe('BaseCrawleeLogger', () => {
         });
     });
 
-    describe('internal()', () => {
+    describe('logWithLevel()', () => {
         test('dispatches at the given level', () => {
             const { logger, spy } = makeLogger();
-            logger.internal(LogLevel.WARNING, 'internal warning');
-            expect(spy).toHaveBeenCalledWith(LogLevel.WARNING, 'internal warning', expect.any(Object));
+            logger.logWithLevel(LogLevel.WARNING, 'log warning');
+            expect(spy).toHaveBeenCalledWith(LogLevel.WARNING, 'log warning');
         });
 
-        test('includes exception in data when provided', () => {
+        test('passes data through', () => {
             const { logger, spy } = makeLogger();
-            const err = new Error('boom');
-            logger.internal(LogLevel.ERROR, 'internal error', {}, err);
-            expect(spy).toHaveBeenCalledWith(
-                LogLevel.ERROR,
-                'internal error',
-                expect.objectContaining({ exception: err }),
-            );
+            logger.logWithLevel(LogLevel.ERROR, 'log error', { key: 'val' });
+            expect(spy).toHaveBeenCalledWith(LogLevel.ERROR, 'log error', { key: 'val' });
         });
     });
 
@@ -166,7 +161,7 @@ describe('BaseCrawleeLogger', () => {
         test('child has independent warningOnce deduplication', () => {
             const { logger } = makeLogger();
             const child = logger.child({ prefix: 'Child' }) as TestLogger;
-            const childSpy = vitest.spyOn(child, 'log' as any);
+            const childSpy = vitest.spyOn(child as TestLogger, 'logWithLevel');
 
             logger.warningOnce('shared warning');
 
