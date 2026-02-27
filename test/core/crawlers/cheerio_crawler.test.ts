@@ -11,6 +11,7 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
+import { BaseCrawleeLogger } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
@@ -21,7 +22,6 @@ import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
-import { BaseCrawleeLogger } from '@crawlee/core';
 
 let server: Server;
 let port: number;
