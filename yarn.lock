@@ -1179,7 +1179,7 @@ __metadata:
     "@apify/ps-tree": "npm:^1.2.0"
     "@crawlee/types": "npm:3.16.0"
     "@types/sax": "npm:^1.2.7"
-    "@types/whatwg-mimetype": "npm:^3.0.2"
+    "@types/whatwg-mimetype": "npm:^5.0.0"
     cheerio: "npm:1.0.0-rc.12"
     file-type: "npm:^20.0.0"
     got-scraping: "npm:^4.2.1"
@@ -1187,7 +1187,7 @@ __metadata:
     robots-parser: "npm:^3.0.1"
     sax: "npm:^1.4.1"
     tslib: "npm:^2.4.0"
-    whatwg-mimetype: "npm:^4.0.0"
+    whatwg-mimetype: "npm:^5.0.0"
   languageName: unknown
   linkType: soft
 
@@ -3606,10 +3606,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/whatwg-mimetype@npm:^3.0.2":
-  version: 3.0.2
-  resolution: "@types/whatwg-mimetype@npm:3.0.2"
-  checksum: 10c0/dad39d1e4abe760a0a963c84bbdbd26b1df0eb68aff83bdf6ecbb50ad781ead777f6906d19a87007790b750f7500a12e5624d31fc6a1529d14bd19b5c3a316d1
+"@types/whatwg-mimetype@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "@types/whatwg-mimetype@npm:5.0.0"
+  checksum: 10c0/1a96dc464445068b5f0516b6be0adeee22670f40b30b07f21b8040e08015d9c0e7c7f08338c3199762707f970742e215f90d7021010a473dd7914a4baa1dec62
   languageName: node
   linkType: hard
 
@@ -14937,6 +14937,13 @@ __metadata:
   version: 4.0.0
   resolution: "whatwg-mimetype@npm:4.0.0"
   checksum: 10c0/a773cdc8126b514d790bdae7052e8bf242970cebd84af62fb2f35a33411e78e981f6c0ab9ed1fe6ec5071b09d5340ac9178e05b52d35a9c4bcf558ba1b1551df
+  languageName: node
+  linkType: hard
+
+"whatwg-mimetype@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "whatwg-mimetype@npm:5.0.0"
+  checksum: 10c0/eead164fe73a00dd82f817af6fc0bd22e9c273e1d55bf4bc6bdf2da7ad8127fca82ef00ea6a37892f5f5641f8e34128e09508f92126086baba126b9e0d57feb4
   languageName: node
   linkType: hard
 
