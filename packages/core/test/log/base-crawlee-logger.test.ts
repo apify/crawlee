@@ -3,18 +3,18 @@ import { BaseCrawleeLogger, LogLevel } from '../../src/log.js';
 
 /** Minimal concrete implementation for testing. */
 class TestLogger extends BaseCrawleeLogger {
-    protected _log(_level: number, _message: string, _data?: Record<string, unknown>): void {
+    protected log(_level: number, _message: string, _data?: Record<string, unknown>): void {
         // Captured via vitest.spyOn in tests.
     }
 
-    protected _createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
+    protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
         return new TestLogger({ ...this.getOptions(), ...options });
     }
 }
 
 function makeLogger(options: Partial<CrawleeLoggerOptions> = {}) {
     const logger = new TestLogger(options);
-    const spy = vitest.spyOn(logger, '_log' as any);
+    const spy = vitest.spyOn(logger, 'log' as any);
     return { logger, spy };
 }
 
@@ -115,7 +115,7 @@ describe('BaseCrawleeLogger', () => {
     });
 
     describe('error()', () => {
-        test('calls _log with ERROR level and message', () => {
+        test('calls log with ERROR level and message', () => {
             const { logger, spy } = makeLogger();
             logger.error('something broke');
             expect(spy).toHaveBeenCalledWith(LogLevel.ERROR, 'something broke', undefined);
@@ -153,7 +153,7 @@ describe('BaseCrawleeLogger', () => {
     });
 
     describe('softFail()', () => {
-        test('calls _log with SOFT_FAIL level', () => {
+        test('calls log with SOFT_FAIL level', () => {
             const { logger, spy } = makeLogger();
             logger.softFail('non-critical');
             expect(spy).toHaveBeenCalledWith(LogLevel.SOFT_FAIL, 'non-critical', undefined);
@@ -266,7 +266,7 @@ describe('BaseCrawleeLogger', () => {
         test('child has independent warningOnce deduplication', () => {
             const { logger } = makeLogger();
             const child = logger.child({ prefix: 'Child' }) as TestLogger;
-            const childSpy = vitest.spyOn(child, '_log' as any);
+            const childSpy = vitest.spyOn(child, 'log' as any);
 
             logger.warningOnce('shared warning');
 
