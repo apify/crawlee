@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { Dictionary } from '@crawlee/types';
 import { pathExistsSync } from 'fs-extra/esm';
 
-import { log,LogLevel } from './log.js';
+import { log, LogLevel } from './log.js';
 import { serviceLocator } from './service_locator.js';
 import { entries } from './typedefs.js';
 
