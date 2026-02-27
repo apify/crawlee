@@ -1,11 +1,5 @@
 import type { CrawleeLogger } from '@crawlee/core';
-import {
-    Configuration,
-    LocalEventManager,
-    ServiceConflictError,
-    ServiceLocator,
-    serviceLocator,
-} from '@crawlee/core';
+import { Configuration, LocalEventManager, ServiceConflictError, ServiceLocator, serviceLocator } from '@crawlee/core';
 import { MemoryStorage } from '@crawlee/memory-storage';
 
 import log from '@apify/log';

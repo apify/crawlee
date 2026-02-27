@@ -30,7 +30,6 @@ describe('BaseCrawleeLogger', () => {
             logger.setOptions({ prefix: 'Updated' });
             expect(logger.getOptions().prefix).toBe('Updated');
         });
-
     });
 
     describe('error()', () => {
@@ -175,6 +174,5 @@ describe('BaseCrawleeLogger', () => {
             child.warningOnce('shared warning');
             expect(childSpy).toHaveBeenCalledOnce();
         });
-
     });
 });
