@@ -677,7 +677,7 @@ __metadata:
   resolution: "@crawlee/got-scraping-client@workspace:packages/got-scraping-client"
   dependencies:
     "@crawlee/http-client": "npm:4.0.0"
-    got-scraping: "npm:^4.1.3"
+    got-scraping: "npm:^4.2.1"
   languageName: unknown
   linkType: soft
 
@@ -7620,9 +7620,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"got-scraping@npm:^4.1.3":
-  version: 4.1.3
-  resolution: "got-scraping@npm:4.1.3"
+"got-scraping@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "got-scraping@npm:4.2.1"
   dependencies:
     got: "npm:^14.2.1"
     header-generator: "npm:^2.1.41"
@@ -7631,7 +7631,7 @@ __metadata:
     ow: "npm:^1.1.1"
     quick-lru: "npm:^7.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/bad55048f569d84f2dc83ac3ff3c7cf9ce591f2e200f99b88c67a948eaef78c8b4c702c725f241fd596c1dc7cb7bbae6386f96db9901421cb7a7fbd71e05599d
+  checksum: 10c0/26a5779a2dbb084cd36cd3be1b6d243e3ddd69d558c26d786b03c997b5faabc78d5109a2d9b0a28531bc54a87e82976db6ead68759bc3e953bc60fdc67e2514f
   languageName: node
   linkType: hard
 
