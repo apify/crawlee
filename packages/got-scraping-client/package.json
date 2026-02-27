@@ -48,6 +48,6 @@
     },
     "dependencies": {
         "@crawlee/http-client": "4.0.0",
-        "got-scraping": "^4.1.3"
+        "got-scraping": "^4.2.1"
     }
 }
