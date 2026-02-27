@@ -113,7 +113,7 @@ describe('BaseCrawleeLogger', () => {
         test('logs with [DEPRECATED] prefix', () => {
             const { logger, spy } = makeLogger();
             logger.deprecated('use newFn() instead');
-            expect(spy).toHaveBeenCalledWith(LogLevel.WARNING, '[DEPRECATED] use newFn() instead');
+            expect(spy).toHaveBeenCalledWith(LogLevel.WARNING, '[DEPRECATED] use newFn() instead', undefined);
         });
 
         test('only logs once per message', () => {
