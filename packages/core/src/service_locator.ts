@@ -154,7 +154,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getConfiguration(): Configuration {
         if (!this.configuration) {
-            this.getLogger().debug('No configuration set, implicitly creating and using default Configuration.');
+            (this.logger ?? log).debug('No configuration set, implicitly creating and using default Configuration.');
             this.configuration = new Configuration();
         }
         return this.configuration;
@@ -176,9 +176,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getEventManager(): EventManager {
         if (!this.eventManager) {
-            this.getLogger().debug('No event manager set, implicitly creating and using default LocalEventManager.');
+            (this.logger ?? log).debug('No event manager set, implicitly creating and using default LocalEventManager.');
             if (!this.configuration) {
-                this.getLogger().warning(
+                (this.logger ?? log).warning(
                     'Implicit creation of event manager will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
@@ -204,9 +204,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getStorageClient(): StorageClient {
         if (!this.storageClient) {
-            this.getLogger().debug('No storage client set, implicitly creating and using default MemoryStorage.');
+            (this.logger ?? log).debug('No storage client set, implicitly creating and using default MemoryStorage.');
             if (!this.configuration) {
-                this.getLogger().warning(
+                (this.logger ?? log).warning(
                     'Implicit creation of storage client will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
@@ -241,6 +241,14 @@ export class ServiceLocator implements ServiceLocatorInterface {
     }
 
     setLogger(logger: CrawleeLogger): void {
+        if (this.logger === logger) {
+            return;
+        }
+
+        if (this.logger) {
+            throw new ServiceConflictError('Logger', logger, this.logger);
+        }
+
         this.logger = logger;
     }
 

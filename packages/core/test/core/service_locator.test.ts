@@ -176,24 +176,28 @@ describe('ServiceLocator', () => {
             expect(serviceLocator.getLogger()).toBe(customLogger);
         });
 
-        test('logger can be overwritten silently', () => {
+        test('logger overwrite not possible', () => {
             const firstLogger = makeMockLogger();
             serviceLocator.setLogger(firstLogger);
 
             const secondLogger = makeMockLogger();
-            serviceLocator.setLogger(secondLogger);
 
-            expect(serviceLocator.getLogger()).toBe(secondLogger);
+            expect(() => {
+                serviceLocator.setLogger(secondLogger);
+            }).toThrow(ServiceConflictError);
         });
 
-        test('logger can be replaced after getLogger() has been called', () => {
+        test('logger conflict', () => {
             serviceLocator.getLogger();
 
             const customLogger = makeMockLogger();
+
             expect(() => {
                 serviceLocator.setLogger(customLogger);
-            }).not.toThrow();
-            expect(serviceLocator.getLogger()).toBe(customLogger);
+            }).toThrow(ServiceConflictError);
+            expect(() => {
+                serviceLocator.setLogger(customLogger);
+            }).toThrow(/Logger is already in use/);
         });
 
         test('reset clears the logger', () => {
@@ -274,6 +278,17 @@ describe('ServiceLocator', () => {
             // Setting the same instance again should not throw
             expect(() => {
                 serviceLocator.setStorageClient(storageClient);
+            }).not.toThrow();
+        });
+
+        test('setting same logger instance is allowed', () => {
+            const logger = makeMockLogger();
+            serviceLocator.setLogger(logger);
+            serviceLocator.getLogger();
+
+            // Setting the same instance again should not throw
+            expect(() => {
+                serviceLocator.setLogger(logger);
             }).not.toThrow();
         });
     });
