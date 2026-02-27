@@ -60,9 +60,9 @@
         "@apify/tsconfig": "^0.1.0",
         "@biomejs/biome": "^2.3.11",
         "@commitlint/config-conventional": "^20.0.0",
-        "@playwright/browser-chromium": "1.58.1",
-        "@playwright/browser-firefox": "1.58.1",
-        "@playwright/browser-webkit": "1.58.1",
+        "@playwright/browser-chromium": "1.58.2",
+        "@playwright/browser-firefox": "1.58.2",
+        "@playwright/browser-webkit": "1.58.2",
         "@stylistic/eslint-plugin": "^5.0.0",
         "@types/content-type": "^1.1.5",
         "@types/deep-equal": "^1.0.1",
@@ -104,10 +104,10 @@
         "lerna": "^9.0.0",
         "lint-staged": "^16.0.0",
         "nock": "^13.4.0",
-        "playwright": "1.58.1",
+        "playwright": "1.58.2",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
-        "puppeteer": "24.36.1",
+        "puppeteer": "24.37.5",
         "rimraf": "^6.0.0",
         "tsx": "^4.4.0",
         "turbo": "^2.1.0",
@@ -120,7 +120,7 @@
     },
     "packageManager": "yarn@4.10.3",
     "volta": {
-        "node": "24.13.0",
+        "node": "24.14.0",
         "yarn": "4.10.3"
     }
 }
