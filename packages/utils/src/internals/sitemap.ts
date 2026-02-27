@@ -269,7 +269,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             }),
                             {
                                 proxyUrl,
-                                timeout,
+                                timeoutMillis: timeout,
                             },
                         );
                     } catch (error: any) {
