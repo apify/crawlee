@@ -5,8 +5,7 @@ import { join } from 'node:path';
 import type { Dictionary } from '@crawlee/types';
 import { pathExistsSync } from 'fs-extra/esm';
 
-import type { CrawleeLogger } from './log.js';
-import { LogLevel } from './log.js';
+import { LogLevel, log } from './log.js';
 import { serviceLocator } from './service_locator.js';
 import { entries } from './typedefs.js';
 
@@ -149,16 +148,6 @@ export interface ConfigurationOptions {
      */
     containerized?: boolean;
 
-    /**
-     * Custom logger instance to use instead of the default `@apify/log`.
-     * Accepts any implementation of {@apilink CrawleeLogger} (e.g. a Winston or Pino adapter).
-     *
-     * @example
-     * ```typescript
-     * const config = new Configuration({ loggerProvider: new WinstonAdapter(winstonLogger) });
-     * ```
-     */
-    loggerProvider?: CrawleeLogger;
 }
 
 /**
@@ -288,11 +277,6 @@ export class Configuration {
         // Increase the global limit for event emitter memory leak warnings.
         EventEmitter.defaultMaxListeners = 50;
 
-        // Register custom logger before any getLogger() call below.
-        if (options.loggerProvider) {
-            serviceLocator.setLogger(options.loggerProvider);
-        }
-
         // set the log level to support CRAWLEE_ prefixed env var too
         const logLevel = this.get('logLevel');
 
@@ -300,7 +284,7 @@ export class Configuration {
             const level = Number.isFinite(+logLevel)
                 ? +logLevel
                 : LogLevel[String(logLevel).toUpperCase() as unknown as LogLevel];
-            serviceLocator.getLogger().setLevel(level as LogLevel);
+            log.setLevel(level as LogLevel);
         }
     }
 

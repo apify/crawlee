@@ -19,99 +19,18 @@ function makeLogger(options: Partial<CrawleeLoggerOptions> = {}) {
 }
 
 describe('BaseCrawleeLogger', () => {
-    describe('getLevel / setLevel', () => {
-        test('defaults to INFO', () => {
-            const { logger } = makeLogger();
-            expect(logger.getLevel()).toBe(LogLevel.INFO);
-        });
-
-        test('respects level passed to constructor', () => {
-            const { logger } = makeLogger({ level: LogLevel.DEBUG });
-            expect(logger.getLevel()).toBe(LogLevel.DEBUG);
-        });
-
-        test('setLevel updates the threshold', () => {
-            const { logger } = makeLogger();
-            logger.setLevel(LogLevel.ERROR);
-            expect(logger.getLevel()).toBe(LogLevel.ERROR);
-        });
-    });
-
     describe('getOptions / setOptions', () => {
         test('returns options passed to constructor', () => {
-            const { logger } = makeLogger({ prefix: 'Test', maxDepth: 3 });
-            expect(logger.getOptions()).toMatchObject({ prefix: 'Test', maxDepth: 3 });
-        });
-
-        test('setOptions merges without losing existing keys', () => {
             const { logger } = makeLogger({ prefix: 'Test' });
-            logger.setOptions({ maxDepth: 5 });
-            expect(logger.getOptions()).toMatchObject({ prefix: 'Test', maxDepth: 5 });
+            expect(logger.getOptions()).toMatchObject({ prefix: 'Test' });
         });
 
-        test('setOptions overwrites existing keys', () => {
-            const { logger } = makeLogger({ prefix: 'Old' });
-            logger.setOptions({ prefix: 'New' });
-            expect(logger.getOptions().prefix).toBe('New');
-        });
-    });
-
-    describe('level filtering', () => {
-        test('logs ERROR when level is INFO', () => {
-            const { logger, spy } = makeLogger();
-            logger.error('oops');
-            expect(spy).toHaveBeenCalledOnce();
+        test('setOptions overwrites prefix', () => {
+            const { logger } = makeLogger({ prefix: 'Test' });
+            logger.setOptions({ prefix: 'Updated' });
+            expect(logger.getOptions().prefix).toBe('Updated');
         });
 
-        test('logs WARNING when level is INFO', () => {
-            const { logger, spy } = makeLogger();
-            logger.warning('careful');
-            expect(spy).toHaveBeenCalledOnce();
-        });
-
-        test('logs INFO when level is INFO', () => {
-            const { logger, spy } = makeLogger();
-            logger.info('hello');
-            expect(spy).toHaveBeenCalledOnce();
-        });
-
-        test('suppresses DEBUG when level is INFO', () => {
-            const { logger, spy } = makeLogger();
-            logger.debug('verbose');
-            expect(spy).not.toHaveBeenCalled();
-        });
-
-        test('suppresses PERF when level is INFO', () => {
-            const { logger, spy } = makeLogger();
-            logger.perf('timing');
-            expect(spy).not.toHaveBeenCalled();
-        });
-
-        test('logs DEBUG after setLevel(DEBUG)', () => {
-            const { logger, spy } = makeLogger();
-            logger.setLevel(LogLevel.DEBUG);
-            logger.debug('now visible');
-            expect(spy).toHaveBeenCalledOnce();
-        });
-
-        test('suppresses everything except ERROR when level is ERROR', () => {
-            const { logger, spy } = makeLogger({ level: LogLevel.ERROR });
-            logger.warning('quiet');
-            logger.info('quiet');
-            logger.debug('quiet');
-            expect(spy).not.toHaveBeenCalled();
-
-            logger.error('loud');
-            expect(spy).toHaveBeenCalledOnce();
-        });
-
-        test('suppresses all messages when level is OFF', () => {
-            const { logger, spy } = makeLogger({ level: LogLevel.OFF });
-            logger.error('silent');
-            logger.warning('silent');
-            logger.info('silent');
-            expect(spy).not.toHaveBeenCalled();
-        });
     });
 
     describe('error()', () => {
@@ -158,12 +77,6 @@ describe('BaseCrawleeLogger', () => {
             logger.softFail('non-critical');
             expect(spy).toHaveBeenCalledWith(LogLevel.SOFT_FAIL, 'non-critical', undefined);
         });
-
-        test('suppressed when level is ERROR', () => {
-            const { logger, spy } = makeLogger({ level: LogLevel.ERROR });
-            logger.softFail('ignored');
-            expect(spy).not.toHaveBeenCalled();
-        });
     });
 
     describe('warningOnce()', () => {
@@ -191,15 +104,9 @@ describe('BaseCrawleeLogger', () => {
 
     describe('perf()', () => {
         test('prepends [PERF] to the message', () => {
-            const { logger, spy } = makeLogger({ level: LogLevel.PERF });
-            logger.perf('render took 20ms');
-            expect(spy).toHaveBeenCalledWith(LogLevel.PERF, '[PERF] render took 20ms', undefined);
-        });
-
-        test('suppressed at default INFO level', () => {
             const { logger, spy } = makeLogger();
             logger.perf('render took 20ms');
-            expect(spy).not.toHaveBeenCalled();
+            expect(spy).toHaveBeenCalledWith(LogLevel.PERF, '[PERF] render took 20ms', undefined);
         });
     });
 
@@ -207,7 +114,7 @@ describe('BaseCrawleeLogger', () => {
         test('logs with [DEPRECATED] prefix', () => {
             const { logger, spy } = makeLogger();
             logger.deprecated('use newFn() instead');
-            expect(spy).toHaveBeenCalledWith(LogLevel.WARNING, '[DEPRECATED] use newFn() instead', undefined);
+            expect(spy).toHaveBeenCalledWith(LogLevel.WARNING, '[DEPRECATED] use newFn() instead');
         });
 
         test('only logs once per message', () => {
@@ -242,12 +149,6 @@ describe('BaseCrawleeLogger', () => {
                 expect.objectContaining({ exception: err }),
             );
         });
-
-        test('is suppressed when level is below threshold', () => {
-            const { logger, spy } = makeLogger({ level: LogLevel.ERROR });
-            logger.internal(LogLevel.DEBUG, 'suppressed');
-            expect(spy).not.toHaveBeenCalled();
-        });
     });
 
     describe('child()', () => {
@@ -258,9 +159,9 @@ describe('BaseCrawleeLogger', () => {
         });
 
         test('child inherits parent options', () => {
-            const { logger } = makeLogger({ prefix: 'Parent', maxDepth: 3 });
+            const { logger } = makeLogger({ prefix: 'Parent' });
             const child = logger.child({ prefix: 'Child' }) as TestLogger;
-            expect(child.getOptions()).toMatchObject({ maxDepth: 3, prefix: 'Child' });
+            expect(child.getOptions()).toMatchObject({ prefix: 'Child' });
         });
 
         test('child has independent warningOnce deduplication', () => {
@@ -275,13 +176,5 @@ describe('BaseCrawleeLogger', () => {
             expect(childSpy).toHaveBeenCalledOnce();
         });
 
-        test('child level changes do not affect parent', () => {
-            const { logger, spy } = makeLogger();
-            const child = logger.child({}) as TestLogger;
-            child.setLevel(LogLevel.OFF);
-
-            logger.info('parent still logs');
-            expect(spy).toHaveBeenCalledOnce();
-        });
     });
 });
