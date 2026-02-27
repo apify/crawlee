@@ -36,13 +36,20 @@ export class RobotsTxtFile {
      * Determine the location of a robots.txt file for a URL and fetch it.
      * @param url the URL to fetch robots.txt for
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
+     * @param [options] additional options
+     * @param [options.signal] an AbortSignal to cancel the request
+     * @param [options.timeoutMillis] timeout in milliseconds for the request
      */
-    static async find(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
+    static async find(
+        url: string,
+        proxyUrl?: string,
+        options?: { signal?: AbortSignal; timeoutMillis?: number },
+    ): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
         robotsTxtFileUrl.search = '';
 
-        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl);
+        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl, options);
     }
 
     /**
@@ -55,7 +62,11 @@ export class RobotsTxtFile {
         return new RobotsTxtFile(robotsParser(url, content), proxyUrl);
     }
 
-    protected static async load(url: string, proxyUrl?: string): Promise<RobotsTxtFile> {
+    protected static async load(
+        url: string,
+        proxyUrl?: string,
+        options?: { signal?: AbortSignal; timeoutMillis?: number },
+    ): Promise<RobotsTxtFile> {
         if (!HTTPError) {
             HTTPError = (await import('got-scraping')).HTTPError;
         }
@@ -66,6 +77,8 @@ export class RobotsTxtFile {
                 proxyUrl,
                 method: 'GET',
                 responseType: 'text',
+                signal: options?.signal,
+                ...(options?.timeoutMillis ? { timeout: { request: options.timeoutMillis } } : {}),
             });
 
             return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);

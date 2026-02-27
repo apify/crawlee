@@ -9,6 +9,7 @@ describe('RobotsTxtFile', () => {
         nock('http://not-exists.com')
             .persist()
             .get('/robots.txt')
+            .delay(500)
             .reply(
                 200,
                 [
@@ -55,6 +56,47 @@ describe('RobotsTxtFile', () => {
             'http://not-exists.com/sitemap_1.xml',
             'http://not-exists.com/sitemap_2.xml',
         ]);
+    });
+
+    it('respects user-set timeout', async () => {
+        const start = +Date.now();
+        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, { timeoutMillis: 200 });
+
+        await expect(robots).rejects.toThrow(/timeout/i);
+        const end = +Date.now();
+
+        expect(end - start).toBeGreaterThanOrEqual(200);
+        expect(end - start).toBeLessThanOrEqual(500);
+    });
+
+    it('respects AbortSignal parameter', async () => {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 200);
+
+        const start = +Date.now();
+        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, { signal: controller.signal });
+
+        await expect(robots).rejects.toThrow(/aborted/i);
+        const end = +Date.now();
+
+        expect(end - start).toBeGreaterThanOrEqual(200);
+        expect(end - start).toBeLessThanOrEqual(500);
+    });
+
+    it('respects AbortSignal parameter and timeout together', async () => {
+        const controller = new AbortController();
+
+        const start = +Date.now();
+        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, {
+            signal: controller.signal,
+            timeoutMillis: 200,
+        });
+
+        await expect(robots).rejects.toThrow(/timeout/i);
+        const end = +Date.now();
+
+        expect(end - start).toBeGreaterThanOrEqual(200);
+        expect(end - start).toBeLessThanOrEqual(500);
     });
 
     it('parses allow/deny directives from explicitly provided robots.txt contents', async () => {
