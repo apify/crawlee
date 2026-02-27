@@ -387,7 +387,12 @@ function createInterceptRequestHandler(page: Page, requests: Set<string>): (req:
  * @ignore
  */
 function isTopFrameNavigationRequest(page: Page, req: PuppeteerRequest): boolean {
-    return req.isNavigationRequest() && req.frame() === page.mainFrame();
+    try {
+        return req.isNavigationRequest() && req.frame() === page.mainFrame();
+    } catch (error) {
+        log.error('Error in isTopFrameNavigationRequest', { error });
+        return false;
+    }
 }
 
 /**
@@ -583,11 +588,12 @@ async function waitForPageIdle({
  */
 async function restoreHistoryNavigationAndSaveCapturedUrls(page: Page, requests: Set<string>): Promise<void> {
     /* istanbul ignore next */
-    const state = await page.evaluate(() => {
-        const { stateHistory } = window.history as unknown as ApifyWindow;
-        (window as unknown as Dictionary).history = (window as unknown as Dictionary).__originalHistory__;
-        return stateHistory;
-    });
+    const state =
+        (await page.evaluate(() => {
+            const { stateHistory } = window.history as unknown as ApifyWindow;
+            (window as unknown as Dictionary).history = (window as unknown as Dictionary).__originalHistory__;
+            return stateHistory;
+        })) ?? [];
     state.forEach((args) => {
         try {
             const stateUrl = args[args.length - 1] as string;
