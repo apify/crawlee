@@ -159,7 +159,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getConfiguration(): Configuration {
         if (!this.configuration) {
-            (this.logger ?? fallbackLog).debug('No configuration set, implicitly creating and using default Configuration.');
+            (this.logger ?? fallbackLog).debug(
+                'No configuration set, implicitly creating and using default Configuration.',
+            );
             this.configuration = new Configuration();
         }
         return this.configuration;
@@ -211,7 +213,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getStorageClient(): StorageClient {
         if (!this.storageClient) {
-            (this.logger ?? fallbackLog).debug('No storage client set, implicitly creating and using default MemoryStorage.');
+            (this.logger ?? fallbackLog).debug(
+                'No storage client set, implicitly creating and using default MemoryStorage.',
+            );
             if (!this.configuration) {
                 (this.logger ?? fallbackLog).warning(
                     'Implicit creation of storage client will implicitly set configuration as side effect. ' +
