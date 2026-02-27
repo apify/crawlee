@@ -182,7 +182,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     warningOnce(message: string): void {
         if (!this.warningsLogged.has(message)) {
             this.warningsLogged.add(message);
-            this.logWithLevel(LogLevel.WARNING, message);
+            this.warning(message);
         }
     }
 
