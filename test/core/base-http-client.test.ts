@@ -37,9 +37,7 @@ describe('BaseHttpClient signal and timeoutMillis options', () => {
         const controller = new AbortController();
         controller.abort();
 
-        await expect(
-            httpClient.sendRequest(new Request(url), { signal: controller.signal }),
-        ).rejects.toThrow();
+        await expect(httpClient.sendRequest(new Request(url), { signal: controller.signal })).rejects.toThrow();
     });
 
     test('aborts when the signal is aborted after the request starts', async () => {
@@ -54,9 +52,7 @@ describe('BaseHttpClient signal and timeoutMillis options', () => {
         const slowUrl = `http://127.0.0.1:${(slowServer.address() as AddressInfo).port}`;
 
         try {
-            await expect(
-                httpClient.sendRequest(new Request(slowUrl), { signal: controller.signal }),
-            ).rejects.toThrow();
+            await expect(httpClient.sendRequest(new Request(slowUrl), { signal: controller.signal })).rejects.toThrow();
         } finally {
             await new Promise((r) => slowServer.close(r));
         }
@@ -71,9 +67,7 @@ describe('BaseHttpClient signal and timeoutMillis options', () => {
         const slowUrl = `http://127.0.0.1:${(slowServer.address() as AddressInfo).port}`;
 
         try {
-            await expect(
-                httpClient.sendRequest(new Request(slowUrl), { timeoutMillis: 50 }),
-            ).rejects.toThrow();
+            await expect(httpClient.sendRequest(new Request(slowUrl), { timeoutMillis: 50 })).rejects.toThrow();
         } finally {
             await new Promise((r) => slowServer.close(r));
         }
