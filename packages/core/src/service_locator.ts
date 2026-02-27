@@ -71,6 +71,12 @@ interface ServiceLocatorInterface {
      */
     setLogger(logger: CrawleeLogger): void;
 
+    /**
+     * Get a child logger with the given prefix.
+     * Equivalent to `getLogger().child({ prefix })`.
+     */
+    getChildLog(prefix: string): CrawleeLogger;
+
     getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined;
 
     setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void;
@@ -263,6 +269,10 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.logger = logger;
     }
 
+    getChildLog(prefix: string): CrawleeLogger {
+        return this.getLogger().child({ prefix });
+    }
+
     getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
         return this.storageManagers.get(constructor);
     }
@@ -405,6 +415,10 @@ export const serviceLocator: ServiceLocatorInterface = {
     setLogger(logger: CrawleeLogger): void {
         const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
         currentServiceLocator.setLogger(logger);
+    },
+    getChildLog(prefix: string): CrawleeLogger {
+        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
+        return currentServiceLocator.getChildLog(prefix);
     },
     getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
         const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;

@@ -1,8 +1,13 @@
 import type { CrawleeLogger } from '@crawlee/core';
-import { Configuration, LocalEventManager, ServiceConflictError, ServiceLocator, serviceLocator } from '@crawlee/core';
+import {
+    ApifyLogAdapter,
+    Configuration,
+    LocalEventManager,
+    ServiceConflictError,
+    ServiceLocator,
+    serviceLocator,
+} from '@crawlee/core';
 import { MemoryStorage } from '@crawlee/memory-storage';
-
-import log from '@apify/log';
 
 function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
     const logger: CrawleeLogger = {
@@ -165,9 +170,9 @@ describe('ServiceLocator', () => {
     });
 
     describe('Logger', () => {
-        test('default logger returns log from @apify/log', () => {
+        test('default logger returns an ApifyLogAdapter wrapping @apify/log', () => {
             const defaultLogger = serviceLocator.getLogger();
-            expect(defaultLogger).toBe(log);
+            expect(defaultLogger).toBeInstanceOf(ApifyLogAdapter);
         });
 
         test('custom logger can be set', () => {
@@ -207,8 +212,8 @@ describe('ServiceLocator', () => {
 
             serviceLocator.reset();
 
-            // After reset, default logger should be returned
-            expect(serviceLocator.getLogger()).toBe(log);
+            // After reset, default ApifyLogAdapter should be returned
+            expect(serviceLocator.getLogger()).toBeInstanceOf(ApifyLogAdapter);
         });
     });
 
@@ -290,6 +295,36 @@ describe('ServiceLocator', () => {
             expect(() => {
                 serviceLocator.setLogger(logger);
             }).not.toThrow();
+        });
+    });
+
+    describe('getChildLog', () => {
+        test('returns a child logger with the given prefix', () => {
+            const children: CrawleeLogger[] = [];
+            const mockLogger = makeMockLogger({
+                child: (options) => {
+                    const child = makeMockLogger({ getOptions: () => options });
+                    children.push(child);
+                    return child;
+                },
+            });
+            serviceLocator.setLogger(mockLogger);
+
+            const child = serviceLocator.getChildLog('Test Prefix');
+
+            expect(children).toHaveLength(1);
+            expect(child.getOptions()).toEqual({ prefix: 'Test Prefix' });
+        });
+
+        test('delegates to the current service locator context', () => {
+            const crawlerLocator = new ServiceLocator();
+            const mockLogger = makeMockLogger({
+                child: (options) => makeMockLogger({ getOptions: () => options }),
+            });
+            crawlerLocator.setLogger(mockLogger);
+
+            const child = crawlerLocator.getChildLog('Crawler Module');
+            expect(child.getOptions()).toEqual({ prefix: 'Crawler Module' });
         });
     });
 

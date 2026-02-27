@@ -27,7 +27,7 @@ import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception.js';
 
 const STARTING_Z_INDEX = 2147400000;
-const getLog = () => serviceLocator.getLogger().child({ prefix: 'Puppeteer Click Elements' });
+const getLog = () => serviceLocator.getChildLog('Puppeteer Click Elements');
 
 export interface EnqueueLinksByClickingElementsOptions {
     /**

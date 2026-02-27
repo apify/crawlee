@@ -44,7 +44,7 @@ const jqueryPath = require.resolve('jquery');
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
-const getLog = () => serviceLocator.getLogger().child({ prefix: 'Puppeteer Utils' });
+const getLog = () => serviceLocator.getChildLog('Puppeteer Utils');
 
 export interface DirectNavigationOptions {
     /**

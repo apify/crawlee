@@ -43,7 +43,7 @@ import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/cli
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
 import { RenderingTypePredictor } from './rendering-type-prediction.js';
 
-const getLog = () => serviceLocator.getLogger().child({ prefix: 'Playwright Utils' });
+const getLog = () => serviceLocator.getChildLog('Playwright Utils');
 
 const require = createRequire(import.meta.url);
 const jqueryPath = require.resolve('jquery');

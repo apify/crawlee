@@ -25,7 +25,7 @@ import ow from 'ow';
 import type { Frame, Page, Request, Route } from 'playwright';
 
 const STARTING_Z_INDEX = 2147400000;
-const getLog = () => serviceLocator.getLogger().child({ prefix: 'Playwright Click Elements' });
+const getLog = () => serviceLocator.getChildLog('Playwright Click Elements');
 
 type ClickOptions = Parameters<Page['click']>[1];
 
