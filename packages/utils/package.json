@@ -58,9 +58,9 @@
         "robots-parser": "^3.0.1",
         "sax": "^1.4.1",
         "tslib": "^2.4.0",
-        "whatwg-mimetype": "^4.0.0"
+        "whatwg-mimetype": "^5.0.0"
     },
     "devDependencies": {
-        "@types/whatwg-mimetype": "^3.0.2"
+        "@types/whatwg-mimetype": "^5.0.0"
     }
 }
