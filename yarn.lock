@@ -796,7 +796,7 @@ __metadata:
     "@crawlee/utils": "npm:3.16.0"
     csv-stringify: "npm:^6.2.0"
     fs-extra: "npm:^11.0.0"
-    got-scraping: "npm:^4.0.0"
+    got-scraping: "npm:^4.2.1"
     ow: "npm:^0.28.1"
     tldts: "npm:^7.0.0"
     tslib: "npm:^2.4.0"
@@ -902,7 +902,7 @@ __metadata:
     "@vladfrangu/async_event_emitter": "npm:^2.2.2"
     csv-stringify: "npm:^6.2.0"
     fs-extra: "npm:^11.0.0"
-    got-scraping: "npm:^4.0.0"
+    got-scraping: "npm:^4.2.1"
     json5: "npm:^2.2.3"
     minimatch: "npm:^9.0.0"
     ow: "npm:^0.28.1"
@@ -926,7 +926,7 @@ __metadata:
     "@types/content-type": "npm:^1.1.5"
     cheerio: "npm:1.0.0-rc.12"
     content-type: "npm:^1.0.4"
-    got-scraping: "npm:^4.0.0"
+    got-scraping: "npm:^4.2.1"
     iconv-lite: "npm:^0.7.0"
     mime-types: "npm:^2.1.35"
     ow: "npm:^0.28.1"
@@ -1182,7 +1182,7 @@ __metadata:
     "@types/whatwg-mimetype": "npm:^3.0.2"
     cheerio: "npm:1.0.0-rc.12"
     file-type: "npm:^20.0.0"
-    got-scraping: "npm:^4.0.3"
+    got-scraping: "npm:^4.2.1"
     ow: "npm:^0.28.1"
     robots-parser: "npm:^3.0.1"
     sax: "npm:^1.4.1"
@@ -8041,9 +8041,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"got-scraping@npm:^4.0.0, got-scraping@npm:^4.0.3":
-  version: 4.1.2
-  resolution: "got-scraping@npm:4.1.2"
+"got-scraping@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "got-scraping@npm:4.2.1"
   dependencies:
     got: "npm:^14.2.1"
     header-generator: "npm:^2.1.41"
@@ -8052,7 +8052,7 @@ __metadata:
     ow: "npm:^1.1.1"
     quick-lru: "npm:^7.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/7667637ad9ad3c8506522b4721456e61392e51230f3d7c988a0ef58b223d806869adc1adc61e7b8299f533b154f26343f6960f8ade7ce944336ecb4b5f3b7057
+  checksum: 10c0/26a5779a2dbb084cd36cd3be1b6d243e3ddd69d558c26d786b03c997b5faabc78d5109a2d9b0a28531bc54a87e82976db6ead68759bc3e953bc60fdc67e2514f
   languageName: node
   linkType: hard
 
