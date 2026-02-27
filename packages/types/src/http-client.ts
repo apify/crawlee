@@ -66,7 +66,10 @@ export type RedirectHandler = (
 export interface SendRequestOptions {
     session?: ISession;
     cookieJar?: CookieJar;
-    timeout?: number;
+    /** Timeout for the HTTP request in milliseconds. */
+    timeoutMillis?: number;
+    /** An AbortSignal to cancel the HTTP request. */
+    signal?: AbortSignal;
     /**
      * Overrides the proxy URL set in the `session` for this request.
      *

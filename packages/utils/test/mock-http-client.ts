@@ -2,7 +2,7 @@ import type { BaseHttpClient, SendRequestOptions, StreamOptions } from '@crawlee
 
 export class FetchHttpClient implements BaseHttpClient {
     async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
-        const signal = AbortSignal.timeout(options?.timeout ?? 30000);
+        const signal = AbortSignal.timeout(options?.timeoutMillis ?? 30000);
         const response = await fetch(request, { signal });
         return response;
     }
