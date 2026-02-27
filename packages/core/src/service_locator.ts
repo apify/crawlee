@@ -176,7 +176,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getEventManager(): EventManager {
         if (!this.eventManager) {
-            (this.logger ?? log).debug('No event manager set, implicitly creating and using default LocalEventManager.');
+            (this.logger ?? log).debug(
+                'No event manager set, implicitly creating and using default LocalEventManager.',
+            );
             if (!this.configuration) {
                 (this.logger ?? log).warning(
                     'Implicit creation of event manager will implicitly set configuration as side effect. ' +
