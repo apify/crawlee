@@ -411,7 +411,7 @@ export abstract class BrowserCrawler<
         });
     }
 
-    protected buildContextPipeline(): ContextPipeline<
+    protected override buildContextPipeline(): ContextPipeline<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>
     > {

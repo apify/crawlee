@@ -167,15 +167,21 @@ export class LinkeDOMCrawler<
     private static parser = new DOMParser();
 
     constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext>) {
+        const { contextPipelineBuilder, ...rest } = options;
+
         super({
-            ...options,
-            contextPipelineBuilder: () =>
-                this.buildContextPipeline()
-                    .compose({
-                        action: async (context) => this.parseContent(context),
-                    })
-                    .compose({ action: async (context) => this.addHelpers(context) }),
+            ...rest,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
+    }
+
+    protected override buildContextPipeline() {
+        return super
+            .buildContextPipeline()
+            .compose({
+                action: async (context) => this.parseContent(context),
+            })
+            .compose({ action: async (context) => this.addHelpers(context) });
     }
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {

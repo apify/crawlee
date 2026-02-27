@@ -79,7 +79,7 @@ import type { ReadonlyDeep, SetRequired } from 'type-fest';
 import { LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
 import defaultLog, { LogLevel } from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
@@ -572,12 +572,29 @@ export class BasicCrawler<
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    private contextPipelineBuilder: () => ContextPipeline<CrawlingContext, ExtendedContext>;
+    private _basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
+
+    /**
+     * The basic part of the context pipeline. Unlike the subclass pipeline, this
+     * part has no major side effects (e.g. launching a browser). It also makes typing more explicit, as subclass
+     * pipelines expect the basic crawler fields to already be present in the context at runtime.
+     *
+     * Context built with this pipeline can be passed into multiple crawler pipelines at once.
+     * This is used e.g. in the {@apilink AdaptivePlaywrightCrawler|`AdaptivePlaywrightCrawler`}.
+     */
+    get basicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
+        if (this._basicContextPipeline === undefined) {
+            this._basicContextPipeline = this.buildBasicContextPipeline();
+        }
+
+        return this._basicContextPipeline;
+    }
+
     private _contextPipeline?: ContextPipeline<CrawlingContext, ExtendedContext>;
 
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         if (this._contextPipeline === undefined) {
-            this._contextPipeline = this.contextPipelineBuilder();
+            this._contextPipeline = this.buildFinalContextPipeline();
         }
 
         return this._contextPipeline;
@@ -616,6 +633,10 @@ export class BasicCrawler<
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
     private readonly crawlerId: string;
     private readonly hasExplicitId: boolean;
+    private readonly contextPipelineOptions: {
+        contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
+        extendContext: (context: Context) => Awaitable<ContextExtension>;
+    };
 
     protected static optionsShape = {
         contextPipelineBuilder: ow.optional.object,
@@ -738,45 +759,15 @@ export class BasicCrawler<
 
         try {
             serviceLocatorScope.enterScope();
+            this.contextPipelineOptions = {
+                contextPipelineBuilder: options.contextPipelineBuilder,
+                extendContext: options.extendContext,
+            };
 
             // Store whether the user explicitly provided an ID
             this.hasExplicitId = id !== undefined;
             // Store the user-provided ID, or generate a unique one for tracking purposes (not for state key)
             this.crawlerId = id ?? cryptoRandomObjectId();
-
-            // Store the builder so that it can be run when the contextPipeline is needed.
-            // Invoking it immediately would cause problems with parent constructor call order.
-            this.contextPipelineBuilder = () => {
-                let contextPipeline = (options.contextPipelineBuilder?.() ??
-                    ContextPipeline.create<CrawlingContext>()) as ContextPipeline<CrawlingContext, Context>; // Thanks to the RequireContextPipeline, contextPipeline will only be undefined if InitialContextType is CrawlingContext
-
-                if (options.extendContext !== undefined) {
-                    contextPipeline = contextPipeline.compose({
-                        action: async (context) => await options.extendContext(context),
-                    });
-                }
-
-                contextPipeline = contextPipeline.compose({
-                    action: async (context) => {
-                        const { request } = context;
-                        if (!this.requestMatchesEnqueueStrategy(request)) {
-                            // eslint-disable-next-line dot-notation
-                            const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
-                            this.log.debug(message);
-
-                            request.noRetry = true;
-                            request.state = RequestState.SKIPPED;
-
-                            await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
-
-                            throw new ContextPipelineInterruptedError(message);
-                        }
-                        return context;
-                    },
-                });
-
-                return contextPipeline as ContextPipeline<CrawlingContext, ExtendedContext>;
-            };
 
             if (requestManager !== undefined) {
                 if (requestList !== undefined || requestQueue !== undefined) {
@@ -881,7 +872,52 @@ export class BasicCrawler<
                 minConcurrency: minConcurrency ?? autoscaledPoolOptions?.minConcurrency,
                 maxConcurrency: maxConcurrency ?? autoscaledPoolOptions?.maxConcurrency,
                 maxTasksPerMinute: maxRequestsPerMinute ?? autoscaledPoolOptions?.maxTasksPerMinute,
-                runTaskFunction: this._runTaskFunction.bind(this),
+                runTaskFunction: async () => {
+                    const source = this.requestManager;
+                    if (!source) throw new Error('Request provider is not initialized!');
+
+                    const request = await this.resolveRequest();
+                    if (!request || this.delayRequest(request, source)) {
+                        return;
+                    }
+
+                    const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
+                    try {
+                        await this.basicContextPipeline
+                            .chain(this.contextPipeline)
+                            .call(crawlingContext, this._runTaskFunction.bind(this));
+                    } catch (error) {
+                        // ContextPipelineInterruptedError means the request was intentionally skipped
+                        // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
+                        if (error instanceof ContextPipelineInterruptedError) {
+                            await this._timeoutAndRetry(
+                                async () => this.requestManager?.markRequestHandled(crawlingContext.request!),
+                                this.internalTimeoutMillis,
+                                `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
+                                    this.internalTimeoutMillis / 1e3
+                                } seconds.`,
+                            );
+                            return;
+                        }
+
+                        // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
+                        // i.e. not in user's requestHandler), handle it through the normal error flow.
+                        const isPipelineError =
+                            error instanceof ContextPipelineInitializationError || error instanceof SessionError;
+                        if (isPipelineError) {
+                            const unwrappedError = this.unwrapError(error);
+
+                            await this._requestFunctionErrorHandler(
+                                unwrappedError,
+                                crawlingContext as CrawlingContext,
+                                this.requestManager!,
+                            );
+                            crawlingContext.session?.markBad();
+                            return;
+                        }
+                        throw this.unwrapError(error);
+                    }
+                },
                 isTaskReadyFunction: async () => {
                     if (isMaxPagesExceeded()) {
                         if (this.shouldLogMaxProcessedRequestsExceeded) {
@@ -926,6 +962,148 @@ export class BasicCrawler<
         } finally {
             serviceLocatorScope.exitScope();
         }
+    }
+
+    /**
+     * Builds the basic context pipeline that transforms `{ request }` into a full `CrawlingContext`.
+     * This handles base context creation, session resolution, and context helpers.
+     */
+    protected buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
+        const deferredCleanup: (() => Promise<unknown>)[] = [];
+
+        return ContextPipeline.create<{ request: Request }>()
+            .compose({ action: this.checkRobotsTxt.bind(this) })
+            .compose({
+                action: () => this.createBaseContext(deferredCleanup),
+                cleanup: async () => {
+                    await Promise.all(deferredCleanup.map((fn) => fn()));
+                },
+            })
+            .compose({ action: this.resolveSession.bind(this) })
+            .compose({ action: this.createContextHelpers.bind(this) });
+    }
+
+    private async checkRobotsTxt({ request }: { request: Request }) {
+        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
+            this.log.warning(
+                `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
+            );
+            request.state = RequestState.SKIPPED;
+            request.noRetry = true;
+            await this.handleSkippedRequest({
+                url: request.url,
+                reason: 'robotsTxt',
+            });
+
+            throw new ContextPipelineInterruptedError(`Skipping request ${request.url} as disallowed by robots.txt`);
+        }
+
+        return {};
+    }
+
+    /**
+     * Builds the subclass-specific context pipeline that transforms a `CrawlingContext` into the crawler's target context type.
+     * Subclasses should override this to add their own pipeline stages.
+     */
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext> {
+        return ContextPipeline.create<CrawlingContext>();
+    }
+
+    private createBaseContext(deferredCleanup: (() => Promise<unknown>)[]) {
+        return {
+            id: cryptoRandomObjectId(10),
+            log: this.log,
+            pushData: this.pushData.bind(this),
+            useState: this.useState.bind(this),
+            getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName),
+            registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
+                deferredCleanup.push(cleanup);
+            },
+        };
+    }
+
+    private async resolveRequest(): Promise<Request | null> {
+        const request = await this._timeoutAndRetry(
+            this._fetchNextRequest.bind(this),
+            this.internalTimeoutMillis,
+            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+        );
+
+        // Reset loadedUrl so an old one is not carried over to retries.
+        if (request) {
+            request.loadedUrl = undefined;
+        }
+
+        return request;
+    }
+
+    private async resolveSession({ request }: { request: Request }) {
+        const session = this.useSessionPool
+            ? await this._timeoutAndRetry(
+                  async () => {
+                      return await this.sessionPool!.newSession({
+                          proxyInfo: await this.proxyConfiguration?.newProxyInfo({
+                              request: request ?? undefined,
+                          }),
+                          maxUsageCount: 1,
+                      });
+                  },
+                  this.internalTimeoutMillis,
+                  `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+              )
+            : undefined;
+
+        return { session, proxyInfo: session?.proxyInfo };
+    }
+
+    private async createContextHelpers({ request, session }: { request: Request; session?: Session }) {
+        const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
+            const requestQueue = await this.getRequestQueue();
+
+            return await this.enqueueLinksWithCrawlDepth(options, request!, requestQueue);
+        };
+        const addRequests: CrawlingContext['addRequests'] = async (requests, options = {}) => {
+            const newCrawlDepth = request!.crawlDepth + 1;
+            const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
+
+            await this.addRequests(requestsGenerator, options);
+        };
+
+        const sendRequest = createSendRequest(this.httpClient, request!, session);
+
+        return { enqueueLinks: enqueueLinksWrapper, addRequests, sendRequest };
+    }
+
+    private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
+        let contextPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
+            this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
+
+        if (this.contextPipelineOptions.extendContext !== undefined) {
+            contextPipeline = contextPipeline.compose({
+                action: async (context) => await this.contextPipelineOptions.extendContext(context),
+            });
+        }
+
+        contextPipeline = contextPipeline.compose({
+            action: async (context) => {
+                const { request } = context;
+                if (request && !this.requestMatchesEnqueueStrategy(request)) {
+                    // eslint-disable-next-line dot-notation
+                    const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
+                    this.log.debug(message);
+
+                    request.noRetry = true;
+                    request.state = RequestState.SKIPPED;
+
+                    await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+
+                    throw new ContextPipelineInterruptedError(message);
+                }
+                return context;
+            },
+        });
+
+        return contextPipeline as ContextPipeline<CrawlingContext, ExtendedContext>;
     }
 
     /**
@@ -1434,14 +1612,12 @@ export class BasicCrawler<
         await this._loadHandledRequestCount();
     }
 
-    protected async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
-        await this.contextPipeline.call(crawlingContext, async (finalContext) => {
-            await addTimeoutToPromise(
-                async () => this.requestHandler(finalContext),
-                this.requestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${finalContext.request.id}).`,
-            );
-        });
+    protected async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
+        await addTimeoutToPromise(
+            async () => this.requestHandler(crawlingContext),
+            this.requestHandlerTimeoutMillis,
+            `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${crawlingContext.request.id}).`,
+        );
     }
 
     /**
@@ -1609,87 +1785,14 @@ export class BasicCrawler<
      * Wrapper around requestHandler that fetches requests from RequestList/RequestQueue
      * then retries them in a case of an error, etc.
      */
-    protected async _runTaskFunction() {
+    protected async _runTaskFunction(crawlingContext: ExtendedContext) {
         const source = this.requestManager;
         if (!source) throw new Error('Request provider is not initialized!');
 
-        const request = await this._timeoutAndRetry(
-            this._fetchNextRequest.bind(this),
-            this.internalTimeoutMillis,
-            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-        );
-
-        tryCancel();
-
-        const session = this.useSessionPool
-            ? await this._timeoutAndRetry(
-                  async () => {
-                      return await this.sessionPool!.newSession({
-                          proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                              request: request ?? undefined,
-                          }),
-                          maxUsageCount: 1,
-                      });
-                  },
-                  this.internalTimeoutMillis,
-                  `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-              )
-            : undefined;
-
-        tryCancel();
-
-        if (!request || this.delayRequest(request, source)) {
-            return;
-        }
-
-        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
-            this.log.warning(
-                `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
-            );
-            request.state = RequestState.SKIPPED;
-            request.noRetry = true;
-            await source.markRequestHandled(request);
-            await this.handleSkippedRequest({
-                url: request.url,
-                reason: 'robotsTxt',
-            });
-            return;
-        }
-
-        // Reset loadedUrl so an old one is not carried over to retries.
-        request.loadedUrl = undefined;
+        const { request } = crawlingContext;
 
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
-
-        const deferredCleanup: (() => Promise<unknown>)[] = [];
-
-        const crawlingContext: CrawlingContext = {
-            id: cryptoRandomObjectId(10),
-            log: this.log,
-            request,
-            session,
-            proxyInfo: session?.proxyInfo,
-            enqueueLinks: async (options) => {
-                const requestQueue = await this.getRequestQueue();
-
-                return await this.enqueueLinksWithCrawlDepth(options, request, requestQueue);
-            },
-            addRequests: async (requests, options = {}) => {
-                const newCrawlDepth = request.crawlDepth + 1;
-                const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
-
-                await this.addRequests(requestsGenerator, options);
-            },
-            pushData: this.pushData.bind(this),
-            useState: this.useState.bind(this),
-            sendRequest: createSendRequest(this.httpClient, request!, session),
-            getKeyValueStore: async (idOrName?: string) =>
-                KeyValueStore.open(idOrName, { config: serviceLocator.getConfiguration() }),
-            registerDeferredCleanup: (cleanup) => {
-                deferredCleanup.push(cleanup);
-            },
-        };
 
         let isRequestLocked = true;
 
@@ -1751,8 +1854,6 @@ export class BasicCrawler<
             // decrease the session score if the request fails (but the error handler did not throw)
             crawlingContext.session?.markBad();
         } finally {
-            await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
-
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && source instanceof RequestProvider) {
                 try {

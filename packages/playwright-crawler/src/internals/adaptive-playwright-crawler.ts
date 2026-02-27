@@ -150,7 +150,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<void>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
 interface AdaptiveHook
@@ -299,17 +299,11 @@ export class AdaptivePlaywrightCrawler<
 
         super({
             ...rest,
-            // Pass error handlers to the "main" crawler - we only pluck them from `rest` so that they don't go to the sub crawlers
             errorHandler,
             failedRequestHandler,
-            // Same for request handler
             requestHandler,
-            // The builder intentionally returns null so that it crashes the crawler when it tries to use this instead of one of two the specialized context pipelines
-            // (that would be a logical error in this class)
-            contextPipelineBuilder: () =>
-                null as unknown as ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext>,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
-
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
 
         this.renderingTypePredictor =
@@ -406,6 +400,34 @@ export class AdaptivePlaywrightCrawler<
     protected override async _init(): Promise<void> {
         await this.renderingTypePredictor.initialize();
         return await super._init();
+    }
+
+    protected override buildContextPipeline() {
+        const errorMessage = (prop: string) =>
+            `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
+
+        return super.buildContextPipeline().compose({
+            action: async ({ request }) => ({
+                get request(): LoadedRequest<Request<Dictionary>> {
+                    return request as LoadedRequest<Request<Dictionary>>;
+                },
+                get response(): Response {
+                    throw new Error(errorMessage('response'));
+                },
+                get page(): Page {
+                    throw new Error(errorMessage('page'));
+                },
+                get querySelector(): AdaptivePlaywrightCrawlerContext['querySelector'] {
+                    throw new Error(errorMessage('querySelector'));
+                },
+                get waitForSelector(): AdaptivePlaywrightCrawlerContext['waitForSelector'] {
+                    throw new Error(errorMessage('waitForSelector'));
+                },
+                get parseWithCheerio(): AdaptivePlaywrightCrawlerContext['parseWithCheerio'] {
+                    throw new Error(errorMessage('parseWithCheerio'));
+                },
+            }),
+        });
     }
 
     private async adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
@@ -507,28 +529,27 @@ export class AdaptivePlaywrightCrawler<
             pushData: result.pushData,
             useState: this.allowStorageAccess(useStateFunction),
             getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
-            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
-                return await this.enqueueLinks(options, context.request, result);
-            },
             log: this.createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
 
-        const subCrawlerContext = { ...context, ...resultBoundContextHelpers };
+        const subCrawlerContext = Object.defineProperties(
+            {} as typeof context,
+            Object.getOwnPropertyDescriptors(context),
+        );
+
+        for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(resultBoundContextHelpers))) {
+            Object.defineProperty(subCrawlerContext, key, { ...descriptor, configurable: false });
+        }
+
         this.resultObjects.set(subCrawlerContext, result);
 
         try {
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
-                    await this.staticContextPipeline.call(
-                        subCrawlerContext,
-                        async (finalContext) => await this.requestHandler(finalContext),
-                    );
+                    await this.staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 } else if (renderingType === 'clientOnly') {
-                    await this.browserContextPipeline.call(
-                        subCrawlerContext,
-                        async (finalContext) => await this.requestHandler(finalContext),
-                    );
+                    await this.browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 }
             };
 
