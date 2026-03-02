@@ -136,6 +136,7 @@ If you also use the [Apify SDK](https://github.com/apify/apify-sdk-js), you need
 - Use **Playwright** and **Puppeteer** with the same interface
 - **Chrome**, **Firefox**, **Webkit** and many others
 
+- [AnchorBrowser](https://anchorbrowser.io) - Cloud browser platform for AI agents. Connect via WebSocket/CDP (Puppeteer & Playwright), with built-in stealth, CAPTCHA solving, and proxy rotation.
 ## Usage on the Apify platform
 
 Crawlee is open-source and runs anywhere, but since it's developed by [Apify](https://apify.com), it's easy to set up on the Apify platform and run in the cloud. Visit the [Apify SDK website](https://sdk.apify.com) to learn more about deploying Crawlee to the Apify platform.
