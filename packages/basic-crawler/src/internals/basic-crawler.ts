@@ -97,6 +97,8 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
  */
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
+const deferredCleanupKey = Symbol('deferredCleanup');
+
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
 export type ErrorHandler<
@@ -969,14 +971,12 @@ export class BasicCrawler<
      * This handles base context creation, session resolution, and context helpers.
      */
     protected buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
-        const deferredCleanup: (() => Promise<unknown>)[] = [];
-
         return ContextPipeline.create<{ request: Request }>()
             .compose({ action: this.checkRobotsTxt.bind(this) })
             .compose({
-                action: () => this.createBaseContext(deferredCleanup),
-                cleanup: async () => {
-                    await Promise.all(deferredCleanup.map((fn) => fn()));
+                action: () => this.createBaseContext(),
+                cleanup: async (context) => {
+                    await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
                 },
             })
             .compose({ action: this.resolveSession.bind(this) })
@@ -1009,7 +1009,9 @@ export class BasicCrawler<
         return ContextPipeline.create<CrawlingContext>();
     }
 
-    private createBaseContext(deferredCleanup: (() => Promise<unknown>)[]) {
+    private createBaseContext() {
+        const deferredCleanup: (() => Promise<unknown>)[] = [];
+
         return {
             id: cryptoRandomObjectId(10),
             log: this.log,
@@ -1019,6 +1021,7 @@ export class BasicCrawler<
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
                 deferredCleanup.push(cleanup);
             },
+            [deferredCleanupKey]: deferredCleanup,
         };
     }
 
