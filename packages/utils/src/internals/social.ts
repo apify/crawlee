@@ -115,7 +115,7 @@ const PHONE_REGEXS_STRINGS = [
     '[0-9]{2,4}(?:\\.[0-9]{2,6}){1,3}',
 
     // 6. Matches space-separated: 413 577 1234 564
-    '[0-9]{2,4}(?:\\s[0-9]{2,8}){1,3}'
+    '[0-9]{2,4}(?:\\s[0-9]{2,8}){1,3}',
 ].map((regex) => `(00|\\+)?${regex}`);
 
 // The minimum number of digits a phone number can contain.
