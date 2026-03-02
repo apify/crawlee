@@ -1081,9 +1081,10 @@ export class BasicCrawler<
         let contextPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
             this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
 
-        if (this.contextPipelineOptions.extendContext !== undefined) {
+        const { extendContext } = this.contextPipelineOptions;
+        if (extendContext !== undefined) {
             contextPipeline = contextPipeline.compose({
-                action: async (context) => await this.contextPipelineOptions.extendContext(context),
+                action: async (context) => await extendContext(context),
             });
         }
 
