@@ -165,6 +165,20 @@ describe('ContextPipeline', () => {
         expect(consumer).toHaveBeenCalledWith({ a: 3, b: 4 });
     });
 
+    it('should not override non-configurable properties on the context', async () => {
+        const context = {} as Record<string, unknown>;
+        Object.defineProperty(context, 'frozen', { value: 'original', configurable: false });
+
+        const pipeline = ContextPipeline.create<typeof context>().compose({
+            action: async () => ({ frozen: 'overridden', other: 'new' }),
+        });
+
+        const consumer = vi.fn();
+        await pipeline.call(context, consumer);
+
+        expect(consumer).toHaveBeenCalledWith(expect.objectContaining({ frozen: 'original', other: 'new' }));
+    });
+
     describe('chain', () => {
         it('should run middlewares from both pipelines in order', async () => {
             const first = ContextPipeline.create<{ a: number }>().compose({
