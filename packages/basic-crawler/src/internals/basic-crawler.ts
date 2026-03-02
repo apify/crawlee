@@ -636,8 +636,8 @@ export class BasicCrawler<
     private readonly crawlerId: string;
     private readonly hasExplicitId: boolean;
     private readonly contextPipelineOptions: {
-        contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
-        extendContext: (context: Context) => Awaitable<ContextExtension>;
+        contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
+        extendContext?: (context: Context) => Awaitable<ContextExtension>;
     };
 
     protected static optionsShape = {
