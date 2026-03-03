@@ -5,7 +5,6 @@ import ow from 'ow';
 import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
-import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import {
@@ -14,7 +13,8 @@ import {
     getDefaultCookieExpirationDate,
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils.js';
-import { log as defaultLog } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import { EVENT_SESSION_RETIRED } from './events.js';
 
 export interface SessionOptions {
@@ -69,7 +69,7 @@ export interface SessionOptions {
     /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
     sessionPool?: import('./session_pool.js').SessionPool;
 
-    log?: Log;
+    log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
     proxyInfo?: ProxyInfo;
@@ -95,7 +95,7 @@ export class Session implements ISession {
     private _errorScore: number;
     private _proxyInfo?: ProxyInfo;
     private _cookieJar: CookieJar;
-    private log: Log;
+    private log: CrawleeLogger;
 
     get errorScore() {
         return this._errorScore;
@@ -170,7 +170,7 @@ export class Session implements ISession {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
-            log = defaultLog,
+            log = serviceLocator.getLogger(),
         } = options;
 
         const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
