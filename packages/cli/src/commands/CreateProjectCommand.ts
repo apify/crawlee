@@ -9,7 +9,7 @@ import type { Template } from '@crawlee/templates';
 import { fetchManifest } from '@crawlee/templates';
 import colors from 'ansi-colors';
 import { ensureDir } from 'fs-extra';
-import { prompt } from 'inquirer';
+import inquirer from 'inquirer';
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 
 interface CreateProjectArgs {
@@ -138,12 +138,12 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
 
         // Check proper format of projectName
         if (!projectName) {
-            const projectNamePrompt = await prompt([
+            const projectNamePrompt = await inquirer.prompt([
                 {
                     name: 'projectName',
                     message: 'Name of the new project folder:',
                     type: 'input',
-                    validate: (promptText) => {
+                    validate: (promptText: string) => {
                         try {
                             validateProjectName(promptText);
                         } catch (err: any) {
@@ -165,7 +165,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         }));
 
         if (!template) {
-            const answer = await prompt([
+            const answer = await inquirer.prompt([
                 {
                     type: 'list',
                     name: 'template',
