@@ -242,7 +242,7 @@ export class JSDOMCrawler<
         return this.virtualConsole;
     }
 
-    private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', error);
+    private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', { error });
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
         const isXml = crawlingContext.contentType.type.includes('xml');

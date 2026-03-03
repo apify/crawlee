@@ -6,7 +6,6 @@ import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { createProxyServerForContainers } from '../container-proxy-server.js';
 import type { LaunchContext } from '../launch-context.js';
-import { log } from '../logger.js';
 import { getLocalProxyAddress } from '../proxy-server.js';
 import type { SafeParameters } from '../utils.js';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser.js';
@@ -82,7 +81,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
                     this._browserVersion = inactiveBrowser.version();
 
                     inactiveBrowser.close().catch((error) => {
-                        log.exception(error, 'Failed to close browser.');
+                        this.log.exception(error, 'Failed to close browser.');
                     });
                 }
 

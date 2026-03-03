@@ -1,8 +1,9 @@
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 
-import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
+import { serviceLocator } from '../service_locator.js';
 
 export interface EventManagerOptions {
     /** Interval between emitted `persistState` events in milliseconds. */
@@ -28,7 +29,7 @@ export abstract class EventManager {
     protected events = new AsyncEventEmitter();
     protected initialized = false;
     protected intervals: Intervals = {};
-    protected log = log.child({ prefix: 'Events' });
+    protected log = serviceLocator.getLogger().child({ prefix: 'Events' });
     private persistStateIntervalMillis: number;
 
     constructor(options: EventManagerOptions) {
