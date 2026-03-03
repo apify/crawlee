@@ -17,6 +17,7 @@ import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
     ContextPipeline,
+    CrawleeLogger,
     CrawlingContext,
     EnqueueLinksOptions,
     GetUserDataFromRequest,
@@ -43,7 +44,6 @@ import type { AnyNode } from 'domhandler';
 import type { Page } from 'playwright';
 import type { SetRequired } from 'type-fest';
 
-import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
 
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions } from './playwright-crawler.js';
@@ -254,7 +254,7 @@ const proxyLogMethods = [
     'deprecated',
 ] as const;
 
-type LogProxyCall = [log: Log, method: (typeof proxyLogMethods)[number], ...args: unknown[]];
+type LogProxyCall = [log: CrawleeLogger, method: (typeof proxyLogMethods)[number], ...args: unknown[]];
 
 /**
  * An extension of {@apilink PlaywrightCrawler} that uses a more limited request handler interface so that it is able to switch to HTTP-only crawling when it detects it may be possible.
@@ -776,9 +776,9 @@ export class AdaptivePlaywrightCrawler<
         return await this.enqueueLinksWithCrawlDepth({ ...options, baseUrl }, request, mockRequestQueue);
     }
 
-    private createLogProxy(log: Log, logs: LogProxyCall[]) {
+    private createLogProxy(log: CrawleeLogger, logs: LogProxyCall[]) {
         return new Proxy(log, {
-            get(target: Log, propertyName: (typeof proxyLogMethods)[number], receiver: any) {
+            get(target: CrawleeLogger, propertyName: (typeof proxyLogMethods)[number], receiver: any) {
                 if (proxyLogMethods.includes(propertyName)) {
                     return (...args: unknown[]) => {
                         logs.push([target, propertyName, ...args]);

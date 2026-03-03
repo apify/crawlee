@@ -6,7 +6,6 @@ import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
-import log from '@apify/log';
 import { jsonStringifyExtended } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
@@ -287,7 +286,9 @@ export class KeyValueStore {
                     this.setValue(key, value, {
                         timeoutSecs,
                         doNotRetryTimeouts: true,
-                    }).catch((error) => log.warning(`Failed to persist the state value to ${key}`, { error })),
+                    }).catch((error) =>
+                        serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
+                    ),
                 );
             }
 

@@ -1,11 +1,10 @@
 import { EventEmitter } from 'node:events';
 
+import { serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/utils';
 import ow from 'ow';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest, HTTPRequest as PuppeteerRequest, Page } from 'puppeteer';
-
-import log from '@apify/log';
 
 export type InterceptHandler = (request: PuppeteerRequest) => unknown;
 
@@ -223,7 +222,7 @@ export async function removeInterceptRequestHandler(page: Page, handler: Interce
                         await disableRequestInterception(page);
                         interceptedRequestsInProgress.removeListener('delete', onDelete);
                     } catch (error) {
-                        log.debug('Error while disabling request interception', { error });
+                        serviceLocator.getLogger().debug('Error while disabling request interception', { error });
                     }
                 }
             };
