@@ -4,10 +4,9 @@ import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
-import log from '@apify/log';
-
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -351,7 +350,7 @@ export async function enqueueLinks(
     }
 
     if (pseudoUrls?.length) {
-        log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
+        serviceLocator.getLogger().deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
         urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
     }
 
