@@ -370,9 +370,6 @@ export interface BasicCrawlerOptions<
      */
     onSkippedRequest?: SkippedRequestCallback;
 
-    /** @internal */
-    log?: CrawleeLogger;
-
     /**
      * Enables experimental features of Crawlee, which can alter the behavior of the crawler.
      * WARNING: these options are not guaranteed to be stable and may change or be removed at any time.
@@ -592,7 +589,12 @@ export class BasicCrawler<
     running = false;
     hasFinishedBefore = false;
 
-    readonly log: CrawleeLogger;
+    #log!: CrawleeLogger;
+
+    get log(): CrawleeLogger {
+        return this.#log;
+    }
+
     protected requestHandler!: RequestHandler<ExtendedContext>;
     protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
@@ -666,7 +668,6 @@ export class BasicCrawler<
         keepAlive: ow.optional.boolean,
 
         // internal
-        log: ow.optional.object,
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
@@ -722,7 +723,6 @@ export class BasicCrawler<
             httpClient,
 
             // internal
-            log: logOverride,
             experiments = {},
 
             id,
@@ -748,7 +748,7 @@ export class BasicCrawler<
         try {
             serviceLocatorScope.enterScope();
 
-            const log = logOverride ?? serviceLocator.getLogger().child({ prefix: this.constructor.name });
+            this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
             // Store whether the user explicitly provided an ID
             this.hasExplicitId = id !== undefined;
@@ -804,7 +804,6 @@ export class BasicCrawler<
 
             this.httpClient = httpClient ?? new GotScrapingHttpClient();
             this.proxyConfiguration = proxyConfiguration;
-            this.log = log;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
             this.domainAccessedTime = new Map();
@@ -844,19 +843,19 @@ export class BasicCrawler<
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
             this.maxSessionRotations = maxSessionRotations;
             this.stats = new Statistics({
-                logMessage: `${log.getOptions().prefix ?? this.constructor.name} request statistics:`,
-                log,
+                logMessage: `${this.constructor.name} request statistics:`,
+                log: this.log,
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
             this.sessionPoolOptions = {
                 ...sessionPoolOptions,
-                log,
+                log: this.log,
             };
             if (this.retryOnBlocked) {
                 this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
                 if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
-                    log.warning(
+                    this.log.warning(
                         `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
                     );
                 }
@@ -865,7 +864,7 @@ export class BasicCrawler<
 
             const maxSignedInteger = 2 ** 31 - 1;
             if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
-                log.warning(
+                this.log.warning(
                     `requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}` +
                         ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`,
                 );
@@ -896,7 +895,7 @@ export class BasicCrawler<
                 isTaskReadyFunction: async () => {
                     if (isMaxPagesExceeded()) {
                         if (this.shouldLogMaxProcessedRequestsExceeded) {
-                            log.info(
+                            this.log.info(
                                 'Crawler reached the maxRequestsPerCrawl limit of ' +
                                     `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
                             );
@@ -909,7 +908,7 @@ export class BasicCrawler<
                 },
                 isFinishedFunction: async () => {
                     if (isMaxPagesExceeded()) {
-                        log.info(
+                        this.log.info(
                             `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.maxRequestsPerCrawl} requests ` +
                                 'and all requests that were in progress at that time have now finished. ' +
                                 `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
@@ -925,12 +924,12 @@ export class BasicCrawler<
                         const reason = isFinishedFunction
                             ? "Crawler's custom isFinishedFunction() returned true, the crawler will shut down."
                             : 'All requests from the queue have been processed, the crawler will shut down.';
-                        log.info(reason);
+                        this.log.info(reason);
                     }
 
                     return isFinished;
                 },
-                log,
+                log: this.log,
             };
 
             this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
