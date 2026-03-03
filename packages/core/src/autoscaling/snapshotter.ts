@@ -1,10 +1,8 @@
 import type { StorageClient } from '@crawlee/types';
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
-
 import type { Configuration } from '../configuration.js';
-import { log as defaultLog } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import type { ClientLoadSignal, ClientSnapshot } from './client_load_signal.js';
 import { createClientLoadSignal } from './client_load_signal.js';
@@ -60,7 +58,7 @@ export interface SnapshotterOptions {
     snapshotHistorySecs?: number;
 
     /** @internal */
-    log?: Log;
+    log?: CrawleeLogger;
 
     /** @internal */
     client?: StorageClient;
@@ -96,7 +94,7 @@ export interface SnapshotterOptions {
  * @category Scaling
  */
 export class Snapshotter {
-    log: Log;
+    log: CrawleeLogger;
     client: StorageClient;
     config: Configuration;
 
@@ -156,7 +154,7 @@ export class Snapshotter {
             maxBlockedMillis = 50,
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
-            log = defaultLog,
+            log = serviceLocator.getLogger(),
             config = serviceLocator.getConfiguration(),
             client = serviceLocator.getStorageClient(),
         } = options;

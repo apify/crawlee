@@ -6,11 +6,10 @@ import { minimatch } from 'minimatch';
 import ow from 'ow';
 import type { RequiredDeep } from 'type-fest';
 
-import defaultLog from '@apify/log';
-
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
 import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
 import { type EventManager, EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
@@ -196,7 +195,7 @@ export class SitemapRequestList implements IRequestList {
     /**
      * Logger instance.
      */
-    private log = defaultLog.child({ prefix: 'SitemapRequestList' });
+    private log: CrawleeLogger;
 
     private urlExcludePatternObjects: UrlPatternObject[] = [];
     private urlPatternObjects: UrlPatternObject[] = [];
@@ -229,6 +228,8 @@ export class SitemapRequestList implements IRequestList {
         );
 
         const { globs, exclude, regexps } = options;
+
+        this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestList' });
 
         if (exclude?.length) {
             for (const excl of exclude) {

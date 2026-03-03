@@ -1,4 +1,4 @@
-import { CriticalError } from '@crawlee/core';
+import { type CrawleeLogger, CriticalError, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
@@ -111,6 +111,7 @@ export abstract class BrowserPlugin<
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
     name = this.constructor.name;
+    protected log!: CrawleeLogger;
     library: Library;
     launchOptions: LibraryOptions;
     proxyUrl?: string;
@@ -130,6 +131,7 @@ export abstract class BrowserPlugin<
             ignoreProxyCertificate = false,
         } = options;
 
+        this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
         this.library = library;
         this.launchOptions = launchOptions;
         this.proxyUrl = proxyUrl && new URL(proxyUrl).href.slice(0, -1);

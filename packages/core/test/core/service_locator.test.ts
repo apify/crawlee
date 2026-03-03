@@ -1,5 +1,33 @@
-import { Configuration, LocalEventManager, ServiceConflictError, ServiceLocator, serviceLocator } from '@crawlee/core';
+import type { CrawleeLogger } from '@crawlee/core';
+import {
+    ApifyLogAdapter,
+    Configuration,
+    LocalEventManager,
+    ServiceConflictError,
+    ServiceLocator,
+    serviceLocator,
+} from '@crawlee/core';
 import { MemoryStorage } from '@crawlee/memory-storage';
+
+function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
+    const logger: CrawleeLogger = {
+        getOptions: () => ({}),
+        setOptions: () => {},
+        child: () => logger,
+        error: () => {},
+        exception: () => {},
+        softFail: () => {},
+        warning: () => {},
+        warningOnce: () => {},
+        info: () => {},
+        debug: () => {},
+        perf: () => {},
+        deprecated: () => {},
+        internal: () => {},
+        ...overrides,
+    };
+    return logger;
+}
 
 // Reset global service locator before each test
 beforeEach(() => {
@@ -141,8 +169,59 @@ describe('ServiceLocator', () => {
         });
     });
 
+    describe('Logger', () => {
+        test('default logger returns an ApifyLogAdapter wrapping @apify/log', () => {
+            const defaultLogger = serviceLocator.getLogger();
+            expect(defaultLogger).toBeInstanceOf(ApifyLogAdapter);
+        });
+
+        test('custom logger can be set', () => {
+            const customLogger = makeMockLogger();
+            serviceLocator.setLogger(customLogger);
+            expect(serviceLocator.getLogger()).toBe(customLogger);
+        });
+
+        test('logger overwrite not possible', () => {
+            const firstLogger = makeMockLogger();
+            serviceLocator.setLogger(firstLogger);
+
+            const secondLogger = makeMockLogger();
+
+            expect(() => {
+                serviceLocator.setLogger(secondLogger);
+            }).toThrow(ServiceConflictError);
+        });
+
+        test('logger conflict', () => {
+            serviceLocator.getLogger();
+
+            const customLogger = makeMockLogger();
+
+            expect(() => {
+                serviceLocator.setLogger(customLogger);
+            }).toThrow(ServiceConflictError);
+            expect(() => {
+                serviceLocator.setLogger(customLogger);
+            }).toThrow(/Logger is already in use/);
+        });
+
+        test('reset clears the logger', () => {
+            const customLogger = makeMockLogger();
+            serviceLocator.setLogger(customLogger);
+            expect(serviceLocator.getLogger()).toBe(customLogger);
+
+            serviceLocator.reset();
+
+            // After reset, default ApifyLogAdapter should be returned
+            expect(serviceLocator.getLogger()).toBeInstanceOf(ApifyLogAdapter);
+        });
+    });
+
     describe('Reset functionality', () => {
         test('reset clears all services', () => {
+            const customLogger = makeMockLogger();
+            serviceLocator.setLogger(customLogger);
+
             const customConfig = new Configuration({ headless: false });
             const customEventManager = new LocalEventManager({
                 persistStateIntervalMillis: 1000,
@@ -158,6 +237,7 @@ describe('ServiceLocator', () => {
             expect(serviceLocator.getConfiguration()).toBe(customConfig);
             expect(serviceLocator.getEventManager()).toBe(customEventManager);
             expect(serviceLocator.getStorageClient()).toBe(customStorageClient);
+            expect(serviceLocator.getLogger()).toBe(customLogger);
 
             // Reset
             serviceLocator.reset();
@@ -204,6 +284,47 @@ describe('ServiceLocator', () => {
             expect(() => {
                 serviceLocator.setStorageClient(storageClient);
             }).not.toThrow();
+        });
+
+        test('setting same logger instance is allowed', () => {
+            const logger = makeMockLogger();
+            serviceLocator.setLogger(logger);
+            serviceLocator.getLogger();
+
+            // Setting the same instance again should not throw
+            expect(() => {
+                serviceLocator.setLogger(logger);
+            }).not.toThrow();
+        });
+    });
+
+    describe('getChildLog', () => {
+        test('returns a child logger with the given prefix', () => {
+            const children: CrawleeLogger[] = [];
+            const mockLogger = makeMockLogger({
+                child: (options) => {
+                    const child = makeMockLogger({ getOptions: () => options });
+                    children.push(child);
+                    return child;
+                },
+            });
+            serviceLocator.setLogger(mockLogger);
+
+            const child = serviceLocator.getChildLog('Test Prefix');
+
+            expect(children).toHaveLength(1);
+            expect(child.getOptions()).toEqual({ prefix: 'Test Prefix' });
+        });
+
+        test('delegates to the current service locator context', () => {
+            const crawlerLocator = new ServiceLocator();
+            const mockLogger = makeMockLogger({
+                child: (options) => makeMockLogger({ getOptions: () => options }),
+            });
+            crawlerLocator.setLogger(mockLogger);
+
+            const child = crawlerLocator.getChildLog('Crawler Module');
+            expect(child.getOptions()).toEqual({ prefix: 'Crawler Module' });
         });
     });
 
