@@ -887,7 +887,7 @@ export class BasicCrawler<
                     try {
                         await this.basicContextPipeline
                             .chain(this.contextPipeline)
-                            .call(crawlingContext, this._runTaskFunction.bind(this));
+                            .call(crawlingContext, this.handleRequest.bind(this));
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
@@ -1785,11 +1785,8 @@ export class BasicCrawler<
         return true;
     }
 
-    /**
-     * Wrapper around requestHandler that fetches requests from RequestList/RequestQueue
-     * then retries them in a case of an error, etc.
-     */
-    protected async _runTaskFunction(crawlingContext: ExtendedContext) {
+    /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
+    protected async handleRequest(crawlingContext: ExtendedContext) {
         const source = this.requestManager;
         if (!source) throw new Error('Request provider is not initialized!');
 

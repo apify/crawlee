@@ -534,11 +534,12 @@ export class AdaptivePlaywrightCrawler<
         };
 
         const subCrawlerContext = Object.defineProperties(
-            {} as typeof context,
+            {},
             Object.getOwnPropertyDescriptors(context),
-        );
+        ) as typeof context;
 
-        // Not configurable properties will not get overridden by the sub-crawler context pipeline.
+        // Mark result-bound helpers as non-configurable so they survive the sub-crawler context pipeline
+        // (which would otherwise override them with the sub-crawler's own versions, losing the result binding).
         for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(resultBoundContextHelpers))) {
             Object.defineProperty(subCrawlerContext, key, { ...descriptor, configurable: false });
         }
