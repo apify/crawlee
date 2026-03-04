@@ -1,7 +1,7 @@
 import { Transform } from 'node:stream';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
-import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
+import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
@@ -162,19 +162,22 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
         super({
             ...options,
-            contextPipelineBuilder: () =>
-                ContextPipeline.create<CrawlingContext>().compose({
-                    action: async (context) => this.initiateDownload(context),
-                    cleanup: async (context) => {
-                        if (!context.response.bodyUsed) {
-                            // Nobody consumed the body — cancel it so the
-                            // underlying connection can be released.
-                            await context.response.body?.cancel();
-                        }
+            contextPipelineBuilder: () => this.buildContextPipeline(),
+        });
+    }
 
-                        await (context as { [kBodyDrained]: Promise<void> })[kBodyDrained];
-                    },
-                }),
+    protected override buildContextPipeline() {
+        return super.buildContextPipeline().compose({
+            action: async (context) => this.initiateDownload(context),
+            cleanup: async (context) => {
+                if (!context.response.bodyUsed) {
+                    // Nobody consumed the body — cancel it so the
+                    // underlying connection can be released.
+                    await context.response.body?.cancel();
+                }
+
+                await (context as { [kBodyDrained]: Promise<void> })[kBodyDrained];
+            },
         });
     }
 

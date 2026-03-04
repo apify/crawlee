@@ -173,7 +173,13 @@ export class PuppeteerCrawler<
     constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
-        const { launchContext = {}, headless, proxyConfiguration, ...browserCrawlerOptions } = options;
+        const {
+            launchContext = {},
+            headless,
+            proxyConfiguration,
+            contextPipelineBuilder,
+            ...browserCrawlerOptions
+        } = options;
 
         const browserPoolOptions = {
             ...options.browserPoolOptions,
@@ -213,9 +219,12 @@ export class PuppeteerCrawler<
             launchContext,
             proxyConfiguration,
             browserPoolOptions,
-            contextPipelineBuilder: () =>
-                this.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) }),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
+    }
+
+    protected override buildContextPipeline() {
+        return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
     private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController>) {
