@@ -205,7 +205,7 @@ export class PlaywrightCrawler<
     constructor(options: PlaywrightCrawlerOptions<ExtendedContext> = {}) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
-        const { launchContext = {}, headless, ...browserCrawlerOptions } = options;
+        const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
 
         const browserPoolOptions = {
             ...options.browserPoolOptions,
@@ -237,9 +237,12 @@ export class PlaywrightCrawler<
             ...(browserCrawlerOptions as PlaywrightCrawlerOptions<ExtendedContext>),
             launchContext,
             browserPoolOptions,
-            contextPipelineBuilder: () =>
-                this.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) }),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
+    }
+
+    protected override buildContextPipeline() {
+        return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
     protected override async _navigationHandler(
