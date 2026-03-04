@@ -6,6 +6,7 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     Configuration,
+    CrawleeLogger,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,
@@ -40,6 +41,7 @@ import {
     EnqueueStrategy,
     EventType,
     KeyValueStore,
+    LogLevel,
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
@@ -77,8 +79,6 @@ import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
@@ -372,9 +372,6 @@ export interface BasicCrawlerOptions<
      */
     onSkippedRequest?: SkippedRequestCallback;
 
-    /** @internal */
-    log?: Log;
-
     /**
      * Enables experimental features of Crawlee, which can alter the behavior of the crawler.
      * WARNING: these options are not guaranteed to be stable and may change or be removed at any time.
@@ -416,6 +413,12 @@ export interface BasicCrawlerOptions<
      * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
      */
     eventManager?: EventManager;
+
+    /**
+     * Custom logger to use for this crawler.
+     * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
+     */
+    logger?: CrawleeLogger;
 
     /**
      * A unique identifier for the crawler instance. This ID is used to isolate the state returned by
@@ -605,7 +608,12 @@ export class BasicCrawler<
     running = false;
     hasFinishedBefore = false;
 
-    readonly log: Log;
+    #log!: CrawleeLogger;
+
+    get log(): CrawleeLogger {
+        return this.#log;
+    }
+
     protected requestHandler!: RequestHandler<ExtendedContext>;
     protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
@@ -674,6 +682,7 @@ export class BasicCrawler<
         configuration: ow.optional.object,
         storageClient: ow.optional.object,
         eventManager: ow.optional.object,
+        logger: ow.optional.object,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -682,7 +691,6 @@ export class BasicCrawler<
         keepAlive: ow.optional.boolean,
 
         // internal
-        log: ow.optional.object,
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
@@ -718,6 +726,7 @@ export class BasicCrawler<
             configuration,
             storageClient,
             eventManager,
+            logger,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -737,7 +746,6 @@ export class BasicCrawler<
             httpClient,
 
             // internal
-            log = defaultLog.child({ prefix: this.constructor.name }),
             experiments = {},
 
             id,
@@ -753,9 +761,10 @@ export class BasicCrawler<
         if (
             storageClient ||
             eventManager ||
+            logger ||
             (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
         ) {
-            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient);
+            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient, logger);
             serviceLocatorScope = bindMethodsToServiceLocator(scopedServiceLocator, this);
         }
 
@@ -765,6 +774,8 @@ export class BasicCrawler<
                 contextPipelineBuilder: options.contextPipelineBuilder,
                 extendContext: options.extendContext,
             };
+
+            this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
             // Store whether the user explicitly provided an ID
             this.hasExplicitId = id !== undefined;
@@ -786,7 +797,6 @@ export class BasicCrawler<
 
             this.httpClient = httpClient ?? new GotScrapingHttpClient();
             this.proxyConfiguration = proxyConfiguration;
-            this.log = log;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
             this.domainAccessedTime = new Map();
@@ -826,19 +836,19 @@ export class BasicCrawler<
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
             this.maxSessionRotations = maxSessionRotations;
             this.stats = new Statistics({
-                logMessage: `${log.getOptions().prefix} request statistics:`,
-                log,
+                logMessage: `${this.constructor.name} request statistics:`,
+                log: this.log,
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
             this.sessionPoolOptions = {
                 ...sessionPoolOptions,
-                log,
+                log: this.log,
             };
             if (this.retryOnBlocked) {
                 this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
                 if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
-                    log.warning(
+                    this.log.warning(
                         `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
                     );
                 }
@@ -847,7 +857,7 @@ export class BasicCrawler<
 
             const maxSignedInteger = 2 ** 31 - 1;
             if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
-                log.warning(
+                this.log.warning(
                     `requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}` +
                         ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`,
                 );
@@ -923,7 +933,7 @@ export class BasicCrawler<
                 isTaskReadyFunction: async () => {
                     if (isMaxPagesExceeded()) {
                         if (this.shouldLogMaxProcessedRequestsExceeded) {
-                            log.info(
+                            this.log.info(
                                 'Crawler reached the maxRequestsPerCrawl limit of ' +
                                     `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
                             );
@@ -936,7 +946,7 @@ export class BasicCrawler<
                 },
                 isFinishedFunction: async () => {
                     if (isMaxPagesExceeded()) {
-                        log.info(
+                        this.log.info(
                             `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.maxRequestsPerCrawl} requests ` +
                                 'and all requests that were in progress at that time have now finished. ' +
                                 `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
@@ -952,12 +962,12 @@ export class BasicCrawler<
                         const reason = isFinishedFunction
                             ? "Crawler's custom isFinishedFunction() returned true, the crawler will shut down."
                             : 'All requests from the queue have been processed, the crawler will shut down.';
-                        log.info(reason);
+                        this.log.info(reason);
                     }
 
                     return isFinished;
                 },
-                log,
+                log: this.log,
             };
 
             this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
@@ -1126,7 +1136,7 @@ export class BasicCrawler<
     async setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data =
             options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
-        this.log.internal(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
+        this.log.logWithLevel(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
 
         const client = serviceLocator.getStorageClient();
 
@@ -1281,7 +1291,7 @@ export class BasicCrawler<
                 retryHistogram: this.stats.requestRetryHistogram,
                 ...finalStats,
             };
-            this.log.info('Final request statistics:', stats);
+            this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
 
             if (this.stats.errorTracker.total !== 0) {
                 const prettify = ([count, info]: [number, string[]]) =>
@@ -1375,12 +1385,14 @@ export class BasicCrawler<
         BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
 
         if (BasicCrawler.useStateCrawlerIds.size > 1) {
-            defaultLog.warningOnce(
-                'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
-                    'This means they will share the same state object, which is likely unintended. \n' +
-                    'To fix this, provide a unique `id` option to each crawler instance. \n' +
-                    'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
-            );
+            serviceLocator
+                .getLogger()
+                .warningOnce(
+                    'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
+                        'This means they will share the same state object, which is likely unintended. \n' +
+                        'To fix this, provide a unique `id` option to each crawler instance. \n' +
+                        'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
+                );
         }
 
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);

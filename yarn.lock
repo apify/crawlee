@@ -19,6 +19,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@apify/consts@npm:^2.51.0":
+  version: 2.51.0
+  resolution: "@apify/consts@npm:2.51.0"
+  checksum: 10c0/06902272f1ca99ed515d45aca546ba41130dc8719413e1dd3ceed8c5dd7eeea30a9215227ac393403646b7fbef04bd26ef4f8215c5f04e5d42fa71834304071b
+  languageName: node
+  linkType: hard
+
 "@apify/datastructures@npm:^2.0.0, @apify/datastructures@npm:^2.0.3":
   version: 2.0.3
   resolution: "@apify/datastructures@npm:2.0.3"
@@ -76,6 +83,16 @@ __metadata:
     "@apify/consts": "npm:^2.47.0"
     ansi-colors: "npm:^4.1.1"
   checksum: 10c0/b688c4aa36e8bb8522d2822ac097cfb33431b92d9638505d48b0ed0ef99c60442537ac446741d752db6fb8ef0069c3f126516c181a48abc68f476bc15d6744e5
+  languageName: node
+  linkType: hard
+
+"@apify/log@npm:^2.5.32":
+  version: 2.5.32
+  resolution: "@apify/log@npm:2.5.32"
+  dependencies:
+    "@apify/consts": "npm:^2.51.0"
+    ansi-colors: "npm:^4.1.1"
+  checksum: 10c0/dbe716561ee9df72a5f1b26881837780f3d7d8afb11676fd20f4e529dfce7997a4cc6e240c5902c27efa2b73beb66a8563d72a911dc4b6e641c92e8507dfdefb
   languageName: node
   linkType: hard
 
@@ -660,7 +677,7 @@ __metadata:
   resolution: "@crawlee/got-scraping-client@workspace:packages/got-scraping-client"
   dependencies:
     "@crawlee/http-client": "npm:4.0.0"
-    got-scraping: "npm:^4.1.3"
+    got-scraping: "npm:^4.2.1"
   languageName: unknown
   linkType: soft
 
@@ -668,6 +685,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/http-client@workspace:packages/http-client"
   dependencies:
+    "@apify/log": "npm:^2.5.32"
     "@crawlee/types": "npm:4.0.0"
     tough-cookie: "npm:^6.0.0"
   languageName: unknown
@@ -7602,9 +7620,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"got-scraping@npm:^4.1.3":
-  version: 4.1.3
-  resolution: "got-scraping@npm:4.1.3"
+"got-scraping@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "got-scraping@npm:4.2.1"
   dependencies:
     got: "npm:^14.2.1"
     header-generator: "npm:^2.1.41"
@@ -7613,7 +7631,7 @@ __metadata:
     ow: "npm:^1.1.1"
     quick-lru: "npm:^7.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/bad55048f569d84f2dc83ac3ff3c7cf9ce591f2e200f99b88c67a948eaef78c8b4c702c725f241fd596c1dc7cb7bbae6386f96db9901421cb7a7fbd71e05599d
+  checksum: 10c0/26a5779a2dbb084cd36cd3be1b6d243e3ddd69d558c26d786b03c997b5faabc78d5109a2d9b0a28531bc54a87e82976db6ead68759bc3e953bc60fdc67e2514f
   languageName: node
   linkType: hard
 

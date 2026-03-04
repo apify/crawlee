@@ -1,8 +1,6 @@
-import { EventType, KeyValueStore, serviceLocator, Session, SessionPool } from '@crawlee/core';
+import { BaseCrawleeLogger, EventType, KeyValueStore, serviceLocator, Session, SessionPool } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
-
-import { Log } from '@apify/log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
@@ -58,7 +56,7 @@ describe('SessionPool - testing session pool', () => {
             });
         // log is appended to sessionOptions after sessionPool instantiation
         // @ts-expect-error private symbol
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(BaseCrawleeLogger) });
     });
 
     test('should work using SessionPool.open', async () => {
@@ -85,7 +83,7 @@ describe('SessionPool - testing session pool', () => {
             });
         // log is appended to sessionOptions after sessionPool instantiation
         // @ts-expect-error private symbol
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(BaseCrawleeLogger) });
     });
 
     describe('should retrieve session', () => {

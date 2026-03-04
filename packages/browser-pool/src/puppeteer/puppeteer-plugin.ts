@@ -7,7 +7,6 @@ import type * as PuppeteerTypes from 'puppeteer';
 import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { LaunchContext } from '../launch-context.js';
-import { log } from '../logger.js';
 import { noop } from '../utils.js';
 import type { PuppeteerNewPageOptions } from './puppeteer-controller.js';
 import { PuppeteerController } from './puppeteer-controller.js';
@@ -95,12 +94,12 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
                 if (page) {
                     page.on('error', (error) => {
-                        log.exception(error, 'Page crashed.');
+                        this.log.exception(error, 'Page crashed.');
                         page.close().catch(noop);
                     });
                 }
             } catch (error: any) {
-                log.exception(error, 'Failed to retrieve page from target.');
+                this.log.exception(error, 'Failed to retrieve page from target.');
             }
         });
 

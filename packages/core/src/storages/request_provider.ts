@@ -23,13 +23,12 @@ import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
 import { ListDictionary, LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
-import { log } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
@@ -111,7 +110,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     client: RequestQueueClient;
     protected proxyConfiguration?: ProxyConfiguration;
 
-    log: Log;
+    log: CrawleeLogger;
     internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
     requestLockSecs = 3 * 60; // defaults to 3 minutes, will be overridden by BasicCrawler
 
@@ -156,7 +155,9 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
-        this.log = log.child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
+        this.log = serviceLocator
+            .getLogger()
+            .child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
 
         this.events.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;
