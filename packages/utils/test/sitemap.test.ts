@@ -464,13 +464,13 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(200, 'Sitemap: http://sitemap-discovery.com/some-sitemap.xml')
-            .head('/some-sitemap.xml')
+            .get('/some-sitemap.xml')
             .reply(200, '')
-            .head('/sitemap.xml')
+            .get('/sitemap.xml')
             .reply(404, '')
-            .head('/sitemap.txt')
+            .get('/sitemap.txt')
             .reply(404, '')
-            .head('/sitemap_index.xml')
+            .get('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -485,11 +485,11 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(404)
-            .head('/sitemap.xml')
+            .get('/sitemap.xml')
             .reply(200, '')
-            .head('/sitemap.txt')
+            .get('/sitemap.txt')
             .reply(404, '')
-            .head('/sitemap_index.xml')
+            .get('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -504,11 +504,11 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(404)
-            .head('/sitemap.xml')
+            .get('/sitemap.xml')
             .reply(404, '')
-            .head('/sitemap.txt')
+            .get('/sitemap.txt')
             .reply(200, '')
-            .head('/sitemap_index.xml')
+            .get('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -523,11 +523,11 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(404)
-            .head('/sitemap.xml')
+            .get('/sitemap.xml')
             .reply(404, '')
-            .head('/sitemap.txt')
+            .get('/sitemap.txt')
             .reply(404, '')
-            .head('/sitemap_index.xml')
+            .get('/sitemap_index.xml')
             .reply(200, '');
 
         const urls = [];
@@ -554,26 +554,26 @@ describe('discoverValidSitemaps', () => {
             .get('/robots.txt')
             .delay(10)
             .reply(404)
-            .head('/sitemap.xml')
+            .get('/sitemap.xml')
             .delay(30)
             .reply(200, '')
-            .head('/sitemap.txt')
+            .get('/sitemap.txt')
             .delay(50)
             .reply(200, '')
-            .head('/sitemap_index.xml')
+            .get('/sitemap_index.xml')
             .reply(404);
 
         nock('http://domain-b.com')
             .get('/robots.txt')
             .delay(20)
             .reply(404)
-            .head('/sitemap.xml')
+            .get('/sitemap.xml')
             .delay(40)
             .reply(200, '')
-            .head('/sitemap.txt')
+            .get('/sitemap.txt')
             .delay(60)
             .reply(200, '')
-            .head('/sitemap_index.xml')
+            .get('/sitemap_index.xml')
             .reply(404);
 
         const urls = [];
@@ -654,11 +654,11 @@ describe('discoverValidSitemaps', () => {
             .get('/robots.txt')
             .delay(5_000)
             .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml')
-            .head('/sitemap.xml')
+            .get('/sitemap.xml')
             .reply(200, '')
-            .head('/sitemap.txt')
+            .get('/sitemap.txt')
             .reply(404, '')
-            .head('/sitemap_index.xml')
+            .get('/sitemap_index.xml')
             .reply(404, '');
 
         const start = Date.now();
