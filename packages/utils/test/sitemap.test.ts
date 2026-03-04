@@ -1,3 +1,4 @@
+import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -5,7 +6,6 @@ import log from '@apify/log';
 
 import type { SitemapUrl } from '../src/internals/sitemap.js';
 import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap.js';
-import { FetchHttpClient } from '@crawlee/http-client';
 
 describe('Sitemap', () => {
     beforeEach(() => {
