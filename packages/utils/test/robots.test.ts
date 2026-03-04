@@ -2,7 +2,7 @@ import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RobotsTxtFile } from '../src/internals/robots.js';
-import { FetchHttpClient } from './mock-http-client.js';
+import { FetchHttpClient } from '@crawlee/http-client';
 
 const httpClient = new FetchHttpClient();
 

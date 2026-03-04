@@ -5,7 +5,7 @@ import log from '@apify/log';
 
 import type { SitemapUrl } from '../src/internals/sitemap.js';
 import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap.js';
-import { FetchHttpClient } from './mock-http-client.js';
+import { FetchHttpClient } from '@crawlee/http-client';
 
 describe('Sitemap', () => {
     beforeEach(() => {
