@@ -432,7 +432,8 @@ export class Sitemap {
             for await (const item of parseSitemap(sources, proxyUrl, parseSitemapOptions)) {
                 urls.push(item.loc);
             }
-        } catch {
+        } catch (e) {
+            log.warning(`Sitemap.load: Failed to load sitemap, returning empty result. (${e})`);
             return new Sitemap([]);
         }
 
