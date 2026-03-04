@@ -507,7 +507,7 @@ export async function* discoverValidSitemaps(
     const urlExists = async (url: string) => {
         const response = await gotScraping({
             url,
-            method: 'HEAD',
+            method: 'GET',
             proxyUrl,
             timeout: {
                 request: requestTimeoutMillis,
