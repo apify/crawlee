@@ -2,7 +2,7 @@ import { readFile, rm } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import log from '@apify/log';
+
 import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -31,6 +31,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 
 import { z } from 'zod';
 
 import { startExpressAppPromise } from 'test/shared/_helper.js';
+
+import log from '@apify/log';
 
 describe('BasicCrawler', () => {
     let logLevel: number;
