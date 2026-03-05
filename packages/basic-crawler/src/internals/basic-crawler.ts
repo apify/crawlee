@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -24,8 +25,8 @@ import type {
     SessionPoolOptions,
     SkippedRequestCallback,
     Source,
-    StatisticState,
     StatisticsOptions,
+    StatisticState,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -36,9 +37,9 @@ import {
     ContextPipelineInterruptedError,
     CriticalError,
     Dataset,
+    enqueueLinks,
     EnqueueStrategy,
     EventType,
-    enqueueLinks,
     KeyValueStore,
     LogLevel,
     mergeCookies,
@@ -54,6 +55,7 @@ import {
     RetryRequestError,
     Router,
     ServiceLocator,
+    serviceLocator,
     SessionError,
     SessionPool,
     Statistics,
