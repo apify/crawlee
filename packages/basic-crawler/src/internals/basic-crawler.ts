@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -24,8 +25,8 @@ import type {
     SessionPoolOptions,
     SkippedRequestCallback,
     Source,
-    StatisticState,
     StatisticsOptions,
+    StatisticState,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -36,9 +37,9 @@ import {
     ContextPipelineInterruptedError,
     CriticalError,
     Dataset,
+    enqueueLinks,
     EnqueueStrategy,
     EventType,
-    enqueueLinks,
     KeyValueStore,
     LogLevel,
     mergeCookies,
@@ -54,10 +55,10 @@ import {
     RetryRequestError,
     Router,
     ServiceLocator,
+    serviceLocator,
     SessionError,
     SessionPool,
     Statistics,
-    serviceLocator,
     validators,
 } from '@crawlee/core';
 import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
@@ -70,7 +71,7 @@ import type {
     SetStatusMessageOptions,
     StorageClient,
 } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS, RobotsTxtFile } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow from 'ow';

@@ -1,12 +1,14 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
-import log from '@apify/log';
+
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
 import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+
+import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
 

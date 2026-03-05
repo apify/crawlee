@@ -1,7 +1,5 @@
 import type { Server } from 'node:http';
 
-import { ENV_VARS } from '@apify/consts';
-import log from '@apify/log';
 import { BROWSER_POOL_EVENTS, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
 import { BLOCKED_STATUS_CODES } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
@@ -11,6 +9,9 @@ import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+
+import { ENV_VARS } from '@apify/consts';
+import log from '@apify/log';
 
 import type { TestCrawlingContext } from './basic_browser_crawler.js';
 import { BrowserCrawlerTest } from './basic_browser_crawler.js';

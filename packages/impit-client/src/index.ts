@@ -1,8 +1,9 @@
-import { LruCache } from '@apify/datastructures';
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 import { Impit, type ImpitOptions } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
+
+import { LruCache } from '@apify/datastructures';
 
 export const Browser = {
     'Chrome': 'chrome',
