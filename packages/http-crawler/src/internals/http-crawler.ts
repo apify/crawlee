@@ -722,9 +722,11 @@ export class HttpCrawler<
         if (Buffer.isEncoding(encoding)) return { response, encoding };
 
         // Try to re-encode a variety of unsupported encodings to utf-8
-        if (iconv.encodingExists(encoding)) {
-            const encodeStream = iconv.encodeStream(utf8);
-            const decodeStream = iconv.decodeStream(encoding).on('error', (err) => encodeStream.emit('error', err));
+        if (iconv.default.encodingExists(encoding)) {
+            const encodeStream = iconv.default.encodeStream(utf8);
+            const decodeStream = iconv.default
+                .decodeStream(encoding)
+                .on('error', (err) => encodeStream.emit('error', err));
             const reencodedBody = response.body
                 ? Readable.toWeb(
                       Readable.from(

@@ -65,9 +65,8 @@ export class RobotsTxtFile {
     ): Promise<RobotsTxtFile> {
         const { proxyUrl, httpClient = new FetchHttpClient() } = options || {};
 
-        const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
+        const response = await httpClient.sendRequest(new Request(url, { method: 'GET', signal: options?.signal }), {
             proxyUrl,
-            signal,
             timeout: options?.timeoutMillis,
         });
 
