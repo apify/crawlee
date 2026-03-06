@@ -1,12 +1,11 @@
+import log from '@apify/log';
 import type { Stagehand, V3Options } from '@browserbasehq/stagehand';
 import type { BrowserController, BrowserPluginOptions, LaunchContext } from '@crawlee/browser-pool';
 import { anonymizeProxySugar, BrowserPlugin } from '@crawlee/browser-pool';
-import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
+import type { BrowserType, LaunchOptions, Browser as PlaywrightBrowser } from 'playwright';
 // Stagehand is built on CDP (Chrome DevTools Protocol), which only works with Chromium-based browsers.
 // Firefox and WebKit are not supported by Stagehand.
 import { chromium } from 'playwright';
-
-import log from '@apify/log';
 
 import { StagehandController } from './stagehand-controller';
 import type { StagehandOptions } from './stagehand-crawler';
@@ -145,7 +144,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Creates a controller for the Stagehand browser.
      */
-    protected _createController(): BrowserController<BrowserType, LaunchOptions, PlaywrightBrowser> {
+    override createController(): BrowserController<BrowserType, LaunchOptions, PlaywrightBrowser> {
         return new StagehandController(this, this.stagehandInstances) as any;
     }
 

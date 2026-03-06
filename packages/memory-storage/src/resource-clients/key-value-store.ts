@@ -149,10 +149,10 @@ export class KeyValueStoreClient extends BaseClient {
     ): AsyncIterable<string> & Promise<storage.KeyValueStoreClientListData> {
         const { limit, exclusiveStartKey, prefix } = s
             .object({
-                limit: s.number.greaterThan(0).optional,
-                exclusiveStartKey: s.string.optional,
-                collection: s.string.optional,
-                prefix: s.string.optional,
+                limit: s.number().greaterThan(0).optional(),
+                exclusiveStartKey: s.string().optional(),
+                collection: s.string().optional(),
+                prefix: s.string().optional(),
             })
             .parse(options);
 

@@ -156,9 +156,9 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     ): AsyncIterable<[number, Data]> & Promise<storage.PaginatedList<[number, Data]>> {
         const { desc, limit, offset } = s
             .object({
-                desc: s.boolean.optional,
-                limit: s.number.int.optional,
-                offset: s.number.int.optional,
+                desc: s.boolean().optional(),
+                limit: s.number().int().optional(),
+                offset: s.number().int().optional(),
             })
             .parse(options);
 
