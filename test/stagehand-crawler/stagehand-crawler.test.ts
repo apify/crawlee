@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { createStagehandRouter, StagehandCrawler } from '../../packages/stagehand-crawler/src';
-import { enhancePageWithStagehand } from '../../packages/stagehand-crawler/src/internals/utils/stagehand-utils';
+import { createStagehandRouter, StagehandCrawler } from '../../packages/stagehand-crawler/src/index.js';
+import { enhancePageWithStagehand } from '../../packages/stagehand-crawler/src/internals/utils/stagehand-utils.js';
 
 // Mock Stagehand to avoid actual browser launches and API calls
 vi.mock('@browserbasehq/stagehand', () => {

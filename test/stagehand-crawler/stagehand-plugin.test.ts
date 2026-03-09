@@ -1,6 +1,6 @@
 import playwright from 'playwright';
 
-import { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin';
+import { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin.js';
 
 // Mock Stagehand
 vi.mock('@browserbasehq/stagehand', () => {

@@ -2,7 +2,7 @@ import { Request } from '@crawlee/core';
 import { RenderingTypePredictor } from '@crawlee/playwright';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('RenderingTypePredictor', () => {
     const localStorageEmulator = new MemoryStorageEmulator();
