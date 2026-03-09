@@ -507,7 +507,7 @@ export async function* discoverValidSitemaps(
     const urlExists = async (url: string) => {
         const response = await gotScraping({
             url,
-            method: 'GET',
+            method: 'HEAD',
             proxyUrl,
             timeout: {
                 request: requestTimeoutMillis,
@@ -546,19 +546,24 @@ export async function* discoverValidSitemaps(
         } else {
             const firstUrl = new URL(domainUrls[0]);
             const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
-            for (const pathname of possibleSitemapPathnames) {
+            const candidateSitemapUrls = possibleSitemapPathnames.map((pathname) => {
                 firstUrl.pathname = pathname;
-                const candidateSitemapUrl = firstUrl.toString();
+                return firstUrl.toString();
+            });
+            const candidateResults = await Promise.allSettled(
+                candidateSitemapUrls.map((candidateSitemapUrl) => urlExists(candidateSitemapUrl)),
+            );
 
-                try {
-                    if (await urlExists(candidateSitemapUrl)) {
-                        if (addSitemapUrl(candidateSitemapUrl)) {
-                            yield candidateSitemapUrl;
-                        }
+            for (const [index, result] of candidateResults.entries()) {
+                const candidateSitemapUrl = candidateSitemapUrls[index];
+
+                if (result.status === 'fulfilled') {
+                    if (result.value && addSitemapUrl(candidateSitemapUrl)) {
+                        yield candidateSitemapUrl;
                     }
-                } catch (err) {
+                } else {
                     log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
-                        error: err,
+                        error: result.reason,
                     });
                 }
             }

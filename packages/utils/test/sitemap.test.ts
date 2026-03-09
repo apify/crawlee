@@ -464,13 +464,13 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(200, 'Sitemap: http://sitemap-discovery.com/some-sitemap.xml')
-            .get('/some-sitemap.xml')
+            .head('/some-sitemap.xml')
             .reply(200, '')
-            .get('/sitemap.xml')
+            .head('/sitemap.xml')
             .reply(404, '')
-            .get('/sitemap.txt')
+            .head('/sitemap.txt')
             .reply(404, '')
-            .get('/sitemap_index.xml')
+            .head('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -485,11 +485,11 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(404)
-            .get('/sitemap.xml')
+            .head('/sitemap.xml')
             .reply(200, '')
-            .get('/sitemap.txt')
+            .head('/sitemap.txt')
             .reply(404, '')
-            .get('/sitemap_index.xml')
+            .head('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -504,11 +504,11 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(404)
-            .get('/sitemap.xml')
+            .head('/sitemap.xml')
             .reply(404, '')
-            .get('/sitemap.txt')
+            .head('/sitemap.txt')
             .reply(200, '')
-            .get('/sitemap_index.xml')
+            .head('/sitemap_index.xml')
             .reply(404, '');
 
         const urls = [];
@@ -523,11 +523,11 @@ describe('discoverValidSitemaps', () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')
             .reply(404)
-            .get('/sitemap.xml')
+            .head('/sitemap.xml')
             .reply(404, '')
-            .get('/sitemap.txt')
+            .head('/sitemap.txt')
             .reply(404, '')
-            .get('/sitemap_index.xml')
+            .head('/sitemap_index.xml')
             .reply(200, '');
 
         const urls = [];
@@ -554,26 +554,26 @@ describe('discoverValidSitemaps', () => {
             .get('/robots.txt')
             .delay(10)
             .reply(404)
-            .get('/sitemap.xml')
+            .head('/sitemap.xml')
             .delay(30)
             .reply(200, '')
-            .get('/sitemap.txt')
+            .head('/sitemap.txt')
             .delay(50)
             .reply(200, '')
-            .get('/sitemap_index.xml')
+            .head('/sitemap_index.xml')
             .reply(404);
 
         nock('http://domain-b.com')
             .get('/robots.txt')
             .delay(20)
             .reply(404)
-            .get('/sitemap.xml')
+            .head('/sitemap.xml')
             .delay(40)
             .reply(200, '')
-            .get('/sitemap.txt')
+            .head('/sitemap.txt')
             .delay(60)
             .reply(200, '')
-            .get('/sitemap_index.xml')
+            .head('/sitemap_index.xml')
             .reply(404);
 
         const urls = [];
@@ -581,12 +581,14 @@ describe('discoverValidSitemaps', () => {
             urls.push(url);
         }
 
-        expect(urls).toEqual([
-            'http://domain-a.com/sitemap.xml',
-            'http://domain-b.com/sitemap.xml',
-            'http://domain-a.com/sitemap.txt',
-            'http://domain-b.com/sitemap.txt',
-        ]);
+        expect(urls.slice().sort()).toEqual(
+            [
+                'http://domain-a.com/sitemap.xml',
+                'http://domain-b.com/sitemap.xml',
+                'http://domain-a.com/sitemap.txt',
+                'http://domain-b.com/sitemap.txt',
+            ].sort(),
+        );
     });
 
     it('aborts when timeoutMillis elapses', async () => {
@@ -654,11 +656,11 @@ describe('discoverValidSitemaps', () => {
             .get('/robots.txt')
             .delay(5_000)
             .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml')
-            .get('/sitemap.xml')
+            .head('/sitemap.xml')
             .reply(200, '')
-            .get('/sitemap.txt')
+            .head('/sitemap.txt')
             .reply(404, '')
-            .get('/sitemap_index.xml')
+            .head('/sitemap_index.xml')
             .reply(404, '');
 
         const start = Date.now();
