@@ -1054,7 +1054,7 @@ __metadata:
     "@types/content-type": "npm:^1.1.8"
     cheerio: "npm:^1.0.0"
     content-type: "npm:^1.0.5"
-    iconv-lite: "npm:^0.7.0"
+    iconv-lite: "npm:^0.7.2"
     mime-types: "npm:^3.0.1"
     ow: "npm:^2.0.0"
     tslib: "npm:^2.8.1"
@@ -1249,6 +1249,7 @@ __metadata:
     globby: "npm:^15.0.0"
     got: "npm:^14.4.7"
     husky: "npm:^9.1.7"
+    iconv-lite: "npm:^0.7.2"
     is-ci: "npm:^4.1.0"
     lerna: "npm:^9.0.0"
     lint-staged: "npm:^16.0.0"
@@ -8868,6 +8869,15 @@ __metadata:
   dependencies:
     safer-buffer: "npm:>= 2.1.2 < 3.0.0"
   checksum: 10c0/f5c9e2bddd7101a71b07a381ace44ebdc65ca76a10be0e9e64d372b511132acc4ee41b830962f438840d492cd6f9e08c237289f760d6a7fed754e61cffcb6757
+  languageName: node
+  linkType: hard
+
+"iconv-lite@npm:^0.7.2":
+  version: 0.7.2
+  resolution: "iconv-lite@npm:0.7.2"
+  dependencies:
+    safer-buffer: "npm:>= 2.1.2 < 3.0.0"
+  checksum: 10c0/3c228920f3bd307f56bf8363706a776f4a060eb042f131cd23855ceca962951b264d0997ab38a1ad340e1c5df8499ed26e1f4f0db6b2a2ad9befaff22f14b722
   languageName: node
   linkType: hard
 

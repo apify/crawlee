@@ -4,6 +4,7 @@ import os from 'node:os';
 
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
 import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
+import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
