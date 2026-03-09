@@ -209,7 +209,7 @@ export class Snapshotter {
             this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
             this.log.debug(
                 `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
-                    'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
+                'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
             );
         }
 
@@ -299,21 +299,34 @@ export class Snapshotter {
     protected _snapshotMemory(systemInfo: SystemInfo) {
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
         this._pruneSnapshots(this.memorySnapshots, createdAt);
-        const { memCurrentBytes } = systemInfo;
+        const { memCurrentBytes, memTotalBytes } = systemInfo;
+
+        let maxMemoryBytes;
+        if (this.maxMemoryBytes > 0 && this.maxMemoryBytes <= 1) {
+            // Treat it as ratio of the total actual memory
+            if (!memTotalBytes)
+                throw new Error(
+                    'Incorrect memory info provided by the systemInfo event, total memory is required to be able to use maxMemoryBytes as a ratio.',
+                );
+            maxMemoryBytes = this.maxMemoryBytes! * memTotalBytes;
+        } else {
+            maxMemoryBytes = this.maxMemoryBytes!;
+        }
+
         const snapshot: MemorySnapshot = {
             createdAt,
-            isOverloaded: memCurrentBytes! / this.maxMemoryBytes! > this.maxUsedMemoryRatio,
+            isOverloaded: memCurrentBytes! / maxMemoryBytes > this.maxUsedMemoryRatio,
             usedBytes: memCurrentBytes,
         };
 
         this.memorySnapshots.push(snapshot);
-        this._memoryOverloadWarning(systemInfo);
+        this._memoryOverloadWarning(systemInfo, maxMemoryBytes);
     }
 
     /**
      * Checks for critical memory overload and logs it to the console.
      */
-    protected _memoryOverloadWarning(systemInfo: SystemInfo) {
+    protected _memoryOverloadWarning(systemInfo: SystemInfo, maxMemoryBytes: number) {
         const { memCurrentBytes } = systemInfo;
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
         if (
@@ -322,19 +335,19 @@ export class Snapshotter {
         )
             return;
 
-        const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * this.maxMemoryBytes!;
-        const reserveMemory = this.maxMemoryBytes! * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
+        const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * maxMemoryBytes;
+        const reserveMemory = maxMemoryBytes * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
         const criticalOverloadBytes = maxDesiredMemoryBytes + reserveMemory;
         const isCriticalOverload = memCurrentBytes! > criticalOverloadBytes;
 
         if (isCriticalOverload) {
-            const usedPercentage = Math.round((memCurrentBytes! / this.maxMemoryBytes!) * 100);
+            const usedPercentage = Math.round((memCurrentBytes! / maxMemoryBytes) * 100);
             const toMb = (bytes: number) => Math.round(bytes / 1024 ** 2);
             this.log.warning(
                 'Memory is critically overloaded. ' +
-                    `Using ${toMb(memCurrentBytes!)} MB of ${toMb(
-                        this.maxMemoryBytes!,
-                    )} MB (${usedPercentage}%). Consider increasing available memory.`,
+                `Using ${toMb(memCurrentBytes!)} MB of ${toMb(
+                    maxMemoryBytes,
+                )} MB (${usedPercentage}%). Consider increasing available memory.`,
             );
             this.lastLoggedCriticalMemoryOverloadAt = createdAt;
         }

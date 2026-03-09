@@ -107,11 +107,13 @@ export class LocalEventManager extends EventManager {
             if (this.config.get('systemInfoV2')) {
                 const memInfo = await getMemoryInfoV2(await this.isContainerizedWrapper());
                 return {
+                    totalBytes: memInfo.totalBytes,
                     memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
                 };
             }
             const memInfo = await getMemoryInfo();
             return {
+                totalBytes: memInfo.totalBytes,
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
             };
         } catch (err) {

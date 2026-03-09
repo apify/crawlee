@@ -268,6 +268,55 @@ describe('Snapshotter', () => {
         await snapshotter.stop();
     });
 
+    test.each([
+        true,
+        false,
+    ])('correctly handles dynamic vs fixed memory limit when total memory changes (dynamic=%s)', async (dynamic) => {
+        /**
+         * Two memory snapshots are emitted with the same process memory usage but different total memory.
+         * First snapshot is overloaded in both modes.
+         * Second snapshot doubles the total memory while keeping the same usage:
+         * - Dynamic mode (availableMemoryRatio): maxMemoryBytes should update → not overloaded
+         * - Fixed mode (memoryMbytes): maxMemoryBytes stays fixed → still overloaded
+         */
+        const noop = () => {};
+        const initialTotalBytes = os.totalmem();
+        // High enough ratio so that usage/maxMemory exceeds maxUsedMemoryRatio (0.9)
+        const availableMemoryRatio = 0.95;
+
+        const memoryData = {
+            totalBytes: initialTotalBytes,
+            mainProcessBytes: Math.ceil(initialTotalBytes * availableMemoryRatio),
+            childProcessesBytes: 0,
+        } as MemoryInfo;
+
+        vitest.spyOn(utils, 'getMemoryInfoV2').mockResolvedValue(memoryData);
+
+        const config = dynamic
+            ? new Configuration({ availableMemoryRatio })
+            : new Configuration({ memoryMbytes: Math.floor(initialTotalBytes / 1024 / 1024) });
+
+        const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.9 });
+        vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+        const events = config.getEventManager() as LocalEventManager;
+        await snapshotter.start();
+
+        // First snapshot: usage at limit → overloaded in both modes
+        await events.emitSystemInfoEvent(noop);
+
+        // Second snapshot: total memory doubled, same process usage
+        memoryData.totalBytes = initialTotalBytes * 2;
+        await events.emitSystemInfoEvent(noop);
+
+        const memorySnapshots = snapshotter.getMemorySample();
+        expect(memorySnapshots).toHaveLength(2);
+        expect(memorySnapshots[0].isOverloaded).toBe(true);
+        expect(memorySnapshots[1].isOverloaded).toBe(!dynamic);
+
+        await snapshotter.stop();
+        vitest.restoreAllMocks();
+    });
+
     test('correctly marks clientOverloaded', () => {
         const noop = () => {};
         // mock client data
