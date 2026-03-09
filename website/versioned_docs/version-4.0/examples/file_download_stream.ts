@@ -1,9 +1,9 @@
 import { pipeline, Transform } from 'stream';
 
-import { FileDownload, type Log } from 'crawlee';
+import { FileDownload, type CrawleeLogger } from 'crawlee';
 
 // A sample Transform stream logging the download progress.
-function createProgressTracker({ url, log, totalBytes }: { url: URL; log: Log; totalBytes: number }) {
+function createProgressTracker({ url, log, totalBytes }: { url: URL; log: CrawleeLogger; totalBytes: number }) {
     let downloadedBytes = 0;
 
     return new Transform({
