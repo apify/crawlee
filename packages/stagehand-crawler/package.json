@@ -56,15 +56,15 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/log": "^2.4.0",
-        "@apify/timeout": "^0.3.1",
-        "@crawlee/browser": "3.16.0",
-        "@crawlee/browser-pool": "3.16.0",
-        "@crawlee/core": "3.16.0",
-        "@crawlee/types": "3.16.0",
-        "@crawlee/utils": "3.16.0",
-        "ow": "^0.28.1",
-        "tslib": "^2.4.0"
+        "@apify/log": "^2.5.18",
+        "@apify/timeout": "^0.3.2",
+        "@crawlee/browser": "4.0.0",
+        "@crawlee/browser-pool": "4.0.0",
+        "@crawlee/core": "4.0.0",
+        "@crawlee/types": "4.0.0",
+        "@crawlee/utils": "4.0.0",
+        "ow": "^2.0.0",
+        "tslib": "^2.8.1"
     },
     "peerDependencies": {
         "@browserbasehq/stagehand": "^3.0.0",

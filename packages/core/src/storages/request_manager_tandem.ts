@@ -1,10 +1,9 @@
 import type { Dictionary } from '@crawlee/types';
 
-import type { Log } from '@apify/log';
-
-import { log } from '../log';
-import type { Request, Source } from '../request';
-import type { IRequestList } from './request_list';
+import type { CrawleeLogger } from '../log.js';
+import type { Request, Source } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
+import type { IRequestList } from './request_list.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -12,7 +11,7 @@ import type {
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
     RequestsLike,
-} from './request_provider';
+} from './request_provider.js';
 
 /**
  * A request manager that combines a RequestList and a RequestQueue.
@@ -20,12 +19,12 @@ import type {
  * transfers them in batches to the RequestQueue.
  */
 export class RequestManagerTandem implements IRequestManager {
-    private log: Log;
+    private log: CrawleeLogger;
     private requestList: IRequestList;
     private requestQueue: IRequestManager;
 
     constructor(requestList: IRequestList, requestQueue: IRequestManager) {
-        this.log = log.child({ prefix: 'RequestManagerTandem' });
+        this.log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
         this.requestList = requestList;
         this.requestQueue = requestQueue;
     }

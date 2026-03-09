@@ -3,14 +3,7 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type {
-    CrawlingContext,
-    EnqueueLinksOptions,
-    ErrorHandler,
-    RequestHandler,
-    RequestOptions,
-    Source,
-} from '@crawlee/basic';
+import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -22,25 +15,24 @@ import {
     Request,
     RequestList,
     RequestQueue,
+    serviceLocator,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
 
 import log from '@apify/log';
 
-import { startExpressAppPromise } from '../../shared/_helper';
+import { startExpressAppPromise } from '../../shared/_helper.js';
 
 describe('BasicCrawler', () => {
     let logLevel: number;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
-
     const HOSTNAME = '127.0.0.1';
     let port: number;
     let server: Server;
@@ -299,6 +291,26 @@ describe('BasicCrawler', () => {
             expect(requests).toHaveLength(2);
             expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
         });
+
+        it('should report depth-limited requests with reason "depth" even when user transformRequestFunction is provided', async () => {
+            const transformRequestFunction = vi.fn((req: RequestOptions) => req);
+            const requestWithMaxDepth = new Request({ url: 'https://example.com/', crawlDepth: 3 });
+            const optionsWithTransform = { ...options, transformRequestFunction };
+
+            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, requestWithMaxDepth, requestQueue);
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(0);
+
+            // Depth-limited requests should not reach the user's transformRequestFunction
+            expect(transformRequestFunction).not.toHaveBeenCalled();
+
+            // The skipped reason should be 'depth', not 'transform'
+            const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
+            expect(skippedRequests).toHaveLength(2);
+            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
+            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+        });
     });
 
     it('addCrawlDepthRequestGenerator() should generate requests with maxCrawlDepth', async () => {
@@ -392,9 +404,9 @@ describe('BasicCrawler', () => {
 
         const processed: { url: string }[] = [];
         const requestList = await RequestList.open(null, sources);
-        const requestHandler: RequestHandler = async ({ request, crawler }) => {
+        const requestHandler: RequestHandler = async ({ request, useState }) => {
             await sleep(10);
-            const state = await crawler.useState({ processed });
+            const state = await useState({ processed });
             state.processed.push({ url: request.url });
         };
 
@@ -412,6 +424,99 @@ describe('BasicCrawler', () => {
         expect(state.processed).toEqual(sourcesCopy);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
+    });
+
+    test('print a warning on sharing state between two crawlers', async () => {
+        function createCrawler() {
+            return new BasicCrawler({
+                requestHandler: async ({ request, useState }) => {
+                    const state = await useState<{ urls: string[] }>({ urls: [] });
+                    state.urls.push(request.url);
+                },
+            });
+        }
+
+        const [crawler1, crawler2] = [createCrawler(), createCrawler()];
+
+        const loggerSpy = vitest.spyOn(serviceLocator.getLogger(), 'warningOnce');
+
+        await crawler1.run([`http://${HOSTNAME}:${port}/`]);
+        await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
+
+        // Both crawlers should share the same state (backward compatibility)
+        const state1 = await crawler1.useState<{ urls: string[] }>();
+        const state2 = await crawler2.useState<{ urls: string[] }>();
+
+        expect(state1).toBe(state2);
+        expect(state1.urls).toHaveLength(2);
+        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/`);
+        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
+        expect(loggerSpy).toBeCalledWith(expect.stringContaining('Multiple crawler instances are calling useState()'));
+    });
+
+    test('shared-state warning is emitted only once regardless of crawler count', async () => {
+        // This test guards against a regression where per-instance loggers were used
+        // for a class-level (static) concern: each crawler would emit the warning
+        // independently, producing N warnings for N crawlers instead of just one.
+
+        // Clear the global logger's dedup state so this test is isolated from others.
+        (log as any).warningsOnceLogged.clear();
+
+        // Spy on the underlying warning dispatch to count actual emissions.
+        const warningSpy = vitest.spyOn(serviceLocator.getLogger(), 'warning');
+        const crawlers = [
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+            new BasicCrawler({
+                requestHandler: async ({ useState }) => {
+                    await useState({ count: 0 });
+                },
+            }),
+        ];
+
+        await crawlers[0].run([`http://${HOSTNAME}:${port}/`]);
+        await crawlers[1].run([`http://${HOSTNAME}:${port}/?page=2`]);
+        await crawlers[2].run([`http://${HOSTNAME}:${port}/?page=3`]);
+
+        const sharedStateWarnings = warningSpy.mock.calls.filter(
+            ([msg]) => typeof msg === 'string' && msg.includes('Multiple crawler instances are calling useState()'),
+        );
+        expect(sharedStateWarnings).toHaveLength(1);
+    });
+
+    test('crawlers with explicit id have isolated state', async () => {
+        function createCrawler(id: string) {
+            return new BasicCrawler({
+                id,
+                requestHandler: async ({ request, useState }) => {
+                    const state = await useState<{ urls: string[] }>({ urls: [] });
+                    state.urls.push(request.url);
+                },
+            });
+        }
+
+        const [crawler1, crawler2] = [createCrawler('crawler-1'), createCrawler('crawler-2')];
+
+        await crawler1.run([`http://${HOSTNAME}:${port}/`]);
+        await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
+
+        // Each crawler should have its own isolated state
+        const state1 = await crawler1.useState<{ urls: string[] }>();
+        const state2 = await crawler2.useState<{ urls: string[] }>();
+
+        expect(state1).not.toBe(state2);
+        expect(state1.urls).toHaveLength(1);
+        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/`);
+        expect(state2.urls).toHaveLength(1);
+        expect(state2.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
     });
 
     test.each([
@@ -433,7 +538,7 @@ describe('BasicCrawler', () => {
         const processed: { url: string }[] = [];
         const requestList = await RequestList.open('reqList', sources);
         const requestHandler: RequestHandler = async ({ request }) => {
-            if (request.url.endsWith('200')) events.emit(event);
+            if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
             processed.push({ url: request.url });
         };
 
@@ -837,7 +942,10 @@ describe('BasicCrawler', () => {
         ];
         const processed: Dictionary<Request> = {};
         const requestList = await RequestList.open(null, sources);
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
 
         const requestHandler: RequestHandler = async ({ request }) => {
             await sleep(10);
@@ -908,7 +1016,10 @@ describe('BasicCrawler', () => {
     });
 
     test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         requestQueue.isEmpty = async () => Promise.resolve(true);
 
         const crawler = new BasicCrawler({
@@ -921,7 +1032,10 @@ describe('BasicCrawler', () => {
     });
 
     test('should be possible to override isFinishedFunction and isTaskReadyFunction of underlying AutoscaledPool', async () => {
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         const processed: Request[] = [];
         const queue: Request[] = [];
         let isFinished = false;
@@ -995,7 +1109,10 @@ describe('BasicCrawler', () => {
     });
 
     test('keepAlive', async () => {
-        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'xxx', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         const processed: Request[] = [];
         const queue: Request[] = [];
 
@@ -1096,7 +1213,10 @@ describe('BasicCrawler', () => {
     });
 
     test('should load handledRequestCount from storages', async () => {
-        const requestQueue = new RequestQueue({ id: 'id', client: Configuration.getStorageClient() });
+        const requestQueue = new RequestQueue(
+            { id: 'id', client: serviceLocator.getStorageClient() },
+            serviceLocator.getConfiguration(),
+        );
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
 
@@ -1170,14 +1290,14 @@ describe('BasicCrawler', () => {
         vitest.restoreAllMocks();
     });
 
-    test('should timeout after handleRequestTimeoutSecs', async () => {
+    test('should timeout after requestHandlerTimeoutSecs', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
         const results: Request[] = [];
         const crawler = new BasicCrawler({
             requestList,
-            handleRequestTimeoutSecs: 0.01,
+            requestHandlerTimeoutSecs: 0.01,
             maxRequestRetries: 1,
             requestHandler: async () => sleep(1000),
             failedRequestHandler: async ({ request }) => {
@@ -1191,7 +1311,7 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
     });
 
-    test('limits handleRequestTimeoutSecs and derived vars to a valid value', async () => {
+    test('limits requestHandlerTimeoutSecs and derived vars to a valid value', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
@@ -1233,9 +1353,9 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(false);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).not.toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1243,9 +1363,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(false);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).not.toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
     });
@@ -1271,8 +1391,8 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
             expect(args[0].split('\n').length).toBeLessThanOrEqual(2);
             expect(args[1]).toBeDefined();
         }
@@ -1281,9 +1401,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
+            expect(args[0]).toMatch(/at _?BasicCrawler\.requestHandler/);
             expect(args[1]).toBeDefined();
         }
     });
@@ -1310,9 +1430,9 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1320,9 +1440,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/requestHandler timed out after/.test(args[0])).toBe(true);
-            expect(/at Timeout\._onTimeout/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/requestHandler timed out after/);
+            expect(args[0]).toMatch(/at Timeout\._onTimeout/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1353,9 +1473,9 @@ describe('BasicCrawler', () => {
         for (const args of warningSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Reclaiming failed request back to the list or queue/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
+            expect(args[0]).toMatch(/at _?BasicCrawler\.requestHandler/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1363,9 +1483,9 @@ describe('BasicCrawler', () => {
         for (const args of errorSpy.mock.calls) {
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
-            expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
-            expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(args[0]).toMatch(/Request failed and reached maximum retries/);
+            expect(args[0]).toMatch(/Other non-timeout error/);
+            expect(args[0]).toMatch(/at _?BasicCrawler\.requestHandler/);
             expect(args[1]).toBeDefined();
         }
 
@@ -1381,7 +1501,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 requestList,
-                handleRequestTimeoutSecs: 0.01,
+                requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
                 useSessionPool: true,
                 sessionPoolOptions: {
@@ -1408,7 +1528,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 requestList,
-                handleRequestTimeoutSecs: 0.01,
+                requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
                 useSessionPool: true,
                 sessionPoolOptions: {
@@ -1427,11 +1547,11 @@ describe('BasicCrawler', () => {
         it('should destroy Session pool after it is finished', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
-            events.off(EventType.PERSIST_STATE);
+            serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
 
             const crawler = new BasicCrawler({
                 requestList,
-                handleRequestTimeoutSecs: 0.01,
+                requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
                 useSessionPool: true,
                 sessionPoolOptions: {
@@ -1444,60 +1564,30 @@ describe('BasicCrawler', () => {
             // @ts-expect-error Accessing private prop
             crawler._loadHandledRequestCount = () => {
                 expect(crawler.sessionPool).toBeDefined();
-                expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
+                expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
             };
 
             await crawler.run();
-            expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
+            expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
     });
 
-    describe('CrawlingContext', () => {
-        test('should be kept and later deleted', async () => {
-            const urls = [
-                'https://example.com/0',
-                'https://example.com/1',
-                'https://example.com/2',
-                'https://example.com/3',
-            ];
-            const requestList = await RequestList.open(null, urls);
-            let counter = 0;
-            let finish: (value?: unknown) => void;
-            const allFinishedPromise = new Promise((resolve) => {
-                finish = resolve;
-            });
-            const mainContexts: CrawlingContext[] = [];
-            const otherContexts: CrawlingContext[][] = [];
-            const crawler = new BasicCrawler({
-                requestList,
-                minConcurrency: 4,
-                async requestHandler(crawlingContext) {
-                    // @ts-expect-error Accessing private prop
-                    mainContexts[counter] = crawler.crawlingContexts.get(crawlingContext.id);
-                    // @ts-expect-error Accessing private prop
-                    otherContexts[counter] = Array.from(crawler.crawlingContexts).map(([, v]) => v);
-                    counter++;
-                    if (counter === 4) finish();
-                    await allFinishedPromise;
-                },
-            });
-            await crawler.run();
+    test('extendContext', async () => {
+        const url = 'https://example.com';
+        const requestHandlerImplementation = vi.fn();
 
-            expect(counter).toBe(4);
-            expect(mainContexts).toHaveLength(4);
-            expect(otherContexts).toHaveLength(4);
-            // @ts-expect-error Accessing private prop
-            expect(crawler.crawlingContexts.size).toBe(0);
-            mainContexts.forEach((ctx, idx) => {
-                expect(typeof ctx.id).toBe('string');
-                expect(otherContexts[idx]).toContain(ctx);
-            });
-            otherContexts.forEach((list, idx) => {
-                expect(list).toHaveLength(idx + 1);
-            });
+        const crawler = new BasicCrawler({
+            extendContext: () => ({ hello: 'world' }),
+            requestHandler: async ({ hello }) => {
+                requestHandlerImplementation({ hello });
+            },
         });
+
+        await crawler.run([url]);
+        expect(requestHandlerImplementation).toHaveBeenCalledOnce();
+        expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
     });
 
     describe('sendRequest', () => {
@@ -1536,8 +1626,8 @@ describe('BasicCrawler', () => {
                     const response = await sendRequest();
 
                     responses.push({
-                        statusCode: response.statusCode,
-                        body: response.body,
+                        statusCode: response.status,
+                        body: await response.text(),
                     });
                 },
             });
@@ -1564,8 +1654,8 @@ describe('BasicCrawler', () => {
                     const response = await sendRequest();
 
                     responses.push({
-                        statusCode: response.statusCode,
-                        body: response.body,
+                        statusCode: response.status,
+                        body: await response.text(),
                     });
                 },
             });
@@ -1954,7 +2044,7 @@ describe('BasicCrawler', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
-        const tmpDir = `${__dirname}/tmp/foo/bar`;
+        const tmpDir = `${import.meta.dirname}/tmp/foo/bar`;
 
         beforeAll(async () => {
             await rm(tmpDir, { recursive: true, force: true });
@@ -2046,8 +2136,8 @@ describe('BasicCrawler', () => {
         });
 
         test("Crawlers with different Configurations don't share Datasets", async () => {
-            const crawlerA = new BasicCrawler({}, new Configuration({ persistStorage: false }));
-            const crawlerB = new BasicCrawler({}, new Configuration({ persistStorage: false }));
+            const crawlerA = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
+            const crawlerB = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
 
             await crawlerA.pushData(getPayload('A'));
             await crawlerB.pushData(getPayload('B'));
@@ -2058,14 +2148,14 @@ describe('BasicCrawler', () => {
         });
 
         test('Crawlers with different Configurations run separately', async () => {
-            const crawlerA = new BasicCrawler(
-                { requestHandler: () => {} },
-                new Configuration({ persistStorage: false }),
-            );
-            const crawlerB = new BasicCrawler(
-                { requestHandler: () => {} },
-                new Configuration({ persistStorage: false }),
-            );
+            const crawlerA = new BasicCrawler({
+                requestHandler: () => {},
+                configuration: new Configuration({ persistStorage: false }),
+            });
+            const crawlerB = new BasicCrawler({
+                requestHandler: () => {},
+                configuration: new Configuration({ persistStorage: false }),
+            });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
             await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
@@ -2078,15 +2168,17 @@ describe('BasicCrawler', () => {
             const getGlobalConfigSpy = vitest.spyOn(Configuration, 'getGlobalConfig');
 
             const configA = new Configuration({ persistStorage: false });
-            const crawlerA = new BasicCrawler({ requestHandler: () => {} }, configA);
+            const crawlerA = new BasicCrawler({ requestHandler: () => {}, configuration: configA });
             const configB = new Configuration({ persistStorage: false });
-            const crawlerB = new BasicCrawler({ requestHandler: () => {} }, configB);
+            const crawlerB = new BasicCrawler({ requestHandler: () => {}, configuration: configB });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
             await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
 
             expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
+            // @ts-expect-error Accessing protected property for testing
             expect(crawlerA.requestQueue?.config).toBe(configA);
+            // @ts-expect-error Accessing protected property for testing
             expect(crawlerB.requestQueue?.config).toBe(configB);
         });
     });

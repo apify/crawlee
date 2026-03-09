@@ -16,9 +16,9 @@ import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper';
+import { runExampleComServer } from 'test/shared/_helper.js';
 
-import { createProxyServer } from './create-proxy-server';
+import { createProxyServer } from './create-proxy-server.js';
 
 // Firefox browser launch is significantly slower than Chromium/WebKit (~12s vs <1s).
 // Under CPU load from parallel tests, it can exceed 2 minutes. Use 5 minute timeout.

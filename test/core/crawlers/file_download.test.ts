@@ -1,24 +1,26 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Duplex } from 'node:stream';
+import { Duplex, finished, pipeline as pipelineWithCallbacks, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
 
-import { Configuration, FileDownload } from '@crawlee/http';
+import { FileDownload } from '@crawlee/http';
+import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper';
+import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { afterAll, beforeAll, expect, test } from 'vitest';
 
 class ReadableStreamGenerator {
-    private static async generateRandomData(size: number, seed: number) {
+    private static async generateRandomData(size: number, seed: number): Promise<Uint8Array> {
         const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        const buffer = Buffer.alloc(size);
+        const array = new Uint8Array(size);
         for (let i = 0; i < size; i++) {
             // eslint-disable-next-line no-bitwise
             seed = Math.imul(48271, seed) | (0 % 2147483647);
-            buffer[i] = chars.charCodeAt(seed % chars.length);
+            array[i] = chars.charCodeAt(seed % chars.length);
         }
-        return buffer;
+        return array;
     }
 
     static getReadableStream(size: number, seed: number, throttle = 0): ReadableStream {
@@ -42,13 +44,15 @@ class ReadableStreamGenerator {
         return stream;
     }
 
-    static async getBuffer(size: number, seed: number) {
+    static async getUint8Array(size: number, seed: number) {
         const stream = this.getReadableStream(size, seed);
-        const chunks: string[] = [];
+        const chunks: Uint8Array = new Uint8Array(size);
+        let offset = 0;
         for await (const chunk of stream) {
-            chunks.push(chunk);
+            chunks.set(chunk, offset);
+            offset += chunk.length;
         }
-        return Buffer.from(chunks.join(''));
+        return chunks;
     }
 }
 
@@ -80,88 +84,97 @@ afterAll(async () => {
     server.close();
 });
 
-test('requestHandler works', async () => {
-    const results: Buffer[] = [];
+test('requestHandler - reading bytes synchronously', async () => {
+    const results: Uint8Array[] = [];
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        requestHandler: ({ body }) => {
-            results.push(body as Buffer);
+        requestHandler: async ({ response }) => {
+            results.push(await response.bytes());
         },
     });
 
     const fileUrl = new URL('/file?size=1024&seed=123', url).toString();
 
-    await crawler.run([fileUrl]);
+    const stats = await crawler.run([fileUrl]);
 
+    expect(stats.requestsFailed).toBe(0);
     expect(results).toHaveLength(1);
     expect(results[0].length).toBe(1024);
-    expect(results[0]).toEqual(await ReadableStreamGenerator.getBuffer(1024, 123));
+    expect(results[0]).toEqual(await ReadableStreamGenerator.getUint8Array(1024, 123));
 });
 
-test('streamHandler works', async () => {
-    let result: Buffer = Buffer.alloc(0);
+test('requestHandler - streaming response body', async () => {
+    let result: Uint8Array = new Uint8Array();
 
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        streamHandler: async ({ stream }) => {
-            for await (const chunk of stream as unknown as ReadableStream<any>) {
-                result = Buffer.concat([result, chunk]);
+        requestHandler: async ({ response }) => {
+            for await (const chunk of response.body ?? []) {
+                result = new Uint8Array([...result, ...chunk]);
             }
         },
     });
 
     const fileUrl = new URL('/file?size=1024&seed=456', url).toString();
 
-    await crawler.run([fileUrl]);
+    const stats = await crawler.run([fileUrl]);
 
+    expect(stats.requestsFailed).toBe(0);
     expect(result.length).toBe(1024);
-    expect(result).toEqual(await ReadableStreamGenerator.getBuffer(1024, 456));
+    expect(result).toEqual(await ReadableStreamGenerator.getUint8Array(1024, 456));
 });
 
-test('streamHandler receives response', async () => {
+test('requestHandler receives response', async () => {
+    const fileUrl = new URL('/file?size=1024&seed=321', url).toString();
+
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        streamHandler: async ({ response }) => {
-            expect(response.headers['content-type']).toBe('application/octet-stream');
-            expect(response.rawHeaders[0]).toBe('content-type');
-            expect(response.rawHeaders[1]).toBe('application/octet-stream');
-            expect(response.statusCode).toBe(200);
-            expect(response.statusMessage).toBe('OK');
+        requestHandler: async ({ response }) => {
+            expect(response?.headers.get('content-type')).toBe('application/octet-stream');
+            expect(response?.status).toBe(200);
+            expect(response?.statusText).toBe('OK');
+            expect(response?.url).toBe(fileUrl);
         },
     });
 
-    const fileUrl = new URL('/file?size=1024&seed=456', url).toString();
+    const stats = await crawler.run([fileUrl]);
 
-    await crawler.run([fileUrl]);
+    expect(stats.requestsFailed).toBe(0);
 });
 
-test('crawler with streamHandler waits for the stream to finish', async () => {
+test('crawler waits for the stream to be consumed', async () => {
     const bufferingStream = new Duplex({
         read() {},
-        write(chunk, encoding, callback) {
+        write(chunk, _encoding, callback) {
             this.push(chunk);
             callback();
         },
     });
 
+    // Use FetchHttpClient so response.body is a real streaming ReadableStream
+    // (the default GotScrapingHttpClient buffers the entire response, making
+    // the body complete instantly and the test a no-op).
     const crawler = new FileDownload({
         maxRequestRetries: 0,
-        streamHandler: ({ stream }) => {
-            pipeline(stream as any, bufferingStream)
-                .then(() => {
+        httpClient: new FetchHttpClient(),
+        requestHandler: async ({ response }) => {
+            pipelineWithCallbacks(response.body ?? ReadableStream.from([]), bufferingStream, (err) => {
+                if (!err) {
                     bufferingStream.push(null);
                     bufferingStream.end();
-                })
-                .catch((e) => {
-                    bufferingStream.destroy(e);
-                });
+                } else {
+                    bufferingStream.destroy(err);
+                }
+            });
         },
     });
 
     // waits for a second after every kilobyte sent.
     const fileUrl = new URL(`/file?size=${5 * 1024}&seed=789&throttle=1000`, url).toString();
-    await crawler.run([fileUrl]);
+    const stats = await crawler.run([fileUrl]);
+
+    expect(stats.requestsFailed).toBe(0);
 
     // Wait for the stream to finish (pipeline is async)
     await new Promise<void>((resolve) => {
@@ -177,12 +190,13 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
     // the stream should be finished once the crawler finishes.
     expect(bufferingStream.writableFinished).toBe(true);
 
-    const bufferedData: Buffer[] = [];
+    const bufferedData = new Uint8Array(5 * 1024);
+    let offset = 0;
     for await (const chunk of bufferingStream) {
-        bufferedData.push(chunk);
+        bufferedData.set(chunk, offset);
+        offset += chunk.length;
     }
-    const result = Buffer.concat(bufferedData);
 
-    expect(result.length).toBe(5 * 1024);
-    expect(result).toEqual(await ReadableStreamGenerator.getBuffer(5 * 1024, 789));
+    expect(bufferedData.length).toBe(5 * 1024);
+    expect(bufferedData).toEqual(await ReadableStreamGenerator.getUint8Array(5 * 1024, 789));
 });

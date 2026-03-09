@@ -1,17 +1,16 @@
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
-import { CriticalError } from '../errors';
-import { log as defaultLog } from '../log';
-import type { SnapshotterOptions } from './snapshotter';
-import { Snapshotter } from './snapshotter';
-import type { SystemInfo, SystemStatusOptions } from './system_status';
-import { SystemStatus } from './system_status';
+import { CriticalError } from '../errors.js';
+import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
+import type { SnapshotterOptions } from './snapshotter.js';
+import { Snapshotter } from './snapshotter.js';
+import type { SystemInfo, SystemStatusOptions } from './system_status.js';
+import { SystemStatus } from './system_status.js';
 
 export interface AutoscaledPoolOptions {
     /**
@@ -126,7 +125,7 @@ export interface AutoscaledPoolOptions {
      */
     maxTasksPerMinute?: number;
 
-    log?: Log;
+    log?: CrawleeLogger;
 }
 
 /**
@@ -178,7 +177,7 @@ export interface AutoscaledPoolOptions {
  * @category Scaling
  */
 export class AutoscaledPool {
-    private readonly log: Log;
+    private readonly log: CrawleeLogger;
 
     // Configurable properties.
     private readonly desiredConcurrencyRatio: number;
@@ -211,10 +210,7 @@ export class AutoscaledPool {
     private tasksDonePerSecondInterval?: BetterIntervalID;
     private _tasksPerMinute: number[] = Array.from({ length: 60 }, () => 0);
 
-    constructor(
-        options: AutoscaledPoolOptions,
-        private readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: AutoscaledPoolOptions) {
         ow(
             options,
             ow.object.exactShape({
@@ -254,7 +250,7 @@ export class AutoscaledPool {
             autoscaleIntervalSecs = 10,
             systemStatusOptions,
             snapshotterOptions,
-            log = defaultLog,
+            log = serviceLocator.getLogger(),
             maxTasksPerMinute = Infinity,
         } = options;
 
@@ -290,10 +286,7 @@ export class AutoscaledPool {
         ssoCopy.snapshotter ??= new Snapshotter({
             ...snapshotterOptions,
             log: this.log,
-            config: this.config,
-            client: this.config.getStorageClient(),
         });
-        ssoCopy.config ??= this.config;
         this.snapshotter = ssoCopy.snapshotter;
         this.systemStatus = new SystemStatus(ssoCopy);
     }
@@ -495,7 +488,10 @@ export class AutoscaledPool {
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
         if (!isSystemIdle && this._currentConcurrency >= this._minConcurrency) {
-            this.log.perf('Task will not be run. System is overloaded.', currentStatus);
+            this.log.perf(
+                'Task will not be run. System is overloaded.',
+                currentStatus as unknown as Record<string, unknown>,
+            );
             return done();
         }
         // - a task is ready.

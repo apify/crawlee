@@ -8,37 +8,44 @@ import {
     Request,
     RequestQueueV1 as RequestQueue,
     RequestQueueV2,
+    serviceLocator,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '@crawlee/core';
-import type { gotScraping } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
+import { gotScraping } from 'got-scraping';
 import type { MockedFunction } from 'vitest';
 
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
-vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
-    return {
-        gotScraping: vitest.fn(),
-    };
+let mockHttpClient = vitest.mockObject({
+    async sendRequest(_request: any, _options?: any) {
+        return new Response();
+    },
+    async stream() {
+        return new Response();
+    },
 });
 
-let gotScrapingSpy: MockedFunction<typeof gotScraping>;
-
-beforeAll(async () => {
-    // @ts-ignore for some reason, this fails when the project is not built :/
-    const { gotScraping } = await import('@crawlee/utils');
-    gotScrapingSpy = vitest.mocked(gotScraping);
+beforeEach(async () => {
+    mockHttpClient = vitest.mockObject({
+        async sendRequest() {
+            return new Response();
+        },
+        async stream() {
+            return new Response();
+        },
+    });
 });
 
 describe('RequestQueue remote', () => {
-    const storageClient = Configuration.getStorageClient();
+    const storageClient = serviceLocator.getStorageClient();
 
     beforeEach(() => {
         vitest.clearAllMocks();
     });
 
     test('should work', async () => {
-        const queue = new RequestQueue({ id: 'some-id', client: storageClient });
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
         const firstResolveValue = {
             requestId: 'a',
             wasAlreadyHandled: false,
@@ -195,7 +202,10 @@ describe('RequestQueue remote', () => {
     });
 
     test('addRequests', async () => {
-        const queue = new RequestQueue({ id: 'batch-requests', client: storageClient });
+        const queue = new RequestQueue(
+            { id: 'batch-requests', client: storageClient },
+            serviceLocator.getConfiguration(),
+        );
         const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
 
         const requestOptions = { url: 'http://example.com/a' };
@@ -279,7 +289,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should cache new requests locally', async () => {
-        const queue = new RequestQueue({ id: 'some-id', client: storageClient });
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         const requestA = new Request({ url: 'http://example.com/a' });
         const requestB = new Request({ url: 'http://example.com/a' }); // Has same uniqueKey as A
@@ -310,7 +320,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should cache requests locally with info if request was already handled', async () => {
-        const queue = new RequestQueue({ id: 'some-id', client: storageClient });
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         const requestX = new Request({ url: 'http://example.com/x' });
         const requestY = new Request({ url: 'http://example.com/x' }); // Has same uniqueKey as X
@@ -341,7 +351,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should cache requests from queue head', async () => {
-        const queue = new RequestQueue({ id: 'some-id', client: storageClient });
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         // Query queue head with request A
         const listHeadMock = vitest.spyOn(queue.client, 'listHead');
@@ -369,7 +379,10 @@ describe('RequestQueue remote', () => {
     });
 
     test('should handle situation when newly created request is not available yet', async () => {
-        const queue = new RequestQueue({ id: 'some-id', name: 'some-queue', client: storageClient });
+        const queue = new RequestQueue(
+            { id: 'some-id', name: 'some-queue', client: storageClient },
+            serviceLocator.getConfiguration(),
+        );
         const listHeadMock = vitest.spyOn(queue.client, 'listHead');
 
         const requestA = new Request({ url: 'http://example.com/a' });
@@ -420,7 +433,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should not add handled request to queue head dict', async () => {
-        const queue = new RequestQueue({ id: 'some-id', client: storageClient });
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
 
         const requestA = new Request({ url: 'http://example.com/a' });
 
@@ -450,7 +463,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should accept plain object in addRequest()', async () => {
-        const queue = new RequestQueue({ id: 'some-id', client: storageClient });
+        const queue = new RequestQueue({ id: 'some-id', client: storageClient }, serviceLocator.getConfiguration());
         const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({
             requestId: 'xxx',
@@ -465,7 +478,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should return correct handledCount', async () => {
-        const queue = new RequestQueue({ id: 'id', client: storageClient });
+        const queue = new RequestQueue({ id: 'id', client: storageClient }, serviceLocator.getConfiguration());
         const getMock = vitest.spyOn(queue.client, 'get');
         getMock.mockResolvedValueOnce({
             handledRequestCount: 33,
@@ -477,7 +490,10 @@ describe('RequestQueue remote', () => {
     });
 
     test('should always wait for a queue head to become consistent before marking queue as finished (hadMultipleClients = true)', async () => {
-        const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
+        const queue = new RequestQueue(
+            { id: 'some-id', name: 'some-name', client: storageClient },
+            serviceLocator.getConfiguration(),
+        );
 
         // Return head with modifiedAt = now so it will retry the call.
         const listHeadMock = vitest.spyOn(queue.client, 'listHead');
@@ -503,7 +519,10 @@ describe('RequestQueue remote', () => {
 
     test('should always wait for a queue head to become consistent before marking queue as finished (hadMultipleClients = false)', async () => {
         const queueId = 'some-id';
-        const queue = new RequestQueue({ id: queueId, name: 'some-name', client: storageClient });
+        const queue = new RequestQueue(
+            { id: queueId, name: 'some-name', client: storageClient },
+            serviceLocator.getConfiguration(),
+        );
 
         expect(queue.assumedTotalCount).toBe(0);
         expect(queue.assumedHandledCount).toBe(0);
@@ -669,7 +688,10 @@ describe('RequestQueue remote', () => {
     });
 
     test('getInfo() should work', async () => {
-        const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
+        const queue = new RequestQueue(
+            { id: 'some-id', name: 'some-name', client: storageClient },
+            serviceLocator.getConfiguration(),
+        );
 
         const expected = {
             id: 'WkzbQMuFYuamGv3YF',
@@ -694,7 +716,10 @@ describe('RequestQueue remote', () => {
     });
 
     test('drop() works', async () => {
-        const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
+        const queue = new RequestQueue(
+            { id: 'some-id', name: 'some-name', client: storageClient },
+            serviceLocator.getConfiguration(),
+        );
         const deleteMock = vitest.spyOn(queue.client, 'delete').mockResolvedValueOnce(undefined);
 
         await queue.drop();
@@ -784,10 +809,13 @@ describe('RequestQueue with requestsFromUrl', () => {
     test('should use regex parameter to parse urls', async () => {
         const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
         const listArr = ['https://example.com', 'HTTP://google.com'];
-        gotScrapingSpy.mockResolvedValue({ body: listStr } as any);
+
+        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(listStr));
 
         const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
-        const queue = await RequestQueue.open();
+        const queue = await RequestQueue.open(null, {
+            httpClient: mockHttpClient,
+        });
         await queue.addRequest({
             method: 'GET',
             requestsFromUrl: 'http://example.com/list-1',
@@ -798,7 +826,8 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
         await queue.drop();
 
-        expect(gotScrapingSpy).toBeCalledWith({ url: 'http://example.com/list-1', encoding: 'utf8' });
+        expect(mockHttpClient.sendRequest).toBeCalled();
+        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
@@ -814,16 +843,18 @@ describe('RequestQueue with requestsFromUrl', () => {
         const correctUrl =
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
 
-        gotScrapingSpy.mockResolvedValue({ body: JSON.stringify(list) } as any);
+        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n'), { status: 200 }));
 
-        const queue = await RequestQueue.open();
+        const queue = await RequestQueue.open(null, {
+            httpClient: mockHttpClient,
+        });
         await queue.addRequests(wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })));
 
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
 
-        expect(gotScrapingSpy).toBeCalledWith({ url: correctUrl, encoding: 'utf8' });
+        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe(correctUrl);
         await queue.drop();
     });
 

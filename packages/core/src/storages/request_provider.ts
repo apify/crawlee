@@ -1,6 +1,7 @@
 import { inspect } from 'node:util';
 
 import type {
+    BaseHttpClient,
     BatchAddRequestsResult,
     Dictionary,
     ProcessedRequest,
@@ -19,22 +20,24 @@ import {
     sleep,
 } from '@crawlee/utils';
 import ow from 'ow';
+import type { ReadonlyDeep } from 'type-fest';
 
 import { ListDictionary, LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
-import { EventType } from '../events';
-import { log } from '../log';
-import type { ProxyConfiguration } from '../proxy_configuration';
-import type { InternalSource, RequestOptions, Source } from '../request';
-import { Request } from '../request';
-import type { Constructor } from '../typedefs';
-import { checkStorageAccess } from './access_checking';
-import type { IStorage, StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils';
+import { Configuration } from '../configuration.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
+import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { InternalSource, RequestOptions, Source } from '../request.js';
+import { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
+import type { Constructor } from '../typedefs.js';
+import { checkStorageAccess } from './access_checking.js';
+import type { IStorage, StorageManagerOptions } from './storage_manager.js';
+import { StorageManager } from './storage_manager.js';
+import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
 
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
 
@@ -107,7 +110,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     client: RequestQueueClient;
     protected proxyConfiguration?: ProxyConfiguration;
 
-    log: Log;
+    log: CrawleeLogger;
     internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
     requestLockSecs = 3 * 60; // defaults to 3 minutes, will be overridden by BasicCrawler
 
@@ -132,12 +135,17 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
     protected inProgressRequestBatchCount = 0;
 
+    protected httpClient?: BaseHttpClient;
+
+    protected readonly events: EventManager;
+
     constructor(
         options: InternalRequestProviderOptions,
-        readonly config = Configuration.getGlobalConfig(),
+        protected readonly config: Configuration,
     ) {
         this.id = options.id;
         this.name = options.name;
+        this.events = serviceLocator.getEventManager();
         this.client = options.client.requestQueue(this.id, {
             clientKey: this.clientKey,
             timeoutSecs: this.timeoutSecs,
@@ -147,11 +155,11 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
-        this.log = log.child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
+        this.log = serviceLocator
+            .getLogger()
+            .child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
 
-        const eventManager = config.getEventManager();
-
-        eventManager.on(EventType.MIGRATING, async () => {
+        this.events.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;
         });
     }
@@ -393,7 +401,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      * @param options Options for the request queue
      */
     async addRequestsBatched(
-        requests: RequestsLike,
+        requests: ReadonlyDeep<RequestsLike>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
@@ -718,7 +726,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>, this.config);
+        const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>);
         manager.closeStorage(this);
     }
 
@@ -837,7 +845,10 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         urlRegExp?: RegExp;
         proxyUrl?: string;
     }): Promise<string[]> {
-        return downloadListOfUrls(options);
+        return downloadListOfUrls({
+            ...options,
+            httpClient: this.httpClient,
+        });
     }
 
     /**
@@ -866,15 +877,15 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 config: ow.optional.object.instanceOf(Configuration),
                 storageClient: ow.optional.object,
                 proxyConfiguration: ow.optional.object,
+                httpClient: ow.optional.object,
             }),
         );
 
-        options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        options.storageClient ??= serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager(this as typeof BuiltRequestProvider, options.config);
+        const manager = StorageManager.getManager(this as typeof BuiltRequestProvider);
         const queue = await manager.openStorage(queueIdOrName, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
 
@@ -882,6 +893,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         queue.initialCount = queueInfo?.totalRequestCount ?? 0;
         queue.initialHandledCount = queueInfo?.handledRequestCount ?? 0;
+        queue.httpClient = options.httpClient;
 
         return queue;
     }

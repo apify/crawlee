@@ -1,63 +1,36 @@
 import { Transform } from 'node:stream';
-import { finished } from 'node:stream/promises';
-import { isPromise } from 'node:util/types';
 
+import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawler } from '@crawlee/basic';
+import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
-// @ts-expect-error got-scraping is ESM only
-import type { Request } from 'got-scraping';
 
-import type {
-    ErrorHandler,
-    GetUserDataFromRequest,
-    HttpCrawlerOptions,
-    InternalHttpCrawlingContext,
-    InternalHttpHook,
-    RequestHandler,
-    RouterRoutes,
-} from '../index';
-import { HttpCrawler, Router } from '../index';
+import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
+import { Router } from '../index.js';
+import { parseContentTypeFromResponse } from './utils.js';
+
+const kBodyDrained = Symbol('bodyDrained');
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
-
-export type StreamHandlerContext = Omit<
-    FileDownloadCrawlingContext,
-    'body' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
-> & {
-    stream: Request; // TODO BC - remove in v4
-};
-
-type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
-
-export type FileDownloadOptions<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> =
-    | (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
-          requestHandler?: never;
-          streamHandler?: StreamHandler;
-      })
-    | (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
-          requestHandler: FileDownloadRequestHandler;
-          streamHandler?: never;
-      });
+> = ErrorHandler<FileDownloadCrawlingContext<UserData>>;
 
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<FileDownloadCrawlingContext<UserData, JSONData>>;
+> = InternalHttpHook<FileDownloadCrawlingContext<UserData>>;
 
 export interface FileDownloadCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData, FileDownload> {}
+> extends CrawlingContext<UserData> {
+    request: LoadedRequest<Request<UserData>>;
+    response: Response;
+    contentType: { type: string; encoding: BufferEncoding };
+}
 
 export type FileDownloadRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = RequestHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
+> = RequestHandler<FileDownloadCrawlingContext<UserData>>;
 
 /**
  * Creates a transform stream that throws an error if the source data speed is below the specified minimum speed.
@@ -156,11 +129,11 @@ export function ByteCounterStream({
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * We can use the `preNavigationHooks` to adjust `gotOptions`:
+ * We can use the `preNavigationHooks` to adjust the crawling context before the request is made:
  *
  * ```
  * preNavigationHooks: [
- *     (crawlingContext, gotOptions) => {
+ *     (crawlingContext) => {
  *         // ...
  *     },
  * ]
@@ -184,100 +157,74 @@ export function ByteCounterStream({
  * ]);
  * ```
  */
-export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
-    private streamHandler?: StreamHandler;
-
-    constructor(options: FileDownloadOptions = {}) {
-        const { streamHandler } = options;
-        delete options.streamHandler;
-
-        if (streamHandler) {
-            // For streams, the navigation is done in the request handler.
-            (options as any).requestHandlerTimeoutSecs = options.navigationTimeoutSecs ?? 120;
-        }
-
-        super(options);
-
-        this.streamHandler = streamHandler;
-        if (this.streamHandler) {
-            this.requestHandler = this.streamRequestHandler as any;
-        }
-
-        // The base HttpCrawler class only supports a handful of text based mime types.
-        // With the FileDownload crawler, we want to download any file type.
-        (this as any).supportedMimeTypes = new Set(['*/*']);
+export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
+    // TODO hooks
+    constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
+        super({
+            ...options,
+            contextPipelineBuilder: () => this.buildContextPipeline(),
+        });
     }
 
-    protected override async _runRequestHandler(context: FileDownloadCrawlingContext) {
-        if (this.streamHandler) {
-            context.request.skipNavigation = true;
-        }
+    protected override buildContextPipeline() {
+        return super.buildContextPipeline().compose({
+            action: async (context) => this.initiateDownload(context),
+            cleanup: async (context) => {
+                if (!context.response.bodyUsed) {
+                    // Nobody consumed the body — cancel it so the
+                    // underlying connection can be released.
+                    await context.response.body?.cancel();
+                }
 
-        await super._runRequestHandler(context);
+                await (context as { [kBodyDrained]: Promise<void> })[kBodyDrained];
+            },
+        });
     }
 
-    private async streamRequestHandler(context: FileDownloadCrawlingContext) {
-        const {
-            log,
-            request: { url },
-        } = context;
-
-        const response = await this.httpClient.stream({
-            url,
-            timeout: { request: undefined },
-            proxyUrl: context.proxyInfo?.url,
+    private async initiateDownload(context: CrawlingContext) {
+        const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
+            session: context.session,
         });
 
-        let pollingInterval: NodeJS.Timeout | undefined;
+        const { type, charset: encoding } = parseContentTypeFromResponse(response);
 
-        const cleanUp = () => {
-            clearInterval(pollingInterval!);
-            response.stream.destroy();
+        context.request.url = response.url;
+
+        const { response: trackedResponse, bodyDrained } = trackBodyConsumption(response);
+
+        const contextExtension = {
+            request: context.request as LoadedRequest<Request>,
+            response: trackedResponse,
+            contentType: { type, encoding },
+            [kBodyDrained]: bodyDrained,
         };
 
-        const downloadPromise = new Promise<void>((resolve, reject) => {
-            pollingInterval = setInterval(() => {
-                const { total, transferred } = response.downloadProgress;
-
-                if (transferred > 0) {
-                    log.debug(`Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`);
-                }
-            }, 5000);
-
-            response.stream.on('error', async (error: Error) => {
-                cleanUp();
-                reject(error);
-            });
-
-            let streamHandlerResult;
-
-            try {
-                context.stream = response.stream;
-                context.response = response as any;
-                streamHandlerResult = this.streamHandler!(context as any);
-            } catch (e) {
-                cleanUp();
-                reject(e);
-            }
-
-            if (isPromise(streamHandlerResult)) {
-                streamHandlerResult
-                    .then(() => {
-                        resolve();
-                    })
-                    .catch((e: Error) => {
-                        cleanUp();
-                        reject(e);
-                    });
-            } else {
-                resolve();
-            }
-        });
-
-        await Promise.all([downloadPromise, finished(response.stream)]);
-
-        cleanUp();
+        return contextExtension;
     }
+}
+
+/**
+ * Wraps a Response so that we can track when the body stream has been fully
+ * consumed (or errored). Pipes the original body through a TransformStream;
+ * the readable side becomes the new Response body, and `pipeTo` gives us a
+ * promise that resolves once the body is fully read or cancelled.
+ */
+function trackBodyConsumption(response: Response): { response: ResponseWithUrl; bodyDrained: Promise<void> } {
+    if (!response.body) {
+        return { response, bodyDrained: Promise.resolve() };
+    }
+
+    const passthrough = new TransformStream();
+    const bodyDrained = response.body.pipeTo(passthrough.writable).catch(() => {});
+
+    const trackedResponse = new ResponseWithUrl(passthrough.readable, {
+        headers: response.headers,
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+    });
+
+    return { response: trackedResponse, bodyDrained };
 }
 
 /**

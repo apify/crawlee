@@ -1,13 +1,13 @@
 import type { Dictionary } from '@crawlee/types';
 
-import type { Request } from '../request';
-import type { IRequestList } from './request_list';
+import type { Request } from '../request.js';
+import type { IRequestList } from './request_list.js';
 import type {
     AddRequestsBatchedResult,
     IRequestManager,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-} from './request_provider';
+} from './request_provider.js';
 
 /**
  * Adapts the IRequestList interface to the IRequestManager interface.

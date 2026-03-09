@@ -4,11 +4,12 @@ import type { Dictionary } from '@crawlee/types';
 
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 
-import { Configuration } from '../configuration';
-import type { Request } from '../request';
-import { checkStorageAccess } from './access_checking';
-import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider';
-import { RequestProvider } from './request_provider';
+import type { Configuration } from '../configuration.js';
+import type { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
+import { checkStorageAccess } from './access_checking.js';
+import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider.js';
+import { RequestProvider } from './request_provider.js';
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
     getRequestId,
@@ -16,7 +17,7 @@ import {
     QUERY_HEAD_BUFFER,
     QUERY_HEAD_MIN_LENGTH,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
-} from './utils';
+} from './utils.js';
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 
@@ -87,7 +88,7 @@ class RequestQueue extends RequestProvider {
     /**
      * @internal
      */
-    constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
+    constructor(options: RequestProviderOptions, config: Configuration = serviceLocator.getConfiguration()) {
         super(
             {
                 ...options,

@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { Configuration, type Dictionary, EventType, KeyValueStore } from '@crawlee/core';
+import { Configuration, type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
@@ -11,8 +11,8 @@ import type {
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -515,7 +515,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         await crawler.run();
 
         // Now emit a PERSIST_STATE event to trigger state persistence
-        const events = Configuration.getEventManager();
+        const events = serviceLocator.getEventManager();
         events.emit(EventType.PERSIST_STATE);
 
         // Wait a bit for the event to be processed

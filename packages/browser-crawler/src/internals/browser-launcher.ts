@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 
 import { Configuration } from '@crawlee/basic';
@@ -10,6 +11,8 @@ const DEFAULT_VIEWPORT = {
     width: 1366,
     height: 768,
 };
+
+const require = createRequire(import.meta.url);
 
 export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginOptions<TOptions> {
     /**
@@ -45,13 +48,6 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
      * @default false
      */
     useIncognitoPages?: boolean;
-
-    /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
 
     /**
      * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
@@ -113,7 +109,6 @@ export abstract class BrowserLauncher<
         useChrome: ow.optional.boolean,
         useIncognitoPages: ow.optional.boolean,
         browserPerProxy: ow.optional.boolean,
-        experimentalContainers: ow.optional.boolean,
         ignoreProxyCertificate: ow.optional.boolean,
         userDataDir: ow.optional.string,
         launchOptions: ow.optional.object,

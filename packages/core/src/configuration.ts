@@ -1,37 +1,15 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { MemoryStorageOptions } from '@crawlee/memory-storage';
-import { MemoryStorage } from '@crawlee/memory-storage';
-import type { Dictionary, StorageClient } from '@crawlee/types';
-import { pathExistsSync, readFileSync } from 'fs-extra';
+import type { Dictionary } from '@crawlee/types';
+import { pathExistsSync } from 'fs-extra/esm';
 
-import log, { LogLevel } from '@apify/log';
-
-import { type EventManager, LocalEventManager } from './events';
-import type { StorageManager } from './storages';
-import { type Constructor, entries } from './typedefs';
+import { log, LogLevel } from './log.js';
+import { serviceLocator } from './service_locator.js';
+import { entries } from './typedefs.js';
 
 export interface ConfigurationOptions {
-    /**
-     * Defines storage client to be used.
-     * @default {@apilink MemoryStorage}
-     */
-    storageClient?: StorageClient;
-
-    /**
-     * Defines the Event Manager to be used.
-     * @default {@apilink EventManager}
-     */
-    eventManager?: EventManager;
-
-    /**
-     * Could be used to adjust the storage client behavior
-     * e.g. {@apilink MemoryStorageOptions} could be used to adjust the {@apilink MemoryStorage} behavior.
-     */
-    storageClientOptions?: Dictionary;
-
     /**
      * Default dataset id.
      *
@@ -164,13 +142,6 @@ export interface ConfigurationOptions {
     persistStorage?: boolean;
 
     /**
-     * Defines whether to use the systemInfoV2 metric collection experiment.
-     *
-     * Alternative to `CRAWLEE_SYSTEM_INFO_V2` environment variable.
-     */
-    systemInfoV2?: boolean;
-
-    /**
      * Used in place of `isContainerized()` when collecting system metrics.
      *
      * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
@@ -206,7 +177,7 @@ export interface ConfigurationOptions {
  * // Create a new configuration
  * const config = new Configuration({ persistStateIntervalMillis: 30_000 });
  * // Pass the configuration to the crawler
- * const crawler = new BasicCrawler({ ... }, config);
+ * const crawler = new BasicCrawler({ configuration: config, ... });
  * ```
  *
  * The configuration provided via environment variables always takes precedence. We can also
@@ -241,7 +212,6 @@ export interface ConfigurationOptions {
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -
  * `disableBrowserSandbox` | `CRAWLEE_DISABLE_BROWSER_SANDBOX` | -
  * `availableMemoryRatio` | `CRAWLEE_AVAILABLE_MEMORY_RATIO` | `0.25`
- * `systemInfoV2` | `CRAWLEE_SYSTEM_INFO_V2` | false
  * `containerized | `CRAWLEE_CONTAINERIZED | -
  */
 export class Configuration {
@@ -264,7 +234,6 @@ export class Configuration {
         CRAWLEE_DISABLE_BROWSER_SANDBOX: 'disableBrowserSandbox',
         CRAWLEE_LOG_LEVEL: 'logLevel',
         CRAWLEE_PERSIST_STORAGE: 'persistStorage',
-        CRAWLEE_SYSTEM_INFO_V2: 'systemInfoV2',
         CRAWLEE_CONTAINERIZED: 'containerized',
     };
 
@@ -274,7 +243,6 @@ export class Configuration {
         'xvfb',
         'disableBrowserSandbox',
         'persistStorage',
-        'systemInfoV2',
         'containerized',
     ];
 
@@ -295,22 +263,9 @@ export class Configuration {
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 1_000,
         persistStorage: true,
-        systemInfoV2: true,
     };
 
-    /**
-     * Provides access to the current-instance-scoped Configuration without passing it around in parameters.
-     * @internal
-     */
-    static storage = new AsyncLocalStorage<Configuration>();
-
     protected options!: Map<keyof ConfigurationOptions, ConfigurationOptions[keyof ConfigurationOptions]>;
-    protected services = new Map<string, unknown>();
-
-    /** @internal */
-    static globalConfig?: Configuration;
-
-    public readonly storageManagers = new Map<Constructor, StorageManager>();
 
     /**
      * Creates new `Configuration` instance with provided options. Env vars will have precedence over those.
@@ -393,111 +348,12 @@ export class Configuration {
     }
 
     /**
-     * Sets value for given option. Only affects the global `Configuration` instance, the value will not be propagated down to the env var.
-     * To reset a value, we can omit the `value` argument or pass `undefined` there.
-     */
-    static set(key: keyof ConfigurationOptions, value?: any): void {
-        this.getGlobalConfig().set(key, value);
-    }
-
-    /**
-     * Returns cached instance of {@apilink StorageClient} using options as defined in the environment variables or in
-     * this {@apilink Configuration} instance. Only first call of this method will create the client, following calls will
-     * return the same client instance.
-     *
-     * Caching works based on the `storageClientOptions`, so calling this method with different options will return
-     * multiple instances, one for each variant of the options.
-     * @internal
-     */
-    getStorageClient(): StorageClient {
-        if (this.options.has('storageClient')) {
-            return this.options.get('storageClient') as StorageClient;
-        }
-
-        const options = this.options.get('storageClientOptions') as Dictionary;
-        return this.createMemoryStorage(options);
-    }
-
-    getEventManager(): EventManager {
-        if (this.options.has('eventManager')) {
-            return this.options.get('eventManager') as EventManager;
-        }
-
-        if (this.services.has('eventManager')) {
-            return this.services.get('eventManager') as EventManager;
-        }
-
-        const eventManager = new LocalEventManager(this);
-        this.services.set('eventManager', eventManager);
-
-        return eventManager;
-    }
-
-    /**
-     * Creates an instance of MemoryStorage using options as defined in the environment variables or in this `Configuration` instance.
-     * @internal
-     */
-    createMemoryStorage(options: MemoryStorageOptions = {}): MemoryStorage {
-        const cacheKey = `MemoryStorage-${JSON.stringify(options)}`;
-
-        if (this.services.has(cacheKey)) {
-            return this.services.get(cacheKey) as MemoryStorage;
-        }
-
-        const storage = new MemoryStorage({
-            persistStorage: this.get('persistStorage'),
-            // Override persistStorage if user provides it via storageClientOptions
-            ...options,
-        });
-        this.services.set(cacheKey, storage);
-
-        return storage;
-    }
-
-    useStorageClient(client: StorageClient): void {
-        this.options.set('storageClient', client);
-    }
-
-    static useStorageClient(client: StorageClient): void {
-        this.getGlobalConfig().useStorageClient(client);
-    }
-
-    useEventManager(events: EventManager): void {
-        this.options.set('eventManager', events);
-    }
-
-    /**
      * Returns the global configuration instance. It will respect the environment variables.
+     *
+     * Delegates to the global ServiceLocator, making it the single source of truth for service management.
      */
     static getGlobalConfig(): Configuration {
-        if (Configuration.storage.getStore()) {
-            return Configuration.storage.getStore()!;
-        }
-
-        Configuration.globalConfig ??= new Configuration();
-        return Configuration.globalConfig;
-    }
-
-    /**
-     * Gets default {@apilink StorageClient} instance.
-     */
-    static getStorageClient(): StorageClient {
-        return this.getGlobalConfig().getStorageClient();
-    }
-
-    /**
-     * Gets default {@apilink EventManager} instance.
-     */
-    static getEventManager(): EventManager {
-        return this.getGlobalConfig().getEventManager();
-    }
-
-    /**
-     * Resets global configuration instance. The default instance holds configuration based on env vars,
-     * if we want to change them, we need to first reset the global state. Used mainly for testing purposes.
-     */
-    static resetGlobalState(): void {
-        delete this.globalConfig;
+        return serviceLocator.getConfiguration();
     }
 
     protected buildOptions(options: ConfigurationOptions) {

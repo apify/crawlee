@@ -1,7 +1,8 @@
+import tsEslint from 'typescript-eslint';
+import apifyJs from '@apify/eslint-config/js';
 import apify from '@apify/eslint-config/ts';
 import stylistic from '@stylistic/eslint-plugin';
 import prettier from 'eslint-config-prettier';
-import tsEslint from 'typescript-eslint';
 
 export default [
     {
@@ -78,4 +79,13 @@ export default [
             'no-undef': 'off',
         },
     },
+    // {
+    //     files: ['test/**/*'],
+    //     rules: {
+    //         ...apifyJs.rules,
+    //         '@typescript-eslint/no-floating-promises': 'off',
+    //         'no-console': 'off',
+    //         'no-undef': 'off',
+    //     },
+    // },
 ];

@@ -4,17 +4,15 @@ import type { Dictionary } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
-import type { Log } from '@apify/log';
-
-import { Configuration } from '../configuration';
-import type { PersistenceOptions } from '../crawlers/statistics';
-import type { EventManager } from '../events/event_manager';
-import { EventType } from '../events/event_manager';
-import { log as defaultLog } from '../log';
-import { KeyValueStore } from '../storages/key_value_store';
-import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts';
-import type { SessionOptions } from './session';
-import { Session } from './session';
+import type { PersistenceOptions } from '../crawlers/statistics.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
+import { KeyValueStore } from '../storages/key_value_store.js';
+import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
+import type { SessionOptions } from './session.js';
+import { Session } from './session.js';
 
 /**
  * Factory user-function which creates customized {@apilink Session} instances.
@@ -47,7 +45,7 @@ export interface SessionPoolOptions {
     persistStateKey?: string;
 
     /**
-     * Custom function that should return `Session` instance.
+     * Custom function that should return a `Session` instance, or a promise resolving to such instance.
      * Any error thrown from this function will terminate the process.
      * Function receives `SessionPool` instance as a parameter
      */
@@ -61,7 +59,7 @@ export interface SessionPoolOptions {
     blockedStatusCodes?: number[];
 
     /** @internal */
-    log?: Log;
+    log?: CrawleeLogger;
 
     /**
      * Control how and when to persist the state of the session pool.
@@ -135,7 +133,7 @@ export interface SessionPoolOptions {
  * @category Scaling
  */
 export class SessionPool extends EventEmitter {
-    protected log: Log;
+    protected log: CrawleeLogger;
     protected maxPoolSize: number;
     protected createSessionFunction: CreateSession;
     protected keyValueStore!: KeyValueStore;
@@ -155,10 +153,7 @@ export class SessionPool extends EventEmitter {
     /**
      * @internal
      */
-    constructor(
-        options: SessionPoolOptions = {},
-        readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: SessionPoolOptions = {}) {
         super();
 
         ow(
@@ -182,15 +177,14 @@ export class SessionPool extends EventEmitter {
             createSessionFunction,
             sessionOptions = {},
             blockedStatusCodes = BLOCKED_STATUS_CODES,
-            log = defaultLog,
+            log = serviceLocator.getLogger(),
             persistenceOptions = {
                 enable: true,
             },
         } = options;
 
-        this.config = config;
         this.blockedStatusCodes = blockedStatusCodes;
-        this.events = config.getEventManager();
+        this.events = serviceLocator.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
 
@@ -234,7 +228,9 @@ export class SessionPool extends EventEmitter {
             return;
         }
 
-        this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, { config: this.config });
+        this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, {
+            config: serviceLocator.getConfiguration(),
+        });
         if (!this.persistenceOptions.enable) {
             this.isInitialized = true;
             return;
@@ -280,6 +276,21 @@ export class SessionPool extends EventEmitter {
         this.log.debug(`Adding new Session - ${newSession.id}`);
 
         this._addSession(newSession);
+    }
+
+    /**
+     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
+     * but this allows you to add more sessions once the max pool size is reached.
+     * This also allows you to add session with overridden session options (e.g. with specific session id).
+     * @param [options] The configuration options for the session being added to the session pool.
+     */
+    async newSession(sessionOptions?: SessionOptions): Promise<Session> {
+        this._throwIfNotInitialized();
+
+        const newSession = await this.createSessionFunction(this, { sessionOptions });
+        this._addSession(newSession);
+
+        return newSession;
     }
 
     /**
@@ -369,7 +380,7 @@ export class SessionPool extends EventEmitter {
         });
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
             .setValue(this.persistStateKey, this.getState(), {
@@ -434,12 +445,13 @@ export class SessionPool extends EventEmitter {
      * @param [options.sessionOptions] The configuration options for the session being created.
      * @returns New session.
      */
-    protected _defaultCreateSessionFunction(
+    protected async _defaultCreateSessionFunction(
         sessionPool: SessionPool,
         options: { sessionOptions?: SessionOptions } = {},
-    ): Session {
+    ): Promise<Session> {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
         const { sessionOptions = {} } = options;
+
         return new Session({
             ...this.sessionOptions,
             ...sessionOptions,
@@ -509,8 +521,8 @@ export class SessionPool extends EventEmitter {
      *
      * For more details and code examples, see the {@apilink SessionPool} class.
      */
-    static async open(options?: SessionPoolOptions, config?: Configuration): Promise<SessionPool> {
-        const sessionPool = new SessionPool(options, config);
+    static async open(options?: SessionPoolOptions): Promise<SessionPool> {
+        const sessionPool = new SessionPool(options);
         await sessionPool.initialize();
         return sessionPool;
     }

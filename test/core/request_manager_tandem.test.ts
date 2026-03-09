@@ -1,7 +1,7 @@
 import { log, Request, RequestList, RequestManagerTandem, RequestQueue } from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 describe('RequestManagerTandem', () => {
     let logLevel: number;

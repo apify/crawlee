@@ -1,10 +1,10 @@
 export * from '@crawlee/browser';
-export * from './internals/playwright-crawler';
-export * from './internals/playwright-launcher';
-export * from './internals/adaptive-playwright-crawler';
-export { RenderingTypePredictor } from './internals/utils/rendering-type-prediction';
+export * from './internals/playwright-crawler.js';
+export * from './internals/playwright-launcher.js';
+export * from './internals/adaptive-playwright-crawler.js';
+export { RenderingTypePredictor } from './internals/utils/rendering-type-prediction.js';
 
-export * as playwrightUtils from './internals/utils/playwright-utils';
-export * as playwrightClickElements from './internals/enqueue-links/click-elements';
-export type { DirectNavigationOptions as PlaywrightDirectNavigationOptions } from './internals/utils/playwright-utils';
-export type { RenderingType } from './internals/utils/rendering-type-prediction';
+export * as playwrightUtils from './internals/utils/playwright-utils.js';
+export * as playwrightClickElements from './internals/enqueue-links/click-elements.js';
+export type { DirectNavigationOptions as PlaywrightDirectNavigationOptions } from './internals/utils/playwright-utils.js';
+export type { RenderingType } from './internals/utils/rendering-type-prediction.js';

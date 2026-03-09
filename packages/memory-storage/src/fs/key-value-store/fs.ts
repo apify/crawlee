@@ -3,14 +3,14 @@ import { dirname, resolve } from 'node:path';
 import { basename } from 'node:path/win32';
 
 import { AsyncQueue } from '@sapphire/async-queue';
-import { ensureDir } from 'fs-extra';
+import { ensureDir } from 'fs-extra/esm';
 import mime from 'mime-types';
 
-import { lockAndWrite } from '../../background-handler/fs-utils';
-import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
-import { memoryStorageLog } from '../../utils';
-import type { StorageImplementation } from '../common';
-import type { CreateStorageImplementationOptions } from '.';
+import { lockAndWrite } from '../../background-handler/fs-utils.js';
+import type { InternalKeyRecord } from '../../resource-clients/key-value-store.js';
+import { memoryStorageLog } from '../../utils.js';
+import type { StorageImplementation } from '../common.js';
+import type { CreateStorageImplementationOptions } from './index.js';
 
 export class KeyValueFileSystemEntry implements StorageImplementation<InternalKeyRecord> {
     private storeDirectory: string;
@@ -34,8 +34,9 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
             file = await readFile(this.filePath);
         } catch {
             try {
+                const noExtFilePath = resolve(this.storeDirectory, this.rawRecord.key);
                 // Try without extension
-                file = await readFile(resolve(this.storeDirectory, this.rawRecord.key));
+                file = await readFile(noExtFilePath);
                 memoryStorageLog.warning(
                     [
                         `Key-value entry "${this.rawRecord.key}" for store ${basename(
@@ -45,6 +46,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
                     ].join('\n'),
                 );
                 file = file.toString('utf-8');
+                this.filePath = noExtFilePath;
             } catch {
                 // This is impossible to happen, but just in case
                 throw new Error(`Could not find file at ${this.filePath}`);
@@ -56,6 +58,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
         return {
             ...this.rawRecord,
             value: file,
+            filePath: this.filePath,
         };
     }
 

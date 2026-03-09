@@ -1,4 +1,4 @@
-import type { TieredProxy } from '@crawlee/core';
+import { type CrawleeLogger, serviceLocator, type TieredProxy } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -10,18 +10,17 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
-import type { BrowserController } from './abstract-classes/browser-controller';
-import type { BrowserPlugin } from './abstract-classes/browser-plugin';
-import { BROWSER_POOL_EVENTS } from './events';
+import type { BrowserController } from './abstract-classes/browser-controller.js';
+import type { BrowserPlugin } from './abstract-classes/browser-plugin.js';
+import { BROWSER_POOL_EVENTS } from './events.js';
 import {
     createFingerprintPreLaunchHook,
     createPostPageCreateHook,
     createPrePageCreateHook,
-} from './fingerprinting/hooks';
-import type { FingerprintGeneratorOptions } from './fingerprinting/types';
-import type { LaunchContext } from './launch-context';
-import { log } from './logger';
-import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
+} from './fingerprinting/hooks.js';
+import type { FingerprintGeneratorOptions } from './fingerprinting/types.js';
+import type { LaunchContext } from './launch-context.js';
+import type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
@@ -334,9 +333,11 @@ export class BrowserPool<
     private browserRetireInterval?: NodeJS.Timeout;
 
     private limiter = pLimit(1);
+    private log!: CrawleeLogger;
 
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
         super();
+        this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
 
         this.browserKillerInterval!.unref();
 
@@ -558,10 +559,7 @@ export class BrowserPool<
         await browserController['isActivePromise'];
         tryCancel();
 
-        const finalPageOptions =
-            browserController.launchContext.useIncognitoPages || browserController.launchContext.experimentalContainers
-                ? pageOptions
-                : undefined;
+        const finalPageOptions = browserController.launchContext.useIncognitoPages ? pageOptions : undefined;
 
         if (finalPageOptions) {
             Object.assign(finalPageOptions, browserController.normalizeProxyOptions(proxyUrl, pageOptions));
@@ -711,7 +709,7 @@ export class BrowserPool<
             throw err;
         }
 
-        log.debug('Launched new browser.', { id: browserController.id });
+        this.log.debug('Launched new browser.', { id: browserController.id });
         browserController.proxyTier = proxyTier;
         browserController.proxyUrl = proxyUrl;
 
@@ -722,7 +720,7 @@ export class BrowserPool<
         } catch (err) {
             this.startingBrowserControllers.delete(browserController);
             browserController.close().catch((closeErr) => {
-                log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
+                this.log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
                     id: browserController.id,
                 });
             });
@@ -777,7 +775,7 @@ export class BrowserPool<
 
             if (isBrowserIdle || isBrowserEmpty) {
                 const { id } = controller;
-                log.debug('Closing retired browser.', { id });
+                this.log.debug('Closing retired browser.', { id });
                 await controller.close();
                 this.retiredBrowserControllers.delete(controller);
                 closedBrowserIds.push(id);
@@ -785,7 +783,7 @@ export class BrowserPool<
         }
 
         if (closedBrowserIds.length) {
-            log.debug('Closed retired browsers.', {
+            this.log.debug('Closed retired browsers.', {
                 count: closedBrowserIds.length,
                 closedBrowserIds,
             });
@@ -801,7 +799,7 @@ export class BrowserPool<
             await this._executeHooks(this.prePageCloseHooks, page, browserController);
 
             await originalPageClose.apply(page, args).catch((err: Error) => {
-                log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                this.log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
             });
 
             await this._executeHooks(this.postPageCloseHooks, pageId, browserController);
@@ -824,7 +822,7 @@ export class BrowserPool<
             // Run this with a delay, otherwise page.close()
             // might fail with "Protocol error (Target.closeTarget): Target closed."
             setTimeout(() => {
-                log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
+                this.log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
                 void browserController.close().finally(() => {
                     this.retiredBrowserControllers.delete(browserController);
                 });

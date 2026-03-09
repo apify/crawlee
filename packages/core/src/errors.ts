@@ -35,3 +35,39 @@ export class SessionError extends RetryRequestError {
         super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
     }
 }
+
+export class ContextPipelineInterruptedError extends Error {
+    constructor(message?: string) {
+        super(`Request handling was interrupted during context initialization ${message ? ` - ${message}` : ''}`);
+    }
+}
+
+export class ContextPipelineInitializationError extends Error {
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
+    }
+}
+
+export class ContextPipelineCleanupError extends CriticalError {
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
+    }
+}
+
+export class RequestHandlerError extends Error {
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
+    }
+}
+
+/**
+ * Thrown when attempting to set a different service instance after one has already been retrieved.
+ */
+export class ServiceConflictError extends Error {
+    constructor(serviceName: string, newValue: unknown, existingValue: unknown) {
+        super(
+            `Service ${serviceName} is already in use. ` +
+                `Existing value: ${existingValue}, attempted new value: ${newValue}.`,
+        );
+    }
+}

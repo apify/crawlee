@@ -19,10 +19,11 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import type { Request } from '@crawlee/browser';
-import { Configuration, KeyValueStore, RequestState, validators } from '@crawlee/browser';
+import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -31,20 +32,19 @@ import ow from 'ow';
 import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
 
 import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
 
-import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
-import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
-import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler';
-import type { InterceptHandler } from './puppeteer_request_interception';
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
+import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
+import type { InterceptHandler } from './puppeteer_request_interception.js';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception.js';
 
+const require = createRequire(import.meta.url);
 const jqueryPath = require.resolve('jquery');
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
-const log = log_.child({ prefix: 'Puppeteer Utils' });
+const getLog = () => serviceLocator.getChildLog('Puppeteer Utils');
 
 export interface DirectNavigationOptions {
     /**
@@ -138,7 +138,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
         page.on('framenavigated', async () =>
             page
                 .evaluate(contents)
-                .catch((error) => log.warning('An error occurred during the script injection!', { error })),
+                .catch((error) => getLog().warning('An error occurred during the script injection!', { error })),
         );
     }
 
@@ -202,6 +202,7 @@ export async function parseWithCheerio(
             frames.map(async (frame) => {
                 try {
                     const iframe = await frame.contentFrame();
+
                     if (iframe) {
                         const getIframeHTML = async (): Promise<string> => {
                             try {
@@ -222,7 +223,7 @@ export async function parseWithCheerio(
                         }, contents);
                     }
                 } catch (error) {
-                    log.warning(`Failed to extract iframe content: ${error}`);
+                    getLog().warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
         );
@@ -331,10 +332,12 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
  * @deprecated
  */
 export const blockResources = async (page: Page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
-    log.deprecated(
-        'utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. ' +
-            'Until this resolves, please use utils.puppeteer.blockRequests()',
-    );
+    serviceLocator
+        .getLogger()
+        .deprecated(
+            'utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. ' +
+                'Until this resolves, please use utils.puppeteer.blockRequests()',
+        );
     await addInterceptRequestHandler(page, async (request) => {
         const type = request.resourceType();
         if (resourceTypes.includes(type)) await request.abort();
@@ -367,10 +370,12 @@ export async function cacheResponses(
     ow(cache, ow.object);
     ow(responseUrlRules, ow.array.ofType(ow.any(ow.string, ow.regExp)));
 
-    log.deprecated(
-        'utils.puppeteer.cacheResponses() has a high impact on performance ' +
-            "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.",
-    );
+    serviceLocator
+        .getLogger()
+        .deprecated(
+            'utils.puppeteer.cacheResponses() has a high impact on performance ' +
+                "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.",
+        );
 
     await addInterceptRequestHandler(page, async (request) => {
         const url = request.url();
@@ -443,7 +448,7 @@ export function compileScript(scriptString: string, context: Dictionary = Object
     try {
         func = vm.runInNewContext(funcString, context); // "Secure" the context by removing prototypes, unless custom context is provided.
     } catch (err) {
-        log.exception(err as Error, 'Cannot compile script!');
+        getLog().exception(err as Error, 'Cannot compile script!');
         throw err;
     }
 
@@ -492,10 +497,12 @@ export async function gotoExtended(
 
     if (method !== 'GET' || payload || !isEmpty(headers)) {
         // This is not deprecated, we use it to log only once.
-        log.deprecated(
-            'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
-                'in recent versions of Puppeteer. Use only when necessary.',
-        );
+        serviceLocator
+            .getLogger()
+            .deprecated(
+                'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
+                    'in recent versions of Puppeteer. Use only when necessary.',
+            );
         let wasCalled = false;
         const interceptRequestHandler = async (interceptedRequest: PuppeteerRequest) => {
             // We want to ensure that this won't get executed again in a case that there is a subsequent request
@@ -784,7 +791,7 @@ async function getIdcacPlaywright() {
     try {
         idcacPlaywright = await import('idcac-playwright');
     } catch (error: any) {
-        log.warning(`Failed to import 'idcac-playwright'.
+        getLog().warning(`Failed to import 'idcac-playwright'.
 
 We recently made idcac-playwright an optional dependency due to licensing issues.
 To use this feature, please install it manually by running
@@ -959,32 +966,6 @@ export interface PuppeteerContextUtils {
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
 
     /**
-     * `blockResources()` has a high impact on performance in recent versions of Puppeteer.
-     * Until this resolves, please use `utils.puppeteer.blockRequests()`.
-     * @deprecated
-     */
-    blockResources(resourceTypes?: string[]): Promise<void>;
-
-    /**
-     * *NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
-     * performance. Until this resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
-     *
-     * Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
-     * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
-     *   This issue should be resolved or atleast mitigated in future iterations of this feature.
-     * @param cache
-     *   Object in which responses are stored
-     * @param responseUrlRules
-     *   List of rules that are used to check if the response should be cached.
-     *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
-     * @deprecated
-     */
-    cacheResponses(
-        cache: Dictionary<Partial<ResponseForRequest>>,
-        responseUrlRules: (string | RegExp)[],
-    ): Promise<void>;
-
-    /**
      * Compiles a Puppeteer script into an async function that may be executed at any time
      * by providing it with the following object:
      * ```
@@ -1096,60 +1077,6 @@ export interface PuppeteerContextUtils {
     closeCookieModals(): Promise<void>;
 }
 
-/** @internal */
-export function registerUtilsToContext(
-    context: PuppeteerCrawlingContext,
-    crawlerOptions: PuppeteerCrawlerOptions,
-): void {
-    context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
-        injectFile(context.page, filePath, options);
-    context.injectJQuery = async () => {
-        if (context.request.state === RequestState.BEFORE_NAV) {
-            log.warning(
-                'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
-            );
-            await injectJQuery(context.page);
-            return;
-        }
-        await injectJQuery(context.page, { surviveNavigations: false });
-    };
-    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
-        await context.page.waitForSelector(selector, { timeout: timeoutMs });
-    };
-    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
-        if (selector) {
-            await context.waitForSelector(selector, timeoutMs);
-        }
-
-        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
-    };
-    context.enqueueLinksByClickingElements = async (
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
-    ) =>
-        enqueueLinksByClickingElements({
-            page: context.page,
-            requestQueue: context.crawler.requestQueue!,
-            ...options,
-        });
-    context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.blockResources = async (resourceTypes?: string[]) => blockResources(context.page, resourceTypes);
-    context.cacheResponses = async (
-        cache: Dictionary<Partial<ResponseForRequest>>,
-        responseUrlRules: (string | RegExp)[],
-    ) => {
-        return cacheResponses(context.page, cache, responseUrlRules);
-    };
-    context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
-    context.addInterceptRequestHandler = async (handler: InterceptHandler) =>
-        addInterceptRequestHandler(context.page, handler);
-    context.removeInterceptRequestHandler = async (handler: InterceptHandler) =>
-        removeInterceptRequestHandler(context.page, handler);
-    context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
-        saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    context.closeCookieModals = async () => closeCookieModals(context.page);
-}
-
 export { enqueueLinksByClickingElements, addInterceptRequestHandler, removeInterceptRequestHandler };
 
 /** @internal */
@@ -1158,8 +1085,6 @@ export const puppeteerUtils = {
     injectJQuery,
     enqueueLinksByClickingElements,
     blockRequests,
-    blockResources,
-    cacheResponses,
     compileScript,
     gotoExtended,
     addInterceptRequestHandler,

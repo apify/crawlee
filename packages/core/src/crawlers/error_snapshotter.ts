@@ -1,16 +1,13 @@
 import crypto from 'node:crypto';
 
-import type { CrawlingContext } from '../crawlers/crawler_commons';
-import type { KeyValueStore } from '../storages';
-import type { ErrnoException } from './error_tracker';
+import type { CrawlingContext } from '../crawlers/crawler_commons.js';
+import type { KeyValueStore } from '../storages/key_value_store.js';
+import type { ErrnoException } from './error_tracker.js';
+import type { SnapshottableProperties } from './internals/types.js';
 
 // Define the following types as we cannot import the complete types from the respective packages
 interface BrowserCrawlingContext {
     saveSnapshot: (options: { key: string }) => Promise<void>;
-}
-
-interface BrowserPage {
-    content: () => Promise<string>;
 }
 
 export interface SnapshotResult {
@@ -49,9 +46,12 @@ export class ErrorSnapshotter {
     /**
      * Capture a snapshot of the error context.
      */
-    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<ErrorSnapshot> {
+    async captureSnapshot(
+        error: ErrnoException,
+        context: CrawlingContext & SnapshottableProperties,
+    ): Promise<ErrorSnapshot> {
         try {
-            const page = context?.page as BrowserPage | undefined;
+            const page = context?.page;
             const body = context?.body;
 
             const keyValueStore = await context?.getKeyValueStore();
@@ -88,9 +88,9 @@ export class ErrorSnapshotter {
 
             return {
                 screenshotFileName,
-                screenshotFileUrl: screenshotFileName && keyValueStore.getPublicUrl(screenshotFileName),
+                screenshotFileUrl: screenshotFileName && (await keyValueStore.getPublicUrl(screenshotFileName)),
                 htmlFileName,
-                htmlFileUrl: htmlFileName && keyValueStore.getPublicUrl(htmlFileName),
+                htmlFileUrl: htmlFileName && (await keyValueStore.getPublicUrl(htmlFileName)),
             };
         } catch {
             return {};
@@ -120,7 +120,11 @@ export class ErrorSnapshotter {
     /**
      * Save the HTML snapshot of the page, and return the fileName with the extension.
      */
-    async saveHTMLSnapshot(html: string, keyValueStore: KeyValueStore, fileName: string): Promise<string | undefined> {
+    async saveHTMLSnapshot(
+        html: string,
+        keyValueStore: Pick<KeyValueStore, 'setValue'>,
+        fileName: string,
+    ): Promise<string | undefined> {
         try {
             await keyValueStore.setValue(fileName, html, { contentType: 'text/html' });
             return `${fileName}.html`;

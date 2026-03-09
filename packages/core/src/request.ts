@@ -8,15 +8,13 @@ import ow from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
 
-import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
-import type { SkippedRequestReason } from './enqueue_links/shared';
-import { log as defaultLog } from './log';
-import type { AllowedHttpMethods } from './typedefs';
-import { keys } from './typedefs';
+import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
+import type { SkippedRequestReason } from './enqueue_links/shared.js';
+import { serviceLocator } from './service_locator.js';
+import type { AllowedHttpMethods } from './typedefs.js';
+import { keys } from './typedefs.js';
 
 // new properties on the Request object breaks serialization
-const log = defaultLog.child({ prefix: 'Request' });
-
 const requestOptionalPredicates = {
     id: ow.optional.string,
     loadedUrl: ow.optional.string.url,
@@ -81,7 +79,7 @@ export enum RequestState {
  * ```
  * @category Sources
  */
-export class Request<UserData extends Dictionary = Dictionary> {
+class CrawleeRequest<UserData extends Dictionary = Dictionary> {
     /** Request ID */
     id?: string;
 
@@ -201,7 +199,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.url = url;
         this.loadedUrl = loadedUrl;
         this.uniqueKey =
-            uniqueKey || Request.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+            uniqueKey ||
+            CrawleeRequest.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -262,6 +261,18 @@ export class Request<UserData extends Dictionary = Dictionary> {
         if (enqueueStrategy) {
             this.enqueueStrategy ??= enqueueStrategy;
         }
+    }
+
+    /**
+     * Converts the Crawlee Request object to a `fetch` API Request object.
+     * @returns The native `fetch` API Request object.
+     */
+    public intoFetchAPIRequest(): Request {
+        return new Request(this.url, {
+            method: this.method,
+            headers: this.headers,
+            body: this.payload,
+        });
     }
 
     /** Tells the crawler processing this request to skip the navigation and process the request directly. */
@@ -347,6 +358,24 @@ export class Request<UserData extends Dictionary = Dictionary> {
         }
     }
 
+    /**
+     * Reason for skipping this request.
+     */
+    get skippedReason(): SkippedRequestReason | undefined {
+        return this.userData.__crawlee?.skippedReason;
+    }
+
+    /**
+     * Reason for skipping this request.
+     */
+    set skippedReason(value: SkippedRequestReason | undefined) {
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { skippedReason: value };
+        } else {
+            this.userData.__crawlee.skippedReason = value;
+        }
+    }
+
     private get enqueueStrategy(): EnqueueLinksOptions['strategy'] | undefined {
         return this.userData.__crawlee?.enqueueStrategy;
     }
@@ -404,16 +433,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.errorMessages.push(message);
     }
 
-    // TODO: only for better BC, remove in v4
-    protected _computeUniqueKey(options: ComputeUniqueKeyOptions) {
-        return Request.computeUniqueKey(options);
-    }
-
-    // TODO: only for better BC, remove in v4
-    protected _hashPayload(payload: BinaryLike): string {
-        return Request.hashPayload(payload);
-    }
-
     /** @internal */
     static computeUniqueKey({
         url,
@@ -426,16 +445,17 @@ export class Request<UserData extends Dictionary = Dictionary> {
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
-                // Using log.deprecated to log only once. We should add log.once or some such.
-                log.deprecated(
-                    `We've encountered a ${normalizedMethod} Request with a payload. ` +
-                        'This is fine. Just letting you know that if your requests point to the same URL ' +
-                        'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
-                );
+                serviceLocator
+                    .getLogger()
+                    .warningOnce(
+                        `We've encountered a ${normalizedMethod} Request with a payload. ` +
+                            'This is fine. Just letting you know that if your requests point to the same URL ' +
+                            'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
+                    );
             }
             return normalizedUrl;
         }
-        const payloadHash = payload ? Request.hashPayload(payload) : '';
+        const payloadHash = payload ? CrawleeRequest.hashPayload(payload) : '';
         return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
     }
 
@@ -580,10 +600,12 @@ interface ComputeUniqueKeyOptions {
     useExtendedUniqueKey?: boolean;
 }
 
-export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | Request;
+export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | CrawleeRequest;
 
 /** @internal */
 export interface InternalSource {
     requestsFromUrl: string;
     regex?: RegExp;
 }
+
+export { CrawleeRequest as Request };

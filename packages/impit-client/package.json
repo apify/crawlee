@@ -1,19 +1,13 @@
 {
     "name": "@crawlee/impit-client",
-    "version": "3.16.0",
+    "version": "4.0.0",
     "description": "impit-based HTTP client implementation for Crawlee. Impersonates browser requests to avoid bot detection.",
     "engines": {
-        "node": ">=20.0.0"
+        "node": ">=22.0.0"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "type": "module",
     "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
-        },
+        ".": "./dist/index.js",
         "./package.json": "./package.json"
     },
     "keywords": [
@@ -46,20 +40,16 @@
     "scripts": {
         "build": "yarn clean && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
-        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+        "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"
     },
     "publishConfig": {
         "access": "public"
     },
-    "peerDependencies": {
-        "@crawlee/core": "^3.12.1"
-    },
-    "devDependencies": {
-        "@crawlee/core": "^3.16.0"
-    },
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
+        "@crawlee/http-client": "4.0.0",
+        "@crawlee/types": "4.0.0",
         "impit": "^0.9.0",
         "tough-cookie": "^6.0.0"
     }

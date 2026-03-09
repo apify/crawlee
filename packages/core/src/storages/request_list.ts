@@ -1,16 +1,16 @@
-import type { Dictionary } from '@crawlee/types';
+import type { BaseHttpClient, Dictionary } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
-import { Configuration } from '../configuration';
-import type { EventManager } from '../events';
-import { EventType } from '../events';
-import { log } from '../log';
-import type { ProxyConfiguration } from '../proxy_configuration';
-import { type InternalSource, Request, type RequestOptions, type Source } from '../request';
-import { createDeserialize, serializeArray } from '../serialization';
-import { KeyValueStore } from './key_value_store';
-import { purgeDefaultStorages } from './utils';
+import type { Configuration } from '../configuration.js';
+import { EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
+import type { ProxyConfiguration } from '../proxy_configuration.js';
+import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
+import { createDeserialize, serializeArray } from '../serialization.js';
+import { serviceLocator } from '../service_locator.js';
+import { KeyValueStore } from './key_value_store.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
@@ -234,6 +234,13 @@ export interface RequestListOptions {
 
     /** @internal */
     config?: Configuration;
+
+    /**
+     * The HTTP client to be used to download `requestsFromUrl` URLs.
+     *
+     * If not specified the `RequestList` will use the default HTTP client.
+     */
+    httpClient?: BaseHttpClient;
 }
 
 /**
@@ -298,7 +305,7 @@ export interface RequestListOptions {
  * @category Sources
  */
 export class RequestList implements IRequestList {
-    private log = log.child({ prefix: 'RequestList' });
+    private log: CrawleeLogger = serviceLocator.getLogger().child({ prefix: 'RequestList' });
 
     /**
      * Array of all requests from all sources, in the order as they appeared in sources.
@@ -347,7 +354,7 @@ export class RequestList implements IRequestList {
     private sources: RequestListSource[];
     private sourcesFunction?: RequestListSourcesFunction;
     private proxyConfiguration?: ProxyConfiguration;
-    private events: EventManager;
+    private httpClient?: BaseHttpClient;
 
     /**
      * To create new instance of `RequestList` we need to use `RequestList.open()` factory method.
@@ -363,7 +370,7 @@ export class RequestList implements IRequestList {
             state,
             proxyConfiguration,
             keepDuplicateUrls = false,
-            config = Configuration.getGlobalConfig(),
+            httpClient,
         } = options;
 
         if (!(sources || sourcesFunction)) {
@@ -386,13 +393,14 @@ export class RequestList implements IRequestList {
                 }),
                 keepDuplicateUrls: ow.optional.boolean,
                 proxyConfiguration: ow.optional.object,
+                httpClient: ow.optional.object,
             }),
         );
 
         this.persistStateKey = persistStateKey ? `SDK_${persistStateKey}` : persistStateKey;
         this.persistRequestsKey = persistRequestsKey ? `SDK_${persistRequestsKey}` : persistRequestsKey;
         this.initialState = state;
-        this.events = config.getEventManager();
+        this.httpClient = httpClient;
 
         // If this option is set then all requests will get a pre-generated unique ID and duplicate URLs will be kept in the list.
         this.keepDuplicateUrls = keepDuplicateUrls;
@@ -431,7 +439,7 @@ export class RequestList implements IRequestList {
         this.isInitialized = true;
         if (this.persistRequestsKey && !this.areRequestsPersisted) await this._persistRequests();
         if (this.persistStateKey) {
-            this.events.on(EventType.PERSIST_STATE, this.persistState.bind(this));
+            serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.persistState.bind(this));
         }
 
         return this;
@@ -967,7 +975,10 @@ export class RequestList implements IRequestList {
         urlRegExp?: RegExp;
         proxyUrl?: string;
     }): Promise<string[]> {
-        return downloadListOfUrls(options);
+        return downloadListOfUrls({
+            ...options,
+            httpClient: this.httpClient,
+        });
     }
 }
 

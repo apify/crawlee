@@ -1,4 +1,4 @@
-FROM apify/actor-node:20-beta
+FROM apify/actor-node:22-beta
 
 COPY packages ./packages
 COPY package*.json ./

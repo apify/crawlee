@@ -1,14 +1,14 @@
+import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
 import type { Cookie, Dictionary } from '@crawlee/types';
 import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
 import { tryCancel } from '@apify/timeout';
 
-import { BROWSER_CONTROLLER_EVENTS } from '../events';
-import type { LaunchContext } from '../launch-context';
-import { log } from '../logger';
-import type { UnwrapPromise } from '../utils';
-import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
+import { BROWSER_CONTROLLER_EVENTS } from '../events.js';
+import type { LaunchContext } from '../launch-context.js';
+import type { UnwrapPromise } from '../utils.js';
+import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin.js';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
@@ -40,6 +40,7 @@ export abstract class BrowserController<
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>> {
     id = nanoid();
+    protected log!: CrawleeLogger;
 
     /**
      * The `BrowserPlugin` instance used to launch the browser.
@@ -90,6 +91,7 @@ export abstract class BrowserController<
 
     constructor(browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) {
         super();
+        this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
         this.browserPlugin = browserPlugin;
     }
 
@@ -136,14 +138,14 @@ export abstract class BrowserController<
             // TODO: shouldn't this go in a finally instead?
             this.isActive = false;
         } catch (error) {
-            log.debug(`Could not close browser.\nCause: ${(error as Error).message}`, { id: this.id });
+            this.log.debug(`Could not close browser.\nCause: ${(error as Error).message}`, { id: this.id });
         }
 
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
 
         setTimeout(() => {
             this._kill().catch((err) => {
-                log.debug(`Could not kill browser.\nCause: ${err.message}`, { id: this.id });
+                this.log.debug(`Could not kill browser.\nCause: ${err.message}`, { id: this.id });
             });
         }, PROCESS_KILL_TIMEOUT_MILLIS);
     }

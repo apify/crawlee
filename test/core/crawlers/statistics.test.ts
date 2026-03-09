@@ -1,6 +1,6 @@
-import { Configuration, EventType, Statistics } from '@crawlee/core';
+import { Configuration, EventType, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount: number, totalTickMillis: number) => {
@@ -9,8 +9,6 @@ describe('Statistics', () => {
 
     let stats: Statistics;
     const localStorageEmulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
-
     beforeAll(async () => {
         vitest.useFakeTimers();
     });
@@ -21,7 +19,7 @@ describe('Statistics', () => {
     });
 
     afterEach(async () => {
-        events.off(EventType.PERSIST_STATE);
+        serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
         stats = null as any;
     });
 
@@ -34,14 +32,14 @@ describe('Statistics', () => {
     describe('persist state', () => {
         // needs to go first for predictability
         test('should increment id by each new consecutive instance', () => {
-            expect(stats.id).toEqual(0);
+            expect(stats.id).toEqual('0');
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(1);
             // @ts-expect-error Accessing private prop
             expect(stats.persistStateKey).toEqual('SDK_CRAWLER_STATISTICS_0');
             const [n1, n2] = [new Statistics(), new Statistics()];
-            expect(n1.id).toEqual(1);
-            expect(n2.id).toEqual(2);
+            expect(n1.id).toEqual('1');
+            expect(n2.id).toEqual('2');
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(3);
         });
@@ -157,6 +155,7 @@ describe('Statistics', () => {
         });
 
         test('should remove persist state event listener', async () => {
+            const events = serviceLocator.getEventManager();
             await stats.startCapturing();
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
             await stats.stopCapturing();
@@ -180,7 +179,7 @@ describe('Statistics', () => {
             // @ts-expect-error Accessing private prop
             const setValueSpy = vitest.spyOn(stats.keyValueStore, 'setValue');
 
-            events.emit(EventType.PERSIST_STATE);
+            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
 
             // TODO: these properties don't exist on the calculate return type
             // @ts-expect-error Incorrect types?
@@ -337,5 +336,43 @@ describe('Statistics', () => {
         stats.reset();
         expect(stats.state.requestsFinished).toEqual(0);
         expect(stats.requestRetryHistogram).toEqual([]);
+    });
+
+    describe('explicit id option', () => {
+        test('statistics with same explicit id should share persisted state', async () => {
+            const stats1 = new Statistics({ id: 'shared-stats' });
+            stats1.startJob(0);
+            vitest.advanceTimersByTime(100);
+            stats1.finishJob(0, 0);
+
+            await stats1.startCapturing();
+            await stats1.persistState();
+            await stats1.stopCapturing();
+
+            const stats2 = new Statistics({ id: 'shared-stats' });
+            await stats2.startCapturing();
+
+            expect(stats2.state.requestsFinished).toEqual(1);
+
+            await stats2.stopCapturing();
+        });
+
+        test('statistics with different explicit ids should have isolated state', async () => {
+            const statsA = new Statistics({ id: 'stats-a' });
+            statsA.startJob(0);
+            vitest.advanceTimersByTime(100);
+            statsA.finishJob(0, 0);
+
+            await statsA.startCapturing();
+            await statsA.persistState();
+            await statsA.stopCapturing();
+
+            const statsB = new Statistics({ id: 'stats-b' });
+            await statsB.startCapturing();
+
+            expect(statsB.state.requestsFinished).toEqual(0);
+
+            await statsB.stopCapturing();
+        });
     });
 });

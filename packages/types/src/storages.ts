@@ -1,4 +1,4 @@
-import type { AllowedHttpMethods, Dictionary } from './utility-types';
+import type { AllowedHttpMethods, Dictionary } from './utility-types.js';
 
 /**
  * A helper class that is used to report results from various
@@ -176,6 +176,7 @@ export interface KeyValueStoreClient {
     values?(options?: KeyValueStoreClientListOptions): AsyncIterable<unknown> & Promise<unknown[]>;
     entries?(options?: KeyValueStoreClientListOptions): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]>;
     recordExists(key: string): Promise<boolean>;
+    getRecordPublicUrl(key: string): Promise<string | undefined>;
     getRecord(key: string, options?: KeyValueStoreClientGetRecordOptions): Promise<KeyValueStoreRecord | undefined>;
     setRecord(record: KeyValueStoreRecord, options?: KeyValueStoreRecordOptions): Promise<void>;
     deleteRecord(key: string): Promise<void>;

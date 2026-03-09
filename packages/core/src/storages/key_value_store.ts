@@ -6,15 +6,15 @@ import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
-import log from '@apify/log';
 import { jsonStringifyExtended } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
-import type { Awaitable } from '../typedefs';
-import { checkStorageAccess } from './access_checking';
-import type { StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
+import type { Awaitable } from '../typedefs.js';
+import { checkStorageAccess } from './access_checking.js';
+import type { StorageManagerOptions } from './storage_manager.js';
+import { StorageManager } from './storage_manager.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -278,7 +278,7 @@ export class KeyValueStore {
         const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
 
-        this.config.getEventManager().on('persistState', async () => {
+        serviceLocator.getEventManager().on('persistState', async () => {
             const promises: Promise<void>[] = [];
 
             for (const [key, value] of this.cache) {
@@ -286,7 +286,9 @@ export class KeyValueStore {
                     this.setValue(key, value, {
                         timeoutSecs,
                         doNotRetryTimeouts: true,
-                    }).catch((error) => log.warning(`Failed to persist the state value to ${key}`, { error })),
+                    }).catch((error) =>
+                        serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
+                    ),
                 );
             }
 
@@ -417,7 +419,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(KeyValueStore, this.config);
+        const manager = StorageManager.getManager(KeyValueStore);
         manager.closeStorage(this);
     }
 
@@ -573,10 +575,13 @@ export class KeyValueStore {
 
     /**
      * Returns a file URL for the given key.
+     *
+     * If the record does not exist or has no associated file path (i.e., it is not stored as a file), returns `undefined`.
+     *
+     * @param key The key of the record to generate the public URL for.
      */
-    getPublicUrl(key: string): string {
-        const name = this.name ?? this.config.get('defaultKeyValueStoreId');
-        return `file://${process.cwd()}/storage/key_value_stores/${name}/${key}`;
+    async getPublicUrl(key: string): Promise<string | undefined> {
+        return this.client.getRecordPublicUrl(key);
     }
 
     /**
@@ -606,11 +611,11 @@ export class KeyValueStore {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        options.storageClient ??= serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager(this, options.config);
+        const manager = StorageManager.getManager(this);
 
         return manager.openStorage(storeIdOrName, options.storageClient);
     }

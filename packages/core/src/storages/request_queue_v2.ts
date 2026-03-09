@@ -1,17 +1,18 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 
-import { Configuration } from '../configuration';
-import { EventType } from '../events';
-import type { Request, Source } from '../request';
-import { checkStorageAccess } from './access_checking';
+import type { Configuration } from '../configuration.js';
+import { EventType } from '../events/event_manager.js';
+import type { Request, Source } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
+import { checkStorageAccess } from './access_checking.js';
 import type {
     RequestProviderOptions,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
     RequestsLike,
-} from './request_provider';
-import { RequestProvider } from './request_provider';
-import { getRequestId } from './utils';
+} from './request_provider.js';
+import { RequestProvider } from './request_provider.js';
+import { getRequestId } from './utils.js';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -67,7 +68,7 @@ export class RequestQueue extends RequestProvider {
     private shouldCheckForForefrontRequests = false;
     private dequeuedRequestCount = 0;
 
-    constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
+    constructor(options: RequestProviderOptions, config: Configuration = serviceLocator.getConfiguration()) {
         super(
             {
                 ...options,
@@ -78,13 +79,11 @@ export class RequestQueue extends RequestProvider {
             config,
         );
 
-        const eventManager = config.getEventManager();
-
-        eventManager.on(EventType.MIGRATING, async () => {
+        this.events.on(EventType.MIGRATING, async () => {
             await this._clearPossibleLocks();
         });
 
-        eventManager.on(EventType.ABORTING, async () => {
+        this.events.on(EventType.ABORTING, async () => {
             await this._clearPossibleLocks();
         });
     }

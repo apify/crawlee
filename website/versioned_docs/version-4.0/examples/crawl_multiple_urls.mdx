@@ -1,0 +1,54 @@
+---
+id: crawl-multiple-urls
+title: Crawl multiple URLs
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+
+import CheerioSource from '!!raw-loader!roa-loader!./crawl_multiple_urls_cheerio.ts';
+import PuppeteerSource from '!!raw-loader!roa-loader!./crawl_multiple_urls_puppeteer.ts';
+import PlaywrightSource from '!!raw-loader!roa-loader!./crawl_multiple_urls_playwright.ts';
+
+This example crawls the specified list of URLs.
+
+<Tabs groupId="crawler-type">
+
+<TabItem value="cheerio_crawler" label="Cheerio Crawler" default>
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{CheerioSource}
+</RunnableCodeBlock>
+
+</TabItem>
+
+<TabItem value="puppeteer_crawler" label="Puppeteer Crawler">
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+<RunnableCodeBlock className="language-js" type="puppeteer">
+	{PuppeteerSource}
+</RunnableCodeBlock>
+
+</TabItem>
+
+<TabItem value="playwright_crawler" label="Playwright Crawler">
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-playwright-chrome` image for your Dockerfile.
+
+:::
+
+<RunnableCodeBlock className="language-js" type="playwright">
+	{PlaywrightSource}
+</RunnableCodeBlock>
+
+</TabItem>
+
+</Tabs>

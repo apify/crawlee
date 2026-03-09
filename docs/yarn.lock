@@ -69,6 +69,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "crawlee-docs@workspace:."
   dependencies:
+    impit: "npm:^0.7.1"
     playwright-extra: "npm:^4.3.6"
     puppeteer-extra: "npm:^3.3.6"
     puppeteer-extra-plugin-stealth: "npm:^2.11.2"
@@ -154,6 +155,95 @@ __metadata:
   version: 4.2.11
   resolution: "graceful-fs@npm:4.2.11"
   checksum: 10c0/386d011a553e02bc594ac2ca0bd6d9e4c22d7fa8cfbfc448a6d148c59ea881b092db9dbe3547ae4b88e55f1b01f7c4a2ecc53b310c042793e63aa44cf6c257f2
+  languageName: node
+  linkType: hard
+
+"impit-darwin-arm64@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-darwin-arm64@npm:0.7.1"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"impit-darwin-x64@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-darwin-x64@npm:0.7.1"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit-linux-arm64-gnu@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-linux-arm64-gnu@npm:0.7.1"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"impit-linux-arm64-musl@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-linux-arm64-musl@npm:0.7.1"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-gnu@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-linux-x64-gnu@npm:0.7.1"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"impit-linux-x64-musl@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-linux-x64-musl@npm:0.7.1"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"impit-win32-arm64-msvc@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-win32-arm64-msvc@npm:0.7.1"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"impit-win32-x64-msvc@npm:0.7.1":
+  version: 0.7.1
+  resolution: "impit-win32-x64-msvc@npm:0.7.1"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"impit@npm:^0.7.1":
+  version: 0.7.1
+  resolution: "impit@npm:0.7.1"
+  dependencies:
+    impit-darwin-arm64: "npm:0.7.1"
+    impit-darwin-x64: "npm:0.7.1"
+    impit-linux-arm64-gnu: "npm:0.7.1"
+    impit-linux-arm64-musl: "npm:0.7.1"
+    impit-linux-x64-gnu: "npm:0.7.1"
+    impit-linux-x64-musl: "npm:0.7.1"
+    impit-win32-arm64-msvc: "npm:0.7.1"
+    impit-win32-x64-msvc: "npm:0.7.1"
+  dependenciesMeta:
+    impit-darwin-arm64:
+      optional: true
+    impit-darwin-x64:
+      optional: true
+    impit-linux-arm64-gnu:
+      optional: true
+    impit-linux-arm64-musl:
+      optional: true
+    impit-linux-x64-gnu:
+      optional: true
+    impit-linux-x64-musl:
+      optional: true
+    impit-win32-arm64-msvc:
+      optional: true
+    impit-win32-x64-msvc:
+      optional: true
+  checksum: 10c0/25032be7069d725273180c8f7de8c03a8572d786e196ebfaaa93e8fe591f85464ebd4bb766a1de59212ba6aef02e05e547dfcabf11e6e922cb1c58fc722edd2f
   languageName: node
   linkType: hard
 

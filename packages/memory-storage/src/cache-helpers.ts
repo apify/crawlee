@@ -5,10 +5,10 @@ import type * as storage from '@crawlee/types';
 import json5 from 'json5';
 import mimeTypes from 'mime-types';
 
-import { DatasetFileSystemEntry } from './fs/dataset/fs';
-import { KeyValueFileSystemEntry } from './fs/key-value-store/fs';
-import { RequestQueueFileSystemEntry } from './fs/request-queue/fs';
-import { type MemoryStorage } from './memory-storage';
+import { DatasetFileSystemEntry } from './fs/dataset/fs.js';
+import { KeyValueFileSystemEntry } from './fs/key-value-store/fs.js';
+import { RequestQueueFileSystemEntry } from './fs/request-queue/fs.js';
+import { type MemoryStorage } from './memory-storage.js';
 
 const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
@@ -388,8 +388,8 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
 }
 
 /* eslint-disable import/first -- Fixing circulars */
-import { DatasetClient } from './resource-clients/dataset';
-import type { InternalKeyRecord } from './resource-clients/key-value-store';
-import { KeyValueStoreClient } from './resource-clients/key-value-store';
-import { RequestQueueClient } from './resource-clients/request-queue';
-import { memoryStorageLog } from './utils';
+import { DatasetClient } from './resource-clients/dataset.js';
+import type { InternalKeyRecord } from './resource-clients/key-value-store.js';
+import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
+import { RequestQueueClient } from './resource-clients/request-queue.js';
+import { memoryStorageLog } from './utils.js';

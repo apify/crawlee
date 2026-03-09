@@ -2,31 +2,48 @@ import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
-    BrowserRequestHandler,
     GetUserDataFromRequest,
-    LoadedContext,
     RouterRoutes,
 } from '@crawlee/browser';
-import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
+import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 
-import type { PuppeteerLaunchContext } from './puppeteer-launcher';
-import { PuppeteerLauncher } from './puppeteer-launcher';
-import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';
-import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
+import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
+import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
+import { PuppeteerLauncher } from './puppeteer-launcher.js';
+import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
+import type {
+    BlockRequestsOptions,
+    DirectNavigationOptions,
+    InfiniteScrollOptions,
+    InjectFileOptions,
+    PuppeteerContextUtils,
+    SaveSnapshotOptions,
+} from './utils/puppeteer_utils.js';
+import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
 
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>,
+    extends BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>,
         PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
-export interface PuppeteerRequestHandler extends BrowserRequestHandler<LoadedContext<PuppeteerCrawlingContext>> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
-export interface PuppeteerCrawlerOptions
-    extends BrowserCrawlerOptions<PuppeteerCrawlingContext, { browserPlugins: [PuppeteerPlugin] }> {
+export interface PuppeteerCrawlerOptions<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+> extends BrowserCrawlerOptions<
+        Page,
+        HTTPResponse,
+        PuppeteerController,
+        PuppeteerCrawlingContext,
+        ContextExtension,
+        ExtendedContext,
+        { browserPlugins: [PuppeteerPlugin] }
+    > {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
      */
@@ -132,10 +149,18 @@ export interface PuppeteerCrawlerOptions
  * ```
  * @category Crawlers
  */
-export class PuppeteerCrawler extends BrowserCrawler<
+export class PuppeteerCrawler<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+> extends BrowserCrawler<
+    Page,
+    HTTPResponse,
+    PuppeteerController,
     { browserPlugins: [PuppeteerPlugin] },
     LaunchOptions,
-    PuppeteerCrawlingContext
+    PuppeteerCrawlingContext,
+    ContextExtension,
+    ExtendedContext
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -145,13 +170,16 @@ export class PuppeteerCrawler extends BrowserCrawler<
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(
-        private readonly options: PuppeteerCrawlerOptions = {},
-        override readonly config = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
-        const { launchContext = {}, headless, proxyConfiguration, ...browserCrawlerOptions } = options;
+        const {
+            launchContext = {},
+            headless,
+            proxyConfiguration,
+            contextPipelineBuilder,
+            ...browserCrawlerOptions
+        } = options;
 
         const browserPoolOptions = {
             ...options.browserPoolOptions,
@@ -175,16 +203,77 @@ export class PuppeteerCrawler extends BrowserCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
+        const puppeteerLauncher = new PuppeteerLauncher(launchContext, options.configuration);
 
         browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 
-        super({ ...browserCrawlerOptions, launchContext, proxyConfiguration, browserPoolOptions }, config);
+        super({
+            ...(browserCrawlerOptions as BrowserCrawlerOptions<
+                Page,
+                HTTPResponse,
+                PuppeteerController,
+                PuppeteerCrawlingContext,
+                ContextExtension,
+                ExtendedContext
+            >),
+            launchContext,
+            proxyConfiguration,
+            browserPoolOptions,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+        });
     }
 
-    protected override async _runRequestHandler(context: PuppeteerCrawlingContext) {
-        registerUtilsToContext(context, this.options);
-        await super._runRequestHandler(context);
+    protected override buildContextPipeline() {
+        return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
+    }
+
+    private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController>) {
+        const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
+            await context.page.waitForSelector(selector, { timeout: timeoutMs });
+        };
+
+        return {
+            injectFile: async (filePath: string, options?: InjectFileOptions) =>
+                puppeteerUtils.injectFile(context.page, filePath, options),
+            injectJQuery: async () => {
+                if (context.request.state === RequestState.BEFORE_NAV) {
+                    context.log.warning(
+                        'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
+                    );
+                    await puppeteerUtils.injectJQuery(context.page);
+                    return;
+                }
+                await puppeteerUtils.injectJQuery(context.page, { surviveNavigations: false });
+            },
+            waitForSelector,
+            parseWithCheerio: async (selector?: string, timeoutMs = 5_000) => {
+                if (selector) {
+                    await waitForSelector(selector, timeoutMs);
+                }
+
+                return puppeteerUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
+            },
+            enqueueLinksByClickingElements: async (
+                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+            ) =>
+                puppeteerUtils.enqueueLinksByClickingElements({
+                    page: context.page,
+                    requestQueue: this.requestQueue!,
+                    ...options,
+                }),
+            blockRequests: async (options?: BlockRequestsOptions) =>
+                puppeteerUtils.blockRequests(context.page, options),
+            compileScript: (scriptString: string, ctx?: Dictionary) => puppeteerUtils.compileScript(scriptString, ctx),
+            addInterceptRequestHandler: async (handler: InterceptHandler) =>
+                puppeteerUtils.addInterceptRequestHandler(context.page, handler),
+            removeInterceptRequestHandler: async (handler: InterceptHandler) =>
+                puppeteerUtils.removeInterceptRequestHandler(context.page, handler),
+            infiniteScroll: async (options?: InfiniteScrollOptions) =>
+                puppeteerUtils.infiniteScroll(context.page, options),
+            saveSnapshot: async (options?: SaveSnapshotOptions) =>
+                puppeteerUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
+            closeCookieModals: async () => puppeteerUtils.closeCookieModals(context.page),
+        };
     }
 
     protected override async _navigationHandler(

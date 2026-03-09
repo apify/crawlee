@@ -1,6 +1,6 @@
-import { checkAndSerialize, chunkBySize, Configuration, Dataset, KeyValueStore } from '@crawlee/core';
+import { checkAndSerialize, chunkBySize, Configuration, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
@@ -15,7 +15,7 @@ afterAll(async () => {
 });
 
 describe('dataset', () => {
-    const storageClient = Configuration.getStorageClient();
+    const storageClient = serviceLocator.getStorageClient();
 
     beforeEach(async () => {
         vitest.clearAllMocks();

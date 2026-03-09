@@ -4,14 +4,15 @@ import ow from 'ow';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
-import { Configuration } from '../configuration';
-import { type Log, log } from '../log';
-import type { Awaitable } from '../typedefs';
-import { checkStorageAccess } from './access_checking';
-import { KeyValueStore } from './key_value_store';
-import type { StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration.js';
+import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
+import type { Awaitable } from '../typedefs.js';
+import { checkStorageAccess } from './access_checking.js';
+import { KeyValueStore } from './key_value_store.js';
+import type { StorageManagerOptions } from './storage_manager.js';
+import { StorageManager } from './storage_manager.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -234,7 +235,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     name?: string;
     client: DatasetClient<Data>;
     readonly storageObject?: Record<string, unknown>;
-    log: Log = log.child({ prefix: 'Dataset' });
+    log: CrawleeLogger;
 
     /**
      * @internal
@@ -247,6 +248,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.name = options.name;
         this.client = options.client.dataset(this.id) as DatasetClient<Data>;
         this.storageObject = options.storageObject;
+        this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
 
     /**
@@ -686,7 +688,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(Dataset, this.config);
+        const manager = StorageManager.getManager(Dataset);
         manager.closeStorage(this);
     }
 
@@ -720,11 +722,11 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        options.storageClient ??= serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
-        const manager = StorageManager.getManager<Dataset<Data>>(this, options.config);
+        const manager = StorageManager.getManager<Dataset<Data>>(this);
 
         return manager.openStorage(datasetIdOrName, options.storageClient);
     }

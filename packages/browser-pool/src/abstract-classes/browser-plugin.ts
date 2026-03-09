@@ -1,11 +1,11 @@
-import { CriticalError } from '@crawlee/core';
+import { type CrawleeLogger, CriticalError, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
-import type { LaunchContextOptions } from '../launch-context';
-import { LaunchContext } from '../launch-context';
-import type { UnwrapPromise } from '../utils';
-import type { BrowserController } from './browser-controller';
+import type { LaunchContextOptions } from '../launch-context.js';
+import { LaunchContext } from '../launch-context.js';
+import type { UnwrapPromise } from '../utils.js';
+import type { BrowserController } from './browser-controller.js';
 
 /**
  * The default User Agent used by `PlaywrightCrawler`, `launchPlaywright`, 'PuppeteerCrawler' and 'launchPuppeteer'
@@ -66,12 +66,6 @@ export interface BrowserPluginOptions<LibraryOptions> {
      */
     useIncognitoPages?: boolean;
     /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
-    /**
      * Path to a User Data Directory, which stores browser session data like cookies and local storage.
      */
     userDataDir?: string;
@@ -116,19 +110,12 @@ export abstract class BrowserPlugin<
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
     name = this.constructor.name;
-
+    protected log!: CrawleeLogger;
     library: Library;
-
     launchOptions: LibraryOptions;
-
     proxyUrl?: string;
-
     userDataDir?: string;
-
     useIncognitoPages: boolean;
-
-    experimentalContainers: boolean;
-
     browserPerProxy?: boolean;
 
     ignoreProxyCertificate?: boolean;
@@ -139,17 +126,16 @@ export abstract class BrowserPlugin<
             proxyUrl,
             userDataDir,
             useIncognitoPages = false,
-            experimentalContainers = false,
             browserPerProxy = false,
             ignoreProxyCertificate = false,
         } = options;
 
+        this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
         this.library = library;
         this.launchOptions = launchOptions;
         this.proxyUrl = proxyUrl && new URL(proxyUrl).href.slice(0, -1);
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
-        this.experimentalContainers = experimentalContainers;
         this.browserPerProxy = browserPerProxy;
         this.ignoreProxyCertificate = ignoreProxyCertificate;
     }
@@ -169,7 +155,6 @@ export abstract class BrowserPlugin<
             proxyUrl = this.proxyUrl,
             useIncognitoPages = this.useIncognitoPages,
             userDataDir = this.userDataDir,
-            experimentalContainers = this.experimentalContainers,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
             proxyTier,
@@ -181,7 +166,6 @@ export abstract class BrowserPlugin<
             browserPlugin: this,
             proxyUrl,
             useIncognitoPages,
-            experimentalContainers,
             userDataDir,
             browserPerProxy,
             ignoreProxyCertificate,
@@ -189,9 +173,13 @@ export abstract class BrowserPlugin<
         });
     }
 
-    createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> {
-        return this._createController();
-    }
+    abstract createController(): BrowserController<
+        Library,
+        LibraryOptions,
+        LaunchResult,
+        NewPageOptions,
+        NewPageResult
+    >;
 
     /**
      * Launches the browser using provided launch context.
@@ -289,17 +277,6 @@ export abstract class BrowserPlugin<
     protected abstract _launch(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): Promise<LaunchResult>;
-
-    /**
-     * @private
-     */
-    protected abstract _createController(): BrowserController<
-        Library,
-        LibraryOptions,
-        LaunchResult,
-        NewPageOptions,
-        NewPageResult
-    >;
 }
 
 export class BrowserLaunchError extends CriticalError {

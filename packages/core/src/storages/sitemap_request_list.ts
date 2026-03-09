@@ -1,20 +1,20 @@
 import { Transform } from 'node:stream';
 
+import type { BaseHttpClient } from '@crawlee/types';
 import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
 import ow from 'ow';
 import type { RequiredDeep } from 'type-fest';
 
-import defaultLog from '@apify/log';
-
-import { Configuration } from '../configuration';
-import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
-import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
-import { type EventManager, EventType } from '../events/event_manager';
-import { Request } from '../request';
-import { KeyValueStore } from './key_value_store';
-import type { IRequestList } from './request_list';
-import { purgeDefaultStorages } from './utils';
+import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
+import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
+import { type EventManager, EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
+import { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
+import { KeyValueStore } from './key_value_store.js';
+import type { IRequestList } from './request_list.js';
+import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
@@ -100,9 +100,9 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      */
     parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
     /**
-     * Crawlee configuration
+     * Custom HTTP client to be used for sitemap loading.
      */
-    config?: Configuration;
+    httpClient?: BaseHttpClient;
 }
 
 interface SitemapParsingProgress {
@@ -190,12 +190,12 @@ export class SitemapRequestList implements IRequestList {
     /**
      * Proxy URL to be used for sitemap loading.
      */
-    private proxyUrl: string | undefined;
+    private proxyUrl?: string;
 
     /**
      * Logger instance.
      */
-    private log = defaultLog.child({ prefix: 'SitemapRequestList' });
+    private log: CrawleeLogger;
 
     private urlExcludePatternObjects: UrlPatternObject[] = [];
     private urlPatternObjects: UrlPatternObject[] = [];
@@ -227,7 +227,9 @@ export class SitemapRequestList implements IRequestList {
             }),
         );
 
-        const { globs, exclude, regexps, config = Configuration.getGlobalConfig() } = options;
+        const { globs, exclude, regexps } = options;
+
+        this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestList' });
 
         if (exclude?.length) {
             for (const excl of exclude) {
@@ -255,7 +257,7 @@ export class SitemapRequestList implements IRequestList {
         this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
 
         this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
-        this.events = config.getEventManager();
+        this.events = serviceLocator.getEventManager();
 
         this.persistState = this.persistState.bind(this);
     }
@@ -414,12 +416,14 @@ export class SitemapRequestList implements IRequestList {
      * Track the loading progress using the `isSitemapFullyLoaded` property.
      */
     static async open(options: SitemapRequestListOptions): Promise<SitemapRequestList> {
+        const { httpClient, ...restOptions } = options;
+
         const requestList = new SitemapRequestList({
-            ...options,
+            ...restOptions,
             persistStateKey: options.persistStateKey ?? STATE_PERSISTENCE_KEY,
         });
         await requestList.restoreState();
-        void requestList.load({ parseSitemapOptions: options.parseSitemapOptions });
+        void requestList.load({ parseSitemapOptions: { ...options.parseSitemapOptions, httpClient } });
 
         if (requestList.persistenceOptions.enable) {
             requestList.events.on(EventType.PERSIST_STATE, requestList.persistState);

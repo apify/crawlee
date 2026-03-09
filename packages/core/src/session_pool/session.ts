@@ -1,38 +1,21 @@
 import { EventEmitter } from 'node:events';
 
-import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
+import type { Cookie as CookieObject, Dictionary, ISession, ProxyInfo, SessionState } from '@crawlee/types';
 import ow from 'ow';
-import type { Cookie, SerializedCookieJar } from 'tough-cookie';
+import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
-import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { ResponseLike } from '../cookie_utils';
 import {
     browserPoolCookieToToughCookie,
     getCookiesFromResponse,
     getDefaultCookieExpirationDate,
     toughCookieToBrowserPoolCookie,
-} from '../cookie_utils';
-import { log as defaultLog } from '../log';
-import { EVENT_SESSION_RETIRED } from './events';
-
-/**
- * Persistable {@apilink Session} state.
- */
-export interface SessionState {
-    id: string;
-    cookieJar: SerializedCookieJar;
-    userData: object;
-    errorScore: number;
-    maxErrorScore: number;
-    errorScoreDecrement: number;
-    usageCount: number;
-    maxUsageCount: number;
-    expiresAt: string;
-    createdAt: string;
-}
+} from '../cookie_utils.js';
+import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
+import { EVENT_SESSION_RETIRED } from './events.js';
 
 export interface SessionOptions {
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
@@ -84,11 +67,12 @@ export interface SessionOptions {
     maxUsageCount?: number;
 
     /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
-    sessionPool?: import('./session_pool').SessionPool;
+    sessionPool?: import('./session_pool.js').SessionPool;
 
-    log?: Log;
+    log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
+    proxyInfo?: ProxyInfo;
 }
 
 /**
@@ -97,7 +81,7 @@ export interface SessionOptions {
  * Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
  * @category Scaling
  */
-export class Session {
+export class Session implements ISession {
     readonly id: string;
     private maxAgeSecs: number;
     userData: Dictionary;
@@ -107,10 +91,11 @@ export class Session {
     private _expiresAt: Date;
     private _usageCount: number;
     private _maxUsageCount: number;
-    private sessionPool: import('./session_pool').SessionPool;
+    private sessionPool: import('./session_pool.js').SessionPool;
     private _errorScore: number;
+    private _proxyInfo?: ProxyInfo;
     private _cookieJar: CookieJar;
-    private log: Log;
+    private log: CrawleeLogger;
 
     get errorScore() {
         return this._errorScore;
@@ -144,6 +129,10 @@ export class Session {
         return this._cookieJar;
     }
 
+    get proxyInfo() {
+        return this._proxyInfo;
+    }
+
     /**
      * Session configuration.
      */
@@ -154,6 +143,7 @@ export class Session {
                 sessionPool: ow.object.instanceOf(EventEmitter),
                 id: ow.optional.string,
                 cookieJar: ow.optional.object,
+                proxyInfo: ow.optional.object,
                 maxAgeSecs: ow.optional.number,
                 userData: ow.optional.object,
                 maxErrorScore: ow.optional.number,
@@ -171,6 +161,7 @@ export class Session {
             sessionPool,
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
+            proxyInfo = undefined,
             maxAgeSecs = 3000,
             userData = {},
             maxErrorScore = 3,
@@ -179,7 +170,7 @@ export class Session {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
-            log = defaultLog,
+            log = serviceLocator.getLogger(),
         } = options;
 
         const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
@@ -187,6 +178,7 @@ export class Session {
         this.log = log.child({ prefix: 'Session' });
 
         this._cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this._proxyInfo = proxyInfo;
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
@@ -257,6 +249,7 @@ export class Session {
         return {
             id: this.id,
             cookieJar: this.cookieJar.toJSON()!,
+            proxyInfo: this._proxyInfo,
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,
@@ -298,33 +291,14 @@ export class Session {
     /**
      * With certain status codes: `401`, `403` or `429` we can be certain
      * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally the default status
+     * by retiring the session when such code is received. Optionally, the default status
      * codes can be extended in the second parameter.
      * @param statusCode HTTP status code.
      * @returns Whether the session was retired.
      */
-    retireOnBlockedStatusCodes(statusCode: number): boolean;
-
-    /**
-     * With certain status codes: `401`, `403` or `429` we can be certain
-     * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally the default status
-     * codes can be extended in the second parameter.
-     * @param statusCode HTTP status code.
-     * @param [additionalBlockedStatusCodes]
-     *   Custom HTTP status codes that means blocking on particular website.
-     *
-     *   **This parameter is deprecated and will be removed in next major version.**
-     * @returns Whether the session was retired.
-     * @deprecated The parameter `additionalBlockedStatusCodes` is deprecated and will be removed in next major version.
-     */
-    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes?: number[]): boolean;
-
-    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes: number[] = []): boolean {
+    retireOnBlockedStatusCodes(statusCode: number): boolean {
         // eslint-disable-next-line dot-notation -- accessing private property
-        const isBlocked = this.sessionPool['blockedStatusCodes']
-            .concat(additionalBlockedStatusCodes)
-            .includes(statusCode);
+        const isBlocked = this.sessionPool['blockedStatusCodes'].includes(statusCode);
         if (isBlocked) {
             this.retire();
         }
@@ -338,10 +312,10 @@ export class Session {
      *
      * It then parses and saves the cookies from the `set-cookie` header, if available.
      */
-    setCookiesFromResponse(response: ResponseLike) {
+    setCookiesFromResponse(response: Response) {
         try {
             const cookies = getCookiesFromResponse(response).filter((c) => c);
-            this._setCookies(cookies, typeof response.url === 'function' ? response.url() : response.url!);
+            this._setCookies(cookies, response.url);
         } catch (e) {
             const err = e as Error;
             // if invalid Cookie header is provided just log the exception.
@@ -390,7 +364,11 @@ export class Session {
      * Sets a cookie within this session for the specific URL.
      */
     setCookie(rawCookie: string, url: string): void {
-        this.cookieJar.setCookieSync(rawCookie, url);
+        try {
+            this.cookieJar.setCookieSync(rawCookie, url);
+        } catch (e) {
+            this.log.warning('Could not set cookie.', { url, error: (e as Error).message });
+        }
     }
 
     /**
@@ -410,7 +388,7 @@ export class Session {
 
         // if invalid cookies are provided just log the exception. No need to retry the request automatically.
         if (errorMessages.length) {
-            this.log.debug('Could not set cookies.', { errorMessages });
+            this.log.warning('Could not set cookies.', { errorMessages });
         }
     }
 
