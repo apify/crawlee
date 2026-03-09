@@ -3,16 +3,13 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
 import type {
-    Cheerio,
-    CheerioAPI,
-    CheerioRoot,
-    Element,
     PlaywrightCrawlingContext,
     PlaywrightGotoOptions,
     PlaywrightRequestHandler,
     Request,
 } from '@crawlee/playwright';
 import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
+import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
 import { z } from 'zod';
