@@ -7,7 +7,7 @@ const crawler = new BasicCrawler({
     }),
     async requestHandler({ sendRequest, log }) {
         const response = await sendRequest();
-        log.info('Received response', { statusCode: response.statusCode });
+        log.info('Received response', { status: response.status });
     },
 });
 
