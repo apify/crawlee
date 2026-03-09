@@ -1,7 +1,7 @@
 import log from '@apify/log';
 
-import { StagehandController } from '../../packages/stagehand-crawler/src/internals/stagehand-controller';
-import type { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin';
+import { StagehandController } from '../../packages/stagehand-crawler/src/internals/stagehand-controller.js';
+import type { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin.js';
 
 describe('StagehandController', () => {
     let mockPlugin: StagehandPlugin;
