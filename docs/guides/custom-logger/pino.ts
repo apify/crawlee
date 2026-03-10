@@ -34,10 +34,6 @@ class PinoAdapter extends BaseCrawleeLogger {
 // Create a Pino logger with your preferred configuration
 const pinoLogger = pino({
     level: 'debug',
-    transport: {
-        target: 'pino-pretty',
-        options: { colorize: true },
-    },
 });
 
 // Pass the adapter to the crawler via the `logger` option
