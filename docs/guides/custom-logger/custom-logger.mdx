@@ -53,7 +53,7 @@ The same logger is available as `crawler.log` outside of the request handler, fo
 
 ### Global logger via service locator
 
-Instead of passing the logger to each crawler individually, you can set it globally via the <ApiLink to="core/variable/serviceLocator">`serviceLocator`</ApiLink>. This is useful when you run multiple crawlers and want them all to use the same logging backend:
+Instead of passing the logger to each crawler individually, you can set it globally via the `serviceLocator`. This is useful when you run multiple crawlers and want them all to use the same logging backend:
 
 ```ts
 import { serviceLocator, CheerioCrawler, PlaywrightCrawler } from 'crawlee';
