@@ -31,7 +31,7 @@ beforeAll(async () => {
     );
 });
 
-afterAll(async (cb) => {
+afterAll(async () => {
     await new Promise((resolve) => server.close(resolve));
 });
 
