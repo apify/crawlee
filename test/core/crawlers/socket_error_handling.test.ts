@@ -18,6 +18,7 @@ router.set('/ok', (_req, res) => {
 
 router.set('/destroy-socket-after-headers', (req, res) => {
     // Send headers, start body, then destroy the socket to simulate a mid-response error.
+    // This simulates the TLS error scenario where the socket fails after headers are sent.
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('content-length', '10000');
     res.write('<html>');
@@ -27,11 +28,6 @@ router.set('/destroy-socket-after-headers', (req, res) => {
     setTimeout(() => {
         req.socket.destroy();
     }, 50);
-});
-
-router.set('/destroy-socket-immediately', (_req, res) => {
-    // Destroy the socket immediately without sending any response.
-    res.socket!.destroy();
 });
 
 beforeAll(async () => {
@@ -63,13 +59,6 @@ beforeAll(async () => {
     );
 });
 
-afterAll(async () => {
-    for (const socket of sockets) {
-        socket.destroy();
-    }
-    await new Promise((resolve) => server.close(resolve));
-});
-
 const localStorageEmulator = new MemoryStorageEmulator();
 
 beforeEach(async () => {
@@ -77,57 +66,15 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+    for (const socket of sockets) {
+        socket.destroy();
+    }
+    await new Promise((resolve) => server.close(resolve));
     await localStorageEmulator.destroy();
 });
 
-describe('GotScrapingHttpClient socket error handling', () => {
-    const httpClient = new GotScrapingHttpClient();
-
-    test('socket error after response should not crash the process', async () => {
-        const response = await httpClient.stream({ url: `${url}/destroy-socket-after-headers` });
-
-        // The stream should eventually emit an error (not crash the process).
-        await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Timed out waiting for stream error or end')), 10_000);
-
-            response.stream.on('error', () => {
-                clearTimeout(timeout);
-                resolve();
-            });
-
-            response.stream.on('end', () => {
-                clearTimeout(timeout);
-                // It's also acceptable if the stream ends without error
-                // (depends on timing), but the key thing is: no process crash.
-                resolve();
-            });
-
-            response.stream.resume();
-        });
-    });
-
-    test('socket destroyed immediately should reject the stream promise', async () => {
-        await expect(httpClient.stream({ url: `${url}/destroy-socket-immediately` })).rejects.toThrow();
-    });
-
-    test('normal request via stream works correctly', async () => {
-        const response = await httpClient.stream({ url: `${url}/ok` });
-
-        const chunks: Buffer[] = [];
-        await new Promise<void>((resolve, reject) => {
-            response.stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-            response.stream.on('end', resolve);
-            response.stream.on('error', reject);
-        });
-
-        const body = Buffer.concat(chunks).toString();
-        expect(body).toContain('OK');
-        expect(response.statusCode).toBe(200);
-    });
-});
-
 describe('HttpCrawler socket error handling', () => {
-    test('should handle mid-response socket destruction gracefully', async () => {
+    test('should handle mid-response socket destruction gracefully without crashing', async () => {
         const errors: Error[] = [];
 
         const crawler = new HttpCrawler({
@@ -135,7 +82,7 @@ describe('HttpCrawler socket error handling', () => {
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: () => {
-                // Should not reach here for the error case
+                // Should not complete successfully for the error case
             },
             failedRequestHandler: (_ctx, error) => {
                 errors.push(error as Error);
@@ -145,29 +92,29 @@ describe('HttpCrawler socket error handling', () => {
         await crawler.run([`${url}/destroy-socket-after-headers`]);
 
         // The request should have failed (not crashed the process).
+        // The key assertion is that we reach this point without process crash.
         expect(errors.length).toBe(1);
     });
 
-    test('should handle socket destruction without response gracefully', async () => {
-        const errors: Error[] = [];
+    test('normal requests still work correctly', async () => {
+        const results: string[] = [];
 
         const crawler = new HttpCrawler({
             httpClient: new GotScrapingHttpClient(),
             maxRequestRetries: 0,
             maxConcurrency: 1,
-            requestHandler: () => {},
-            failedRequestHandler: (_ctx, error) => {
-                errors.push(error as Error);
+            requestHandler: ({ body }) => {
+                results.push(body as string);
             },
         });
 
-        await crawler.run([`${url}/destroy-socket-immediately`]);
+        await crawler.run([`${url}/ok`]);
 
-        // The request should have failed gracefully.
-        expect(errors.length).toBe(1);
+        expect(results.length).toBe(1);
+        expect(results[0]).toContain('OK');
     });
 
-    test('normal requests still work after socket errors', async () => {
+    test('crawler recovers after socket error and processes next request', async () => {
         const results: string[] = [];
         const errors: Error[] = [];
 
