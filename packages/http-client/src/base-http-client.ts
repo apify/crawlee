@@ -56,16 +56,22 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     private resolveRequestContext(options?: SendRequestOptions): {
         proxyUrl?: string;
         cookieJar: CookieJar;
-        timeout?: number;
+        signal?: AbortSignal;
     } {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
-        const timeout = options?.timeout;
-        return { proxyUrl, cookieJar: cookieJar as CookieJar, timeout };
+        const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
+        return { proxyUrl, cookieJar: cookieJar as CookieJar, signal };
     }
 
-    private createAbortSignal(timeout?: number): AbortSignal | undefined {
-        return timeout ? AbortSignal.timeout(timeout) : undefined;
+    private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
+        if (signal && timeoutMillis) {
+            return AbortSignal.any([signal, AbortSignal.timeout(timeoutMillis)]);
+        }
+        if (signal) {
+            return signal;
+        }
+        return timeoutMillis ? AbortSignal.timeout(timeoutMillis) : undefined;
     }
 
     private isRedirect(response: Response): boolean {
@@ -112,14 +118,14 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, timeout } = this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal } = this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
             await this.applyCookies(currentRequest, cookieJar);
 
             const response = await this.fetch(currentRequest, {
-                signal: this.createAbortSignal(timeout),
+                signal,
                 proxyUrl,
                 redirect: 'manual',
             });

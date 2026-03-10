@@ -818,7 +818,7 @@ export class HttpCrawler<
             } as RequestInit),
             {
                 session,
-                timeout: opts.timeout,
+                timeoutMillis: opts.timeout,
             },
         );
 
