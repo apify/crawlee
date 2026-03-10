@@ -130,10 +130,7 @@ describe('HttpCrawler socket error handling', () => {
             },
         });
 
-        await crawler.run([
-            `${url}/destroy-socket-after-headers`,
-            `${url}/ok`,
-        ]);
+        await crawler.run([`${url}/destroy-socket-after-headers`, `${url}/ok`]);
 
         // One should fail and one should succeed, but no process crash.
         expect(errors.length).toBe(1);
