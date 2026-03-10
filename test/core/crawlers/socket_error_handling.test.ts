@@ -104,7 +104,7 @@ describe('HttpCrawler socket error handling', () => {
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: ({ body }) => {
-                results.push(body as string);
+                results.push(body.toString());
             },
         });
 
@@ -123,7 +123,7 @@ describe('HttpCrawler socket error handling', () => {
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: ({ body }) => {
-                results.push(body as string);
+                results.push(body.toString());
             },
             failedRequestHandler: (_ctx, error) => {
                 errors.push(error as Error);
