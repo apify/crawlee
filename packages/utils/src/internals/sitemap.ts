@@ -550,9 +550,7 @@ export async function* discoverValidSitemaps(
                 firstUrl.pathname = pathname;
                 return firstUrl.toString();
             });
-            const candidateResults = await Promise.allSettled(
-                candidateSitemapUrls.map(urlExists),
-            );
+            const candidateResults = await Promise.allSettled(candidateSitemapUrls.map(urlExists));
 
             for (const [index, result] of candidateResults.entries()) {
                 const candidateSitemapUrl = candidateSitemapUrls[index];
