@@ -1,0 +1,61 @@
+{
+    "name": "@crawlee/redis-storage",
+    "version": "3.16.0",
+    "description": "A Redis-backed storage implementation for Crawlee — enables distributed crawling with shared request queues across multiple processes and machines",
+    "engines": {
+        "node": ">= 18"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "crawlee",
+        "redis",
+        "storage",
+        "distributed",
+        "request-queue"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/crawlee"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/crawlee/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "yarn clean && yarn compile && yarn copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+        "copy": "tsx ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@crawlee/memory-storage": "3.16.0",
+        "@crawlee/types": "3.16.0",
+        "tslib": "^2.4.0"
+    },
+    "peerDependencies": {
+        "ioredis": "^5.3.0"
+    },
+    "devDependencies": {
+        "ioredis": "^5.10.0"
+    }
+}
