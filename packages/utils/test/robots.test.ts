@@ -1,8 +1,8 @@
+import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RobotsTxtFile } from '../src/internals/robots.js';
-import { FetchHttpClient } from './mock-http-client.js';
 
 const httpClient = new FetchHttpClient();
 
@@ -63,7 +63,7 @@ describe('RobotsTxtFile', () => {
 
     it('respects user-set timeout', async () => {
         const start = +Date.now();
-        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, { timeoutMillis: 200 });
+        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', { timeoutMillis: 200 });
 
         await expect(robots).rejects.toThrow(/timeout/i);
         const end = +Date.now();
@@ -77,7 +77,7 @@ describe('RobotsTxtFile', () => {
         setTimeout(() => controller.abort(), 200);
 
         const start = +Date.now();
-        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, { signal: controller.signal });
+        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', { signal: controller.signal });
 
         await expect(robots).rejects.toThrow(/aborted/i);
         const end = +Date.now();
@@ -90,7 +90,7 @@ describe('RobotsTxtFile', () => {
         const controller = new AbortController();
 
         const start = +Date.now();
-        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, {
+        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', {
             signal: controller.signal,
             timeoutMillis: 200,
         });
