@@ -117,7 +117,7 @@
         "typescript": "^5.8.3",
         "typescript-eslint": "^8.32.0",
         "vite-tsconfig-paths": "^5.1.4",
-        "vitest": "^4.0.1"
+        "vitest": "^4.1.0-beta.6"
     },
     "lint-staged": {
         "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"
