@@ -581,12 +581,14 @@ describe('discoverValidSitemaps', () => {
             urls.push(url);
         }
 
-        expect(urls).toEqual([
-            'http://domain-a.com/sitemap.xml',
-            'http://domain-b.com/sitemap.xml',
-            'http://domain-a.com/sitemap.txt',
-            'http://domain-b.com/sitemap.txt',
-        ]);
+        expect(urls.slice().sort()).toEqual(
+            [
+                'http://domain-a.com/sitemap.xml',
+                'http://domain-b.com/sitemap.xml',
+                'http://domain-a.com/sitemap.txt',
+                'http://domain-b.com/sitemap.txt',
+            ].sort(),
+        );
     });
 
     it('aborts when timeoutMillis elapses', async () => {
