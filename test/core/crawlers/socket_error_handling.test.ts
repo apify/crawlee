@@ -137,7 +137,7 @@ describe('HttpCrawler socket error handling', () => {
             requestHandler: () => {
                 // Should not reach here for the error case
             },
-            failedRequestHandler: ({ request }, error) => {
+            failedRequestHandler: (_ctx, error) => {
                 errors.push(error as Error);
             },
         });
@@ -156,7 +156,7 @@ describe('HttpCrawler socket error handling', () => {
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: () => {},
-            failedRequestHandler: ({ request }, error) => {
+            failedRequestHandler: (_ctx, error) => {
                 errors.push(error as Error);
             },
         });
