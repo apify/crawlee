@@ -38,7 +38,8 @@ export function createSendRequest(
         return httpClient.sendRequest(request, {
             session,
             cookieJar: overrideOptions?.cookieJar ?? session?.cookieJar,
-            timeout: overrideOptions.timeout,
+            timeoutMillis: overrideOptions.timeoutMillis,
+            signal: overrideOptions.signal,
         });
     };
 }
