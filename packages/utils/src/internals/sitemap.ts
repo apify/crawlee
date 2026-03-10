@@ -551,7 +551,7 @@ export async function* discoverValidSitemaps(
                 return firstUrl.toString();
             });
             const candidateResults = await Promise.allSettled(
-                candidateSitemapUrls.map((candidateSitemapUrl) => urlExists(candidateSitemapUrl)),
+                candidateSitemapUrls.map(urlExists),
             );
 
             for (const [index, result] of candidateResults.entries()) {
