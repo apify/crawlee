@@ -62,12 +62,11 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                 // Handle socket errors to prevent unhandled TLS errors from crashing the process.
                 // TLS errors are emitted on the underlying socket (response.socket), not the got stream.
                 // Without this handler, errors like ERR_SSL_SSLV3_ALERT_UNEXPECTED_MESSAGE crash the process.
+                // Using `once` to avoid memory leaks from accumulated listeners on pooled sockets.
                 const socket = (response as any).socket;
-                if (socket && typeof socket.on === 'function') {
-                    socket.on('error', (err: Error) => {
-                        if (!stream.destroyed) {
-                            stream.destroy(err);
-                        }
+                if (socket && typeof socket.once === 'function') {
+                    socket.once('error', (err: Error) => {
+                        stream.destroy(err);
                     });
                 }
 
