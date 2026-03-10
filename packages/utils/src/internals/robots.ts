@@ -65,9 +65,10 @@ export class RobotsTxtFile {
     ): Promise<RobotsTxtFile> {
         const { proxyUrl, httpClient = new FetchHttpClient() } = options || {};
 
-        const response = await httpClient.sendRequest(new Request(url, { method: 'GET', signal: options?.signal }), {
+        const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
             proxyUrl,
             timeoutMillis: options?.timeoutMillis,
+            signal: options?.signal,
         });
 
         if (response.status < 200 || response.status >= 300) {

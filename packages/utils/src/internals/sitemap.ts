@@ -536,7 +536,11 @@ export async function* discoverValidSitemaps(
             return false;
         }
         try {
-            const response = await httpClient.sendRequest(new Request(url, { method: 'HEAD' }), { proxyUrl });
+            const response = await httpClient.sendRequest(new Request(url, { method: 'HEAD' }), {
+                proxyUrl,
+                timeoutMillis: requestTimeoutMillis,
+                signal,
+            });
             return response.status >= 200 && response.status < 400;
         } catch {
             return false;
