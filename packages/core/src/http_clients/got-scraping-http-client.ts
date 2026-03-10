@@ -42,32 +42,17 @@ export class GotScrapingHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async stream(
-        request: HttpRequest,
-        handleRedirect?: RedirectHandler,
-    ): Promise<StreamingHttpResponse> {
+    async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
-            const stream = await Promise.resolve(
-                gotScraping({
-                    ...request,
-                    isStream: true,
-                    cookieJar: undefined,
-                }),
-            );
+            const stream = await Promise.resolve(gotScraping({ ...request, isStream: true, cookieJar: undefined }));
 
-            stream.on(
-                'redirect',
-                (updatedOptions: Options, redirectResponse: PlainResponse) => {
-                    handleRedirect?.(redirectResponse, updatedOptions);
-                },
-            );
+            stream.on('redirect', (updatedOptions: Options, redirectResponse: PlainResponse) => {
+                handleRedirect?.(redirectResponse, updatedOptions);
+            });
 
             // We need to end the stream for DELETE requests, otherwise it will hang.
-            if (
-                request.method &&
-                ['DELETE', 'delete'].includes(request.method)
-            ) {
+            if (request.method && ['DELETE', 'delete'].includes(request.method)) {
                 stream.end();
             }
 
@@ -115,10 +100,7 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                     Object.assign(result.trailers, response.trailers);
 
                     (result as any).rawTrailers ??= []; // TODO BC - remove in 4.0
-                    Object.assign(
-                        (result as any).rawTrailers,
-                        response.rawTrailers,
-                    );
+                    Object.assign((result as any).rawTrailers, response.rawTrailers);
                 });
             });
         });
