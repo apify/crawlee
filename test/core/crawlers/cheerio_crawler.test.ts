@@ -1304,6 +1304,6 @@ describe('CheerioCrawler', () => {
         await crawler.run([`${serverAddress}/special/html-type`]);
 
         expect(succeeded).toHaveLength(2);
-        expect(succeeded).toEqual(['Example Domain', 'Example Domains']);
+        expect(succeeded).toEqual(['Example Domain', 'Example Domain']);
     });
 });
