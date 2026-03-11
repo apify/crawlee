@@ -10,6 +10,7 @@ import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
+import { entries } from '../typedefs.js';
 import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
@@ -205,20 +206,6 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Gets count of usable sessions in the pool.
-     */
-    get usableSessionsCount(): number {
-        return this.sessions.filter((session) => session.isUsable()).length;
-    }
-
-    /**
-     * Gets count of retired sessions in the pool.
-     */
-    get retiredSessionsCount(): number {
-        return this.sessions.filter((session) => !session.isUsable()).length;
-    }
-
-    /**
      * Starts periodic state persistence and potentially loads SessionPool state from {@apilink KeyValueStore}.
      * It is called automatically by the {@apilink SessionPool.open} function.
      */
@@ -248,33 +235,6 @@ export class SessionPool extends EventEmitter {
 
         this.events.on(EventType.PERSIST_STATE, this._listener);
         this.isInitialized = true;
-    }
-
-    /**
-     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
-     * but this allows you to add more sessions once the max pool size is reached.
-     * This also allows you to add session with overridden session options (e.g. with specific session id).
-     * @param [options] The configuration options for the session being added to the session pool.
-     */
-    async addSession(options: Session | SessionOptions = {}): Promise<void> {
-        this._throwIfNotInitialized();
-        const { id } = options;
-        if (id) {
-            const sessionExists = this.sessionMap.has(id);
-            if (sessionExists) {
-                throw new Error(`Cannot add session with id '${id}' as it already exists in the pool`);
-            }
-        }
-
-        if (!this._hasSpaceForSession()) {
-            this._removeRetiredSessions();
-        }
-
-        const newSession =
-            options instanceof Session ? options : await this.createSessionFunction(this, { sessionOptions: options });
-        this.log.debug(`Adding new Session - ${newSession.id}`);
-
-        this._addSession(newSession);
     }
 
     /**
@@ -326,7 +286,7 @@ export class SessionPool extends EventEmitter {
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
-    async getSession(sessionId?: string): Promise<Session | undefined> {
+    async getSession(options: Partial<Session> = {}): Promise<Session | undefined> {
         await this.queue.wait();
 
         try {
@@ -425,20 +385,6 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Removes retired `Session` instances from `SessionPool`.
-     */
-    protected _removeRetiredSessions() {
-        this.sessions = this.sessions.filter((storedSession) => {
-            if (storedSession.isUsable()) return true;
-
-            this.sessionMap.delete(storedSession.id);
-            this.log.debug(`Removed Session - ${storedSession.id}`);
-
-            return false;
-        });
-    }
-
-    /**
      * Adds `Session` instance to `SessionPool`.
      * @param newSession `Session` instance to be added.
      */
@@ -483,15 +429,7 @@ export class SessionPool extends EventEmitter {
      * Decides whether there is enough space for creating new session.
      */
     protected _hasSpaceForSession(): boolean {
-        return this.sessions.length < this.maxPoolSize;
-    }
-
-    /**
-     * Picks random session from the `SessionPool`.
-     * @returns Picked `Session`.
-     */
-    protected _pickSession(): Session {
-        return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
+        return this.sessions.size < this.maxPoolSize;
     }
 
     /**
@@ -509,11 +447,11 @@ export class SessionPool extends EventEmitter {
             persistStateKey: this.persistStateKey,
         });
 
-        for (const session of sessions) {
-            session.sessionPool = this;
-            session.createdAt = new Date(session.createdAt as string);
-            session.expiresAt = new Date(session.expiresAt as string);
-            const recreatedSession = await this.createSessionFunction(this, { sessionOptions: session });
+        for (const sessionOptions of loadedSessions) {
+            sessionOptions.sessionPool = this;
+            sessionOptions.createdAt = new Date(sessionOptions.createdAt as string);
+            sessionOptions.expiresAt = new Date(sessionOptions.expiresAt as string);
+            const recreatedSession = await this.createSessionFunction(this, { sessionOptions });
 
             if (recreatedSession.isUsable()) {
                 this._addSession(recreatedSession);

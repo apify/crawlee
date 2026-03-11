@@ -943,7 +943,7 @@ describe('CheerioCrawler', () => {
                 await crawler.run();
 
                 // @ts-expect-error private symbol
-                expect(crawler.sessionPool.sessions.length).toBe(4);
+                expect(crawler.sessionPool.sessions.size).toBe(4);
                 // @ts-expect-error private symbol
 
                 crawler.sessionPool.sessions.forEach(({ session }) => {
