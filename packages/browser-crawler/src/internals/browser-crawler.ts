@@ -84,13 +84,7 @@ export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Di
 export interface NavigationTimeoutBackpressureOptions {
     enabled?: boolean;
     initialMaxConcurrency?: number;
-    defaultDesiredConcurrency?: number;
     minMaxConcurrency?: number;
-    growthSuccessInterval?: number;
-    growthCooldownMillis?: number;
-    timeoutPenaltyFactor?: number;
-    timeoutPenaltyCooldownMillis?: number;
-    maxPenalizedRequests?: number;
 }
 
 export interface BrowserCrawlerOptions<
@@ -397,16 +391,10 @@ export abstract class BrowserCrawler<
         navigationTimeoutSecs: ow.optional.number.greaterThan(0),
         navigationTimeoutBackpressure: ow.optional.any(
             ow.boolean,
-            ow.object.partialShape({
+            ow.object.exactShape({
                 enabled: ow.optional.boolean,
                 initialMaxConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
-                defaultDesiredConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
                 minMaxConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
-                growthSuccessInterval: ow.optional.number.integer.greaterThanOrEqual(1),
-                growthCooldownMillis: ow.optional.number.integer.greaterThanOrEqual(0),
-                timeoutPenaltyFactor: ow.optional.number.greaterThan(0).lessThanOrEqual(1),
-                timeoutPenaltyCooldownMillis: ow.optional.number.integer.greaterThanOrEqual(0),
-                maxPenalizedRequests: ow.optional.number.integer.greaterThanOrEqual(1),
             }),
         ),
         preNavigationHooks: ow.optional.array,
@@ -476,9 +464,8 @@ export abstract class BrowserCrawler<
             const initialDesiredConcurrency =
                 configuredDesiredConcurrency === undefined
                     ? Math.min(
-                          navigationTimeoutBackpressureConfig.defaultDesiredConcurrency ??
-                              DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_DESIRED_CONCURRENCY,
-                          configuredMaxConcurrency,
+                          DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_DESIRED_CONCURRENCY,
+                          initialBackpressureMaxConcurrency,
                       )
                     : Math.min(configuredDesiredConcurrency, initialBackpressureMaxConcurrency);
             const originalIsTaskReadyFunction = configuredAutoscaledPoolOptions.isTaskReadyFunction;
@@ -487,6 +474,11 @@ export abstract class BrowserCrawler<
             configuredAutoscaledPoolOptions.desiredConcurrency = initialDesiredConcurrency;
             configuredAutoscaledPoolOptions.isTaskReadyFunction = async () => {
                 if (!(await shouldStartTaskInBackpressureMode())) {
+                    return false;
+                }
+
+                const isDefaultTaskReady = await this._isTaskReadyFunction();
+                if (!isDefaultTaskReady) {
                     return false;
                 }
 
@@ -547,19 +539,14 @@ export abstract class BrowserCrawler<
             navigationTimeoutBackpressureConfig.minMaxConcurrency ??
             DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MIN_MAX_CONCURRENCY;
         this.navigationTimeoutBackpressureGrowthSuccessInterval =
-            navigationTimeoutBackpressureConfig.growthSuccessInterval ??
             DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_SUCCESS_INTERVAL;
         this.navigationTimeoutBackpressureGrowthCooldownMillis =
-            navigationTimeoutBackpressureConfig.growthCooldownMillis ??
             DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_COOLDOWN_MILLIS;
         this.navigationTimeoutBackpressureTimeoutPenaltyFactor =
-            navigationTimeoutBackpressureConfig.timeoutPenaltyFactor ??
             DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_FACTOR;
         this.navigationTimeoutBackpressureTimeoutPenaltyCooldownMillis =
-            navigationTimeoutBackpressureConfig.timeoutPenaltyCooldownMillis ??
             DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_COOLDOWN_MILLIS;
         this.navigationTimeoutBackpressureMaxPenalizedRequests =
-            navigationTimeoutBackpressureConfig.maxPenalizedRequests ??
             DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MAX_PENALIZED_REQUESTS;
         shouldStartTaskInBackpressureMode = async () => {
             const pool = this.autoscaledPool;

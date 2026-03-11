@@ -70,7 +70,7 @@ describe('BrowserCrawler navigationTimeoutBackpressure', () => {
         await crawler.browserPool.destroy();
     });
 
-    test('validates timeoutPenaltyFactor range', async () => {
+    test('validates initialMaxConcurrency range', async () => {
         const requestList = await RequestList.open(null, []);
         const proxyConfiguration = {
             newUrl: vitest.fn(async () => 'http://proxy.example.com'),
@@ -88,11 +88,72 @@ describe('BrowserCrawler navigationTimeoutBackpressure', () => {
                 requestHandler: async () => {},
                 navigationTimeoutBackpressure: {
                     enabled: true,
-                    timeoutPenaltyFactor: 1.2,
+                    initialMaxConcurrency: 0,
                 },
                 proxyConfiguration,
             });
         }).toThrow();
+    });
+
+    test('rejects unsupported backpressure options', async () => {
+        const requestList = await RequestList.open(null, []);
+        const proxyConfiguration = {
+            newUrl: vitest.fn(async () => 'http://proxy.example.com'),
+            newProxyInfo: vitest.fn(async () => ({ url: 'http://proxy.example.com' })),
+            isManInTheMiddle: false,
+        } as any;
+
+        expect(() => {
+            // @ts-expect-error -- Protected constructor for abstract class test
+            return new BrowserCrawler({
+                requestList,
+                browserPoolOptions: {
+                    browserPlugins: [plugin],
+                },
+                requestHandler: async () => {},
+                navigationTimeoutBackpressure: {
+                    enabled: true,
+                    timeoutPenaltyFactor: 0.5,
+                },
+                proxyConfiguration,
+            });
+        }).toThrow();
+    });
+
+    test('composes default and custom task readiness in backpressure mode', async () => {
+        const requestList = await RequestList.open(null, []);
+        const proxyConfiguration = {
+            newUrl: vitest.fn(async () => 'http://proxy.example.com'),
+            newProxyInfo: vitest.fn(async () => ({ url: 'http://proxy.example.com' })),
+            isManInTheMiddle: false,
+        } as any;
+        const customIsTaskReadyFunction = vitest.fn(async () => true);
+
+        // @ts-expect-error -- Protected constructor for abstract class test
+        const crawler = new BrowserCrawler({
+            requestList,
+            browserPoolOptions: {
+                browserPlugins: [plugin],
+            },
+            requestHandler: async () => {},
+            navigationTimeoutBackpressure: true,
+            proxyConfiguration,
+            autoscaledPoolOptions: {
+                isTaskReadyFunction: customIsTaskReadyFunction,
+            },
+        });
+
+        const defaultIsTaskReadyFunction = vitest.fn(async () => false);
+        // eslint-disable-next-line dot-notation -- internal setup for test
+        crawler['_isTaskReadyFunction'] = defaultIsTaskReadyFunction;
+
+        // eslint-disable-next-line dot-notation -- internal function assertion
+        const isTaskReady = await crawler['autoscaledPoolOptions'].isTaskReadyFunction();
+        expect(isTaskReady).toBe(false);
+        expect(defaultIsTaskReadyFunction).toHaveBeenCalledTimes(1);
+        expect(customIsTaskReadyFunction).not.toHaveBeenCalled();
+
+        await crawler.browserPool.destroy();
     });
 
     test('bounds timeout-penalized set size', async () => {
@@ -113,11 +174,14 @@ describe('BrowserCrawler navigationTimeoutBackpressure', () => {
             maxConcurrency: 20,
             navigationTimeoutBackpressure: {
                 enabled: true,
-                maxPenalizedRequests: 2,
-                timeoutPenaltyCooldownMillis: 0,
             },
             proxyConfiguration,
         });
+
+        // eslint-disable-next-line dot-notation -- internal setup for test
+        crawler['navigationTimeoutBackpressureMaxPenalizedRequests'] = 2;
+        // eslint-disable-next-line dot-notation -- internal setup for test
+        crawler['navigationTimeoutBackpressureTimeoutPenaltyCooldownMillis'] = 0;
 
         // eslint-disable-next-line dot-notation -- internal setup for test
         crawler['autoscaledPool'] = {
