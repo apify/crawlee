@@ -370,15 +370,21 @@ export abstract class BrowserCrawler<
     protected navigationTimeoutBackpressureMinMaxConcurrency = DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MIN_MAX_CONCURRENCY;
     protected navigationTimeoutBackpressureGrowthSuccessInterval =
         DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_SUCCESS_INTERVAL;
+
     protected navigationTimeoutBackpressureGrowthCooldownMillis =
         DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_COOLDOWN_MILLIS;
+
     protected navigationTimeoutBackpressureTimeoutPenaltyFactor =
         DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_FACTOR;
+
     protected navigationTimeoutBackpressureTimeoutPenaltyCooldownMillis =
         DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_COOLDOWN_MILLIS;
+
     protected navigationTimeoutBackpressureMaxPenalizedRequests =
         DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MAX_PENALIZED_REQUESTS;
+
     protected navigationTimeoutCount = 0;
+
     protected successfulRequestsSinceNavigationTimeout = 0;
     protected lastNavigationTimeoutAt = 0;
     protected lastNavigationTimeoutPenaltyAt = 0;
