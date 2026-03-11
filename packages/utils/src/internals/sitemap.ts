@@ -617,6 +617,7 @@ export async function* discoverValidSitemaps(
                 proxyUrl,
                 timeoutMillis: requestTimeoutMillis,
                 signal,
+                httpClient,
             });
             // Surface all referenced sitemaps, including cross-host; scoping happens at load time.
             for (const sitemapUrl of robotsFile.getSitemaps({ enqueueStrategy: 'all' })) {
