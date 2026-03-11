@@ -52,7 +52,7 @@
         "@crawlee/types": "3.16.0",
         "@types/sax": "^1.2.7",
         "cheerio": "1.0.0-rc.12",
-        "file-type": "^20.0.0",
+        "file-type": "^21.3.1",
         "got-scraping": "^4.2.1",
         "ow": "^0.28.1",
         "robots-parser": "^3.0.1",
