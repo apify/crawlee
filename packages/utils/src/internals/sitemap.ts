@@ -575,6 +575,7 @@ export async function* discoverValidSitemaps(
                 proxyUrl,
                 timeoutMillis: requestTimeoutMillis,
                 signal,
+                httpClient,
             });
             for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
