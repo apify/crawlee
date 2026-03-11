@@ -827,7 +827,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     return false;
                 }
 
-                return isTaskReadyFunction ? await isTaskReadyFunction() : await this._isTaskReadyFunction();
+                const isDefaultTaskReady = await this._isTaskReadyFunction();
+                if (!isDefaultTaskReady) {
+                    return false;
+                }
+
+                return isTaskReadyFunction ? await isTaskReadyFunction() : true;
             },
             isFinishedFunction: async () => {
                 if (isMaxPagesExceeded()) {

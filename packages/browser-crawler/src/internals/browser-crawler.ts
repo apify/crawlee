@@ -49,6 +49,15 @@ import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_INITIAL_MAX_CONCURRENCY = 4;
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_DESIRED_CONCURRENCY = 2;
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MIN_MAX_CONCURRENCY = 2;
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_SUCCESS_INTERVAL = 10;
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_COOLDOWN_MILLIS = 120_000;
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_FACTOR = 0.75;
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_COOLDOWN_MILLIS = 45_000;
+const DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MAX_PENALIZED_REQUESTS = 10_000;
+
 export interface BrowserCrawlingContext<
     Crawler = unknown,
     Page extends CommonPage = CommonPage,
@@ -71,6 +80,18 @@ export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Di
     crawlingContext: Context,
     gotoOptions: GoToOptions,
 ) => Awaitable<void>;
+
+export interface NavigationTimeoutBackpressureOptions {
+    enabled?: boolean;
+    initialMaxConcurrency?: number;
+    defaultDesiredConcurrency?: number;
+    minMaxConcurrency?: number;
+    growthSuccessInterval?: number;
+    growthCooldownMillis?: number;
+    timeoutPenaltyFactor?: number;
+    timeoutPenaltyCooldownMillis?: number;
+    maxPenalizedRequests?: number;
+}
 
 export interface BrowserCrawlerOptions<
     Context extends BrowserCrawlingContext = BrowserCrawlingContext,
@@ -248,6 +269,13 @@ export interface BrowserCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
+     * Optional proxy-timeout-aware backpressure controls for browser concurrency.
+     * When enabled with a proxy configuration, this limits the number of new tasks started,
+     * lowers concurrency after navigation timeouts, and gradually restores it after stable requests.
+     */
+    navigationTimeoutBackpressure?: boolean | NavigationTimeoutBackpressureOptions;
+
+    /**
      * Defines whether the cookies should be persisted for sessions.
      * This can only be used when `useSessionPool` is set to `true`.
      */
@@ -336,12 +364,45 @@ export abstract class BrowserCrawler<
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
     protected persistCookiesPerSession: boolean;
+    protected navigationTimeoutBackpressureEnabled = false;
+    protected navigationTimeoutBackpressureConfiguredMaxConcurrency = 200;
+    protected navigationTimeoutBackpressureCap = 200;
+    protected navigationTimeoutBackpressureMinMaxConcurrency = DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MIN_MAX_CONCURRENCY;
+    protected navigationTimeoutBackpressureGrowthSuccessInterval =
+        DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_SUCCESS_INTERVAL;
+    protected navigationTimeoutBackpressureGrowthCooldownMillis =
+        DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_COOLDOWN_MILLIS;
+    protected navigationTimeoutBackpressureTimeoutPenaltyFactor =
+        DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_FACTOR;
+    protected navigationTimeoutBackpressureTimeoutPenaltyCooldownMillis =
+        DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_COOLDOWN_MILLIS;
+    protected navigationTimeoutBackpressureMaxPenalizedRequests =
+        DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MAX_PENALIZED_REQUESTS;
+    protected navigationTimeoutCount = 0;
+    protected successfulRequestsSinceNavigationTimeout = 0;
+    protected lastNavigationTimeoutAt = 0;
+    protected lastNavigationTimeoutPenaltyAt = 0;
+    protected timeoutPenalizedRequests = new Set<string>();
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
         handlePageFunction: ow.optional.function,
 
         navigationTimeoutSecs: ow.optional.number.greaterThan(0),
+        navigationTimeoutBackpressure: ow.optional.any(
+            ow.boolean,
+            ow.object.partialShape({
+                enabled: ow.optional.boolean,
+                initialMaxConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
+                defaultDesiredConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
+                minMaxConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
+                growthSuccessInterval: ow.optional.number.integer.greaterThanOrEqual(1),
+                growthCooldownMillis: ow.optional.number.integer.greaterThanOrEqual(0),
+                timeoutPenaltyFactor: ow.optional.number.greaterThan(0).lessThanOrEqual(1),
+                timeoutPenaltyCooldownMillis: ow.optional.number.integer.greaterThanOrEqual(0),
+                maxPenalizedRequests: ow.optional.number.integer.greaterThanOrEqual(1),
+            }),
+        ),
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
 
@@ -367,6 +428,7 @@ export abstract class BrowserCrawler<
         const {
             navigationTimeoutSecs = 60,
             requestHandlerTimeoutSecs = 60,
+            navigationTimeoutBackpressure,
             persistCookiesPerSession,
             proxyConfiguration,
             launchContext = {},
@@ -387,9 +449,49 @@ export abstract class BrowserCrawler<
             ...basicCrawlerOptions
         } = options;
 
+        const configuredAutoscaledPoolOptions = { ...(basicCrawlerOptions.autoscaledPoolOptions ?? {}) };
+        const configuredMaxConcurrency =
+            basicCrawlerOptions.maxConcurrency ?? configuredAutoscaledPoolOptions.maxConcurrency ?? 200;
+        const configuredDesiredConcurrency = configuredAutoscaledPoolOptions.desiredConcurrency;
+        const navigationTimeoutBackpressureConfig: NavigationTimeoutBackpressureOptions =
+            typeof navigationTimeoutBackpressure === 'boolean'
+                ? { enabled: navigationTimeoutBackpressure }
+                : (navigationTimeoutBackpressure ?? {});
+        const navigationTimeoutBackpressureEnabled =
+            (navigationTimeoutBackpressureConfig.enabled ?? false) && !!proxyConfiguration;
+        const initialBackpressureMaxConcurrency = Math.min(
+            configuredMaxConcurrency,
+            navigationTimeoutBackpressureConfig.initialMaxConcurrency ??
+                DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_INITIAL_MAX_CONCURRENCY,
+        );
+        let shouldStartTaskInBackpressureMode: () => Promise<boolean> = async () => true;
+
+        if (navigationTimeoutBackpressureEnabled) {
+            const initialDesiredConcurrency =
+                configuredDesiredConcurrency === undefined
+                    ? Math.min(
+                          navigationTimeoutBackpressureConfig.defaultDesiredConcurrency ??
+                              DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_DESIRED_CONCURRENCY,
+                          configuredMaxConcurrency,
+                      )
+                    : Math.min(configuredDesiredConcurrency, initialBackpressureMaxConcurrency);
+            const originalIsTaskReadyFunction = configuredAutoscaledPoolOptions.isTaskReadyFunction;
+            basicCrawlerOptions.maxConcurrency = initialBackpressureMaxConcurrency;
+            configuredAutoscaledPoolOptions.maxConcurrency = initialBackpressureMaxConcurrency;
+            configuredAutoscaledPoolOptions.desiredConcurrency = initialDesiredConcurrency;
+            configuredAutoscaledPoolOptions.isTaskReadyFunction = async () => {
+                if (!(await shouldStartTaskInBackpressureMode())) {
+                    return false;
+                }
+
+                return originalIsTaskReadyFunction ? await originalIsTaskReadyFunction() : true;
+            };
+        }
+
         super(
             {
                 ...basicCrawlerOptions,
+                autoscaledPoolOptions: configuredAutoscaledPoolOptions,
                 requestHandler: async (...args) => this._runRequestHandler(...(args as [Context])),
                 requestHandlerTimeoutSecs:
                     navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
@@ -430,6 +532,37 @@ export abstract class BrowserCrawler<
         this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
+        this.navigationTimeoutBackpressureEnabled = navigationTimeoutBackpressureEnabled;
+        this.navigationTimeoutBackpressureConfiguredMaxConcurrency = configuredMaxConcurrency;
+        this.navigationTimeoutBackpressureCap = navigationTimeoutBackpressureEnabled
+            ? initialBackpressureMaxConcurrency
+            : configuredMaxConcurrency;
+        this.navigationTimeoutBackpressureMinMaxConcurrency =
+            navigationTimeoutBackpressureConfig.minMaxConcurrency ??
+            DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MIN_MAX_CONCURRENCY;
+        this.navigationTimeoutBackpressureGrowthSuccessInterval =
+            navigationTimeoutBackpressureConfig.growthSuccessInterval ??
+            DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_SUCCESS_INTERVAL;
+        this.navigationTimeoutBackpressureGrowthCooldownMillis =
+            navigationTimeoutBackpressureConfig.growthCooldownMillis ??
+            DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_GROWTH_COOLDOWN_MILLIS;
+        this.navigationTimeoutBackpressureTimeoutPenaltyFactor =
+            navigationTimeoutBackpressureConfig.timeoutPenaltyFactor ??
+            DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_FACTOR;
+        this.navigationTimeoutBackpressureTimeoutPenaltyCooldownMillis =
+            navigationTimeoutBackpressureConfig.timeoutPenaltyCooldownMillis ??
+            DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_TIMEOUT_PENALTY_COOLDOWN_MILLIS;
+        this.navigationTimeoutBackpressureMaxPenalizedRequests =
+            navigationTimeoutBackpressureConfig.maxPenalizedRequests ??
+            DEFAULT_PROXY_TIMEOUT_BACKPRESSURE_MAX_PENALIZED_REQUESTS;
+        shouldStartTaskInBackpressureMode = async () => {
+            const pool = this.autoscaledPool;
+            if (!this.navigationTimeoutBackpressureEnabled || !pool) {
+                return true;
+            }
+
+            return pool.currentConcurrency < this.navigationTimeoutBackpressureCap;
+        };
 
         if (headless != null) {
             this.launchContext.launchOptions ??= {} as LaunchOptions;
@@ -593,6 +726,7 @@ export abstract class BrowserCrawler<
             );
 
             request.state = RequestState.DONE;
+            this._maybeIncreaseNavigationTimeoutBackpressureWindow();
         } catch (e: any) {
             request.state = RequestState.ERROR;
             throw e;
@@ -655,7 +789,7 @@ export abstract class BrowserCrawler<
         try {
             crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
-            await this._handleNavigationTimeout(crawlingContext, error as Error);
+            await this._handleNavigationTimeout(crawlingContext, error as Error, (gotoOptions as Dictionary).timeout);
 
             crawlingContext.request.state = RequestState.ERROR;
 
@@ -688,10 +822,15 @@ export abstract class BrowserCrawler<
     /**
      * Marks session bad in case of navigation timeout.
      */
-    protected async _handleNavigationTimeout(crawlingContext: Context, error: Error): Promise<void> {
+    protected async _handleNavigationTimeout(
+        crawlingContext: Context,
+        error: Error,
+        navigationTimeoutMillis?: number,
+    ): Promise<void> {
         const { session } = crawlingContext;
 
         if (error && error.constructor.name === 'TimeoutError') {
+            this._applyNavigationTimeoutBackpressureOnTimeout(crawlingContext, navigationTimeoutMillis);
             handleRequestTimeout({ session, errorMessage: error.message });
         }
 
@@ -705,6 +844,142 @@ export abstract class BrowserCrawler<
         if (this.isProxyError(error)) {
             throw new SessionError(this._getMessageFromError(error) as string);
         }
+    }
+
+    protected _maybeIncreaseNavigationTimeoutBackpressureWindow() {
+        if (!this.navigationTimeoutBackpressureEnabled) {
+            return;
+        }
+
+        const pool = this.autoscaledPool;
+        if (!pool) {
+            return;
+        }
+
+        if (this.navigationTimeoutBackpressureCap >= this.navigationTimeoutBackpressureConfiguredMaxConcurrency) {
+            return;
+        }
+
+        if (Date.now() - this.lastNavigationTimeoutAt < this.navigationTimeoutBackpressureGrowthCooldownMillis) {
+            return;
+        }
+
+        this.successfulRequestsSinceNavigationTimeout += 1;
+        if (this.successfulRequestsSinceNavigationTimeout < this.navigationTimeoutBackpressureGrowthSuccessInterval) {
+            return;
+        }
+
+        this.successfulRequestsSinceNavigationTimeout = 0;
+        this.navigationTimeoutBackpressureCap = Math.min(
+            this.navigationTimeoutBackpressureCap + 1,
+            this.navigationTimeoutBackpressureConfiguredMaxConcurrency,
+        );
+
+        if (pool.maxConcurrency < this.navigationTimeoutBackpressureCap) {
+            pool.maxConcurrency = this.navigationTimeoutBackpressureCap;
+        }
+
+        if (pool.desiredConcurrency < this.navigationTimeoutBackpressureCap) {
+            pool.desiredConcurrency = this.navigationTimeoutBackpressureCap;
+        }
+
+        this.log.info('Increasing proxy browser concurrency window after stable requests.', {
+            successfulRequestsSinceTimeout: this.navigationTimeoutBackpressureGrowthSuccessInterval,
+            currentConcurrency: pool.currentConcurrency,
+            desiredConcurrency: pool.desiredConcurrency,
+            maxConcurrency: pool.maxConcurrency,
+        });
+    }
+
+    protected _applyNavigationTimeoutBackpressureOnTimeout(crawlingContext: Context, timeoutMillis?: number) {
+        if (!this.navigationTimeoutBackpressureEnabled) {
+            return;
+        }
+
+        const request = crawlingContext.request;
+        const timeoutPenaltyKey = request.id ?? request.uniqueKey ?? request.url;
+        const timeoutAlreadyPenalized = this.timeoutPenalizedRequests.has(timeoutPenaltyKey);
+        const pool = this.autoscaledPool;
+
+        if (timeoutAlreadyPenalized) {
+            this.log.warning(
+                `Navigation timeout detected on ${request.url}. Request already penalized, keeping concurrency unchanged.`,
+                {
+                    navigationTimeoutCount: this.navigationTimeoutCount,
+                    sessionId: crawlingContext.session?.id,
+                    timeoutMillis,
+                    currentConcurrency: pool?.currentConcurrency,
+                    desiredConcurrency: pool?.desiredConcurrency,
+                    maxConcurrency: pool?.maxConcurrency,
+                },
+            );
+            return;
+        }
+
+        if (this.timeoutPenalizedRequests.size >= this.navigationTimeoutBackpressureMaxPenalizedRequests) {
+            const oldestPenaltyKey = this.timeoutPenalizedRequests.values().next().value as string | undefined;
+            if (oldestPenaltyKey) {
+                this.timeoutPenalizedRequests.delete(oldestPenaltyKey);
+            } else {
+                this.timeoutPenalizedRequests.clear();
+            }
+        }
+        this.timeoutPenalizedRequests.add(timeoutPenaltyKey);
+        this.navigationTimeoutCount += 1;
+        this.successfulRequestsSinceNavigationTimeout = 0;
+        const now = Date.now();
+        this.lastNavigationTimeoutAt = now;
+
+        const currentMaxConcurrency = pool?.maxConcurrency ?? this.navigationTimeoutBackpressureCap;
+        const currentWindow = Math.min(this.navigationTimeoutBackpressureCap, currentMaxConcurrency);
+        const isPenaltyCooldownActive =
+            now - this.lastNavigationTimeoutPenaltyAt < this.navigationTimeoutBackpressureTimeoutPenaltyCooldownMillis;
+
+        if (isPenaltyCooldownActive) {
+            this.log.warning(
+                `Navigation timeout detected on ${request.url}. Penalty cooldown active, keeping concurrency unchanged.`,
+                {
+                    navigationTimeoutCount: this.navigationTimeoutCount,
+                    sessionId: crawlingContext.session?.id,
+                    timeoutPenaltyKey,
+                    timeoutMillis,
+                    currentConcurrency: pool?.currentConcurrency,
+                    desiredConcurrency: pool?.desiredConcurrency,
+                    maxConcurrency: pool?.maxConcurrency,
+                    penaltyCooldownMillis: this.navigationTimeoutBackpressureTimeoutPenaltyCooldownMillis,
+                },
+            );
+            return;
+        }
+
+        const nextMaxConcurrency = Math.max(
+            this.navigationTimeoutBackpressureMinMaxConcurrency,
+            Math.floor(currentWindow * this.navigationTimeoutBackpressureTimeoutPenaltyFactor),
+        );
+        this.lastNavigationTimeoutPenaltyAt = now;
+        this.navigationTimeoutBackpressureCap = Math.min(this.navigationTimeoutBackpressureCap, nextMaxConcurrency);
+
+        if (pool && pool.maxConcurrency > nextMaxConcurrency) {
+            pool.maxConcurrency = nextMaxConcurrency;
+        }
+
+        if (pool && pool.desiredConcurrency > nextMaxConcurrency) {
+            pool.desiredConcurrency = nextMaxConcurrency;
+        }
+
+        this.log.warning(
+            `Navigation timeout detected on ${request.url}. Throttling crawler concurrency to ${nextMaxConcurrency}.`,
+            {
+                navigationTimeoutCount: this.navigationTimeoutCount,
+                sessionId: crawlingContext.session?.id,
+                timeoutPenaltyKey,
+                timeoutAlreadyPenalized,
+                timeoutMillis,
+                currentConcurrency: pool?.currentConcurrency,
+                desiredConcurrency: pool?.desiredConcurrency,
+                maxConcurrency: pool?.maxConcurrency,
+            },
+        );
     }
 
     protected abstract _navigationHandler(
