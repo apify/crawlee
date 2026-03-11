@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 
 import { BROWSER_POOL_EVENTS, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
-import { BLOCKED_STATUS_CODES } from '@crawlee/core';
+import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
@@ -38,6 +38,12 @@ describe('BrowserCrawler', () => {
         log.setLevel(logLevel);
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
         server.close();
+    });
+
+    aroundEach(async (t) => {
+        const { run } = bindMethodsToServiceLocator(new ServiceLocator(), {});
+
+        await run(t);
     });
 
     test.concurrent('should work', async () => {
