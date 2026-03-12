@@ -12,7 +12,7 @@ import type { BaseHttpClient, HttpRequestOptions, SendRequestOptions } from '@cr
 export function createSendRequest(
     httpClient: BaseHttpClient,
     originRequest: CrawleeRequest,
-    session: Session | undefined,
+    session: Session,
 ) {
     return async (
         overrideRequest: Partial<HttpRequestOptions> = {},
@@ -37,7 +37,7 @@ export function createSendRequest(
 
         return httpClient.sendRequest(request, {
             session,
-            cookieJar: overrideOptions?.cookieJar ?? session?.cookieJar,
+            cookieJar: overrideOptions?.cookieJar ?? session.cookieJar,
             timeoutMillis: overrideOptions.timeoutMillis,
             signal: overrideOptions.signal,
         });
