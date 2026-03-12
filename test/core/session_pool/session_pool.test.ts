@@ -126,7 +126,7 @@ describe('SessionPool - testing session pool', () => {
 
             expect(secondSession.id).not.toEqual(oldSessionId);
             // @ts-expect-error private symbol
-            expect(sessionPool.sessions).toHaveLength(1);
+            expect(sessionPool.sessions.size).toBe(1);
         });
     });
 
@@ -163,7 +163,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         expect(Array.from(sessionPoolSaved).length).toEqual(sessionPool.sessions.size);
 
-        sessionPoolSaved!.forEach((session, index) => {
+        sessionPoolSaved!.forEach((session) => {
             entries(session).forEach(([key, value]) => {
                 // @ts-expect-error private symbol
                 if (sessionPool.sessions.get(session.id)?.session[key] instanceof Date) {
@@ -183,7 +183,7 @@ describe('SessionPool - testing session pool', () => {
 
         await loadedSessionPool.initialize();
         // @ts-expect-error private symbol
-        expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.size);
+        expect(sessionPool.sessions.size).toBe(loadedSessionPool.sessions.size);
         // @ts-expect-error private symbol
         expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
         // @ts-expect-error private symbol
@@ -254,7 +254,6 @@ describe('SessionPool - testing session pool', () => {
             // @ts-expect-error private symbol
             sessionPool.sessions
                 .values()
-                .toArray()
                 .find(({ session }) => session.id === retiredSessionId),
         ).toEqual(undefined);
     });
@@ -275,7 +274,7 @@ describe('SessionPool - testing session pool', () => {
         const newSessionPool = new SessionPool();
         await newSessionPool.initialize();
         // @ts-expect-error private symbol
-        expect(newSessionPool.sessions).toHaveLength(10 - invalidSessionsCount);
+        expect(newSessionPool.sessions.size).toBe(10 - invalidSessionsCount);
 
         await newSessionPool.teardown();
     });
@@ -342,7 +341,7 @@ describe('SessionPool - testing session pool', () => {
         expect(session?.id).toBe('test-session');
     });
 
-    test('should not be able to add session to the pool with id already in the pool', async () => {
+    test('should not be able to fetch session with the same id twice', async () => {
         const fst = await sessionPool.getSession({ id: 'test-session' });
         const snd = await sessionPool.getSession({ id: 'test-session' });
 
@@ -350,15 +349,7 @@ describe('SessionPool - testing session pool', () => {
         expect(snd).toBeUndefined();
     });
 
-    test('should be able to retrieve session with provided id', async () => {
-        await sessionPool.reclaimSession((await sessionPool.getSession())!);
-        await sessionPool.reclaimSession((await sessionPool.getSession())!);
-
-        const session = await sessionPool.getSession({ id: 'test-session' });
-        expect(session?.id).toBe('test-session');
-    });
-
-    test('should correctly populate session array and session map', async () => {
+    test('should correctly populate sessions map', async () => {
         // @ts-expect-error private symbol
         sessionPool.maxPoolSize = 10;
 
@@ -367,7 +358,7 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.sessions.size).toEqual(10);
     });
 
-    test('should correctly remove retired sessions both from array and session map', async () => {
+    test('should drop invalid sessions on reclaim', async () => {
         // @ts-expect-error private symbol
         sessionPool.maxPoolSize = 10;
 
