@@ -395,8 +395,8 @@ export abstract class BrowserCrawler<
 
         this.browserPool = new BrowserPool<InternalBrowserPoolOptions>({
             ...(rest as any),
-            preLaunchHooks: [this._extendLaunchContext.bind(this), ...preLaunchHooks],
-            postLaunchHooks: [this._maybeAddSessionRetiredListener.bind(this), ...postLaunchHooks],
+            preLaunchHooks,
+            postLaunchHooks,
         });
     }
 
@@ -469,10 +469,10 @@ export abstract class BrowserCrawler<
             id: crawlingContext.id,
         };
 
-        const useIncognitoPages = this.launchContext?.useIncognitoPages;
+        const { session } = crawlingContext;
 
-        if (crawlingContext.session.proxyInfo) {
-            const proxyInfo = crawlingContext.session.proxyInfo;
+        if (session.proxyInfo) {
+            const proxyInfo = session.proxyInfo;
             crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
@@ -498,10 +498,6 @@ export abstract class BrowserCrawler<
         ) as ProvidedController;
 
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
-
-        const session = useIncognitoPages
-            ? crawlingContext.session
-            : (browserControllerInstance.launchContext.session as Session);
 
         return {
             page,
