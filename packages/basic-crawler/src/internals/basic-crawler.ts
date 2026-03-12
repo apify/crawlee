@@ -1003,7 +1003,14 @@ export class BasicCrawler<
                     await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
                 },
             })
-            .compose({ action: this.resolveSession.bind(this) })
+            .compose({
+                action: async (context) => this.resolveSession(context),
+                cleanup: async (context) => {
+                    if (context?.session) {
+                        await this.sessionPool?.reclaimSession(context.session);
+                    }
+                },
+            })
             .compose({ action: this.createContextHelpers.bind(this) });
     }
 
@@ -1082,11 +1089,11 @@ export class BasicCrawler<
 
         if (this.useSessionPool && !session) {
             this.log.warning(
-                `No vacant session available for request ${request.id}. Lower your concurrency or increase the session pool size.`,
+                `No idle session available for request ${request.id}. Lower your concurrency or increase the session pool size.`,
             );
         }
 
-        return { session, proxyInfo: session?.proxyInfo };
+        return { session, proxyInfo: session?.proxyInfo } as const;
     }
 
     private async createContextHelpers({ request, session }: { request: Request; session?: Session }) {
