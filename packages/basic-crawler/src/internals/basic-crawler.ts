@@ -913,7 +913,7 @@ export class BasicCrawler<
                                 crawlingContext as CrawlingContext,
                                 this.requestManager!,
                             );
-                            crawlingContext.session.markBad();
+                            crawlingContext.session?.markBad();
                             return;
                         }
                         throw this.unwrapError(error);
