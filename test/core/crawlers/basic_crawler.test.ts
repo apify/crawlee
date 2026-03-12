@@ -1544,6 +1544,24 @@ describe('BasicCrawler', () => {
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
 
+        it('should unlock all sessions after finishing', async () => {
+            const url = 'https://example.com';
+            const requestList = await RequestList.open({ sources: [{ url }] });
+
+            const crawler = new BasicCrawler({
+                requestList,
+                requestHandlerTimeoutSecs: 0.01,
+                maxRequestRetries: 1,
+                useSessionPool: true,
+                requestHandler: async () => {},
+                failedRequestHandler: async () => {},
+            });
+            await crawler.run();
+
+            // @ts-expect-error private symbol
+            expect(crawler.sessionPool.sessions.values().every(({ busy }) => !busy)).toBe(true);
+        });
+
         it('should destroy Session pool after it is finished', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });

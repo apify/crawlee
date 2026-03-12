@@ -1003,7 +1003,14 @@ export class BasicCrawler<
                     await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
                 },
             })
-            .compose({ action: this.resolveSession.bind(this) })
+            .compose({
+                action: async (context) => this.resolveSession(context),
+                cleanup: async (context) => {
+                    if (context?.session) {
+                        await this.sessionPool?.reclaimSession(context.session);
+                    }
+                },
+            })
             .compose({ action: this.createContextHelpers.bind(this) });
     }
 
@@ -1068,7 +1075,7 @@ export class BasicCrawler<
         const session = this.useSessionPool
             ? await this._timeoutAndRetry(
                   async () => {
-                      return await this.sessionPool!.newSession({
+                      return await this.sessionPool!.getSession({
                           proxyInfo: await this.proxyConfiguration?.newProxyInfo({
                               request: request ?? undefined,
                           }),
@@ -1080,7 +1087,7 @@ export class BasicCrawler<
               )
             : undefined;
 
-        return { session, proxyInfo: session?.proxyInfo };
+        return { session, proxyInfo: session?.proxyInfo } as const;
     }
 
     private async createContextHelpers({ request, session }: { request: Request; session?: Session }) {
@@ -1994,6 +2001,13 @@ export class BasicCrawler<
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      */
     protected async _isTaskReadyFunction() {
+        if (this.sessionPool && !(await this.sessionPool.hasIdleSessions())) {
+            this.log.warning(
+                `No idle session available for the next task. Lower your concurrency or increase the session pool size.`,
+            );
+            return false;
+        }
+
         return this.requestManager !== undefined && !(await this.requestManager.isEmpty());
     }
 

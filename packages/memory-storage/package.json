@@ -50,8 +50,8 @@
         "fs-extra": "^11.3.0",
         "json5": "^2.2.3",
         "mime-types": "^3.0.1",
-        "proper-lockfile": "^4.1.2",
         "p-limit": "^6.2.0",
+        "proper-lockfile": "^4.1.2",
         "tslib": "^2.8.1"
     }
 }
