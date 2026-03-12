@@ -738,7 +738,6 @@ describe('CheerioCrawler', () => {
                 requestList,
                 requestHandler,
                 proxyConfiguration,
-
             });
 
             await crawler.run();
@@ -930,7 +929,7 @@ describe('CheerioCrawler', () => {
                         error: false,
                         headers: { 'Content-type': 'text/html' },
                     }),
-    
+
                     persistCookiesPerSession: false,
                     maxRequestRetries: 0,
                     requestHandler: ({ session }) => {
@@ -959,8 +958,6 @@ describe('CheerioCrawler', () => {
                 });
             }
         });
-
-
 
         test('should send cookies', async () => {
             const cookie = 'SESSID=abcd123';

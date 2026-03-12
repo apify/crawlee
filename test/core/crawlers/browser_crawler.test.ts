@@ -1037,7 +1037,7 @@ describe('BrowserCrawler', () => {
                     requestList,
                     maxRequestRetries: 0,
                     maxConcurrency: 1,
-    
+
                     proxyConfiguration,
                     requestHandler,
                 });
@@ -1217,7 +1217,7 @@ describe('BrowserCrawler', () => {
                     requestList,
                     maxRequestRetries: 0,
                     maxConcurrency: 1,
-    
+
                     requestHandler,
                     failedRequestHandler,
                 });

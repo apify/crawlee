@@ -411,7 +411,7 @@ describe('PuppeteerCrawler', () => {
 
             const puppeteerCrawler = new PuppeteerCrawler({
                 requestList: requestListLarge,
-    
+
                 launchContext: {
                     useIncognitoPages: true,
                 },
