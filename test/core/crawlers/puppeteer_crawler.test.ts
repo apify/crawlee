@@ -326,7 +326,7 @@ describe('PuppeteerCrawler', () => {
 
         const puppeteerCrawler = new PuppeteerCrawler({
             requestList,
-            useSessionPool: true,
+
             persistCookiesPerSession: true,
             sessionPoolOptions: {
                 createSessionFunction: (sessionPool) => {
@@ -411,7 +411,7 @@ describe('PuppeteerCrawler', () => {
 
             const puppeteerCrawler = new PuppeteerCrawler({
                 requestList: requestListLarge,
-                useSessionPool: true,
+    
                 launchContext: {
                     useIncognitoPages: true,
                 },

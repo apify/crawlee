@@ -1494,7 +1494,7 @@ describe('BasicCrawler', () => {
     });
 
     describe('Uses SessionPool', () => {
-        it('should use SessionPool when useSessionPool is true ', async () => {
+        it('should use SessionPool', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
             const results: Request[] = [];
@@ -1503,14 +1503,13 @@ describe('BasicCrawler', () => {
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                useSessionPool: true,
                 sessionPoolOptions: {
                     maxPoolSize: 10,
                     persistStateKey: 'POOL',
                 },
                 requestHandler: async ({ session }) => {
-                    expect(session!.constructor.name).toEqual('Session');
-                    expect(session!.id).toBeDefined();
+                    expect(session.constructor.name).toEqual('Session');
+                    expect(session.id).toBeDefined();
                 },
                 failedRequestHandler: async ({ request }) => {
                     results.push(request);
@@ -1530,7 +1529,6 @@ describe('BasicCrawler', () => {
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                useSessionPool: true,
                 sessionPoolOptions: {
                     maxPoolSize: 10,
                     persistStateKey: 'POOL',
@@ -1553,7 +1551,6 @@ describe('BasicCrawler', () => {
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                useSessionPool: true,
                 sessionPoolOptions: {
                     maxPoolSize: 10,
                 },
@@ -1620,35 +1617,6 @@ describe('BasicCrawler', () => {
             const requestList = await RequestList.open(null, [url]);
 
             const crawler = new BasicCrawler({
-                useSessionPool: true,
-                requestList,
-                async requestHandler({ sendRequest }) {
-                    const response = await sendRequest();
-
-                    responses.push({
-                        statusCode: response.status,
-                        body: await response.text(),
-                    });
-                },
-            });
-
-            await crawler.run();
-
-            expect(responses).toStrictEqual([
-                {
-                    statusCode: 200,
-                    body: html,
-                },
-            ]);
-        });
-
-        test('works without session', async () => {
-            const requestList = await RequestList.open(null, [url]);
-
-            const responses: { statusCode: number; body: string }[] = [];
-
-            const crawler = new BasicCrawler({
-                useSessionPool: false,
                 requestList,
                 async requestHandler({ sendRequest }) {
                     const response = await sendRequest();
@@ -1672,7 +1640,6 @@ describe('BasicCrawler', () => {
 
         test('proxyUrl TypeScript support', async () => {
             const crawler = new BasicCrawler({
-                useSessionPool: true,
                 async requestHandler({ sendRequest }) {
                     await sendRequest({
                         proxyUrl: 'http://example.com',
