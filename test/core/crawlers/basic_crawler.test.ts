@@ -1559,7 +1559,7 @@ describe('BasicCrawler', () => {
             await crawler.run();
 
             // @ts-expect-error private symbol
-            expect(crawler.sessionPool['sessions'].values().every(({ busy }) => !busy)).toBe(true);
+            expect(crawler.sessionPool.sessions.values().every(({ busy }) => !busy)).toBe(true);
         });
 
         it('should destroy Session pool after it is finished', async () => {

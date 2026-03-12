@@ -248,6 +248,12 @@ export class SessionPool extends EventEmitter {
         sessionData.busy = true;
     }
 
+    async hasIdleSessions(): Promise<boolean> {
+        this._throwIfNotInitialized();
+
+        return !!this.sessions.values().find(({ busy }) => !busy);
+    }
+
     async reclaimSession(session: Session): Promise<void> {
         this._throwIfNotInitialized();
 

@@ -1087,12 +1087,6 @@ export class BasicCrawler<
               )
             : undefined;
 
-        if (this.useSessionPool && !session) {
-            this.log.warning(
-                `No idle session available for request ${request.id}. Lower your concurrency or increase the session pool size.`,
-            );
-        }
-
         return { session, proxyInfo: session?.proxyInfo } as const;
     }
 
@@ -2007,6 +2001,13 @@ export class BasicCrawler<
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      */
     protected async _isTaskReadyFunction() {
+        if (this.sessionPool && !(await this.sessionPool.hasIdleSessions())) {
+            this.log.warning(
+                `No idle session available for the next task. Lower your concurrency or increase the session pool size.`,
+            );
+            return false;
+        }
+
         return this.requestManager !== undefined && !(await this.requestManager.isEmpty());
     }
 
