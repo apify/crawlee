@@ -1068,7 +1068,7 @@ export class BasicCrawler<
         const session = this.useSessionPool
             ? await this._timeoutAndRetry(
                   async () => {
-                      return await this.sessionPool!.newSession({
+                      return await this.sessionPool!.getSession({
                           proxyInfo: await this.proxyConfiguration?.newProxyInfo({
                               request: request ?? undefined,
                           }),
@@ -1079,6 +1079,12 @@ export class BasicCrawler<
                   `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
               )
             : undefined;
+
+        if (this.useSessionPool && !session) {
+            this.log.warning(
+                `No vacant session available for request ${request.id}. Lower your concurrency or increase the session pool size.`,
+            );
+        }
 
         return { session, proxyInfo: session?.proxyInfo };
     }

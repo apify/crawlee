@@ -237,21 +237,6 @@ export class SessionPool extends EventEmitter {
         this.isInitialized = true;
     }
 
-    /**
-     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
-     * but this allows you to add more sessions once the max pool size is reached.
-     * This also allows you to add session with overridden session options (e.g. with specific session id).
-     * @param [options] The configuration options for the session being added to the session pool.
-     */
-    async newSession(sessionOptions?: SessionOptions): Promise<Session> {
-        this._throwIfNotInitialized();
-
-        const newSession = await this.createSessionFunction(this, { sessionOptions });
-        this._addSession(newSession);
-
-        return newSession;
-    }
-
     private async markAsBusy(session: Session) {
         this._throwIfNotInitialized();
 
@@ -286,7 +271,7 @@ export class SessionPool extends EventEmitter {
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
-    async getSession(options: Partial<Session> = {}): Promise<Session | undefined> {
+    async getSession(options: SessionOptions = {}): Promise<Session | undefined> {
         await this.queue.wait();
 
         try {
@@ -310,7 +295,7 @@ export class SessionPool extends EventEmitter {
                 }
 
                 if (this.sessions.size < this.maxPoolSize) {
-                    idleSession = await this.newSession(options);
+                    idleSession = await this._createSession(options);
                 }
             }
 
@@ -417,8 +402,8 @@ export class SessionPool extends EventEmitter {
      * Creates new session and adds it to the pool.
      * @returns Newly created `Session` instance.
      */
-    protected async _createSession(): Promise<Session> {
-        const newSession = await this.createSessionFunction(this);
+    protected async _createSession(sessionOptions: SessionOptions): Promise<Session> {
+        const newSession = await this.createSessionFunction(this, { sessionOptions });
         this._addSession(newSession);
         this.log.debug(`Created new Session - ${newSession.id}`);
 
