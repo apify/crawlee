@@ -20,35 +20,41 @@ describe('Snapshotter', () => {
     test.each([
         true,
         false,
-    ])('correctly handles dynamic vs fixed memory limit when total memory changes (dynamic=%s)', async (dynamic) => {
+    ])('correctly handles dynamic vs static memory limit when total memory changes (dynamic=%s)', async (dynamic) => {
         /**
          * Two memory snapshots are emitted with the same process memory usage but different total memory.
-         * First snapshot is overloaded in both modes.
+         * First snapshot is overloaded in both modes. Using 60% of total memory, while the limit is 50% in both modes.
          * Second snapshot doubles the total memory while keeping the same usage:
          * - Dynamic mode (availableMemoryRatio): maxMemoryBytes should update → not overloaded
-         * - Fixed mode (memoryMbytes): maxMemoryBytes stays fixed → still overloaded
+         * - Static mode (memoryMbytes): maxMemoryBytes stays fixed → still overloaded
          */
         const noop = () => {};
         const initialTotalBytes = 100 * 1024 * 1024;
-        const overusageMemoryRatioThreshold = 0.9;
+        const allowedMemoryUsageRatio = 0.5;
+        const actualMemoryUsage = 0.6 * initialTotalBytes;
 
+        // Initial snapshot. Overloaded in both modes.
         const memoryData: MemoryInfo = {
             totalBytes: initialTotalBytes,
-            freeBytes: 0,
-            usedBytes: initialTotalBytes,
-            mainProcessBytes: initialTotalBytes,
+            freeBytes: initialTotalBytes - actualMemoryUsage,
+            usedBytes: actualMemoryUsage,
+            mainProcessBytes: actualMemoryUsage,
             childProcessesBytes: 0,
         };
 
+        // Mock memory info to be able to inject custom memory measurement data.
         vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
 
-        // Dynamic: 0> memoryMbytes ≤1, treated as ratio
-        // Fixed: memoryMbytes > 1, treated as absolute
-        const config = dynamic
-            ? new Configuration({ memoryMbytes: overusageMemoryRatioThreshold })
-            : new Configuration({ memoryMbytes: initialTotalBytes / 1024 / 1024 });
+        let config: Configuration;
+        if (dynamic) {
+            // Dynamic: Allow usage of 50 % of available memory through ratio
+            config = new Configuration({ availableMemoryRatio: allowedMemoryUsageRatio });
+        } else {
+            // Static: Allow usage of 50 % of available memory through fixed value
+            config = new Configuration({ memoryMbytes: (allowedMemoryUsageRatio * initialTotalBytes) / 1024 / 1024 });
+        }
 
-        const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: overusageMemoryRatioThreshold });
+        const snapshotter = new Snapshotter({ config });
         vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
         const events = config.getEventManager() as LocalEventManager;
         await snapshotter.start();
@@ -56,9 +62,9 @@ describe('Snapshotter', () => {
         // First snapshot - full usage of the memory, should be overloaded in both modes
         await events.emitSystemInfoEvent(noop);
 
-        // First snapshot - total memory doubled, should be overloaded only in fixed mode
+        // Second snapshot - total memory doubled, should be overloaded only in static mode
         memoryData.totalBytes = initialTotalBytes * 2;
-        memoryData.freeBytes = initialTotalBytes;
+        memoryData.freeBytes = memoryData.totalBytes - actualMemoryUsage;
         await events.emitSystemInfoEvent(noop);
 
         const memorySnapshots = snapshotter.getMemorySample();

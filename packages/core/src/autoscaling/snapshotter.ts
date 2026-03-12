@@ -1,5 +1,4 @@
 import type { StorageClient } from '@crawlee/types';
-import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { Log } from '@apify/log';
@@ -192,19 +191,12 @@ export class Snapshotter {
     async start(): Promise<void> {
         const memoryMbytes = this.config.get('memoryMbytes', 0);
 
-        if (memoryMbytes > 1) {
+        if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
-        } else if (memoryMbytes > 0) {
-            this.maxMemoryBytes = memoryMbytes;
-            this.log.warning(
-                `Setting dynamic max memory limit of this run to ${this.maxMemoryBytes * 100} % of available memory . `,
-            );
         } else {
-            this.maxMemoryBytes = Math.ceil(
-                (await this._getMemoryTotalBytes()) * this.config.get('availableMemoryRatio')!,
-            );
+            this.maxMemoryBytes = this.config.get('availableMemoryRatio');
             this.log.warning(
-                `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
+                `Setting max memory of this run to ${this.maxMemoryBytes * 100} % of available memory. ` +
                     'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
             );
         }
@@ -217,13 +209,6 @@ export class Snapshotter {
         this.clientInterval = betterSetInterval(this._snapshotClient.bind(this), this.clientSnapshotIntervalMillis);
         this.events.on(EventType.SYSTEM_INFO, this._snapshotCpu);
         this.events.on(EventType.SYSTEM_INFO, this._snapshotMemory);
-    }
-
-    async _getMemoryTotalBytes() {
-        if (this.config.get('systemInfoV2')) {
-            return (await getMemoryInfoV2(this.config.get('containerized', await isContainerized()))).totalBytes;
-        }
-        return (await getMemoryInfo()).totalBytes;
     }
 
     /**
@@ -352,7 +337,7 @@ export class Snapshotter {
                         maxMemoryBytes,
                     )} MB (${usedPercentage}%). Consider increasing available memory.`,
             );
-            //this.lastLoggedCriticalMemoryOverloadAt = createdAt;
+            this.lastLoggedCriticalMemoryOverloadAt = createdAt;
         }
     }
 
