@@ -2,9 +2,13 @@ import os from 'node:os';
 
 import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';
+import * as utils from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
+
+const toBytes = (x: number) => x * 1024 * 1024;
+const noop = () => {};
 
 describe('Snapshotter', () => {
     let logLevel: number;
@@ -17,66 +21,265 @@ describe('Snapshotter', () => {
         log.setLevel(logLevel);
     });
 
-    test.each([
-        true,
-        false,
-    ])('correctly handles dynamic vs static memory limit when total memory changes (dynamic=%s)', async (dynamic) => {
-        /**
-         * Two memory snapshots are emitted with the same process memory usage but different total memory.
-         * First snapshot is overloaded in both modes. Using 60% of total memory, while the limit is 50% in both modes.
-         * Second snapshot doubles the total memory while keeping the same usage:
-         * - Dynamic mode (availableMemoryRatio): maxMemoryBytes should update → not overloaded
-         * - Static mode (memoryMbytes): maxMemoryBytes stays fixed → still overloaded
-         */
-        const noop = () => {};
-        const initialTotalBytes = 100 * 1024 * 1024;
-        const allowedMemoryUsageRatio = 0.5;
-        const actualMemoryUsage = 0.6 * initialTotalBytes;
+    test('should collect snapshots with some values', async () => {
+        // mock client data
+        const apifyClient = Configuration.getStorageClient();
+        const oldStats = apifyClient.stats;
+        apifyClient.stats = {} as any;
+        apifyClient.stats!.rateLimitErrors = [0, 0, 0];
 
-        // Initial snapshot. Overloaded in both modes.
+        const config = new Configuration({ systemInfoIntervalMillis: 100 });
+        const snapshotter = new Snapshotter({ config });
+        const events = config.getEventManager();
+        await events.init();
+        await snapshotter.start();
+
+        await sleep(625);
+        apifyClient.stats!.rateLimitErrors = [0, 0, 2];
+        await sleep(625);
+
+        await snapshotter.stop();
+        await events.close();
+        const memorySnapshots = snapshotter.getMemorySample();
+        const eventLoopSnapshots = snapshotter.getEventLoopSample();
+        const cpuSnapshots = snapshotter.getCpuSample();
+        const clientSnapshots = snapshotter.getClientSample();
+
+        expect(Array.isArray(cpuSnapshots)).toBe(true);
+        expect(cpuSnapshots.length).toBeGreaterThanOrEqual(1);
+        cpuSnapshots.forEach((ss) => {
+            expect(ss.createdAt).toBeInstanceOf(Date);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.usedRatio).toBe('number');
+        });
+
+        expect(Array.isArray(memorySnapshots)).toBe(true);
+        expect(memorySnapshots.length).toBeGreaterThanOrEqual(1);
+        memorySnapshots.forEach((ss) => {
+            expect(ss.createdAt).toBeInstanceOf(Date);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.usedBytes).toBe('number');
+        });
+
+        expect(Array.isArray(eventLoopSnapshots)).toBe(true);
+        expect(eventLoopSnapshots.length).toBeGreaterThanOrEqual(2);
+        eventLoopSnapshots.forEach((ss) => {
+            expect(ss.createdAt).toBeInstanceOf(Date);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.exceededMillis).toBe('number');
+        });
+
+        expect(Array.isArray(clientSnapshots)).toBe(true);
+        expect(clientSnapshots.length).toBeGreaterThanOrEqual(1);
+        clientSnapshots.forEach((ss) => {
+            expect(ss.createdAt).toBeInstanceOf(Date);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.rateLimitErrorCount).toBe('number');
+        });
+
+        apifyClient.stats = oldStats;
+    });
+
+    test('should override default timers', async () => {
+        const config = new Configuration({ systemInfoIntervalMillis: 0.1 });
+        const snapshotter = new Snapshotter({ config, eventLoopSnapshotIntervalSecs: 0.05 });
+        await config.getEventManager().init();
+        await snapshotter.start();
+        await sleep(3 * 1e3);
+        await snapshotter.stop();
+        await config.getEventManager().close();
+        const memorySnapshots = snapshotter.getMemorySample();
+        const eventLoopSnapshots = snapshotter.getEventLoopSample();
+        const cpuSnapshots = snapshotter.getCpuSample();
+
+        expect(cpuSnapshots.length).toBeGreaterThanOrEqual(5);
+        expect(memorySnapshots.length).toBeGreaterThanOrEqual(5);
+        expect(eventLoopSnapshots.length).toBeGreaterThanOrEqual(10);
+    });
+
+    test('correctly marks CPU overloaded using Platform event', async () => {
+        let count = 0;
+        const emitAndWait = async (delay: number) => {
+            Configuration.getEventManager().emit(EventType.SYSTEM_INFO, {
+                isCpuOverloaded: count % 2 === 0,
+                createdAt: new Date().toISOString(),
+                cpuCurrentUsage: 66.6,
+            });
+            count++;
+            await sleep(delay);
+        };
+
+        const snapshotter = new Snapshotter();
+        await snapshotter.start();
+        await emitAndWait(10);
+        await emitAndWait(10);
+        await emitAndWait(10);
+        await emitAndWait(0);
+        await snapshotter.stop();
+        const cpuSnapshots = snapshotter.getCpuSample();
+
+        expect(cpuSnapshots).toHaveLength(4);
+        cpuSnapshots.forEach((ss, i) => {
+            expect(ss.createdAt).toBeInstanceOf(Date);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(ss.isOverloaded).toEqual(i % 2 === 0);
+        });
+    });
+
+    test('correctly marks CPU overloaded using OS metrics', async () => {
+        const cpusMock = vitest.spyOn(os, 'cpus');
+        const fakeCpu = [
+            {
+                times: {
+                    idle: 0,
+                    other: 0,
+                },
+            },
+        ];
+        const { times } = fakeCpu[0];
+
+        cpusMock.mockReturnValue(fakeCpu as any);
+
+        const config = new Configuration({ maxUsedCpuRatio: 0.5 });
+        const snapshotter = new Snapshotter({ config });
+        // do not initialize the event intervals as we will fire them manually
+        const spy = vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+        const events = config.getEventManager() as LocalEventManager;
+        await snapshotter.start();
+
+        await events.emitSystemInfoEvent(noop);
+
+        times.idle++;
+        times.other++;
+        await events.emitSystemInfoEvent(noop);
+
+        times.other += 2;
+        await events.emitSystemInfoEvent(noop);
+
+        times.idle += 2;
+        await events.emitSystemInfoEvent(noop);
+
+        times.other += 4;
+        await events.emitSystemInfoEvent(noop);
+
+        const loopSnapshots = snapshotter.getCpuSample();
+
+        expect(loopSnapshots.length).toBe(5);
+        expect(loopSnapshots[0].isOverloaded).toBe(false);
+        expect(loopSnapshots[1].isOverloaded).toBe(false);
+        expect(loopSnapshots[2].isOverloaded).toBe(true);
+        expect(loopSnapshots[3].isOverloaded).toBe(false);
+        expect(loopSnapshots[4].isOverloaded).toBe(true);
+        expect(cpusMock).toBeCalledTimes(5);
+
+        await snapshotter.stop();
+    });
+
+    test('correctly marks eventLoopOverloaded', () => {
+        const clock = vitest.useFakeTimers();
+        try {
+            const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
+            // @ts-expect-error Calling protected method
+            snapshotter._snapshotEventLoop(noop);
+            clock.advanceTimersByTime(1);
+            // @ts-expect-error Calling protected method
+            snapshotter._snapshotEventLoop(noop);
+            clock.advanceTimersByTime(2);
+            // @ts-expect-error Calling protected method
+            snapshotter._snapshotEventLoop(noop);
+            clock.advanceTimersByTime(7);
+            // @ts-expect-error Calling protected method
+            snapshotter._snapshotEventLoop(noop);
+            clock.advanceTimersByTime(3);
+            // @ts-expect-error Calling protected method
+            snapshotter._snapshotEventLoop(noop);
+            const loopSnapshots = snapshotter.getEventLoopSample();
+
+            expect(loopSnapshots.length).toBe(5);
+            expect(loopSnapshots[0].isOverloaded).toBe(false);
+            expect(loopSnapshots[1].isOverloaded).toBe(false);
+            expect(loopSnapshots[2].isOverloaded).toBe(false);
+            expect(loopSnapshots[3].isOverloaded).toBe(true);
+            expect(loopSnapshots[4].isOverloaded).toBe(false);
+        } finally {
+            vitest.useRealTimers();
+        }
+    });
+
+    test('correctly marks memoryOverloaded using OS metrics', async () => {
+        const memoryData = {
+            totalBytes: toBytes(10000),
+            mainProcessBytes: toBytes(1000),
+            childProcessesBytes: toBytes(1000),
+        } as MemoryInfo;
+        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
+        const config = new Configuration({ availableMemoryRatio: 1 });
+        const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
+        // do not initialize the event intervals as we will fire them manually
+        vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+        const events = config.getEventManager() as LocalEventManager;
+        await snapshotter.start();
+
+        await events.emitSystemInfoEvent(noop);
+        memoryData.mainProcessBytes = toBytes(2000);
+        await events.emitSystemInfoEvent(noop);
+        memoryData.childProcessesBytes = toBytes(2000);
+        await events.emitSystemInfoEvent(noop);
+        memoryData.mainProcessBytes = toBytes(3001);
+        await events.emitSystemInfoEvent(noop);
+        memoryData.childProcessesBytes = toBytes(1999);
+        await events.emitSystemInfoEvent(noop);
+        const memorySnapshots = snapshotter.getMemorySample();
+
+        expect(memorySnapshots.length).toBe(5);
+        expect(memorySnapshots[0].isOverloaded).toBe(false);
+        expect(memorySnapshots[1].isOverloaded).toBe(false);
+        expect(memorySnapshots[2].isOverloaded).toBe(false);
+        expect(memorySnapshots[3].isOverloaded).toBe(true);
+        expect(memorySnapshots[4].isOverloaded).toBe(false);
+
+        await snapshotter.stop();
+        vitest.restoreAllMocks();
+    });
+
+    test('correctly logs critical memory overload', async () => {
+        const initialMemory = toBytes(10000);
+        const usageRatio1 = 0.75; // below warning usage
+        const usageRatio2 = 0.76; // above warning usage
         const memoryData: MemoryInfo = {
-            totalBytes: initialTotalBytes,
-            freeBytes: initialTotalBytes - actualMemoryUsage,
-            usedBytes: actualMemoryUsage,
-            mainProcessBytes: actualMemoryUsage,
+            totalBytes: initialMemory,
+            freeBytes: initialMemory * (1 - usageRatio1),
+            usedBytes: initialMemory * usageRatio1,
+            mainProcessBytes: initialMemory * usageRatio1,
             childProcessesBytes: 0,
         };
 
         // Mock memory info to be able to inject custom memory measurement data.
         vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
+        const config = new Configuration({ availableMemoryRatio: 1 });
+        const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
 
-        let config: Configuration;
-        if (dynamic) {
-            // Dynamic: Allow usage of 50 % of available memory through ratio
-            config = new Configuration({ availableMemoryRatio: allowedMemoryUsageRatio });
-        } else {
-            // Static: Allow usage of 50 % of available memory through fixed value
-            config = new Configuration({ memoryMbytes: (allowedMemoryUsageRatio * initialTotalBytes) / 1024 / 1024 });
-        }
-
-        const snapshotter = new Snapshotter({ config });
-        vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
-        const events = config.getEventManager() as LocalEventManager;
+        const eventManager = config.getEventManager() as LocalEventManager;
         await snapshotter.start();
+        const warningSpy = vitest.spyOn(snapshotter.log, 'warning').mockImplementation(() => {});
 
-        // First snapshot - full usage of the memory, should be overloaded in both modes
-        await events.emitSystemInfoEvent(noop);
+        // First snapshot - below warning usage
+        await eventManager.emitSystemInfoEvent(noop);
+        expect(warningSpy).not.toBeCalled();
 
-        // Second snapshot - total memory doubled, should be overloaded only in static mode
-        memoryData.totalBytes = initialTotalBytes * 2;
-        memoryData.freeBytes = memoryData.totalBytes - actualMemoryUsage;
-        await events.emitSystemInfoEvent(noop);
+        // Second snapshot - above warning usage
+        memoryData.usedBytes = initialMemory * usageRatio2;
+        memoryData.mainProcessBytes = initialMemory * usageRatio2;
+        memoryData.freeBytes = initialMemory * (1 - usageRatio2);
+        await eventManager.emitSystemInfoEvent(noop);
+        expect(warningSpy).toBeCalled();
+        warningSpy.mockReset();
 
-        const memorySnapshots = snapshotter.getMemorySample();
-        expect(memorySnapshots).toHaveLength(2);
-        expect(memorySnapshots[0].isOverloaded).toBe(true);
-        expect(memorySnapshots[1].isOverloaded).toBe(!dynamic);
-
+        vitest.restoreAllMocks();
         await snapshotter.stop();
     });
 
     test('correctly marks clientOverloaded', () => {
-        const noop = () => {};
         // mock client data
         const apifyClient = Configuration.getStorageClient();
         const oldStats = apifyClient.stats;
@@ -138,5 +341,62 @@ describe('Snapshotter', () => {
             eventLoopSample[0].createdAt.getTime() - eventLoopSample[eventLoopSample.length - 1].createdAt.getTime();
         expect(diffBetween).toBeLessThan(SAMPLE_SIZE_MILLIS);
         expect(diffWithin).toBeLessThan(SAMPLE_SIZE_MILLIS);
+    });
+
+    test.each([
+        true,
+        false,
+    ])('correctly handles dynamic vs static memory limit when total memory changes (dynamic=%s)', async (dynamic) => {
+        /**
+         * Two memory snapshots are emitted with the same process memory usage but different total memory.
+         * First snapshot is overloaded in both modes. Using 60% of total memory, while the limit is 50% in both modes.
+         * Second snapshot doubles the total memory while keeping the same usage:
+         * - Dynamic mode (availableMemoryRatio): maxMemoryBytes should update → not overloaded
+         * - Static mode (memoryMbytes): maxMemoryBytes stays fixed → still overloaded
+         */
+        const initialTotalBytes = toBytes(100);
+        const allowedMemoryUsageRatio = 0.5;
+        const actualMemoryUsage = 0.6 * initialTotalBytes;
+
+        // Initial snapshot. Overloaded in both modes.
+        const memoryData: MemoryInfo = {
+            totalBytes: initialTotalBytes,
+            freeBytes: initialTotalBytes - actualMemoryUsage,
+            usedBytes: actualMemoryUsage,
+            mainProcessBytes: actualMemoryUsage,
+            childProcessesBytes: 0,
+        };
+
+        // Mock memory info to be able to inject custom memory measurement data.
+        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
+
+        let config: Configuration;
+        if (dynamic) {
+            // Dynamic: Allow usage of 50 % of available memory through ratio
+            config = new Configuration({ availableMemoryRatio: allowedMemoryUsageRatio });
+        } else {
+            // Static: Allow usage of 50 % of available memory through fixed value
+            config = new Configuration({ memoryMbytes: (allowedMemoryUsageRatio * initialTotalBytes) / 1024 / 1024 });
+        }
+
+        const snapshotter = new Snapshotter({ config });
+        vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+        const eventManager = config.getEventManager() as LocalEventManager;
+        await snapshotter.start();
+
+        // First snapshot - full usage of the memory, should be overloaded in both modes
+        await eventManager.emitSystemInfoEvent(noop);
+
+        // Second snapshot - total memory doubled, should be overloaded only in static mode
+        memoryData.totalBytes = initialTotalBytes * 2;
+        memoryData.freeBytes = memoryData.totalBytes - actualMemoryUsage;
+        await eventManager.emitSystemInfoEvent(noop);
+
+        const memorySnapshots = snapshotter.getMemorySample();
+        expect(memorySnapshots).toHaveLength(2);
+        expect(memorySnapshots[0].isOverloaded).toBe(true);
+        expect(memorySnapshots[1].isOverloaded).toBe(!dynamic);
+
+        await snapshotter.stop();
     });
 });

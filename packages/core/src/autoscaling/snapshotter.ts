@@ -1,4 +1,5 @@
 import type { StorageClient } from '@crawlee/types';
+import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { Log } from '@apify/log';
@@ -126,6 +127,7 @@ export class Snapshotter {
     maxUsedMemoryRatio: number;
     maxClientErrors: number;
     maxMemoryBytes!: number;
+    #maxMemoryBytesFallback = 0;
 
     cpuSnapshots: CpuSnapshot[] = [];
     eventLoopSnapshots: EventLoopSnapshot[] = [];
@@ -199,6 +201,12 @@ export class Snapshotter {
                 `Setting max memory of this run to ${this.maxMemoryBytes * 100} % of available memory. ` +
                     'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
             );
+            // Create a fallback memory measurement in case of missing memTotalBytes in SystemInfo. Weak types of
+            // SystemInfo do not guarantee that memTotalBytes is always present, and without it, we cannot compute the
+            // maxMemoryBytes when maxMemoryBytes is set as a ratio.
+            // This does not happen in practice, but code allows it.
+            this.#maxMemoryBytesFallback = await this._getMemoryTotalBytes();
+            console.log(this.#maxMemoryBytesFallback);
         }
 
         // Start snapshotting.
@@ -292,11 +300,12 @@ export class Snapshotter {
         let maxMemoryBytes;
         if (this.maxMemoryBytes > 0 && this.maxMemoryBytes <= 1) {
             // Treat it as ratio of the total actual memory
-            if (!memTotalBytes)
-                throw new Error(
-                    'Incorrect memory info provided by the systemInfo event, total memory is required to be able to use maxMemoryBytes as a ratio.',
-                );
-            maxMemoryBytes = this.maxMemoryBytes! * memTotalBytes;
+            if (!memTotalBytes) {
+                // Treating as ratio, but SystemInfo is missing the optional field memTotalBytes
+                maxMemoryBytes = this.#maxMemoryBytesFallback * this.maxMemoryBytes;
+            } else {
+                maxMemoryBytes = this.maxMemoryBytes! * memTotalBytes;
+            }
         } else {
             maxMemoryBytes = this.maxMemoryBytes!;
         }
@@ -429,5 +438,12 @@ export class Snapshotter {
             else break;
         }
         snapshots.splice(0, oldCount);
+    }
+
+    protected async _getMemoryTotalBytes() {
+        if (this.config.get('systemInfoV2')) {
+            return (await getMemoryInfoV2(this.config.get('containerized', await isContainerized()))).totalBytes;
+        }
+        return (await getMemoryInfo()).totalBytes;
     }
 }
