@@ -128,6 +128,7 @@ export class Snapshotter {
     maxClientErrors: number;
     maxMemoryBytes!: number;
     #maxMemoryBytesFallback = 0;
+    #maxMemoryRatio = 0;
 
     cpuSnapshots: CpuSnapshot[] = [];
     eventLoopSnapshots: EventLoopSnapshot[] = [];
@@ -196,7 +197,7 @@ export class Snapshotter {
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            this.maxMemoryBytes = this.config.get('availableMemoryRatio');
+            this.#maxMemoryRatio = this.config.get('availableMemoryRatio');
             this.log.warning(
                 `Setting max memory of this run to ${this.maxMemoryBytes * 100} % of available memory. ` +
                     'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
@@ -298,13 +299,13 @@ export class Snapshotter {
         const { memCurrentBytes, memTotalBytes } = systemInfo;
 
         let maxMemoryBytes;
-        if (this.maxMemoryBytes > 0 && this.maxMemoryBytes <= 1) {
+        if (this.#maxMemoryRatio > 0) {
             // Treat it as ratio of the total actual memory
             if (!memTotalBytes) {
                 // Treating as ratio, but SystemInfo is missing the optional field memTotalBytes
-                maxMemoryBytes = this.#maxMemoryBytesFallback * this.maxMemoryBytes;
+                maxMemoryBytes = this.#maxMemoryRatio * this.#maxMemoryBytesFallback;
             } else {
-                maxMemoryBytes = this.maxMemoryBytes! * memTotalBytes;
+                maxMemoryBytes = this.#maxMemoryRatio * memTotalBytes;
             }
         } else {
             maxMemoryBytes = this.maxMemoryBytes!;
