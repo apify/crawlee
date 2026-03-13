@@ -912,23 +912,24 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const getOperationMode = () => {
             const { requestsFailed } = this.stats.state;
             const { requestsFailed: previousRequestsFailed } = previousState;
+            const failedDelta = requestsFailed - previousRequestsFailed;
 
             previousState = { ...this.stats.state };
 
-            if (requestsFailed - previousRequestsFailed > 0) {
-                return 'ERROR';
+            if (failedDelta > 0) {
+                return { mode: 'ERROR' as const, failedDelta };
             }
 
-            return 'REGULAR';
+            return { mode: 'REGULAR' as const, failedDelta: 0 };
         };
 
         const log = async () => {
-            const operationMode = getOperationMode();
+            const { mode: operationMode, failedDelta } = getOperationMode();
             let message: string;
 
             if (operationMode === 'ERROR') {
                 message = `Experiencing problems, ${
-                    this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
+                    failedDelta
                 } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = this.requestManager?.getTotalCount();
