@@ -471,7 +471,7 @@ export abstract class BrowserCrawler<
 
         const useIncognitoPages = this.launchContext?.useIncognitoPages;
 
-        if (crawlingContext.session.proxyInfo) {
+        if (crawlingContext.session?.proxyInfo) {
             const proxyInfo = crawlingContext.session.proxyInfo;
             crawlingContext.proxyInfo = proxyInfo;
 
@@ -512,7 +512,7 @@ export abstract class BrowserCrawler<
             },
             browserController: browserControllerInstance,
             session,
-            proxyInfo: session.proxyInfo,
+            proxyInfo: session?.proxyInfo,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
@@ -587,7 +587,7 @@ export abstract class BrowserCrawler<
         if (this.persistCookiesPerSession) {
             const cookies = await crawlingContext.browserController.getCookies(crawlingContext.page);
             tryCancel();
-            crawlingContext.session.setCookies(cookies, crawlingContext.request.loadedUrl!);
+            crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
         }
 
         if (response !== undefined) {
@@ -623,7 +623,7 @@ export abstract class BrowserCrawler<
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
-        const sessionCookie = session.getCookies(request.url);
+        const sessionCookie = session?.getCookies(request.url) ?? [];
         const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
         const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 
@@ -686,15 +686,19 @@ export abstract class BrowserCrawler<
     }
 
     protected async _extendLaunchContext(_pageId: string, launchContext: LaunchContext): Promise<void> {
-        const launchContextExtends: { session: Session; proxyInfo?: ProxyInfo } = {
-            session: await this.sessionPool!.newSession({
+        const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
+
+        // Hacky access from `AdaptivePlaywrightCrawler` calls this without calling `.init()`.
+        // This is the only case where this.sessionPool is accessed without being initialized.
+        if (this.sessionPool) {
+            launchContextExtends.session = await this.sessionPool.newSession({
                 proxyInfo: await this.proxyConfiguration?.newProxyInfo({
                     // cannot pass a request here, since session is created on browser launch
                 }),
-            }),
-        };
+            });
+        }
 
-        if (!launchContext.proxyUrl && launchContextExtends.session.proxyInfo) {
+        if (!launchContext.proxyUrl && launchContextExtends.session?.proxyInfo) {
             const proxyInfo = launchContextExtends.session.proxyInfo;
 
             launchContext.proxyUrl = proxyInfo?.url;
