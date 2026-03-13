@@ -1,11 +1,10 @@
 {
-    "name": "crawlee",
+    "name": "@crawlee/lightpanda",
     "version": "3.16.0",
-    "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+    "description": "Lightpanda browser integration for Crawlee – ultra-fast, low-memory headless crawling via CDP.",
     "engines": {
         "node": ">=16.0.0"
     },
-    "bin": "./src/cli.ts",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
@@ -19,11 +18,14 @@
     },
     "keywords": [
         "apify",
-        "headless",
-        "chrome",
-        "puppeteer",
+        "crawlee",
+        "lightpanda",
         "crawler",
-        "scraper"
+        "scraper",
+        "automation",
+        "playwright",
+        "cdp",
+        "headless"
     ],
     "author": {
         "name": "Apify",
@@ -31,9 +33,7 @@
         "url": "https://apify.com"
     },
     "contributors": [
-        "Jan Curn <jan@apify.com>",
-        "Marek Trunkat <marek@apify.com>",
-        "Ondra Urban <ondra@apify.com>"
+        "Candido Sales Gomes Curn <candidosg@gmail.com>"
     ],
     "license": "Apache-2.0",
     "repository": {
@@ -54,36 +54,28 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/basic": "3.16.0",
+        "@apify/log": "^2.4.0",
         "@crawlee/browser": "3.16.0",
         "@crawlee/browser-pool": "3.16.0",
-        "@crawlee/cheerio": "3.16.0",
-        "@crawlee/cli": "3.16.0",
         "@crawlee/core": "3.16.0",
-        "@crawlee/http": "3.16.0",
-        "@crawlee/jsdom": "3.16.0",
-        "@crawlee/linkedom": "3.16.0",
-        "@crawlee/lightpanda": "3.16.0",
-        "@crawlee/playwright": "3.16.0",
-        "@crawlee/puppeteer": "3.16.0",
+        "@crawlee/types": "3.16.0",
         "@crawlee/utils": "3.16.0",
-        "import-local": "^3.1.0",
+        "ow": "^0.28.1",
         "tslib": "^2.4.0"
     },
     "peerDependencies": {
-        "idcac-playwright": "*",
-        "playwright": "*",
-        "puppeteer": "*"
+        "@lightpanda/browser": "*",
+        "playwright": "*"
     },
     "peerDependenciesMeta": {
-        "idcac-playwright": {
+        "@lightpanda/browser": {
             "optional": true
         },
         "playwright": {
-            "optional": true
-        },
-        "puppeteer": {
-            "optional": true
+            "optional": false
         }
+    },
+    "devDependencies": {
+        "playwright": "^1.58.0"
     }
 }
