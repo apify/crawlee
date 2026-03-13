@@ -1,0 +1,60 @@
+---
+id: custom-logger
+title: Using a custom logger
+description: Replace Crawlee's default logger with Winston, Pino, or any logging library
+---
+
+import CodeBlock from '@theme/CodeBlock';
+
+import ImplementationSource from '!!raw-loader!./implementation.ts';
+import UsageSource from '!!raw-loader!./usage.ts';
+
+By default, Crawlee uses `@apify/log` for all internal logging. Starting with v4, you can
+replace this with any logger that suits your infrastructure — Winston, Pino, Bunyan, a
+custom JSON sink, or whatever you already use in production.
+
+This is useful when you want centralized structured logs, ship logs to an external service
+(e.g. Datadog, ELK, CloudWatch), or enforce a consistent log format across your entire
+application.
+
+## The `CrawleeLogger` interface
+
+Crawlee expects a logger that satisfies the `CrawleeLogger` interface. The easiest way to
+build one is to extend the `BaseCrawleeLogger` abstract class and implement two methods:
+
+- **`logWithLevel(level, message, data?)`** — the core dispatch method called for every log entry.
+- **`createChild(options)`** — returns a new logger instance scoped to a prefix (e.g. the crawler name).
+
+All other methods (`info`, `debug`, `warning`, `error`, `warningOnce`, etc.) are provided
+for free by `BaseCrawleeLogger`.
+
+## Example: Winston adapter
+
+The following adapter wraps a standard Winston logger:
+
+<CodeBlock language="ts">{ImplementationSource}</CodeBlock>
+
+### Wiring the adapter into a crawler
+
+Register your adapter with `serviceLocator.setLogger()` **before** creating any crawlers.
+This sets it as the global Crawlee logger:
+
+<CodeBlock language="ts">{UsageSource}</CodeBlock>
+
+The `log` object available inside `requestHandler` is a child logger scoped to the
+crawler, so prefix-tagged entries like `[CheerioCrawler] Processing ...` appear in your
+Winston output automatically.
+
+## Using a different logging library
+
+The same pattern works for any library. Create a class that extends `BaseCrawleeLogger`,
+map the numeric `level` argument to your library's level constants inside `logWithLevel()`,
+and delegate child-logger creation in `createChild()`. You only need those two methods —
+everything else is handled for you.
+
+## Controlling log level
+
+Level filtering is handled entirely by your custom logger implementation. Configure the
+desired verbosity directly on your underlying library (e.g. set `level: 'debug'` on your
+Winston logger) — Crawlee passes every log call through to your `logWithLevel()` method
+without any filtering of its own.
