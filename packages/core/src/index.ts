@@ -17,3 +17,4 @@ export * from './cookie_utils.js';
 export * from './recoverable_state.js';
 export { PseudoUrl } from '@apify/pseudo_url';
 export type { Dictionary, Awaitable, Constructor, StorageClient, Cookie, QueueOperationInfo } from '@crawlee/types';
+export { z } from 'zod';
