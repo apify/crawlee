@@ -360,7 +360,7 @@ export class SessionPool extends EventEmitter {
         });
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().persistStateIntervalMillis;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
             ?.setValue(this.persistStateKey, await this.getState(), {

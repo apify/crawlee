@@ -26,8 +26,8 @@ export class LocalEventManager extends EventManager {
         const resolvedConfig = config ?? serviceLocator.getConfiguration();
 
         return new LocalEventManager({
-            persistStateIntervalMillis: resolvedConfig.get('persistStateIntervalMillis'),
-            systemInfoIntervalMillis: resolvedConfig.get('systemInfoIntervalMillis'),
+            persistStateIntervalMillis: resolvedConfig.persistStateIntervalMillis,
+            systemInfoIntervalMillis: resolvedConfig.systemInfoIntervalMillis,
         });
     }
 
@@ -66,7 +66,7 @@ export class LocalEventManager extends EventManager {
      */
     async emitSystemInfoEvent(intervalCallback: () => unknown) {
         const info = await this.createSystemInfo({
-            maxUsedCpuRatio: serviceLocator.getConfiguration().get('maxUsedCpuRatio'),
+            maxUsedCpuRatio: serviceLocator.getConfiguration().maxUsedCpuRatio,
         });
         this.events.emit(EventType.SYSTEM_INFO, info);
         intervalCallback();
@@ -77,7 +77,7 @@ export class LocalEventManager extends EventManager {
      */
     async isContainerizedWrapper() {
         const { isContainerized } = await import('@crawlee/utils');
-        return serviceLocator.getConfiguration().get('containerized', await isContainerized());
+        return serviceLocator.getConfiguration().containerized ?? (await isContainerized());
     }
 
     /**
