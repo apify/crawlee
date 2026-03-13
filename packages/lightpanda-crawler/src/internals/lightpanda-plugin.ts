@@ -187,16 +187,17 @@ export class LightpandaPlugin extends BrowserPlugin<BrowserType, LaunchOptions, 
         const { host, port, autoStart, lightpandaPath, timeout, obeyRobots } = this.lightpandaConfig;
         const { proxyUrl } = launchContext;
 
-        if (process.platform !== 'linux') {
-            throw new Error(
-                `LightpandaCrawler: Lightpanda is only supported on Linux (current platform: ${process.platform}). ` +
-                    'See https://lightpanda.io/docs for supported environments.',
-            );
-        }
-
         let proc: ChildProcess | undefined;
 
         if (autoStart) {
+            if (process.platform !== 'linux') {
+                throw new Error(
+                    `LightpandaCrawler: Spawning Lightpanda is only supported on Linux (current platform: ${process.platform}). ` +
+                        'Use autoStart: false and run Lightpanda separately (e.g. via Docker: docker run -p 9222:9222 lightpanda/browser:nightly). ' +
+                        'See https://lightpanda.io/docs/open-source/installation#install-from-docker',
+                );
+            }
+
             if (lightpandaPath) {
                 // Explicit binary path – unconditionally use child_process.spawn for full CLI flag support.
                 proc = spawnViaBinary(lightpandaPath, host, port, proxyUrl, timeout, obeyRobots);
