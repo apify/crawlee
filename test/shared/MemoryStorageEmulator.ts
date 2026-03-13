@@ -31,7 +31,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getDataset(id?: string) {
-        return this.storage.dataset(id ?? Configuration.getGlobalConfig().get('defaultDatasetId'));
+        return this.storage.dataset(id ?? Configuration.getGlobalConfig().defaultDatasetId);
     }
 
     async getDatasetItems(id?: string) {
@@ -40,7 +40,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getRequestQueue(id?: string) {
-        return this.storage.requestQueue(id ?? Configuration.getGlobalConfig().get('defaultRequestQueueId'));
+        return this.storage.requestQueue(id ?? Configuration.getGlobalConfig().defaultRequestQueueId);
     }
 
     async getRequestQueueItems(id?: string) {
@@ -50,7 +50,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getKeyValueStore(id?: string) {
-        return this.storage.keyValueStore(id ?? Configuration.getGlobalConfig().get('defaultKeyValueStoreId'));
+        return this.storage.keyValueStore(id ?? Configuration.getGlobalConfig().defaultKeyValueStoreId);
     }
 
     async getState() {

@@ -286,7 +286,7 @@ export class RequestHandlerResult {
         };
     };
 
-    private idOrDefault = (idOrName?: string): string => idOrName ?? this.config.get('defaultKeyValueStoreId');
+    private idOrDefault = (idOrName?: string): string => idOrName ?? this.config.defaultKeyValueStoreId;
 
     private getKeyValueStoreChangedValue = (idOrName: string | undefined, key: string) => {
         const id = this.idOrDefault(idOrName);

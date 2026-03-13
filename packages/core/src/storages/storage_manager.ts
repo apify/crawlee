@@ -58,7 +58,7 @@ export class StorageManager<T extends IStorage = IStorage> {
 
         if (!idOrName) {
             const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
-            idOrName = this.config.get(defaultIdConfigKey) as string;
+            idOrName = this.config[defaultIdConfigKey] as string;
         }
 
         const cacheKey = idOrName;
