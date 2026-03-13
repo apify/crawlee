@@ -1,0 +1,88 @@
+---
+id: custom-logger
+title: Custom logger
+description: Use your own logging library (Winston, Pino, etc.) with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import WinstonSource from '!!raw-loader!./winston.ts';
+import PinoSource from '!!raw-loader!./pino.ts';
+
+Crawlee uses `@apify/log` as its default logging library, but you can replace it with any logger you prefer, such as Winston or Pino. This is done by implementing a small adapter and passing it to the crawler.
+
+## Creating an adapter
+
+All Crawlee logging goes through the <ApiLink to="core/interface/CrawleeLogger">`CrawleeLogger`</ApiLink> interface. To plug in your own logger, extend the <ApiLink to="core/class/BaseCrawleeLogger">`BaseCrawleeLogger`</ApiLink> abstract class and implement two methods:
+
+- **`logWithLevel(level, message, data)`** — dispatches a log message to your logging library. The `level` parameter uses <ApiLink to="core/enum/LogLevel">`LogLevel`</ApiLink> constants (`ERROR = 1`, `SOFT_FAIL = 2`, `WARNING = 3`, `INFO = 4`, `DEBUG = 5`, `PERF = 6`). Map these to your logger's native levels.
+- **`createChild(options)`** — creates a child logger instance. Crawlee creates child loggers with prefixes (e.g. `CheerioCrawler`, `AutoscaledPool`, `SessionPool`) so each internal component is easily identifiable in the output.
+
+All other methods (`error`, `warning`, `info`, `debug`, `exception`, `perf`, etc.) are derived automatically from `logWithLevel` — you don't need to implement them.
+
+:::info Level filtering
+
+`logWithLevel()` is called for **every** log message, regardless of the configured level. Level filtering is the responsibility of the underlying logging library (e.g. Winston's `level` option or Pino's `level` setting). This means your adapter doesn't need to check log levels — just forward everything and let the library decide what to output.
+
+:::
+
+## Injecting the logger
+
+There are two ways to inject a custom logger: per-crawler and globally.
+
+### Per-crawler logger
+
+Pass your adapter via the `logger` option in the crawler constructor. When a `logger` is provided, the crawler creates its own isolated <ApiLink to="core/class/ServiceLocator">`ServiceLocator`</ApiLink> instance, so the custom logger is used by all internal components of that crawler (autoscaling, session pool, statistics, etc.):
+
+```ts
+import { CheerioCrawler } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    logger: new WinstonAdapter(winstonLogger),
+    async requestHandler({ log }) {
+        // `log` is a child of your custom logger, with prefix set to the crawler class name
+        log.info('Hello from my custom logger!');
+    },
+});
+```
+
+The same logger is available as `crawler.log` outside of the request handler, for example when setting up routes.
+
+### Global logger via service locator
+
+Instead of passing the logger to each crawler individually, you can set it globally via the `serviceLocator`. This is useful when you run multiple crawlers and want them all to use the same logging backend:
+
+```ts
+import { serviceLocator, CheerioCrawler, PlaywrightCrawler } from 'crawlee';
+
+// Set the logger globally — must be done before creating any crawlers
+serviceLocator.setLogger(new WinstonAdapter(winstonLogger));
+
+// Both crawlers will use the Winston logger
+const cheerioCrawler = new CheerioCrawler({ /* ... */ });
+const playwrightCrawler = new PlaywrightCrawler({ /* ... */ });
+```
+
+:::warning
+
+`serviceLocator.setLogger()` must be called **before** any crawler is created. Once a logger has been retrieved from the service locator (which happens during crawler construction), it cannot be replaced — an error will be thrown.
+
+:::
+
+## Full examples
+
+<Tabs>
+<TabItem value="winston" label="Winston" default>
+
+<CodeBlock language="ts">{WinstonSource}</CodeBlock>
+
+</TabItem>
+<TabItem value="pino" label="Pino">
+
+<CodeBlock language="ts">{PinoSource}</CodeBlock>
+
+</TabItem>
+</Tabs>
