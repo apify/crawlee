@@ -2,152 +2,103 @@ import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Dictionary } from '@crawlee/types';
 import { pathExistsSync } from 'fs-extra/esm';
+import { z } from 'zod';
 
 import { log, LogLevel } from './log.js';
 import { serviceLocator } from './service_locator.js';
-import { entries } from './typedefs.js';
 
-export interface ConfigurationOptions {
-    /**
-     * Default dataset id.
-     *
-     * Alternative to `CRAWLEE_DEFAULT_DATASET_ID` environment variable.
-     * @default 'default'
-     */
-    defaultDatasetId?: string;
+// --- Field definition helpers ---
 
-    /**
-     * Defines whether to purge the default storage folders before starting the crawler run.
-     *
-     * Alternative to `CRAWLEE_PURGE_ON_START` environment variable.
-     * @default true
-     */
-    purgeOnStart?: boolean;
-
-    /**
-     * Default key-value store id.
-     *
-     * Alternative to `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
-     * @default 'default'
-     */
-    defaultKeyValueStoreId?: string;
-
-    /**
-     * Default request queue id.
-     *
-     * Alternative to `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` environment variable.
-     * @default 'default'
-     */
-    defaultRequestQueueId?: string;
-
-    /**
-     * Sets the ratio, defining the maximum CPU usage.
-     * When the CPU usage is higher than the provided ratio, the CPU is considered overloaded.
-     * @default 0.95
-     */
-    maxUsedCpuRatio?: number;
-
-    /**
-     * Sets the ratio, defining the amount of system memory that could be used by the {@apilink AutoscaledPool}.
-     * When the memory usage is more than the provided ratio, the memory is considered overloaded.
-     *
-     * Alternative to `CRAWLEE_AVAILABLE_MEMORY_RATIO` environment variable.
-     * @default 0.25
-     */
-    availableMemoryRatio?: number;
-
-    /**
-     * Sets the amount of system memory in megabytes to be used by the {@apilink AutoscaledPool}.
-     * By default, the maximum memory is set to one quarter of total system memory.
-     *
-     * Alternative to `CRAWLEE_MEMORY_MBYTES` environment variable.
-     */
-    memoryMbytes?: number;
-
-    /**
-     * Defines the interval of emitting the `persistState` event.
-     *
-     * Alternative to `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` environment variable.
-     * @default 60_000
-     */
-    persistStateIntervalMillis?: number;
-
-    /**
-     Defines the interval of emitting the `systemInfo` event.
-     @default 1_000
-     */
-    systemInfoIntervalMillis?: number;
-
-    /**
-     * Defines the default input key, i.e. the key that is used to get the crawler input value
-     * from the default {@apilink KeyValueStore} associated with the current crawler run.
-     *
-     * Alternative to `CRAWLEE_INPUT_KEY` environment variable.
-     * @default 'INPUT'
-     */
-    inputKey?: string;
-
-    /**
-     * Defines whether web browsers launched by Crawlee will run in the headless mode.
-     *
-     * Alternative to `CRAWLEE_HEADLESS` environment variable.
-     * @default true
-     */
-    headless?: boolean;
-
-    /**
-     * Defines whether to run X virtual framebuffer on the web browsers launched by Crawlee.
-     *
-     * Alternative to `CRAWLEE_XVFB` environment variable.
-     * @default false
-     */
-    xvfb?: boolean;
-
-    /**
-     * Defines a path to Chrome executable.
-     *
-     * Alternative to `CRAWLEE_CHROME_EXECUTABLE_PATH` environment variable.
-     */
-    chromeExecutablePath?: string;
-
-    /**
-     * Defines a path to default browser executable.
-     *
-     * Alternative to `CRAWLEE_DEFAULT_BROWSER_PATH` environment variable.
-     */
-    defaultBrowserPath?: string;
-
-    /**
-     * Defines whether to disable browser sandbox by adding `--no-sandbox` flag to `launchOptions`.
-     *
-     * Alternative to `CRAWLEE_DISABLE_BROWSER_SANDBOX` environment variable.
-     */
-    disableBrowserSandbox?: boolean;
-
-    /**
-     * Sets the log level to the given value.
-     *
-     * Alternative to `CRAWLEE_LOG_LEVEL` environment variable.
-     * @default 'INFO'
-     */
-    logLevel?: LogLevel | LogLevel[keyof LogLevel];
-
-    /**
-     * Defines whether the storage client used should persist the data it stores.
-     *
-     * Alternative to `CRAWLEE_PERSIST_STORAGE` environment variable.
-     */
-    persistStorage?: boolean;
-
-    /**
-     * Used in place of `isContainerized()` when collecting system metrics.
-     *
-     * Alternative to `CRAWLEE_CONTAINERIZED` environment variable.
-     */
-    containerized?: boolean;
+export interface ConfigField<T extends z.ZodType = z.ZodType> {
+    schema: T;
+    envVar?: string;
 }
+
+export function field<T extends z.ZodType>(schema: T, envVar?: string): ConfigField<T> {
+    return { schema, envVar };
+}
+
+// --- Zod preprocessors ---
+
+/** Zod preprocessor treating `'0'`, `'false'`, and `''` as falsy. */
+export const coerceBoolean = z.preprocess((val) => {
+    if (typeof val === 'string') {
+        return !['0', 'false', ''].includes(val.toLowerCase());
+    }
+    return val;
+}, z.boolean());
+
+const coerceNumber = z.preprocess((val) => {
+    if (typeof val === 'string') return Number(val);
+    return val;
+}, z.number());
+
+/** Zod schema accepting both LogLevel enum values and string names (case-insensitive). */
+export const logLevelSchema = z.preprocess((val) => {
+    if (val == null) return val;
+    const s = String(val);
+    if (Number.isFinite(+s)) return +s;
+    const key = s.toUpperCase() as keyof typeof LogLevel;
+    if (key in LogLevel) return LogLevel[key];
+    return val;
+}, z.nativeEnum(LogLevel));
+
+// --- Crawlee config field definitions ---
+
+export const crawleeConfigFields = {
+    /** @default 'default' */
+    defaultDatasetId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_DATASET_ID'),
+    /** @default true */
+    purgeOnStart: field(coerceBoolean.default(true), 'CRAWLEE_PURGE_ON_START'),
+    /** @default 'default' */
+    defaultKeyValueStoreId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID'),
+    /** @default 'default' */
+    defaultRequestQueueId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_REQUEST_QUEUE_ID'),
+    /** @default 0.95 */
+    maxUsedCpuRatio: field(coerceNumber.default(0.95)),
+    /** @default 0.25 */
+    availableMemoryRatio: field(coerceNumber.default(0.25), 'CRAWLEE_AVAILABLE_MEMORY_RATIO'),
+    memoryMbytes: field(coerceNumber.optional(), 'CRAWLEE_MEMORY_MBYTES'),
+    /** @default 60_000 */
+    persistStateIntervalMillis: field(coerceNumber.default(60_000), 'CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS'),
+    /** @default 1_000 */
+    systemInfoIntervalMillis: field(coerceNumber.default(1_000)),
+    /** @default 'INPUT' */
+    inputKey: field(z.string().default('INPUT'), 'CRAWLEE_INPUT_KEY'),
+    /** @default true */
+    headless: field(coerceBoolean.default(true), 'CRAWLEE_HEADLESS'),
+    /** @default false */
+    xvfb: field(coerceBoolean.default(false), 'CRAWLEE_XVFB'),
+    chromeExecutablePath: field(z.string().optional(), 'CRAWLEE_CHROME_EXECUTABLE_PATH'),
+    defaultBrowserPath: field(z.string().optional(), 'CRAWLEE_DEFAULT_BROWSER_PATH'),
+    disableBrowserSandbox: field(coerceBoolean.optional(), 'CRAWLEE_DISABLE_BROWSER_SANDBOX'),
+    logLevel: field(logLevelSchema.optional(), 'CRAWLEE_LOG_LEVEL'),
+    /** @default true */
+    persistStorage: field(coerceBoolean.default(true), 'CRAWLEE_PERSIST_STORAGE'),
+    containerized: field(coerceBoolean.optional(), 'CRAWLEE_CONTAINERIZED'),
+};
+
+// --- Type utilities ---
+
+export type FieldsInput<F extends Record<string, ConfigField>> = {
+    [K in keyof F]?: z.output<F[K]['schema']>;
+};
+
+export type FieldsOutput<F extends Record<string, ConfigField>> = {
+    [K in keyof F]: z.output<F[K]['schema']>;
+};
+
+export type ConfigurationInput = FieldsInput<typeof crawleeConfigFields>;
+export type ResolvedConfigValues = FieldsOutput<typeof crawleeConfigFields>;
+
+/** @deprecated Use {@link ConfigurationInput} instead. */
+export type ConfigurationOptions = ConfigurationInput;
+
+// --- Configuration class ---
+
+// Declaration merging: adds resolved config properties to the Configuration type
+export interface Configuration extends ResolvedConfigValues {}
 
 /**
  * `Configuration` is a value object holding Crawlee configuration. By default, there is a
@@ -161,13 +112,9 @@ export interface ConfigurationOptions {
  *
  * // Get the global configuration
  * const config = Configuration.getGlobalConfig();
- * // Set the 'persistStateIntervalMillis' option
- * // of global configuration to 10 seconds
- * config.set('persistStateIntervalMillis', 10_000);
- *
- * // No need to pass the configuration to the crawler,
- * // as it's using the global configuration by default
- * const crawler = new BasicCrawler();
+ * // Access configuration values directly as properties
+ * console.log(config.headless);
+ * console.log(config.persistStateIntervalMillis);
  * ```
  *
  * *Using custom configuration:*
@@ -177,15 +124,14 @@ export interface ConfigurationOptions {
  * // Create a new configuration
  * const config = new Configuration({ persistStateIntervalMillis: 30_000 });
  * // Pass the configuration to the crawler
- * const crawler = new BasicCrawler({ configuration: config, ... });
+ * const crawler = new BasicCrawler({ configuration: config });
  * ```
  *
- * The configuration provided via environment variables always takes precedence. We can also
- * define the `crawlee.json` file in the project root directory which will serve as a baseline,
- * so the options provided in constructor will override those. In other words, the precedence is:
+ * Configuration is immutable — values are set via the constructor and cannot be changed afterwards.
+ * The priority order for resolving values is (highest to lowest):
  *
  * ```text
- * crawlee.json < constructor options < environment variables
+ * constructor options > environment variables > crawlee.json > schema defaults
  * ```
  *
  * ## Supported Configuration Options
@@ -207,144 +153,41 @@ export interface ConfigurationOptions {
  * Key | Environment Variable | Default Value
  * ---|---|---
  * `inputKey` | `CRAWLEE_INPUT_KEY` | `'INPUT'`
- * `xvfb` | `CRAWLEE_XVFB` | -
+ * `xvfb` | `CRAWLEE_XVFB` | `false`
  * `chromeExecutablePath` | `CRAWLEE_CHROME_EXECUTABLE_PATH` | -
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -
  * `disableBrowserSandbox` | `CRAWLEE_DISABLE_BROWSER_SANDBOX` | -
  * `availableMemoryRatio` | `CRAWLEE_AVAILABLE_MEMORY_RATIO` | `0.25`
- * `containerized | `CRAWLEE_CONTAINERIZED | -
+ * `containerized` | `CRAWLEE_CONTAINERIZED` | -
  */
 export class Configuration {
     /**
-     * Maps environment variables to config keys (e.g. `CRAWLEE_MEMORY_MBYTES` to `memoryMbytes`)
+     * Field definitions for this configuration class.
+     * Subclasses override this to register additional fields.
      */
-    protected static ENV_MAP: Dictionary = {
-        CRAWLEE_AVAILABLE_MEMORY_RATIO: 'availableMemoryRatio',
-        CRAWLEE_PURGE_ON_START: 'purgeOnStart',
-        CRAWLEE_MEMORY_MBYTES: 'memoryMbytes',
-        CRAWLEE_DEFAULT_DATASET_ID: 'defaultDatasetId',
-        CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID: 'defaultKeyValueStoreId',
-        CRAWLEE_DEFAULT_REQUEST_QUEUE_ID: 'defaultRequestQueueId',
-        CRAWLEE_INPUT_KEY: 'inputKey',
-        CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS: 'persistStateIntervalMillis',
-        CRAWLEE_HEADLESS: 'headless',
-        CRAWLEE_XVFB: 'xvfb',
-        CRAWLEE_CHROME_EXECUTABLE_PATH: 'chromeExecutablePath',
-        CRAWLEE_DEFAULT_BROWSER_PATH: 'defaultBrowserPath',
-        CRAWLEE_DISABLE_BROWSER_SANDBOX: 'disableBrowserSandbox',
-        CRAWLEE_LOG_LEVEL: 'logLevel',
-        CRAWLEE_PERSIST_STORAGE: 'persistStorage',
-        CRAWLEE_CONTAINERIZED: 'containerized',
-    };
+    protected static fields: Record<string, ConfigField> = crawleeConfigFields;
 
-    protected static BOOLEAN_VARS = [
-        'purgeOnStart',
-        'headless',
-        'xvfb',
-        'disableBrowserSandbox',
-        'persistStorage',
-        'containerized',
-    ];
-
-    protected static INTEGER_VARS = ['memoryMbytes', 'persistStateIntervalMillis', 'systemInfoIntervalMillis'];
-
-    protected static COMMA_SEPARATED_LIST_VARS: string[] = [];
-
-    protected static DEFAULTS: Dictionary = {
-        defaultKeyValueStoreId: 'default',
-        defaultDatasetId: 'default',
-        defaultRequestQueueId: 'default',
-        inputKey: 'INPUT',
-        maxUsedCpuRatio: 0.95,
-        availableMemoryRatio: 0.25,
-        storageClientOptions: {},
-        purgeOnStart: true,
-        headless: true,
-        persistStateIntervalMillis: 60_000,
-        systemInfoIntervalMillis: 1_000,
-        persistStorage: true,
-    };
-
-    protected options!: Map<keyof ConfigurationOptions, ConfigurationOptions[keyof ConfigurationOptions]>;
+    private _userOptions: Record<string, unknown>;
+    private _fileOptions: Record<string, unknown>;
 
     /**
-     * Creates new `Configuration` instance with provided options. Env vars will have precedence over those.
+     * Creates new `Configuration` instance with provided options.
+     * Constructor options take precedence over environment variables, which take precedence
+     * over crawlee.json values, which take precedence over schema defaults.
      */
-    constructor(options: ConfigurationOptions = {}) {
-        this.buildOptions(options);
+    constructor(options: ConfigurationInput = {}) {
+        this._userOptions = { ...options } as Record<string, unknown>;
+        this._fileOptions = Configuration._loadFileOptions();
+        this._registerAccessors();
 
         // Increase the global limit for event emitter memory leak warnings.
         EventEmitter.defaultMaxListeners = 50;
 
-        // set the log level to support CRAWLEE_ prefixed env var too
-        const logLevel = this.get('logLevel');
-
-        if (logLevel) {
-            const level = Number.isFinite(+logLevel)
-                ? +logLevel
-                : LogLevel[String(logLevel).toUpperCase() as unknown as LogLevel];
-            log.setLevel(level as LogLevel);
+        // Set the log level
+        const logLevel = this.logLevel;
+        if (logLevel != null) {
+            log.setLevel(logLevel);
         }
-    }
-
-    /**
-     * Returns configured value. First checks the environment variables, then provided configuration,
-     * fallbacks to the `defaultValue` argument if provided, otherwise uses the default value as described
-     * in the above section.
-     */
-    get<T extends keyof ConfigurationOptions, U extends ConfigurationOptions[T]>(key: T, defaultValue?: U): U {
-        // prefer env vars, always iterate through the whole map as there might be duplicate env vars for the same option
-        let envValue: string | undefined;
-
-        for (const [k, v] of entries(Configuration.ENV_MAP)) {
-            if (key === v) {
-                envValue = process.env[k as string];
-
-                if (envValue) {
-                    break;
-                }
-            }
-        }
-
-        if (envValue != null) {
-            return this._castEnvValue(key, envValue) as U;
-        }
-
-        // check instance level options
-        if (this.options.has(key)) {
-            return this.options.get(key) as U;
-        }
-
-        // fallback to defaults
-        return (defaultValue ?? Configuration.DEFAULTS[key as keyof typeof Configuration.DEFAULTS] ?? envValue) as U;
-    }
-
-    protected _castEnvValue(key: keyof ConfigurationOptions, value: number | string | boolean) {
-        if (Configuration.INTEGER_VARS.includes(key)) {
-            return +value;
-        }
-
-        if (Configuration.BOOLEAN_VARS.includes(key)) {
-            // 0, false and empty string are considered falsy values
-            return !['0', 'false', ''].includes(String(value).toLowerCase());
-        }
-
-        if (Configuration.COMMA_SEPARATED_LIST_VARS.includes(key)) {
-            if (!value) return [];
-            return String(value)
-                .split(',')
-                .map((v) => v.trim());
-        }
-
-        return value;
-    }
-
-    /**
-     * Sets value for given option. Only affects this `Configuration` instance, the value will not be propagated down to the env var.
-     * To reset a value, we can omit the `value` argument or pass `undefined` there.
-     */
-    set(key: keyof ConfigurationOptions, value?: any): void {
-        this.options.set(key, value);
     }
 
     /**
@@ -356,20 +199,70 @@ export class Configuration {
         return serviceLocator.getConfiguration();
     }
 
-    protected buildOptions(options: ConfigurationOptions) {
-        // try to load configuration from crawlee.json as the baseline
-        const path = join(process.cwd(), 'crawlee.json');
+    /**
+     * Resolves the value for a given config key using the priority chain:
+     * constructor options > env vars > crawlee.json > schema defaults.
+     */
+    private _resolve(key: string, fieldDef: ConfigField): unknown {
+        // 1. Constructor options (highest priority)
+        if (key in this._userOptions && this._userOptions[key] !== undefined) {
+            return this._userOptions[key];
+        }
 
-        if (pathExistsSync(path)) {
-            try {
-                const file = readFileSync(path);
-                const optionsFromFileConfig = JSON.parse(file.toString());
-                Object.assign(options, optionsFromFileConfig);
-            } catch {
-                // ignore
+        // 2. Environment variables
+        if (fieldDef.envVar) {
+            const envValue = process.env[fieldDef.envVar];
+            if (envValue != null && envValue !== '') {
+                return fieldDef.schema.parse(envValue);
             }
         }
 
-        this.options = new Map(entries(options));
+        // 3. crawlee.json file options
+        if (key in this._fileOptions && this._fileOptions[key] !== undefined) {
+            return this._fileOptions[key];
+        }
+
+        // 4. Schema default (by parsing undefined through the schema)
+        const result = fieldDef.schema.safeParse(undefined);
+        return result.success ? result.data : undefined;
+    }
+
+    /**
+     * Registers getters (and throwing setters) on the instance for each field.
+     */
+    private _registerAccessors(): void {
+        const fields = (this.constructor as typeof Configuration).fields;
+        const descriptors: PropertyDescriptorMap = {};
+
+        for (const key of Object.keys(fields)) {
+            descriptors[key] = {
+                get: () => this._resolve(key, fields[key]),
+                set() {
+                    throw new TypeError('Configuration is immutable. Pass options via the constructor instead.');
+                },
+                enumerable: true,
+                configurable: false,
+            };
+        }
+
+        Object.defineProperties(this, descriptors);
+    }
+
+    /**
+     * Loads config options from crawlee.json in the current working directory.
+     */
+    private static _loadFileOptions(): Record<string, unknown> {
+        const filePath = join(process.cwd(), 'crawlee.json');
+
+        if (pathExistsSync(filePath)) {
+            try {
+                const file = readFileSync(filePath);
+                return JSON.parse(file.toString());
+            } catch {
+                return {};
+            }
+        }
+
+        return {};
     }
 }

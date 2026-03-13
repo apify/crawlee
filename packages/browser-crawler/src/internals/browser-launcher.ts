@@ -189,7 +189,7 @@ export abstract class BrowserLauncher<
             ...this.launchOptions,
         };
 
-        if (this.config.get('disableBrowserSandbox')) {
+        if (this.config.disableBrowserSandbox) {
             launchOptions.args.push('--no-sandbox');
         }
 
@@ -209,11 +209,11 @@ export abstract class BrowserLauncher<
     }
 
     protected _getDefaultHeadlessOption(): boolean {
-        return this.config.get('headless')! && !this.config.get('xvfb', false);
+        return this.config.headless && !this.config.xvfb;
     }
 
     protected _getChromeExecutablePath(): string {
-        return this.config.get('chromeExecutablePath', this._getTypicalChromeExecutablePath());
+        return this.config.chromeExecutablePath ?? this._getTypicalChromeExecutablePath();
     }
 
     /**
