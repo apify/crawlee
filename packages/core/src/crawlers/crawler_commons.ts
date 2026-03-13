@@ -28,7 +28,7 @@ export type LoadedContext<Context extends RestrictedCrawlingContext> =
 
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     id: string;
-    session?: Session;
+    session: Session;
 
     /**
      * An object with information about currently used proxy by the crawler
