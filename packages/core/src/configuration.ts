@@ -12,10 +12,10 @@ import { serviceLocator } from './service_locator.js';
 
 export interface ConfigField<T extends z.ZodType = z.ZodType> {
     schema: T;
-    envVar?: string;
+    envVar?: string | string[];
 }
 
-export function field<T extends z.ZodType>(schema: T, envVar?: string): ConfigField<T> {
+export function field<T extends z.ZodType>(schema: T, envVar?: string | string[]): ConfigField<T> {
     return { schema, envVar };
 }
 
@@ -29,7 +29,7 @@ export const coerceBoolean = z.preprocess((val) => {
     return val;
 }, z.boolean());
 
-const coerceNumber = z.preprocess((val) => {
+export const coerceNumber = z.preprocess((val) => {
     if (typeof val === 'string') return Number(val);
     return val;
 }, z.number());
@@ -211,9 +211,12 @@ export class Configuration {
 
         // 2. Environment variables
         if (fieldDef.envVar) {
-            const envValue = process.env[fieldDef.envVar];
-            if (envValue != null && envValue !== '') {
-                return fieldDef.schema.parse(envValue);
+            const envVars = Array.isArray(fieldDef.envVar) ? fieldDef.envVar : [fieldDef.envVar];
+            for (const envVar of envVars) {
+                const envValue = process.env[envVar];
+                if (envValue != null && envValue !== '') {
+                    return fieldDef.schema.parse(envValue);
+                }
             }
         }
 
