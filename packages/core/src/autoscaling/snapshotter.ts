@@ -441,7 +441,8 @@ export class Snapshotter {
 
     protected async _getMemoryTotalBytes() {
         if (this.config.get('systemInfoV2')) {
-            return (await getMemoryInfoV2(this.config.get('containerized', await isContainerized()))).totalBytes;
+            const containerized = this.config.get('containerized', await isContainerized());
+            return (await getMemoryInfoV2(containerized)).totalBytes;
         }
         return (await getMemoryInfo()).totalBytes;
     }
