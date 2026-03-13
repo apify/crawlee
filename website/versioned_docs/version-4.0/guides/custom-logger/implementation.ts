@@ -3,18 +3,19 @@ import { BaseCrawleeLogger } from 'crawlee';
 import type { CrawleeLogger, CrawleeLoggerOptions } from 'crawlee';
 
 // Map Crawlee numeric log levels to Winston level strings
+// LogLevel values: ERROR=1, SOFT_FAIL=2, WARNING=3, INFO=4, PERF=5, DEBUG=6
 const CRAWLEE_LEVEL_TO_WINSTON: Record<number, string> = {
-    0: 'error',   // ERROR
-    1: 'warn',    // WARNING
-    2: 'info',    // INFO (SOFT_FAIL)
-    3: 'info',    // INFO
-    4: 'debug',   // PERF
-    5: 'debug',   // DEBUG
+    1: 'error',   // ERROR
+    2: 'warn',    // SOFT_FAIL
+    3: 'warn',    // WARNING
+    4: 'info',    // INFO
+    5: 'debug',   // PERF
+    6: 'debug',   // DEBUG
 };
 
 /**
  * Adapter that bridges Crawlee's CrawleeLogger interface to a Winston logger.
- * Extend BaseCrawleeLogger and implement only `log()` and `_createChild()`.
+ * Extend BaseCrawleeLogger and implement only `logWithLevel()` and `createChild()`.
  */
 export class WinstonAdapter extends BaseCrawleeLogger {
     constructor(
@@ -24,13 +25,13 @@ export class WinstonAdapter extends BaseCrawleeLogger {
         super(options);
     }
 
-    protected log(level: number, message: string, data?: Record<string, unknown>): void {
+    logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
         const winstonLevel = CRAWLEE_LEVEL_TO_WINSTON[level] ?? 'info';
         const prefix = this.getOptions().prefix;
         this.logger.log(winstonLevel, message, { ...data, prefix });
     }
 
-    protected _createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
+    protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
         return new WinstonAdapter(
             this.logger.child({ prefix: options.prefix }),
             { ...this.getOptions(), ...options },
