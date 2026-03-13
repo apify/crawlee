@@ -1,10 +1,9 @@
-import { CheerioCrawler, Configuration } from 'crawlee';
+import { CheerioCrawler, serviceLocator } from 'crawlee';
 import { WinstonAdapter, winstonLogger } from './implementation';
 
-// Wrap your Winston logger in the adapter and pass it to Configuration
-const config = new Configuration({
-    loggerProvider: new WinstonAdapter(winstonLogger),
-});
+// Register the Winston adapter as Crawlee's global logger
+// This must be done before creating any crawlers
+serviceLocator.setLogger(new WinstonAdapter(winstonLogger));
 
 const crawler = new CheerioCrawler(
     {
@@ -19,7 +18,6 @@ const crawler = new CheerioCrawler(
             console.log(`Title: ${title}`);
         },
     },
-    config,
 );
 
 await crawler.run(['https://crawlee.dev']);
