@@ -82,7 +82,7 @@ export interface LightpandaCrawlerOptions
  * `LightpandaCrawler` is a browser crawler that uses [Lightpanda](https://lightpanda.io), a
  * lightweight headless browser designed for agentic AI workflows and high-throughput scraping.
  *
- * Lightpanda is a Rust-based headless browser that exposes a Chrome DevTools Protocol (CDP)
+ * Lightpanda is a Zig-based headless browser that exposes a Chrome DevTools Protocol (CDP)
  * endpoint. Crawlee connects to it via Playwright's `chromium.connectOverCDP()`.
  *
  * > **Platform Note:** Lightpanda is currently only supported on **Linux**.

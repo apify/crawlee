@@ -2,7 +2,7 @@
  * Lightpanda-powered headless browser crawling for Crawlee.
  *
  * This package provides {@apilink LightpandaCrawler}, which extends {@apilink BrowserCrawler}
- * with support for the [Lightpanda](https://lightpanda.io) browser — a fast, Rust-based headless
+ * with support for the [Lightpanda](https://lightpanda.io) browser — a fast, Zig-based headless
  * browser designed for agentic AI workflows and high-throughput web scraping.
  *
  * Lightpanda communicates via the Chrome DevTools Protocol (CDP), and Crawlee connects to it
