@@ -199,7 +199,7 @@ export class Snapshotter {
         } else {
             this.#maxMemoryRatio = this.config.get('availableMemoryRatio');
             this.log.warning(
-                `Setting max memory of this run to ${this.maxMemoryBytes * 100} % of available memory. ` +
+                `Setting max memory of this run to ${this.#maxMemoryRatio * 100} % of available memory. ` +
                     'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
             );
             // Create a fallback memory measurement in case of missing memTotalBytes in SystemInfo. Weak types of
@@ -207,7 +207,6 @@ export class Snapshotter {
             // maxMemoryBytes when maxMemoryBytes is set as a ratio.
             // This does not happen in practice, but code allows it.
             this.#maxMemoryBytesFallback = await this._getMemoryTotalBytes();
-            console.log(this.#maxMemoryBytesFallback);
         }
 
         // Start snapshotting.

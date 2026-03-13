@@ -2,7 +2,6 @@ import os from 'node:os';
 
 import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';
-import * as utils from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';

@@ -117,7 +117,7 @@ export class LocalEventManager extends EventManager {
 
     private async _getMemoryInfo() {
         if (this.config.get('systemInfoV2')) {
-            return getMemoryInfoV2(this.config.get('containerized', await isContainerized()));
+            return getMemoryInfoV2(await this.isContainerizedWrapper());
         }
         return getMemoryInfo();
     }
