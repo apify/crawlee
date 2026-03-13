@@ -8,7 +8,6 @@ import type { LaunchContext } from '@crawlee/browser-pool';
 import { PlaywrightController } from '@crawlee/browser-pool';
 import type { BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
-import { chromium } from 'playwright';
 
 import log from '@apify/log';
 
@@ -50,16 +49,20 @@ export interface LightpandaPluginOptions extends BrowserPluginOptions<LaunchOpti
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 9222;
-const STARTUP_POLL_INTERVAL_MS = 100;
+const STARTUP_INITIAL_POLL_MS = 50;
+const STARTUP_MAX_POLL_MS = 500;
 const STARTUP_TIMEOUT_MS = 30_000;
+const SOCKET_CONNECT_TIMEOUT_MS = 2_000;
+const SIGKILL_TIMEOUT_MS = 5_000;
 
 /**
  * Polls a TCP port until it accepts connections or the timeout is reached.
- * Used to wait for the Lightpanda process to be ready before connecting via CDP.
+ * Uses exponential backoff for efficient startup detection.
  */
 async function waitForPort(host: string, port: number, timeoutMs: number): Promise<void> {
     const deadline = Date.now() + timeoutMs;
     let lastError: Error | undefined;
+    let delay = STARTUP_INITIAL_POLL_MS;
 
     while (Date.now() < deadline) {
         try {
@@ -68,15 +71,21 @@ async function waitForPort(host: string, port: number, timeoutMs: number): Promi
                     socket.destroy();
                     resolve();
                 });
+                socket.setTimeout(SOCKET_CONNECT_TIMEOUT_MS);
+                socket.once('timeout', () => {
+                    socket.destroy();
+                    reject(new Error('Connection timed out'));
+                });
                 socket.once('error', (err) => {
                     socket.destroy();
                     reject(err);
                 });
             });
-            return; // connected successfully
+            return;
         } catch (err) {
             lastError = err as Error;
-            await new Promise((resolve) => setTimeout(resolve, STARTUP_POLL_INTERVAL_MS));
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            delay = Math.min(delay * 2, STARTUP_MAX_POLL_MS);
         }
     }
 
@@ -119,8 +128,16 @@ async function trySpawnViaPackage(
         }
 
         return proc;
-    } catch {
-        return null;
+    } catch (err: unknown) {
+        // Only treat module-not-found as "package not installed". Re-throw real errors
+        // (e.g. permission denied, corrupt binary) so users get actionable diagnostics.
+        if (err instanceof Error && 'code' in err) {
+            const code = (err as { code?: string }).code;
+            if (code === 'MODULE_NOT_FOUND' || code === 'ERR_MODULE_NOT_FOUND') {
+                return null;
+            }
+        }
+        throw err;
     }
 }
 
@@ -137,7 +154,13 @@ function spawnViaBinary(
 ): ChildProcess {
     const args: string[] = ['serve', '--host', host, '--port', String(port)];
 
-    if (proxyUrl) args.push('--http_proxy', proxyUrl);
+    if (proxyUrl) {
+        const parsed = new URL(proxyUrl);
+        if (!['http:', 'https:', 'socks5:'].includes(parsed.protocol)) {
+            throw new Error(`LightpandaCrawler: Unsupported proxy protocol: ${parsed.protocol}`);
+        }
+        args.push('--http_proxy', proxyUrl);
+    }
     if (timeout !== undefined) args.push('--timeout', String(timeout));
     if (obeyRobots) args.push('--obey_robots');
 
@@ -222,25 +245,36 @@ export class LightpandaPlugin extends BrowserPlugin<BrowserType, LaunchOptions, 
             try {
                 await waitForPort(host, port, STARTUP_TIMEOUT_MS);
             } catch (err) {
-                proc!.kill();
+                proc?.kill();
                 throw err;
             }
         }
 
         const cdpUrl = `ws://${host}:${port}`;
 
+        if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1') {
+            log.warning(
+                'LightpandaCrawler: CDP connection to remote host is unencrypted (ws://). ' +
+                    'Sensitive data may be exposed on the network.',
+            );
+        }
+
         let browser: PlaywrightBrowser;
         try {
-            browser = await chromium.connectOverCDP(cdpUrl) as unknown as PlaywrightBrowser;
+            // Use the injected library (playwright.chromium) rather than a hardcoded import,
+            // so the `launcher` option in LightpandaLaunchContext is respected.
+            browser = (await (this.library as any).connectOverCDP(cdpUrl)) as PlaywrightBrowser;
         } catch (err) {
             proc?.kill();
-            throw err;
+            throw new Error(
+                `LightpandaCrawler: Failed to connect to Lightpanda CDP server at ${cdpUrl}. ` +
+                    `Ensure Lightpanda is running. Original error: ${err instanceof Error ? err.message : err}`,
+            );
         }
 
         if (proc) {
             this.managedProcesses.set(browser, proc);
 
-            // On unexpected process exit (non-zero code), this is a fatal condition.
             proc.once('exit', (code, signal) => {
                 if (code !== 0 && code !== null) {
                     log.error(
@@ -251,15 +285,8 @@ export class LightpandaPlugin extends BrowserPlugin<BrowserType, LaunchOptions, 
             });
         }
 
-        // Clean up the managed process when the browser disconnects.
         browser.on?.('disconnected', () => {
-            const managedProc = this.managedProcesses.get(browser);
-            if (managedProc && !managedProc.killed) {
-                managedProc.stdout?.destroy();
-                managedProc.stderr?.destroy();
-                managedProc.kill();
-            }
-            this.managedProcesses.delete(browser);
+            this._killManagedProcess(browser);
         });
 
         return browser;
@@ -282,6 +309,26 @@ export class LightpandaPlugin extends BrowserPlugin<BrowserType, LaunchOptions, 
         // No-op: proxy is handled during process spawn via the `--http_proxy` CLI flag.
     }
 
+    /**
+     * Kills a managed Lightpanda process for the given browser, with SIGKILL fallback.
+     */
+    private _killManagedProcess(browser: PlaywrightBrowser): void {
+        const managedProc = this.managedProcesses.get(browser);
+        if (managedProc && !managedProc.killed) {
+            managedProc.stdout?.destroy();
+            managedProc.stderr?.destroy();
+            managedProc.kill('SIGTERM');
+            setTimeout(() => {
+                if (!managedProc.killed) managedProc.kill('SIGKILL');
+            }, SIGKILL_TIMEOUT_MS);
+        }
+        this.managedProcesses.delete(browser);
+    }
+
+    // PlaywrightController only uses BrowserPlugin base-class methods (launch, close,
+    // newPage, etc.) at runtime. The `as any` cast is safe because LightpandaPlugin
+    // satisfies the full BrowserPlugin interface that PlaywrightController actually uses.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected _createController(): BrowserController<BrowserType, LaunchOptions, PlaywrightBrowser> {
         return new PlaywrightController(this as any) as unknown as BrowserController<
             BrowserType,

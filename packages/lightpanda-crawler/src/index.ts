@@ -55,4 +55,4 @@ export type { LightpandaLaunchContext } from './internals/lightpanda-launcher';
 export { launchLightpanda } from './internals/lightpanda-launcher';
 
 export { LightpandaPlugin } from './internals/lightpanda-plugin';
-export type { LightpandaPluginOptions, LightpandaConfig } from './internals/lightpanda-plugin';
+export type { LightpandaConfig } from './internals/lightpanda-plugin';

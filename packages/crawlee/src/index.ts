@@ -13,7 +13,6 @@ export * from '@crawlee/linkedom';
 export * from '@crawlee/cheerio';
 export * from '@crawlee/puppeteer';
 export * from '@crawlee/playwright';
-export * from '@crawlee/lightpanda';
 export * from '@crawlee/browser-pool';
 export * from '@crawlee/memory-storage';
 

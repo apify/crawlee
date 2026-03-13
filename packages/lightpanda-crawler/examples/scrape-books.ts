@@ -49,15 +49,9 @@ const crawler = new LightpandaCrawler({
         },
     },
 
-    // Lightpanda assigns the same CDP target ID (FID-0000000001) to every new
-    // page within a session, which causes Playwright to throw "Duplicate target"
-    // when a second page is opened in the same browser instance. To work around
-    // this, we handle all pagination within a single requestHandler session
-    // using page.goto() instead of enqueueLinks().
-    maxConcurrency: 1,
-    // Retries cause a Playwright "Duplicate target" crash when Lightpanda reuses
-    // the same CDP target ID (FID-0000000001) for every new session.
-    maxRequestRetries: 0,
+    // LightpandaCrawler enforces maxConcurrency: 1 and defaults maxRequestRetries: 0
+    // because Lightpanda reuses the same CDP target ID for every page.
+    // Pagination is handled inside a single requestHandler using page.goto().
     requestHandlerTimeoutSecs: 300,
 
     async requestHandler({ page, request, pushData, log: reqLog }) {
@@ -78,7 +72,11 @@ const crawler = new LightpandaCrawler({
             // ── Extract book data ──────────────────────────────────────────────
             const books: BookRecord[] = await page.evaluate(() => {
                 const ratingWords: Record<string, string> = {
-                    One: '1', Two: '2', Three: '3', Four: '4', Five: '5',
+                    One: '1',
+                    Two: '2',
+                    Three: '3',
+                    Four: '4',
+                    Five: '5',
                 };
 
                 return Array.from(document.querySelectorAll('article.product_pod')).map((el) => {
@@ -114,10 +112,6 @@ const crawler = new LightpandaCrawler({
         }
 
         reqLog.info(`Pagination complete. Scraped ${pageNum - 1} pages.`);
-    },
-
-    failedRequestHandler({ request, log: reqLog }) {
-        reqLog.error(`Request failed: ${request.url}`);
     },
 });
 

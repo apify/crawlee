@@ -10,6 +10,7 @@ import type {
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightController } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
+import log from '@apify/log';
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
 
@@ -41,15 +42,6 @@ export interface LightpandaCrawlerOptions
     launchContext?: LightpandaLaunchContext;
 
     /**
-     * Shortcut for `launchContext.launchOptions.headless`.
-     * Not applicable to Lightpanda — Lightpanda is always headless.
-     * Included for API compatibility only.
-     * @deprecated Has no effect. Lightpanda is always headless.
-     * @ignore
-     */
-    headless?: boolean;
-
-    /**
      * Function that is called to process each request.
      *
      * The function receives the {@apilink LightpandaCrawlingContext} as an argument, where:
@@ -60,12 +52,6 @@ export interface LightpandaCrawlerOptions
      * - `response` is the Playwright `Response` returned by `page.goto()`, or `null` on failure.
      */
     requestHandler?: LightpandaRequestHandler;
-
-    /**
-     * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handlePageFunction?: LightpandaRequestHandler;
 
     /**
      * Async functions evaluated sequentially before navigation. Good for setting headers or cookies.
@@ -86,6 +72,10 @@ export interface LightpandaCrawlerOptions
  * endpoint. Crawlee connects to it via Playwright's `chromium.connectOverCDP()`.
  *
  * > **Platform Note:** Lightpanda is currently only supported on **Linux**.
+ *
+ * > **Concurrency Note:** Lightpanda reuses the same CDP target ID for every page,
+ * > so `maxConcurrency` is capped at `1` and `maxRequestRetries` defaults to `0`.
+ * > Playwright's `waitForSelector` is not supported — use `page.evaluate()` instead.
  *
  * @example
  * ```ts
@@ -130,12 +120,23 @@ export class LightpandaCrawler extends BrowserCrawler<
      * All `LightpandaCrawler` parameters are passed via an options object.
      */
     constructor(
-        private readonly options: LightpandaCrawlerOptions = {},
+        options: LightpandaCrawlerOptions = {},
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         ow(options, 'LightpandaCrawlerOptions', ow.object.exactShape(LightpandaCrawler.optionsShape));
 
-        const { launchContext = {}, headless: _headless, ...browserCrawlerOptions } = options;
+        const { launchContext = {}, ...browserCrawlerOptions } = options;
+
+        // Lightpanda reuses the same CDP target ID (FID-0000000001) for every page,
+        // causing Playwright "Duplicate target" errors with concurrency > 1.
+        if (browserCrawlerOptions.maxConcurrency && browserCrawlerOptions.maxConcurrency > 1) {
+            log.warning(
+                'LightpandaCrawler: maxConcurrency > 1 is not supported due to Lightpanda CDP target ID reuse. ' +
+                    'Forcing maxConcurrency to 1.',
+            );
+        }
+        browserCrawlerOptions.maxConcurrency = 1;
+        browserCrawlerOptions.maxRequestRetries ??= 0;
 
         const browserPoolOptions = {
             ...options.browserPoolOptions,
@@ -150,7 +151,9 @@ export class LightpandaCrawler extends BrowserCrawler<
 
         // `browserPlugins` is managed internally and should not be overridden directly.
         if (browserPoolOptions.browserPlugins) {
-            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.lightpandaConfig instead.');
+            throw new Error(
+                'browserPoolOptions.browserPlugins is disallowed. Use launchContext.lightpandaConfig instead.',
+            );
         }
 
         const lightpandaLauncher = new LightpandaLauncher(launchContext, config);
@@ -171,7 +174,7 @@ export class LightpandaCrawler extends BrowserCrawler<
         crawlingContext: LightpandaCrawlingContext,
         gotoOptions: LightpandaGotoOptions,
     ): Promise<Response | null> {
-        return crawlingContext.page.goto(crawlingContext.request.url, gotoOptions) as Promise<Response | null>;
+        return crawlingContext.page.goto(crawlingContext.request.url, gotoOptions);
     }
 }
 

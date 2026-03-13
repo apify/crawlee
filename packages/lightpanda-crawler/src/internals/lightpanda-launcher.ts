@@ -1,7 +1,7 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import ow from 'ow';
-import type { BrowserType, LaunchOptions } from 'playwright';
+import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
 
 import type { LightpandaConfig } from './lightpanda-plugin';
 import { LightpandaPlugin } from './lightpanda-plugin';
@@ -45,7 +45,7 @@ export interface LightpandaLaunchContext extends BrowserLaunchContext<LaunchOpti
 
 /**
  * `LightpandaLauncher` creates and manages `LightpandaPlugin` instances for use inside
- * Crawlee's `BrowserPool`. It resolvs the `playwright.chromium` launcher (for `connectOverCDP`)
+ * Crawlee's `BrowserPool`. It resolves the `playwright.chromium` launcher (for `connectOverCDP`)
  * and passes `lightpandaConfig` down to the plugin.
  *
  * @ignore
@@ -115,7 +115,7 @@ export class LightpandaLauncher extends BrowserLauncher<LightpandaPlugin> {
  * await browser.close();
  * ```
  */
-export async function launchLightpanda(launchContext: LightpandaLaunchContext = {}): Promise<unknown> {
+export async function launchLightpanda(launchContext: LightpandaLaunchContext = {}): Promise<PlaywrightBrowser> {
     const launcher = new LightpandaLauncher(launchContext);
-    return launcher.launch();
+    return launcher.launch() as Promise<PlaywrightBrowser>;
 }
