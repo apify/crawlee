@@ -274,6 +274,11 @@ describe('Snapshotter', () => {
         expect(warningSpy).toBeCalled();
         warningSpy.mockReset();
 
+        // Second snapshot again - repeated warning ignored
+        await eventManager.emitSystemInfoEvent(noop);
+        expect(warningSpy).not.toBeCalled();
+        warningSpy.mockReset();
+
         vitest.restoreAllMocks();
         await snapshotter.stop();
     });
