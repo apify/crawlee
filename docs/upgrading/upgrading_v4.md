@@ -154,6 +154,40 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+## Configuration class redesign
+
+The `Configuration` class has been redesigned for v4. The main changes are:
+
+### Direct property access replaces `get()` and `set()`
+
+**Before:**
+```ts
+const config = Configuration.getGlobalConfig();
+config.set('persistStateIntervalMillis', 10_000);
+const headless = config.get('headless');
+```
+
+**After:**
+```ts
+// Configuration is now immutable — set options via the constructor
+const config = new Configuration({ persistStateIntervalMillis: 10_000 });
+const headless = config.headless;
+```
+
+The `get()` and `set()` methods are removed. Access config values directly as properties.
+Configuration instances are immutable — attempting to assign a property throws a `TypeError`.
+
+### Constructor options now take precedence over environment variables
+
+**New priority order (highest to lowest):**
+1. Constructor options
+2. Environment variables
+3. `crawlee.json`
+4. Schema defaults
+
+Previously, environment variables always won. Now `new Configuration({ headless: false })`
+works even when `CRAWLEE_HEADLESS=true` is set.
+
 ## Service management moved from `Configuration` to `ServiceLocator`
 
 The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class, following the pattern established in Crawlee for Python.
