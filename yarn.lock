@@ -7212,14 +7212,14 @@ __metadata:
   linkType: hard
 
 "file-type@npm:^21.3.1":
-  version: 21.3.1
-  resolution: "file-type@npm:21.3.1"
+  version: 21.3.2
+  resolution: "file-type@npm:21.3.2"
   dependencies:
     "@tokenizer/inflate": "npm:^0.4.1"
     strtok3: "npm:^10.3.4"
     token-types: "npm:^6.1.1"
     uint8array-extras: "npm:^1.4.0"
-  checksum: 10c0/66a8eda781c803c6fc372464abba88cee564cfe30f029716f06909da1564bc51d0a4e8d34654b881dc751cdb0513338b3c0747e06a608cee0dd5c5499b018d47
+  checksum: 10c0/74d02787d2702f9d8592c715be1258cc6b865db98f400d17308f029d6bb895dc3135fcd2e5b4788b01e1b3ff4fc7e83d5fa32fd81e59a20f30b3dfe5f1e52aca
   languageName: node
   linkType: hard
 
