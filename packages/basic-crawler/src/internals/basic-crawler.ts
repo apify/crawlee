@@ -1,5 +1,9 @@
 import { dirname } from 'node:path';
-
+import { LruCache } from '@apify/datastructures';
+import type { Log } from '@apify/log';
+import defaultLog, { LogLevel } from '@apify/log';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -25,17 +29,17 @@ import type {
     SessionPoolOptions,
     SkippedRequestCallback,
     Source,
-    StatisticsOptions,
     StatisticState,
+    StatisticsOptions,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
     Configuration,
     CriticalError,
     Dataset,
-    enqueueLinks,
     EnqueueStrategy,
     EventType,
+    enqueueLinks,
     GotScrapingHttpClient,
     KeyValueStore,
     mergeCookies,
@@ -55,18 +59,12 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS, RobotsTxtFile } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
-
-import { LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
-import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request';
 
@@ -550,7 +548,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
     protected maxRequestsPerCrawl?: number;
-    protected handledRequestsCount = 0;
+
+    protected get handledRequestsCount(): number {
+        return this.stats.state.requestsFinished + this.stats.state.requestsFailed;
+    }
+
+    /** @deprecated Setting `handledRequestsCount` directly is no longer supported. The count is now derived from `this.stats`. */
+    protected set handledRequestsCount(_value: number) {
+        throw new Error(
+            'Setting `handledRequestsCount` directly is no longer supported. ' +
+                'The count is now derived from `this.stats.state.requestsFinished` and `this.stats.state.requestsFailed`.',
+        );
+    }
+
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
@@ -983,7 +993,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 this.requestQueue = await this._getRequestQueue();
                 this.requestManager = undefined;
                 await this.initializeRequestManager();
-                this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
             }
 
             this.stats.reset();
@@ -1348,9 +1357,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this._closeEvents = true;
         }
 
-        // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
-        // so that the caller can get a reference to it before awaiting the promise returned from run()
-        // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
 
         if (this.useSessionPool) {
@@ -1360,7 +1366,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         await this.initializeRequestManager();
-        await this._loadHandledRequestCount();
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
@@ -1632,7 +1637,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             isRequestLocked = false; // markRequestHandled succeeded and unlocked the request
 
             this.stats.finishJob(statisticsId, request.retryCount);
-            this.handledRequestsCount++;
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
@@ -1863,7 +1867,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // If we get here, the request is either not retryable
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
-        this.handledRequestsCount++;
         await source.markRequestHandled(request);
         this.stats.failJob(request.id || request.uniqueKey, request.retryCount);
 
@@ -1950,15 +1953,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         });
 
         return context as LoadedContext<Context>;
-    }
-
-    /**
-     * Updates handledRequestsCount from possibly stored counts, usually after worker migration.
-     */
-    protected async _loadHandledRequestCount(): Promise<void> {
-        if (this.requestManager) {
-            this.handledRequestsCount = await this.requestManager.handledCount();
-        }
     }
 
     protected async _executeHooks<HookLike extends (...args: any[]) => Awaitable<void>>(
