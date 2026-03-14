@@ -2,12 +2,12 @@ import os from 'node:os';
 
 import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';
-import * as utils from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
 
 const toBytes = (x: number) => x * 1024 * 1024;
+const noop = () => {};
 
 describe('Snapshotter', () => {
     let logLevel: number;
@@ -139,7 +139,6 @@ describe('Snapshotter', () => {
 
         cpusMock.mockReturnValue(fakeCpu as any);
 
-        const noop = () => {};
         const config = new Configuration({ maxUsedCpuRatio: 0.5 });
         const snapshotter = new Snapshotter({ config });
         // do not initialize the event intervals as we will fire them manually
@@ -178,7 +177,6 @@ describe('Snapshotter', () => {
     test('correctly marks eventLoopOverloaded', () => {
         const clock = vitest.useFakeTimers();
         try {
-            const noop = () => {};
             const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
             // @ts-expect-error Calling protected method
             snapshotter._snapshotEventLoop(noop);
@@ -208,13 +206,12 @@ describe('Snapshotter', () => {
     });
 
     test('correctly marks memoryOverloaded using OS metrics', async () => {
-        const noop = () => {};
         const memoryData = {
             totalBytes: toBytes(10000),
             mainProcessBytes: toBytes(1000),
             childProcessesBytes: toBytes(1000),
         } as MemoryInfo;
-        vitest.spyOn(utils, 'getMemoryInfoV2').mockResolvedValue(memoryData);
+        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         // do not initialize the event intervals as we will fire them manually
@@ -245,31 +242,48 @@ describe('Snapshotter', () => {
     });
 
     test('correctly logs critical memory overload', async () => {
-        vitest.spyOn(utils, 'getMemoryInfoV2').mockResolvedValueOnce({ totalBytes: toBytes(10000) } as MemoryInfo);
+        const initialMemory = toBytes(10000);
+        const usageRatio1 = 0.75; // below warning usage
+        const usageRatio2 = 0.76; // above warning usage
+        const memoryData: MemoryInfo = {
+            totalBytes: initialMemory,
+            freeBytes: initialMemory * (1 - usageRatio1),
+            usedBytes: initialMemory * usageRatio1,
+            mainProcessBytes: initialMemory * usageRatio1,
+            childProcessesBytes: 0,
+        };
+
+        // Mock memory info to be able to inject custom memory measurement data.
+        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
+
+        const eventManager = config.getEventManager() as LocalEventManager;
         await snapshotter.start();
         const warningSpy = vitest.spyOn(snapshotter.log, 'warning').mockImplementation(() => {});
 
-        // @ts-expect-error Calling private method
-        snapshotter._memoryOverloadWarning({
-            memCurrentBytes: toBytes(7600),
-        });
+        // First snapshot - below warning usage
+        await eventManager.emitSystemInfoEvent(noop);
+        expect(warningSpy).not.toBeCalled();
+
+        // Second snapshot - above warning usage
+        memoryData.usedBytes = initialMemory * usageRatio2;
+        memoryData.mainProcessBytes = initialMemory * usageRatio2;
+        memoryData.freeBytes = initialMemory * (1 - usageRatio2);
+        await eventManager.emitSystemInfoEvent(noop);
         expect(warningSpy).toBeCalled();
         warningSpy.mockReset();
 
-        // @ts-expect-error Calling private method
-        snapshotter._memoryOverloadWarning({
-            memCurrentBytes: toBytes(7500),
-        });
+        // Second snapshot again - repeated warning ignored
+        await eventManager.emitSystemInfoEvent(noop);
         expect(warningSpy).not.toBeCalled();
+        warningSpy.mockReset();
 
         vitest.restoreAllMocks();
         await snapshotter.stop();
     });
 
     test('correctly marks clientOverloaded', () => {
-        const noop = () => {};
         // mock client data
         const apifyClient = Configuration.getStorageClient();
         const oldStats = apifyClient.stats;
@@ -331,5 +345,62 @@ describe('Snapshotter', () => {
             eventLoopSample[0].createdAt.getTime() - eventLoopSample[eventLoopSample.length - 1].createdAt.getTime();
         expect(diffBetween).toBeLessThan(SAMPLE_SIZE_MILLIS);
         expect(diffWithin).toBeLessThan(SAMPLE_SIZE_MILLIS);
+    });
+
+    test.each([
+        true,
+        false,
+    ])('correctly handles dynamic vs static memory limit when total memory changes (dynamic=%s)', async (dynamic) => {
+        /**
+         * Two memory snapshots are emitted with the same process memory usage but different total memory.
+         * First snapshot is overloaded in both modes. Using 60% of total memory, while the limit is 50% in both modes.
+         * Second snapshot doubles the total memory while keeping the same usage:
+         * - Dynamic mode (availableMemoryRatio): maxMemoryBytes should update → not overloaded
+         * - Static mode (memoryMbytes): maxMemoryBytes stays fixed → still overloaded
+         */
+        const initialTotalBytes = toBytes(100);
+        const allowedMemoryUsageRatio = 0.5;
+        const actualMemoryUsage = 0.6 * initialTotalBytes;
+
+        // Initial snapshot. Overloaded in both modes.
+        const memoryData: MemoryInfo = {
+            totalBytes: initialTotalBytes,
+            freeBytes: initialTotalBytes - actualMemoryUsage,
+            usedBytes: actualMemoryUsage,
+            mainProcessBytes: actualMemoryUsage,
+            childProcessesBytes: 0,
+        };
+
+        // Mock memory info to be able to inject custom memory measurement data.
+        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
+
+        let config: Configuration;
+        if (dynamic) {
+            // Dynamic: Allow usage of 50 % of available memory through ratio
+            config = new Configuration({ availableMemoryRatio: allowedMemoryUsageRatio });
+        } else {
+            // Static: Allow usage of 50 % of available memory through fixed value
+            config = new Configuration({ memoryMbytes: (allowedMemoryUsageRatio * initialTotalBytes) / 1024 / 1024 });
+        }
+
+        const snapshotter = new Snapshotter({ config });
+        vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+        const eventManager = config.getEventManager() as LocalEventManager;
+        await snapshotter.start();
+
+        // First snapshot - full usage of the memory, should be overloaded in both modes
+        await eventManager.emitSystemInfoEvent(noop);
+
+        // Second snapshot - total memory doubled, should be overloaded only in static mode
+        memoryData.totalBytes = initialTotalBytes * 2;
+        memoryData.freeBytes = memoryData.totalBytes - actualMemoryUsage;
+        await eventManager.emitSystemInfoEvent(noop);
+
+        const memorySnapshots = snapshotter.getMemorySample();
+        expect(memorySnapshots).toHaveLength(2);
+        expect(memorySnapshots[0].isOverloaded).toBe(true);
+        expect(memorySnapshots[1].isOverloaded).toBe(!dynamic);
+
+        await snapshotter.stop();
     });
 });
