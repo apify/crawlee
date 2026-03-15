@@ -13,15 +13,7 @@ import type {
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
-import {
-    BasicCrawler,
-    BLOCKED_STATUS_CODES,
-    ContextPipeline,
-    mergeCookies,
-    RequestState,
-    Router,
-    SessionError,
-} from '@crawlee/basic';
+import { BasicCrawler, ContextPipeline, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -400,7 +392,7 @@ export class HttpCrawler<
         this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
-            ({ request, response }) => this._abortDownloadOfBody(request, response!),
+            ({ request, response, session }) => this._abortDownloadOfBody(request, response!, session),
             ...postNavigationHooks,
         ];
 
@@ -560,14 +552,7 @@ export class HttpCrawler<
             }
         }
 
-        const blockedStatusCodes =
-            // eslint-disable-next-line dot-notation
-            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
-                ? // eslint-disable-next-line dot-notation
-                  this.sessionPool!['blockedStatusCodes']
-                : BLOCKED_STATUS_CODES;
-
-        if (blockedStatusCodes.includes(crawlingContext.response.status!)) {
+        if (crawlingContext.session.isBlockedStatusCode(crawlingContext.response.status!)) {
             return `Blocked by status code ${crawlingContext.response.status}`;
         }
 
@@ -771,14 +756,11 @@ export class HttpCrawler<
         throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
-    private _abortDownloadOfBody(request: CrawleeRequest, response: Response) {
+    private _abortDownloadOfBody(request: CrawleeRequest, response: Response, session: Session) {
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        // eslint-disable-next-line dot-notation -- accessing private property
-        const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
-        // if we retry the request, can the Content-Type change?
-        const isTransientContentType = status >= 500 || blockedStatusCodes.includes(status);
+        const isTransientContentType = status >= 500 || session.isBlockedStatusCode(status);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;

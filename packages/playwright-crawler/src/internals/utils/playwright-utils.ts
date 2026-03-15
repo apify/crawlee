@@ -732,14 +732,8 @@ async function handleCloudflareChallenge(
     session?: Session,
     options: HandleCloudflareChallengeOptions = {},
 ): Promise<void> {
-    // eslint-disable-next-line dot-notation
-    const blockedStatusCodes = session?.['sessionPool']['blockedStatusCodes'] as number[];
-
     // Cloudflare pages are 403, which are blocked by default
-    if (blockedStatusCodes?.includes(403)) {
-        const idx = blockedStatusCodes.indexOf(403);
-        blockedStatusCodes.splice(idx, 1);
-    }
+    session?.blockedStatusCodes.delete(403);
 
     options.isBlockedCallback ??= async () => {
         const isBlocked = await page.evaluate(() => {

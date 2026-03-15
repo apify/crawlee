@@ -99,7 +99,7 @@ export class Session implements ISession {
     private _usageCount: number;
     private _maxUsageCount: number;
     private sessionPool: import('./session_pool.js').SessionPool;
-    private _blockedStatusCodes: Set<number>;
+    readonly blockedStatusCodes: Set<number>;
     private _errorScore: number;
     private _proxyInfo?: ProxyInfo;
     private _cookieJar: CookieJar;
@@ -201,7 +201,7 @@ export class Session implements ISession {
         this._usageCount = usageCount; // indicates how many times the session has been used
         this._errorScore = errorScore; // indicates number of markBaded request with the session
         this._maxUsageCount = maxUsageCount;
-        this._blockedStatusCodes = new Set(blockedStatusCodes);
+        this.blockedStatusCodes = new Set(blockedStatusCodes);
         this.sessionPool = sessionPool;
     }
 
@@ -303,7 +303,7 @@ export class Session implements ISession {
      * Returns `true` if the status code is in the session's blocked status codes list.
      */
     isBlockedStatusCode(statusCode: number): boolean {
-        return this._blockedStatusCodes.has(statusCode);
+        return this.blockedStatusCodes.has(statusCode);
     }
 
     /**

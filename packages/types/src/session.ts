@@ -104,6 +104,7 @@ export interface ISession {
     maxUsageCount: number;
     cookieJar: CookieJar;
     proxyInfo?: ProxyInfo;
+    readonly blockedStatusCodes: Set<number>;
 
     /**
      * Indicates whether the session is blocked.

@@ -15,7 +15,6 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
-    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
@@ -444,13 +443,6 @@ export abstract class BrowserCrawler<
     ): Promise<string | false> {
         const { page, response } = crawlingContext;
 
-        const blockedStatusCodes =
-            // eslint-disable-next-line dot-notation
-            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
-                ? // eslint-disable-next-line dot-notation
-                  this.sessionPool!['blockedStatusCodes']
-                : DEFAULT_BLOCKED_STATUS_CODES;
-
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
         if ((await this.containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS)) && response?.status() === 403) {
             await sleep(5000);
@@ -463,10 +455,11 @@ export abstract class BrowserCrawler<
         }
 
         const foundSelectors = await this.containsSelectors(page, RETRY_CSS_SELECTORS);
-        const blockedStatusCode = blockedStatusCodes.find((x) => x === (response?.status() ?? 0));
+        const statusCode = response?.status() ?? 0;
 
         if (foundSelectors) return `Found selectors: ${foundSelectors.join(', ')}`;
-        if (blockedStatusCode) return `Received blocked status code: ${blockedStatusCode}`;
+        if (crawlingContext.session.isBlockedStatusCode(statusCode))
+            return `Received blocked status code: ${statusCode}`;
 
         return false;
     }
