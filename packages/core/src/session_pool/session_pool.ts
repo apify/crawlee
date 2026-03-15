@@ -144,8 +144,6 @@ export class SessionPool extends EventEmitter {
     protected persistStateKey: string;
     protected _listener!: () => Promise<void>;
     protected events: EventManager;
-    /** @deprecated Access blocked status codes from individual sessions instead. */
-    protected readonly blockedStatusCodes: number[];
     protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
 
@@ -184,7 +182,6 @@ export class SessionPool extends EventEmitter {
             },
         } = options;
 
-        this.blockedStatusCodes = blockedStatusCodes;
         this.events = serviceLocator.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
