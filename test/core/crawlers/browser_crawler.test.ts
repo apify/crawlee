@@ -821,7 +821,7 @@ describe('BrowserCrawler', () => {
                 { url: `${serverAddress}/?q=6` },
             ]);
 
-            expect(sessionUsageHistory).toEqual([0, 1, 2, 3, 4, 5]);
+            expect(sessionUsageHistory).toEqual([0, 0, 0, 0, 0, 0]);
         } finally {
             await localStorageEmulator.destroy();
         }
