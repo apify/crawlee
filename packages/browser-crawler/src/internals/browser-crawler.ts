@@ -308,8 +308,6 @@ export abstract class BrowserCrawler<
     protected readonly ignoreShadowRoots: boolean;
     protected readonly ignoreIframes: boolean;
 
-    private _pendingSessions = new Map<string, Session>();
-
     protected navigationTimeoutMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
@@ -491,13 +489,14 @@ export abstract class BrowserCrawler<
         }
 
         if (crawlingContext.session) {
-            this._pendingSessions.set(crawlingContext.id, crawlingContext.session);
+            newPageOptions.launchContextExtras = {
+                session: crawlingContext.session,
+                proxyInfo: crawlingContext.session.proxyInfo,
+            };
         }
 
         const page = (await this.browserPool.newPage(newPageOptions)) as Page;
         tryCancel();
-
-        this._pendingSessions.delete(crawlingContext.id);
 
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(
             page as any,
@@ -688,18 +687,12 @@ export abstract class BrowserCrawler<
     }
 
     protected async _extendLaunchContext(_pageId: string, launchContext: LaunchContext): Promise<void> {
-        const session = this._pendingSessions.get(_pageId);
+        const session = launchContext.session as Session | undefined;
 
-        if (!session) {
-            return;
-        }
-
-        if (session.proxyInfo?.ignoreTlsErrors) {
+        if (session?.proxyInfo?.ignoreTlsErrors) {
             (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
             (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
         }
-
-        launchContext.extend({ session, proxyInfo: session.proxyInfo });
     }
 
     protected _maybeAddSessionRetiredListener(_pageId: string, browserController: Context['browserController']): void {

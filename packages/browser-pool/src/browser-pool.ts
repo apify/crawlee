@@ -436,7 +436,14 @@ export class BrowserPool<
      * or their page limits have been exceeded.
      */
     async newPage(options: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
-        const { id = nanoid(), pageOptions, browserPlugin = this._pickBrowserPlugin(), proxyUrl, proxyTier } = options;
+        const {
+            id = nanoid(),
+            pageOptions,
+            browserPlugin = this._pickBrowserPlugin(),
+            proxyUrl,
+            proxyTier,
+            launchContextExtras,
+        } = options;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
@@ -451,7 +458,12 @@ export class BrowserPool<
             let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
 
             if (!browserController)
-                browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
+                browserController = await this._launchBrowser(id, {
+                    browserPlugin,
+                    proxyTier,
+                    proxyUrl,
+                    launchContextExtras,
+                });
             tryCancel();
 
             return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
@@ -684,7 +696,7 @@ export class BrowserPool<
     }
 
     private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyTier, proxyUrl } = options;
+        const { browserPlugin, launchOptions, proxyTier, proxyUrl, launchContextExtras } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.startingBrowserControllers.add(browserController);
@@ -695,6 +707,10 @@ export class BrowserPool<
             proxyTier,
             proxyUrl,
         });
+
+        if (launchContextExtras) {
+            launchContext.extend(launchContextExtras);
+        }
 
         try {
             // If the hooks or the launch fails, we need to delete the controller,
@@ -882,6 +898,11 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      * Proxy tier.
      */
     proxyTier?: number;
+    /**
+     * Extra fields to set on the launch context via `launchContext.extend()`.
+     * Only applied when a new browser is launched (not when reusing an existing one).
+     */
+    launchContextExtras?: Record<PropertyKey, unknown>;
 }
 
 export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends BrowserPlugin> {
@@ -919,4 +940,5 @@ interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     launchOptions?: BP['launchOptions'];
     proxyTier?: number;
     proxyUrl?: string;
+    launchContextExtras?: Record<PropertyKey, unknown>;
 }
