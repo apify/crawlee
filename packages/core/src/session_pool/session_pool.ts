@@ -144,6 +144,7 @@ export class SessionPool extends EventEmitter {
     protected persistStateKey: string;
     protected _listener!: () => Promise<void>;
     protected events: EventManager;
+    /** @deprecated Access blocked status codes from individual sessions instead. */
     protected readonly blockedStatusCodes: number[];
     protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
@@ -194,6 +195,7 @@ export class SessionPool extends EventEmitter {
 
         // Session configuration
         this.sessionOptions = {
+            blockedStatusCodes,
             ...sessionOptions,
             // the log needs to propagate to createSessionFunction as in "new Session({ ...sessionPool.sessionOptions })"
             // and can't go inside _defaultCreateSessionFunction

@@ -158,14 +158,9 @@ export interface ISession {
     markBad(): void;
 
     /**
-     * With certain status codes: `401`, `403` or `429` we can be certain
-     * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally, the default status
-     * codes can be extended in the second parameter.
-     * @param statusCode HTTP status code.
-     * @returns Whether the session was retired.
+     * Returns `true` if the status code is in the session's blocked status codes list.
      */
-    retireOnBlockedStatusCodes(statusCode: number): boolean;
+    isBlockedStatusCode(statusCode: number): boolean;
 
     /**
      * Saves cookies from an HTTP response to be used with the session.
