@@ -471,7 +471,6 @@ export abstract class BrowserCrawler<
 
         if (crawlingContext.session?.proxyInfo) {
             const proxyInfo = crawlingContext.session.proxyInfo;
-            crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
@@ -509,8 +508,6 @@ export abstract class BrowserCrawler<
                 );
             },
             browserController: browserControllerInstance,
-            session: crawlingContext.session,
-            proxyInfo: crawlingContext.session?.proxyInfo,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
