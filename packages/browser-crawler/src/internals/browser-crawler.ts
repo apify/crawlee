@@ -489,10 +489,7 @@ export abstract class BrowserCrawler<
         }
 
         if (crawlingContext.session) {
-            newPageOptions.launchContextExtras = {
-                session: crawlingContext.session,
-                proxyInfo: crawlingContext.session.proxyInfo,
-            };
+            newPageOptions.launchContextExtras = { session: crawlingContext.session };
         }
 
         const page = (await this.browserPool.newPage(newPageOptions)) as Page;
