@@ -391,12 +391,8 @@ export abstract class BrowserCrawler<
             browserPoolOptions.useFingerprints = false;
         }
 
-        const { preLaunchHooks = [], postLaunchHooks = [], ...rest } = browserPoolOptions;
-
         this.browserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(rest as any),
-            preLaunchHooks: [this._extendLaunchContext.bind(this), ...preLaunchHooks],
-            postLaunchHooks: [this._maybeAddSessionRetiredListener.bind(this), ...postLaunchHooks],
+            ...(browserPoolOptions as any),
         });
     }
 
@@ -474,21 +470,14 @@ export abstract class BrowserCrawler<
 
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
+            newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
 
             if (proxyInfo?.ignoreTlsErrors) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
                 newPageOptions.pageOptions = {
                     ignoreHTTPSErrors: true,
                     acceptInsecureCerts: true,
                 };
             }
-        }
-
-        if (crawlingContext.session) {
-            newPageOptions.launchContextExtras = { session: crawlingContext.session };
         }
 
         const page = (await this.browserPool.newPage(newPageOptions)) as Page;
@@ -497,6 +486,8 @@ export abstract class BrowserCrawler<
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(
             page as any,
         ) as ProvidedController;
+
+        this._addSessionRetiredListener(crawlingContext.session, browserControllerInstance);
 
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
 
@@ -680,33 +671,29 @@ export abstract class BrowserCrawler<
         request.loadedUrl = await page.url();
     }
 
-    protected async _extendLaunchContext(_pageId: string, launchContext: LaunchContext): Promise<void> {
-        const session = launchContext.session as Session | undefined;
+    private _browsersWithRetiredListener = new WeakSet<Context['browserController']>();
 
-        if (session?.proxyInfo?.ignoreTlsErrors) {
-            (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
-            (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
+    private _addSessionRetiredListener(session: Session, browserController: Context['browserController']): void {
+        if (!this.sessionPool || this._browsersWithRetiredListener.has(browserController)) {
+            return;
         }
-    }
 
-    protected _maybeAddSessionRetiredListener(_pageId: string, browserController: Context['browserController']): void {
-        if (this.sessionPool) {
-            const listener = (session: Session) => {
-                const { launchContext } = browserController;
-                if (session.id === (launchContext.session as Session).id) {
-                    this.browserPool.retireBrowserController(
-                        browserController as Parameters<
-                            BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
-                        >[0],
-                    );
-                }
-            };
+        this._browsersWithRetiredListener.add(browserController);
 
-            this.sessionPool.on(EVENT_SESSION_RETIRED, listener);
-            browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
-                return this.sessionPool!.removeListener(EVENT_SESSION_RETIRED, listener);
-            });
-        }
+        const listener = (retired: Session) => {
+            if (retired.id === session.id) {
+                this.browserPool.retireBrowserController(
+                    browserController as Parameters<
+                        BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
+                    >[0],
+                );
+            }
+        };
+
+        this.sessionPool.on(EVENT_SESSION_RETIRED, listener);
+        browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
+            return this.sessionPool!.removeListener(EVENT_SESSION_RETIRED, listener);
+        });
     }
 
     /**

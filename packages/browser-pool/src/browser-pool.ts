@@ -442,7 +442,7 @@ export class BrowserPool<
             browserPlugin = this._pickBrowserPlugin(),
             proxyUrl,
             proxyTier,
-            launchContextExtras,
+            ignoreTlsErrors,
         } = options;
 
         if (this.pages.has(id)) {
@@ -462,7 +462,7 @@ export class BrowserPool<
                     browserPlugin,
                     proxyTier,
                     proxyUrl,
-                    launchContextExtras,
+                    ignoreTlsErrors,
                 });
             tryCancel();
 
@@ -696,7 +696,7 @@ export class BrowserPool<
     }
 
     private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyTier, proxyUrl, launchContextExtras } = options;
+        const { browserPlugin, launchOptions, proxyTier, proxyUrl, ignoreTlsErrors } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.startingBrowserControllers.add(browserController);
@@ -708,8 +708,9 @@ export class BrowserPool<
             proxyUrl,
         });
 
-        if (launchContextExtras) {
-            launchContext.extend(launchContextExtras);
+        if (ignoreTlsErrors) {
+            (launchContext.launchOptions as Record<string, unknown>).ignoreHTTPSErrors = true;
+            (launchContext.launchOptions as Record<string, unknown>).acceptInsecureCerts = true;
         }
 
         try {
@@ -899,10 +900,10 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      */
     proxyTier?: number;
     /**
-     * Extra fields to set on the launch context via `launchContext.extend()`.
+     * Disable TLS certificate verification for MITM proxies.
      * Only applied when a new browser is launched (not when reusing an existing one).
      */
-    launchContextExtras?: Record<PropertyKey, unknown>;
+    ignoreTlsErrors?: boolean;
 }
 
 export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends BrowserPlugin> {
@@ -940,5 +941,5 @@ interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     launchOptions?: BP['launchOptions'];
     proxyTier?: number;
     proxyUrl?: string;
-    launchContextExtras?: Record<PropertyKey, unknown>;
+    ignoreTlsErrors?: boolean;
 }
