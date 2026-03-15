@@ -13,7 +13,15 @@ import type {
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
-import { BasicCrawler, ContextPipeline, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
+import {
+    BasicCrawler,
+    BLOCKED_STATUS_CODES,
+    ContextPipeline,
+    mergeCookies,
+    RequestState,
+    Router,
+    SessionError,
+} from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -361,6 +369,14 @@ export class HttpCrawler<
             contextPipelineBuilder,
             ...basicCrawlerOptions
         } = options;
+
+        if (ignoreHttpErrorStatusCodes.length > 0) {
+            const sessionPoolOptions = basicCrawlerOptions.sessionPoolOptions ?? {};
+            const blocked = sessionPoolOptions.blockedStatusCodes ?? BLOCKED_STATUS_CODES;
+            const ignoreSet = new Set(ignoreHttpErrorStatusCodes);
+            sessionPoolOptions.blockedStatusCodes = blocked.filter((c: number) => !ignoreSet.has(c));
+            basicCrawlerOptions.sessionPoolOptions = sessionPoolOptions;
+        }
 
         super({
             ...basicCrawlerOptions,
