@@ -37,7 +37,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, ProxyInfo } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -308,6 +308,8 @@ export abstract class BrowserCrawler<
     protected readonly ignoreShadowRoots: boolean;
     protected readonly ignoreIframes: boolean;
 
+    private _pendingSessions = new Map<string, Session>();
+
     protected navigationTimeoutMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
@@ -469,8 +471,6 @@ export abstract class BrowserCrawler<
             id: crawlingContext.id,
         };
 
-        const useIncognitoPages = this.launchContext?.useIncognitoPages;
-
         if (crawlingContext.session?.proxyInfo) {
             const proxyInfo = crawlingContext.session.proxyInfo;
             crawlingContext.proxyInfo = proxyInfo;
@@ -490,18 +490,20 @@ export abstract class BrowserCrawler<
             }
         }
 
+        if (crawlingContext.session) {
+            this._pendingSessions.set(crawlingContext.id, crawlingContext.session);
+        }
+
         const page = (await this.browserPool.newPage(newPageOptions)) as Page;
         tryCancel();
+
+        this._pendingSessions.delete(crawlingContext.id);
 
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(
             page as any,
         ) as ProvidedController;
 
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
-
-        const session = useIncognitoPages
-            ? crawlingContext.session
-            : (browserControllerInstance.launchContext.session as Session);
 
         return {
             page,
@@ -511,8 +513,8 @@ export abstract class BrowserCrawler<
                 );
             },
             browserController: browserControllerInstance,
-            session,
-            proxyInfo: session?.proxyInfo,
+            session: crawlingContext.session,
+            proxyInfo: crawlingContext.session?.proxyInfo,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
@@ -686,36 +688,18 @@ export abstract class BrowserCrawler<
     }
 
     protected async _extendLaunchContext(_pageId: string, launchContext: LaunchContext): Promise<void> {
-        const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
+        const session = this._pendingSessions.get(_pageId);
 
-        // Hacky access from `AdaptivePlaywrightCrawler` calls this without calling `.init()`.
-        // This is the only case where this.sessionPool is accessed without being initialized.
-        if (this.sessionPool) {
-            launchContextExtends.session = await this.sessionPool.newSession({
-                proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                    // cannot pass a request here, since session is created on browser launch
-                }),
-            });
+        if (!session) {
+            return;
         }
 
-        if (!launchContext.proxyUrl && launchContextExtends.session?.proxyInfo) {
-            const proxyInfo = launchContextExtends.session.proxyInfo;
-
-            launchContext.proxyUrl = proxyInfo?.url;
-            launchContextExtends.proxyInfo = proxyInfo;
-
-            // Disable SSL verification for MITM proxies
-            if (proxyInfo?.ignoreTlsErrors) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
-                (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
-            }
+        if (session.proxyInfo?.ignoreTlsErrors) {
+            (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
+            (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
         }
 
-        launchContext.extend(launchContextExtends);
+        launchContext.extend({ session, proxyInfo: session.proxyInfo });
     }
 
     protected _maybeAddSessionRetiredListener(_pageId: string, browserController: Context['browserController']): void {
