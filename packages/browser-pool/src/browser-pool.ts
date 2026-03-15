@@ -466,7 +466,7 @@ export class BrowserPool<
                 });
             tryCancel();
 
-            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
+            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
         });
     }
 
@@ -564,6 +564,7 @@ export class BrowserPool<
         browserController: BrowserControllerReturn,
         pageOptions: PageOptions = {} as PageOptions,
         proxyUrl?: string,
+        ignoreTlsErrors?: boolean,
     ) {
         // This is needed for concurrent newPage calls to wait for the browser launch.
         // It's not ideal though, we need to come up with a better API.
@@ -575,6 +576,13 @@ export class BrowserPool<
 
         if (finalPageOptions) {
             Object.assign(finalPageOptions, browserController.normalizeProxyOptions(proxyUrl, pageOptions));
+
+            if (ignoreTlsErrors) {
+                Object.assign(finalPageOptions, {
+                    ignoreHTTPSErrors: true,
+                    acceptInsecureCerts: true,
+                });
+            }
         }
 
         await this._executeHooks(this.prePageCreateHooks, pageId, browserController, finalPageOptions);

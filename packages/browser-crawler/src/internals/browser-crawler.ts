@@ -471,13 +471,6 @@ export abstract class BrowserCrawler<
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
             newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
-
-            if (proxyInfo?.ignoreTlsErrors) {
-                newPageOptions.pageOptions = {
-                    ignoreHTTPSErrors: true,
-                    acceptInsecureCerts: true,
-                };
-            }
         }
 
         const page = (await this.browserPool.newPage(newPageOptions)) as Page;
