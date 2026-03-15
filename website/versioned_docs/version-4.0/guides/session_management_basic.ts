@@ -36,8 +36,10 @@ const crawler = new BasicCrawler({
             throw e;
         }
 
-        // Automatically retires the session based on response HTTP status code.
-        session?.retireOnBlockedStatusCodes(response.status);
+        // Retire the session if the response status code indicates blocking.
+        if (session?.isBlockedStatusCode(response.status)) {
+            session.retire();
+        }
 
         if ((await response.text()).includes('You are blocked!')) {
             // You are sure it is blocked.
