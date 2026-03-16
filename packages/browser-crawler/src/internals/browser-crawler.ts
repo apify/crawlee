@@ -458,7 +458,7 @@ export abstract class BrowserCrawler<
         const statusCode = response?.status() ?? 0;
 
         if (foundSelectors) return `Found selectors: ${foundSelectors.join(', ')}`;
-        if (this._blockedStatusCodes.has(statusCode)) return `Received blocked status code: ${statusCode}`;
+        if (this.blockedStatusCodes.has(statusCode)) return `Received blocked status code: ${statusCode}`;
 
         return false;
     }

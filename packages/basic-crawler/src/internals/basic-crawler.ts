@@ -631,7 +631,7 @@ export class BasicCrawler<
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
-    protected _blockedStatusCodes!: Set<number>;
+    protected blockedStatusCodes!: Set<number>;
     protected useSessionPool: boolean;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected httpClient: BaseHttpClient;
@@ -855,7 +855,7 @@ export class BasicCrawler<
                     );
                 }
             }
-            this._blockedStatusCodes = new Set(this.sessionPoolOptions.blockedStatusCodes ?? BLOCKED_STATUS_CODES);
+            this.blockedStatusCodes = new Set(this.sessionPoolOptions.blockedStatusCodes ?? BLOCKED_STATUS_CODES);
             this.useSessionPool = useSessionPool;
 
             const maxSignedInteger = 2 ** 31 - 1;
@@ -1660,7 +1660,7 @@ export class BasicCrawler<
      * Handles blocked request
      */
     protected _throwOnBlockedRequest(session: Session, statusCode: number) {
-        if (this._blockedStatusCodes.has(statusCode)) {
+        if (this.blockedStatusCodes.has(statusCode)) {
             session.retire();
             throw new Error(`Request blocked - received ${statusCode} status code.`);
         }

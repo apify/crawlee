@@ -392,7 +392,7 @@ export class HttpCrawler<
         this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
 
         for (const code of ignoreHttpErrorStatusCodes) {
-            this._blockedStatusCodes.delete(code);
+            this.blockedStatusCodes.delete(code);
         }
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
@@ -556,7 +556,7 @@ export class HttpCrawler<
             }
         }
 
-        if (this._blockedStatusCodes.has(crawlingContext.response.status!)) {
+        if (this.blockedStatusCodes.has(crawlingContext.response.status!)) {
             return `Blocked by status code ${crawlingContext.response.status}`;
         }
 
@@ -764,7 +764,7 @@ export class HttpCrawler<
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        const isTransientContentType = status >= 500 || this._blockedStatusCodes.has(status);
+        const isTransientContentType = status >= 500 || this.blockedStatusCodes.has(status);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;

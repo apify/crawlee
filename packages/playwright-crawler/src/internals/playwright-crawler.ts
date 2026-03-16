@@ -297,7 +297,7 @@ export class PlaywrightCrawler<
                     context.page,
                     context.request.url,
                     options,
-                    this._blockedStatusCodes,
+                    this.blockedStatusCodes,
                 );
             },
         };
