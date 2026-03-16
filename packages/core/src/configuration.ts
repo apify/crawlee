@@ -2,11 +2,13 @@ import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { pathExistsSync } from 'fs-extra/esm';
 import { z } from 'zod';
 
 import { log, LogLevel } from './log.js';
 import { serviceLocator } from './service_locator.js';
+
+// Increase the global limit for event emitter memory leak warnings.
+EventEmitter.defaultMaxListeners = 50;
 
 // --- Field definition helpers ---
 
@@ -170,8 +172,7 @@ export class Configuration {
      */
     protected static fields: Record<string, ConfigField> = crawleeConfigFields;
 
-    private userOptions: Record<string, unknown>;
-    private fileOptions: Record<string, unknown>;
+    private resolvedValues: Record<string, unknown>;
 
     /**
      * Creates new `Configuration` instance with provided options.
@@ -179,12 +180,12 @@ export class Configuration {
      * over crawlee.json values, which take precedence over schema defaults.
      */
     constructor(options: ConfigurationInput = {}) {
-        this.userOptions = { ...options } as Record<string, unknown>;
-        this.fileOptions = Configuration.loadFileOptions();
+        const fileOptions = Configuration.loadFileOptions();
+        this.resolvedValues = (this.constructor as typeof Configuration).resolveAll(
+            options as Record<string, unknown>,
+            fileOptions,
+        );
         this.registerAccessors();
-
-        // Increase the global limit for event emitter memory leak warnings.
-        EventEmitter.defaultMaxListeners = 50;
 
         // Set the log level
         const logLevel = this.logLevel;
@@ -203,34 +204,42 @@ export class Configuration {
     }
 
     /**
-     * Resolves the value for a given config key using the priority chain:
+     * Resolves all field values once using the priority chain:
      * constructor options > env vars > crawlee.json > schema defaults.
      */
-    private resolve(key: string, fieldDef: ConfigField): unknown {
-        // 1. Constructor options (highest priority)
-        if (key in this.userOptions && this.userOptions[key] !== undefined) {
-            return fieldDef.schema.parse(this.userOptions[key]);
-        }
+    protected static resolveAll(
+        userOptions: Record<string, unknown>,
+        fileOptions: Record<string, unknown>,
+    ): Record<string, unknown> {
+        const fields = this.fields;
+        const values: Record<string, unknown> = {};
 
-        // 2. Environment variables
-        if (fieldDef.envVar) {
-            const envVars = Array.isArray(fieldDef.envVar) ? fieldDef.envVar : [fieldDef.envVar];
-            for (const envVar of envVars) {
-                const envValue = process.env[envVar];
-                if (envValue != null && envValue !== '') {
-                    return fieldDef.schema.parse(envValue);
-                }
+        for (const [key, fieldDef] of Object.entries(fields)) {
+            // 1. Constructor options (highest priority)
+            if (key in userOptions && userOptions[key] !== undefined) {
+                values[key] = fieldDef.schema.parse(userOptions[key]);
+                continue;
             }
+
+            // 2. Environment variables
+            const envValue = Configuration.readEnvVar(fieldDef);
+            if (envValue != null) {
+                values[key] = fieldDef.schema.parse(envValue);
+                continue;
+            }
+
+            // 3. crawlee.json file options
+            if (key in fileOptions && fileOptions[key] !== undefined) {
+                values[key] = fieldDef.schema.parse(fileOptions[key]);
+                continue;
+            }
+
+            // 4. Schema default (by parsing undefined through the schema)
+            const result = fieldDef.schema.safeParse(undefined);
+            values[key] = result.success ? result.data : undefined;
         }
 
-        // 3. crawlee.json file options
-        if (key in this.fileOptions && this.fileOptions[key] !== undefined) {
-            return fieldDef.schema.parse(this.fileOptions[key]);
-        }
-
-        // 4. Schema default (by parsing undefined through the schema)
-        const result = fieldDef.schema.safeParse(undefined);
-        return result.success ? result.data : undefined;
+        return values;
     }
 
     /**
@@ -242,7 +251,7 @@ export class Configuration {
 
         for (const key of Object.keys(fields)) {
             descriptors[key] = {
-                get: () => this.resolve(key, fields[key]),
+                get: () => this.resolvedValues[key],
                 set() {
                     throw new TypeError('Configuration is immutable. Pass options via the constructor instead.');
                 },
@@ -255,20 +264,27 @@ export class Configuration {
     }
 
     /**
+     * Reads the first non-empty env var value for a field definition.
+     */
+    private static readEnvVar(fieldDef: ConfigField): string | undefined {
+        if (!fieldDef.envVar) return undefined;
+        const envVars = Array.isArray(fieldDef.envVar) ? fieldDef.envVar : [fieldDef.envVar];
+        for (const envVar of envVars) {
+            const value = process.env[envVar];
+            if (value != null && value !== '') return value;
+        }
+        return undefined;
+    }
+
+    /**
      * Loads config options from crawlee.json in the current working directory.
      */
     private static loadFileOptions(): Record<string, unknown> {
-        const filePath = join(process.cwd(), 'crawlee.json');
-
-        if (pathExistsSync(filePath)) {
-            try {
-                const file = readFileSync(filePath);
-                return JSON.parse(file.toString());
-            } catch {
-                return {};
-            }
+        try {
+            const file = readFileSync(join(process.cwd(), 'crawlee.json'));
+            return JSON.parse(file.toString());
+        } catch {
+            return {};
         }
-
-        return {};
     }
 }
