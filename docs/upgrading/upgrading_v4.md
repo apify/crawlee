@@ -55,6 +55,7 @@ The crawler following options are removed:
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
 - `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
+- `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
 
 ### The protected `BasicCrawler.crawlingContexts` map is removed
 
