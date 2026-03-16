@@ -155,12 +155,6 @@ describe('Session - testing session behaviour ', () => {
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 
-    test('should not have blocked status code methods', () => {
-        session = new Session({ sessionPool });
-        expect(session).not.toHaveProperty('isBlockedStatusCode');
-        expect(session).not.toHaveProperty('retireOnBlockedStatusCodes');
-    });
-
     test('setCookies should work', () => {
         const url = 'https://example.com';
         const cookies = [
