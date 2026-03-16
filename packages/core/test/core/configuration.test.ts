@@ -1,4 +1,7 @@
-import { Configuration, LogLevel, field, coerceBoolean, crawleeConfigFields } from '@crawlee/core';
+import { writeFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { Configuration, LogLevel, field, coerceBoolean, coerceNumber, crawleeConfigFields } from '@crawlee/core';
 
 describe('Configuration', () => {
     const envBackup: Record<string, string | undefined> = {};
@@ -149,6 +152,95 @@ describe('Configuration', () => {
             expect(() => {
                 (config as any).headless = false;
             }).toThrow('Configuration is immutable');
+        });
+    });
+
+    describe('schema validation of constructor options', () => {
+        it('validates and coerces constructor options through the schema', () => {
+            // Pass a string where a number is expected — schema should coerce it
+            const config = new Configuration({ memoryMbytes: '512' as any });
+            expect(config.memoryMbytes).toBe(512);
+            expect(typeof config.memoryMbytes).toBe('number');
+        });
+
+        it('validates boolean constructor options through the schema', () => {
+            // Pass a string where a boolean is expected — schema should coerce it
+            const config = new Configuration({ headless: '0' as any });
+            expect(config.headless).toBe(false);
+        });
+
+        it('rejects invalid constructor options via schema', () => {
+            // Pass a completely invalid value — schema should throw
+            expect(() => {
+                const config = new Configuration({ memoryMbytes: 'not-a-number' as any });
+                // Access the property to trigger resolution
+                void config.memoryMbytes;
+            }).toThrow();
+        });
+    });
+
+    describe('crawlee.json file loading', () => {
+        const crawleeJsonPath = join(process.cwd(), 'crawlee.json');
+        let fileCreated = false;
+
+        afterEach(() => {
+            if (fileCreated) {
+                try {
+                    unlinkSync(crawleeJsonPath);
+                } catch {
+                    /* ignore */
+                }
+                fileCreated = false;
+            }
+        });
+
+        it('loads values from crawlee.json', () => {
+            writeFileSync(crawleeJsonPath, JSON.stringify({ defaultDatasetId: 'from-file' }));
+            fileCreated = true;
+
+            const config = new Configuration();
+            expect(config.defaultDatasetId).toBe('from-file');
+        });
+
+        it('constructor options override crawlee.json', () => {
+            writeFileSync(crawleeJsonPath, JSON.stringify({ defaultDatasetId: 'from-file' }));
+            fileCreated = true;
+
+            const config = new Configuration({ defaultDatasetId: 'from-constructor' });
+            expect(config.defaultDatasetId).toBe('from-constructor');
+        });
+
+        it('env vars override crawlee.json', () => {
+            writeFileSync(crawleeJsonPath, JSON.stringify({ headless: false }));
+            fileCreated = true;
+            setEnv('CRAWLEE_HEADLESS', 'true');
+
+            const config = new Configuration();
+            expect(config.headless).toBe(true);
+        });
+
+        it('validates and coerces crawlee.json values through the schema', () => {
+            // JSON numbers are already numbers, but string values should be coerced
+            writeFileSync(crawleeJsonPath, JSON.stringify({ memoryMbytes: '256' }));
+            fileCreated = true;
+
+            const config = new Configuration();
+            expect(config.memoryMbytes).toBe(256);
+            expect(typeof config.memoryMbytes).toBe('number');
+        });
+
+        it('handles missing crawlee.json gracefully', () => {
+            // No file created — should fall through to defaults
+            const config = new Configuration();
+            expect(config.defaultDatasetId).toBe('default');
+        });
+
+        it('handles malformed crawlee.json gracefully', () => {
+            writeFileSync(crawleeJsonPath, 'not valid json{{{');
+            fileCreated = true;
+
+            const config = new Configuration();
+            expect(config.defaultDatasetId).toBe('default');
         });
     });
 
