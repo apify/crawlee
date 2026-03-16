@@ -637,7 +637,7 @@ export class BasicCrawler<
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
-    protected blockedStatusCodes!: Set<number>;
+    protected blockedStatusCodes = new Set<number>();
     protected useSessionPool: boolean;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected httpClient: BaseHttpClient;
