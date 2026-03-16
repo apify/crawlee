@@ -1,7 +1,7 @@
-import { writeFileSync, unlinkSync } from 'node:fs';
+import { unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { Configuration, LogLevel, field, coerceBoolean, coerceNumber, crawleeConfigFields } from '@crawlee/core';
+import { coerceBoolean, Configuration, crawleeConfigFields, field, LogLevel } from '@crawlee/core';
 
 describe('Configuration', () => {
     const envBackup: Record<string, string | undefined> = {};
