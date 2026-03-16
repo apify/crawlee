@@ -22,8 +22,7 @@ class PinoAdapter extends BaseCrawleeLogger {
 
     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
         const pinoLevel = CRAWLEE_TO_PINO[level] ?? 'info';
-        const prefix = this.getOptions().prefix;
-        this.logger[pinoLevel as pino.Level]({ ...data, prefix }, message);
+        this.logger[pinoLevel as pino.Level](data ?? {}, message);
     }
 
     protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {

@@ -18,8 +18,8 @@ Crawlee uses `@apify/log` as its default logging library, but you can replace it
 
 All Crawlee logging goes through the <ApiLink to="core/interface/CrawleeLogger">`CrawleeLogger`</ApiLink> interface. To plug in your own logger, extend the <ApiLink to="core/class/BaseCrawleeLogger">`BaseCrawleeLogger`</ApiLink> abstract class and implement two methods:
 
-- **`logWithLevel(level, message, data)`** — dispatches a log message to your logging library. The `level` parameter uses <ApiLink to="core/enum/LogLevel">`LogLevel`</ApiLink> constants (`ERROR = 1`, `SOFT_FAIL = 2`, `WARNING = 3`, `INFO = 4`, `DEBUG = 5`, `PERF = 6`). Map these to your logger's native levels.
-- **`createChild(options)`** — creates a child logger instance. Crawlee creates child loggers with prefixes (e.g. `CheerioCrawler`, `AutoscaledPool`, `SessionPool`) so each internal component is easily identifiable in the output.
+- **`logWithLevel(level, message, data)`** — dispatches a log message to your logging library. The `level` parameter uses <ApiLink to="core/enum/LogLevel">`LogLevel`</ApiLink> constants (`ERROR = 1`, `SOFT_FAIL = 2`, `WARNING = 3`, `INFO = 4`, `DEBUG = 5`, `PERF = 6`). Map these to your logger's native levels. The `message` is a human-readable `string`, and `data` is an optional `Record<string, unknown>` with structured context (e.g. `{ url, statusCode }`) — pass it to your logger as metadata or structured fields.
+- **`createChild(options)`** — returns a new child logger instance scoped to a specific component. Crawlee calls this internally to give each subsystem (e.g. `CheerioCrawler`, `AutoscaledPool`, `SessionPool`) its own identifiable logger. The `options` parameter is a <ApiLink to="core/interface/CrawleeLoggerOptions">`CrawleeLoggerOptions`</ApiLink> object with a single field: `prefix` — a string label prepended to each log line from that component.
 
 All other methods (`error`, `warning`, `info`, `debug`, `exception`, `perf`, etc.) are derived automatically from `logWithLevel` — you don't need to implement them.
 
