@@ -855,16 +855,7 @@ export class BasicCrawler<
                 ...sessionPoolOptions,
                 log: this.log,
             };
-            if (this.retryOnBlocked) {
-                if (blockedStatusCodesInput && blockedStatusCodesInput.length !== 0) {
-                    this.log.warning(
-                        `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
-                    );
-                }
-                this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? []);
-            } else {
-                this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
-            }
+            this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
             this.useSessionPool = useSessionPool;
 
             const maxSignedInteger = 2 ** 31 - 1;
@@ -1669,6 +1660,8 @@ export class BasicCrawler<
      * Handles blocked request
      */
     protected _throwOnBlockedRequest(session: Session, statusCode: number) {
+        if (this.retryOnBlocked) return;
+
         if (this.blockedStatusCodes.has(statusCode)) {
             session.retire();
             throw new Error(`Request blocked - received ${statusCode} status code.`);
