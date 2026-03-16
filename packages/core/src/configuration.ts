@@ -97,7 +97,9 @@ export type ConfigurationOptions = ConfigurationInput;
 
 // --- Configuration class ---
 
-// Declaration merging: adds resolved config properties to the Configuration type
+// Declaration merging: adds resolved config properties to the Configuration type.
+// Properties are defined at runtime via Object.defineProperties in registerAccessors().
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface Configuration extends ResolvedConfigValues {}
 
 /**
@@ -160,6 +162,7 @@ export interface Configuration extends ResolvedConfigValues {}
  * `availableMemoryRatio` | `CRAWLEE_AVAILABLE_MEMORY_RATIO` | `0.25`
  * `containerized` | `CRAWLEE_CONTAINERIZED` | -
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class Configuration {
     /**
      * Field definitions for this configuration class.
