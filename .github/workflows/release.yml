@@ -23,6 +23,10 @@ on:
                 type: string
                 default: ''
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
     # Test before releasing to ensure we don't release a broken version
     build_and_test:
@@ -38,11 +42,6 @@ jobs:
         runs-on: ${{ matrix.os }}
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.13.1
-                with:
-                    access_token: ${{ github.token }}
-
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
