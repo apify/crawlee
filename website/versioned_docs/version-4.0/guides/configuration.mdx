@@ -21,7 +21,7 @@ You could also combine all the above, but you should keep in mind, that the prec
 
 ## `crawlee.json`
 
-The first option you could use for configuring Crawlee is `crawlee.json` file. The only thing you need to do is specify the <ApiLink to="core/interface/ConfigurationOptions">`ConfigurationOptions`</ApiLink> in the file, place the file in the root of your project, and Crawlee will use provided options as global configuration.
+The first option you could use for configuring Crawlee is `crawlee.json` file. The only thing you need to do is specify the configuration options in the file, place the file in the root of your project, and Crawlee will use provided options as global configuration. See the <ApiLink to="core/class/Configuration">`Configuration`</ApiLink> class for the full list of supported options.
 
 ```json title="crawlee.json"
 {
@@ -137,7 +137,7 @@ The last option to adjust Crawlee configuration is to use the <ApiLink to="core/
 
 ### Global Configuration
 
-By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can get access to it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink> function. Now you can easily <ApiLink to="core/class/Configuration#get">`get`</ApiLink> and <ApiLink to="core/class/Configuration#set">`set`</ApiLink> the <ApiLink to="core/interface/ConfigurationOptions">`ConfigurationOptions`</ApiLink>.
+By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can get access to it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink> function. Configuration values are accessible directly as properties.
 
 ```js
 import { CheerioCrawler, Configuration, sleep } from 'crawlee';

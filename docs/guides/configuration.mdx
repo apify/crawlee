@@ -15,13 +15,13 @@ There are three ways of changing the configuration parameters:
 - using the `Configuration` class
 
 You could also combine all the above, but you should keep in mind, that the precedence for these 3 options is the following:
-***`crawlee.json`*** < ***constructor options*** < ***environment variables***.
+***constructor options*** > ***environment variables*** > ***`crawlee.json`***.
 
-`crawlee.json` is a baseline. The options provided in the `Configuration` constructor will override the options provided in the JSON. Environment variables will override both.
+Constructor options have the highest priority. Environment variables override `crawlee.json`. The JSON file serves as a baseline.
 
 ## `crawlee.json`
 
-The first option you could use for configuring Crawlee is `crawlee.json` file. The only thing you need to do is specify the <ApiLink to="core/interface/ConfigurationOptions">`ConfigurationOptions`</ApiLink> in the file, place the file in the root of your project, and Crawlee will use provided options as global configuration.
+The first option you could use for configuring Crawlee is `crawlee.json` file. The only thing you need to do is specify the configuration options in the file, place the file in the root of your project, and Crawlee will use provided options as global configuration. See the <ApiLink to="core/class/Configuration">`Configuration`</ApiLink> class for the full list of supported options.
 
 ```json title="crawlee.json"
 {
@@ -133,24 +133,28 @@ the autoscaling feature will only use up to 2048 MB of memory.
 
 ## Configuration class
 
-The last option to adjust Crawlee configuration is to use the <ApiLink to="core/class/Configuration">`Configuration`</ApiLink> class in the code.
+The last option to adjust Crawlee configuration is to use the <ApiLink to="core/class/Configuration">`Configuration`</ApiLink> class in the code. Configuration is immutable — values are set via the constructor and cannot be changed afterwards.
 
 ### Global Configuration
 
-By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can get access to it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink> function. Now you can easily <ApiLink to="core/class/Configuration#get">`get`</ApiLink> and <ApiLink to="core/class/Configuration#set">`set`</ApiLink> the <ApiLink to="core/interface/ConfigurationOptions">`ConfigurationOptions`</ApiLink>.
+By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can get access to it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink> function. Configuration values are accessible directly as properties.
 
 ```js
 import { CheerioCrawler, Configuration, sleep } from 'crawlee';
 
 // Get the global configuration
 const config = Configuration.getGlobalConfig();
-// Set the 'persistStateIntervalMillis' option
-// of global configuration to 10 seconds
-config.set('persistStateIntervalMillis', 10_000);
+// Access configuration values directly as properties
+console.log(config.persistStateIntervalMillis);
 
-// Note, that we are not passing the configuration to the crawler
-// as it's using the global configuration
-const crawler = new CheerioCrawler();
+// To use custom configuration values, create a new Configuration instance
+const customConfig = new Configuration({
+    // Set the 'persistStateIntervalMillis' option to 10 seconds
+    persistStateIntervalMillis: 10_000,
+});
+
+// Pass the configuration to the crawler
+const crawler = new CheerioCrawler({ configuration: customConfig });
 
 crawler.router.addDefaultHandler(async ({ request }) => {
     // For the first request we wait for 5 seconds,
@@ -170,15 +174,13 @@ crawler.router.addDefaultHandler(async ({ request }) => {
 await crawler.run(['https://www.example.com/1']);
 ```
 
-This is pretty much the same example we used for showing `crawlee.json` usage,
-but now we're using the global configuration, which is the only difference.
-If you run this example - you will find the `SDK_CRAWLER_STATISTICS` file in default Key-Value store as before,
-which would show the same number of finishes requests (one) and the same crawler runtime (~10 seconds).
-This confirms that provided parameters worked: the state was persisted after 10 seconds, as it was set in the global configuration.
+If you run this example - you will find the `SDK_CRAWLER_STATISTICS` file in default Key-Value store,
+which would show the same number of finished requests (one) and the same crawler runtime (~10 seconds).
+This confirms that provided parameters worked: the state was persisted after 10 seconds, as it was set in the configuration.
 
 :::note
 
-After running the same example with commented two lines of code related to `Configuration` there will be
+After running the same example without the custom configuration, there will be
 no `SDK_CRAWLER_STATISTICS` file stored in the default Key-Value store:
 as we did not change the `persistStateIntervalMillis`, Crawlee used the default value of 60 seconds,
 and the crawler was forcefully aborted after ~15 seconds of run time before it persisted the state for the first time.
@@ -187,7 +189,7 @@ and the crawler was forcefully aborted after ~15 seconds of run time before it p
 
 ### Custom configuration
 
-Alternatively, you can create a custom configuration. In this case you need to pass it to the class that is going to use it, e.g. to the crawler. Let's adjust the previous example:
+You can create a custom configuration and pass it to the crawler via the `configuration` option:
 
 ```js
 import { CheerioCrawler, Configuration, sleep } from 'crawlee';
@@ -198,8 +200,8 @@ const config = new Configuration({
     persistStateIntervalMillis: 10_000,
 });
 
-// Now we need to pass the configuration to the crawler
-const crawler = new CheerioCrawler({}, config);
+// Pass the configuration to the crawler
+const crawler = new CheerioCrawler({ configuration: config });
 
 crawler.router.addDefaultHandler(async ({ request }) => {
     // for the first request we wait for 5 seconds,
