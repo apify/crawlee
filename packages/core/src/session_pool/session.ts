@@ -15,7 +15,6 @@ import {
 } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import { BLOCKED_STATUS_CODES } from './consts.js';
 import { EVENT_SESSION_RETIRED } from './events.js';
 
 export interface SessionOptions {
@@ -70,12 +69,6 @@ export interface SessionOptions {
     /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
     sessionPool?: import('./session_pool.js').SessionPool;
 
-    /**
-     * HTTP status codes that indicate a session should be retired.
-     * @default [401, 403, 429]
-     */
-    blockedStatusCodes?: number[];
-
     log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
@@ -99,7 +92,6 @@ export class Session implements ISession {
     private _usageCount: number;
     private _maxUsageCount: number;
     private sessionPool: import('./session_pool.js').SessionPool;
-    readonly blockedStatusCodes: Set<number>;
     private _errorScore: number;
     private _proxyInfo?: ProxyInfo;
     private _cookieJar: CookieJar;
@@ -161,7 +153,6 @@ export class Session implements ISession {
                 usageCount: ow.optional.number,
                 errorScore: ow.optional.number,
                 maxUsageCount: ow.optional.number,
-                blockedStatusCodes: ow.optional.array.ofType(ow.number),
                 log: ow.optional.object,
             }),
         );
@@ -179,7 +170,6 @@ export class Session implements ISession {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
-            blockedStatusCodes = BLOCKED_STATUS_CODES,
             log = serviceLocator.getLogger(),
         } = options;
 
@@ -201,7 +191,6 @@ export class Session implements ISession {
         this._usageCount = usageCount; // indicates how many times the session has been used
         this._errorScore = errorScore; // indicates number of markBaded request with the session
         this._maxUsageCount = maxUsageCount;
-        this.blockedStatusCodes = new Set(blockedStatusCodes);
         this.sessionPool = sessionPool;
     }
 
@@ -297,13 +286,6 @@ export class Session implements ISession {
         this._usageCount += 1;
 
         this._maybeSelfRetire();
-    }
-
-    /**
-     * Returns `true` if the status code is in the session's blocked status codes list.
-     */
-    isBlockedStatusCode(statusCode: number): boolean {
-        return this.blockedStatusCodes.has(statusCode);
     }
 
     /**

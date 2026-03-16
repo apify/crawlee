@@ -36,11 +36,6 @@ const crawler = new BasicCrawler({
             throw e;
         }
 
-        // Retire the session if the response status code indicates blocking.
-        if (session?.isBlockedStatusCode(response.status)) {
-            session.retire();
-        }
-
         if ((await response.text()).includes('You are blocked!')) {
             // You are sure it is blocked.
             // This will throw away the session.

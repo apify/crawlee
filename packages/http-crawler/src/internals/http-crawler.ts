@@ -13,15 +13,7 @@ import type {
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
-import {
-    BasicCrawler,
-    BLOCKED_STATUS_CODES,
-    ContextPipeline,
-    mergeCookies,
-    RequestState,
-    Router,
-    SessionError,
-} from '@crawlee/basic';
+import { BasicCrawler, ContextPipeline, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -370,14 +362,6 @@ export class HttpCrawler<
             ...basicCrawlerOptions
         } = options;
 
-        if (ignoreHttpErrorStatusCodes.length > 0) {
-            const sessionPoolOptions = basicCrawlerOptions.sessionPoolOptions ?? {};
-            const blocked = sessionPoolOptions.blockedStatusCodes ?? BLOCKED_STATUS_CODES;
-            const ignoreSet = new Set(ignoreHttpErrorStatusCodes);
-            sessionPoolOptions.blockedStatusCodes = blocked.filter((c: number) => !ignoreSet.has(c));
-            basicCrawlerOptions.sessionPoolOptions = sessionPoolOptions;
-        }
-
         super({
             ...basicCrawlerOptions,
             autoscaledPoolOptions,
@@ -406,9 +390,13 @@ export class HttpCrawler<
         this.forceResponseEncoding = forceResponseEncoding;
         this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
         this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
+
+        for (const code of ignoreHttpErrorStatusCodes) {
+            this._blockedStatusCodes.delete(code);
+        }
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
-            ({ request, response, session }) => this._abortDownloadOfBody(request, response!, session),
+            ({ request, response }) => this._abortDownloadOfBody(request, response!),
             ...postNavigationHooks,
         ];
 
@@ -568,7 +556,7 @@ export class HttpCrawler<
             }
         }
 
-        if (crawlingContext.session.isBlockedStatusCode(crawlingContext.response.status!)) {
+        if (this._blockedStatusCodes.has(crawlingContext.response.status!)) {
             return `Blocked by status code ${crawlingContext.response.status}`;
         }
 
@@ -772,11 +760,11 @@ export class HttpCrawler<
         throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
-    private _abortDownloadOfBody(request: CrawleeRequest, response: Response, session: Session) {
+    private _abortDownloadOfBody(request: CrawleeRequest, response: Response) {
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        const isTransientContentType = status >= 500 || session.isBlockedStatusCode(status);
+        const isTransientContentType = status >= 500 || this._blockedStatusCodes.has(status);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;

@@ -22,15 +22,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
-import {
-    Configuration,
-    KeyValueStore,
-    type Request,
-    serviceLocator,
-    type Session,
-    SessionError,
-    validators,
-} from '@crawlee/browser';
+import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -723,17 +715,16 @@ export interface HandleCloudflareChallengeOptions {
  *
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
  * @param url current URL for request identification, only used for logging
- * @param [session] current session object
  * @param [options]
  */
 async function handleCloudflareChallenge(
     page: Page,
     url: string,
-    session?: Session,
     options: HandleCloudflareChallengeOptions = {},
+    blockedStatusCodes?: Set<number>,
 ): Promise<void> {
-    // Cloudflare pages are 403, which are blocked by default
-    session?.blockedStatusCodes.delete(403);
+    // Cloudflare pages return 403, which is blocked by default — temporarily allow it during challenge handling
+    blockedStatusCodes?.delete(403);
 
     options.isBlockedCallback ??= async () => {
         const isBlocked = await page.evaluate(() => {

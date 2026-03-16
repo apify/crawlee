@@ -155,16 +155,10 @@ describe('Session - testing session behaviour ', () => {
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 
-    test('should isBlockedStatusCode work', () => {
+    test('should not have blocked status code methods', () => {
         session = new Session({ sessionPool });
-        expect(session.isBlockedStatusCode(100)).toBeFalsy();
-        expect(session.isBlockedStatusCode(200)).toBeFalsy();
-        expect(session.isBlockedStatusCode(400)).toBeFalsy();
-        expect(session.isBlockedStatusCode(500)).toBeFalsy();
-
-        expect(session.isBlockedStatusCode(401)).toBeTruthy();
-        expect(session.isBlockedStatusCode(403)).toBeTruthy();
-        expect(session.isBlockedStatusCode(429)).toBeTruthy();
+        expect(session).not.toHaveProperty('isBlockedStatusCode');
+        expect(session).not.toHaveProperty('retireOnBlockedStatusCodes');
     });
 
     test('setCookies should work', () => {

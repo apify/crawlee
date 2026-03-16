@@ -104,7 +104,6 @@ export interface ISession {
     maxUsageCount: number;
     cookieJar: CookieJar;
     proxyInfo?: ProxyInfo;
-    readonly blockedStatusCodes: Set<number>;
 
     /**
      * Indicates whether the session is blocked.
@@ -157,11 +156,6 @@ export interface ISession {
      * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
     markBad(): void;
-
-    /**
-     * Returns `true` if the status code is in the session's blocked status codes list.
-     */
-    isBlockedStatusCode(statusCode: number): boolean;
 
     /**
      * Saves cookies from an HTTP response to be used with the session.
