@@ -167,8 +167,8 @@ export class Configuration {
      */
     protected static fields: Record<string, ConfigField> = crawleeConfigFields;
 
-    private _userOptions: Record<string, unknown>;
-    private _fileOptions: Record<string, unknown>;
+    private userOptions: Record<string, unknown>;
+    private fileOptions: Record<string, unknown>;
 
     /**
      * Creates new `Configuration` instance with provided options.
@@ -176,9 +176,9 @@ export class Configuration {
      * over crawlee.json values, which take precedence over schema defaults.
      */
     constructor(options: ConfigurationInput = {}) {
-        this._userOptions = { ...options } as Record<string, unknown>;
-        this._fileOptions = Configuration._loadFileOptions();
-        this._registerAccessors();
+        this.userOptions = { ...options } as Record<string, unknown>;
+        this.fileOptions = Configuration.loadFileOptions();
+        this.registerAccessors();
 
         // Increase the global limit for event emitter memory leak warnings.
         EventEmitter.defaultMaxListeners = 50;
@@ -203,10 +203,10 @@ export class Configuration {
      * Resolves the value for a given config key using the priority chain:
      * constructor options > env vars > crawlee.json > schema defaults.
      */
-    private _resolve(key: string, fieldDef: ConfigField): unknown {
+    private resolve(key: string, fieldDef: ConfigField): unknown {
         // 1. Constructor options (highest priority)
-        if (key in this._userOptions && this._userOptions[key] !== undefined) {
-            return fieldDef.schema.parse(this._userOptions[key]);
+        if (key in this.userOptions && this.userOptions[key] !== undefined) {
+            return fieldDef.schema.parse(this.userOptions[key]);
         }
 
         // 2. Environment variables
@@ -221,8 +221,8 @@ export class Configuration {
         }
 
         // 3. crawlee.json file options
-        if (key in this._fileOptions && this._fileOptions[key] !== undefined) {
-            return fieldDef.schema.parse(this._fileOptions[key]);
+        if (key in this.fileOptions && this.fileOptions[key] !== undefined) {
+            return fieldDef.schema.parse(this.fileOptions[key]);
         }
 
         // 4. Schema default (by parsing undefined through the schema)
@@ -233,13 +233,13 @@ export class Configuration {
     /**
      * Registers getters (and throwing setters) on the instance for each field.
      */
-    private _registerAccessors(): void {
+    private registerAccessors(): void {
         const fields = (this.constructor as typeof Configuration).fields;
         const descriptors: PropertyDescriptorMap = {};
 
         for (const key of Object.keys(fields)) {
             descriptors[key] = {
-                get: () => this._resolve(key, fields[key]),
+                get: () => this.resolve(key, fields[key]),
                 set() {
                     throw new TypeError('Configuration is immutable. Pass options via the constructor instead.');
                 },
@@ -254,7 +254,7 @@ export class Configuration {
     /**
      * Loads config options from crawlee.json in the current working directory.
      */
-    private static _loadFileOptions(): Record<string, unknown> {
+    private static loadFileOptions(): Record<string, unknown> {
         const filePath = join(process.cwd(), 'crawlee.json');
 
         if (pathExistsSync(filePath)) {
