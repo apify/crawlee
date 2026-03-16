@@ -206,7 +206,7 @@ export class Configuration {
     private _resolve(key: string, fieldDef: ConfigField): unknown {
         // 1. Constructor options (highest priority)
         if (key in this._userOptions && this._userOptions[key] !== undefined) {
-            return this._userOptions[key];
+            return fieldDef.schema.parse(this._userOptions[key]);
         }
 
         // 2. Environment variables
@@ -222,7 +222,7 @@ export class Configuration {
 
         // 3. crawlee.json file options
         if (key in this._fileOptions && this._fileOptions[key] !== undefined) {
-            return this._fileOptions[key];
+            return fieldDef.schema.parse(this._fileOptions[key]);
         }
 
         // 4. Schema default (by parsing undefined through the schema)
