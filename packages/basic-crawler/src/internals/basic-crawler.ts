@@ -346,6 +346,12 @@ export interface BasicCrawlerOptions<
     statusMessageCallback?: StatusMessageCallback;
 
     /**
+     * HTTP status codes that indicate the session should be retired.
+     * @default [401, 403, 429]
+     */
+    blockedStatusCodes?: number[];
+
+    /**
      * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
      *
      * Currently supports:
@@ -676,6 +682,7 @@ export class BasicCrawler<
         statusMessageLoggingInterval: ow.optional.number,
         statusMessageCallback: ow.optional.function,
 
+        blockedStatusCodes: ow.optional.array.ofType(ow.number),
         retryOnBlocked: ow.optional.boolean,
         respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
         onSkippedRequest: ow.optional.function,
@@ -735,6 +742,7 @@ export class BasicCrawler<
             maxConcurrency,
             maxRequestsPerMinute,
 
+            blockedStatusCodes: blockedStatusCodesInput,
             retryOnBlocked = false,
             respectRobotsTxtFile = false,
             onSkippedRequest,
@@ -848,14 +856,15 @@ export class BasicCrawler<
                 log: this.log,
             };
             if (this.retryOnBlocked) {
-                this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
-                if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
+                if (blockedStatusCodesInput && blockedStatusCodesInput.length !== 0) {
                     this.log.warning(
                         `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
                     );
                 }
+                this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? []);
+            } else {
+                this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
             }
-            this.blockedStatusCodes = new Set(this.sessionPoolOptions.blockedStatusCodes ?? BLOCKED_STATUS_CODES);
             this.useSessionPool = useSessionPool;
 
             const maxSignedInteger = 2 ** 31 - 1;

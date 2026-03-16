@@ -86,7 +86,7 @@ Previously, the crawling context extended a `Record` type, allowing to access an
 
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
-`Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via `sessionPoolOptions.blockedStatusCodes`. `ignoreHttpErrorStatusCodes` in `HttpCrawler` now also excludes matching codes from the blocked status codes list.
+`Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`). `ignoreHttpErrorStatusCodes` in `HttpCrawler` now also excludes matching codes from the blocked status codes list.
 
 ## Remove `experimentalContainers` option
 

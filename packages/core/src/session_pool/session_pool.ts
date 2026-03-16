@@ -51,13 +51,6 @@ export interface SessionPoolOptions {
      */
     createSessionFunction?: CreateSession;
 
-    /**
-     * Specifies which response status codes are considered as blocked.
-     * Session connected to such request will be marked as retired.
-     * @default [401, 403, 429]
-     */
-    blockedStatusCodes?: number[];
-
     /** @internal */
     log?: CrawleeLogger;
 
@@ -163,7 +156,6 @@ export class SessionPool extends EventEmitter {
                 persistStateKey: ow.optional.string,
                 createSessionFunction: ow.optional.function,
                 sessionOptions: ow.optional.object,
-                blockedStatusCodes: ow.optional.array.ofType(ow.number),
                 log: ow.optional.object,
                 persistenceOptions: ow.optional.object,
             }),
