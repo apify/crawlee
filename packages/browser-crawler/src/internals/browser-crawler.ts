@@ -222,8 +222,7 @@ export interface BrowserCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
-     * Defines whether the cookies should be persisted for sessions.
-     * This can only be used when `useSessionPool` is set to `true`.
+     * Defines whether the cookies should be persisted for sessions. Enabled by default.
      */
     persistCookiesPerSession?: boolean;
 
@@ -328,7 +327,6 @@ export abstract class BrowserCrawler<
         browserPoolOptions: ow.object,
         sessionPoolOptions: ow.optional.object,
         persistCookiesPerSession: ow.optional.boolean,
-        useSessionPool: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
     };
 
@@ -350,7 +348,7 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
-            persistCookiesPerSession,
+            persistCookiesPerSession = true,
             launchContext = {},
             browserPoolOptions,
             preNavigationHooks = [],
@@ -374,11 +372,6 @@ export abstract class BrowserCrawler<
             extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
         });
 
-        // Cookies should be persisted per session only if session pool is used
-        if (!this.useSessionPool && persistCookiesPerSession) {
-            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
-        }
-
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
         this.proxyConfiguration = proxyConfiguration;
@@ -392,11 +385,7 @@ export abstract class BrowserCrawler<
             (this.launchContext.launchOptions as Dictionary).headless = headless;
         }
 
-        if (this.useSessionPool) {
-            this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
-        } else {
-            this.persistCookiesPerSession = false;
-        }
+        this.persistCookiesPerSession = persistCookiesPerSession;
 
         if (launchContext?.userAgent) {
             if (browserPoolOptions.useFingerprints)
@@ -714,6 +703,8 @@ export abstract class BrowserCrawler<
     protected async _extendLaunchContext(_pageId: string, launchContext: LaunchContext): Promise<void> {
         const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
 
+        // Hacky access from `AdaptivePlaywrightCrawler` calls this without calling `.init()`.
+        // This is the only case where this.sessionPool is accessed without being initialized.
         if (this.sessionPool) {
             launchContextExtends.session = await this.sessionPool.newSession({
                 proxyInfo: await this.proxyConfiguration?.newProxyInfo({

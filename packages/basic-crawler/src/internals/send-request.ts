@@ -9,11 +9,7 @@ import type { BaseHttpClient, HttpRequestOptions, SendRequestOptions } from '@cr
  * @param originRequest The crawling request being processed.
  * @param session The user session associated with the current request.
  */
-export function createSendRequest(
-    httpClient: BaseHttpClient,
-    originRequest: CrawleeRequest,
-    session: Session | undefined,
-) {
+export function createSendRequest(httpClient: BaseHttpClient, originRequest: CrawleeRequest, session: Session) {
     return async (
         overrideRequest: Partial<HttpRequestOptions> = {},
         overrideOptions: SendRequestOptions = {},
@@ -37,7 +33,7 @@ export function createSendRequest(
 
         return httpClient.sendRequest(request, {
             session,
-            cookieJar: overrideOptions?.cookieJar ?? session?.cookieJar,
+            cookieJar: overrideOptions?.cookieJar ?? session.cookieJar,
             timeoutMillis: overrideOptions.timeoutMillis,
             signal: overrideOptions.signal,
         });
