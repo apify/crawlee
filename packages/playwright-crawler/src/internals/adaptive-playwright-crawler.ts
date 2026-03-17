@@ -328,7 +328,6 @@ export class AdaptivePlaywrightCrawler<
         }
         const staticCrawler = new CheerioCrawler({
             ...rest,
-            useSessionPool: false,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
@@ -350,7 +349,6 @@ export class AdaptivePlaywrightCrawler<
 
         const browserCrawler = new PlaywrightCrawler({
             ...rest,
-            useSessionPool: false,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
