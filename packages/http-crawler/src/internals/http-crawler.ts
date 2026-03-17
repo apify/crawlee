@@ -358,7 +358,7 @@ export class HttpCrawler<
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-            persistCookiesPerSession,
+            persistCookiesPerSession = true,
             preNavigationHooks = [],
             postNavigationHooks = [],
             additionalHttpErrorStatusCodes = [],
@@ -399,7 +399,7 @@ export class HttpCrawler<
             ...postNavigationHooks,
         ];
 
-        this.persistCookiesPerSession = persistCookiesPerSession ?? true;
+        this.persistCookiesPerSession = persistCookiesPerSession;
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
