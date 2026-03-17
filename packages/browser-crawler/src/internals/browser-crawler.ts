@@ -346,7 +346,7 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
-            persistCookiesPerSession,
+            persistCookiesPerSession = true,
             launchContext = {},
             browserPoolOptions,
             preNavigationHooks = [],
@@ -383,7 +383,7 @@ export abstract class BrowserCrawler<
             (this.launchContext.launchOptions as Dictionary).headless = headless;
         }
 
-        this.persistCookiesPerSession = persistCookiesPerSession ?? true;
+        this.persistCookiesPerSession = persistCookiesPerSession;
 
         if (launchContext?.userAgent) {
             if (browserPoolOptions.useFingerprints)
