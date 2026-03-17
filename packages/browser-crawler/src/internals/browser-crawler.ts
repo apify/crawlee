@@ -664,17 +664,25 @@ export abstract class BrowserCrawler<
         request.loadedUrl = await page.url();
     }
 
-    private _browsersWithRetiredListener = new WeakSet<Context['browserController']>();
+    private _browserSessionIds = new WeakMap<Context['browserController'], Set<string>>();
 
     private _addSessionRetiredListener(session: Session, browserController: Context['browserController']): void {
-        if (!this.sessionPool || this._browsersWithRetiredListener.has(browserController)) {
+        if (!this.sessionPool) {
             return;
         }
 
-        this._browsersWithRetiredListener.add(browserController);
+        let sessionIds = this._browserSessionIds.get(browserController);
+
+        if (sessionIds) {
+            sessionIds.add(session.id);
+            return;
+        }
+
+        sessionIds = new Set([session.id]);
+        this._browserSessionIds.set(browserController, sessionIds);
 
         const listener = (retired: Session) => {
-            if (retired.id === session.id) {
+            if (this._browserSessionIds.get(browserController)?.has(retired.id)) {
                 this.browserPool.retireBrowserController(
                     browserController as Parameters<
                         BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
