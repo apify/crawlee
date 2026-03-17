@@ -716,7 +716,12 @@ export class BrowserPool<
             proxyUrl,
         });
 
+        // Disable SSL verification for MITM proxies
         if (ignoreTlsErrors) {
+            /**
+             * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+             * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+             */
             (launchContext.launchOptions as Record<string, unknown>).ignoreHTTPSErrors = true;
             (launchContext.launchOptions as Record<string, unknown>).acceptInsecureCerts = true;
         }
