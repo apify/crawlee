@@ -909,7 +909,7 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
     proxyTier?: number;
     /**
      * Disable TLS certificate verification for MITM proxies.
-     * Only applied when a new browser is launched (not when reusing an existing one).
+     * Applied both when launching a new browser and when creating a page in an existing one.
      */
     ignoreTlsErrors?: boolean;
 }
