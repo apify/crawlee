@@ -95,23 +95,14 @@ export interface CrawleeLogger {
  * **Example — Winston adapter:**
  * ```typescript
  * const CRAWLEE_TO_WINSTON = { 1: 'error', 2: 'warn', 3: 'warn', 4: 'info', 5: 'debug', 6: 'debug' };
- * const WINSTON_TO_CRAWLEE = { error: 1, warn: 3, info: 4, debug: 5 };
  *
  * class WinstonAdapter extends BaseCrawleeLogger {
  *     constructor(private logger: winston.Logger, options?: Partial<CrawleeLoggerOptions>) {
  *         super(options);
  *     }
  *
- *     getLevel(): number {
- *         return WINSTON_TO_CRAWLEE[this.logger.level] ?? LogLevel.INFO;
- *     }
- *
- *     setLevel(level: number): void {
- *         this.logger.level = CRAWLEE_TO_WINSTON[level] ?? 'info';
- *     }
- *
  *     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
- *         this.logger.log(CRAWLEE_TO_WINSTON[level] ?? 'info', message, { ...data, prefix: this.getOptions().prefix });
+ *         this.logger.log(CRAWLEE_TO_WINSTON[level] ?? 'info', message, data);
  *     }
  *
  *     protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
