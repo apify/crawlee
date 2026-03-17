@@ -313,12 +313,6 @@ export interface BasicCrawlerOptions<
     keepAlive?: boolean;
 
     /**
-     * Basic crawler will initialize the {@apilink SessionPool} with the corresponding {@apilink SessionPoolOptions|`sessionPoolOptions`}.
-     * The session instance will be than available in the {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
-     */
-    useSessionPool?: boolean;
-
-    /**
      * The configuration options for {@apilink SessionPool} to use.
      */
     sessionPoolOptions?: SessionPoolOptions;
@@ -647,7 +641,6 @@ export class BasicCrawler<
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
-    protected useSessionPool: boolean;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
@@ -685,7 +678,6 @@ export class BasicCrawler<
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
-        useSessionPool: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
@@ -736,7 +728,6 @@ export class BasicCrawler<
             autoscaledPoolOptions = {},
             keepAlive,
             sessionPoolOptions = {},
-            useSessionPool = true,
             proxyConfiguration,
 
             // Service locator options
@@ -870,8 +861,6 @@ export class BasicCrawler<
                     );
                 }
             }
-            this.useSessionPool = useSessionPool;
-
             const maxSignedInteger = 2 ** 31 - 1;
             if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
                 this.log.warning(
@@ -1082,25 +1071,23 @@ export class BasicCrawler<
     }
 
     private async resolveSession({ request }: { request: Request }) {
-        const session = this.useSessionPool
-            ? await this._timeoutAndRetry(
-                  async () => {
-                      return await this.sessionPool!.newSession({
-                          proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                              request: request ?? undefined,
-                          }),
-                          maxUsageCount: 1,
-                      });
-                  },
-                  this.internalTimeoutMillis,
-                  `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-              )
-            : undefined;
+        const session = await this._timeoutAndRetry(
+            async () => {
+                return await this.sessionPool!.newSession({
+                    proxyInfo: await this.proxyConfiguration?.newProxyInfo({
+                        request: request ?? undefined,
+                    }),
+                    maxUsageCount: 1,
+                });
+            },
+            this.internalTimeoutMillis,
+            `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+        );
 
-        return { session, proxyInfo: session?.proxyInfo };
+        return { session, proxyInfo: session.proxyInfo };
     }
 
-    private async createContextHelpers({ request, session }: { request: Request; session?: Session }) {
+    private async createContextHelpers({ request, session }: { request: Request; session: Session }) {
         const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
             const requestQueue = await this.getRequestQueue();
 
@@ -1700,11 +1687,8 @@ export class BasicCrawler<
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
 
-        if (this.useSessionPool) {
-            this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
-            // Assuming there are not more than 20 browsers running at once;
-            this.sessionPool.setMaxListeners(20);
-        }
+        this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
+        this.sessionPool.setMaxListeners(20);
 
         await this.initializeRequestManager();
     }
@@ -1904,7 +1888,7 @@ export class BasicCrawler<
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
-            crawlingContext.session?.markGood();
+            crawlingContext.session.markGood();
         } catch (rawError) {
             const err = this.unwrapError(rawError);
 
@@ -1942,7 +1926,7 @@ export class BasicCrawler<
                 throw unwrappedSecondaryError;
             }
             // decrease the session score if the request fails (but the error handler did not throw)
-            crawlingContext.session?.markBad();
+            crawlingContext.session.markBad();
         } finally {
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && requestSource instanceof RequestProvider) {
@@ -2086,7 +2070,7 @@ export class BasicCrawler<
 
         request.sessionRotationCount ??= 0;
         request.sessionRotationCount++;
-        crawlingContext.session?.retire();
+        crawlingContext.session.retire();
     }
 
     /**
@@ -2273,9 +2257,8 @@ export class BasicCrawler<
             serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
         }
 
-        if (this.useSessionPool) {
-            await this.sessionPool!.teardown({ persistState: this._ownsEventManager });
-        }
+        await this.sessionPool?.teardown({ persistState: this._ownsEventManager });
+
 
         if (this._ownsEventManager) {
             await serviceLocator.getEventManager().close();
@@ -2358,7 +2341,7 @@ export class BasicCrawler<
 
 export interface CreateContextOptions {
     request: Request;
-    session?: Session;
+    session: Session;
     proxyInfo?: ProxyInfo;
 }
 

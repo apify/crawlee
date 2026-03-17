@@ -116,7 +116,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 1,
             });
@@ -165,7 +165,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 1,
             });
@@ -196,7 +196,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [hook],
@@ -229,7 +229,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 postNavigationHooks: [hook],
@@ -389,7 +389,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [
@@ -496,7 +496,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: false,
+
                 requestHandler: async () => {},
             });
 
@@ -521,7 +521,7 @@ describe('BrowserCrawler', () => {
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
-                useSessionPool: true,
+
                 persistCookiesPerSession: false,
                 sessionPoolOptions: {
                     sessionOptions: {
@@ -563,10 +563,9 @@ describe('BrowserCrawler', () => {
                 browserPlugins: [puppeteerPlugin],
             },
             requestList,
-            useSessionPool: true,
             persistCookiesPerSession: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session!.getCookieString(request.url));
+                loadedCookies.push(session.getCookieString(request.url));
                 return Promise.resolve();
             },
             preNavigationHooks: [
@@ -621,7 +620,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 persistCookiesPerSession: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
@@ -756,7 +755,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 persistCookiesPerSession: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
@@ -816,7 +815,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {
                     await retirementPromise;
                 },
@@ -843,7 +842,7 @@ describe('BrowserCrawler', () => {
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
-                useSessionPool: true,
+
                 sessionPoolOptions: {
                     maxPoolSize: 1,
                 },
@@ -887,7 +886,7 @@ describe('BrowserCrawler', () => {
                     },
                 },
                 requestList,
-                useSessionPool: false,
+
                 requestHandler: async ({ browserController }) => {
                     expect(browserController.launchContext.fingerprint).toBeDefined();
                 },
@@ -1077,7 +1076,7 @@ describe('BrowserCrawler', () => {
                     requestList,
                     maxRequestRetries: 0,
                     maxConcurrency: 1,
-                    useSessionPool: true,
+
                     proxyConfiguration,
                     requestHandler,
                 });
@@ -1257,7 +1256,7 @@ describe('BrowserCrawler', () => {
                     requestList,
                     maxRequestRetries: 0,
                     maxConcurrency: 1,
-                    useSessionPool: true,
+
                     requestHandler,
                     failedRequestHandler,
                 });

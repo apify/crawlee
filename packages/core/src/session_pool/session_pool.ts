@@ -75,18 +75,7 @@ export interface SessionPoolOptions {
  *
  * You can create one by calling the {@apilink SessionPool.open} function.
  *
- * Session pool is already integrated into crawlers, and it can significantly improve your scraper
- * performance with just 2 lines of code.
- *
- * **Example usage:**
- *
- * ```javascript
- * const crawler = new CheerioCrawler({
- *     useSessionPool: true,
- *     persistCookiesPerSession: true,
- *     // ...
- * })
- * ```
+ * Session pool is already integrated into crawlers and is always active.
  *
  * You can configure the pool with many options. See the {@apilink SessionPoolOptions}.
  * Session pool is by default persisted in default {@apilink KeyValueStore}.
