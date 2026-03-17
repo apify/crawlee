@@ -7,8 +7,6 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new BasicCrawler({
-    // Activates the Session pool (default is true).
-    useSessionPool: true,
     // Overrides default Session pool configuration.
     sessionPoolOptions: { maxPoolSize: 100 },
     async requestHandler({ request, session }) {
