@@ -129,7 +129,7 @@ export interface HttpCrawlerOptions<
     forceResponseEncoding?: string;
 
     /**
-     * Automatically saves cookies to Session. Works only if Session Pool is used.
+     * Automatically saves cookies to Session. Enabled by default.
      *
      * It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
      * It passes the "Cookie" header to the request with the session cookies.
@@ -350,7 +350,7 @@ export class HttpCrawler<
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-            persistCookiesPerSession,
+            persistCookiesPerSession = true,
             preNavigationHooks = [],
             postNavigationHooks = [],
             additionalHttpErrorStatusCodes = [],
@@ -369,11 +369,6 @@ export class HttpCrawler<
                 contextPipelineBuilder ??
                 (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
         });
-
-        // Cookies should be persisted per session only if session pool is used
-        if (!this.useSessionPool && persistCookiesPerSession) {
-            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
-        }
 
         this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
@@ -404,11 +399,7 @@ export class HttpCrawler<
             ...postNavigationHooks,
         ];
 
-        if (this.useSessionPool) {
-            this.persistCookiesPerSession = persistCookiesPerSession ?? true;
-        } else {
-            this.persistCookiesPerSession = false;
-        }
+        this.persistCookiesPerSession = persistCookiesPerSession;
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
@@ -520,12 +511,10 @@ export class HttpCrawler<
             return $;
         };
 
-        if (this.useSessionPool) {
-            this._throwOnBlockedRequest(crawlingContext.session!, response.status!);
-        }
+        this._throwOnBlockedRequest(crawlingContext.session, response.status!);
 
         if (this.persistCookiesPerSession) {
-            crawlingContext.session!.setCookiesFromResponse(response);
+            crawlingContext.session.setCookiesFromResponse(response);
         }
 
         return {
@@ -576,7 +565,7 @@ export class HttpCrawler<
         preHookCookies: string,
         postHookCookies: string,
     ): string {
-        const sessionCookie = session?.getCookieString(request.url) ?? '';
+        const sessionCookie = session.getCookieString(request.url);
 
         const sourceCookies = [sessionCookie, preHookCookies, postHookCookies];
 
@@ -661,13 +650,13 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: CrawleeRequest, session?: Session, proxyUrl?: string) {
+    protected _getRequestOptions(request: CrawleeRequest, session: Session, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
             proxyUrl,
             timeout: this.navigationTimeoutMillis,
-            cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
+            cookieJar: this.persistCookiesPerSession ? session.cookieJar : undefined,
             sessionToken: session,
             headers: request.headers,
             https: {
@@ -680,7 +669,7 @@ export class HttpCrawler<
         Reflect.deleteProperty(requestOptions.headers!, 'cookie');
 
         // Disable SSL verification for MITM proxies
-        if (session?.proxyInfo?.ignoreTlsErrors) {
+        if (session.proxyInfo?.ignoreTlsErrors) {
             requestOptions.https = {
                 ...requestOptions.https,
                 rejectUnauthorized: false,
@@ -759,8 +748,8 @@ export class HttpCrawler<
     /**
      * Handles timeout request
      */
-    protected _handleRequestTimeout(session?: Session) {
-        session?.markBad();
+    protected _handleRequestTimeout(session: Session) {
+        session.markBad();
         throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
@@ -782,7 +771,7 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = async (options: Dictionary<any>, session?: Session, cookieString?: string) => {
+    private _requestAsBrowser = async (options: Dictionary<any>, session: Session, cookieString?: string) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
             cookieJar: options.cookieJar,
@@ -815,7 +804,7 @@ export class HttpCrawler<
 
 interface RequestFunctionOptions {
     request: CrawleeRequest;
-    session?: Session;
+    session: Session;
     proxyUrl?: string;
     cookieString?: string;
 }

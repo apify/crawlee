@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "impit": "^0.7.1",
+    "pino": "^9.6.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "winston": "^3.17.0"
   }
 }
