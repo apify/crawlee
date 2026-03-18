@@ -5,7 +5,6 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new CheerioCrawler({
-    persistCookiesPerSession: true,
     proxyConfiguration,
     // ...
 });
