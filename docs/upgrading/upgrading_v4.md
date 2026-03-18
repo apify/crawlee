@@ -207,6 +207,20 @@ const config = serviceLocator.getConfiguration();
 
 Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
 
+## Cookie handling refactored
+
+The `persistCookiesPerSession` option has been removed from `HttpCrawler` (and `CheerioCrawler`) and `BrowserCrawler`. Cookie persistence into the session is now always on — it was the only sensible behavior, and was already happening unconditionally through the HTTP client layer.
+
+`session.cookieJar` is now the single source of truth for the current request's cookie set. The merge order (lowest to highest priority) is:
+
+1. Cookies already in `session.cookieJar` from previous requests
+2. Cookies on `request.headers.cookie` at the time the request is created
+3. Cookies set or overridden on `request.headers.Cookie` inside `preNavigationHooks`
+
+Cookies from `request.headers.cookie`/`Cookie` are imported into `session.cookieJar` before the HTTP request fires, so they persist for subsequent requests that reuse the same session. If you were relying on `persistCookiesPerSession: false` to prevent response cookies from being stored, you will need to manage the session lifecycle differently (e.g. retire the session after each request, or clear the jar in a hook).
+
+The protected `BasicCrawler._getCookieHeaderFromRequest` and `HttpCrawler._applyCookies` methods are removed. If you were overriding them in a custom crawler subclass, move that logic into `preNavigationHooks` or override `_importCookieHeaderToSession` instead.
+
 ## `transformRequestFunction` precedence in `enqueueLinks`
 
 The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`globs`, `regexps`, `pseudoUrls`) instead of before. This means it has the highest priority and can overwrite any request options set by patterns or the global `label` option.
