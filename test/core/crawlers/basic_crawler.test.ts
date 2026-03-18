@@ -15,8 +15,8 @@ import {
     Request,
     RequestList,
     RequestQueue,
-    SessionPool,
     serviceLocator,
+    SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
