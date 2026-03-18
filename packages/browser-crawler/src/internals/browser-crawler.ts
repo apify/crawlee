@@ -480,7 +480,7 @@ export abstract class BrowserCrawler<
             page as any,
         ) as ProvidedController;
 
-        this._addSessionRetiredListener(crawlingContext.session, browserControllerInstance);
+        this.addSessionRetiredListener(crawlingContext.session, browserControllerInstance);
 
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
 
@@ -664,14 +664,14 @@ export abstract class BrowserCrawler<
         request.loadedUrl = await page.url();
     }
 
-    private _browserSessionIds = new WeakMap<Context['browserController'], Set<string>>();
+    private browserSessionIds = new WeakMap<Context['browserController'], Set<string>>();
 
-    private _addSessionRetiredListener(session: Session, browserController: Context['browserController']): void {
+    private addSessionRetiredListener(session: Session, browserController: Context['browserController']): void {
         if (!this.sessionPool) {
             return;
         }
 
-        let sessionIds = this._browserSessionIds.get(browserController);
+        let sessionIds = this.browserSessionIds.get(browserController);
 
         if (sessionIds) {
             sessionIds.add(session.id);
@@ -679,10 +679,10 @@ export abstract class BrowserCrawler<
         }
 
         sessionIds = new Set([session.id]);
-        this._browserSessionIds.set(browserController, sessionIds);
+        this.browserSessionIds.set(browserController, sessionIds);
 
         const listener = (retired: Session) => {
-            if (this._browserSessionIds.get(browserController)?.has(retired.id)) {
+            if (this.browserSessionIds.get(browserController)?.has(retired.id)) {
                 this.browserPool.retireBrowserController(
                     browserController as Parameters<
                         BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
