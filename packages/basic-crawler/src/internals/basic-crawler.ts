@@ -42,7 +42,6 @@ import {
     EventType,
     KeyValueStore,
     LogLevel,
-    mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
     RequestHandlerError,
@@ -2183,17 +2182,6 @@ export class BasicCrawler<
         }
 
         await this.autoscaledPool?.abort();
-    }
-
-    protected _getCookieHeaderFromRequest(request: Request) {
-        if (request.headers?.Cookie && request.headers?.cookie) {
-            this.log.warning(
-                `Encountered mixed casing for the cookie headers for request ${request.url} (${request.id}). Their values will be merged.`,
-            );
-            return mergeCookies(request.url, [request.headers.cookie, request.headers.Cookie]);
-        }
-
-        return request.headers?.Cookie || request.headers?.cookie || '';
     }
 
     private async _getRequestQueue() {
