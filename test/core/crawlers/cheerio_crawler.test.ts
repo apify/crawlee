@@ -856,7 +856,6 @@ describe('CheerioCrawler', () => {
             const crawler = new CheerioCrawler({
                 requestList,
 
-                persistCookiesPerSession: false,
                 requestHandler: ({ session }) => {
                     expect(session).toBeInstanceOf(Session);
                 },
@@ -868,7 +867,6 @@ describe('CheerioCrawler', () => {
             const crawler = new CheerioCrawler({
                 requestList,
 
-                persistCookiesPerSession: false,
                 sessionPoolOptions: {
                     sessionOptions: {
                         maxUsageCount: 1,
@@ -930,7 +928,6 @@ describe('CheerioCrawler', () => {
                         headers: { 'Content-type': 'text/html' },
                     }),
 
-                    persistCookiesPerSession: false,
                     maxRequestRetries: 0,
                     requestHandler: ({ session }) => {
                         sessions.push(session!);
@@ -971,7 +968,6 @@ describe('CheerioCrawler', () => {
                     '/getRawHeaders',
                 ),
 
-                persistCookiesPerSession: true,
                 sessionPoolOptions: {
                     maxPoolSize: 1,
                 },
@@ -1002,7 +998,6 @@ describe('CheerioCrawler', () => {
                     },
                 ]),
 
-                persistCookiesPerSession: false,
                 sessionPoolOptions: {
                     maxPoolSize: 1,
                 },
@@ -1032,7 +1027,6 @@ describe('CheerioCrawler', () => {
                     },
                 ]),
 
-                persistCookiesPerSession: false,
                 sessionPoolOptions: {
                     maxPoolSize: 1,
                 },

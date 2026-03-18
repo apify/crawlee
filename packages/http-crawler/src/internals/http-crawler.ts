@@ -137,14 +137,6 @@ export interface HttpCrawlerOptions<
     forceResponseEncoding?: string;
 
     /**
-     * Automatically saves cookies to Session. Enabled by default.
-     *
-     * It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
-     * It passes the "Cookie" header to the request with the session cookies.
-     */
-    persistCookiesPerSession?: boolean;
-
-    /**
      * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
      * By default, status codes >= 500 trigger errors.
      */
@@ -317,7 +309,6 @@ export class HttpCrawler<
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
-    protected persistCookiesPerSession: boolean;
     protected navigationTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
     protected suggestResponseEncoding?: string;
@@ -334,7 +325,6 @@ export class HttpCrawler<
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
-        persistCookiesPerSession: ow.optional.boolean,
 
         additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
         ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
@@ -358,7 +348,6 @@ export class HttpCrawler<
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-            persistCookiesPerSession = true,
             preNavigationHooks = [],
             postNavigationHooks = [],
             additionalHttpErrorStatusCodes = [],
@@ -398,8 +387,6 @@ export class HttpCrawler<
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
             ...postNavigationHooks,
         ];
-
-        this.persistCookiesPerSession = persistCookiesPerSession;
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
@@ -512,10 +499,6 @@ export class HttpCrawler<
         };
 
         this._throwOnBlockedRequest(crawlingContext.session, response.status!);
-
-        if (this.persistCookiesPerSession) {
-            crawlingContext.session.setCookiesFromResponse(response);
-        }
 
         return {
             get json() {
@@ -663,7 +646,6 @@ export class HttpCrawler<
             method: request.method,
             proxyUrl,
             timeout: this.navigationTimeoutMillis,
-            cookieJar: this.persistCookiesPerSession ? session.cookieJar : undefined,
             sessionToken: session,
             headers: request.headers,
             https: {
