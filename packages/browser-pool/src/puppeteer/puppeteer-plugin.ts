@@ -4,7 +4,11 @@ import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
 
-import { BrowserPlugin, type BrowserPluginOptions } from '../abstract-classes/browser-plugin.js';
+import {
+    BrowserPlugin,
+    type BrowserPluginOptions,
+    type CreateLaunchContextOptions,
+} from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { LaunchContext } from '../launch-context.js';
 import { noop } from '../utils.js';
@@ -37,6 +41,20 @@ export class PuppeteerPlugin extends BrowserPlugin<
         this.connectOverCDPOptions = connectOverCDPOptions;
     }
 
+    override createLaunchContext(
+        options: CreateLaunchContextOptions<
+            typeof Puppeteer,
+            PuppeteerTypes.LaunchOptions,
+            PuppeteerTypes.Browser,
+            PuppeteerNewPageOptions
+        > = {},
+    ): LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions> {
+        return super.createLaunchContext({
+            ...options,
+            isRemote: options.isRemote ?? !!this.connectOverCDPOptions,
+        });
+    }
+
     protected async _launch(
         launchContext: LaunchContext<
             typeof Puppeteer,
@@ -56,67 +74,67 @@ export class PuppeteerPlugin extends BrowserPlugin<
             // ignore
         }
 
-        const {
-            launchOptions,
-            userDataDir,
-            useIncognitoPages,
-            experimentalContainers,
-            proxyUrl,
-            ignoreProxyCertificate,
-        } = launchContext;
-
-        if (experimentalContainers) {
-            throw new Error('Experimental containers are only available with Playwright');
-        }
-
-        launchOptions!.userDataDir = launchOptions!.userDataDir ?? userDataDir;
-
-        if (launchOptions!.headless === false) {
-            if (Array.isArray(launchOptions!.args)) {
-                launchOptions!.args.push('--disable-site-isolation-trials');
-            } else {
-                launchOptions!.args = ['--disable-site-isolation-trials'];
-            }
-        }
-
-        if (launchOptions!.headless === true && oldPuppeteerVersion) {
-            launchOptions!.headless = 'new' as any;
-        }
+        const { useIncognitoPages, proxyUrl, ignoreProxyCertificate } = launchContext;
 
         let browser: PuppeteerTypes.Browser;
 
-        {
-            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
-                ignoreProxyCertificate: launchContext.ignoreProxyCertificate,
-            });
+        if (this.connectOverCDPOptions) {
+            // Remote CDP connection — skip local launch/proxy/headless logic
+            browser = await this.library.connect(this.connectOverCDPOptions);
+        } else {
+            const { launchOptions, userDataDir, experimentalContainers } = launchContext;
 
-            if (proxyUrl) {
-                const proxyArg = `${PROXY_SERVER_ARG}${anonymizedProxyUrl ?? proxyUrl}`;
+            if (experimentalContainers) {
+                throw new Error('Experimental containers are only available with Playwright');
+            }
 
+            launchOptions!.userDataDir = launchOptions!.userDataDir ?? userDataDir;
+
+            if (launchOptions!.headless === false) {
                 if (Array.isArray(launchOptions!.args)) {
-                    launchOptions!.args.push(proxyArg);
+                    launchOptions!.args.push('--disable-site-isolation-trials');
                 } else {
-                    launchOptions!.args = [proxyArg];
+                    launchOptions!.args = ['--disable-site-isolation-trials'];
                 }
             }
 
-            try {
-                browser = await this.library.launch(launchOptions);
+            if (launchOptions!.headless === true && oldPuppeteerVersion) {
+                launchOptions!.headless = 'new' as any;
+            }
 
-                if (anonymizedProxyUrl) {
-                    browser.on('disconnected', async () => {
-                        await close();
-                    });
+            {
+                const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
+                    ignoreProxyCertificate: launchContext.ignoreProxyCertificate,
+                });
+
+                if (proxyUrl) {
+                    const proxyArg = `${PROXY_SERVER_ARG}${anonymizedProxyUrl ?? proxyUrl}`;
+
+                    if (Array.isArray(launchOptions!.args)) {
+                        launchOptions!.args.push(proxyArg);
+                    } else {
+                        launchOptions!.args = [proxyArg];
+                    }
                 }
-            } catch (error: any) {
-                await close();
 
-                this._throwAugmentedLaunchError(
-                    error,
-                    launchContext.launchOptions?.executablePath,
-                    '`apify/actor-node-puppeteer-chrome`',
-                    "Try installing a browser, if it's missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)",
-                );
+                try {
+                    browser = await this.library.launch(launchOptions);
+
+                    if (anonymizedProxyUrl) {
+                        browser.on('disconnected', async () => {
+                            await close();
+                        });
+                    }
+                } catch (error: any) {
+                    await close();
+
+                    this._throwAugmentedLaunchError(
+                        error,
+                        launchContext.launchOptions?.executablePath,
+                        '`apify/actor-node-puppeteer-chrome`',
+                        "Try installing a browser, if it's missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)",
+                    );
+                }
             }
         }
 
