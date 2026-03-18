@@ -668,7 +668,7 @@ export abstract class BrowserCrawler<
 
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
-                this._throwOnBlockedRequest(session, response.status());
+                this._throwOnBlockedRequest(response.status());
             } else {
                 this.log.debug('Got a malformed Browser response.', { request, response });
             }

@@ -1644,12 +1644,11 @@ export class BasicCrawler<
     /**
      * Handles blocked request
      */
-    protected _throwOnBlockedRequest(session: Session, statusCode: number) {
+    protected _throwOnBlockedRequest(statusCode: number) {
         if (this.retryOnBlocked) return;
 
         if (this.blockedStatusCodes.has(statusCode)) {
-            session.retire();
-            throw new Error(`Request blocked - received ${statusCode} status code.`);
+            throw new SessionError(`Request blocked - received ${statusCode} status code.`);
         }
     }
 

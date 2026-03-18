@@ -511,7 +511,7 @@ export class HttpCrawler<
             return $;
         };
 
-        this._throwOnBlockedRequest(crawlingContext.session, response.status!);
+        this._throwOnBlockedRequest(response.status);
 
         if (this.persistCookiesPerSession) {
             crawlingContext.session.setCookiesFromResponse(response);
