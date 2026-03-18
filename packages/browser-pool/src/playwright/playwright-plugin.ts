@@ -2,7 +2,11 @@ import fs from 'node:fs';
 
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
-import { BrowserPlugin, type BrowserPluginOptions } from '../abstract-classes/browser-plugin.js';
+import {
+    BrowserPlugin,
+    type BrowserPluginOptions,
+    type CreateLaunchContextOptions,
+} from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { createProxyServerForContainers } from '../container-proxy-server.js';
 import type { LaunchContext } from '../launch-context.js';
@@ -41,12 +45,34 @@ export class PlaywrightPlugin extends BrowserPlugin<
 
     constructor(library: BrowserType, options: PlaywrightPluginOptions = {}) {
         const { connectOptions, connectOverCDPOptions, ...baseOptions } = options;
+
+        if (connectOptions && connectOverCDPOptions) {
+            throw new Error("Cannot set both 'connectOptions' and 'connectOverCDPOptions' — pick one protocol.");
+        }
+
         super(library, baseOptions);
         this.connectOptions = connectOptions;
         this.connectOverCDPOptions = connectOverCDPOptions;
     }
 
+    override createLaunchContext(options: CreateLaunchContextOptions<BrowserType> = {}): LaunchContext<BrowserType> {
+        return super.createLaunchContext({
+            ...options,
+            isRemote: options.isRemote ?? !!(this.connectOptions || this.connectOverCDPOptions),
+        });
+    }
+
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
+        // Remote CDP connection — skip all local launch/proxy logic
+        if (this.connectOverCDPOptions) {
+            return this.library.connectOverCDP(this.connectOverCDPOptions);
+        }
+
+        // Remote Playwright WebSocket connection — skip all local launch/proxy logic
+        if (this.connectOptions) {
+            return this.library.connect(this.connectOptions);
+        }
+
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;
         let browser: PlaywrightBrowser;
 
