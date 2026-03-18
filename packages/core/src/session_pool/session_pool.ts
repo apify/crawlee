@@ -46,7 +46,7 @@ export interface SessionPoolOptions {
     persistStateKeyValueStoreId?: string;
 
     /**
-     * Session pool persists it's state under this key in Key value store.
+     * Session pool persists its state under this key in Key value store.
      * @default SDK_SESSION_POOL_STATE_{id}
      */
     persistStateKey?: string;

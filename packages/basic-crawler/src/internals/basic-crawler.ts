@@ -670,7 +670,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
-        sessionPool: ow.optional.object,
+        sessionPool: ow.optional.object.instanceOf(SessionPool),
         sessionPoolOptions: ow.optional.object,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 

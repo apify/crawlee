@@ -1586,6 +1586,7 @@ describe('BasicCrawler', () => {
             await crawler.run();
 
             expect(crawler.sessionPool).toBe(sharedPool);
+            await sharedPool.teardown();
         });
 
         it('should not tear down an injected SessionPool', async () => {
@@ -1607,29 +1608,35 @@ describe('BasicCrawler', () => {
 
         it('should share sessions across crawlers using the same SessionPool', async () => {
             const sharedPool = await SessionPool.open({ maxPoolSize: 5 });
-            const sessionIds = new Set<string>();
+            const crawler1Sessions = new Set<string>();
+            const crawler2Sessions = new Set<string>();
 
             const requestList1 = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
             const crawler1 = new BasicCrawler({
                 requestList: requestList1,
                 sessionPool: sharedPool,
                 requestHandler: async ({ session }) => {
-                    sessionIds.add(session.id);
+                    crawler1Sessions.add(session.id);
                 },
             });
             await crawler1.run();
+
+            expect(crawler1Sessions.size).toBeGreaterThan(0);
+            const poolSizeAfterCrawler1 = sharedPool.usableSessionsCount;
 
             const requestList2 = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
             const crawler2 = new BasicCrawler({
                 requestList: requestList2,
                 sessionPool: sharedPool,
                 requestHandler: async ({ session }) => {
-                    sessionIds.add(session.id);
+                    crawler2Sessions.add(session.id);
                 },
             });
             await crawler2.run();
 
             expect(crawler1.sessionPool).toBe(crawler2.sessionPool);
+            // crawler2 should reuse sessions created by crawler1, not grow the pool further
+            expect(sharedPool.usableSessionsCount).toBe(poolSizeAfterCrawler1);
             await sharedPool.teardown();
         });
 
