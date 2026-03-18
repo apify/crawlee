@@ -37,7 +37,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, ProxyInfo } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -391,12 +391,8 @@ export abstract class BrowserCrawler<
             browserPoolOptions.useFingerprints = false;
         }
 
-        const { preLaunchHooks = [], postLaunchHooks = [], ...rest } = browserPoolOptions;
-
         this.browserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(rest as any),
-            preLaunchHooks: [this._extendLaunchContext.bind(this), ...preLaunchHooks],
-            postLaunchHooks: [this._maybeAddSessionRetiredListener.bind(this), ...postLaunchHooks],
+            ...(browserPoolOptions as any),
         });
     }
 
@@ -469,25 +465,12 @@ export abstract class BrowserCrawler<
             id: crawlingContext.id,
         };
 
-        const useIncognitoPages = this.launchContext?.useIncognitoPages;
-
         if (crawlingContext.session?.proxyInfo) {
             const proxyInfo = crawlingContext.session.proxyInfo;
-            crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
-
-            if (proxyInfo?.ignoreTlsErrors) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                newPageOptions.pageOptions = {
-                    ignoreHTTPSErrors: true,
-                    acceptInsecureCerts: true,
-                };
-            }
+            newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
         }
 
         const page = (await this.browserPool.newPage(newPageOptions)) as Page;
@@ -497,11 +480,9 @@ export abstract class BrowserCrawler<
             page as any,
         ) as ProvidedController;
 
-        const contextEnqueueLinks = crawlingContext.enqueueLinks;
+        this.addSessionRetiredListener(crawlingContext.session, browserControllerInstance);
 
-        const session = useIncognitoPages
-            ? crawlingContext.session
-            : (browserControllerInstance.launchContext.session as Session);
+        const contextEnqueueLinks = crawlingContext.enqueueLinks;
 
         return {
             page,
@@ -511,8 +492,6 @@ export abstract class BrowserCrawler<
                 );
             },
             browserController: browserControllerInstance,
-            session,
-            proxyInfo: session?.proxyInfo,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
@@ -685,57 +664,37 @@ export abstract class BrowserCrawler<
         request.loadedUrl = await page.url();
     }
 
-    protected async _extendLaunchContext(_pageId: string, launchContext: LaunchContext): Promise<void> {
-        const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
+    private browserSessionIds = new WeakMap<Context['browserController'], Set<string>>();
 
-        // Hacky access from `AdaptivePlaywrightCrawler` calls this without calling `.init()`.
-        // This is the only case where this.sessionPool is accessed without being initialized.
-        if (this.sessionPool) {
-            launchContextExtends.session = await this.sessionPool.newSession({
-                proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                    // cannot pass a request here, since session is created on browser launch
-                }),
-            });
+    private addSessionRetiredListener(session: Session, browserController: Context['browserController']): void {
+        if (!this.sessionPool) {
+            return;
         }
 
-        if (!launchContext.proxyUrl && launchContextExtends.session?.proxyInfo) {
-            const proxyInfo = launchContextExtends.session.proxyInfo;
+        let sessionIds = this.browserSessionIds.get(browserController);
 
-            launchContext.proxyUrl = proxyInfo?.url;
-            launchContextExtends.proxyInfo = proxyInfo;
+        if (sessionIds) {
+            sessionIds.add(session.id);
+            return;
+        }
 
-            // Disable SSL verification for MITM proxies
-            if (proxyInfo?.ignoreTlsErrors) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
-                (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
+        sessionIds = new Set([session.id]);
+        this.browserSessionIds.set(browserController, sessionIds);
+
+        const listener = (retired: Session) => {
+            if (this.browserSessionIds.get(browserController)?.has(retired.id)) {
+                this.browserPool.retireBrowserController(
+                    browserController as Parameters<
+                        BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
+                    >[0],
+                );
             }
-        }
+        };
 
-        launchContext.extend(launchContextExtends);
-    }
-
-    protected _maybeAddSessionRetiredListener(_pageId: string, browserController: Context['browserController']): void {
-        if (this.sessionPool) {
-            const listener = (session: Session) => {
-                const { launchContext } = browserController;
-                if (session.id === (launchContext.session as Session).id) {
-                    this.browserPool.retireBrowserController(
-                        browserController as Parameters<
-                            BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
-                        >[0],
-                    );
-                }
-            };
-
-            this.sessionPool.on(EVENT_SESSION_RETIRED, listener);
-            browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
-                return this.sessionPool!.removeListener(EVENT_SESSION_RETIRED, listener);
-            });
-        }
+        this.sessionPool.on(EVENT_SESSION_RETIRED, listener);
+        browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
+            return this.sessionPool!.removeListener(EVENT_SESSION_RETIRED, listener);
+        });
     }
 
     /**
