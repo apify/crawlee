@@ -1,6 +1,7 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { PuppeteerConnectOverCDPOptions } from '@crawlee/browser-pool';
 import ow from 'ow';
 import type { Browser } from 'puppeteer';
 
@@ -65,6 +66,12 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
      * @default false
      */
     useIncognitoPages?: boolean;
+
+    /**
+     * Options for connecting to a remote browser via CDP.
+     * When provided, the browser will be connected to using `puppeteer.connect()` instead of launched.
+     */
+    connectOverCDPOptions?: PuppeteerConnectOverCDPOptions;
 }
 
 /**
@@ -75,6 +82,7 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
+        connectOverCDPOptions: ow.optional.object,
     };
 
     /**

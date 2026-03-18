@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
-import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
+import { BrowserPlugin, type BrowserPluginOptions } from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { createProxyServerForContainers } from '../container-proxy-server.js';
 import type { LaunchContext } from '../launch-context.js';
@@ -11,6 +11,23 @@ import type { SafeParameters } from '../utils.js';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser.js';
 import { PlaywrightController } from './playwright-controller.js';
 
+/**
+ * Options for connecting to a remote browser via CDP.
+ * Mirrors `browserType.connectOverCDP(options)`.
+ */
+export type PlaywrightConnectOverCDPOptions = Parameters<BrowserType['connectOverCDP']>[0];
+
+/**
+ * Options for connecting to a remote browser via WebSocket.
+ * Mirrors `browserType.connect(options)`.
+ */
+export type PlaywrightConnectOptions = Parameters<BrowserType['connect']>[0];
+
+export interface PlaywrightPluginOptions extends BrowserPluginOptions<SafeParameters<BrowserType['launch']>[0]> {
+    connectOptions?: PlaywrightConnectOptions;
+    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
+}
+
 export class PlaywrightPlugin extends BrowserPlugin<
     BrowserType,
     SafeParameters<BrowserType['launch']>[0],
@@ -18,6 +35,16 @@ export class PlaywrightPlugin extends BrowserPlugin<
 > {
     private _browserVersion?: string;
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
+
+    connectOptions?: PlaywrightConnectOptions;
+    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
+
+    constructor(library: BrowserType, options: PlaywrightPluginOptions = {}) {
+        const { connectOptions, connectOverCDPOptions, ...baseOptions } = options;
+        super(library, baseOptions);
+        this.connectOptions = connectOptions;
+        this.connectOverCDPOptions = connectOverCDPOptions;
+    }
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;

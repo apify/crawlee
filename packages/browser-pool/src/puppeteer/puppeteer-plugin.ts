@@ -4,7 +4,7 @@ import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
 
-import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
+import { BrowserPlugin, type BrowserPluginOptions } from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { LaunchContext } from '../launch-context.js';
 import { noop } from '../utils.js';
@@ -13,12 +13,30 @@ import { PuppeteerController } from './puppeteer-controller.js';
 
 const PROXY_SERVER_ARG = '--proxy-server=';
 
+/**
+ * Options for connecting to a remote browser via Puppeteer.
+ * Flat object matching Puppeteer's `ConnectOptions`.
+ */
+export type PuppeteerConnectOverCDPOptions = Parameters<(typeof Puppeteer)['connect']>[0];
+
+export interface PuppeteerPluginOptions extends BrowserPluginOptions<PuppeteerTypes.LaunchOptions> {
+    connectOverCDPOptions?: PuppeteerConnectOverCDPOptions;
+}
+
 export class PuppeteerPlugin extends BrowserPlugin<
     typeof Puppeteer,
     PuppeteerTypes.LaunchOptions,
     PuppeteerTypes.Browser,
     PuppeteerNewPageOptions
 > {
+    connectOverCDPOptions?: PuppeteerConnectOverCDPOptions;
+
+    constructor(library: typeof Puppeteer, options: PuppeteerPluginOptions = {}) {
+        const { connectOverCDPOptions, ...baseOptions } = options;
+        super(library, baseOptions);
+        this.connectOverCDPOptions = connectOverCDPOptions;
+    }
+
     protected async _launch(
         launchContext: LaunchContext<
             typeof Puppeteer,
