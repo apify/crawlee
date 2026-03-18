@@ -385,14 +385,6 @@ export class HttpCrawler<
         this.forceResponseEncoding = forceResponseEncoding;
         this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
         this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
-
-        for (const code of additionalHttpErrorStatusCodes) {
-            this.blockedStatusCodes.add(code);
-        }
-
-        for (const code of ignoreHttpErrorStatusCodes) {
-            this.blockedStatusCodes.delete(code);
-        }
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
