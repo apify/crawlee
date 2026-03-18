@@ -483,7 +483,6 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
 
-                persistCookiesPerSession: false,
                 sessionPoolOptions: {
                     sessionOptions: {
                         maxUsageCount: 1,
@@ -524,7 +523,6 @@ describe('BrowserCrawler', () => {
                 browserPlugins: [puppeteerPlugin],
             },
             requestList,
-            persistCookiesPerSession: true,
             requestHandler: async ({ session, request }) => {
                 loadedCookies.push(session.getCookieString(request.url));
                 return Promise.resolve();
@@ -582,7 +580,6 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
 
-                persistCookiesPerSession: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
                     called = true;
@@ -717,7 +714,6 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
 
-                persistCookiesPerSession: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
                     called = true;

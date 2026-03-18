@@ -220,11 +220,6 @@ export interface BrowserCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
-     * Defines whether the cookies should be persisted for sessions. Enabled by default.
-     */
-    persistCookiesPerSession?: boolean;
-
-    /**
      * Whether to run browser in headless mode. Defaults to `true`.
      * Can be also set via {@apilink Configuration}.
      */
@@ -311,7 +306,6 @@ export abstract class BrowserCrawler<
     protected navigationTimeoutMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
-    protected persistCookiesPerSession: boolean;
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
@@ -324,7 +318,6 @@ export abstract class BrowserCrawler<
         headless: ow.optional.any(ow.boolean, ow.string),
         browserPoolOptions: ow.object,
         sessionPoolOptions: ow.optional.object,
-        persistCookiesPerSession: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
     };
 
@@ -346,7 +339,6 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
-            persistCookiesPerSession = true,
             launchContext = {},
             browserPoolOptions,
             preNavigationHooks = [],
@@ -382,8 +374,6 @@ export abstract class BrowserCrawler<
             this.launchContext.launchOptions ??= {} as LaunchOptions;
             (this.launchContext.launchOptions as Dictionary).headless = headless;
         }
-
-        this.persistCookiesPerSession = persistCookiesPerSession;
 
         if (launchContext?.userAgent) {
             if (browserPoolOptions.useFingerprints)
@@ -582,13 +572,9 @@ export abstract class BrowserCrawler<
         await this.processResponse(response, crawlingContext);
         tryCancel();
 
-        // save cookies
-        // TODO: Should we save the cookies also after/only the handle page?
-        if (this.persistCookiesPerSession) {
-            const cookies = await crawlingContext.browserController.getCookies(crawlingContext.page);
-            tryCancel();
-            crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
-        }
+        const cookies = await crawlingContext.browserController.getCookies(crawlingContext.page);
+        tryCancel();
+        crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
 
         if (response !== undefined) {
             return {
