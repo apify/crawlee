@@ -311,7 +311,16 @@ export interface BasicCrawlerOptions<
     keepAlive?: boolean;
 
     /**
+     * An existing {@apilink SessionPool} instance to use. When provided, the crawler will use this
+     * pool directly instead of creating a new one, enabling session sharing across multiple crawlers.
+     * The crawler will not tear down a shared pool — the caller is responsible for its lifecycle.
+     * Mutually exclusive with `sessionPoolOptions`.
+     */
+    sessionPool?: SessionPool;
+
+    /**
      * The configuration options for {@apilink SessionPool} to use.
+     * Mutually exclusive with `sessionPool`.
      */
     sessionPoolOptions?: SessionPoolOptions;
 
@@ -624,6 +633,7 @@ export class BasicCrawler<
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
+    private _ownsSessionPool = true;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
@@ -660,6 +670,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
+        sessionPool: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
@@ -710,6 +721,7 @@ export class BasicCrawler<
             maxCrawlDepth,
             autoscaledPoolOptions = {},
             keepAlive,
+            sessionPool: injectedSessionPool,
             sessionPoolOptions = {},
             proxyConfiguration,
 
@@ -832,6 +844,16 @@ export class BasicCrawler<
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
+            if (injectedSessionPool) {
+                if (Object.keys(sessionPoolOptions).length > 0) {
+                    throw new Error(
+                        'Cannot use both `sessionPool` and `sessionPoolOptions` — pass either a pre-built SessionPool instance or options to create one, not both.',
+                    );
+                }
+                this.sessionPool = injectedSessionPool;
+                this._ownsSessionPool = false;
+            }
+
             this.sessionPoolOptions = {
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...sessionPoolOptions,
@@ -1236,7 +1258,9 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            await this.sessionPool?.resetStore();
+            if (this._ownsSessionPool) {
+                await this.sessionPool?.resetStore();
+            }
         }
 
         this.unexpectedStop = false;
@@ -1623,7 +1647,9 @@ export class BasicCrawler<
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
 
-        this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
+        if (!this.sessionPool) {
+            this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
+        }
         this.sessionPool.setMaxListeners(20);
 
         await this.initializeRequestManager();
@@ -2177,7 +2203,9 @@ export class BasicCrawler<
     async teardown(): Promise<void> {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
 
-        await this.sessionPool?.teardown();
+        if (this._ownsSessionPool) {
+            await this.sessionPool?.teardown();
+        }
 
         if (this._closeEvents) {
             await serviceLocator.getEventManager().close();
