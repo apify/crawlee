@@ -17,7 +17,6 @@ import {
     BasicCrawler,
     BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     ContextPipeline,
-    cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
@@ -37,7 +36,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, ProxyInfo } from '@crawlee/types';
+import type { BatchAddRequestsResult, ProxyInfo } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -542,15 +541,15 @@ export abstract class BrowserCrawler<
 
         const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
 
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+        this._importCookieHeaderToSession(crawlingContext.request, crawlingContext.session);
 
         crawlingContext.request.state = RequestState.BEFORE_NAV;
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+        this._importCookieHeaderToSession(crawlingContext.request, crawlingContext.session);
 
-        await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+        await this._applyCookies(crawlingContext);
 
         let response: Response | undefined;
 
@@ -604,20 +603,20 @@ export abstract class BrowserCrawler<
         return {};
     }
 
-    protected async _applyCookies(
-        { session, request, page, browserController }: BrowserCrawlingContext,
-        preHooksCookies: string,
-        postHooksCookies: string,
-    ) {
-        const sessionCookie = session?.getCookies(request.url) ?? [];
-        const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
-        const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
+    protected _importCookieHeaderToSession(request: Request, session?: Session): void {
+        if (!session) return;
+        const cookieHeader = request.headers?.Cookie || request.headers?.cookie;
+        if (!cookieHeader) return;
+        for (const cookie of cookieHeader.split(/\s*;\s*/)) {
+            if (cookie) session.setCookie(cookie, request.url);
+        }
+    }
 
+    protected async _applyCookies({ session, request, page, browserController }: BrowserCrawlingContext) {
+        const sessionCookies = session?.getCookies(request.url) ?? [];
         await browserController.setCookies(
             page,
-            [...sessionCookie, ...parsedPreHooksCookies, ...parsedPostHooksCookies]
-                .filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null)
-                .map((c) => ({ ...c, url: c.domain ? undefined : request.url })),
+            sessionCookies.map((c) => ({ ...c, url: c.domain ? undefined : request.url })),
         );
     }
 
