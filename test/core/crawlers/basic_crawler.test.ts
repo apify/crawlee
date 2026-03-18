@@ -15,6 +15,7 @@ import {
     Request,
     RequestList,
     RequestQueue,
+    SessionPool,
     serviceLocator,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
@@ -1568,6 +1569,79 @@ describe('BasicCrawler', () => {
             expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
+        });
+
+        it('should accept a pre-initialized SessionPool instance', async () => {
+            const url = 'https://example.com';
+            const requestList = await RequestList.open({ sources: [{ url }] });
+            const sharedPool = await SessionPool.open({ maxPoolSize: 25 });
+
+            const crawler = new BasicCrawler({
+                requestList,
+                sessionPool: sharedPool,
+                requestHandler: async ({ session }) => {
+                    expect(session).toBeDefined();
+                },
+            });
+            await crawler.run();
+
+            expect(crawler.sessionPool).toBe(sharedPool);
+        });
+
+        it('should not tear down an injected SessionPool', async () => {
+            const url = 'https://example.com';
+            const requestList = await RequestList.open({ sources: [{ url }] });
+            const sharedPool = await SessionPool.open({ maxPoolSize: 25 });
+            const teardownSpy = vitest.spyOn(sharedPool, 'teardown');
+
+            const crawler = new BasicCrawler({
+                requestList,
+                sessionPool: sharedPool,
+                requestHandler: async () => {},
+            });
+            await crawler.run();
+
+            expect(teardownSpy).not.toHaveBeenCalled();
+            await sharedPool.teardown();
+        });
+
+        it('should share sessions across crawlers using the same SessionPool', async () => {
+            const sharedPool = await SessionPool.open({ maxPoolSize: 5 });
+            const sessionIds = new Set<string>();
+
+            const requestList1 = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+            const crawler1 = new BasicCrawler({
+                requestList: requestList1,
+                sessionPool: sharedPool,
+                requestHandler: async ({ session }) => {
+                    sessionIds.add(session.id);
+                },
+            });
+            await crawler1.run();
+
+            const requestList2 = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+            const crawler2 = new BasicCrawler({
+                requestList: requestList2,
+                sessionPool: sharedPool,
+                requestHandler: async ({ session }) => {
+                    sessionIds.add(session.id);
+                },
+            });
+            await crawler2.run();
+
+            expect(crawler1.sessionPool).toBe(crawler2.sessionPool);
+            await sharedPool.teardown();
+        });
+
+        it('should throw when both sessionPool and sessionPoolOptions are provided', () => {
+            expect(
+                () =>
+                    new BasicCrawler({
+                        sessionPool: new SessionPool(),
+                        sessionPoolOptions: { maxPoolSize: 10 },
+                        requestHandler: async () => {},
+                    }),
+            ).toThrow(/Cannot use both/);
         });
     });
 
