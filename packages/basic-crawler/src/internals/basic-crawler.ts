@@ -833,6 +833,7 @@ export class BasicCrawler<
                 ...statisticsOptions,
             });
             this.sessionPoolOptions = {
+                ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...sessionPoolOptions,
                 log: this.log,
             };
