@@ -17,7 +17,6 @@ import {
     BasicCrawler,
     BLOCKED_STATUS_CODES,
     ContextPipeline,
-    mergeCookies,
     RequestState,
     Router,
     SessionError,
@@ -421,22 +420,18 @@ export class HttpCrawler<
             };
         }
 
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
+        this._importCookieHeaderToSession(request, session);
 
         request.state = RequestState.BEFORE_NAV;
-        // Execute pre navigation hooks before applying session pool cookies,
-        // as they may also set cookies in the session
         await this._executeHooks(this.preNavigationHooks, crawlingContext);
         tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
-
-        const cookieString = this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+        this._importCookieHeaderToSession(request, session);
 
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         const httpResponse = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl, cookieString }),
+            async () => this._requestFunction({ request, session, proxyUrl }),
             this.navigationTimeoutMillis,
             `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -546,20 +541,12 @@ export class HttpCrawler<
         return false;
     }
 
-    /**
-     * Returns the `Cookie` header value based on the current context and
-     * any changes that occurred in the navigation hooks.
-     */
-    protected _applyCookies(
-        { session, request }: CrawlingContext,
-        preHookCookies: string,
-        postHookCookies: string,
-    ): string {
-        const sessionCookie = session.getCookieString(request.url);
-
-        const sourceCookies = [sessionCookie, preHookCookies, postHookCookies];
-
-        return mergeCookies(request.url, sourceCookies);
+    protected _importCookieHeaderToSession(request: CrawleeRequest, session: Session): void {
+        const cookieHeader = request.headers?.Cookie || request.headers?.cookie;
+        if (!cookieHeader) return;
+        for (const cookie of cookieHeader.split(/\s*;\s*/)) {
+            if (cookie) session.setCookie(cookie, request.url);
+        }
     }
 
     /**
@@ -567,16 +554,11 @@ export class HttpCrawler<
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
-    protected async _requestFunction({
-        request,
-        session,
-        proxyUrl,
-        cookieString,
-    }: RequestFunctionOptions): Promise<Response> {
+    protected async _requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
         const opts = this._getRequestOptions(request, session, proxyUrl);
 
         try {
-            return await this._requestAsBrowser(opts, session, cookieString);
+            return await this._requestAsBrowser(opts, session);
         } catch (e) {
             if (e instanceof Error && e.constructor.name === 'TimeoutError') {
                 this._handleRequestTimeout(session);
@@ -654,8 +636,9 @@ export class HttpCrawler<
             body: undefined as string | undefined,
         };
 
-        // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
+        // Cookie headers have been imported into session.cookieJar; remove them to avoid duplication
         Reflect.deleteProperty(requestOptions.headers!, 'cookie');
+        Reflect.deleteProperty(requestOptions.headers!, 'Cookie');
 
         // Disable SSL verification for MITM proxies
         if (session.proxyInfo?.ignoreTlsErrors) {
@@ -763,18 +746,11 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = async (options: Dictionary<any>, session: Session, cookieString?: string) => {
+    private _requestAsBrowser = async (options: Dictionary<any>, session: Session) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
-            cookieJar: options.cookieJar,
             responseType: 'text',
         });
-
-        if (cookieString) {
-            opts.headers?.delete('Cookie');
-            opts.headers?.delete('cookie');
-            opts.headers?.set('Cookie', cookieString);
-        }
 
         const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
@@ -798,7 +774,6 @@ interface RequestFunctionOptions {
     request: CrawleeRequest;
     session: Session;
     proxyUrl?: string;
-    cookieString?: string;
 }
 
 /**

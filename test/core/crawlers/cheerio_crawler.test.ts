@@ -1000,14 +1000,19 @@ describe('CheerioCrawler', () => {
 
                 sessionPoolOptions: {
                     maxPoolSize: 1,
+                    createSessionFunction: (sessionPool) => {
+                        const session = new Session({ sessionPool });
+                        session.setCookie('foo=bar1', `${serverAddress}/special/headers`);
+                        session.setCookie('other=cookie1', `${serverAddress}/special/headers`);
+                        session.setCookie('coo=kie', `${serverAddress}/special/headers`);
+                        return session;
+                    },
                 },
                 requestHandler: ({ json }) => {
                     responses.push(json);
                 },
             });
 
-            const sessSpy = vitest.spyOn(Session.prototype, 'getCookieString');
-            sessSpy.mockReturnValueOnce('foo=bar1; other=cookie1; coo=kie');
             await crawler.run();
             expect(responses).toHaveLength(1);
             expect(responses[0]).toMatchObject({
