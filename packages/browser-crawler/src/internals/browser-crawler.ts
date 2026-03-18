@@ -664,6 +664,14 @@ export abstract class BrowserCrawler<
             const status: number = response.status();
 
             this.stats.registerStatusCode(status);
+
+            if (this.isErrorStatusCode(status)) {
+                if (this.additionalHttpErrorStatusCodes.has(status)) {
+                    throw new Error(`${status} - Error status code was set by user.`);
+                }
+
+                throw new Error(`${status} - Internal Server Error`);
+            }
         }
 
         if (this.sessionPool && response && session) {

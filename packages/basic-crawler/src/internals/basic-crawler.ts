@@ -433,6 +433,18 @@ export interface BasicCrawlerOptions<
      *
      */
     id?: string;
+
+    /**
+     * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
+     * By default, status codes >= 500 trigger errors.
+     */
+    ignoreHttpErrorStatusCodes?: number[];
+
+    /**
+     * An array of additional HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be treated as errors.
+     * By default, status codes >= 500 trigger errors.
+     */
+    additionalHttpErrorStatusCodes?: number[];
 }
 
 /**
@@ -553,7 +565,6 @@ export class BasicCrawler<
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
-     * Only available if used by the crawler.
      */
     sessionPool?: SessionPool;
 
@@ -632,6 +643,8 @@ export class BasicCrawler<
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
     protected blockedStatusCodes = new Set<number>();
+    protected additionalHttpErrorStatusCodes: Set<number>;
+    protected ignoreHttpErrorStatusCodes: Set<number>;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
@@ -673,6 +686,9 @@ export class BasicCrawler<
 
         statusMessageLoggingInterval: ow.optional.number,
         statusMessageCallback: ow.optional.function,
+
+        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
 
         blockedStatusCodes: ow.optional.array.ofType(ow.number),
         retryOnBlocked: ow.optional.boolean,
@@ -721,6 +737,9 @@ export class BasicCrawler<
             keepAlive,
             sessionPoolOptions = {},
             proxyConfiguration,
+
+            additionalHttpErrorStatusCodes = [],
+            ignoreHttpErrorStatusCodes = [],
 
             // Service locator options
             configuration,
@@ -804,6 +823,9 @@ export class BasicCrawler<
             this.experiments = experiments;
             this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
             this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
+
+            this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
+            this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
 
             this.requestHandler = requestHandler ?? this.router;
             this.failedRequestHandler = failedRequestHandler;
@@ -981,6 +1003,19 @@ export class BasicCrawler<
         } finally {
             serviceLocatorScope.exitScope();
         }
+    }
+
+    /**
+     * Determines if the given HTTP status code is an error status code given
+     * the default behaviour and user-set preferences.
+     * @param status
+     * @returns `true` if the status code is considered an error, `false` otherwise
+     */
+    protected isErrorStatusCode(status: number): boolean {
+        const excludeError = this.ignoreHttpErrorStatusCodes.has(status);
+        const includeError = this.additionalHttpErrorStatusCodes.has(status);
+
+        return (status >= 500 && !excludeError) || includeError;
     }
 
     /**
