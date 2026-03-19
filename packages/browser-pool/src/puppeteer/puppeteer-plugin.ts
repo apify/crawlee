@@ -231,12 +231,16 @@ export class PuppeteerPlugin extends BrowserPlugin<
                         let page: PuppeteerTypes.Page;
 
                         if (useIncognitoPages) {
-                            const [anonymizedProxyUrl, close] = proxyUrl
-                                ? await anonymizeProxySugar(proxyUrl, undefined, undefined, { ignoreProxyCertificate })
+                            // Skip proxy setup for remote connections — proxy is managed by the remote service.
+                            const effectiveProxyUrl = this.connectOverCDPOptions ? undefined : proxyUrl;
+                            const [anonymizedProxyUrl, close] = effectiveProxyUrl
+                                ? await anonymizeProxySugar(effectiveProxyUrl, undefined, undefined, {
+                                      ignoreProxyCertificate,
+                                  })
                                 : ([undefined, noop] as const);
 
                             try {
-                                const proxyServer = anonymizedProxyUrl ?? proxyUrl;
+                                const proxyServer = anonymizedProxyUrl ?? effectiveProxyUrl;
                                 const contextOptions = proxyServer ? { proxyServer } : {};
                                 const context = (await (browser as any)[method](
                                     contextOptions,

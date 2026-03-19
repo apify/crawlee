@@ -10,9 +10,30 @@ import { PuppeteerPlugin } from '../src/puppeteer/puppeteer-plugin.js';
 // Shared mock helpers
 // ---------------------------------------------------------------------------
 
-function createMockBrowser() {
+function createMockPage() {
     return {
-        newPage: vi.fn().mockResolvedValue({ close: vi.fn(), url: vi.fn(() => 'about:blank') }),
+        close: vi.fn().mockResolvedValue(undefined),
+        url: vi.fn(() => 'about:blank'),
+        on: vi.fn(),
+        once: vi.fn(),
+    };
+}
+
+function createMockBrowserContext() {
+    const page = createMockPage();
+    return {
+        newPage: vi.fn().mockResolvedValue(page),
+        close: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        once: vi.fn(),
+        _mockPage: page,
+    };
+}
+
+function createMockBrowser() {
+    const mockContext = createMockBrowserContext();
+    return {
+        newPage: vi.fn().mockResolvedValue(createMockPage()),
         close: vi.fn().mockResolvedValue(undefined),
         contexts: vi.fn(() => []),
         on: vi.fn(),
@@ -22,8 +43,9 @@ function createMockBrowser() {
         pages: vi.fn(() => []),
         process: vi.fn(() => null),
         userAgent: vi.fn().mockResolvedValue('mock-ua'),
-        createBrowserContext: vi.fn(),
-        createIncognitoBrowserContext: vi.fn(),
+        createBrowserContext: vi.fn().mockResolvedValue(mockContext),
+        createIncognitoBrowserContext: vi.fn().mockResolvedValue(mockContext),
+        _mockContext: mockContext,
     };
 }
 
@@ -510,6 +532,25 @@ describe('Remote browser — PuppeteerPlugin', () => {
 
             expect(lib.connect).toHaveBeenCalledTimes(1);
             expect(lib.launch).not.toHaveBeenCalled();
+        });
+
+        test('proxy is not leaked into createBrowserContext for remote newPage', async () => {
+            const browser = createMockBrowser();
+            const lib = createMockPuppeteerLibrary(browser);
+            const plugin = new PuppeteerPlugin(lib as any, {
+                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
+                proxyUrl: 'http://user:pass@proxy:8080',
+            });
+
+            const ctx = plugin.createLaunchContext();
+            const wrappedBrowser = await plugin.launch(ctx);
+
+            // Call newPage on the wrapped browser — useIncognitoPages defaults to true for remote
+            await (wrappedBrowser as any).newPage();
+
+            // createBrowserContext should be called with empty options (no proxyServer)
+            expect(browser.createBrowserContext).toHaveBeenCalledTimes(1);
+            expect(browser.createBrowserContext).toHaveBeenCalledWith({});
         });
 
         test('webdriver hiding args are not added for remote connections', async () => {
