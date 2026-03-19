@@ -180,7 +180,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
             }
         }
 
-        browser.on('targetcreated', async (target: PuppeteerTypes.Target) => {
+        const targetCreatedHandler = async (target: PuppeteerTypes.Target) => {
             try {
                 const page = await target.page();
 
@@ -193,7 +193,16 @@ export class PuppeteerPlugin extends BrowserPlugin<
             } catch (error: any) {
                 this.log.exception(error, 'Failed to retrieve page from target.');
             }
-        });
+        };
+
+        browser.on('targetcreated', targetCreatedHandler);
+
+        // Clean up the listener when a remote browser disconnects to prevent leaks
+        if (this.connectOverCDPOptions) {
+            browser.once('disconnected', () => {
+                browser.off('targetcreated', targetCreatedHandler);
+            });
+        }
 
         const boundMethods = (
             [
@@ -220,25 +229,25 @@ export class PuppeteerPlugin extends BrowserPlugin<
                         let page: PuppeteerTypes.Page;
 
                         if (useIncognitoPages) {
-                            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(
-                                proxyUrl,
-                                undefined,
-                                undefined,
-                                { ignoreProxyCertificate },
-                            );
+                            const [anonymizedProxyUrl, close] = proxyUrl
+                                ? await anonymizeProxySugar(proxyUrl, undefined, undefined, { ignoreProxyCertificate })
+                                : ([undefined, noop] as const);
 
                             try {
-                                const context = (await (browser as any)[method]({
-                                    proxyServer: anonymizedProxyUrl ?? proxyUrl,
-                                })) as PuppeteerTypes.BrowserContext;
+                                const proxyServer = anonymizedProxyUrl ?? proxyUrl;
+                                const contextOptions = proxyServer ? { proxyServer } : {};
+                                const context = (await (browser as any)[method](
+                                    contextOptions,
+                                )) as PuppeteerTypes.BrowserContext;
 
                                 page = await context.newPage(...args);
 
-                                if (anonymizedProxyUrl) {
-                                    page.on('close', async () => {
+                                page.once('close', async () => {
+                                    if (anonymizedProxyUrl) {
                                         await close();
-                                    });
-                                }
+                                    }
+                                    await context.close().catch(noop);
+                                });
                             } catch (error) {
                                 await close();
 
