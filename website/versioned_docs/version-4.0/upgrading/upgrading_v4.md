@@ -84,9 +84,9 @@ const crawler = new CheerioCrawler({
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
 
-## `additionalBlockedStatusCodes` parameter is removed
+## `retireOnBlockedStatusCodes` is removed from `Session`
 
-`additionalBlockedStatusCodes` parameter of `Session.retireOnBlockedStatusCodes` method is removed. Use the `blockedStatusCodes` crawler option instead.
+`Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`). `ignoreHttpErrorStatusCodes` in `HttpCrawler` now also excludes matching codes from the blocked status codes list.
 
 ## Remove `experimentalContainers` option
 

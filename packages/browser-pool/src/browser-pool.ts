@@ -436,7 +436,14 @@ export class BrowserPool<
      * or their page limits have been exceeded.
      */
     async newPage(options: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
-        const { id = nanoid(), pageOptions, browserPlugin = this._pickBrowserPlugin(), proxyUrl, proxyTier } = options;
+        const {
+            id = nanoid(),
+            pageOptions,
+            browserPlugin = this._pickBrowserPlugin(),
+            proxyUrl,
+            proxyTier,
+            ignoreTlsErrors,
+        } = options;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
@@ -451,10 +458,15 @@ export class BrowserPool<
             let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
 
             if (!browserController)
-                browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
+                browserController = await this._launchBrowser(id, {
+                    browserPlugin,
+                    proxyTier,
+                    proxyUrl,
+                    ignoreTlsErrors,
+                });
             tryCancel();
 
-            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
+            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
         });
     }
 
@@ -552,6 +564,7 @@ export class BrowserPool<
         browserController: BrowserControllerReturn,
         pageOptions: PageOptions = {} as PageOptions,
         proxyUrl?: string,
+        ignoreTlsErrors?: boolean,
     ) {
         // This is needed for concurrent newPage calls to wait for the browser launch.
         // It's not ideal though, we need to come up with a better API.
@@ -563,6 +576,13 @@ export class BrowserPool<
 
         if (finalPageOptions) {
             Object.assign(finalPageOptions, browserController.normalizeProxyOptions(proxyUrl, pageOptions));
+
+            if (ignoreTlsErrors) {
+                Object.assign(finalPageOptions, {
+                    ignoreHTTPSErrors: true,
+                    acceptInsecureCerts: true,
+                });
+            }
         }
 
         await this._executeHooks(this.prePageCreateHooks, pageId, browserController, finalPageOptions);
@@ -684,7 +704,7 @@ export class BrowserPool<
     }
 
     private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyTier, proxyUrl } = options;
+        const { browserPlugin, launchOptions, proxyTier, proxyUrl, ignoreTlsErrors } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.startingBrowserControllers.add(browserController);
@@ -695,6 +715,16 @@ export class BrowserPool<
             proxyTier,
             proxyUrl,
         });
+
+        // Disable SSL verification for MITM proxies
+        if (ignoreTlsErrors) {
+            /**
+             * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+             * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+             */
+            (launchContext.launchOptions as Record<string, unknown>).ignoreHTTPSErrors = true;
+            (launchContext.launchOptions as Record<string, unknown>).acceptInsecureCerts = true;
+        }
 
         try {
             // If the hooks or the launch fails, we need to delete the controller,
@@ -882,6 +912,11 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      * Proxy tier.
      */
     proxyTier?: number;
+    /**
+     * Disable TLS certificate verification for MITM proxies.
+     * Applied both when launching a new browser and when creating a page in an existing one.
+     */
+    ignoreTlsErrors?: boolean;
 }
 
 export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends BrowserPlugin> {
@@ -919,4 +954,5 @@ interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     launchOptions?: BP['launchOptions'];
     proxyTier?: number;
     proxyUrl?: string;
+    ignoreTlsErrors?: boolean;
 }

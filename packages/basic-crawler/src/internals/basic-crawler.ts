@@ -31,6 +31,7 @@ import type {
 import {
     AutoscaledPool,
     bindMethodsToServiceLocator,
+    BLOCKED_STATUS_CODES,
     ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -348,6 +349,12 @@ export interface BasicCrawlerOptions<
     statusMessageCallback?: StatusMessageCallback;
 
     /**
+     * HTTP status codes that indicate the session should be retired.
+     * @default [401, 403, 429]
+     */
+    blockedStatusCodes?: number[];
+
+    /**
      * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
      *
      * Currently supports:
@@ -435,6 +442,18 @@ export interface BasicCrawlerOptions<
      *
      */
     id?: string;
+
+    /**
+     * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
+     * By default, status codes >= 500 trigger errors.
+     */
+    ignoreHttpErrorStatusCodes?: number[];
+
+    /**
+     * An array of additional HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be treated as errors.
+     * By default, status codes >= 500 trigger errors.
+     */
+    additionalHttpErrorStatusCodes?: number[];
 }
 
 /**
@@ -555,7 +574,6 @@ export class BasicCrawler<
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
-     * Only available if used by the crawler.
      */
     sessionPool?: SessionPool;
 
@@ -634,6 +652,9 @@ export class BasicCrawler<
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
     private _ownsSessionPool = true;
+    protected blockedStatusCodes = new Set<number>();
+    protected additionalHttpErrorStatusCodes: Set<number>;
+    protected ignoreHttpErrorStatusCodes: Set<number>;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
@@ -677,6 +698,10 @@ export class BasicCrawler<
         statusMessageLoggingInterval: ow.optional.number,
         statusMessageCallback: ow.optional.function,
 
+        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+
+        blockedStatusCodes: ow.optional.array.ofType(ow.number),
         retryOnBlocked: ow.optional.boolean,
         respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
         onSkippedRequest: ow.optional.function,
@@ -725,6 +750,9 @@ export class BasicCrawler<
             sessionPoolOptions = {},
             proxyConfiguration,
 
+            additionalHttpErrorStatusCodes = [],
+            ignoreHttpErrorStatusCodes = [],
+
             // Service locator options
             configuration,
             storageClient,
@@ -736,6 +764,7 @@ export class BasicCrawler<
             maxConcurrency,
             maxRequestsPerMinute,
 
+            blockedStatusCodes: blockedStatusCodesInput,
             retryOnBlocked = false,
             respectRobotsTxtFile = false,
             onSkippedRequest,
@@ -807,6 +836,9 @@ export class BasicCrawler<
             this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
             this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
+            this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
+            this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
+
             this.requestHandler = requestHandler ?? this.router;
             this.failedRequestHandler = failedRequestHandler;
             this.errorHandler = errorHandler;
@@ -859,14 +891,8 @@ export class BasicCrawler<
                 ...sessionPoolOptions,
                 log: this.log,
             };
-            if (this.retryOnBlocked) {
-                this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
-                if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
-                    this.log.warning(
-                        `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
-                    );
-                }
-            }
+            this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
+
             const maxSignedInteger = 2 ** 31 - 1;
             if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
                 this.log.warning(
@@ -1000,6 +1026,19 @@ export class BasicCrawler<
         } finally {
             serviceLocatorScope.exitScope();
         }
+    }
+
+    /**
+     * Determines if the given HTTP status code is an error status code given
+     * the default behaviour and user-set preferences.
+     * @param status
+     * @returns `true` if the status code is considered an error, `false` otherwise
+     */
+    protected isErrorStatusCode(status: number): boolean {
+        const excludeError = this.ignoreHttpErrorStatusCodes.has(status);
+        const includeError = this.additionalHttpErrorStatusCodes.has(status);
+
+        return (status >= 500 && !excludeError) || includeError;
     }
 
     /**
@@ -1667,11 +1706,11 @@ export class BasicCrawler<
     /**
      * Handles blocked request
      */
-    protected _throwOnBlockedRequest(session: Session, statusCode: number) {
-        const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
+    protected _throwOnBlockedRequest(statusCode: number) {
+        if (this.retryOnBlocked) return;
 
-        if (isBlocked) {
-            throw new Error(`Request blocked - received ${statusCode} status code.`);
+        if (this.blockedStatusCodes.has(statusCode)) {
+            throw new SessionError(`Request blocked - received ${statusCode} status code.`);
         }
     }
 
@@ -2067,7 +2106,9 @@ export class BasicCrawler<
             }
 
             if (!request.noRetry) {
-                request.retryCount++;
+                if (!(error instanceof SessionError)) {
+                    request.retryCount++;
+                }
 
                 const { url, retryCount, id } = request;
 
@@ -2083,6 +2124,10 @@ export class BasicCrawler<
                 await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
                 return;
             }
+        }
+
+        if (error instanceof SessionError) {
+            crawlingContext.session?.retire();
         }
 
         // If the request is non-retryable, the error and snapshot aren't saved in the errorTrackerRetry object.

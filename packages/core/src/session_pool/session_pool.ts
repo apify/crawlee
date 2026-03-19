@@ -10,7 +10,7 @@ import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
-import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
+import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
 
@@ -57,13 +57,6 @@ export interface SessionPoolOptions {
      * Function receives `SessionPool` instance as a parameter
      */
     createSessionFunction?: CreateSession;
-
-    /**
-     * Specifies which response status codes are considered as blocked.
-     * Session connected to such request will be marked as retired.
-     * @default [401, 403, 429]
-     */
-    blockedStatusCodes?: number[];
 
     /** @internal */
     log?: CrawleeLogger;
@@ -143,7 +136,6 @@ export class SessionPool extends EventEmitter {
     protected persistStateKey: string;
     protected _listener!: () => Promise<void>;
     protected events: EventManager;
-    protected readonly blockedStatusCodes: number[];
     protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
 
@@ -164,7 +156,6 @@ export class SessionPool extends EventEmitter {
                 persistStateKey: ow.optional.string,
                 createSessionFunction: ow.optional.function,
                 sessionOptions: ow.optional.object,
-                blockedStatusCodes: ow.optional.array.ofType(ow.number),
                 log: ow.optional.object,
                 persistenceOptions: ow.optional.object,
             }),
@@ -177,7 +168,6 @@ export class SessionPool extends EventEmitter {
             persistStateKey,
             createSessionFunction,
             sessionOptions = {},
-            blockedStatusCodes = BLOCKED_STATUS_CODES,
             log = serviceLocator.getLogger(),
             persistenceOptions = {
                 enable: true,
@@ -185,7 +175,6 @@ export class SessionPool extends EventEmitter {
         } = options;
 
         this.id = id != null ? String(id) : String(SessionPool.nextId++);
-        this.blockedStatusCodes = blockedStatusCodes;
         this.events = serviceLocator.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;

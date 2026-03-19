@@ -22,15 +22,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
-import {
-    Configuration,
-    KeyValueStore,
-    type Request,
-    serviceLocator,
-    type Session,
-    SessionError,
-    validators,
-} from '@crawlee/browser';
+import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -723,23 +715,17 @@ export interface HandleCloudflareChallengeOptions {
  *
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
  * @param url current URL for request identification, only used for logging
- * @param [session] current session object
  * @param [options]
  */
 async function handleCloudflareChallenge(
     page: Page,
     url: string,
-    session?: Session,
     options: HandleCloudflareChallengeOptions = {},
+    blockedStatusCodes?: Set<number>,
 ): Promise<void> {
-    // eslint-disable-next-line dot-notation
-    const blockedStatusCodes = session?.['sessionPool']['blockedStatusCodes'] as number[];
-
-    // Cloudflare pages are 403, which are blocked by default
-    if (blockedStatusCodes?.includes(403)) {
-        const idx = blockedStatusCodes.indexOf(403);
-        blockedStatusCodes.splice(idx, 1);
-    }
+    // Cloudflare pages return 403, which is blocked by default — temporarily allow it during challenge handling
+    const had403 = blockedStatusCodes?.has(403);
+    blockedStatusCodes?.delete(403);
 
     options.isBlockedCallback ??= async () => {
         const isBlocked = await page.evaluate(() => {
@@ -767,74 +753,83 @@ async function handleCloudflareChallenge(
         return options.isChallengeCallback!(page).catch(() => false);
     };
 
-    if (!(await isChallenge())) {
-        await retryBlocked();
-        return;
-    }
-
-    const logLevel = options.verbose ? 'info' : 'debug';
-    getLog()[logLevel](
-        `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
-    );
-
-    const bb = await page
-        .evaluate(() => {
-            const div = document.querySelector('.main-content div');
-            return div?.getBoundingClientRect();
-        })
-        .catch(() => undefined);
-
-    if (!bb) {
-        return;
-    }
-
-    const randomOffset = (range: number) => {
-        return Math.round(100 * range * Math.random()) / 100;
-    };
-
-    let x = bb.x + 30;
-    let y = bb.y + 25;
-
-    // try to click the checkbox every second
-    for (let i = 0; i < 10; i++) {
-        await sleep((options.preChallengeSleepSecs ?? 1) * 1000);
-
-        // break early if we are no longer on the CF challenge page
+    try {
         if (!(await isChallenge())) {
-            break;
+            await retryBlocked();
+            return;
         }
 
-        if (options.clickPositionCallback) {
-            const pos = await options.clickPositionCallback(page);
-            if (pos) {
-                x = pos.x;
-                y = pos.y;
+        const logLevel = options.verbose ? 'info' : 'debug';
+        getLog()[logLevel](
+            `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
+        );
+
+        const bb = await page
+            .evaluate(() => {
+                const div = document.querySelector('.main-content div');
+                return div?.getBoundingClientRect();
+            })
+            .catch(() => undefined);
+
+        if (!bb) {
+            return;
+        }
+
+        const randomOffset = (range: number) => {
+            return Math.round(100 * range * Math.random()) / 100;
+        };
+
+        let x = bb.x + 30;
+        let y = bb.y + 25;
+
+        // try to click the checkbox every second
+        for (let i = 0; i < 10; i++) {
+            await sleep((options.preChallengeSleepSecs ?? 1) * 1000);
+
+            // break early if we are no longer on the CF challenge page
+            if (!(await isChallenge())) {
+                break;
             }
+
+            if (options.clickPositionCallback) {
+                const pos = await options.clickPositionCallback(page);
+                if (pos) {
+                    x = pos.x;
+                    y = pos.y;
+                }
+            }
+
+            if (options.clickCallback) {
+                await options.clickCallback(page, { x, y });
+                continue;
+            }
+
+            // we can click on the text too, so X can be a bit larger
+            const xRandomized = x + randomOffset(10);
+            const yRandomized = y + randomOffset(10);
+
+            getLog()[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, {
+                x: xRandomized,
+                y: yRandomized,
+            });
+            await page.mouse.click(xRandomized, yRandomized);
+
+            // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)
+            await page.mouse.click(xRandomized, yRandomized + 35);
         }
 
-        if (options.clickCallback) {
-            await options.clickCallback(page, { x, y });
-            continue;
+        await sleep((options.sleepSecs ?? 10) * 1000);
+
+        if (await isChallenge()) {
+            throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
         }
 
-        // we can click on the text too, so X can be a bit larger
-        const xRandomized = x + randomOffset(10);
-        const yRandomized = y + randomOffset(10);
-
-        getLog()[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, { x: xRandomized, y: yRandomized });
-        await page.mouse.click(xRandomized, yRandomized);
-
-        // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)
-        await page.mouse.click(xRandomized, yRandomized + 35);
+        await retryBlocked();
+    } finally {
+        if (had403) {
+            blockedStatusCodes?.add(403);
+        }
     }
-
-    await sleep((options.sleepSecs ?? 10) * 1000);
-
-    if (await isChallenge()) {
-        throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
-    }
-
-    await retryBlocked();
 }
 
 /** @internal */
