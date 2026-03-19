@@ -2079,7 +2079,9 @@ export class BasicCrawler<
             }
 
             if (!request.noRetry) {
-                request.retryCount++;
+                if (!(error instanceof SessionError)) {
+                    request.retryCount++;
+                }
 
                 const { url, retryCount, id } = request;
 
@@ -2095,6 +2097,10 @@ export class BasicCrawler<
                 await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
                 return;
             }
+        }
+
+        if (error instanceof SessionError) {
+            crawlingContext.session?.retire();
         }
 
         // If the request is non-retryable, the error and snapshot aren't saved in the errorTrackerRetry object.
