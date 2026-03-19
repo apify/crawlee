@@ -158,6 +158,7 @@ export abstract class BrowserPlugin<
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
             proxyTier,
+            isRemote,
         } = options;
 
         return new LaunchContext({
@@ -170,6 +171,7 @@ export abstract class BrowserPlugin<
             browserPerProxy,
             ignoreProxyCertificate,
             proxyTier,
+            isRemote,
         });
     }
 
@@ -197,11 +199,11 @@ export abstract class BrowserPlugin<
 
         const { proxyUrl, launchOptions } = launchContext;
 
-        if (proxyUrl) {
+        if (proxyUrl && !launchContext.isRemote) {
             await this._addProxyToLaunchOptions(launchContext);
         }
 
-        if (this._isChromiumBasedBrowser(launchContext)) {
+        if (!launchContext.isRemote && this._isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
             (launchOptions as Dictionary).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
@@ -211,6 +213,10 @@ export abstract class BrowserPlugin<
             if (launchOptions!.headless && !launchContext.fingerprint && !userAgent) {
                 launchOptions!.args.push(`--user-agent=${DEFAULT_USER_AGENT}`);
             }
+        }
+
+        if (launchContext.isRemote) {
+            this.log.info('Connecting to remote browser (skipping local proxy and webdriver stealth configuration).');
         }
 
         return this._launch(launchContext);

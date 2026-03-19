@@ -65,11 +65,13 @@ export class PlaywrightPlugin extends BrowserPlugin<
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
         // Remote CDP connection — skip all local launch/proxy logic
         if (this.connectOverCDPOptions) {
+            this.log.info('Connecting to remote browser via connectOverCDP.');
             return this.library.connectOverCDP(this.connectOverCDPOptions);
         }
 
         // Remote Playwright WebSocket connection — skip all local launch/proxy logic
         if (this.connectOptions) {
+            this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
             return this.library.connect(this.connectOptions);
         }
 
