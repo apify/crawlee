@@ -45,8 +45,7 @@ describe('SessionPool - testing session pool', () => {
 
             createSessionFunction: () => ({}) as never,
         };
-        sessionPool = new SessionPool(opts);
-        await sessionPool.initialize();
+        sessionPool = await SessionPool.open(opts);
         await sessionPool.teardown();
 
         entries(opts)
@@ -197,9 +196,8 @@ describe('SessionPool - testing session pool', () => {
             });
         });
 
-        const loadedSessionPool = new SessionPool({ persistStateKey });
+        const loadedSessionPool = await SessionPool.open({ persistStateKey });
 
-        await loadedSessionPool.initialize();
         // @ts-expect-error private symbol
         expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.length);
         // @ts-expect-error private symbol
@@ -232,8 +230,7 @@ describe('SessionPool - testing session pool', () => {
         const KV_STORE = 'SESSION-TEST';
 
         beforeEach(async () => {
-            sessionPool = new SessionPool({ persistStateKeyValueStoreId: KV_STORE });
-            await sessionPool.initialize();
+            sessionPool = await SessionPool.open({ persistStateKeyValueStoreId: KV_STORE });
         });
 
         afterEach(async () => {
@@ -301,8 +298,7 @@ describe('SessionPool - testing session pool', () => {
 
         await sessionPool.persistState();
 
-        const newSessionPool = new SessionPool({ persistStateKey });
-        await newSessionPool.initialize();
+        const newSessionPool = await SessionPool.open({ persistStateKey });
         // @ts-expect-error private symbol
         expect(newSessionPool.sessions).toHaveLength(10 - invalidSessionsCount);
 
@@ -318,12 +314,11 @@ describe('SessionPool - testing session pool', () => {
         });
         await sessionPool.getSession();
         await sessionPool.persistState();
-        const loadedSessionPool = new SessionPool({
+        const loadedSessionPool = await SessionPool.open({
             maxPoolSize: 1,
             sessionOptions: { maxUsageCount: 88 },
             persistStateKey,
         });
-        await loadedSessionPool.initialize();
 
         const recreatedSession = await loadedSessionPool.getSession();
 
