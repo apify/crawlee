@@ -13,15 +13,7 @@ import type {
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
-import {
-    BasicCrawler,
-    BLOCKED_STATUS_CODES,
-    ContextPipeline,
-    mergeCookies,
-    RequestState,
-    Router,
-    SessionError,
-} from '@crawlee/basic';
+import { BasicCrawler, ContextPipeline, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -143,18 +135,6 @@ export interface HttpCrawlerOptions<
      * It passes the "Cookie" header to the request with the session cookies.
      */
     persistCookiesPerSession?: boolean;
-
-    /**
-     * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
-     * By default, status codes >= 500 trigger errors.
-     */
-    ignoreHttpErrorStatusCodes?: number[];
-
-    /**
-     * An array of additional HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be treated as errors.
-     * By default, status codes >= 500 trigger errors.
-     */
-    additionalHttpErrorStatusCodes?: number[];
 }
 
 /**
@@ -322,8 +302,6 @@ export class HttpCrawler<
     protected ignoreSslErrors: boolean;
     protected suggestResponseEncoding?: string;
     protected forceResponseEncoding?: string;
-    protected additionalHttpErrorStatusCodes: Set<number>;
-    protected ignoreHttpErrorStatusCodes: Set<number>;
     protected readonly supportedMimeTypes: Set<string>;
 
     protected static override optionsShape = {
@@ -335,9 +313,6 @@ export class HttpCrawler<
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
         persistCookiesPerSession: ow.optional.boolean,
-
-        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
-        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
 
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
@@ -361,8 +336,6 @@ export class HttpCrawler<
             persistCookiesPerSession = true,
             preNavigationHooks = [],
             postNavigationHooks = [],
-            additionalHttpErrorStatusCodes = [],
-            ignoreHttpErrorStatusCodes = [],
 
             // BasicCrawler
             autoscaledPoolOptions = HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
@@ -391,8 +364,6 @@ export class HttpCrawler<
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
-        this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
-        this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
@@ -511,7 +482,7 @@ export class HttpCrawler<
             return $;
         };
 
-        this._throwOnBlockedRequest(crawlingContext.session, response.status!);
+        this._throwOnBlockedRequest(response.status);
 
         if (this.persistCookiesPerSession) {
             crawlingContext.session.setCookiesFromResponse(response);
@@ -549,14 +520,7 @@ export class HttpCrawler<
             }
         }
 
-        const blockedStatusCodes =
-            // eslint-disable-next-line dot-notation
-            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
-                ? // eslint-disable-next-line dot-notation
-                  this.sessionPool!['blockedStatusCodes']
-                : BLOCKED_STATUS_CODES;
-
-        if (blockedStatusCodes.includes(crawlingContext.response.status!)) {
+        if (this.blockedStatusCodes.has(crawlingContext.response.status!)) {
             return `Blocked by status code ${crawlingContext.response.status}`;
         }
 
@@ -621,10 +585,7 @@ export class HttpCrawler<
             this.stats.registerStatusCode(status);
         }
 
-        const excludeError = this.ignoreHttpErrorStatusCodes.has(status);
-        const includeError = this.additionalHttpErrorStatusCodes.has(status);
-
-        if ((status >= 500 && !excludeError) || includeError) {
+        if (this.isErrorStatusCode(status)) {
             const body = await reencodedResponse.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
 
             // Errors are often sent as JSON, so attempt to parse them,
@@ -636,7 +597,7 @@ export class HttpCrawler<
                 throw new Error(`${status} - ${message}`);
             }
 
-            if (includeError) {
+            if (this.additionalHttpErrorStatusCodes.has(status)) {
                 throw new Error(`${status} - Error status code was set by user.`);
             }
 
@@ -764,10 +725,7 @@ export class HttpCrawler<
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        // eslint-disable-next-line dot-notation -- accessing private property
-        const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
-        // if we retry the request, can the Content-Type change?
-        const isTransientContentType = status >= 500 || blockedStatusCodes.includes(status);
+        const isTransientContentType = status >= 500 || this.blockedStatusCodes.has(status);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;

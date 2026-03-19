@@ -296,8 +296,8 @@ export class PlaywrightCrawler<
                 return playwrightUtils.handleCloudflareChallenge(
                     context.page,
                     context.request.url,
-                    context.session,
                     options,
+                    this.blockedStatusCodes,
                 );
             },
         };

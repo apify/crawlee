@@ -355,11 +355,12 @@ test('should retry on 403 even with disallowed content-type', async () => {
     const crawler = new HttpCrawler({
         maxConcurrency: 1,
         maxRequestRetries: 1,
+        maxSessionRotations: 1,
         preNavigationHooks: [
             async ({ request }) => {
                 // mock 403 response with octet stream on first request attempt, but not on
                 // subsequent retries, so the request should eventually succeed
-                if (request.retryCount === 0) {
+                if (request.sessionRotationCount === 0) {
                     request.url = `${url}/403-with-octet-stream`;
                 } else {
                     request.url = url;
@@ -374,7 +375,7 @@ test('should retry on 403 even with disallowed content-type', async () => {
     await crawler.run([url]);
 
     expect(succeeded).toHaveLength(1);
-    expect(succeeded[0].retryCount).toBe(1);
+    expect(succeeded[0].sessionRotationCount).toBe(1);
 });
 
 test('works with a custom HttpClient', async () => {
