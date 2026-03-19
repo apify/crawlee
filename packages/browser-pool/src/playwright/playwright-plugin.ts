@@ -69,15 +69,19 @@ export class PlaywrightPlugin extends BrowserPlugin<
         this.connectOptions = connectOptions;
         this.connectOverCDPOptions = connectOverCDPOptions;
 
+        // We check options.useIncognitoPages (not this.useIncognitoPages) because super() collapses undefined to false.
+        // This preserves the distinction between "not set" (undefined → default to true) and "explicitly false".
         if (this.connectOptions || this.connectOverCDPOptions) {
             if (options.useIncognitoPages === undefined) {
                 this.useIncognitoPages = true;
                 this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
             } else if (options.useIncognitoPages === false) {
-                this.log.warning(
-                    'useIncognitoPages is set to false with a remote browser connection. ' +
-                        'Pages will share cookies and storage on the remote browser instance.',
-                );
+                const message = this.connectOptions
+                    ? 'useIncognitoPages is set to false with a remote WebSocket connection. ' +
+                      'This may cause errors because browserType.connect() returns a browser with no default context.'
+                    : 'useIncognitoPages is set to false with a remote browser connection. ' +
+                      'Pages will share cookies and storage on the remote browser instance.';
+                this.log.warning(message);
             }
         }
     }

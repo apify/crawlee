@@ -46,6 +46,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
         super(library, baseOptions);
         this.connectOverCDPOptions = connectOverCDPOptions;
 
+        // We check options.useIncognitoPages (not this.useIncognitoPages) because super() collapses undefined to false.
+        // This preserves the distinction between "not set" (undefined → default to true) and "explicitly false".
         if (this.connectOverCDPOptions) {
             if (options.useIncognitoPages === undefined) {
                 this.useIncognitoPages = true;
