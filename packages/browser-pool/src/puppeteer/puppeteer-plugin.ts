@@ -39,6 +39,18 @@ export class PuppeteerPlugin extends BrowserPlugin<
         const { connectOverCDPOptions, ...baseOptions } = options;
         super(library, baseOptions);
         this.connectOverCDPOptions = connectOverCDPOptions;
+
+        if (this.connectOverCDPOptions) {
+            if (options.useIncognitoPages === undefined) {
+                this.useIncognitoPages = true;
+                this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
+            } else if (options.useIncognitoPages === false) {
+                this.log.warning(
+                    'useIncognitoPages is set to false with a remote browser connection. ' +
+                        'Pages will share cookies and storage on the remote browser instance.',
+                );
+            }
+        }
     }
 
     override createLaunchContext(
