@@ -651,7 +651,6 @@ export class BasicCrawler<
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
-    private _ownsSessionPool = true;
     protected blockedStatusCodes = new Set<number>();
     protected additionalHttpErrorStatusCodes: Set<number>;
     protected ignoreHttpErrorStatusCodes: Set<number>;
@@ -660,6 +659,7 @@ export class BasicCrawler<
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
+    private ownsSessionPool = true;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
@@ -883,7 +883,7 @@ export class BasicCrawler<
                     );
                 }
                 this.sessionPool = injectedSessionPool;
-                this._ownsSessionPool = false;
+                this.ownsSessionPool = false;
             }
 
             this.sessionPoolOptions = {
@@ -1297,7 +1297,7 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            if (this._ownsSessionPool) {
+            if (this.ownsSessionPool) {
                 await this.sessionPool?.resetStore();
             }
         }
@@ -2248,7 +2248,7 @@ export class BasicCrawler<
     async teardown(): Promise<void> {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
 
-        if (this._ownsSessionPool) {
+        if (this.ownsSessionPool) {
             await this.sessionPool?.teardown();
         }
 
