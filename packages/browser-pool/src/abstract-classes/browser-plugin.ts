@@ -200,7 +200,13 @@ export abstract class BrowserPlugin<
 
         const { proxyUrl, launchOptions } = launchContext;
 
-        // TODO(Task 6): warn when proxyUrl is set on a remote connection — proxy is silently ignored.
+        if (proxyUrl && launchContext.isRemote) {
+            this.log.warning(
+                'proxyUrl is set but will be ignored for remote browser connections. ' +
+                    'Configure proxy settings on the remote browser service instead.',
+            );
+        }
+
         if (proxyUrl && !launchContext.isRemote) {
             await this._addProxyToLaunchOptions(launchContext);
         }

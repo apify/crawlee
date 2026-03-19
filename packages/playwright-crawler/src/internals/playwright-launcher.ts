@@ -2,6 +2,7 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { PlaywrightConnectOptions, PlaywrightConnectOverCDPOptions } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import ow from 'ow';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
 
@@ -129,6 +130,26 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         );
 
         this.Plugin = PlaywrightPlugin;
+
+        const connectOptionsPresent = !!(launchContext.connectOptions || launchContext.connectOverCDPOptions);
+
+        if (connectOptionsPresent && (launchContext.useChrome || launchContext.launchOptions?.executablePath)) {
+            const log = serviceLocator.getLogger().child({ prefix: 'PlaywrightLauncher' });
+
+            if (launchContext.useChrome) {
+                log.warning(
+                    'useChrome is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+
+            if (launchContext.launchOptions?.executablePath) {
+                log.warning(
+                    'executablePath is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+        }
     }
 }
 

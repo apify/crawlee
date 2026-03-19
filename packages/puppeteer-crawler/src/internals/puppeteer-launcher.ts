@@ -2,6 +2,7 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
 import type { PuppeteerConnectOverCDPOptions } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import ow from 'ow';
 import type { Browser } from 'puppeteer';
 
@@ -108,6 +109,27 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         );
 
         this.Plugin = PuppeteerPlugin;
+
+        if (
+            launchContext.connectOverCDPOptions &&
+            (launchContext.useChrome || (launchContext.launchOptions as Record<string, unknown>)?.executablePath)
+        ) {
+            const log = serviceLocator.getLogger().child({ prefix: 'PuppeteerLauncher' });
+
+            if (launchContext.useChrome) {
+                log.warning(
+                    'useChrome is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+
+            if ((launchContext.launchOptions as Record<string, unknown>)?.executablePath) {
+                log.warning(
+                    'executablePath is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+        }
     }
 
     protected override _getDefaultHeadlessOption(): boolean {
