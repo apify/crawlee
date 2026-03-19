@@ -22,7 +22,6 @@ import type {
     RouterHandler,
     RouterRoutes,
     Session,
-    SessionPoolOptions,
     SkippedRequestCallback,
     Source,
     StatisticsOptions,
@@ -315,15 +314,8 @@ export interface BasicCrawlerOptions<
      * An existing {@apilink SessionPool} instance to use. When provided, the crawler will use this
      * pool directly instead of creating a new one, enabling session sharing across multiple crawlers.
      * The crawler will not tear down a shared pool — the caller is responsible for its lifecycle.
-     * Mutually exclusive with `sessionPoolOptions`.
      */
     sessionPool?: SessionPool;
-
-    /**
-     * The configuration options for {@apilink SessionPool} to use.
-     * Mutually exclusive with `sessionPool`.
-     */
-    sessionPoolOptions?: SessionPoolOptions;
 
     /**
      * Defines the length of the interval for calling the `setStatusMessage` in seconds.
@@ -575,7 +567,7 @@ export class BasicCrawler<
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
      */
-    sessionPool?: SessionPool;
+    sessionPool: SessionPool;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
@@ -650,7 +642,6 @@ export class BasicCrawler<
     protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
-    protected sessionPoolOptions: SessionPoolOptions;
     protected blockedStatusCodes = new Set<number>();
     protected additionalHttpErrorStatusCodes: Set<number>;
     protected ignoreHttpErrorStatusCodes: Set<number>;
@@ -659,7 +650,6 @@ export class BasicCrawler<
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
-    private ownsSessionPool = true;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
@@ -692,7 +682,6 @@ export class BasicCrawler<
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
         sessionPool: ow.optional.object.instanceOf(SessionPool),
-        sessionPoolOptions: ow.optional.object,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
@@ -746,8 +735,7 @@ export class BasicCrawler<
             maxCrawlDepth,
             autoscaledPoolOptions = {},
             keepAlive,
-            sessionPool: injectedSessionPool,
-            sessionPoolOptions = {},
+            sessionPool,
             proxyConfiguration,
 
             additionalHttpErrorStatusCodes = [],
@@ -876,21 +864,9 @@ export class BasicCrawler<
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
-            if (injectedSessionPool) {
-                if (Object.keys(sessionPoolOptions).length > 0) {
-                    throw new Error(
-                        'Cannot use both `sessionPool` and `sessionPoolOptions` — pass either a pre-built SessionPool instance or options to create one, not both.',
-                    );
-                }
-                this.sessionPool = injectedSessionPool;
-                this.ownsSessionPool = false;
-            }
 
-            this.sessionPoolOptions = {
-                ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
-                ...sessionPoolOptions,
-                log: this.log,
-            };
+            this.sessionPool = sessionPool ?? new SessionPool();
+
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
             const maxSignedInteger = 2 ** 31 - 1;
@@ -1297,9 +1273,6 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            if (this.ownsSessionPool) {
-                await this.sessionPool?.resetStore();
-            }
         }
 
         this.unexpectedStop = false;
@@ -1685,10 +1658,6 @@ export class BasicCrawler<
         // so that the caller can get a reference to it before awaiting the promise returned from run()
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-
-        if (!this.sessionPool) {
-            this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
-        }
         this.sessionPool.setMaxListeners(20);
 
         await this.initializeRequestManager();
@@ -2247,10 +2216,6 @@ export class BasicCrawler<
      */
     async teardown(): Promise<void> {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
-
-        if (this.ownsSessionPool) {
-            await this.sessionPool?.teardown();
-        }
 
         if (this._closeEvents) {
             await serviceLocator.getEventManager().close();

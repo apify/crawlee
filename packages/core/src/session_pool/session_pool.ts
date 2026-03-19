@@ -361,6 +361,8 @@ export class SessionPool extends EventEmitter {
      * @param options - Override the persistence options provided in the constructor
      */
     async persistState(options?: PersistenceOptions): Promise<void> {
+        await this.initialize();
+
         if (!this.persistenceOptions.enable && !options?.enable) {
             return;
         }

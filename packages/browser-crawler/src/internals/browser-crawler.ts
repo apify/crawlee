@@ -322,7 +322,6 @@ export abstract class BrowserCrawler<
         launchContext: ow.optional.object,
         headless: ow.optional.any(ow.boolean, ow.string),
         browserPoolOptions: ow.object,
-        sessionPoolOptions: ow.optional.object,
         persistCookiesPerSession: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
     };

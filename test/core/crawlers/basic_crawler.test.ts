@@ -1504,10 +1504,10 @@ describe('BasicCrawler', () => {
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 10,
                     persistStateKey: 'POOL',
-                },
+                }),
                 requestHandler: async ({ session }) => {
                     expect(session.constructor.name).toEqual('Session');
                     expect(session.id).toBeDefined();
@@ -1530,43 +1530,15 @@ describe('BasicCrawler', () => {
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 10,
                     persistStateKey: 'POOL',
-                },
+                }),
                 requestHandler: async () => {},
                 failedRequestHandler: async () => {},
             });
             await crawler.run();
 
-            // @ts-expect-error private symbol
-            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
-        });
-
-        it('should destroy Session pool after it is finished', async () => {
-            const url = 'https://example.com';
-            const requestList = await RequestList.open({ sources: [{ url }] });
-            serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
-
-            const crawler = new BasicCrawler({
-                requestList,
-                requestHandlerTimeoutSecs: 0.01,
-                maxRequestRetries: 1,
-                sessionPoolOptions: {
-                    maxPoolSize: 10,
-                },
-                requestHandler: async () => {},
-                failedRequestHandler: async () => {},
-            });
-
-            // @ts-expect-error Accessing private prop
-            crawler._loadHandledRequestCount = () => {
-                expect(crawler.sessionPool).toBeDefined();
-                expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
-            };
-
-            await crawler.run();
-            expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
@@ -1638,17 +1610,6 @@ describe('BasicCrawler', () => {
             // crawler2 should reuse sessions created by crawler1, not grow the pool further
             expect(sharedPool.usableSessionsCount).toBe(poolSizeAfterCrawler1);
             await sharedPool.teardown();
-        });
-
-        it('should throw when both sessionPool and sessionPoolOptions are provided', () => {
-            expect(
-                () =>
-                    new BasicCrawler({
-                        sessionPool: new SessionPool(),
-                        sessionPoolOptions: { maxPoolSize: 10 },
-                        requestHandler: async () => {},
-                    }),
-            ).toThrow(/Cannot use both/);
         });
     });
 
