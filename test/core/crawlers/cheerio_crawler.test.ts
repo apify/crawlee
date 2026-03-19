@@ -923,6 +923,7 @@ describe('CheerioCrawler', () => {
             for (const code of [401, 403, 429]) {
                 const failed: Request[] = [];
                 const sessions: Session[] = [];
+                const maxSessionRotations = 5;
                 const crawler = new CheerioCrawler({
                     requestList: await getRequestListForMock({
                         statusCode: code,
@@ -931,7 +932,8 @@ describe('CheerioCrawler', () => {
                     }),
 
                     persistCookiesPerSession: false,
-                    maxRequestRetries: 0,
+                    maxRequestRetries: 10,
+                    maxSessionRotations,
                     requestHandler: ({ session }) => {
                         sessions.push(session!);
                     },
@@ -942,10 +944,12 @@ describe('CheerioCrawler', () => {
                 await crawler.run();
 
                 // @ts-expect-error private symbol
-                expect(crawler.sessionPool.sessions.length).toBe(4);
-                // @ts-expect-error private symbol
+                const poolSessions: Session[] = crawler.sessionPool.sessions;
+                // each request is retried with session rotation (maxSessionRotations times), so we get
+                // (maxSessionRotations + 1) sessions per request (rotated ones + the final one)
+                expect(poolSessions.length).toBe(4 * (maxSessionRotations + 1));
 
-                crawler.sessionPool.sessions.forEach((session) => {
+                poolSessions.forEach((session) => {
                     expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
                 });
 

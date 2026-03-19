@@ -289,23 +289,6 @@ export class Session implements ISession {
     }
 
     /**
-     * With certain status codes: `401`, `403` or `429` we can be certain
-     * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally, the default status
-     * codes can be extended in the second parameter.
-     * @param statusCode HTTP status code.
-     * @returns Whether the session was retired.
-     */
-    retireOnBlockedStatusCodes(statusCode: number): boolean {
-        // eslint-disable-next-line dot-notation -- accessing private property
-        const isBlocked = this.sessionPool['blockedStatusCodes'].includes(statusCode);
-        if (isBlocked) {
-            this.retire();
-        }
-        return isBlocked;
-    }
-
-    /**
      * Saves cookies from an HTTP response to be used with the session.
      * It expects an object with a `headers` property that's either an `Object`
      * (typical Node.js responses) or a `Function` (Puppeteer Response).
