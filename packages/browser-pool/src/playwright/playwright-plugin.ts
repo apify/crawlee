@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
+import type { Browser as PlaywrightBrowser, BrowserType, ConnectOverCDPOptions, ConnectOptions } from 'playwright';
 
 import {
     BrowserPlugin,
@@ -17,15 +17,21 @@ import { PlaywrightController } from './playwright-controller.js';
 
 /**
  * Options for connecting to a remote browser via CDP.
- * Mirrors `browserType.connectOverCDP(options)`.
+ * Mirrors `browserType.connectOverCDP(endpointURL, options?)`.
  */
-export type PlaywrightConnectOverCDPOptions = Parameters<BrowserType['connectOverCDP']>[0];
+export interface PlaywrightConnectOverCDPOptions extends ConnectOverCDPOptions {
+    /** The CDP endpoint URL to connect to (required). */
+    wsEndpoint: string;
+}
 
 /**
  * Options for connecting to a remote browser via WebSocket.
- * Mirrors `browserType.connect(options)`.
+ * Mirrors `browserType.connect(wsEndpoint, options?)`.
  */
-export type PlaywrightConnectOptions = Parameters<BrowserType['connect']>[0];
+export interface PlaywrightConnectOptions extends ConnectOptions {
+    /** The WebSocket endpoint URL to connect to (required). */
+    wsEndpoint: string;
+}
 
 export interface PlaywrightPluginOptions extends BrowserPluginOptions<SafeParameters<BrowserType['launch']>[0]> {
     connectOptions?: PlaywrightConnectOptions;
@@ -66,13 +72,15 @@ export class PlaywrightPlugin extends BrowserPlugin<
         // Remote CDP connection — skip all local launch/proxy logic
         if (this.connectOverCDPOptions) {
             this.log.info('Connecting to remote browser via connectOverCDP.');
-            return this.library.connectOverCDP(this.connectOverCDPOptions);
+            const { wsEndpoint, ...options } = this.connectOverCDPOptions;
+            return this.library.connectOverCDP(wsEndpoint, options);
         }
 
         // Remote Playwright WebSocket connection — skip all local launch/proxy logic
         if (this.connectOptions) {
             this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
-            return this.library.connect(this.connectOptions);
+            const { wsEndpoint, ...options } = this.connectOptions;
+            return this.library.connect(wsEndpoint, options);
         }
 
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;

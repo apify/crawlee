@@ -80,6 +80,9 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
         if (this.connectOverCDPOptions) {
             // Remote CDP connection — skip local launch/proxy/headless logic
+            if (!this.connectOverCDPOptions.browserWSEndpoint && !this.connectOverCDPOptions.browserURL) {
+                throw new Error("connectOverCDPOptions must include either 'browserWSEndpoint' or 'browserURL'.");
+            }
             this.log.info('Connecting to remote browser via connect (CDP).');
             browser = await this.library.connect(this.connectOverCDPOptions);
         } else {
