@@ -201,7 +201,7 @@ export class SessionPool extends EventEmitter {
      * Starts periodic state persistence and potentially loads SessionPool state from {@apilink KeyValueStore}.
      * It is called automatically by the {@apilink SessionPool.open} function.
      */
-    async initialize(): Promise<void> {
+    protected async initialize(): Promise<void> {
         if (this.isInitialized) {
             return;
         }
@@ -236,7 +236,7 @@ export class SessionPool extends EventEmitter {
      * @param [options] The configuration options for the session being added to the session pool.
      */
     async addSession(options: Session | SessionOptions = {}): Promise<void> {
-        this._throwIfNotInitialized();
+        await this.initialize();
         const { id } = options;
         if (id) {
             const sessionExists = this.sessionMap.has(id);
@@ -263,7 +263,7 @@ export class SessionPool extends EventEmitter {
      * @param [options] The configuration options for the session being added to the session pool.
      */
     async newSession(sessionOptions?: SessionOptions): Promise<Session> {
-        this._throwIfNotInitialized();
+        await this.initialize();
 
         const newSession = await this.createSessionFunction(this, { sessionOptions });
         this._addSession(newSession);
@@ -295,7 +295,7 @@ export class SessionPool extends EventEmitter {
         await this.queue.wait();
 
         try {
-            this._throwIfNotInitialized();
+            await this.initialize();
 
             if (sessionId) {
                 const session = this.sessionMap.get(sessionId);
@@ -377,13 +377,6 @@ export class SessionPool extends EventEmitter {
     async teardown(): Promise<void> {
         this.events.off(EventType.PERSIST_STATE, this._listener);
         await this.persistState();
-    }
-
-    /**
-     * SessionPool should not work before initialization.
-     */
-    protected _throwIfNotInitialized() {
-        if (!this.isInitialized) throw new Error('SessionPool is not initialized.');
     }
 
     /**
