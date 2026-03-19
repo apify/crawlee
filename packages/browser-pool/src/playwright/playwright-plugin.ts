@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import type { Browser as PlaywrightBrowser, BrowserType, ConnectOverCDPOptions, ConnectOptions } from 'playwright';
 
 import {
+    BrowserLaunchError,
     BrowserPlugin,
     type BrowserPluginOptions,
     type CreateLaunchContextOptions,
@@ -20,8 +21,8 @@ import { PlaywrightController } from './playwright-controller.js';
  * Mirrors `browserType.connectOverCDP(endpointURL, options?)`.
  */
 export interface PlaywrightConnectOverCDPOptions extends ConnectOverCDPOptions {
-    /** The CDP endpoint URL to connect to (required). */
-    wsEndpoint: string;
+    /** The CDP endpoint URL to connect to (required). Overrides the deprecated optional `endpointURL` from Playwright. */
+    endpointURL: string;
 }
 
 /**
@@ -56,6 +57,14 @@ export class PlaywrightPlugin extends BrowserPlugin<
             throw new Error("Cannot set both 'connectOptions' and 'connectOverCDPOptions' — pick one protocol.");
         }
 
+        if (connectOverCDPOptions && !connectOverCDPOptions.endpointURL) {
+            throw new Error("'connectOverCDPOptions.endpointURL' must be a non-empty string.");
+        }
+
+        if (connectOptions && !connectOptions.wsEndpoint) {
+            throw new Error("'connectOptions.wsEndpoint' must be a non-empty string.");
+        }
+
         super(library, baseOptions);
         this.connectOptions = connectOptions;
         this.connectOverCDPOptions = connectOverCDPOptions;
@@ -80,19 +89,48 @@ export class PlaywrightPlugin extends BrowserPlugin<
         });
     }
 
+    private _sanitizeEndpointForLog(endpoint: string): string {
+        try {
+            const url = new URL(endpoint);
+            if (url.username || url.password) {
+                url.username = '***';
+                url.password = '***';
+            }
+            return url.toString();
+        } catch {
+            return '<invalid URL>';
+        }
+    }
+
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
         // Remote CDP connection — skip all local launch/proxy logic
         if (this.connectOverCDPOptions) {
+            const { endpointURL, ...options } = this.connectOverCDPOptions;
             this.log.info('Connecting to remote browser via connectOverCDP.');
-            const { wsEndpoint, ...options } = this.connectOverCDPOptions;
-            return this.library.connectOverCDP(wsEndpoint, options);
+            try {
+                return await this.library.connectOverCDP(endpointURL, options);
+            } catch (cause) {
+                throw new BrowserLaunchError(
+                    `Failed to connect to remote browser via CDP at "${this._sanitizeEndpointForLog(endpointURL)}". ` +
+                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\n\u200b',
+                    { cause },
+                );
+            }
         }
 
         // Remote Playwright WebSocket connection — skip all local launch/proxy logic
         if (this.connectOptions) {
-            this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
             const { wsEndpoint, ...options } = this.connectOptions;
-            return this.library.connect(wsEndpoint, options);
+            this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
+            try {
+                return await this.library.connect(wsEndpoint, options);
+            } catch (cause) {
+                throw new BrowserLaunchError(
+                    `Failed to connect to remote browser via WebSocket at "${this._sanitizeEndpointForLog(wsEndpoint)}". ` +
+                        'Check that the endpoint is reachable and the Playwright server is running.\n\u200b',
+                    { cause },
+                );
+            }
         }
 
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;

@@ -5,6 +5,7 @@ import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
 
 import {
+    BrowserLaunchError,
     BrowserPlugin,
     type BrowserPluginOptions,
     type CreateLaunchContextOptions,
@@ -37,6 +38,11 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
     constructor(library: typeof Puppeteer, options: PuppeteerPluginOptions = {}) {
         const { connectOverCDPOptions, ...baseOptions } = options;
+
+        if (connectOverCDPOptions && !connectOverCDPOptions.browserWSEndpoint && !connectOverCDPOptions.browserURL) {
+            throw new Error("connectOverCDPOptions must include either 'browserWSEndpoint' or 'browserURL'.");
+        }
+
         super(library, baseOptions);
         this.connectOverCDPOptions = connectOverCDPOptions;
 
@@ -67,6 +73,19 @@ export class PuppeteerPlugin extends BrowserPlugin<
         });
     }
 
+    private _sanitizeEndpointForLog(endpoint: string): string {
+        try {
+            const url = new URL(endpoint);
+            if (url.username || url.password) {
+                url.username = '***';
+                url.password = '***';
+            }
+            return url.toString();
+        } catch {
+            return '<invalid URL>';
+        }
+    }
+
     protected async _launch(
         launchContext: LaunchContext<
             typeof Puppeteer,
@@ -92,11 +111,18 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
         if (this.connectOverCDPOptions) {
             // Remote CDP connection — skip local launch/proxy/headless logic
-            if (!this.connectOverCDPOptions.browserWSEndpoint && !this.connectOverCDPOptions.browserURL) {
-                throw new Error("connectOverCDPOptions must include either 'browserWSEndpoint' or 'browserURL'.");
-            }
+            const endpoint = this.connectOverCDPOptions.browserWSEndpoint || this.connectOverCDPOptions.browserURL!;
             this.log.info('Connecting to remote browser via connect (CDP).');
-            browser = await this.library.connect(this.connectOverCDPOptions);
+            try {
+                browser = await this.library.connect(this.connectOverCDPOptions);
+            } catch (cause) {
+                const safeEndpoint = this._sanitizeEndpointForLog(endpoint);
+                throw new BrowserLaunchError(
+                    `Failed to connect to remote browser via CDP at "${safeEndpoint}". ` +
+                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\n\u200b',
+                    { cause },
+                );
+            }
         } else {
             const { launchOptions, userDataDir, experimentalContainers } = launchContext;
 
