@@ -195,10 +195,12 @@ export abstract class BrowserPlugin<
             NewPageResult
         > = this.createLaunchContext(),
     ): Promise<LaunchResult> {
+        // launchOptions is only used by the local launch path below — remote connections ignore it.
         launchContext.launchOptions ??= {} as LibraryOptions;
 
         const { proxyUrl, launchOptions } = launchContext;
 
+        // TODO(Task 6): warn when proxyUrl is set on a remote connection — proxy is silently ignored.
         if (proxyUrl && !launchContext.isRemote) {
             await this._addProxyToLaunchOptions(launchContext);
         }
