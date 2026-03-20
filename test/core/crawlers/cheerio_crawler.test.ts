@@ -1,5 +1,5 @@
 import type { Server } from 'node:http';
-import log from '@apify/log';
+
 import type { BasicCrawlingContext, CheerioCrawlingContext, CheerioRequestHandler, Source } from '@crawlee/cheerio';
 import {
     CheerioCrawler,
@@ -19,6 +19,8 @@ import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+
+import log from '@apify/log';
 
 let server: Server;
 let port: number;

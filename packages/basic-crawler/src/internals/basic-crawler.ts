@@ -2262,6 +2262,7 @@ export class BasicCrawler<
     private requestMatchesEnqueueStrategy(request: Request) {
         // If `skipNavigation` was used, just return `true`
         try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             request.loadedUrl;
         } catch (err) {
             if (err instanceof NavigationSkippedError) {
