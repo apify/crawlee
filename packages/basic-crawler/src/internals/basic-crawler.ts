@@ -570,6 +570,11 @@ export class BasicCrawler<
     sessionPool: SessionPool;
 
     /**
+     * Indicates whether the crawler owns the session pool (it was not passed from the outside using the `sessionPool` constructor option).
+     */
+    private ownsSessionPool: boolean;
+
+    /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
      * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
      * We can use it to change the concurrency settings on the fly,
@@ -866,6 +871,9 @@ export class BasicCrawler<
             });
 
             this.sessionPool = sessionPool ?? new SessionPool();
+            this.sessionPool.setMaxListeners(20);
+
+            this.ownsSessionPool = !sessionPool;
 
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
@@ -1273,6 +1281,9 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
+            if (this.ownsSessionPool) {
+                await this.sessionPool.resetStore();
+            }
         }
 
         this.unexpectedStop = false;
@@ -1658,7 +1669,6 @@ export class BasicCrawler<
         // so that the caller can get a reference to it before awaiting the promise returned from run()
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-        this.sessionPool.setMaxListeners(20);
 
         await this.initializeRequestManager();
         await this._loadHandledRequestCount();
@@ -2219,6 +2229,10 @@ export class BasicCrawler<
 
         if (this._closeEvents) {
             await serviceLocator.getEventManager().close();
+        }
+
+        if (this.ownsSessionPool) {
+            await this.sessionPool.teardown();
         }
 
         await this.autoscaledPool?.abort();

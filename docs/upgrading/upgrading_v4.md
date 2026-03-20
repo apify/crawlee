@@ -88,6 +88,23 @@ Previously, the crawling context extended a `Record` type, allowing to access an
 
 `Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).
 
+## `useSessionPool` and `sessionPoolOptions` are removed
+
+The `useSessionPool` and `sessionPoolOptions` options have been removed from the `BasicCrawler` constructor. Every crawler now uses a `SessionPool` by default. Instead of passing `sessionPoolOptions`, create a `SessionPool` instance directly and pass it via the `sessionPool` option.
+
+```typescript
+import { SessionPool } from '@crawlee/core';
+
+const crawler = new BasicCrawler({
+    // The old parameters won't work anymore
+    // useSessionPool: true,
+    // sessionPoolOptions: { maxUsageCount: 5 },
+    sessionPool: new SessionPool({
+        maxUsageCount: 5,
+    }),
+});
+```
+
 ## Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
