@@ -815,7 +815,7 @@ export class BasicCrawler<
                 this.requestQueue = requestQueue;
             }
 
-            this.httpClient = httpClient ?? new GotScrapingHttpClient();
+            this.httpClient = httpClient ?? new GotScrapingHttpClient(this.log);
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -1711,7 +1711,7 @@ export class BasicCrawler<
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsTxtFile.find(url);
+            const robotsTxtFile = await RobotsTxtFile.find(url, { logger: this.log });
             this.robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;

@@ -231,6 +231,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
             const config = this.getConfiguration();
             this.storageClient = new MemoryStorage({
                 persistStorage: config.get('persistStorage'),
+                logger: this.getLogger().child({ prefix: 'MemoryStorage' }),
             });
         }
         return this.storageClient;

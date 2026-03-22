@@ -1,8 +1,9 @@
-import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
+import type { BaseHttpClient as BaseHttpClientInterface, MinimalLogger, SendRequestOptions } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 
-import type { Log } from '@apify/log';
-import defaultLog from '@apify/log';
+const noopLogger: MinimalLogger = {
+    warning() {},
+};
 
 export interface CustomFetchOptions {
     proxyUrl?: string;
@@ -14,10 +15,10 @@ export interface CustomFetchOptions {
  * implement only the low-level network call in `fetch`.
  */
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
-    protected log: Log;
+    protected log: MinimalLogger;
 
-    constructor(log?: Log) {
-        this.log = log ?? defaultLog;
+    constructor(log?: MinimalLogger) {
+        this.log = log ?? noopLogger;
     }
 
     /**

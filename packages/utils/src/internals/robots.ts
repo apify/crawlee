@@ -3,6 +3,8 @@ import type { BaseHttpClient } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
+import type { MinimalLogger } from '@crawlee/types';
+
 import { Sitemap } from './sitemap.js';
 
 /**
@@ -27,6 +29,7 @@ export class RobotsTxtFile {
     private constructor(
         private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
         private proxyUrl?: string,
+        private logger?: MinimalLogger,
     ) {}
 
     /**
@@ -39,7 +42,13 @@ export class RobotsTxtFile {
      */
     static async find(
         url: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number; proxyUrl?: string; httpClient?: BaseHttpClient },
+        options?: {
+            signal?: AbortSignal;
+            timeoutMillis?: number;
+            proxyUrl?: string;
+            httpClient?: BaseHttpClient;
+            logger?: MinimalLogger;
+        },
     ): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
@@ -61,9 +70,15 @@ export class RobotsTxtFile {
 
     protected static async load(
         url: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number; proxyUrl?: string; httpClient?: BaseHttpClient },
+        options?: {
+            signal?: AbortSignal;
+            timeoutMillis?: number;
+            proxyUrl?: string;
+            httpClient?: BaseHttpClient;
+            logger?: MinimalLogger;
+        },
     ): Promise<RobotsTxtFile> {
-        const { proxyUrl, httpClient = new FetchHttpClient() } = options || {};
+        const { proxyUrl, logger, httpClient = new FetchHttpClient() } = options || {};
 
         const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
             proxyUrl,
@@ -86,11 +101,12 @@ export class RobotsTxtFile {
                     },
                 },
                 proxyUrl,
+                logger,
             );
         }
 
         // @ts-ignore
-        return new RobotsTxtFile(robotsParser(url.toString(), await response.text()), proxyUrl);
+        return new RobotsTxtFile(robotsParser(url.toString(), await response.text()), proxyUrl, logger);
     }
 
     /**
@@ -113,7 +129,7 @@ export class RobotsTxtFile {
      * Parse all the sitemaps referenced in the robots file.
      */
     async parseSitemaps(): Promise<Sitemap> {
-        return Sitemap.load(this.robots.getSitemaps(), this.proxyUrl);
+        return Sitemap.load(this.robots.getSitemaps(), this.proxyUrl, { logger: this.logger });
     }
 
     /**

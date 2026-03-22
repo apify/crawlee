@@ -262,11 +262,39 @@ describe('getCpuInfo()', () => {
                 { times: { user: 200, nice: 0, sys: 100, idle: 100, irq: 0 } },
             ] as os.CpuInfo[]);
         // Initially, previousSample is { containerUsage: 0, systemUsage: 0 }.
-        const result = await getCurrentCpuTicksV2(true);
+        const result = await getCurrentCpuTicksV2({ containerized: true });
         // Calculation:
         // containerDelta = 1000000, systemDelta = 3000000000, numCpus = 2, cpuAllowance = 2.
         // So: ((1000000000 / 3000000000) * 2) / 2 ≈ 0.3333
         expect(result).toBeCloseTo(0.3333, 4);
+        cpusMock.mockRestore();
+    });
+
+    test('calls onDegraded when containerized but cgroups not available', async () => {
+        getCgroupsVersionSpy.mockResolvedValueOnce(null);
+        const cpusMock = vitest
+            .spyOn(os, 'cpus')
+            .mockReturnValue([{ times: { user: 100, nice: 0, sys: 50, idle: 50, irq: 0 } }] as os.CpuInfo[]);
+        const onDegraded = vitest.fn();
+        await getCurrentCpuTicksV2({ containerized: true, onDegraded });
+        expect(onDegraded).toHaveBeenCalledOnce();
+        expect(onDegraded.mock.calls[0][0]).toContain('does not support cgroups');
+        cpusMock.mockRestore();
+    });
+
+    test('calls onError when cgroup cpu snapshot fails', async () => {
+        getCgroupsVersionSpy.mockResolvedValueOnce('V1');
+        readFileSpy.mockRejectedValue(new Error('permission denied'));
+        const cpusMock = vitest
+            .spyOn(os, 'cpus')
+            .mockReturnValue([{ times: { user: 100, nice: 0, sys: 50, idle: 50, irq: 0 } }] as os.CpuInfo[]);
+        const onError = vitest.fn();
+        const result = await getCurrentCpuTicksV2({ containerized: true, onError });
+        expect(onError).toHaveBeenCalledOnce();
+        expect(onError.mock.calls[0][0]).toContain('Cpu snapshot failed');
+        expect(onError.mock.calls[0][1]).toBeInstanceOf(Error);
+        // Should fall back to bare metal
+        expect(result).toBeCloseTo(0.75);
         cpusMock.mockRestore();
     });
 
@@ -278,7 +306,7 @@ describe('getCpuInfo()', () => {
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([{ times: { user: 300, nice: 0, sys: 150, idle: 150, irq: 0 } }] as os.CpuInfo[]);
-        const result = await getCurrentCpuTicksV2(true);
+        const result = await getCurrentCpuTicksV2({ containerized: true });
         // For one CPU: total = 300+0+150+150 = 600, idle = 150 → load = 0.75.
         expect(result).toBeCloseTo(0.75);
         cpusMock.mockRestore();

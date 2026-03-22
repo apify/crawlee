@@ -1,8 +1,6 @@
 import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import log from '@apify/log';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { SitemapUrl } from '../src/internals/sitemap.js';
 import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap.js';
@@ -333,17 +331,6 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
             ]),
         );
-    });
-
-    it('keeps quiet if autodetection does not find anything', async () => {
-        const spy = vi.spyOn(log, 'warning');
-
-        const sitemap = await Sitemap.tryCommonNames('http://not-exists-2.com/arbitrary_url?search=xyz', undefined, {
-            httpClient: new FetchHttpClient(),
-        });
-
-        expect(sitemap.urls).toHaveLength(0);
-        expect(spy).not.toHaveBeenCalled();
     });
 
     it('handles sitemap.txt correctly', async () => {

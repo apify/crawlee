@@ -6,7 +6,7 @@ import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'p
 // Firefox and WebKit are not supported by Stagehand.
 import { chromium } from 'playwright';
 
-import log from '@apify/log';
+import { serviceLocator } from '@crawlee/core';
 
 import { StagehandController } from './stagehand-controller';
 import type { StagehandOptions } from './stagehand-crawler';
@@ -122,7 +122,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             await closeAnonymizedProxy();
 
             const augmentedError = this._augmentLaunchError(error, launchContext);
-            log.error('Stagehand browser launch failed', { message: augmentedError.message });
+            serviceLocator.getLogger().error('Stagehand browser launch failed', { message: augmentedError.message });
             throw augmentedError;
         }
     }

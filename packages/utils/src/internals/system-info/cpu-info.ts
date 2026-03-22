@@ -2,8 +2,6 @@ import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 
-import log from '@apify/log';
-
 import { getCgroupsVersion } from '../general.js';
 
 const CPU_FILE_PATHS = {
@@ -57,13 +55,12 @@ export function getCurrentCpuTicks() {
  * Reads the linux tick rate
  * @returns the number of ticks per second
  */
-function getClockTicks(): number {
+function getClockTicks(): { ticks: number; fallback: boolean } {
     try {
         const result = execSync('getconf CLK_TCK').toString().trim();
-        return parseInt(result, 10);
-    } catch (err) {
-        log.warningOnce('Failed to get clock ticks; defaulting to 100');
-        return 100;
+        return { ticks: parseInt(result, 10), fallback: false };
+    } catch {
+        return { ticks: 100, fallback: true };
     }
 }
 
@@ -191,7 +188,15 @@ let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
  * @returns a number between 0 and 1 for the cpu load
  * @internal
  */
-export async function getCurrentCpuTicksV2(containerized = false): Promise<number> {
+export async function getCurrentCpuTicksV2(
+    options: {
+        containerized?: boolean;
+        onDegraded?: (message: string) => void;
+        onError?: (message: string, error: Error) => void;
+    } = {},
+): Promise<number> {
+    const { containerized = false, onDegraded, onError } = options;
+
     try {
         // if not containerized
         if (!containerized) {
@@ -199,13 +204,20 @@ export async function getCurrentCpuTicksV2(containerized = false): Promise<numbe
             return getCurrentCpuTicks();
         }
         if (!CLOCK_TICKS_CHECKED) {
-            CLOCK_TICKS_PER_SECOND = getClockTicks();
+            const clockResult = getClockTicks();
+            CLOCK_TICKS_PER_SECOND = clockResult.ticks;
             CLOCK_TICKS_CHECKED = true;
+            if (clockResult.fallback) {
+                onError?.(
+                    'Failed to get clock ticks; defaulting to 100. CPU metrics may be inaccurate.',
+                    new Error('getconf CLK_TCK failed'),
+                );
+            }
         }
         const cgroupsVersion = await getCgroupsVersion();
         // if cgroup is not detected, return bare metal cpu limit
         if (cgroupsVersion === null) {
-            log.deprecated(
+            onDegraded?.(
                 'Your environment is containerized, but your system does not support cgroups.\n' +
                     "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
             );
@@ -234,7 +246,7 @@ export async function getCurrentCpuTicksV2(containerized = false): Promise<numbe
         return ((containerDelta / systemDelta) * numCpus) / cpuAllowance;
     } catch (err) {
         // if anything fails, default to bare metal metrics
-        log.exception(err as Error, 'Cpu snapshot failed.');
+        onError?.('Cpu snapshot failed, falling back to bare-metal metrics.', err as Error);
         return getCurrentCpuTicks();
     }
 }

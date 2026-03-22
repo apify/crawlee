@@ -177,7 +177,10 @@ export class Snapshotter {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
             const containerized = serviceLocator.getConfiguration().get('containerized', await isContainerized());
-            const memInfo = await getMemoryInfo(containerized);
+            const memInfo = await getMemoryInfo({
+                containerized,
+                onDegraded: (msg: string) => serviceLocator.getLogger().warningOnce(msg),
+            });
             const totalBytes = memInfo.totalBytes;
 
             this.maxMemoryBytes = Math.ceil(

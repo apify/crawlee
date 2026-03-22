@@ -1,11 +1,28 @@
 import { createHash } from 'node:crypto';
 
+import type { MinimalLogger } from '@crawlee/types';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import defaultLog from '@apify/log';
-
 import { REQUEST_ID_LENGTH } from './consts.js';
+
+const noopLogger: MinimalLogger = {
+    warning() {},
+};
+
+// NOTE: This is a module-level singleton. If multiple MemoryStorage instances are created
+// (e.g. via separate ServiceLocator instances), the last one to call setMemoryStorageLogger wins.
+// This is a known limitation — full per-instance isolation would require threading the logger
+// through every resource client and background task call site.
+let memoryStorageLogger: MinimalLogger = noopLogger;
+
+export function setMemoryStorageLogger(logger: MinimalLogger): void {
+    memoryStorageLogger = logger;
+}
+
+export function getMemoryStorageLogger(): MinimalLogger {
+    return memoryStorageLogger;
+}
 
 /**
  * Removes all properties with a null value
@@ -51,7 +68,11 @@ export function isStream(value: any): boolean {
     );
 }
 
-export const memoryStorageLog = defaultLog.child({ prefix: 'MemoryStorage' });
+export const memoryStorageLog = {
+    warning(message: string, data?: Record<string, unknown>) {
+        memoryStorageLogger.warning(message, data);
+    },
+};
 
 export type BackgroundHandlerReceivedMessage = BackgroundHandlerUpdateMetadataMessage;
 

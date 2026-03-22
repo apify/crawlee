@@ -73,7 +73,7 @@ describe('getMemoryInfoV2()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        const data = await getMemoryInfo(true);
+        const data = await getMemoryInfo({ containerized: true });
 
         expect(data).toMatchObject({
             totalBytes: 333,
@@ -130,7 +130,7 @@ describe('getMemoryInfoV2()', () => {
         let browser!: Awaited<ReturnType<typeof launchPuppeteer>>;
         try {
             browser = await launchPuppeteer();
-            const data = await getMemoryInfo(true);
+            const data = await getMemoryInfo({ containerized: true });
 
             expect(data).toMatchObject({
                 totalBytes: 333,
@@ -143,6 +143,44 @@ describe('getMemoryInfoV2()', () => {
             delete process.env.CRAWLEE_HEADLESS;
             await browser?.close();
         }
+    });
+
+    test('calls onDegraded when containerized but cgroups not available', async () => {
+        getCgroupsVersionSpy.mockResolvedValueOnce(null);
+        freememSpy.mockReturnValueOnce(222);
+        totalmemSpy.mockReturnValueOnce(333);
+
+        const onDegraded = vitest.fn();
+        const data = await getMemoryInfo({ containerized: true, onDegraded });
+
+        expect(onDegraded).toHaveBeenCalledOnce();
+        expect(onDegraded.mock.calls[0][0]).toContain('does not support memory cgroups');
+        // Should fall back to host memory
+        expect(data).toMatchObject({
+            totalBytes: 333,
+            freeBytes: 222,
+            usedBytes: 111,
+        });
+    });
+
+    test('calls onDegraded when cgroup memory files are unreadable', async () => {
+        getCgroupsVersionSpy.mockResolvedValueOnce('V1');
+        accessSpy.mockResolvedValueOnce();
+        readFileSpy.mockRejectedValue(new Error('permission denied'));
+        freememSpy.mockReturnValueOnce(222);
+        totalmemSpy.mockReturnValueOnce(333);
+
+        const onDegraded = vitest.fn();
+        const data = await getMemoryInfo({ containerized: true, onDegraded });
+
+        expect(onDegraded).toHaveBeenCalledOnce();
+        expect(onDegraded.mock.calls[0][0]).toContain('permission denied');
+        // Should fall back to host memory
+        expect(data).toMatchObject({
+            totalBytes: 333,
+            freeBytes: 222,
+            usedBytes: 111,
+        });
     });
 
     test('works with cgroup V1 with LIMITED memory', async () => {
@@ -161,7 +199,7 @@ describe('getMemoryInfoV2()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        const data = await getMemoryInfo(true);
+        const data = await getMemoryInfo({ containerized: true });
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,
@@ -187,7 +225,7 @@ describe('getMemoryInfoV2()', () => {
 
         totalmemSpy.mockReturnValueOnce(333);
 
-        const data = await getMemoryInfo(true);
+        const data = await getMemoryInfo({ containerized: true });
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,
@@ -211,7 +249,7 @@ describe('getMemoryInfoV2()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        const data = await getMemoryInfo(true);
+        const data = await getMemoryInfo({ containerized: true });
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,
@@ -237,7 +275,7 @@ describe('getMemoryInfoV2()', () => {
 
         totalmemSpy.mockReturnValueOnce(333);
 
-        const data = await getMemoryInfo(true);
+        const data = await getMemoryInfo({ containerized: true });
         expect(data).toMatchObject({
             totalBytes: 333,
             freeBytes: 222,

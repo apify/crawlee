@@ -93,7 +93,11 @@ export class LocalEventManager extends EventManager {
 
     private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
         const { getCurrentCpuTicksV2 } = await import('@crawlee/utils');
-        const usedCpuRatio = await getCurrentCpuTicksV2(await this.isContainerizedWrapper());
+        const usedCpuRatio = await getCurrentCpuTicksV2({
+            containerized: await this.isContainerizedWrapper(),
+            onDegraded: (msg: string) => serviceLocator.getLogger().warningOnce(msg),
+            onError: (msg: string, err: Error) => serviceLocator.getLogger().warning(msg, { error: err }),
+        });
         return {
             cpuCurrentUsage: usedCpuRatio * 100,
             isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
@@ -103,7 +107,10 @@ export class LocalEventManager extends EventManager {
     private async createMemoryInfo() {
         try {
             const { getMemoryInfo } = await import('@crawlee/utils');
-            const memInfo = await getMemoryInfo(await this.isContainerizedWrapper());
+            const memInfo = await getMemoryInfo({
+                containerized: await this.isContainerizedWrapper(),
+                onDegraded: (msg: string) => serviceLocator.getLogger().warningOnce(msg),
+            });
             return {
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
             };

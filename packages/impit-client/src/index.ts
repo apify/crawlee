@@ -1,5 +1,6 @@
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import type { MinimalLogger } from '@crawlee/types';
 import { Impit, type ImpitOptions } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
@@ -40,8 +41,8 @@ export class ImpitHttpClient extends BaseHttpClient {
         return client;
     }
 
-    constructor(options?: Omit<ImpitOptions, 'proxyUrl' | 'timeout'>) {
-        super();
+    constructor(options?: Omit<ImpitOptions, 'proxyUrl' | 'timeout'> & { logger?: MinimalLogger }) {
+        super(options?.logger);
         this.impitOptions = options ?? {};
     }
 

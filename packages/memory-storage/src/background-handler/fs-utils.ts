@@ -6,11 +6,8 @@ import { setTimeout } from 'node:timers/promises';
 import { ensureDir } from 'fs-extra/esm';
 import { lock } from 'proper-lockfile';
 
-import log from '@apify/log';
-
+import { getMemoryStorageLogger } from '../utils.js';
 import type { BackgroundHandlerReceivedMessage, BackgroundHandlerUpdateMetadataMessage } from '../utils.js';
-
-const backgroundHandlerLog = log.child({ prefix: 'MemoryStorageBackgroundHandler' });
 
 export async function handleMessage(message: BackgroundHandlerReceivedMessage) {
     switch (message.action) {
@@ -20,7 +17,7 @@ export async function handleMessage(message: BackgroundHandlerReceivedMessage) {
         default:
             // We're keeping this to make eslint happy + in the event we add a new action without adding checks for it
             // we should be aware of them
-            backgroundHandlerLog.warning(
+            getMemoryStorageLogger().warning(
                 `Unknown background handler message action ${(message as BackgroundHandlerReceivedMessage).action}`,
             );
     }
