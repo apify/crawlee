@@ -207,12 +207,13 @@ export class SessionPool extends EventEmitter {
     }
 
     private async setupPool(): Promise<void> {
-        this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, {
-            config: serviceLocator.getConfiguration(),
-        });
         if (!this.persistenceOptions.enable) {
             return;
         }
+
+        this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, {
+            config: serviceLocator.getConfiguration(),
+        });
 
         if (!this.persistStateKeyValueStoreId) {
             this.log.debug(
