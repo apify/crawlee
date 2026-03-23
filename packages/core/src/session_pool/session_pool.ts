@@ -66,9 +66,8 @@ export interface SessionPoolOptions {
  * When some session is marked as blocked, it is removed and new one is created instead (the pool never returns an unusable session).
  * Learn more in the {@doclink guides/session-management | Session management guide}.
  *
- * You can create one by calling the {@apilink SessionPool.open} function.
- *
  * Session pool is already integrated into crawlers and is always active.
+ * All public methods are lazy-initialized — the pool initializes itself on first use.
  *
  * You can configure the pool with many options. See the {@apilink SessionPoolOptions}.
  * Session pool is by default persisted in default {@apilink KeyValueStore}.
@@ -78,7 +77,7 @@ export interface SessionPoolOptions {
  * **Advanced usage:**
  *
  * ```javascript
- * const sessionPool = await SessionPool.open({
+ * const sessionPool = new SessionPool({
  *     maxPoolSize: 25,
  *     sessionOptions:{
  *          maxAgeSecs: 10,
@@ -127,13 +126,10 @@ export class SessionPool extends EventEmitter {
     protected _listener!: () => Promise<void>;
     protected events: EventManager;
     protected persistenceOptions: PersistenceOptions;
-    protected isInitialized = false;
 
+    private initPromise?: Promise<void>;
     private queue = new AsyncQueue();
 
-    /**
-     * @internal
-     */
     constructor(options: SessionPoolOptions = {}) {
         super();
 
@@ -186,31 +182,35 @@ export class SessionPool extends EventEmitter {
     /**
      * Gets count of usable sessions in the pool.
      */
-    get usableSessionsCount(): number {
+    async usableSessionsCount(): Promise<number> {
+        await this.initialize();
         return this.sessions.filter((session) => session.isUsable()).length;
     }
 
     /**
      * Gets count of retired sessions in the pool.
      */
-    get retiredSessionsCount(): number {
+    async retiredSessionsCount(): Promise<number> {
+        await this.initialize();
         return this.sessions.filter((session) => !session.isUsable()).length;
     }
 
     /**
      * Starts periodic state persistence and potentially loads SessionPool state from {@apilink KeyValueStore}.
-     * It is called automatically by the {@apilink SessionPool.open} function.
+     * Called automatically on first use of any public method.
      */
     async initialize(): Promise<void> {
-        if (this.isInitialized) {
-            return;
+        if (!this.initPromise) {
+            this.initPromise = this.setupPool();
         }
+        return this.initPromise;
+    }
 
+    private async setupPool(): Promise<void> {
         this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, {
             config: serviceLocator.getConfiguration(),
         });
         if (!this.persistenceOptions.enable) {
-            this.isInitialized = true;
             return;
         }
 
@@ -226,7 +226,6 @@ export class SessionPool extends EventEmitter {
         this._listener = this.persistState.bind(this);
 
         this.events.on(EventType.PERSIST_STATE, this._listener);
-        this.isInitialized = true;
     }
 
     /**
@@ -236,7 +235,7 @@ export class SessionPool extends EventEmitter {
      * @param [options] The configuration options for the session being added to the session pool.
      */
     async addSession(options: Session | SessionOptions = {}): Promise<void> {
-        this._throwIfNotInitialized();
+        await this.initialize();
         const { id } = options;
         if (id) {
             const sessionExists = this.sessionMap.has(id);
@@ -263,7 +262,7 @@ export class SessionPool extends EventEmitter {
      * @param [options] The configuration options for the session being added to the session pool.
      */
     async newSession(sessionOptions?: SessionOptions): Promise<Session> {
-        this._throwIfNotInitialized();
+        await this.initialize();
 
         const newSession = await this.createSessionFunction(this, { sessionOptions });
         this._addSession(newSession);
@@ -292,11 +291,10 @@ export class SessionPool extends EventEmitter {
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
     async getSession(sessionId?: string): Promise<Session | undefined> {
+        await this.initialize();
+
         await this.queue.wait();
-
         try {
-            this._throwIfNotInitialized();
-
             if (sessionId) {
                 const session = this.sessionMap.get(sessionId);
                 if (session && session.isUsable()) return session;
@@ -327,17 +325,19 @@ export class SessionPool extends EventEmitter {
             return;
         }
 
-        await this.keyValueStore?.setValue(this.persistStateKey, null);
+        await this.initialize();
+        await this.keyValueStore.setValue(this.persistStateKey, null);
     }
 
     /**
      * Returns an object representing the internal state of the `SessionPool` instance.
      * Note that the object's fields can change in future releases.
      */
-    getState() {
+    async getState() {
+        await this.initialize();
         return {
-            usableSessionsCount: this.usableSessionsCount,
-            retiredSessionsCount: this.retiredSessionsCount,
+            usableSessionsCount: await this.usableSessionsCount(),
+            retiredSessionsCount: await this.retiredSessionsCount(),
             sessions: this.sessions.map((session) => session.getState()),
         };
     }
@@ -352,6 +352,8 @@ export class SessionPool extends EventEmitter {
             return;
         }
 
+        await this.initialize();
+
         this.log.debug('Persisting state', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
@@ -361,7 +363,7 @@ export class SessionPool extends EventEmitter {
         const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
-            .setValue(this.persistStateKey, this.getState(), {
+            .setValue(this.persistStateKey, await this.getState(), {
                 timeoutSecs,
                 doNotRetryTimeouts: true,
             })
@@ -375,15 +377,10 @@ export class SessionPool extends EventEmitter {
      * This function should be called after you are done with using the `SessionPool` instance.
      */
     async teardown(): Promise<void> {
+        if (!this.initPromise) return;
+        await this.initialize();
         this.events.off(EventType.PERSIST_STATE, this._listener);
         await this.persistState();
-    }
-
-    /**
-     * SessionPool should not work before initialization.
-     */
-    protected _throwIfNotInitialized() {
-        if (!this.isInitialized) throw new Error('SessionPool is not initialized.');
     }
 
     /**
@@ -490,18 +487,6 @@ export class SessionPool extends EventEmitter {
             }
         }
 
-        this.log.debug(`${this.usableSessionsCount} active sessions loaded from KeyValueStore`);
-    }
-
-    /**
-     * Opens a SessionPool and returns a promise resolving to an instance
-     * of the {@apilink SessionPool} class that is already initialized.
-     *
-     * For more details and code examples, see the {@apilink SessionPool} class.
-     */
-    static async open(options?: SessionPoolOptions): Promise<SessionPool> {
-        const sessionPool = new SessionPool(options);
-        await sessionPool.initialize();
-        return sessionPool;
+        this.log.debug(`${this.sessions.length} active sessions loaded from KeyValueStore`);
     }
 }

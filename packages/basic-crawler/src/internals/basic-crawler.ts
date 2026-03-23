@@ -1661,7 +1661,7 @@ export class BasicCrawler<
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
 
-        this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
+        this.sessionPool = new SessionPool(this.sessionPoolOptions);
         this.sessionPool.setMaxListeners(20);
 
         await this.initializeRequestManager();
