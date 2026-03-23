@@ -299,9 +299,9 @@ export class Snapshotter {
         this._pruneSnapshots(this.memorySnapshots, createdAt);
         const { memCurrentBytes, memTotalBytes } = systemInfo;
 
-        let maxMemoryBytes  = this.maxMemoryBytes!;
-        if (this.maxMemoryRatio > 0) {
-                maxMemoryBytes = this.maxMemoryRatio * (memTotalBytes ?? this.maxMemoryBytes);
+        let maxMemoryBytes = this.maxMemoryBytes!;
+        if (this.maxMemoryRatio !== undefined && this.maxMemoryRatio > 0) {
+            maxMemoryBytes = this.maxMemoryRatio * (memTotalBytes ?? this.maxMemoryBytes);
         }
 
         const snapshot: MemorySnapshot = {
