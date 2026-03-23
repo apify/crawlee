@@ -165,7 +165,8 @@ describe('SessionPool - testing session pool', () => {
         });
 
         const loadedSessionPool = new SessionPool();
-        await loadedSessionPool.initialize();
+        // @ts-expect-error Accessing protected method
+        await loadedSessionPool.ensureInitialized();
         // @ts-expect-error private symbol
         expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.length);
         // @ts-expect-error private symbol
@@ -186,7 +187,8 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should create session', async () => {
-        await sessionPool.initialize();
+        // @ts-expect-error Accessing protected method
+        await sessionPool.ensureInitialized();
         // @ts-expect-error private symbol
         await sessionPool._createSession();
         // @ts-expect-error private symbol
@@ -265,7 +267,8 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.persistState();
 
         const newSessionPool = new SessionPool();
-        await newSessionPool.initialize();
+        // @ts-expect-error Accessing protected method
+        await newSessionPool.ensureInitialized();
         // @ts-expect-error Accessing private property
         expect(newSessionPool.sessions).toHaveLength(10 - invalidSessionsCount);
 
@@ -292,7 +295,8 @@ describe('SessionPool - testing session pool', () => {
             persistStateKeyValueStoreId,
             persistStateKey,
         });
-        await newSessionPool.initialize();
+        // @ts-expect-error Accessing protected method
+        await newSessionPool.ensureInitialized();
 
         await newSessionPool.teardown();
 
@@ -327,7 +331,8 @@ describe('SessionPool - testing session pool', () => {
 
     it('should remove persist state event listener', async () => {
         const events = serviceLocator.getEventManager();
-        await sessionPool.initialize();
+        // @ts-expect-error Accessing protected method
+        await sessionPool.ensureInitialized();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
         await sessionPool.teardown();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);

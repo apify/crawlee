@@ -183,7 +183,7 @@ export class SessionPool extends EventEmitter {
      * Gets count of usable sessions in the pool.
      */
     async usableSessionsCount(): Promise<number> {
-        await this.initialize();
+        await this.ensureInitialized();
         return this.sessions.filter((session) => session.isUsable()).length;
     }
 
@@ -191,7 +191,7 @@ export class SessionPool extends EventEmitter {
      * Gets count of retired sessions in the pool.
      */
     async retiredSessionsCount(): Promise<number> {
-        await this.initialize();
+        await this.ensureInitialized();
         return this.sessions.filter((session) => !session.isUsable()).length;
     }
 
@@ -199,7 +199,7 @@ export class SessionPool extends EventEmitter {
      * Starts periodic state persistence and potentially loads SessionPool state from {@apilink KeyValueStore}.
      * Called automatically on first use of any public method.
      */
-    async initialize(): Promise<void> {
+    protected async ensureInitialized(): Promise<void> {
         if (!this.initPromise) {
             this.initPromise = this.setupPool();
         }
@@ -235,7 +235,7 @@ export class SessionPool extends EventEmitter {
      * @param [options] The configuration options for the session being added to the session pool.
      */
     async addSession(options: Session | SessionOptions = {}): Promise<void> {
-        await this.initialize();
+        await this.ensureInitialized();
         const { id } = options;
         if (id) {
             const sessionExists = this.sessionMap.has(id);
@@ -262,7 +262,7 @@ export class SessionPool extends EventEmitter {
      * @param [options] The configuration options for the session being added to the session pool.
      */
     async newSession(sessionOptions?: SessionOptions): Promise<Session> {
-        await this.initialize();
+        await this.ensureInitialized();
 
         const newSession = await this.createSessionFunction(this, { sessionOptions });
         this._addSession(newSession);
@@ -291,7 +291,7 @@ export class SessionPool extends EventEmitter {
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
     async getSession(sessionId?: string): Promise<Session | undefined> {
-        await this.initialize();
+        await this.ensureInitialized();
 
         await this.queue.wait();
         try {
@@ -325,7 +325,7 @@ export class SessionPool extends EventEmitter {
             return;
         }
 
-        await this.initialize();
+        await this.ensureInitialized();
         await this.keyValueStore.setValue(this.persistStateKey, null);
     }
 
@@ -334,7 +334,7 @@ export class SessionPool extends EventEmitter {
      * Note that the object's fields can change in future releases.
      */
     async getState() {
-        await this.initialize();
+        await this.ensureInitialized();
         return {
             usableSessionsCount: await this.usableSessionsCount(),
             retiredSessionsCount: await this.retiredSessionsCount(),
@@ -352,7 +352,7 @@ export class SessionPool extends EventEmitter {
             return;
         }
 
-        await this.initialize();
+        await this.ensureInitialized();
 
         this.log.debug('Persisting state', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
@@ -378,7 +378,7 @@ export class SessionPool extends EventEmitter {
      */
     async teardown(): Promise<void> {
         if (!this.initPromise) return;
-        await this.initialize();
+        await this.ensureInitialized();
         this.events.off(EventType.PERSIST_STATE, this._listener);
         await this.persistState();
     }
