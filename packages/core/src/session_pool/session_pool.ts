@@ -379,7 +379,9 @@ export class SessionPool extends EventEmitter {
     async teardown(): Promise<void> {
         if (!this.initPromise) return;
         await this.ensureInitialized();
-        this.events.off(EventType.PERSIST_STATE, this._listener);
+        if (this._listener) {
+            this.events.off(EventType.PERSIST_STATE, this._listener);
+        }
         await this.persistState();
     }
 
