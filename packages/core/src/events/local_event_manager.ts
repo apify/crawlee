@@ -104,7 +104,7 @@ export class LocalEventManager extends EventManager {
 
     private async createMemoryInfo() {
         try {
-            const memInfo = await this._getMemoryInfo();
+            const memInfo = await this.getMemoryInfo();
             return {
                 memTotalBytes: memInfo.totalBytes,
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
@@ -115,7 +115,7 @@ export class LocalEventManager extends EventManager {
         }
     }
 
-    private async _getMemoryInfo() {
+    private async getMemoryInfo() {
         if (this.config.get('systemInfoV2')) {
             return getMemoryInfoV2(await this.isContainerizedWrapper());
         }

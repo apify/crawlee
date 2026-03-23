@@ -211,7 +211,7 @@ describe('Snapshotter', () => {
             mainProcessBytes: toBytes(1000),
             childProcessesBytes: toBytes(1000),
         } as MemoryInfo;
-        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
+        vitest.spyOn(LocalEventManager.prototype as any, 'getMemoryInfo').mockResolvedValue(memoryData);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         // do not initialize the event intervals as we will fire them manually
@@ -254,7 +254,7 @@ describe('Snapshotter', () => {
         };
 
         // Mock memory info to be able to inject custom memory measurement data.
-        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
+        vitest.spyOn(LocalEventManager.prototype as any, 'getMemoryInfo').mockResolvedValue(memoryData);
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
 
@@ -372,7 +372,7 @@ describe('Snapshotter', () => {
         };
 
         // Mock memory info to be able to inject custom memory measurement data.
-        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockResolvedValue(memoryData);
+        vitest.spyOn(LocalEventManager.prototype as any, 'getMemoryInfo').mockResolvedValue(memoryData);
 
         let config: Configuration;
         if (dynamic) {

@@ -127,7 +127,7 @@ export class Snapshotter {
     maxUsedMemoryRatio: number;
     maxClientErrors: number;
     maxMemoryBytes!: number;
-    #maxMemoryRatio = 0;
+    private maxMemoryRatio: number | undefined;
 
     cpuSnapshots: CpuSnapshot[] = [];
     eventLoopSnapshots: EventLoopSnapshot[] = [];
@@ -181,7 +181,6 @@ export class Snapshotter {
         this.maxBlockedMillis = maxBlockedMillis;
         this.maxUsedMemoryRatio = maxUsedMemoryRatio;
         this.maxClientErrors = maxClientErrors;
-
         // We need to pre-bind those functions to be able to successfully remove listeners.
         this._snapshotCpu = this._snapshotCpu.bind(this);
         this._snapshotMemory = this._snapshotMemory.bind(this);
@@ -196,16 +195,20 @@ export class Snapshotter {
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            this.#maxMemoryRatio = this.config.get('availableMemoryRatio');
-            this.log.debug(
-                `Setting max memory of this run to ${this.#maxMemoryRatio * 100} % of available memory. ` +
-                    'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
-            );
+            this.maxMemoryRatio = this.config.get('availableMemoryRatio');
+            if (!this.maxMemoryRatio) {
+                throw new Error('availableMemoryRatio is not set in configuration.');
+            } else {
+                this.log.debug(
+                    `Setting max memory of this run to ${this.maxMemoryRatio * 100} % of available memory. ` +
+                        'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
+                );
+            }
             // Create a fallback memory measurement in case of missing memTotalBytes in SystemInfo. Weak types of
             // SystemInfo do not guarantee that memTotalBytes is always present, and without it, we cannot compute the
-            // maxMemoryBytes when maxMemoryBytes is set as a ratio.
+            // maxMemoryBytes.
             // This does not happen in practice, but code allows it.
-            this.maxMemoryBytes = await this._getMemoryTotalBytes();
+            this.maxMemoryBytes = await this.getTotalMemoryBytes();
         }
 
         // Start snapshotting.
@@ -297,13 +300,13 @@ export class Snapshotter {
         const { memCurrentBytes, memTotalBytes } = systemInfo;
 
         let maxMemoryBytes;
-        if (this.#maxMemoryRatio > 0) {
+        if (this.maxMemoryRatio !== undefined && this.maxMemoryRatio > 0) {
             // Treat it as ratio of the total actual memory
             if (!memTotalBytes) {
                 // Treating as ratio, but SystemInfo is missing the optional field memTotalBytes
-                maxMemoryBytes = this.#maxMemoryRatio * this.maxMemoryBytes;
+                maxMemoryBytes = this.maxMemoryRatio * this.maxMemoryBytes;
             } else {
-                maxMemoryBytes = this.#maxMemoryRatio * memTotalBytes;
+                maxMemoryBytes = this.maxMemoryRatio * memTotalBytes;
             }
         } else {
             maxMemoryBytes = this.maxMemoryBytes!;
@@ -439,7 +442,7 @@ export class Snapshotter {
         snapshots.splice(0, oldCount);
     }
 
-    protected async _getMemoryTotalBytes() {
+    protected async getTotalMemoryBytes() {
         if (this.config.get('systemInfoV2')) {
             const containerized = this.config.get('containerized', await isContainerized());
             return (await getMemoryInfoV2(containerized)).totalBytes;
