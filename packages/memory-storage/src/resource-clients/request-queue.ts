@@ -625,15 +625,18 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             forefrontRequestIds: this.forefrontRequestIds,
         };
 
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            data,
-            entityType: 'requestQueues',
-            entityDirectory: this.requestQueueDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                data,
+                entityType: 'requestQueues',
+                entityDirectory: this.requestQueueDirectory,
+                id: this.name ?? this.id,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
     }
 
     private _jsonToRequest<T>(requestJson?: string): T | undefined {

@@ -5,20 +5,6 @@ import { s } from '@sapphire/shapeshift';
 
 import { REQUEST_ID_LENGTH } from './consts.js';
 
-// NOTE: This is a module-level singleton. If multiple MemoryStorage instances are created
-// (e.g. via separate ServiceLocator instances), the last one to call setMemoryStorageLogger wins.
-// This is a known limitation — full per-instance isolation would require threading the logger
-// through every resource client and background task call site.
-let memoryStorageLogger: storage.CrawleeLogger | undefined;
-
-export function setMemoryStorageLogger(logger: storage.CrawleeLogger): void {
-    memoryStorageLogger = logger;
-}
-
-export function getMemoryStorageLogger(): storage.CrawleeLogger | undefined {
-    return memoryStorageLogger;
-}
-
 /**
  * Removes all properties with a null value
  * from the provided object.
@@ -62,12 +48,6 @@ export function isStream(value: any): boolean {
         ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function')
     );
 }
-
-export const memoryStorageLog = {
-    warning(message: string, data?: Record<string, unknown>) {
-        memoryStorageLogger?.warning(message, data);
-    },
-};
 
 export type BackgroundHandlerReceivedMessage = BackgroundHandlerUpdateMetadataMessage;
 

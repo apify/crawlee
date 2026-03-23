@@ -15,7 +15,6 @@ import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
 import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection.js';
 import { RequestQueueClient } from './resource-clients/request-queue.js';
 import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection.js';
-import { setMemoryStorageLogger } from './utils.js';
 
 export interface MemoryStorageOptions {
     /**
@@ -51,6 +50,7 @@ export class MemoryStorage implements storage.StorageClient {
     readonly requestQueuesDirectory: string;
     readonly writeMetadata: boolean;
     readonly persistStorage: boolean;
+    readonly logger?: CrawleeLogger;
 
     readonly keyValueStoresHandled: KeyValueStoreClient[] = [];
     readonly datasetClientsHandled: DatasetClient[] = [];
@@ -63,9 +63,7 @@ export class MemoryStorage implements storage.StorageClient {
             persistStorage: s.boolean().optional(),
         }).parse(options);
 
-        if (options.logger) {
-            setMemoryStorageLogger(options.logger);
-        }
+        this.logger = options.logger;
 
         // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
         // this function handles it without making BC breaks - it respects existing `crawlee_storage`
