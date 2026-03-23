@@ -851,7 +851,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/basic@workspace:packages/basic-crawler"
   dependencies:
-    "@apify/log": "npm:^2.5.18"
     "@apify/timeout": "npm:^0.3.2"
     "@apify/utilities": "npm:^2.15.5"
     "@crawlee/core": "npm:4.0.0"
@@ -871,7 +870,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/browser-pool@workspace:packages/browser-pool"
   dependencies:
-    "@apify/log": "npm:^2.5.18"
     "@apify/timeout": "npm:^0.3.2"
     "@crawlee/core": "npm:4.0.0"
     "@crawlee/types": "npm:4.0.0"
@@ -1127,7 +1125,6 @@ __metadata:
   resolution: "@crawlee/playwright@workspace:packages/playwright-crawler"
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
-    "@apify/log": "npm:^2.5.18"
     "@apify/timeout": "npm:^0.3.2"
     "@crawlee/browser": "npm:4.0.0"
     "@crawlee/browser-pool": "npm:4.0.0"
@@ -1159,7 +1156,6 @@ __metadata:
   resolution: "@crawlee/puppeteer@workspace:packages/puppeteer-crawler"
   dependencies:
     "@apify/datastructures": "npm:^2.0.3"
-    "@apify/log": "npm:^2.5.18"
     "@crawlee/browser": "npm:4.0.0"
     "@crawlee/browser-pool": "npm:4.0.0"
     "@crawlee/types": "npm:4.0.0"
