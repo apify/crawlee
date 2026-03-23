@@ -333,6 +333,19 @@ describe('Sitemap', () => {
         );
     });
 
+    it('keeps quiet if autodetection does not find anything', async () => {
+        const logger = { warning: vi.fn(), warningOnce: vi.fn() } as any;
+
+        const sitemap = await Sitemap.tryCommonNames('http://not-exists-2.com/arbitrary_url?search=xyz', undefined, {
+            httpClient: new FetchHttpClient(),
+            logger,
+        });
+
+        expect(sitemap.urls).toHaveLength(0);
+        expect(logger.warning).not.toHaveBeenCalled();
+        expect(logger.warningOnce).not.toHaveBeenCalled();
+    });
+
     it('handles sitemap.txt correctly', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt', undefined, {
             httpClient: new FetchHttpClient(),
