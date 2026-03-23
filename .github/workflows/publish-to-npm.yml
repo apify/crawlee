@@ -81,7 +81,7 @@ jobs:
 
             - name: Commit changes
               if: inputs.dist-tag == 'next'
-              uses: EndBug/add-and-commit@v9
+              uses: EndBug/add-and-commit@v10
               id: commit
               with:
                 author_name: Apify Release Bot
