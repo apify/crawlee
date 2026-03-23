@@ -2,6 +2,8 @@ import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
+import type { CrawleeLogger } from '@crawlee/types';
+
 import { getCgroupsVersion, isLambda } from '../general.js';
 import { psTree } from './ps-tree.js';
 
@@ -48,9 +50,9 @@ export interface MemoryInfo {
  * @internal
  */
 export async function getMemoryInfo(
-    options: { containerized?: boolean; onDegraded?: (message: string) => void } = {},
+    options: { containerized?: boolean; logger?: CrawleeLogger } = {},
 ): Promise<MemoryInfo> {
-    const { containerized = false, onDegraded } = options;
+    const { containerized = false, logger } = options;
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
 
@@ -121,7 +123,7 @@ export async function getMemoryInfo(
             usedBytes = parseInt(usedBytesStr, 10);
             freeBytes = totalBytes - usedBytes;
         } catch (err) {
-            onDegraded?.(
+            logger?.warningOnce(
                 'Your environment is containerized, but your system does not support memory cgroups. ' +
                     "If you're running containers with limited memory, memory auto-scaling will not work properly.\n\n" +
                     `Cause: ${(err as Error).message}`,

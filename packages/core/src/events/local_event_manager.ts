@@ -95,8 +95,7 @@ export class LocalEventManager extends EventManager {
         const { getCurrentCpuTicksV2 } = await import('@crawlee/utils');
         const usedCpuRatio = await getCurrentCpuTicksV2({
             containerized: await this.isContainerizedWrapper(),
-            onDegraded: (msg: string) => serviceLocator.getLogger().warningOnce(msg),
-            onError: (msg: string, err: Error) => serviceLocator.getLogger().warning(msg, { error: err }),
+            logger: serviceLocator.getLogger(),
         });
         return {
             cpuCurrentUsage: usedCpuRatio * 100,
@@ -109,7 +108,7 @@ export class LocalEventManager extends EventManager {
             const { getMemoryInfo } = await import('@crawlee/utils');
             const memInfo = await getMemoryInfo({
                 containerized: await this.isContainerizedWrapper(),
-                onDegraded: (msg: string) => serviceLocator.getLogger().warningOnce(msg),
+                logger: serviceLocator.getLogger(),
             });
             return {
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,

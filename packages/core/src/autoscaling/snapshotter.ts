@@ -179,7 +179,7 @@ export class Snapshotter {
             const containerized = serviceLocator.getConfiguration().get('containerized', await isContainerized());
             const memInfo = await getMemoryInfo({
                 containerized,
-                onDegraded: (msg: string) => serviceLocator.getLogger().warningOnce(msg),
+                logger: serviceLocator.getLogger(),
             });
             const totalBytes = memInfo.totalBytes;
 

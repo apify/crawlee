@@ -1,9 +1,7 @@
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
-
-import type { MinimalLogger } from '@crawlee/types';
 
 import { Sitemap } from './sitemap.js';
 
@@ -29,7 +27,7 @@ export class RobotsTxtFile {
     private constructor(
         private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
         private proxyUrl?: string,
-        private logger?: MinimalLogger,
+        private logger?: CrawleeLogger,
     ) {}
 
     /**
@@ -47,7 +45,7 @@ export class RobotsTxtFile {
             timeoutMillis?: number;
             proxyUrl?: string;
             httpClient?: BaseHttpClient;
-            logger?: MinimalLogger;
+            logger?: CrawleeLogger;
         },
     ): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
@@ -75,7 +73,7 @@ export class RobotsTxtFile {
             timeoutMillis?: number;
             proxyUrl?: string;
             httpClient?: BaseHttpClient;
-            logger?: MinimalLogger;
+            logger?: CrawleeLogger;
         },
     ): Promise<RobotsTxtFile> {
         const { proxyUrl, logger, httpClient = new FetchHttpClient() } = options || {};

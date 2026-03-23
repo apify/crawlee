@@ -145,16 +145,16 @@ describe('getMemoryInfoV2()', () => {
         }
     });
 
-    test('calls onDegraded when containerized but cgroups not available', async () => {
+    test('logs warningOnce when containerized but cgroups not available', async () => {
         getCgroupsVersionSpy.mockResolvedValueOnce(null);
         freememSpy.mockReturnValueOnce(222);
         totalmemSpy.mockReturnValueOnce(333);
 
-        const onDegraded = vitest.fn();
-        const data = await getMemoryInfo({ containerized: true, onDegraded });
+        const logger = { warningOnce: vitest.fn(), warning: vitest.fn() } as any;
+        const data = await getMemoryInfo({ containerized: true, logger });
 
-        expect(onDegraded).toHaveBeenCalledOnce();
-        expect(onDegraded.mock.calls[0][0]).toContain('does not support memory cgroups');
+        expect(logger.warningOnce).toHaveBeenCalledOnce();
+        expect(logger.warningOnce.mock.calls[0][0]).toContain('does not support memory cgroups');
         // Should fall back to host memory
         expect(data).toMatchObject({
             totalBytes: 333,
@@ -163,18 +163,18 @@ describe('getMemoryInfoV2()', () => {
         });
     });
 
-    test('calls onDegraded when cgroup memory files are unreadable', async () => {
+    test('logs warningOnce when cgroup memory files are unreadable', async () => {
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         accessSpy.mockResolvedValueOnce();
         readFileSpy.mockRejectedValue(new Error('permission denied'));
         freememSpy.mockReturnValueOnce(222);
         totalmemSpy.mockReturnValueOnce(333);
 
-        const onDegraded = vitest.fn();
-        const data = await getMemoryInfo({ containerized: true, onDegraded });
+        const logger = { warningOnce: vitest.fn(), warning: vitest.fn() } as any;
+        const data = await getMemoryInfo({ containerized: true, logger });
 
-        expect(onDegraded).toHaveBeenCalledOnce();
-        expect(onDegraded.mock.calls[0][0]).toContain('permission denied');
+        expect(logger.warningOnce).toHaveBeenCalledOnce();
+        expect(logger.warningOnce.mock.calls[0][0]).toContain('permission denied');
         // Should fall back to host memory
         expect(data).toMatchObject({
             totalBytes: 333,

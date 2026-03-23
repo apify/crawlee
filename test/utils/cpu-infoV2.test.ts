@@ -270,29 +270,29 @@ describe('getCpuInfo()', () => {
         cpusMock.mockRestore();
     });
 
-    test('calls onDegraded when containerized but cgroups not available', async () => {
+    test('logs warningOnce when containerized but cgroups not available', async () => {
         getCgroupsVersionSpy.mockResolvedValueOnce(null);
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([{ times: { user: 100, nice: 0, sys: 50, idle: 50, irq: 0 } }] as os.CpuInfo[]);
-        const onDegraded = vitest.fn();
-        await getCurrentCpuTicksV2({ containerized: true, onDegraded });
-        expect(onDegraded).toHaveBeenCalledOnce();
-        expect(onDegraded.mock.calls[0][0]).toContain('does not support cgroups');
+        const logger = { warningOnce: vitest.fn(), warning: vitest.fn() } as any;
+        await getCurrentCpuTicksV2({ containerized: true, logger });
+        expect(logger.warningOnce).toHaveBeenCalledOnce();
+        expect(logger.warningOnce.mock.calls[0][0]).toContain('does not support cgroups');
         cpusMock.mockRestore();
     });
 
-    test('calls onError when cgroup cpu snapshot fails', async () => {
+    test('logs warning when cgroup cpu snapshot fails', async () => {
         getCgroupsVersionSpy.mockResolvedValueOnce('V1');
         readFileSpy.mockRejectedValue(new Error('permission denied'));
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([{ times: { user: 100, nice: 0, sys: 50, idle: 50, irq: 0 } }] as os.CpuInfo[]);
-        const onError = vitest.fn();
-        const result = await getCurrentCpuTicksV2({ containerized: true, onError });
-        expect(onError).toHaveBeenCalledOnce();
-        expect(onError.mock.calls[0][0]).toContain('Cpu snapshot failed');
-        expect(onError.mock.calls[0][1]).toBeInstanceOf(Error);
+        const logger = { warningOnce: vitest.fn(), warning: vitest.fn() } as any;
+        const result = await getCurrentCpuTicksV2({ containerized: true, logger });
+        expect(logger.warning).toHaveBeenCalledOnce();
+        expect(logger.warning.mock.calls[0][0]).toContain('Cpu snapshot failed');
+        expect(logger.warning.mock.calls[0][1]).toHaveProperty('error');
         // Should fall back to bare metal
         expect(result).toBeCloseTo(0.75);
         cpusMock.mockRestore();

@@ -2,6 +2,8 @@ import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 
+import type { CrawleeLogger } from '@crawlee/types';
+
 import { getCgroupsVersion } from '../general.js';
 
 const CPU_FILE_PATHS = {
@@ -189,13 +191,9 @@ let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
  * @internal
  */
 export async function getCurrentCpuTicksV2(
-    options: {
-        containerized?: boolean;
-        onDegraded?: (message: string) => void;
-        onError?: (message: string, error: Error) => void;
-    } = {},
+    options: { containerized?: boolean; logger?: CrawleeLogger } = {},
 ): Promise<number> {
-    const { containerized = false, onDegraded, onError } = options;
+    const { containerized = false, logger } = options;
 
     try {
         // if not containerized
@@ -208,16 +206,15 @@ export async function getCurrentCpuTicksV2(
             CLOCK_TICKS_PER_SECOND = clockResult.ticks;
             CLOCK_TICKS_CHECKED = true;
             if (clockResult.fallback) {
-                onError?.(
-                    'Failed to get clock ticks; defaulting to 100. CPU metrics may be inaccurate.',
-                    new Error('getconf CLK_TCK failed'),
-                );
+                logger?.warning('Failed to get clock ticks; defaulting to 100. CPU metrics may be inaccurate.', {
+                    error: new Error('getconf CLK_TCK failed'),
+                });
             }
         }
         const cgroupsVersion = await getCgroupsVersion();
         // if cgroup is not detected, return bare metal cpu limit
         if (cgroupsVersion === null) {
-            onDegraded?.(
+            logger?.warningOnce(
                 'Your environment is containerized, but your system does not support cgroups.\n' +
                     "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
             );
@@ -246,7 +243,7 @@ export async function getCurrentCpuTicksV2(
         return ((containerDelta / systemDelta) * numCpus) / cpuAllowance;
     } catch (err) {
         // if anything fails, default to bare metal metrics
-        onError?.('Cpu snapshot failed, falling back to bare-metal metrics.', err as Error);
+        logger?.warning('Cpu snapshot failed, falling back to bare-metal metrics.', { error: err as Error });
         return getCurrentCpuTicks();
     }
 }

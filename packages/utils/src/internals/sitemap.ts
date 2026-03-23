@@ -5,12 +5,10 @@ import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
 import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
-
-import type { MinimalLogger } from '@crawlee/types';
 
 import { mergeAsyncIterables } from './iterables.js';
 import { RobotsFile } from './robots.js';
@@ -202,7 +200,7 @@ export interface ParseSitemapOptions {
     /**
      * Optional logger for reporting warnings during sitemap parsing.
      */
-    logger?: MinimalLogger;
+    logger?: CrawleeLogger;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -502,7 +500,7 @@ export async function* discoverValidSitemaps(
         /**
          * Optional logger for reporting warnings during sitemap discovery.
          */
-        logger?: MinimalLogger;
+        logger?: CrawleeLogger;
     } = {},
 ): AsyncIterable<string> {
     const {

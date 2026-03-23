@@ -1,9 +1,5 @@
-import type { BaseHttpClient as BaseHttpClientInterface, MinimalLogger, SendRequestOptions } from '@crawlee/types';
+import type { BaseHttpClient as BaseHttpClientInterface, CrawleeLogger, SendRequestOptions } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
-
-const noopLogger: MinimalLogger = {
-    warning() {},
-};
 
 export interface CustomFetchOptions {
     proxyUrl?: string;
@@ -15,10 +11,10 @@ export interface CustomFetchOptions {
  * implement only the low-level network call in `fetch`.
  */
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
-    protected log: MinimalLogger;
+    protected log?: CrawleeLogger;
 
-    constructor(log?: MinimalLogger) {
-        this.log = log ?? noopLogger;
+    constructor(log?: CrawleeLogger) {
+        this.log = log;
     }
 
     /**
@@ -37,7 +33,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 request.headers.set('cookie', cookies.join('; '));
             }
         } catch (e) {
-            this.log.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
+            this.log?.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }
         return request;
     }
@@ -49,7 +45,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             try {
                 await cookieJar.setCookie(header, response.url);
             } catch (e) {
-                this.log.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
+                this.log?.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
             }
         }
     }

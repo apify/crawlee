@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
+import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra/esm';
 
@@ -14,8 +15,6 @@ import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
 import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection.js';
 import { RequestQueueClient } from './resource-clients/request-queue.js';
 import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection.js';
-import type { MinimalLogger } from '@crawlee/types';
-
 import { setMemoryStorageLogger } from './utils.js';
 
 export interface MemoryStorageOptions {
@@ -42,7 +41,7 @@ export interface MemoryStorageOptions {
     /**
      * Optional logger for MemoryStorage warnings.
      */
-    logger?: MinimalLogger;
+    logger?: CrawleeLogger;
 }
 
 export class MemoryStorage implements storage.StorageClient {

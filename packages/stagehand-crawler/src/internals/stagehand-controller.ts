@@ -1,9 +1,8 @@
 import type { Stagehand } from '@browserbasehq/stagehand';
 import { BrowserController } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import type { Cookie } from '@crawlee/types';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions, Page } from 'playwright';
-
-import { serviceLocator } from '@crawlee/core';
 
 import type { StagehandPlugin } from './stagehand-plugin';
 

@@ -1,26 +1,21 @@
 import { createHash } from 'node:crypto';
 
-import type { MinimalLogger } from '@crawlee/types';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { REQUEST_ID_LENGTH } from './consts.js';
 
-const noopLogger: MinimalLogger = {
-    warning() {},
-};
-
 // NOTE: This is a module-level singleton. If multiple MemoryStorage instances are created
 // (e.g. via separate ServiceLocator instances), the last one to call setMemoryStorageLogger wins.
 // This is a known limitation — full per-instance isolation would require threading the logger
 // through every resource client and background task call site.
-let memoryStorageLogger: MinimalLogger = noopLogger;
+let memoryStorageLogger: storage.CrawleeLogger | undefined;
 
-export function setMemoryStorageLogger(logger: MinimalLogger): void {
+export function setMemoryStorageLogger(logger: storage.CrawleeLogger): void {
     memoryStorageLogger = logger;
 }
 
-export function getMemoryStorageLogger(): MinimalLogger {
+export function getMemoryStorageLogger(): storage.CrawleeLogger | undefined {
     return memoryStorageLogger;
 }
 
@@ -70,7 +65,7 @@ export function isStream(value: any): boolean {
 
 export const memoryStorageLog = {
     warning(message: string, data?: Record<string, unknown>) {
-        memoryStorageLogger.warning(message, data);
+        memoryStorageLogger?.warning(message, data);
     },
 };
 
