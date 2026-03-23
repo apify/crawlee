@@ -54,15 +54,14 @@ export function getCurrentCpuTicks() {
 }
 
 /**
- * Reads the linux tick rate
- * @returns the number of ticks per second
+ * Reads the linux tick rate.
+ * @returns the number of ticks per second, or `null` if detection failed
  */
-function getClockTicks(): { ticks: number; fallback: boolean } {
+function getClockTicks(): number | null {
     try {
-        const result = execSync('getconf CLK_TCK').toString().trim();
-        return { ticks: parseInt(result, 10), fallback: false };
+        return parseInt(execSync('getconf CLK_TCK').toString().trim(), 10);
     } catch {
-        return { ticks: 100, fallback: true };
+        return null;
     }
 }
 
@@ -202,14 +201,14 @@ export async function getCurrentCpuTicksV2(
             return getCurrentCpuTicks();
         }
         if (!CLOCK_TICKS_CHECKED) {
-            const clockResult = getClockTicks();
-            CLOCK_TICKS_PER_SECOND = clockResult.ticks;
-            CLOCK_TICKS_CHECKED = true;
-            if (clockResult.fallback) {
-                logger?.warning('Failed to get clock ticks; defaulting to 100. CPU metrics may be inaccurate.', {
-                    error: new Error('getconf CLK_TCK failed'),
-                });
+            const ticks = getClockTicks();
+            if (ticks === null) {
+                CLOCK_TICKS_PER_SECOND = 100;
+                logger?.warning('Failed to get clock ticks; defaulting to 100. CPU metrics may be inaccurate.');
+            } else {
+                CLOCK_TICKS_PER_SECOND = ticks;
             }
+            CLOCK_TICKS_CHECKED = true;
         }
         const cgroupsVersion = await getCgroupsVersion();
         // if cgroup is not detected, return bare metal cpu limit
