@@ -117,13 +117,13 @@ export class SessionPool extends EventEmitter {
     protected log: CrawleeLogger;
     protected maxPoolSize: number;
     protected createSessionFunction: CreateSession;
-    protected keyValueStore!: KeyValueStore;
+    protected keyValueStore?: KeyValueStore;
     protected sessions: Session[] = [];
     protected sessionMap = new Map<string, Session>();
     protected sessionOptions: SessionOptions;
     protected persistStateKeyValueStoreId?: string;
     protected persistStateKey: string;
-    protected _listener!: () => Promise<void>;
+    protected _listener?: () => Promise<void>;
     protected events: EventManager;
     protected persistenceOptions: PersistenceOptions;
 
@@ -225,7 +225,6 @@ export class SessionPool extends EventEmitter {
         await this._maybeLoadSessionPool();
 
         this._listener = this.persistState.bind(this);
-
         this.events.on(EventType.PERSIST_STATE, this._listener);
     }
 
@@ -327,7 +326,7 @@ export class SessionPool extends EventEmitter {
         }
 
         await this.ensureInitialized();
-        await this.keyValueStore.setValue(this.persistStateKey, null);
+        await this.keyValueStore?.setValue(this.persistStateKey, null);
     }
 
     /**
@@ -364,7 +363,7 @@ export class SessionPool extends EventEmitter {
         const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
-            .setValue(this.persistStateKey, await this.getState(), {
+            ?.setValue(this.persistStateKey, await this.getState(), {
                 timeoutSecs,
                 doNotRetryTimeouts: true,
             })
@@ -469,7 +468,7 @@ export class SessionPool extends EventEmitter {
      * If the state was persisted it loads the `SessionPool` from the persisted state.
      */
     protected async _maybeLoadSessionPool(): Promise<void> {
-        const loadedSessionPool = await this.keyValueStore.getValue<{ sessions: Dictionary[] }>(this.persistStateKey);
+        const loadedSessionPool = await this.keyValueStore?.getValue<{ sessions: Dictionary[] }>(this.persistStateKey);
 
         if (!loadedSessionPool) return;
 
