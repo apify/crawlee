@@ -1546,15 +1546,19 @@ describe('BasicCrawler', () => {
         it('should accept a pre-initialized SessionPool instance', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
-            const sharedPool = await SessionPool.open({ maxPoolSize: 25 });
+            const sharedPool = new SessionPool({ maxPoolSize: 25 });
 
             const crawler = new BasicCrawler({
                 requestList,
                 sessionPool: sharedPool,
                 requestHandler: async ({ session }) => {
                     expect(session).toBeDefined();
+                    expect(crawler.sessionPool).toBeDefined();
+                    expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
                 },
+                failedRequestHandler: async () => {},
             });
+
             await crawler.run();
 
             expect(crawler.sessionPool).toBe(sharedPool);
@@ -1564,7 +1568,7 @@ describe('BasicCrawler', () => {
         it('should not tear down an injected SessionPool', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
-            const sharedPool = await SessionPool.open({ maxPoolSize: 25 });
+            const sharedPool = new SessionPool({ maxPoolSize: 25 });
             const teardownSpy = vitest.spyOn(sharedPool, 'teardown');
 
             const crawler = new BasicCrawler({
@@ -1579,7 +1583,7 @@ describe('BasicCrawler', () => {
         });
 
         it('should share sessions across crawlers using the same SessionPool', async () => {
-            const sharedPool = await SessionPool.open({ maxPoolSize: 5 });
+            const sharedPool = new SessionPool({ maxPoolSize: 5 });
             const crawler1Sessions = new Set<string>();
             const crawler2Sessions = new Set<string>();
 
