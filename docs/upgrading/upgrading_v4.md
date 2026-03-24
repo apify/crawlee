@@ -201,6 +201,7 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
 - `Configuration.useStorageClient()` - use `ServiceLocator.setStorageClient()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
+- `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
 
 The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfig()` factory method to create an instance with intervals derived from a `Configuration` object.
