@@ -84,6 +84,26 @@ const crawler = new CheerioCrawler({
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
 
+## `SessionPool` is now lazy-initialized
+
+`SessionPool.open()` static factory method is removed. Create instances with `new SessionPool(options)` instead — all public methods automatically initialize the pool on first use.
+
+`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters. `SessionPool.getState()` is also async now.
+
+**Before:**
+```typescript
+const sessionPool = await SessionPool.open({ maxPoolSize: 100 });
+const count = sessionPool.usableSessionsCount;
+const state = sessionPool.getState();
+```
+
+**After:**
+```typescript
+const sessionPool = new SessionPool({ maxPoolSize: 100 });
+const count = await sessionPool.usableSessionsCount();
+const state = await sessionPool.getState();
+```
+
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
 `Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).

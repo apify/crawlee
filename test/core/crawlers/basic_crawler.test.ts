@@ -1517,15 +1517,12 @@ describe('BasicCrawler', () => {
                 sessionPoolOptions: {
                     maxPoolSize: 10,
                 },
-                requestHandler: async () => {},
+                requestHandler: async () => {
+                    expect(crawler.sessionPool).toBeDefined();
+                    expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
+                },
                 failedRequestHandler: async () => {},
             });
-
-            // @ts-expect-error Accessing private prop
-            crawler._loadHandledRequestCount = () => {
-                expect(crawler.sessionPool).toBeDefined();
-                expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
-            };
 
             await crawler.run();
             expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(0);
