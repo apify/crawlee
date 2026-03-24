@@ -383,57 +383,30 @@ export function bindMethodsToServiceLocator(
     };
 }
 
-export const serviceLocator: ServiceLocatorInterface = {
-    getConfiguration(): Configuration {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getConfiguration();
+function getActiveServiceLocator(): ServiceLocatorInterface {
+    return serviceLocatorStorage.getStore() ?? globalServiceLocator;
+}
+
+/**
+ * A Proxy-based service locator that delegates all property access to the
+ * currently active ServiceLocator instance (per-crawler via AsyncLocalStorage,
+ * or the global fallback).
+ *
+ * Using a Proxy instead of a hand-written forwarding object means new methods
+ * added to ServiceLocator are automatically forwarded without updating this code.
+ */
+export const serviceLocator = new Proxy({} as ServiceLocatorInterface, {
+    get(_target, prop) {
+        const active = getActiveServiceLocator();
+        const value = Reflect.get(active, prop, active);
+        if (typeof value === 'function') {
+            return value.bind(active);
+        }
+        return value;
     },
-    setConfiguration(configuration: Configuration): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setConfiguration(configuration);
+    set(_target, prop) {
+        throw new TypeError(
+            `Cannot set property '${String(prop)}' on serviceLocator directly. Use the setter methods (e.g. setConfiguration(), setStorageClient()) instead.`,
+        );
     },
-    getEventManager(): EventManager {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getEventManager();
-    },
-    setEventManager(eventManager: EventManager): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setEventManager(eventManager);
-    },
-    getStorageClient(): StorageClient {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getStorageClient();
-    },
-    setStorageClient(storageClient: StorageClient): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setStorageClient(storageClient);
-    },
-    getLogger(): CrawleeLogger {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getLogger();
-    },
-    setLogger(logger: CrawleeLogger): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setLogger(logger);
-    },
-    getChildLog(prefix: string): CrawleeLogger {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getChildLog(prefix);
-    },
-    getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getStorageManager(constructor);
-    },
-    setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setStorageManager(constructor, storageManager);
-    },
-    clearStorageManagerCache(): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.clearStorageManagerCache();
-    },
-    reset(): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.reset();
-    },
-};
+});
