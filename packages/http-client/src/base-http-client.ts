@@ -13,8 +13,8 @@ export interface CustomFetchOptions {
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
     protected log?: CrawleeLogger;
 
-    constructor(log?: CrawleeLogger) {
-        this.log = log;
+    constructor(options?: { logger?: CrawleeLogger }) {
+        this.log = options?.logger;
     }
 
     /**

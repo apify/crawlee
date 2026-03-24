@@ -42,7 +42,7 @@ export class ImpitHttpClient extends BaseHttpClient {
     }
 
     constructor(options?: Omit<ImpitOptions, 'proxyUrl' | 'timeout'> & { logger?: CrawleeLogger }) {
-        super(options?.logger);
+        super({ logger: options?.logger });
         this.impitOptions = options ?? {};
     }
 

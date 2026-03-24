@@ -815,7 +815,7 @@ export class BasicCrawler<
                 this.requestQueue = requestQueue;
             }
 
-            this.httpClient = httpClient ?? new GotScrapingHttpClient(this.log);
+            this.httpClient = httpClient ?? new GotScrapingHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
