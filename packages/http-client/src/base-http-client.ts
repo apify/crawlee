@@ -28,13 +28,29 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
 
     private async applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
         try {
-            const cookies = (await cookieJar.getCookies(request.url))
-                .map((x) => x.cookieString().trim())
+            const jarCookies = (await cookieJar.getCookies(request.url))
+                .map((c) => c.cookieString().trim())
                 .filter(Boolean);
 
-            if (cookies?.length > 0) {
-                request.headers.set('cookie', cookies.join('; '));
+            const existingHeader = request.headers.get('cookie') ?? '';
+            const headerPairs = existingHeader.split(/; */).filter(Boolean);
+
+            if (!jarCookies.length && !headerPairs.length) return request;
+
+            // Jar cookies form the base, explicit Cookie header overrides per cookie name.
+            const merged = new Map<string, string>();
+
+            for (const cookie of jarCookies) {
+                const key = cookie.split('=', 1)[0]!;
+                merged.set(key, cookie);
             }
+
+            for (const cookie of headerPairs) {
+                const key = cookie.split('=', 1)[0]!;
+                merged.set(key, cookie);
+            }
+
+            request.headers.set('cookie', [...merged.values()].join('; '));
         } catch (e) {
             this.log.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }

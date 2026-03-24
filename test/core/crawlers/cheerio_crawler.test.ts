@@ -1006,17 +1006,21 @@ describe('CheerioCrawler', () => {
                     },
                 ]),
 
-                persistCookiesPerSession: false,
                 sessionPoolOptions: {
                     maxPoolSize: 1,
                 },
+                preNavigationHooks: [
+                    ({ session, request }) => {
+                        session.setCookie('foo=bar1', request.url);
+                        session.setCookie('other=cookie1', request.url);
+                        session.setCookie('coo=kie', request.url);
+                    },
+                ],
                 requestHandler: ({ json }) => {
                     responses.push(json);
                 },
             });
 
-            const sessSpy = vitest.spyOn(Session.prototype, 'getCookieString');
-            sessSpy.mockReturnValueOnce('foo=bar1; other=cookie1; coo=kie');
             await crawler.run();
             expect(responses).toHaveLength(1);
             expect(responses[0]).toMatchObject({
@@ -1168,6 +1172,35 @@ describe('CheerioCrawler', () => {
             expect(responses).toHaveLength(2);
             expect(responses[0].cookies).toContain('sharedCookie=sharedValue');
             expect(responses[1].cookies).toContain('sharedCookie=sharedValue');
+        });
+
+        test('sendRequest should respect Cookie header override', async () => {
+            const responses: { cookies: string }[] = [];
+
+            const crawler = new CheerioCrawler({
+                requestList: await RequestList.open(null, [
+                    { url: `${serverAddress}/special/set-cookie?name=sessionCookie&value=fromSession` },
+                ]),
+                requestHandler: async ({ sendRequest }) => {
+                    const withHeader = await sendRequest({
+                        url: `${serverAddress}/special/get-cookies`,
+                        headers: new Headers({ Cookie: 'custom=override' }),
+                    });
+                    responses.push((await withHeader.json()) as { cookies: string });
+
+                    const withoutOverride = await sendRequest({
+                        url: `${serverAddress}/special/get-cookies`,
+                    });
+                    responses.push((await withoutOverride.json()) as { cookies: string });
+                },
+            });
+
+            await crawler.run();
+            expect(responses).toHaveLength(2);
+            expect(responses[0].cookies).toContain('custom=override');
+            expect(responses[0].cookies).toContain('sessionCookie=fromSession');
+            expect(responses[1].cookies).toContain('sessionCookie=fromSession');
+            expect(responses[1].cookies).not.toContain('custom=override');
         });
     });
 
