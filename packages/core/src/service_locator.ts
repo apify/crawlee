@@ -396,4 +396,9 @@ export const serviceLocator = new Proxy({} as ServiceLocatorInterface, {
         }
         return value;
     },
+    set(_target, prop) {
+        throw new TypeError(
+            `Cannot set property '${String(prop)}' on serviceLocator directly. Use the setter methods (e.g. setConfiguration(), setStorageClient()) instead.`,
+        );
+    },
 });
