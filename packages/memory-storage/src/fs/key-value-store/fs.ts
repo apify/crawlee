@@ -2,11 +2,10 @@ import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { basename } from 'node:path/win32';
 
+import type { CrawleeLogger } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra/esm';
 import mime from 'mime-types';
-
-import type { CrawleeLogger } from '@crawlee/types';
 
 import { lockAndWrite } from '../../background-handler/fs-utils.js';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store.js';

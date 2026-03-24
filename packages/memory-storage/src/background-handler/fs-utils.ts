@@ -3,10 +3,9 @@ import { writeFile as writeFileP } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
+import type { CrawleeLogger } from '@crawlee/types';
 import { ensureDir } from 'fs-extra/esm';
 import { lock } from 'proper-lockfile';
-
-import type { CrawleeLogger } from '@crawlee/types';
 
 import type { BackgroundHandlerReceivedMessage, BackgroundHandlerUpdateMetadataMessage } from '../utils.js';
 
