@@ -589,10 +589,16 @@ export async function* discoverValidSitemaps(
                 firstUrl.pathname = pathname;
                 const candidateSitemapUrl = firstUrl.toString();
 
-                if (await urlExists(candidateSitemapUrl)) {
-                    if (addSitemapUrl(candidateSitemapUrl)) {
-                        yield candidateSitemapUrl;
+                try {
+                    if (await urlExists(candidateSitemapUrl)) {
+                        if (addSitemapUrl(candidateSitemapUrl)) {
+                            yield candidateSitemapUrl;
+                        }
                     }
+                } catch (error) {
+                    logger?.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
+                        error,
+                    });
                 }
             }
         }
