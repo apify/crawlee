@@ -566,7 +566,7 @@ export class BasicCrawler<
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
      */
-    sessionPool?: SessionPool;
+    sessionPool: SessionPool;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
@@ -641,7 +641,6 @@ export class BasicCrawler<
     protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
-    protected sessionPoolOptions: SessionPoolOptions;
     protected blockedStatusCodes = new Set<number>();
     protected additionalHttpErrorStatusCodes: Set<number>;
     protected ignoreHttpErrorStatusCodes: Set<number>;
@@ -864,10 +863,10 @@ export class BasicCrawler<
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
-            this.sessionPoolOptions = {
+            this.sessionPool = new SessionPool({
                 ...sessionPoolOptions,
                 log: this.log,
-            };
+            });
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
             const maxSignedInteger = 2 ** 31 - 1;
@@ -1660,8 +1659,6 @@ export class BasicCrawler<
         // so that the caller can get a reference to it before awaiting the promise returned from run()
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-
-        this.sessionPool = new SessionPool(this.sessionPoolOptions);
         this.sessionPool.setMaxListeners(20);
 
         await this.initializeRequestManager();
