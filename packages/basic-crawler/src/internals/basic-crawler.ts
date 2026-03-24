@@ -641,6 +641,7 @@ export class BasicCrawler<
     protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
+    protected sessionPoolOptions?: SessionPoolOptions;
     protected blockedStatusCodes = new Set<number>();
     protected additionalHttpErrorStatusCodes: Set<number>;
     protected ignoreHttpErrorStatusCodes: Set<number>;
@@ -863,10 +864,12 @@ export class BasicCrawler<
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
-            this.sessionPool = new SessionPool({
+            this.sessionPoolOptions = {
                 ...sessionPoolOptions,
                 log: this.log,
-            });
+            };
+            this.sessionPool = new SessionPool(this.sessionPoolOptions);
+
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
             const maxSignedInteger = 2 ** 31 - 1;
