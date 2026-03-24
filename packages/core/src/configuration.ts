@@ -31,13 +31,13 @@ export const coerceBoolean = z.preprocess((val) => {
     return val;
 }, z.boolean());
 
-export const coerceNumber = z.preprocess((val) => {
+const coerceNumber = z.preprocess((val) => {
     if (typeof val === 'string') return Number(val);
     return val;
 }, z.number());
 
 /** Zod schema accepting both LogLevel enum values and string names (case-insensitive). */
-export const logLevelSchema = z.preprocess((val) => {
+const logLevelSchema = z.preprocess((val) => {
     if (val == null) return val;
     const s = String(val);
     if (Number.isFinite(+s)) return +s;
