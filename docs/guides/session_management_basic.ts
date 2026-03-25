@@ -8,7 +8,7 @@ const proxyConfiguration = new ProxyConfiguration({
 
 const crawler = new BasicCrawler({
     // Overrides default Session pool configuration.
-    sessionPool: await SessionPool.open({ maxPoolSize: 100 }),
+    sessionPool: new SessionPool({ maxPoolSize: 100 }),
     async requestHandler({ request, session }) {
         const { url } = request;
         const client = new Impit({
