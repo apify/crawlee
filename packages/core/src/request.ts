@@ -24,6 +24,7 @@ const requestOptionalPredicates = {
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
     sessionRotationCount: ow.optional.number,
+    sessionId: ow.optional.string,
     maxRetries: ow.optional.number,
     errorMessages: ow.optional.array.ofType(ow.string),
     headers: ow.optional.object,
@@ -170,6 +171,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             noRetry = false,
             retryCount = 0,
             sessionRotationCount = 0,
+            sessionId,
             maxRetries,
             errorMessages = [],
             headers = {},
@@ -185,6 +187,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             loadedUrl?: string;
             retryCount?: number;
             sessionRotationCount?: number;
+            sessionId?: string;
             errorMessages?: string[];
             handledAt?: string | Date;
         };
@@ -206,6 +209,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         this.noRetry = noRetry;
         this.retryCount = retryCount;
         this.sessionRotationCount = sessionRotationCount;
+        if (sessionId) this.sessionId = sessionId;
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
         this.handledAt = (handledAt as unknown) instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
@@ -318,6 +322,16 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         } else {
             this.userData.__crawlee.sessionRotationCount = value;
         }
+    }
+
+    /** ID of a session to use for this request. When set, the crawler will fetch this session from the session pool instead of creating a new one. */
+    get sessionId(): string | undefined {
+        return this.userData.__crawlee?.sessionId;
+    }
+
+    set sessionId(value: string | undefined) {
+        (this.userData as Dictionary).__crawlee ??= {};
+        this.userData.__crawlee.sessionId = value;
     }
 
     /** shortcut for getting `request.userData.label` */
@@ -544,6 +558,12 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
      * @default false
      */
     noRetry?: boolean;
+
+    /**
+     * ID of a session from the crawler's `SessionPool` to use for this request.
+     * When set, the crawler will fetch this session from the pool instead of creating a new one.
+     */
+    sessionId?: string;
 
     /**
      * If set to `true` then the crawler processing this request evaluates
