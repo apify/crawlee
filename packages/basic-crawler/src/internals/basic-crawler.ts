@@ -1102,7 +1102,9 @@ export class BasicCrawler<
 
                     if (!existingSession) {
                         throw new ContextPipelineInitializationError(
-                            `The current SessionPool instance doesn't contain the requested sessionId: ${request.sessionId}`,
+                            new Error(
+                                `The current SessionPool instance doesn't contain the requested sessionId: ${request.sessionId}`,
+                            ),
                         );
                     }
 

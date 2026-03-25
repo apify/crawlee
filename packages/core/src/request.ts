@@ -209,7 +209,6 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         this.noRetry = noRetry;
         this.retryCount = retryCount;
         this.sessionRotationCount = sessionRotationCount;
-        if (sessionId) this.sessionId = sessionId;
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
         this.handledAt = (handledAt as unknown) instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
@@ -260,6 +259,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
         if (crawlDepth != null) this.userData.__crawlee.crawlDepth ??= crawlDepth;
+        if (sessionId) this.sessionId = sessionId;
 
         // If it's already set, don't override it (for instance when fetching from storage)
         if (enqueueStrategy) {
