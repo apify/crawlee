@@ -56,15 +56,18 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
         // Schedule the worker to write to the disk
         const queueInfo = newStore.toRequestQueueInfo();
 
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            entityType: 'requestQueues',
-            entityDirectory: newStore.requestQueueDirectory,
-            id: queueInfo.name ?? queueInfo.id,
-            data: queueInfo,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                entityType: 'requestQueues',
+                entityDirectory: newStore.requestQueueDirectory,
+                id: queueInfo.name ?? queueInfo.id,
+                data: queueInfo,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
 
         return queueInfo;
     }

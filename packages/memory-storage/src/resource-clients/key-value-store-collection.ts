@@ -56,15 +56,18 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
         // Schedule the worker to write to the disk
         const kvStoreInfo = newStore.toKeyValueStoreInfo();
 
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            entityType: 'keyValueStores',
-            entityDirectory: newStore.keyValueStoreDirectory,
-            id: kvStoreInfo.name ?? kvStoreInfo.id,
-            data: kvStoreInfo,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                entityType: 'keyValueStores',
+                entityDirectory: newStore.keyValueStoreDirectory,
+                id: kvStoreInfo.name ?? kvStoreInfo.id,
+                data: kvStoreInfo,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
 
         return kvStoreInfo;
     }

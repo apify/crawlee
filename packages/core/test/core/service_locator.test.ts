@@ -23,7 +23,7 @@ function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
         debug: () => {},
         perf: () => {},
         deprecated: () => {},
-        internal: () => {},
+        logWithLevel: () => {},
         ...overrides,
     };
     return logger;
@@ -203,6 +203,17 @@ describe('ServiceLocator', () => {
             expect(() => {
                 serviceLocator.setLogger(customLogger);
             }).toThrow(/Logger is already in use/);
+        });
+
+        test('setting logger after getStorageClient throws ServiceConflictError (logger already locked)', () => {
+            // getStorageClient() implicitly calls getLogger(), locking the logger
+            serviceLocator.getStorageClient();
+
+            const customLogger = makeMockLogger();
+
+            expect(() => {
+                serviceLocator.setLogger(customLogger);
+            }).toThrow(ServiceConflictError);
         });
 
         test('reset clears the logger', () => {

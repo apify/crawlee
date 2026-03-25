@@ -1,9 +1,7 @@
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
-
-import log from '@apify/log';
 
 import { Sitemap } from './sitemap.js';
 import { type EnqueueStrategy, filterUrl } from './url.js';
@@ -40,6 +38,7 @@ export class RobotsTxtFile {
         private url: string,
         private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
         private proxyUrl?: string,
+        private logger?: CrawleeLogger,
     ) {}
 
     /**
@@ -52,7 +51,13 @@ export class RobotsTxtFile {
      */
     static async find(
         url: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number; proxyUrl?: string; httpClient?: BaseHttpClient },
+        options?: {
+            signal?: AbortSignal;
+            timeoutMillis?: number;
+            proxyUrl?: string;
+            httpClient?: BaseHttpClient;
+            logger?: CrawleeLogger;
+        },
     ): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
@@ -73,9 +78,15 @@ export class RobotsTxtFile {
 
     protected static async load(
         url: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number; proxyUrl?: string; httpClient?: BaseHttpClient },
+        options?: {
+            signal?: AbortSignal;
+            timeoutMillis?: number;
+            proxyUrl?: string;
+            httpClient?: BaseHttpClient;
+            logger?: CrawleeLogger;
+        },
     ): Promise<RobotsTxtFile> {
-        const { proxyUrl, httpClient = new FetchHttpClient() } = options || {};
+        const { proxyUrl, logger, httpClient = new FetchHttpClient() } = options || {};
 
         const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
             proxyUrl,
@@ -99,10 +110,11 @@ export class RobotsTxtFile {
                     },
                 },
                 proxyUrl,
+                logger,
             );
         }
 
-        return new RobotsTxtFile(url, robotsParser(url.toString(), await response.text()), proxyUrl);
+        return new RobotsTxtFile(url, robotsParser(url.toString(), await response.text()), proxyUrl, logger);
     }
 
     /**
@@ -127,7 +139,7 @@ export class RobotsTxtFile {
             // `filterUrl` tolerates an unparseable origin (returns not-allowed) rather than throwing.
             const { allowed, reason } = filterUrl(sitemapUrl, this.url, enqueueStrategy);
             if (!allowed) {
-                log.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.url}: ${reason}.`);
+                this.logger?.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.url}: ${reason}.`);
                 continue;
             }
             sitemaps.push(sitemapUrl);
@@ -141,7 +153,7 @@ export class RobotsTxtFile {
      * and the sitemap parser.
      */
     async parseSitemaps(options: RobotsTxtFileSitemapsOptions = {}): Promise<Sitemap> {
-        return Sitemap.load(this.getSitemaps(options), this.proxyUrl, options);
+        return Sitemap.load(this.getSitemaps(options), this.proxyUrl, { ...options, logger: this.logger });
     }
 
     /**

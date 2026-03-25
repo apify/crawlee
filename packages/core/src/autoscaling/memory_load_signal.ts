@@ -1,14 +1,13 @@
 import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
 
-import type { Log } from '@apify/log';
-
 import type { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
-import { log as defaultLog } from '../log.js';
+import type { CrawleeLogger } from '../log.js';
 import type { LoadSignal, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
+import { serviceLocator } from '../service_locator.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10_000;
@@ -22,7 +21,7 @@ export interface MemoryLoadSignalOptions {
     overloadedRatio?: number;
     snapshotHistoryMillis?: number;
     config: Configuration;
-    log?: Log;
+    log?: CrawleeLogger;
 }
 
 /**
@@ -36,7 +35,7 @@ export class MemoryLoadSignal implements LoadSignal {
     private readonly store: SnapshotStore<MemorySnapshot>;
     private readonly config: Configuration;
     private readonly events: EventManager;
-    private readonly log: Log;
+    private readonly log: CrawleeLogger;
     private readonly maxUsedMemoryRatio: number;
     private maxMemoryRatio: number | undefined;
     private maxMemoryBytes!: number;
@@ -46,7 +45,7 @@ export class MemoryLoadSignal implements LoadSignal {
         this.store = new SnapshotStore(options.snapshotHistoryMillis);
         this.config = options.config;
         this.events = this.config.getEventManager();
-        this.log = options.log ?? defaultLog.child({ prefix: 'MemoryLoadSignal' });
+        this.log = options.log ?? serviceLocator.getLogger().child({ prefix: 'MemoryLoadSignal' });
         this.maxUsedMemoryRatio = options.maxUsedMemoryRatio ?? 0.9;
         this.overloadedRatio = options.overloadedRatio ?? 0.2;
         this._onSystemInfo = this._onSystemInfo.bind(this);

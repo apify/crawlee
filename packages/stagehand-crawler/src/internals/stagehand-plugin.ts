@@ -1,12 +1,11 @@
 import type { Stagehand, V3Options } from '@browserbasehq/stagehand';
 import type { BrowserController, BrowserPluginOptions, LaunchContext } from '@crawlee/browser-pool';
 import { anonymizeProxySugar, BrowserPlugin } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'playwright';
 // Stagehand is built on CDP (Chrome DevTools Protocol), which only works with Chromium-based browsers.
 // Firefox and WebKit are not supported by Stagehand.
 import { chromium } from 'playwright';
-
-import log from '@apify/log';
 
 import { StagehandController } from './stagehand-controller';
 import type { StagehandOptions } from './stagehand-crawler';
@@ -122,7 +121,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             await closeAnonymizedProxy();
 
             const augmentedError = this._augmentLaunchError(error, launchContext);
-            log.error('Stagehand browser launch failed', { message: augmentedError.message });
+            serviceLocator.getLogger().error('Stagehand browser launch failed', { message: augmentedError.message });
             throw augmentedError;
         }
     }
