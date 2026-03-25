@@ -28,32 +28,36 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
 
     private async applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
         try {
-            const jarCookies = (await cookieJar.getCookies(request.url))
-                .map((c) => c.cookieString().trim())
-                .filter(Boolean);
+            const requestCookies = request.headers.get('cookie') ?? '';
 
-            const existingHeader = request.headers.get('cookie') ?? '';
-            const headerPairs = existingHeader.split(/; */).filter(Boolean);
-
-            if (!jarCookies.length && !headerPairs.length) return request;
-
-            // Jar cookies form the base, explicit Cookie header overrides per cookie name.
-            const merged = new Map<string, string>();
-
-            for (const cookie of jarCookies) {
-                const key = cookie.split('=', 1)[0]!;
-                merged.set(key, cookie);
+            if (!requestCookies) {
+                // Fast path: no header cookies, use the jar directly.
+                const cookieString = await cookieJar.getCookieString(request.url);
+                if (cookieString) {
+                    request.headers.set('cookie', cookieString);
+                }
+                return request;
             }
 
-            for (const cookie of headerPairs) {
-                const key = cookie.split('=', 1)[0]!;
-                merged.set(key, cookie);
-            }
+            // Merge jar cookies with request Cookie header. Clone the jar so we
+            // don't persist the header-only cookies into the session.
+            const merged = await cookieJar.clone();
 
-            request.headers.set('cookie', [...merged.values()].join('; '));
+            await Promise.all(
+                requestCookies
+                    .split(/; */)
+                    .filter(Boolean)
+                    .map((pair) => merged.setCookie(pair, request.url)),
+            );
+            const cookieString = merged.getCookieStringSync(request.url);
+
+            if (cookieString) {
+                request.headers.set('cookie', cookieString);
+            }
         } catch (e) {
             this.log.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }
+
         return request;
     }
 
