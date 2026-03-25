@@ -14,6 +14,7 @@ import type {
 import {
     enqueueLinks,
     HttpCrawler,
+    NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     tryAbsoluteURL,
@@ -249,70 +250,97 @@ export class JSDOMCrawler<
     private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', { error });
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
-        const isXml = crawlingContext.contentType.type.includes('xml');
+        try {
+            const isXml = crawlingContext.contentType.type.includes('xml');
 
-        // TODO handle non-string
-        const { window } = new JSDOM(crawlingContext.body.toString(), {
-            url: crawlingContext.response.url,
-            contentType: isXml ? 'text/xml' : 'text/html',
-            runScripts: this.runScripts ? 'dangerously' : undefined,
-            resources,
-            virtualConsole: this.getVirtualConsole(),
-            pretendToBeVisual: true,
-        });
+            // TODO handle non-string
+            const { window } = new JSDOM(crawlingContext.body.toString(), {
+                url: crawlingContext.response.url,
+                contentType: isXml ? 'text/xml' : 'text/html',
+                runScripts: this.runScripts ? 'dangerously' : undefined,
+                resources,
+                virtualConsole: this.getVirtualConsole(),
+                pretendToBeVisual: true,
+            });
 
-        // add some stubs in place of missing API so processing won't fail
-        Object.defineProperty(window, 'matchMedia', {
-            writable: true,
-            value: (query: unknown): any => ({
-                matches: false,
-                media: query,
-                onchange: null,
-                addListener: () => {},
-                removeListener: () => {},
-                addEventListener: () => {},
-                removeEventListener: () => {},
-                dispatchEvent: () => {},
-            }),
-        });
-        window.document.createRange = () => {
-            const range = new window.Range();
-            range.getBoundingClientRect = () => ({}) as any;
-            range.getClientRects = () => ({ item: () => null as any, length: 0 }) as any;
-            return range;
-        };
+            // add some stubs in place of missing API so processing won't fail
+            Object.defineProperty(window, 'matchMedia', {
+                writable: true,
+                value: (query: unknown): any => ({
+                    matches: false,
+                    media: query,
+                    onchange: null,
+                    addListener: () => {},
+                    removeListener: () => {},
+                    addEventListener: () => {},
+                    removeEventListener: () => {},
+                    dispatchEvent: () => {},
+                }),
+            });
+            window.document.createRange = () => {
+                const range = new window.Range();
+                range.getBoundingClientRect = () => ({}) as any;
+                range.getClientRects = () => ({ item: () => null as any, length: 0 }) as any;
+                return range;
+            };
 
-        if (this.runScripts) {
-            try {
-                await addTimeoutToPromise(
-                    async () => {
-                        return new Promise<void>((resolve) => {
-                            window.addEventListener(
-                                'load',
-                                () => {
-                                    resolve();
-                                },
-                                false,
-                            );
-                        }).catch();
-                    },
-                    10_000,
-                    'Window.load event not fired after 10 seconds.',
-                ).catch();
-            } catch (e) {
-                this.log.debug((e as Error).message);
+            if (this.runScripts) {
+                try {
+                    await addTimeoutToPromise(
+                        async () => {
+                            return new Promise<void>((resolve) => {
+                                window.addEventListener(
+                                    'load',
+                                    () => {
+                                        resolve();
+                                    },
+                                    false,
+                                );
+                            }).catch();
+                        },
+                        10_000,
+                        'Window.load event not fired after 10 seconds.',
+                    ).catch();
+                } catch (e) {
+                    this.log.debug((e as Error).message);
+                }
             }
-        }
 
-        return {
-            window,
-            get body() {
-                return window.document.documentElement.outerHTML;
-            },
-            get document() {
-                return window.document;
-            },
-        };
+            return {
+                window,
+                get body() {
+                    return window.document.documentElement.outerHTML;
+                },
+                get document() {
+                    return window.document;
+                },
+            };
+        } catch (err) {
+            if (err instanceof NavigationSkippedError) {
+                return {
+                    get window(): DOMWindow {
+                        throw new NavigationSkippedError(
+                            'The `window` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                    get body(): string {
+                        throw new NavigationSkippedError(
+                            'The `body` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                    get document(): Document {
+                        throw new NavigationSkippedError(
+                            'The `document` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                };
+            }
+
+            throw err;
+        }
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: DOMWindow }) {
