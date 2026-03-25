@@ -40,7 +40,6 @@
     },
     "dependencies": {
         "@apify/datastructures": "^2.0.0",
-        "@apify/log": "^2.5.18",
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
         "@crawlee/core": "4.0.0",

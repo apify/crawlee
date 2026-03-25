@@ -4,8 +4,6 @@ import { resolve, sep } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import defaultLog from '@apify/log';
-
 import { REQUEST_ID_LENGTH } from './consts.js';
 
 /**
@@ -70,8 +68,6 @@ export function isStream(value: any): boolean {
         ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function')
     );
 }
-
-export const memoryStorageLog = defaultLog.child({ prefix: 'MemoryStorage' });
 
 export type BackgroundHandlerReceivedMessage = BackgroundHandlerUpdateMetadataMessage;
 

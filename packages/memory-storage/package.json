@@ -42,7 +42,6 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/log": "^2.5.18",
         "@crawlee/types": "4.0.0",
         "@sapphire/async-queue": "^1.5.5",
         "@sapphire/shapeshift": "^4.0.0",
