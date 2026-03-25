@@ -13,7 +13,7 @@ import type {
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
-import { BasicCrawler, ContextPipeline, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
+import { BasicCrawler, ContextPipeline, RequestState, Router, SessionError } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -604,12 +604,9 @@ export class HttpCrawler<
             body: undefined as string | undefined,
         };
 
-        if (requestOptions.headers?.cookie) {
-            requestOptions.headers.Cookie = mergeCookies(request.url, [
-                requestOptions.headers.cookie ?? '',
-                requestOptions.headers.Cookie ?? '',
-            ]);
-            delete requestOptions.headers.cookie;
+        if (requestOptions.headers?.cookie || requestOptions.headers?.Cookie) {
+            requestOptions.headers!.Cookie = this._getCookieHeaderFromRequest(request);
+            delete requestOptions.headers!.cookie;
         }
 
         // Disable SSL verification for MITM proxies
