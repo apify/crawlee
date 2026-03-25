@@ -236,8 +236,9 @@ This means `sendRequest` now respects user-provided cookies. In v3, passing a `C
 
 The precedence (highest to lowest) is:
 
-1. `Cookie` header set on the request (via `request.headers`, `preNavigationHooks`, or `sendRequest` override headers)
-2. Session cookie jar (cookies received from `Set-Cookie` response headers)
+1. `sendRequest` `Cookie` header and `cookieJar` overrides
+2. `Cookie` header set directly on the request (via `request.headers`)
+3. Session cookie jar (persisted cookies received from `Set-Cookie` response headers or set manuall)
 
 To fully replace the cookie jar for a `sendRequest` call, pass a custom `cookieJar` in the options:
 
