@@ -1011,9 +1011,12 @@ describe('CheerioCrawler', () => {
                 },
                 preNavigationHooks: [
                     ({ session, request }) => {
+                        // this should get overriden by the server
                         session.setCookie('foo=bar1', request.url);
                         session.setCookie('other=cookie1', request.url);
-                        session.setCookie('coo=kie', request.url);
+
+                        request.headers ??= {};
+                        request.headers.cookie += '; coo=kie';
                     },
                 ],
                 requestHandler: ({ json }) => {
@@ -1025,7 +1028,7 @@ describe('CheerioCrawler', () => {
             expect(responses).toHaveLength(1);
             expect(responses[0]).toMatchObject({
                 headers: {
-                    cookie: 'foo=bar2; other=cookie1; coo=kie; baz=123',
+                    cookie: 'foo=bar2; other=cookie1; baz=123; coo=kie',
                 },
             });
         });

@@ -604,20 +604,11 @@ export class HttpCrawler<
             body: undefined as string | undefined,
         };
 
-        // Crawlee request.headers is a case-sensitive Record that may contain both
-        // 'Cookie' and 'cookie' keys. Normalize them into a single 'Cookie' header
-        // before conversion to the case-insensitive Headers object.
         if (requestOptions.headers?.cookie) {
-            if (requestOptions.headers.Cookie) {
-                // lowercase `cookie` is typically from the original request, uppercase `Cookie`
-                // is typically set by hooks — hooks take precedence (last source wins in mergeCookies).
-                requestOptions.headers.Cookie = mergeCookies(request.url, [
-                    requestOptions.headers.cookie,
-                    requestOptions.headers.Cookie,
-                ]);
-            } else {
-                requestOptions.headers.Cookie = requestOptions.headers.cookie;
-            }
+            requestOptions.headers.Cookie = mergeCookies(request.url, [
+                requestOptions.headers.cookie ?? '',
+                requestOptions.headers.Cookie ?? '',
+            ]);
             delete requestOptions.headers.cookie;
         }
 
