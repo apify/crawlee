@@ -272,7 +272,7 @@ describe('SessionPool - testing session pool', () => {
 
         await sessionPool.persistState();
 
-        const newSessionPool = new SessionPool();
+        const newSessionPool = new SessionPool({ persistStateKey });
         // @ts-expect-error Accessing protected method
         await newSessionPool.ensureInitialized();
         // @ts-expect-error Accessing private property
@@ -457,6 +457,11 @@ describe('SessionPool - testing session pool', () => {
                 persistStateKey: pool2.persistStateKey,
             });
 
+            // @ts-expect-error -- we're reading the private sessions field, public methods initialize the instance automatically
+            await pool1Reloaded.ensureInitialized();
+            // @ts-expect-error
+            await pool2Reloaded.ensureInitialized();
+
             // @ts-expect-error private symbol
             expect(pool1Reloaded.sessions).toHaveLength(3);
             // @ts-expect-error private symbol
@@ -477,8 +482,8 @@ describe('SessionPool - testing session pool', () => {
 
             session1.retire();
 
-            expect(pool1.retiredSessionsCount).toBe(1);
-            expect(pool2.retiredSessionsCount).toBe(0);
+            expect(await pool1.retiredSessionsCount()).toBe(1);
+            expect(await pool2.retiredSessionsCount()).toBe(0);
 
             await pool1.teardown();
             await pool2.teardown();
