@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import type { CrawleeLogger } from '@crawlee/types';
+
 import type { BackgroundHandlerReceivedMessage } from '../utils.js';
 import { handleMessage } from './fs-utils.js';
 
@@ -16,7 +18,7 @@ export const promiseMap: Map<
     }
 > = new Map();
 
-export function scheduleBackgroundTask(message: BackgroundHandlerReceivedMessage) {
+export function scheduleBackgroundTask(message: BackgroundHandlerReceivedMessage, logger?: CrawleeLogger) {
     const id = randomUUID();
 
     let promiseResolve: () => void;
@@ -29,14 +31,20 @@ export function scheduleBackgroundTask(message: BackgroundHandlerReceivedMessage
         resolve: promiseResolve!,
     });
 
-    void handleBackgroundMessage({
-        ...message,
-        messageId: id,
-    });
+    void handleBackgroundMessage(
+        {
+            ...message,
+            messageId: id,
+        },
+        logger,
+    );
 }
 
-async function handleBackgroundMessage(message: BackgroundHandlerReceivedMessage & { messageId: string }) {
-    await handleMessage(message);
+async function handleBackgroundMessage(
+    message: BackgroundHandlerReceivedMessage & { messageId: string },
+    logger?: CrawleeLogger,
+) {
+    await handleMessage(message, logger);
 
     promiseMap.get(message.messageId)?.resolve();
     promiseMap.delete(message.messageId);

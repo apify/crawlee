@@ -485,6 +485,7 @@ export class KeyValueStoreClient extends BaseClient {
             persistStorage: this.client.persistStorage,
             storeDirectory: existingStoreById.keyValueStoreDirectory,
             writeMetadata: existingStoreById.client.writeMetadata,
+            logger: this.client.logger,
         });
 
         await entry.update(_record);
@@ -532,14 +533,17 @@ export class KeyValueStoreClient extends BaseClient {
         }
 
         const data = this.toKeyValueStoreInfo();
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            data,
-            entityType: 'keyValueStores',
-            entityDirectory: this.keyValueStoreDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                data,
+                entityType: 'keyValueStores',
+                entityDirectory: this.keyValueStoreDirectory,
+                id: this.name ?? this.id,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
     }
 }

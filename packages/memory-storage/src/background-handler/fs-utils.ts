@@ -3,16 +3,13 @@ import { writeFile as writeFileP } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
+import type { CrawleeLogger } from '@crawlee/types';
 import { ensureDir } from 'fs-extra/esm';
 import { lock } from 'proper-lockfile';
 
-import log from '@apify/log';
-
 import type { BackgroundHandlerReceivedMessage, BackgroundHandlerUpdateMetadataMessage } from '../utils.js';
 
-const backgroundHandlerLog = log.child({ prefix: 'MemoryStorageBackgroundHandler' });
-
-export async function handleMessage(message: BackgroundHandlerReceivedMessage) {
+export async function handleMessage(message: BackgroundHandlerReceivedMessage, logger?: CrawleeLogger) {
     switch (message.action) {
         case 'update-metadata':
             await updateMetadata(message);
@@ -20,7 +17,7 @@ export async function handleMessage(message: BackgroundHandlerReceivedMessage) {
         default:
             // We're keeping this to make eslint happy + in the event we add a new action without adding checks for it
             // we should be aware of them
-            backgroundHandlerLog.warning(
+            logger?.warning(
                 `Unknown background handler message action ${(message as BackgroundHandlerReceivedMessage).action}`,
             );
     }

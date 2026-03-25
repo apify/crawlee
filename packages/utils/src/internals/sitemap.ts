@@ -5,12 +5,10 @@ import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
 import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
-
-import log from '@apify/log';
 
 import { mergeAsyncIterables } from './iterables.js';
 import { RobotsFile } from './robots.js';
@@ -211,6 +209,10 @@ export interface ParseSitemapOptions {
      * If not provided, all nested sitemaps are followed.
      */
     nestedSitemapFilter?: (sitemapUrl: string) => boolean;
+    /**
+     * Optional logger for reporting warnings during sitemap parsing.
+     */
+    logger?: CrawleeLogger;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -226,6 +228,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         timeoutMillis: timeout = 30000,
         reportNetworkErrors = true,
         nestedSitemapFilter,
+        logger,
     } = options ?? {};
 
     const sources = [...initialSources];
@@ -255,9 +258,6 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         const source = sources.shift()!;
 
         if ((source?.depth ?? 0) > maxDepth) {
-            log.debug(
-                `Skipping sitemap ${source.type === 'url' ? source.url : ''} because it reached max depth ${maxDepth}.`,
-            );
             continue;
         }
 
@@ -344,7 +344,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         break;
                     }
                 } catch (e) {
-                    log.warning(
+                    logger?.warning(
                         `Malformed sitemap content: ${sitemapUrl}, ${retriesLeft === 0 ? 'no retries left.' : 'retrying...'} (${e})`,
                     );
                 }
@@ -352,7 +352,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         } else if (source.type === 'raw') {
             items = pipeline(Readable.from([source.content]), createParser('text/xml'), (error) => {
                 if (error !== undefined) {
-                    log.warning(`Malformed sitemap content: ${error}`);
+                    logger?.warning(`Malformed sitemap content: ${error}`);
                 }
             });
         }
@@ -364,7 +364,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
                 if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
-                    log.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
+                    logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
                     continue;
                 }
 
@@ -469,7 +469,9 @@ export class Sitemap {
                 urls.push(item.loc);
             }
         } catch (e) {
-            log.warning(`Sitemap.load: Failed to load sitemap, returning empty result. (${e})`);
+            parseSitemapOptions?.logger?.warning(
+                `Sitemap.load: Failed to load sitemap, returning empty result. (${e})`,
+            );
             return new Sitemap([]);
         }
 
@@ -513,6 +515,10 @@ export async function* discoverValidSitemaps(
          * HTTP client to be used for network requests.
          */
         httpClient?: BaseHttpClient;
+        /**
+         * Optional logger for reporting warnings during sitemap discovery.
+         */
+        logger?: CrawleeLogger;
     } = {},
 ): AsyncIterable<string> {
     const {
@@ -521,6 +527,7 @@ export async function* discoverValidSitemaps(
         signal: externalSignal,
         requestTimeoutMillis = 20_000,
         httpClient = new FetchHttpClient(),
+        logger,
     } = options;
     const controller = new AbortController();
 
@@ -576,6 +583,7 @@ export async function* discoverValidSitemaps(
                 timeoutMillis: requestTimeoutMillis,
                 signal,
                 httpClient,
+                logger,
             });
             for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
@@ -583,7 +591,7 @@ export async function* discoverValidSitemaps(
                 }
             }
         } catch (err) {
-            log.warning(`Failed to fetch robots.txt file for ${hostname}`, { error: err });
+            logger?.warning(`Failed to fetch robots.txt file for ${hostname}`, { error: err });
         }
 
         const sitemapUrl = domainUrls.find((url) => /sitemap\.(?:xml|txt)(?:\.gz)?$/i.test(url));
@@ -609,7 +617,7 @@ export async function* discoverValidSitemaps(
                         yield candidateSitemapUrl;
                     }
                 } else {
-                    log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
+                    logger?.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
                         error: result.reason,
                     });
                 }

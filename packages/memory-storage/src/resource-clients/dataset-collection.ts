@@ -52,15 +52,18 @@ export class DatasetCollectionClient implements storage.DatasetCollectionClient 
         // Schedule the worker to write to the disk
         const datasetInfo = newStore.toDatasetInfo();
 
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            entityType: 'datasets',
-            entityDirectory: newStore.datasetDirectory,
-            id: datasetInfo.name ?? datasetInfo.id,
-            data: datasetInfo,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                entityType: 'datasets',
+                entityDirectory: newStore.datasetDirectory,
+                id: datasetInfo.name ?? datasetInfo.id,
+                data: datasetInfo,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
 
         return datasetInfo;
     }

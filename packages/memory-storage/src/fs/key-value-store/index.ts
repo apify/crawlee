@@ -1,3 +1,5 @@
+import type { CrawleeLogger } from '@crawlee/types';
+
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store.js';
 import type { StorageImplementation } from '../common.js';
 import { KeyValueFileSystemEntry } from './fs.js';
@@ -17,4 +19,5 @@ export interface CreateStorageImplementationOptions {
     persistStorage: boolean;
     storeDirectory: string;
     writeMetadata: boolean;
+    logger?: CrawleeLogger;
 }

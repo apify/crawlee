@@ -30,7 +30,6 @@
         "copy": "tsx ../../scripts/copy.ts"
     },
     "dependencies": {
-        "@apify/log": "^2.5.18",
         "@apify/timeout": "^0.3.2",
         "@crawlee/core": "4.0.0",
         "@crawlee/types": "4.0.0",
