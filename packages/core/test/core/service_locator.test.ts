@@ -205,6 +205,17 @@ describe('ServiceLocator', () => {
             }).toThrow(/Logger is already in use/);
         });
 
+        test('setting logger after getStorageClient throws ServiceConflictError (logger already locked)', () => {
+            // getStorageClient() implicitly calls getLogger(), locking the logger
+            serviceLocator.getStorageClient();
+
+            const customLogger = makeMockLogger();
+
+            expect(() => {
+                serviceLocator.setLogger(customLogger);
+            }).toThrow(ServiceConflictError);
+        });
+
         test('reset clears the logger', () => {
             const customLogger = makeMockLogger();
             serviceLocator.setLogger(customLogger);
