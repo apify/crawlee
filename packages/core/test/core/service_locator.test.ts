@@ -23,7 +23,7 @@ function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
         debug: () => {},
         perf: () => {},
         deprecated: () => {},
-        internal: () => {},
+        logWithLevel: () => {},
         ...overrides,
     };
     return logger;

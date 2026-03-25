@@ -230,7 +230,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
             }
             const config = this.getConfiguration();
             this.storageClient = new MemoryStorage({
-                persistStorage: config.get('persistStorage'),
+                persistStorage: config.persistStorage,
             });
         }
         return this.storageClient;
