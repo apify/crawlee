@@ -127,10 +127,6 @@ interface ServiceLocatorInterface {
  * // Crawler has its own isolated ServiceLocator instance
  * ```
  */
-// Used as fallback in ServiceLocator methods that need to log before a logger is explicitly set,
-// without implicitly locking the logger slot (which getLogger() would do).
-const fallbackLog = new ApifyLogAdapter(log);
-
 export class ServiceLocator implements ServiceLocatorInterface {
     private configuration?: Configuration;
     private eventManager?: EventManager;
@@ -165,9 +161,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getConfiguration(): Configuration {
         if (!this.configuration) {
-            (this.logger ?? fallbackLog).debug(
-                'No configuration set, implicitly creating and using default Configuration.',
-            );
+            this.getLogger().debug('No configuration set, implicitly creating and using default Configuration.');
             this.configuration = new Configuration();
         }
         return this.configuration;
@@ -189,11 +183,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getEventManager(): EventManager {
         if (!this.eventManager) {
-            (this.logger ?? fallbackLog).debug(
-                'No event manager set, implicitly creating and using default LocalEventManager.',
-            );
+            this.getLogger().debug('No event manager set, implicitly creating and using default LocalEventManager.');
             if (!this.configuration) {
-                (this.logger ?? fallbackLog).warning(
+                this.getLogger().warning(
                     'Implicit creation of event manager will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
@@ -219,11 +211,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getStorageClient(): StorageClient {
         if (!this.storageClient) {
-            (this.logger ?? fallbackLog).debug(
-                'No storage client set, implicitly creating and using default MemoryStorage.',
-            );
+            this.getLogger().debug('No storage client set, implicitly creating and using default MemoryStorage.');
             if (!this.configuration) {
-                (this.logger ?? fallbackLog).warning(
+                this.getLogger().warning(
                     'Implicit creation of storage client will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
@@ -231,6 +221,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
             const config = this.getConfiguration();
             this.storageClient = new MemoryStorage({
                 persistStorage: config.get('persistStorage'),
+                logger: this.getLogger().child({ prefix: 'MemoryStorage' }),
             });
         }
         return this.storageClient;
