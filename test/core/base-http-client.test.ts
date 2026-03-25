@@ -8,18 +8,15 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 let server: http.Server;
 let url: string;
 
-let cookieServer: http.Server;
-let cookieUrl: string;
-
 beforeAll(async () => {
-    server = http.createServer((_req, res) => {
-        res.setHeader('content-type', 'text/plain');
-        res.end('ok');
-    });
-
-    cookieServer = http.createServer((req, res) => {
-        res.setHeader('content-type', 'application/json');
-        res.end(JSON.stringify({ cookie: req.headers.cookie ?? '' }));
+    server = http.createServer((req, res) => {
+        if (new URL(req.url!, 'http://localhost').pathname === '/echo-cookies') {
+            res.setHeader('content-type', 'application/json');
+            res.end(JSON.stringify({ cookie: req.headers.cookie ?? '' }));
+        } else {
+            res.setHeader('content-type', 'text/plain');
+            res.end('ok');
+        }
     });
 
     await new Promise<void>((resolve) =>
@@ -28,18 +25,10 @@ beforeAll(async () => {
             resolve();
         }),
     );
-
-    await new Promise<void>((resolve) =>
-        cookieServer.listen(() => {
-            cookieUrl = `http://127.0.0.1:${(cookieServer.address() as AddressInfo).port}`;
-            resolve();
-        }),
-    );
 });
 
 afterAll(async () => {
     await new Promise((resolve) => server.close(resolve));
-    await new Promise((resolve) => cookieServer.close(resolve));
 });
 
 const httpClient = new FetchHttpClient();
@@ -114,10 +103,10 @@ describe('BaseHttpClient signal and timeoutMillis options', () => {
 describe('BaseHttpClient cookie handling', () => {
     test('merges jar cookies with existing Cookie header', async () => {
         const jar = new CookieJar();
-        await jar.setCookie('jar_cookie=from_jar', cookieUrl);
-        await jar.setCookie('shared=from_jar', cookieUrl);
+        await jar.setCookie('jar_cookie=from_jar', `${url}/echo-cookies`);
+        await jar.setCookie('shared=from_jar', `${url}/echo-cookies`);
 
-        const request = new Request(cookieUrl, {
+        const request = new Request(`${url}/echo-cookies`, {
             headers: { Cookie: 'shared=from_header; header_only=explicit' },
         });
 
@@ -133,9 +122,9 @@ describe('BaseHttpClient cookie handling', () => {
 
     test('uses only jar cookies when no Cookie header is set', async () => {
         const jar = new CookieJar();
-        await jar.setCookie('only_jar=value', cookieUrl);
+        await jar.setCookie('only_jar=value', `${url}/echo-cookies`);
 
-        const response = await httpClient.sendRequest(new Request(cookieUrl), { cookieJar: jar });
+        const response = await httpClient.sendRequest(new Request(`${url}/echo-cookies`), { cookieJar: jar });
         const body = (await response.json()) as { cookie: string };
 
         expect(body.cookie).toBe('only_jar=value');
@@ -143,7 +132,7 @@ describe('BaseHttpClient cookie handling', () => {
 
     test('preserves Cookie header when jar is empty', async () => {
         const jar = new CookieJar();
-        const request = new Request(cookieUrl, {
+        const request = new Request(`${url}/echo-cookies`, {
             headers: { Cookie: 'header_only=value' },
         });
 
