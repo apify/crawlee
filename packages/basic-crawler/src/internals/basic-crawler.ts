@@ -913,13 +913,13 @@ export class BasicCrawler<
                     try {
                         await this.basicContextPipeline
                             .chain(this.contextPipeline)
-                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source));
+                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
                             await this._timeoutAndRetry(
-                                async () => this.requestManager?.markRequestHandled(crawlingContext.request!),
+                                async () => this.requestManager?.markRequestHandled(request),
                                 this.internalTimeoutMillis,
                                 `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
                                     this.internalTimeoutMillis / 1e3
@@ -1840,9 +1840,7 @@ export class BasicCrawler<
     }
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
-    protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager) {
-        const { request } = crawlingContext;
-
+    protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
 
