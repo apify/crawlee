@@ -383,21 +383,9 @@ export function bindMethodsToServiceLocator(
     };
 }
 
-function getActiveServiceLocator(): ServiceLocatorInterface {
-    return serviceLocatorStorage.getStore() ?? globalServiceLocator;
-}
-
-/**
- * A Proxy-based service locator that delegates all property access to the
- * currently active ServiceLocator instance (per-crawler via AsyncLocalStorage,
- * or the global fallback).
- *
- * Using a Proxy instead of a hand-written forwarding object means new methods
- * added to ServiceLocator are automatically forwarded without updating this code.
- */
 export const serviceLocator = new Proxy({} as ServiceLocatorInterface, {
     get(_target, prop) {
-        const active = getActiveServiceLocator();
+        const active = serviceLocatorStorage.getStore() ?? globalServiceLocator;
         const value = Reflect.get(active, prop, active);
         if (typeof value === 'function') {
             return value.bind(active);
