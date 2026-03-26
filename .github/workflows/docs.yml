@@ -53,7 +53,7 @@ jobs:
                     path: ./website/build
 
             -   name: Deploy artifact to GitHub Pages
-                uses: actions/deploy-pages@v4
+                uses: actions/deploy-pages@v5
 
             -   name: Invalidate CloudFront cache
                 run: |

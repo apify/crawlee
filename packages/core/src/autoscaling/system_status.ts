@@ -14,6 +14,7 @@ export interface SystemInfo {
     eventLoopInfo: ClientInfo;
     cpuInfo: ClientInfo;
     clientInfo: ClientInfo;
+    memTotalBytes?: number;
     memCurrentBytes?: number;
     /**
      * Platform only property
