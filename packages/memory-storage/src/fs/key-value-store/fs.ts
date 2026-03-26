@@ -2,19 +2,20 @@ import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { basename } from 'node:path/win32';
 
+import type { CrawleeLogger } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra/esm';
 import mime from 'mime-types';
 
 import { lockAndWrite } from '../../background-handler/fs-utils.js';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store.js';
-import { memoryStorageLog } from '../../utils.js';
 import type { StorageImplementation } from '../common.js';
 import type { CreateStorageImplementationOptions } from './index.js';
 
 export class KeyValueFileSystemEntry implements StorageImplementation<InternalKeyRecord> {
     private storeDirectory: string;
     private writeMetadata: boolean;
+    private logger?: CrawleeLogger;
 
     private filePath!: string;
     private fileMetadataPath!: string;
@@ -24,6 +25,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
     constructor(options: CreateStorageImplementationOptions) {
         this.storeDirectory = options.storeDirectory;
         this.writeMetadata = options.writeMetadata;
+        this.logger = options.logger;
     }
 
     async get(): Promise<InternalKeyRecord> {
@@ -37,7 +39,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
                 const noExtFilePath = resolve(this.storeDirectory, this.rawRecord.key);
                 // Try without extension
                 file = await readFile(noExtFilePath);
-                memoryStorageLog.warning(
+                this.logger?.warning(
                     [
                         `Key-value entry "${this.rawRecord.key}" for store ${basename(
                             this.storeDirectory,

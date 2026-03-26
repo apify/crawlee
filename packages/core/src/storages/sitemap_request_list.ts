@@ -423,7 +423,9 @@ export class SitemapRequestList implements IRequestList {
             persistStateKey: options.persistStateKey ?? STATE_PERSISTENCE_KEY,
         });
         await requestList.restoreState();
-        void requestList.load({ parseSitemapOptions: { ...options.parseSitemapOptions, httpClient } });
+        void requestList.load({
+            parseSitemapOptions: { logger: serviceLocator.getLogger(), ...options.parseSitemapOptions, httpClient },
+        });
 
         if (requestList.persistenceOptions.enable) {
             requestList.events.on(EventType.PERSIST_STATE, requestList.persistState);

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
+import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra/esm';
 
@@ -35,6 +36,11 @@ export interface MemoryStorageOptions {
      * @default true
      */
     persistStorage?: boolean;
+
+    /**
+     * Optional logger for MemoryStorage warnings.
+     */
+    logger?: CrawleeLogger;
 }
 
 export class MemoryStorage implements storage.StorageClient {
@@ -44,6 +50,7 @@ export class MemoryStorage implements storage.StorageClient {
     readonly requestQueuesDirectory: string;
     readonly writeMetadata: boolean;
     readonly persistStorage: boolean;
+    readonly logger?: CrawleeLogger;
 
     readonly keyValueStoresHandled: KeyValueStoreClient[] = [];
     readonly datasetClientsHandled: DatasetClient[] = [];
@@ -55,6 +62,8 @@ export class MemoryStorage implements storage.StorageClient {
             writeMetadata: s.boolean().optional(),
             persistStorage: s.boolean().optional(),
         }).parse(options);
+
+        this.logger = options.logger;
 
         // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
         // this function handles it without making BC breaks - it respects existing `crawlee_storage`
