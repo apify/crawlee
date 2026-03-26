@@ -1,4 +1,4 @@
-import { BasicCrawler, ProxyConfiguration } from 'crawlee';
+import { BasicCrawler, ProxyConfiguration, SessionPool } from 'crawlee';
 import { Impit } from 'impit';
 import { Cookie } from 'tough-cookie';
 
@@ -8,7 +8,7 @@ const proxyConfiguration = new ProxyConfiguration({
 
 const crawler = new BasicCrawler({
     // Overrides default Session pool configuration.
-    sessionPoolOptions: { maxPoolSize: 100 },
+    sessionPool: new SessionPool({ maxPoolSize: 100 }),
     async requestHandler({ request, session }) {
         const { url } = request;
         const client = new Impit({

@@ -11,7 +11,7 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import { BaseCrawleeLogger } from '@crawlee/core';
+import { BaseCrawleeLogger, SessionPool } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
@@ -893,18 +893,18 @@ describe('CheerioCrawler', () => {
                 requestList,
 
                 persistCookiesPerSession: false,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     sessionOptions: {
                         maxUsageCount: 1,
                     },
                     persistStateKeyValueStoreId: 'abc',
-                },
+                }),
                 requestHandler: () => {},
             });
             // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPoolOptions.sessionOptions.maxUsageCount).toBe(1);
+            expect(crawler.sessionPool.sessionOptions.maxUsageCount).toBe(1);
             // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
+            expect(crawler.sessionPool.persistStateKeyValueStoreId).toBe('abc');
         });
 
         test('should markBad sessions after request timeout', async () => {
@@ -1000,9 +1000,9 @@ describe('CheerioCrawler', () => {
                 ),
 
                 persistCookiesPerSession: true,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 1,
-                },
+                }),
                 maxRequestRetries: 1,
                 maxConcurrency: 1,
                 requestHandler: ({ request }) => {
@@ -1031,9 +1031,9 @@ describe('CheerioCrawler', () => {
                 ]),
 
                 persistCookiesPerSession: false,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 1,
-                },
+                }),
                 requestHandler: ({ json }) => {
                     responses.push(json);
                 },
@@ -1061,9 +1061,9 @@ describe('CheerioCrawler', () => {
                 ]),
 
                 persistCookiesPerSession: false,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 1,
-                },
+                }),
                 requestHandler: ({ json }) => {
                     responses.push(json);
                 },
@@ -1161,10 +1161,10 @@ describe('CheerioCrawler', () => {
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [{ url: `${serverAddress}/special/get-cookies` }]),
 
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     // Even with multiple available sessions, the preNavigationHook should use the same one as the main request
                     maxPoolSize: 10,
-                },
+                }),
                 preNavigationHooks: [
                     async ({ sendRequest }) => {
                         await sendRequest({
