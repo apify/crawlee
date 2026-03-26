@@ -1,9 +1,5 @@
 import { dirname } from 'node:path';
-import { LruCache } from '@apify/datastructures';
-import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
-import { cryptoRandomObjectId } from '@apify/utilities';
+
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -29,17 +25,17 @@ import type {
     SessionPoolOptions,
     SkippedRequestCallback,
     Source,
-    StatisticState,
     StatisticsOptions,
+    StatisticState,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
     Configuration,
     CriticalError,
     Dataset,
+    enqueueLinks,
     EnqueueStrategy,
     EventType,
-    enqueueLinks,
     GotScrapingHttpClient,
     KeyValueStore,
     mergeCookies,
@@ -59,12 +55,18 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS, RobotsTxtFile } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+
+import { LruCache } from '@apify/datastructures';
+import type { Log } from '@apify/log';
+import defaultLog, { LogLevel } from '@apify/log';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request';
 
