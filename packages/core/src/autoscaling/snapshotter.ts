@@ -223,7 +223,7 @@ export class Snapshotter {
      * Returns a sample of latest memory snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getMemorySample(sampleDurationMillis?: number) {
+    getMemorySample(sampleDurationMillis?: number): MemorySnapshot[] {
         return this.memorySignal.getSample(sampleDurationMillis);
     }
 
@@ -231,7 +231,7 @@ export class Snapshotter {
      * Returns a sample of latest event loop snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getEventLoopSample(sampleDurationMillis?: number) {
+    getEventLoopSample(sampleDurationMillis?: number): EventLoopSnapshot[] {
         return this.eventLoopSignal.getSample(sampleDurationMillis);
     }
 
@@ -239,7 +239,7 @@ export class Snapshotter {
      * Returns a sample of latest CPU snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getCpuSample(sampleDurationMillis?: number) {
+    getCpuSample(sampleDurationMillis?: number): CpuSnapshot[] {
         return this.cpuSignal.getSample(sampleDurationMillis);
     }
 
@@ -247,7 +247,7 @@ export class Snapshotter {
      * Returns a sample of latest Client snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getClientSample(sampleDurationMillis?: number) {
+    getClientSample(sampleDurationMillis?: number): ClientSnapshot[] {
         return this.clientSignal.getSample(sampleDurationMillis);
     }
 

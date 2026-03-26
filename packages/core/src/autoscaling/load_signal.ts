@@ -117,7 +117,11 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         intervalMillis: number;
         snapshotHistoryMillis?: number;
         handler: (store: SnapshotStore<T>, intervalCallback: () => unknown) => void;
-    }): LoadSignal & { store: SnapshotStore<T>; handle: (cb: () => unknown) => void } {
+    }): Omit<LoadSignal, 'getSample'> & {
+        store: SnapshotStore<T>;
+        handle: (cb: () => unknown) => void;
+        getSample(sampleDurationMillis?: number): T[];
+    } {
         const store = new SnapshotStore<T>(options.snapshotHistoryMillis);
         let interval: BetterIntervalID = null!;
 
@@ -151,7 +155,11 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         event: EventTypeName;
         snapshotHistoryMillis?: number;
         handler: (store: SnapshotStore<T>, payload: E) => void;
-    }): LoadSignal & { store: SnapshotStore<T>; handle: (payload: E) => void } {
+    }): Omit<LoadSignal, 'getSample'> & {
+        store: SnapshotStore<T>;
+        handle: (payload: E) => void;
+        getSample(sampleDurationMillis?: number): T[];
+    } {
         const store = new SnapshotStore<T>(options.snapshotHistoryMillis);
 
         const handle = (payload: E) => options.handler(store, payload);
