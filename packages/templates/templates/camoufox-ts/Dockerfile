@@ -1,7 +1,7 @@
 # Specify the base Docker image. You can read more about
 # the available images at https://crawlee.dev/docs/guides/docker-images
 # You can also use any other image from Docker Hub.
-FROM apify/actor-node-playwright-chrome:20-1.50.1 AS builder
+FROM apify/actor-node-playwright-camoufox:20-1.50.1 AS builder
 
 # Copy just package.json and package-lock.json
 # to speed up the build using Docker layer cache.
@@ -19,7 +19,7 @@ COPY --chown=myuser . ./
 RUN npm run build
 
 # Create final image
-FROM apify/actor-node-playwright-chrome:20-1.50.1
+FROM apify/actor-node-playwright-camoufox:20-1.50.1
 
 # Copy only built JS files from builder image
 COPY --from=builder --chown=myuser /home/myuser/dist ./dist
@@ -28,8 +28,6 @@ COPY --from=builder --chown=myuser /home/myuser/dist ./dist
 # to speed up the build using Docker layer cache.
 COPY --chown=myuser package*.json ./
 
-# Ensure we'll install Camoufox using the npm postinstall script
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
 # Install NPM packages, skip optional and development dependencies to
 # keep the image small. Avoid logging too much and print the dependency
 # tree for debugging
