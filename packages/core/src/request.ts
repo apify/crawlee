@@ -275,12 +275,24 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         });
     }
 
-    /** Tells the crawler processing this request to skip the navigation and process the request directly. */
+    /**
+     * Tells the crawler processing this request to skip the navigation and process the request directly.
+     *
+     * When this is set to `true`, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
+     */
     get skipNavigation(): boolean {
         return this.userData.__crawlee?.skipNavigation ?? false;
     }
 
-    /** Tells the crawler processing this request to skip the navigation and process the request directly. */
+    /**
+     * Tells the crawler processing this request to skip the navigation and process the request directly.
+     *
+     * When this is set to `true`, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
+     */
     set skipNavigation(value: boolean) {
         if (!this.userData.__crawlee) {
             (this.userData as Dictionary).__crawlee = { skipNavigation: value };
@@ -548,6 +560,10 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     /**
      * If set to `true` then the crawler processing this request evaluates
      * the `requestHandler` immediately without prior browser navigation.
+     *
+     * When enabled, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
      * @default false
      */
     skipNavigation?: boolean;
