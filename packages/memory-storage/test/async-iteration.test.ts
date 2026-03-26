@@ -1,11 +1,14 @@
 import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import path from 'node:path';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { DatasetClient, KeyValueStoreClient } from '@crawlee/types';
+import { vi } from 'vitest';
+
+import { createLazyIterablePromise } from '../src/utils';
 
 describe('Async iteration support', () => {
-    const localDataDirectory = resolve(__dirname, './tmp/async-iteration');
+    const localDataDirectory = path.resolve(__dirname, './tmp/async-iteration');
     const storage = new MemoryStorage({
         localDataDirectory,
         persistStorage: false,
@@ -427,6 +430,138 @@ describe('Async iteration support', () => {
             for await (const [key, value] of kvStore.entries({ limit: 5 })) {
                 expect(value).toStrictEqual({ data: key });
             }
+        });
+    });
+
+    describe('createLazyIterablePromise', () => {
+        test('promise factory is not called until awaited', async () => {
+            const promiseFactory = vi.fn(() => Promise.resolve([1, 2, 3]));
+            async function* iteratorFactory() {
+                yield 1;
+                yield 2;
+                yield 3;
+            }
+
+            const result = createLazyIterablePromise<number[], number>(promiseFactory, iteratorFactory);
+
+            // Factory should not be called yet
+            expect(promiseFactory).not.toHaveBeenCalled();
+
+            // Now await it
+            const values = await result;
+            expect(promiseFactory).toHaveBeenCalledTimes(1);
+            expect(values).toStrictEqual([1, 2, 3]);
+        });
+
+        test('iterating does not trigger the promise factory', async () => {
+            const promiseFactory = vi.fn(() => Promise.resolve([1, 2, 3]));
+            async function* iteratorFactory() {
+                yield 10;
+                yield 20;
+                yield 30;
+            }
+
+            const result = createLazyIterablePromise<number[], number>(promiseFactory, iteratorFactory);
+
+            const items: number[] = [];
+            for await (const item of result) {
+                items.push(item);
+            }
+
+            expect(items).toStrictEqual([10, 20, 30]);
+            expect(promiseFactory).not.toHaveBeenCalled();
+        });
+
+        test('promise factory result is cached across multiple awaits', async () => {
+            const promiseFactory = vi.fn(() => Promise.resolve([1, 2, 3]));
+            async function* iteratorFactory() {
+                yield 1;
+            }
+
+            const result = createLazyIterablePromise<number[], number>(promiseFactory, iteratorFactory);
+
+            await result;
+            await result;
+            await result;
+
+            expect(promiseFactory).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('KeyValueStore.values lazy promise behavior', () => {
+        let kvStore: KeyValueStoreClient;
+
+        beforeAll(async () => {
+            const { id } = await storage.keyValueStores().getOrCreate('lazy-test-kvs-values');
+            kvStore = storage.keyValueStore(id);
+
+            for (let i = 0; i < 5; i++) {
+                await kvStore.setRecord({ key: `key-${i}`, value: { data: i } });
+            }
+        });
+
+        test('calling values() does not immediately fetch records', async () => {
+            const getRecordSpy = vi.spyOn(kvStore, 'getRecord');
+
+            // Call values() but do not await or iterate
+            const result = kvStore.values();
+
+            // getRecord should not have been called yet (lazy)
+            // Note: keys may be fetched eagerly, but record values should not
+            // We need to wait a tick to ensure no async work triggered getRecord
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            expect(getRecordSpy).not.toHaveBeenCalled();
+
+            // Clean up: consume the result to avoid dangling promises
+            await result;
+            getRecordSpy.mockRestore();
+        });
+
+        test('iterating and awaiting produce the same values', async () => {
+            const awaited = await kvStore.values();
+
+            const iterated: unknown[] = [];
+            for await (const value of kvStore.values()) {
+                iterated.push(value);
+            }
+
+            expect(awaited).toStrictEqual(iterated);
+        });
+    });
+
+    describe('KeyValueStore.entries lazy promise behavior', () => {
+        let kvStore: KeyValueStoreClient;
+
+        beforeAll(async () => {
+            const { id } = await storage.keyValueStores().getOrCreate('lazy-test-kvs-entries');
+            kvStore = storage.keyValueStore(id);
+
+            for (let i = 0; i < 5; i++) {
+                await kvStore.setRecord({ key: `key-${i}`, value: { data: i } });
+            }
+        });
+
+        test('calling entries() does not immediately fetch records', async () => {
+            const getRecordSpy = vi.spyOn(kvStore, 'getRecord');
+
+            const result = kvStore.entries();
+
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            expect(getRecordSpy).not.toHaveBeenCalled();
+
+            await result;
+            getRecordSpy.mockRestore();
+        });
+
+        test('iterating and awaiting produce the same entries', async () => {
+            const awaited = await kvStore.entries();
+
+            const iterated: [string, unknown][] = [];
+            for await (const entry of kvStore.entries()) {
+                iterated.push(entry);
+            }
+
+            expect(awaited).toStrictEqual(iterated);
         });
     });
 });

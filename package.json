@@ -87,7 +87,7 @@
         "apify-node-curl-impersonate": "^1.0.15",
         "basic-auth-parser": "^0.0.2",
         "body-parser": "^2.0.0",
-        "camoufox-js": "^0.8.0",
+        "camoufox-js": "^0.9.0",
         "commitlint": "^20.0.0",
         "cross-env": "^10.0.0",
         "deep-equal": "^2.0.5",
@@ -114,6 +114,9 @@
         "typescript": "^5.7.3",
         "typescript-eslint": "^8.28.0",
         "vitest": "^4.0.16"
+    },
+    "lint-staged": {
+        "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"
     },
     "packageManager": "yarn@4.10.3",
     "volta": {

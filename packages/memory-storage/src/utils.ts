@@ -222,3 +222,42 @@ export function createPaginatedEntryList<Data>(
         value: asyncGenerator,
     }) as AsyncIterable<[number, Data]> & Promise<storage.PaginatedList<[number, Data]>>;
 }
+
+/**
+ * Creates an object that acts as both a lazy Promise and an AsyncIterable.
+ * - When awaited, it triggers `promiseFactory` (bulk fetch, cached after first call).
+ * - When iterated with `for await...of`, it uses `iteratorFactory` (streaming, no bulk fetch).
+ */
+export function createLazyIterablePromise<TPromise, TElement>(
+    promiseFactory: () => Promise<TPromise>,
+    iteratorFactory: () => AsyncGenerator<TElement>,
+): AsyncIterable<TElement> & Promise<TPromise> {
+    let cached: Promise<TPromise> | null = null;
+    function getOrCreate(): Promise<TPromise> {
+        if (!cached) {
+            cached = promiseFactory();
+        }
+        return cached;
+    }
+
+    const result = {
+        then<TResult1 = TPromise, TResult2 = never>(
+            onfulfilled?: ((value: TPromise) => TResult1 | PromiseLike<TResult1>) | null,
+            onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+        ): Promise<TResult1 | TResult2> {
+            return getOrCreate().then(onfulfilled, onrejected);
+        },
+        catch<TResult = never>(
+            onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+        ): Promise<TPromise | TResult> {
+            return getOrCreate().catch(onrejected);
+        },
+        finally(onfinally?: (() => void) | null): Promise<TPromise> {
+            return getOrCreate().finally(onfinally);
+        },
+        [Symbol.asyncIterator]: iteratorFactory,
+        [Symbol.toStringTag]: 'Promise' as const,
+    };
+
+    return result as AsyncIterable<TElement> & Promise<TPromise>;
+}

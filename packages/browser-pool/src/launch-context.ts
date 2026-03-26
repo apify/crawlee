@@ -58,6 +58,11 @@ export interface LaunchContextOptions<
     userDataDir?: string;
     proxyUrl?: string;
     proxyTier?: number;
+    /**
+     * If set to `true`, TLS certificate errors from the upstream proxy will be ignored.
+     * This is useful when using HTTPS proxies with self-signed certificates.
+     */
+    ignoreProxyCertificate?: boolean;
 }
 
 export class LaunchContext<
@@ -75,6 +80,7 @@ export class LaunchContext<
     experimentalContainers: boolean;
     userDataDir: string;
     proxyTier?: number;
+    ignoreProxyCertificate?: boolean;
 
     private _proxyUrl?: string;
     private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
@@ -93,6 +99,7 @@ export class LaunchContext<
             experimentalContainers,
             userDataDir = '',
             proxyTier,
+            ignoreProxyCertificate,
         } = options;
 
         this.id = id;
@@ -103,6 +110,7 @@ export class LaunchContext<
         this.experimentalContainers = experimentalContainers ?? false;
         this.userDataDir = userDataDir;
         this.proxyTier = proxyTier;
+        this.ignoreProxyCertificate = ignoreProxyCertificate ?? false;
 
         this._proxyUrl = proxyUrl;
     }

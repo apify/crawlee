@@ -432,7 +432,8 @@ export class Sitemap {
             for await (const item of parseSitemap(sources, proxyUrl, parseSitemapOptions)) {
                 urls.push(item.loc);
             }
-        } catch {
+        } catch (e) {
+            log.warning(`Sitemap.load: Failed to load sitemap, returning empty result. (${e})`);
             return new Sitemap([]);
         }
 
@@ -454,9 +455,40 @@ export async function* discoverValidSitemaps(
          * Proxy URL to be used for network requests.
          */
         proxyUrl?: string;
+        /**
+         * Timeout in milliseconds for the entire `discoverValidSitemaps` call.
+         * An `AbortController` is created internally and its signal is passed to every HTTP request,
+         * so the whole discovery operation is cancelled once the timeout elapses.
+         * Defaults to `60_000` ms (60 seconds) to prevent indefinite hangs.
+         */
+        timeoutMillis?: number;
+        /**
+         * An external `AbortSignal` to cancel the entire discovery operation.
+         * If both `signal` and `timeout` are provided, the operation is cancelled
+         * when either the signal is aborted or the timeout elapses (whichever comes first).
+         */
+        signal?: AbortSignal;
+        /**
+         * Timeout in milliseconds for each individual HTTP request during discovery.
+         * Defaults to `20000` ms (20 seconds).
+         */
+        requestTimeoutMillis?: number;
     } = {},
 ): AsyncIterable<string> {
-    const { proxyUrl } = options;
+    const { proxyUrl, timeoutMillis = 60_000, signal: externalSignal, requestTimeoutMillis = 20_000 } = options;
+    const controller = new AbortController();
+
+    const timeoutHandle = setTimeout(() => controller.abort(), timeoutMillis);
+    const onExternalAbort = () => controller.abort();
+    if (externalSignal) {
+        if (externalSignal.aborted) {
+            controller.abort();
+        } else {
+            externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+        }
+    }
+
+    const signal = controller.signal;
     const { gotScraping } = await import('got-scraping');
     const sitemapUrls = new Set<string>();
 
@@ -472,12 +504,19 @@ export async function* discoverValidSitemaps(
         return undefined;
     };
 
-    const urlExists = (url: string) =>
-        gotScraping({
-            proxyUrl,
+    const urlExists = async (url: string) => {
+        const response = await gotScraping({
             url,
             method: 'HEAD',
-        }).then((response) => response.statusCode >= 200 && response.statusCode < 400);
+            proxyUrl,
+            timeout: {
+                request: requestTimeoutMillis,
+            },
+            signal,
+        });
+
+        return response.statusCode >= 200 && response.statusCode < 400;
+    };
 
     const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
         if (!hostname) {
@@ -485,8 +524,10 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl);
-
+            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl, {
+                timeoutMillis: requestTimeoutMillis,
+                signal,
+            });
             for (const sitemapUrl of robotsFile.getSitemaps()) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
@@ -505,12 +546,23 @@ export async function* discoverValidSitemaps(
         } else {
             const firstUrl = new URL(domainUrls[0]);
             const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
-            for (const pathname of possibleSitemapPathnames) {
+            const candidateSitemapUrls = possibleSitemapPathnames.map((pathname) => {
                 firstUrl.pathname = pathname;
-                if (await urlExists(firstUrl.toString())) {
-                    if (addSitemapUrl(firstUrl.toString())) {
-                        yield firstUrl.toString();
+                return firstUrl.toString();
+            });
+            const candidateResults = await Promise.allSettled(candidateSitemapUrls.map(urlExists));
+
+            for (const [index, result] of candidateResults.entries()) {
+                const candidateSitemapUrl = candidateSitemapUrls[index];
+
+                if (result.status === 'fulfilled') {
+                    if (result.value && addSitemapUrl(candidateSitemapUrl)) {
+                        yield candidateSitemapUrl;
                     }
+                } else {
+                    log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
+                        error: result.reason,
+                    });
                 }
             }
         }
@@ -530,7 +582,12 @@ export async function* discoverValidSitemaps(
         discoverSitemapsForDomainUrls(hostname, domainUrls),
     );
 
-    for await (const url of mergeAsyncIterables(...iterables)) {
-        yield url;
+    try {
+        for await (const url of mergeAsyncIterables(...iterables)) {
+            yield url;
+        }
+    } finally {
+        clearTimeout(timeoutHandle);
+        externalSignal?.removeEventListener('abort', onExternalAbort);
     }
 }

@@ -921,27 +921,27 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private getPeriodicLogger() {
         let previousState = { ...this.stats.state };
 
-        const getOperationMode = () => {
+        const getOperationMode = (): { mode: 'ERROR' | 'REGULAR'; failedDelta: number } => {
             const { requestsFailed } = this.stats.state;
             const { requestsFailed: previousRequestsFailed } = previousState;
 
             previousState = { ...this.stats.state };
 
-            if (requestsFailed - previousRequestsFailed > 0) {
-                return 'ERROR';
+            const failedDelta = requestsFailed - previousRequestsFailed;
+
+            if (failedDelta > 0) {
+                return { mode: 'ERROR', failedDelta };
             }
 
-            return 'REGULAR';
+            return { mode: 'REGULAR', failedDelta: 0 };
         };
 
         const log = async () => {
-            const operationMode = getOperationMode();
+            const { mode: operationMode, failedDelta } = getOperationMode();
             let message: string;
 
             if (operationMode === 'ERROR') {
-                message = `Experiencing problems, ${
-                    this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
-                } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
+                message = `Experiencing problems, ${failedDelta} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = this.requestManager?.getTotalCount();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${

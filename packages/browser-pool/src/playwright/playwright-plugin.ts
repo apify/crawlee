@@ -59,7 +59,9 @@ export class PlaywrightPlugin extends BrowserPlugin<
             launchOptions!.args = launchOptions!.args?.filter((arg) => arg !== '--no-sandbox');
         }
 
-        const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);
+        const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
+            ignoreProxyCertificate: launchContext.ignoreProxyCertificate,
+        });
         if (anonymizedProxyUrl) {
             launchOptions!.proxy = {
                 server: anonymizedProxyUrl,

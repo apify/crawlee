@@ -27,7 +27,7 @@ export class PlaywrightController extends BrowserController<
 
         return {
             proxy: {
-                server: url.origin,
+                server: `${url.protocol}//${url.host}`,
                 username,
                 password,
                 bypass: pageOptions?.proxy?.bypass,
@@ -60,6 +60,7 @@ export class PlaywrightController extends BrowserController<
                     contextOptions.proxy.server,
                     contextOptions.proxy.username,
                     contextOptions.proxy.password,
+                    { ignoreProxyCertificate: this.launchContext.ignoreProxyCertificate },
                 );
 
                 if (anonymizedProxyUrl) {

@@ -9,6 +9,10 @@ on:
 env:
     YARN_IGNORE_NODE: 1
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
     # NPM install is done in a separate job and cached to speed up the following jobs.
     build_and_test:
@@ -21,11 +25,6 @@ jobs:
                 storage: [ LOCAL, MEMORY, PLATFORM ]
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.13.0
-                with:
-                    access_token: ${{ github.token }}
-
             -   name: Checkout repository
                 uses: actions/checkout@v6
 

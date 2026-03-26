@@ -581,11 +581,99 @@ describe('discoverValidSitemaps', () => {
             urls.push(url);
         }
 
-        expect(urls).toEqual([
-            'http://domain-a.com/sitemap.xml',
-            'http://domain-b.com/sitemap.xml',
-            'http://domain-a.com/sitemap.txt',
-            'http://domain-b.com/sitemap.txt',
-        ]);
+        expect(urls.slice().sort()).toEqual(
+            [
+                'http://domain-a.com/sitemap.xml',
+                'http://domain-b.com/sitemap.xml',
+                'http://domain-a.com/sitemap.txt',
+                'http://domain-b.com/sitemap.txt',
+            ].sort(),
+        );
+    });
+
+    it('aborts when timeoutMillis elapses', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml');
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], { timeoutMillis: 100 })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual([]);
+        expect(elapsed).toBeLessThan(2_000);
+    });
+
+    it('aborts when external signal is triggered', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml');
+
+        const ac = new AbortController();
+        setTimeout(() => ac.abort(), 100);
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], {
+            timeoutMillis: 60_000,
+            signal: ac.signal,
+        })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual([]);
+        expect(elapsed).toBeLessThan(2_000);
+    });
+
+    it('aborts immediately when signal is already aborted', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml');
+
+        const ac = new AbortController();
+        ac.abort();
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], { signal: ac.signal })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual([]);
+        expect(elapsed).toBeLessThan(1_000);
+    });
+
+    it('requestTimeoutMillis aborts slow robots.txt without killing the whole discovery', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml')
+            .head('/sitemap.xml')
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], {
+            timeoutMillis: 30_000,
+            requestTimeoutMillis: 100,
+        })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual(['http://slow-site.com/sitemap.xml']);
+        expect(elapsed).toBeLessThan(2_000);
     });
 });

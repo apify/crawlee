@@ -71,7 +71,10 @@ export function getActorTestDir(url) {
 export async function pushActor(client, dirName) {
     await copyPackages(dirName);
     try {
-        execSync('npx -y apify-cli@beta push', { cwd: dirName });
+        execSync('npx -y apify-cli@beta push', {
+            cwd: dirName,
+            env: { ...process.env, GIT_CEILING_DIRECTORIES: dirname(dirName) },
+        });
     } catch (err) {
         console.error(colors.red(`Failed to push actor to the Apify platform. (signal ${colors.yellow(err.signal)})`));
 
