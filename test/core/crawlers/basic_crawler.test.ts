@@ -1885,6 +1885,59 @@ describe('BasicCrawler', () => {
             );
             expect(maxCrawlDepthMessages).toHaveLength(1);
         });
+
+        test('should not count duplicate URLs toward maxRequestsPerCrawl limit (addRequests)', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async () => {},
+            });
+
+            // 10 duplicate links to the same URL + 1 unique link at the end
+            const requestsToAdd = [
+                ...Array.from({ length: 10 }, () => 'http://example.com/same'),
+                'http://example.com/new',
+            ];
+
+            await crawler.addRequests(requestsToAdd);
+
+            // Both unique URLs should have been enqueued — duplicates should not consume the budget
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+                { url: 'http://example.com/same' },
+                { url: 'http://example.com/new' },
+            ]);
+        });
+
+        test('should not count duplicate URLs toward maxRequestsPerCrawl limit (enqueueLinks)', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const visitedUrls: string[] = [];
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async (context) => {
+                    visitedUrls.push(context.request.url);
+
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    // Enqueue 10 duplicate links + 1 new unique link
+                    const urls = [...Array.from({ length: 10 }, () => 'http://example.com/'), 'http://example.com/new'];
+
+                    await context.enqueueLinks({ urls, label: 'child' });
+                },
+            });
+
+            await crawler.run(['http://example.com/']);
+
+            // Both the start URL and the new URL should have been visited
+            expect(visitedUrls).toContain('http://example.com/');
+            expect(visitedUrls).toContain('http://example.com/new');
+        });
     });
 
     describe('addRequests input validation', () => {
