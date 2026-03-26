@@ -16,7 +16,15 @@ import type {
     RoutesFromSchemas,
     Session,
 } from '@crawlee/basic';
-import { BasicCrawler, ContextPipeline, mergeCookies, RequestState, Router, SessionError } from '@crawlee/basic';
+import {
+    BasicCrawler,
+    ContextPipeline,
+    mergeCookies,
+    NavigationSkippedError,
+    RequestState,
+    Router,
+    SessionError,
+} from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -395,7 +403,7 @@ export class HttpCrawler<
                 request: new Proxy(request, {
                     get(target, propertyName, receiver) {
                         if (propertyName === 'loadedUrl') {
-                            throw new Error(
+                            throw new NavigationSkippedError(
                                 'The `request.loadedUrl` property is not available - `skipNavigation` was used',
                             );
                         }
@@ -403,7 +411,9 @@ export class HttpCrawler<
                     },
                 }) as LoadedRequest<CrawleeRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
-                    throw new Error('The `response` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `response` property is not available - `skipNavigation` was used',
+                    );
                 },
             };
         }
@@ -443,19 +453,29 @@ export class HttpCrawler<
         if (crawlingContext.request.skipNavigation) {
             return {
                 get contentType(): InternalHttpCrawlingContext['contentType'] {
-                    throw new Error('The `contentType` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `contentType` property is not available - `skipNavigation` was used',
+                    );
                 },
                 get body(): InternalHttpCrawlingContext['body'] {
-                    throw new Error('The `body` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `body` property is not available - `skipNavigation` was used',
+                    );
                 },
                 get json(): InternalHttpCrawlingContext['json'] {
-                    throw new Error('The `json` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `json` property is not available - `skipNavigation` was used',
+                    );
                 },
                 get waitForSelector(): InternalHttpCrawlingContext['waitForSelector'] {
-                    throw new Error('The `waitForSelector` method is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `waitForSelector` method is not available - `skipNavigation` was used',
+                    );
                 },
                 get parseWithCheerio(): InternalHttpCrawlingContext['parseWithCheerio'] {
-                    throw new Error('The `parseWithCheerio` method is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `parseWithCheerio` method is not available - `skipNavigation` was used',
+                    );
                 },
             };
         }
