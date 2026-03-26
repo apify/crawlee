@@ -44,6 +44,7 @@ import {
     KeyValueStore,
     LogLevel,
     mergeCookies,
+    MissingSessionError,
     NonRetryableError,
     purgeDefaultStorages,
     RequestHandlerError,
@@ -1101,11 +1102,7 @@ export class BasicCrawler<
                     const existingSession = await this.sessionPool!.getSession(request.sessionId);
 
                     if (!existingSession) {
-                        throw new ContextPipelineInitializationError(
-                            new Error(
-                                `The current SessionPool instance doesn't contain the requested sessionId: ${request.sessionId}`,
-                            ),
-                        );
+                        throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
                     }
 
                     return existingSession;
