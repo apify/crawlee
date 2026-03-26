@@ -45,6 +45,7 @@ import {
     LogLevel,
     mergeCookies,
     MissingSessionError,
+    NavigationSkippedError,
     NonRetryableError,
     purgeDefaultStorages,
     RequestHandlerError,
@@ -816,7 +817,7 @@ export class BasicCrawler<
                 this.requestQueue = requestQueue;
             }
 
-            this.httpClient = httpClient ?? new GotScrapingHttpClient();
+            this.httpClient = httpClient ?? new GotScrapingHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -915,13 +916,13 @@ export class BasicCrawler<
                     try {
                         await this.basicContextPipeline
                             .chain(this.contextPipeline)
-                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source));
+                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
                             await this._timeoutAndRetry(
-                                async () => this.requestManager?.markRequestHandled(crawlingContext.request!),
+                                async () => this.requestManager?.markRequestHandled(request),
                                 this.internalTimeoutMillis,
                                 `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
                                     this.internalTimeoutMillis / 1e3
@@ -940,6 +941,7 @@ export class BasicCrawler<
                             await this._requestFunctionErrorHandler(
                                 unwrappedError,
                                 crawlingContext as CrawlingContext,
+                                request,
                                 this.requestManager!,
                             );
                             crawlingContext.session?.markBad();
@@ -1722,7 +1724,7 @@ export class BasicCrawler<
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsTxtFile.find(url);
+            const robotsTxtFile = await RobotsTxtFile.find(url, { logger: this.log });
             this.robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;
@@ -1849,9 +1851,7 @@ export class BasicCrawler<
     }
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
-    protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager) {
-        const { request } = crawlingContext;
-
+    protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
 
@@ -1882,7 +1882,7 @@ export class BasicCrawler<
             try {
                 request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    async () => this._requestFunctionErrorHandler(err, crawlingContext, requestSource),
+                    async () => this._requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${
                         this.internalTimeoutMillis / 1e3
@@ -2063,13 +2063,15 @@ export class BasicCrawler<
 
     /**
      * Handles errors thrown by user provided requestHandler()
+     *
+     * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
+        request: Request,
         source: IRequestList | IRequestManager,
     ): Promise<void> {
-        const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
         if (error instanceof CriticalError) {
@@ -2267,6 +2269,18 @@ export class BasicCrawler<
     }
 
     private requestMatchesEnqueueStrategy(request: Request) {
+        // If `skipNavigation` was used, just return `true`
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            request.loadedUrl;
+        } catch (err) {
+            if (err instanceof NavigationSkippedError) {
+                return true;
+            }
+
+            throw err;
+        }
+
         const { url, loadedUrl } = request;
 
         // eslint-disable-next-line dot-notation -- private access

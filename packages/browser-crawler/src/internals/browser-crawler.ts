@@ -20,6 +20,7 @@ import {
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
+    NavigationSkippedError,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
@@ -508,7 +509,7 @@ export abstract class BrowserCrawler<
                 request: new Proxy(crawlingContext.request, {
                     get(target, propertyName, receiver) {
                         if (propertyName === 'loadedUrl') {
-                            throw new Error(
+                            throw new NavigationSkippedError(
                                 'The `request.loadedUrl` property is not available - `skipNavigation` was used',
                             );
                         }
@@ -516,7 +517,9 @@ export abstract class BrowserCrawler<
                     },
                 }) as LoadedRequest<Request>,
                 get response(): Response {
-                    throw new Error('The `response` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `response` property is not available - `skipNavigation` was used',
+                    );
                 },
             };
         }

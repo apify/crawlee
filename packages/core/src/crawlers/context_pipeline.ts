@@ -1,7 +1,5 @@
 import type { Awaitable } from '@crawlee/types';
 
-import log from '@apify/log';
-
 import {
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -9,6 +7,7 @@ import {
     RequestHandlerError,
     SessionError,
 } from '../errors.js';
+import { serviceLocator } from '../service_locator.js';
 
 /**
  * Represents a middleware step in the context pipeline.
@@ -175,7 +174,9 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
                                 );
                             }
                         } catch (error: any) {
-                            log.debug(`Context pipeline failed to define property ${key.toString()}:`, error);
+                            serviceLocator
+                                .getLogger()
+                                .debug(`Context pipeline failed to define property ${key.toString()}:`, error);
                         }
                     }
 

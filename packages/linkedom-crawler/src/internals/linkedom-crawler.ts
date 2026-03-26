@@ -14,6 +14,7 @@ import type {
 import {
     enqueueLinks,
     HttpCrawler,
+    NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     tryAbsoluteURL,
@@ -185,22 +186,49 @@ export class LinkeDOMCrawler<
     }
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
-        const isXml = crawlingContext.contentType.type.includes('xml');
-        const document = LinkeDOMCrawler.parser.parseFromString(
-            crawlingContext.body.toString(),
-            isXml ? 'text/xml' : 'text/html',
-        );
+        try {
+            const isXml = crawlingContext.contentType.type.includes('xml');
+            const document = LinkeDOMCrawler.parser.parseFromString(
+                crawlingContext.body.toString(),
+                isXml ? 'text/xml' : 'text/html',
+            );
 
-        return {
-            window: document.defaultView,
-            get body() {
-                return document.documentElement.outerHTML;
-            },
-            get document() {
-                // See comment about typing in LinkeDOMCrawlingContext definition
-                return document as unknown as Document;
-            },
-        };
+            return {
+                window: document.defaultView,
+                get body() {
+                    return document.documentElement.outerHTML;
+                },
+                get document() {
+                    // See comment about typing in LinkeDOMCrawlingContext definition
+                    return document as unknown as Document;
+                },
+            };
+        } catch (err) {
+            if (err instanceof NavigationSkippedError) {
+                return {
+                    get window(): Window {
+                        throw new NavigationSkippedError(
+                            'The `window` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                    get body(): string {
+                        throw new NavigationSkippedError(
+                            'The `body` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                    get document(): Document {
+                        throw new NavigationSkippedError(
+                            'The `document` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                };
+            }
+
+            throw err;
+        }
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string }) {
