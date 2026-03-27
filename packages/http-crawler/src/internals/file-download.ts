@@ -233,7 +233,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
         let abortedByHandler = false;
 
         const abortDownload = () => {
-            if (abortedByHandler || response.stream.destroyed) {
+            if (abortedByHandler || !response.stream.readable) {
                 return;
             }
 
@@ -243,9 +243,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 
         const cleanUp = () => {
             clearInterval(pollingInterval!);
-            if (!response.stream.destroyed) {
-                response.stream.destroy();
-            }
+            response.stream.destroy();
         };
 
         const downloadPromise = new Promise<void>((resolve, reject) => {
