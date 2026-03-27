@@ -6,8 +6,8 @@ import { minimatch } from 'minimatch';
 import ow from 'ow';
 import type { RequiredDeep } from 'type-fest';
 
-import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
-import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
+import type { UrlPatternInput, UrlPatternObject } from '../enqueue_links/shared.js';
+import { constructUrlPatternObjects } from '../enqueue_links/shared.js';
 import { type EventManager, EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { Request } from '../request.js';
@@ -21,40 +21,27 @@ const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
 
 interface UrlConstraints {
     /**
-     * An array of glob pattern strings or plain objects
-     * containing glob pattern strings matching the URLs to be enqueued.
+     * An array of URL patterns that URLs must match to be included.
      *
-     * The plain objects must include at least the `glob` property, which holds the glob pattern string.
-     *
-     * The matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
-     *
-     * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the `SitemapRequestList`
-     * includes all the URLs from the sitemap.
-     */
-    globs?: readonly GlobInput[];
-
-    /**
-     * An array of glob pattern strings, regexp patterns or plain objects
-     * containing patterns matching URLs that will **never** be included.
-     *
-     * The plain objects must include either the `glob` property or the `regexp` property.
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
      *
      * Glob matching is always case-insensitive.
-     * If you need case-sensitive matching, provide a regexp.
-     */
-    exclude?: readonly (GlobInput | RegExp)[];
-
-    /**
-     * An array of regular expressions or plain objects
-     * containing regular expressions matching the URLs to be enqueued.
+     * If you need case-sensitive matching, use a `RegExp`.
      *
-     * The plain objects must include at least the `regexp` property, which holds the regular expression.
-     *
-     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the `SitemapRequestList`
+     * If `include` is an empty array or `undefined`, then the `SitemapRequestList`
      * includes all the URLs from the sitemap.
      */
-    regexps?: readonly RegExpInput[];
+    include?: readonly UrlPatternInput[];
+
+    /**
+     * An array of URL patterns. Matching URLs will **not** be included.
+     *
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
+     *
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, use a `RegExp`.
+     */
+    exclude?: readonly UrlPatternInput[];
 }
 
 export interface SitemapRequestListOptions extends UrlConstraints {
@@ -207,6 +194,13 @@ export class SitemapRequestList implements IRequestList {
 
     /** @internal */
     private constructor(options: SitemapRequestListOptions) {
+        const urlPatternValidator = ow.any(
+            ow.string,
+            ow.regExp,
+            ow.object.hasKeys('glob'),
+            ow.object.hasKeys('regexp'),
+        );
+
         ow(
             options,
             ow.object.exactShape({
@@ -217,36 +211,24 @@ export class SitemapRequestList implements IRequestList {
                 timeoutMillis: ow.optional.number,
                 maxBufferSize: ow.optional.number,
                 parseSitemapOptions: ow.optional.object,
-                globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-                exclude: ow.optional.array.ofType(
-                    ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-                ),
-                regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+                include: ow.optional.array.ofType(urlPatternValidator),
+                exclude: ow.optional.array.ofType(urlPatternValidator),
                 config: ow.optional.object,
                 persistenceOptions: ow.optional.object,
+                httpClient: ow.optional.object,
             }),
         );
 
-        const { globs, exclude, regexps } = options;
+        const { include, exclude } = options;
 
         this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestList' });
 
         if (exclude?.length) {
-            for (const excl of exclude) {
-                if (typeof excl === 'string' || 'glob' in excl) {
-                    this.urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
-                } else if (excl instanceof RegExp || 'regexp' in excl) {
-                    this.urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
-                }
-            }
+            this.urlExcludePatternObjects.push(...constructUrlPatternObjects(exclude));
         }
 
-        if (globs?.length) {
-            this.urlPatternObjects.push(...constructGlobObjectsFromGlobs(globs));
-        }
-
-        if (regexps?.length) {
-            this.urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
+        if (include?.length) {
+            this.urlPatternObjects.push(...constructUrlPatternObjects(include));
         }
 
         this.persistStateKey = options.persistStateKey;
@@ -291,7 +273,7 @@ export class SitemapRequestList implements IRequestList {
     }
 
     /**
-     * Checks whether the URL matches the `globs` / `regexps` / `exclude` provided in the `options`.
+     * Checks whether the URL matches the `include` / `exclude` patterns provided in the `options`.
      * @param url URL to be checked.
      * @returns `true` if the URL matches the patterns, `false` otherwise.
      */

@@ -54,8 +54,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
      * currently used by the crawler.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
-     * and override settings of the enqueued {@apilink Request} objects.
+     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
      *
      * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
      * for more details regarding its usage.
@@ -65,7 +64,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * ```ts
      * async requestHandler({ enqueueLinks }) {
      *     await enqueueLinks({
-     *       globs: [
+     *       include: [
      *           'https://www.example.com/handbags/*',
      *       ],
      *     });
@@ -112,8 +111,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
      * currently used by the crawler.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
-     * and override settings of the enqueued {@apilink Request} objects.
+     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
      *
      * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
      * for more details regarding its usage.
@@ -123,7 +121,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * ```ts
      * async requestHandler({ enqueueLinks }) {
      *     await enqueueLinks({
-     *       globs: [
+     *       include: [
      *           'https://www.example.com/handbags/*',
      *       ],
      *     });

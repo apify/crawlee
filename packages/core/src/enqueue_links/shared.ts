@@ -3,8 +3,6 @@ import { URL } from 'node:url';
 import type { Awaitable } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 
-import { purlToRegExp } from '@apify/pseudo_url';
-
 import type { RequestOptions } from '../request.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
@@ -13,7 +11,7 @@ export { tryAbsoluteURL } from '@crawlee/utils';
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**
- * To enable direct use of the Actor UI `globs`/`regexps`/`pseudoUrls` output while keeping high performance,
+ * To enable direct use of the Actor UI `include`/`exclude` output while keeping high performance,
  * all the regexps from the output are only constructed once and kept in a cache
  * by the `enqueueLinks()` function.
  * @ignore
@@ -23,28 +21,18 @@ const enqueueLinksPatternCache = new Map();
 export type UrlPatternObject = {
     glob?: string;
     regexp?: RegExp;
-} & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+};
 
-export type PseudoUrlObject = { purl: string } & Pick<
-    RequestOptions,
-    'method' | 'payload' | 'label' | 'userData' | 'headers'
->;
-
-export type PseudoUrlInput = string | PseudoUrlObject;
-
-export type GlobObject = { glob: string } & Pick<
-    RequestOptions,
-    'method' | 'payload' | 'label' | 'userData' | 'headers'
->;
+export type GlobObject = { glob: string };
 
 export type GlobInput = string | GlobObject;
 
-export type RegExpObject = { regexp: RegExp } & Pick<
-    RequestOptions,
-    'method' | 'payload' | 'label' | 'userData' | 'headers'
->;
+export type RegExpObject = { regexp: RegExp };
 
 export type RegExpInput = RegExp | RegExpObject;
+
+/** Unified URL pattern input — accepts glob strings, glob objects, RegExp instances, or regexp objects. */
+export type UrlPatternInput = GlobInput | RegExpInput;
 
 export type SkippedRequestReason =
     | 'robotsTxt'
@@ -61,7 +49,7 @@ export type SkippedRequestCallback = (args: { url: string; reason: SkippedReques
  * @ignore
  */
 export function updateEnqueueLinksPatternCache(
-    item: GlobInput | RegExpInput | PseudoUrlInput,
+    item: GlobInput | RegExpInput,
     pattern: RegExpObject | GlobObject,
 ): void {
     enqueueLinksPatternCache.set(item, pattern);
@@ -69,30 +57,6 @@ export function updateEnqueueLinksPatternCache(
         const key = enqueueLinksPatternCache.keys().next().value;
         enqueueLinksPatternCache.delete(key);
     }
-}
-
-/**
- * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function
- * to construct RegExps from PseudoUrl strings.
- * @ignore
- */
-export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: readonly PseudoUrlInput[]): RegExpObject[] {
-    return pseudoUrls.map((item) => {
-        // Get pseudoUrl object from cache.
-        let regexpObject = enqueueLinksPatternCache.get(item);
-        if (regexpObject) return regexpObject;
-
-        if (typeof item === 'string') {
-            regexpObject = { regexp: purlToRegExp(item) };
-        } else {
-            const { purl, ...requestOptions } = item;
-            regexpObject = { regexp: purlToRegExp(purl), ...requestOptions };
-        }
-
-        updateEnqueueLinksPatternCache(item, regexpObject);
-
-        return regexpObject;
-    });
 }
 
 /**
@@ -126,8 +90,7 @@ export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): Glob
             if (typeof item === 'string') {
                 globObject = { glob: validateGlobPattern(item) };
             } else {
-                const { glob, ...requestOptions } = item;
-                globObject = { glob: validateGlobPattern(glob), ...requestOptions };
+                globObject = { glob: validateGlobPattern(item.glob) };
             }
 
             updateEnqueueLinksPatternCache(item, globObject);
@@ -160,7 +123,7 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
         if (item instanceof RegExp) {
             regexpObject = { regexp: item };
         } else {
-            regexpObject = item;
+            regexpObject = { regexp: item.regexp };
         }
 
         updateEnqueueLinksPatternCache(item, regexpObject);
@@ -170,8 +133,26 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
 }
 
 /**
- * Filters request options by URL patterns and merges pattern-level options (label, userData, method, payload, headers)
- * from the first matching pattern into each RequestOptions entry.
+ * Helper factory used in the `enqueueLinks()` function to construct UrlPatternObjects
+ * from a mixed array of glob strings, glob objects, RegExp instances, and regexp objects.
+ * @ignore
+ */
+export function constructUrlPatternObjects(patterns: readonly UrlPatternInput[]): UrlPatternObject[] {
+    const result: UrlPatternObject[] = [];
+
+    for (const item of patterns) {
+        if (typeof item === 'string' || 'glob' in item) {
+            result.push(...constructGlobObjectsFromGlobs([item]));
+        } else if (item instanceof RegExp || 'regexp' in item) {
+            result.push(...constructRegExpObjectsFromRegExps([item]));
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Filters request options by URL patterns.
  *
  * When `includePatterns` is empty/undefined, all options pass through (only exclude filtering applies).
  * @ignore
@@ -199,9 +180,9 @@ export function filterRequestOptionsByPatterns(
                 return { ...opts, enqueueStrategy: strategy };
             }
 
-            for (const { match, glob, regexp, ...patternOptions } of includeMatchers) {
+            for (const { match } of includeMatchers) {
                 if (match(opts.url)) {
-                    return { ...opts, ...patternOptions, enqueueStrategy: strategy };
+                    return { ...opts, enqueueStrategy: strategy };
                 }
             }
 
@@ -256,7 +237,7 @@ export function createRequestOptions(
  */
 function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
     const { regexp, glob } = urlPatternObject;
-    let match;
+    let match: (url: string) => boolean;
     if (regexp) {
         match = (url: string) => regexp.test(url);
     } else if (glob) {
@@ -265,7 +246,7 @@ function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
     } else {
         match = () => false;
     }
-    return { ...urlPatternObject, match };
+    return { match };
 }
 
 /**
