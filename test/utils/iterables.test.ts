@@ -92,6 +92,28 @@ describe('chunkedAsyncIterable', () => {
         expect(result).toEqual([]);
     });
 
+    it('should accept a callback for dynamic chunk size', async () => {
+        let size = 3;
+        const result = [];
+        for await (const chunk of chunkedAsyncIterable([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], () => size)) {
+            result.push(chunk);
+            size = 2; // shrink after first chunk
+        }
+
+        expect(result).toEqual([[1, 2, 3], [4, 5], [6, 7], [8, 9], [10]]);
+    });
+
+    it('should stop iterating when dynamic chunk size drops to zero', async () => {
+        let size = 2;
+        const result = [];
+        for await (const chunk of chunkedAsyncIterable([1, 2, 3, 4, 5, 6], () => size)) {
+            result.push(chunk);
+            size = 0; // signal stop after first chunk
+        }
+
+        expect(result).toEqual([[1, 2]]);
+    });
+
     it('should throw error for invalid chunk size', async () => {
         await expect(
             (async () => {
