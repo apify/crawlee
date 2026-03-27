@@ -250,7 +250,11 @@ describe('BasicCrawler', () => {
         const crawler = new TestCrawler({ maxCrawlDepth: 3 });
 
         beforeEach(() => {
-            addRequestsBatchedMock = vi.fn().mockImplementation(async () => ({}));
+            addRequestsBatchedMock = vi.fn().mockImplementation(async () => ({
+                addedRequests: [],
+                waitForAllRequestsToBeAdded: Promise.resolve([]),
+                requestsOverLimit: [],
+            }));
             onSkippedRequestMock = vi.fn();
 
             options = {
