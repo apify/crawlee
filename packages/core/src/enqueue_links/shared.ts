@@ -18,16 +18,20 @@ const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
  */
 const enqueueLinksPatternCache = new Map();
 
-export type UrlPatternObject = {
+export interface UrlPatternObject {
     glob?: string;
     regexp?: RegExp;
-};
+}
 
-export type GlobObject = { glob: string };
+export interface GlobObject {
+    glob: string;
+}
 
 export type GlobInput = string | GlobObject;
 
-export type RegExpObject = { regexp: RegExp };
+export interface RegExpObject {
+    regexp: RegExp;
+}
 
 export type RegExpInput = RegExp | RegExpObject;
 
