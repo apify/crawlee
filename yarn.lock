@@ -346,15 +346,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/pseudo_url@npm:^2.0.59":
-  version: 2.0.59
-  resolution: "@apify/pseudo_url@npm:2.0.59"
-  dependencies:
-    "@apify/log": "npm:^2.5.18"
-  checksum: 10c0/ae4d5be32ab7261e59fa7cec691b1a44c6e9a144547a20308df242a8380efe56e97f1b7d13f5afb65e13134b19b5accb70148a84eff4d122f1afadeae149c7a8
-  languageName: node
-  linkType: hard
-
 "@apify/timeout@npm:^0.3.0, @apify/timeout@npm:^0.3.2":
   version: 0.3.2
   resolution: "@apify/timeout@npm:0.3.2"
@@ -971,7 +962,6 @@ __metadata:
     "@apify/consts": "npm:^2.41.0"
     "@apify/datastructures": "npm:^2.0.3"
     "@apify/log": "npm:^2.5.18"
-    "@apify/pseudo_url": "npm:^2.0.59"
     "@apify/timeout": "npm:^0.3.2"
     "@apify/utilities": "npm:^2.15.5"
     "@crawlee/memory-storage": "npm:4.0.0"
