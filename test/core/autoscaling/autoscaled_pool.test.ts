@@ -1,7 +1,7 @@
+import log from '@apify/log';
+import type { LoadSignal, LoadSnapshot } from '@crawlee/core';
 import { AutoscaledPool } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-
-import log from '@apify/log';
 
 describe('AutoscaledPool', () => {
     let logLevel: number;
@@ -559,4 +559,71 @@ describe('AutoscaledPool', () => {
         await expect(pool.run()).resolves.toBeUndefined();
         expect(Date.now() - now).toBeGreaterThanOrEqual(1e3);
     }, 10e3);
+
+    describe('custom load signals', () => {
+        /** Creates a minimal fake LoadSignal with static pre-seeded snapshots. */
+        function createFakeLoadSignal(name: string, { overloadedRatio = 0.3, isOverloaded = false } = {}): LoadSignal {
+            const now = Date.now();
+            const snapshots: LoadSnapshot[] = Array.from({ length: 5 }, (_, i) => ({
+                createdAt: new Date(now - (5 - i) * 100),
+                isOverloaded,
+            }));
+
+            return {
+                name,
+                overloadedRatio,
+                async start() {},
+                async stop() {},
+                getSample(sampleDurationMillis?: number) {
+                    if (!sampleDurationMillis) return snapshots;
+                    const cutoff = Date.now() - sampleDurationMillis;
+                    return snapshots.filter((s) => +s.createdAt >= cutoff);
+                },
+            };
+        }
+
+        test('overloaded signal prevents concurrency from scaling up', async () => {
+            const signal = createFakeLoadSignal('proxyHealth', { isOverloaded: true });
+
+            let count = 0;
+            const pool = new AutoscaledPool({
+                minConcurrency: 1,
+                maxConcurrency: 10,
+                runTaskFunction: async () => {
+                    count++;
+                    await sleep(10);
+                },
+                isFinishedFunction: async () => count >= 50,
+                isTaskReadyFunction: async () => count < 50,
+                systemStatusOptions: { loadSignals: [signal] },
+            });
+
+            await pool.run();
+
+            expect(pool.desiredConcurrency).toBe(1);
+        });
+
+        test('signal info appears in SystemStatus.getCurrentStatus()', async () => {
+            const signal = createFakeLoadSignal('navTimeout', { overloadedRatio: 0.2, isOverloaded: true });
+
+            let count = 0;
+            const pool = new AutoscaledPool({
+                minConcurrency: 1,
+                maxConcurrency: 10,
+                runTaskFunction: async () => {
+                    count++;
+                    await sleep(10);
+                },
+                isFinishedFunction: async () => count >= 10,
+                isTaskReadyFunction: async () => count < 10,
+                systemStatusOptions: { loadSignals: [signal] },
+            });
+
+            // @ts-expect-error Accessing private prop
+            const status = pool.systemStatus.getCurrentStatus();
+            expect(status.loadSignalInfo?.navTimeout?.isOverloaded).toBe(true);
+
+            await pool.run();
+        });
+    });
 });
