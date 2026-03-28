@@ -13,7 +13,7 @@
         "@crawlee/playwright": "file:./packages/playwright-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "playwright": "*"
+        "playwright": "1.58.2"
     },
     "overrides": {
         "apify": {
