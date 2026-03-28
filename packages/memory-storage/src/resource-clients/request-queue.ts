@@ -6,8 +6,8 @@ import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
-import type { RequestQueueFileSystemEntry } from 'packages/memory-storage/src/fs/request-queue/fs';
-import type { RequestQueueMemoryEntry } from 'packages/memory-storage/src/fs/request-queue/memory';
+import type { RequestQueueFileSystemEntry } from '../fs/request-queue/fs';
+import type { RequestQueueMemoryEntry } from '../fs/request-queue/memory';
 
 import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';

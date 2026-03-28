@@ -1,11 +1,9 @@
 {
 	"extends": "@apify/tsconfig",
 	"compilerOptions": {
-		"ignoreDeprecations": "6.0",
 		"target": "ES2020",
 		"lib": ["ESNext", "DOM", "ES2020"],
 		"types": ["node"],
-		"baseUrl": ".",
 		"allowJs": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": false,
