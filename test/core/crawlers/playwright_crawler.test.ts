@@ -15,11 +15,11 @@ import type {
 import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 

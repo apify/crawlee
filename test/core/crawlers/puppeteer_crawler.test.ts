@@ -18,10 +18,10 @@ import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Sessio
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
 
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 import { createProxyServer } from '../create-proxy-server';
 
 describe('PuppeteerCrawler', () => {
