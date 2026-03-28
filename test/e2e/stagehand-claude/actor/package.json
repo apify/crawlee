@@ -14,7 +14,7 @@
         "@crawlee/stagehand": "file:./packages/stagehand-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "playwright": "*",
+        "playwright": "1.58.2",
         "zod": "^4.3.5"
     },
     "overrides": {
