@@ -6,8 +6,9 @@ import { finished } from 'node:stream/promises';
 import { type Request, SitemapRequestList } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import { startExpressAppPromise } from '../shared/_helper';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 // Express server for serving sitemaps
 let url = 'http://localhost';

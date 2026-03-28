@@ -27,7 +27,6 @@ import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
@@ -35,6 +34,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 describe('BasicCrawler', () => {
     let logLevel: number;

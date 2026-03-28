@@ -4,10 +4,11 @@ import path from 'node:path';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
+
+import { runExampleComServer } from '../shared/_helper';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 const launchContext = { launchOptions: { headless: true } };
 
