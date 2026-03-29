@@ -1,4 +1,4 @@
-import type {
+import {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
@@ -6,6 +6,7 @@ import type {
     GetUserDataFromRequest,
     LoadedContext,
     RouterRoutes,
+    Statistics,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
@@ -25,8 +26,8 @@ export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, P
 export interface PlaywrightRequestHandler extends BrowserRequestHandler<LoadedContext<PlaywrightCrawlingContext>> {}
 export type PlaywrightGotoOptions = Dictionary & Parameters<Page['goto']>[1];
 
-export interface PlaywrightCrawlerOptions
-    extends BrowserCrawlerOptions<PlaywrightCrawlingContext, { browserPlugins: [PlaywrightPlugin] }> {
+export interface PlaywrightCrawlerOptions<StatsType extends Statistics = Statistics>
+    extends BrowserCrawlerOptions<PlaywrightCrawlingContext, { browserPlugins: [PlaywrightPlugin] }, StatsType> {
     /**
      * The same options as used by {@apilink launchPlaywright}.
      */
@@ -187,10 +188,12 @@ export interface PlaywrightCrawlerOptions
  * ```
  * @category Crawlers
  */
-export class PlaywrightCrawler extends BrowserCrawler<
+export class PlaywrightCrawler<StatsType extends Statistics = Statistics> extends BrowserCrawler<
     { browserPlugins: [PlaywrightPlugin] },
     LaunchOptions,
-    PlaywrightCrawlingContext
+    PlaywrightCrawlingContext,
+    DirectNavigationOptions,
+    StatsType
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,

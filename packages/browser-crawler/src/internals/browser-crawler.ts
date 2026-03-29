@@ -13,6 +13,7 @@ import type {
     RequestProvider,
     Session,
     SkippedRequestCallback,
+    Statistics,
 } from '@crawlee/basic';
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
@@ -75,11 +76,12 @@ export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Di
 export interface BrowserCrawlerOptions<
     Context extends BrowserCrawlingContext = BrowserCrawlingContext,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
+    StatsType extends Statistics = Statistics,
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
-        BasicCrawlerOptions,
+        BasicCrawlerOptions<Context, StatsType>,
         // Overridden with browser context
         | 'requestHandler'
         | 'handleRequestFunction'
@@ -316,7 +318,8 @@ export abstract class BrowserCrawler<
     LaunchOptions extends Dictionary | undefined = Dictionary,
     Context extends BrowserCrawlingContext = BrowserCrawlingContext,
     GoToOptions extends Dictionary = Dictionary,
-> extends BasicCrawler<Context> {
+    StatsType extends Statistics = Statistics,
+> extends BasicCrawler<Context, StatsType> {
     /**
      * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.

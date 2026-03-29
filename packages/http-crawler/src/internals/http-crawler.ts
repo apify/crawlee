@@ -29,7 +29,7 @@ import {
     SessionError,
     validators,
 } from '@crawlee/basic';
-import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
+import type { HttpResponse, Statistics, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -77,8 +77,10 @@ export type HttpErrorHandler<
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = ErrorHandler<HttpCrawlingContext<UserData, JSONData>>;
 
-export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext>
-    extends BasicCrawlerOptions<Context> {
+export interface HttpCrawlerOptions<
+    Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext,
+    StatsType extends Statistics = Statistics,
+> extends BasicCrawlerOptions<Context, StatsType> {
     /**
      * An alias for {@apilink HttpCrawlerOptions.requestHandler}
      * Soon to be removed, use `requestHandler` instead.
@@ -330,7 +332,8 @@ export type HttpRequestHandler<
  */
 export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any, HttpCrawler<Context>>,
-> extends BasicCrawler<Context> {
+    StatsType extends Statistics = Statistics,
+> extends BasicCrawler<Context, StatsType> {
     /**
      * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.

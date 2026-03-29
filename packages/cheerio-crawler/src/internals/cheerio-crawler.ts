@@ -14,6 +14,7 @@ import type {
     RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
+    Statistics,
 } from '@crawlee/http';
 import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
@@ -31,7 +32,8 @@ export type CheerioErrorHandler<
 export interface CheerioCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>> {}
+    StatsType extends Statistics = Statistics,
+> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, StatsType> {}
 
 export type CheerioHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -161,7 +163,10 @@ export type CheerioRequestHandler<
  * ```
  * @category Crawlers
  */
-export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
+export class CheerioCrawler<StatsType extends Statistics = Statistics> extends HttpCrawler<
+    CheerioCrawlingContext,
+    StatsType
+> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */

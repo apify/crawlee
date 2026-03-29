@@ -19,6 +19,7 @@ import type {
     GetUserDataFromRequest,
     LoadedContext,
     RouterRoutes,
+    Statistics,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
@@ -35,7 +36,7 @@ import { enhancePageWithStagehand } from './utils/stagehand-utils';
 /**
  * Stagehand-specific configuration options.
  */
-export interface StagehandOptions {
+export interface StagehandOptions<StatsType extends Statistics = Statistics> {
     /**
      * Environment to run Stagehand in.
      * - `'LOCAL'`: Use local browser (default)
@@ -128,6 +129,11 @@ export interface StagehandOptions {
      * Cache directory for observation caching to improve performance.
      */
     cacheDir?: string;
+
+    /**
+     * Allows the user to pass a custom StatType class to collect custom statistics.
+     */
+    statistics?: StatsType;
 }
 
 /**
@@ -362,10 +368,11 @@ export interface StagehandCrawlerOptions
  * await crawler.run(['https://example.com']);
  * ```
  */
-export class StagehandCrawler extends BrowserCrawler<
+export class StagehandCrawler<StatsType extends Statistics = Statistics> extends BrowserCrawler<
     { browserPlugins: [StagehandPlugin] },
     LaunchOptions,
-    StagehandCrawlingContext
+    StagehandCrawlingContext,
+    StatsType
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,

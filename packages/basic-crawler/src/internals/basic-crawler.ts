@@ -132,7 +132,10 @@ export type StatusMessageCallback<
     Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
-export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
+export interface BasicCrawlerOptions<
+    Context extends CrawlingContext = BasicCrawlingContext,
+    StatsType extends Statistics = Statistics,
+> {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
      *
@@ -401,6 +404,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     statisticsOptions?: StatisticsOptions;
 
     /**
+     * Allows the user to pass a custom StatType class to collect custom statistics.
+     */
+    statistics?: StatsType;
+
+    /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
      * Defaults to a new instance of {@apilink GotScrapingHttpClient}
      */
@@ -487,13 +495,16 @@ export interface CrawlerExperiments {
  * ```
  * @category Crawlers
  */
-export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext> {
+export class BasicCrawler<
+    Context extends CrawlingContext = BasicCrawlingContext,
+    StatsType extends Statistics = Statistics,
+> {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
      */
-    readonly stats: Statistics;
+    readonly stats: StatsType;
 
     /**
      * A reference to the underlying {@apilink RequestList} class that manages the crawler's {@apilink Request|requests}.
@@ -624,6 +635,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
+
+        statistics: ow.optional.object,
     };
 
     /**
@@ -678,6 +691,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             statusMessageCallback,
 
             statisticsOptions,
+            statistics,
             httpClient,
         } = options;
 
@@ -769,12 +783,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.maxCrawlDepth = maxCrawlDepth;
         this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
-        this.stats = new Statistics({
-            logMessage: `${log.getOptions().prefix} request statistics:`,
-            log,
-            config,
-            ...statisticsOptions,
-        });
+        this.stats = (statistics ??
+            new Statistics({
+                logMessage: `${log.getOptions().prefix} request statistics:`,
+                log,
+                config,
+                ...statisticsOptions,
+            })) as StatsType;
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
             log,

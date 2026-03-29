@@ -12,6 +12,7 @@ import type {
     RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
+    Statistics,
 } from '@crawlee/http';
 import {
     enqueueLinks,
@@ -36,7 +37,8 @@ export type LinkeDOMErrorHandler<
 export interface LinkeDOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>> {}
+    StatsType extends Statistics = Statistics,
+> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, StatsType> {}
 
 export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
@@ -163,7 +165,10 @@ export type LinkeDOMRequestHandler<
  * @category Crawlers
  */
 
-export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
+export class LinkeDOMCrawler<StatsType extends Statistics = Statistics> extends HttpCrawler<
+    LinkeDOMCrawlingContext,
+    StatsType
+> {
     private static parser = new DOMParser();
 
     protected override async _parseHTML(

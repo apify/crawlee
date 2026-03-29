@@ -6,6 +6,7 @@ import type {
     GetUserDataFromRequest,
     LoadedContext,
     RouterRoutes,
+    Statistics,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
@@ -25,8 +26,8 @@ export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, Pup
 export interface PuppeteerRequestHandler extends BrowserRequestHandler<LoadedContext<PuppeteerCrawlingContext>> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
-export interface PuppeteerCrawlerOptions
-    extends BrowserCrawlerOptions<PuppeteerCrawlingContext, { browserPlugins: [PuppeteerPlugin] }> {
+export interface PuppeteerCrawlerOptions<StatsType extends Statistics = Statistics>
+    extends BrowserCrawlerOptions<PuppeteerCrawlingContext, { browserPlugins: [PuppeteerPlugin] }, StatsType> {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
      */
@@ -132,10 +133,12 @@ export interface PuppeteerCrawlerOptions
  * ```
  * @category Crawlers
  */
-export class PuppeteerCrawler extends BrowserCrawler<
+export class PuppeteerCrawler<StatsType extends Statistics = Statistics> extends BrowserCrawler<
     { browserPlugins: [PuppeteerPlugin] },
     LaunchOptions,
-    PuppeteerCrawlingContext
+    PuppeteerCrawlingContext,
+    DirectNavigationOptions,
+    StatsType
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,

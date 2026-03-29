@@ -13,6 +13,7 @@ import type {
     RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
+    Statistics,
 } from '@crawlee/http';
 import {
     enqueueLinks,
@@ -39,7 +40,8 @@ export type JSDOMErrorHandler<
 export interface JSDOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {
+    StatsType extends Statistics = Statistics,
+> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, StatsType> {
     /**
      * Download and run scripts.
      */
@@ -177,7 +179,10 @@ const resources = new ResourceLoader({
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
 });
 
-export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
+export class JSDOMCrawler<StatsType extends Statistics = Statistics> extends HttpCrawler<
+    JSDOMCrawlingContext,
+    StatsType
+> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: ow.optional.boolean,

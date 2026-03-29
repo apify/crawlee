@@ -150,9 +150,9 @@ interface AdaptiveHook
         PlaywrightGotoOptions
     > {}
 
-export interface AdaptivePlaywrightCrawlerOptions
+export interface AdaptivePlaywrightCrawlerOptions<StatsType extends Statistics = Statistics>
     extends Omit<
-        PlaywrightCrawlerOptions,
+        PlaywrightCrawlerOptions<StatsType>,
         'requestHandler' | 'handlePageFunction' | 'preNavigationHooks' | 'postNavigationHooks'
     > {
     /**
@@ -263,13 +263,15 @@ type LogProxyCall = [log: Log, method: (typeof proxyLogMethods)[number], ...args
  *
  * @experimental
  */
-export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
+export class AdaptivePlaywrightCrawler<
+    StatsType extends AdaptivePlaywrightCrawlerStatistics = AdaptivePlaywrightCrawlerStatistics,
+> extends PlaywrightCrawler<StatsType> {
     private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] & {};
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
     private preventDirectStorageAccess: boolean;
-    declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
+    declare readonly stats: StatsType;
     private inFlightRenderingTypeDetections = 0;
 
     /**
@@ -292,6 +294,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             resultComparator,
             statisticsOptions,
             preventDirectStorageAccess = true,
+            statistics,
             ...rest
         } = options;
 
@@ -317,11 +320,12 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             };
         }
 
-        this.stats = new AdaptivePlaywrightCrawlerStatistics({
-            logMessage: `${this.log.getOptions().prefix} request statistics:`,
-            config,
-            ...statisticsOptions,
-        });
+        this.stats = (statistics ??
+            new AdaptivePlaywrightCrawlerStatistics({
+                logMessage: `${this.log.getOptions().prefix} request statistics:`,
+                config,
+                ...statisticsOptions,
+            })) as StatsType;
 
         this.preventDirectStorageAccess = preventDirectStorageAccess;
     }
