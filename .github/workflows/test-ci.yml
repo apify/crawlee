@@ -158,7 +158,7 @@ jobs:
                         include ${PWD_PATH}/website/nginx.conf;
                     }
                     EOF
-                    sed -i 's|https://apify\.github\.io/crawlee\([^-]\)|http://localhost:3000\1|g' website/nginx.conf
+                    sed -i 's|https://apify.github.io/crawlee|http://localhost:3000|g' default.conf
                     mkdir -p "${PWD_PATH}/logs"
                     nginx -c "${PWD_PATH}/default.conf"
                     sleep 1
