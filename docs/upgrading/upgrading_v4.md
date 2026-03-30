@@ -238,7 +238,7 @@ The precedence (highest to lowest) is:
 
 1. `sendRequest` `Cookie` header and `cookieJar` overrides
 2. `Cookie` header set directly on the request (via `request.headers`)
-3. Session cookie jar (persisted cookies received from `Set-Cookie` response headers or set manuall)
+3. Session cookie jar (persisted cookies received from `Set-Cookie` response headers or set manually)
 
 To fully replace the cookie jar for a `sendRequest` call, pass a custom `cookieJar` in the options:
 
