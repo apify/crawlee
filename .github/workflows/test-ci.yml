@@ -141,7 +141,7 @@ jobs:
             -   name: Start Docusaurus server
                 run: |
                     cd website
-                    nohup npx docusaurus serve --port 3000 --no-open &
+                    nohup yarn docusaurus serve --port 3000 --no-open &
                     sleep 5
                     curl -f http://localhost:3000 > /dev/null
 
