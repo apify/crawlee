@@ -1,6 +1,8 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
+import type { PlaywrightConnectOptions, PlaywrightConnectOverCDPOptions } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import ow from 'ow';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
 
@@ -70,6 +72,18 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
      * If you want to use a different browser you can pass it by this property as e.g. `require("playwright").firefox`
      */
     launcher?: BrowserType;
+
+    /**
+     * Options for connecting to a remote browser via WebSocket.
+     * When provided, the browser will be connected to using `browserType.connect()` instead of launched.
+     */
+    connectOptions?: PlaywrightConnectOptions;
+
+    /**
+     * Options for connecting to a remote browser via CDP.
+     * When provided, the browser will be connected to using `browserType.connectOverCDP()` instead of launched.
+     */
+    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
 }
 
 /**
@@ -81,6 +95,8 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
         launchContextOptions: ow.optional.object,
+        connectOptions: ow.optional.object,
+        connectOverCDPOptions: ow.optional.object,
     };
 
     /**
@@ -114,6 +130,26 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         );
 
         this.Plugin = PlaywrightPlugin;
+
+        const connectOptionsPresent = !!(launchContext.connectOptions || launchContext.connectOverCDPOptions);
+
+        if (connectOptionsPresent && (launchContext.useChrome || launchContext.launchOptions?.executablePath)) {
+            const log = serviceLocator.getLogger().child({ prefix: 'PlaywrightLauncher' });
+
+            if (launchContext.useChrome) {
+                log.warning(
+                    'useChrome is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+
+            if (launchContext.launchOptions?.executablePath) {
+                log.warning(
+                    'executablePath is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+        }
     }
 }
 
