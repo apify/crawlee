@@ -53,11 +53,15 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Login to Apify
-                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
+
+            -   name: Setup Apify CLI
+                uses: apify/setup-apify-cli-action@main
+                with:
+                    version: 'beta'
+                    token: ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
             -   name: Add Apify secrets for E2E tests
-                run: npx -y apify-cli@beta secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
+                run: apify secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
 
             -   name: Install Dependencies
                 run: yarn

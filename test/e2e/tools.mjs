@@ -71,7 +71,7 @@ export function getActorTestDir(url) {
 export async function pushActor(client, dirName) {
     await copyPackages(dirName);
     try {
-        execSync('npx -y apify-cli@beta push', {
+        execSync('apify push', {
             cwd: dirName,
             env: { ...process.env, GIT_CEILING_DIRECTORIES: dirname(dirName) },
         });
