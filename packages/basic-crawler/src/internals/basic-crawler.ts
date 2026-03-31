@@ -44,6 +44,7 @@ import {
     KeyValueStore,
     LogLevel,
     mergeCookies,
+    MissingSessionError,
     NavigationSkippedError,
     NonRetryableError,
     purgeDefaultStorages,
@@ -1099,6 +1100,16 @@ export class BasicCrawler<
     private async resolveSession({ request }: { request: Request }) {
         const session = await this._timeoutAndRetry(
             async () => {
+                if (request.sessionId) {
+                    const existingSession = await this.sessionPool!.getSession(request.sessionId);
+
+                    if (!existingSession) {
+                        throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
+                    }
+
+                    return existingSession;
+                }
+
                 return await this.sessionPool!.newSession({
                     proxyInfo: await this.proxyConfiguration?.newProxyInfo({
                         request: request ?? undefined,

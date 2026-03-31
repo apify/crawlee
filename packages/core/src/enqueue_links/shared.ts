@@ -217,7 +217,10 @@ export function filterRequestOptionsByPatterns(
  */
 export function createRequestOptions(
     sources: readonly (string | Record<string, unknown>)[],
-    options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'strategy'> = {},
+    options: Pick<
+        EnqueueLinksOptions,
+        'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'sessionId' | 'strategy'
+    > = {},
 ): RequestOptions[] {
     return sources
         .map((src) =>
@@ -245,6 +248,10 @@ export function createRequestOptions(
 
             if (options.skipNavigation) {
                 requestOptions.skipNavigation = true;
+            }
+
+            if (options.sessionId) {
+                requestOptions.sessionId = options.sessionId;
             }
 
             return requestOptions;
