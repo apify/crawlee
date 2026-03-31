@@ -53,11 +53,20 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
+            -   name: Install Apify CLI (beta, standalone binary)
+                run: |
+                    BETA_TAG=$(gh api repos/apify/apify-cli/releases --jq '[.[] | select(.prerelease)] | .[0].tag_name')
+                    gh release download "$BETA_TAG" --repo apify/apify-cli --pattern "apify-${BETA_TAG#v}-linux-x64" --output /usr/local/bin/apify
+                    chmod +x /usr/local/bin/apify
+                    echo "Installed apify-cli ${BETA_TAG}"
+                env:
+                    GH_TOKEN: ${{ github.token }}
+
             -   name: Login to Apify
-                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
+                run: apify login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
             -   name: Add Apify secrets for E2E tests
-                run: npx -y apify-cli@beta secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
+                run: apify secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
 
             -   name: Install Dependencies
                 run: yarn
