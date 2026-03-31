@@ -50,7 +50,6 @@
         "@apify/consts": "^2.41.0",
         "@apify/datastructures": "^2.0.3",
         "@apify/log": "^2.5.18",
-        "@apify/pseudo_url": "^2.0.59",
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
         "@crawlee/memory-storage": "4.0.0",

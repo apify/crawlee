@@ -61,15 +61,15 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         $ = load(HTML);
     });
 
-    test('works with globs and same domain strategy', async () => {
+    test('works with include and same domain strategy', async () => {
         const { enqueued, requestQueue } = createRequestQueueMock();
 
-        const globs = ['**/first'];
+        const include = ['**/first'];
 
         await cheerioCrawlerEnqueueLinks({
             options: {
                 selector: '.click',
-                globs,
+                include,
                 strategy: EnqueueStrategy.SameDomain,
             },
             $,
@@ -82,15 +82,15 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         expect(enqueued[0].url).toBe('https://example.com/a/b/first');
     });
 
-    test('works with globs and all domains strategy', async () => {
+    test('works with include and all domains strategy', async () => {
         const { enqueued, requestQueue } = createRequestQueueMock();
 
-        const globs = ['**/first'];
+        const include = ['**/first'];
 
         await cheerioCrawlerEnqueueLinks({
             options: {
                 selector: '.click',
-                globs,
+                include,
                 strategy: EnqueueStrategy.All,
             },
             $,
@@ -122,16 +122,16 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         expect(enqueued[1].url).toBe('https://example.com/a/b/third');
     });
 
-    test('works with globs and exclude', async () => {
+    test('works with include and exclude', async () => {
         const { enqueued, requestQueue } = createRequestQueueMock();
 
-        const globs = ['**/first'];
+        const include = ['**/first'];
         const exclude = ['**/first'];
 
         await cheerioCrawlerEnqueueLinks({
             options: {
                 selector: '.click',
-                globs,
+                include,
                 exclude,
             },
             $,
