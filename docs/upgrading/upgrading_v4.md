@@ -48,6 +48,7 @@ The crawler following options are removed:
 - `BrowserCrawler._handleNavigation` (protected)
 - `HttpCrawler.userRequestHandlerTimeoutMillis` (protected)
 - `HttpCrawler._handleNavigation` (protected)
+- `HttpCrawler._applyCookies` (protected) - cookie merging is now handled by `BaseHttpClient`
 - `HttpCrawler._parseHTML` (protected)
 - `HttpCrawler._parseResponse` (protected) - made private
 - `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
@@ -226,6 +227,30 @@ const config = serviceLocator.getConfiguration();
 ```
 
 Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+
+## Cookie handling in `HttpCrawler` and `sendRequest`
+
+Cookie handling was refactored to be simpler and more predictable. The `BaseHttpClient` is now the single place where the `Cookie` request header is assembled, by merging cookies from the session's cookie jar with any `Cookie` header already present on the request. Explicit `Cookie` headers take precedence over jar cookies with the same name.
+
+This means `sendRequest` now respects user-provided cookies. In v3, passing a `Cookie` header via `sendRequest` headers was silently overwritten by the session's cookie jar — this is no longer the case.
+
+The precedence (highest to lowest) is:
+
+1. `sendRequest` `Cookie` header and `cookieJar` overrides
+2. `Cookie` header set directly on the request (via `request.headers`)
+3. Session cookie jar (persisted cookies received from `Set-Cookie` response headers or set manually)
+
+To fully replace the cookie jar for a `sendRequest` call, pass a custom `cookieJar` in the options:
+
+```typescript
+import { CookieJar } from 'tough-cookie';
+
+const jar = new CookieJar();
+await jar.setCookie('my=cookie', request.url);
+const response = await sendRequest({ url: '...' }, { cookieJar: jar });
+```
+
+The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
 
 ## `transformRequestFunction` precedence in `enqueueLinks`
 
