@@ -702,6 +702,41 @@ describe('RequestQueue remote', () => {
         expect(deleteMock).toHaveBeenLastCalledWith();
     });
 
+    test('should not refetch handled requests after watchdog reset (V3)', async () => {
+        const queue = new RequestQueue({ id: 'v3-test', client: storageClient });
+        const requestA = new Request({ url: 'http://example.com/a' });
+
+        vitest.spyOn(queue.client, 'addRequest').mockResolvedValueOnce({
+            requestId: 'a',
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: false,
+        });
+        await queue.addRequest(requestA, { forefront: true });
+
+        vitest.spyOn(queue.client, 'getRequest').mockResolvedValueOnce({ ...requestA, id: 'a' });
+        const fetched = await queue.fetchNextRequest();
+
+        vitest.spyOn(queue.client, 'updateRequest').mockResolvedValueOnce({
+            requestId: 'a',
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: true,
+        });
+        await queue.markRequestHandled(fetched!);
+
+        // Simulate watchdog reset (isFinished() calls _reset() after inactivity timeout)
+        queue['_reset']();
+
+        // Cache must survive reset — it's the only guard against server returning stale handled requests
+        expect(queue['recentlyHandledRequestsCache'].get('a')).toBe(true);
+
+        vitest.spyOn(queue.client, 'listHead').mockResolvedValueOnce({
+            items: [{ id: 'a', uniqueKey: 'aaa' }],
+        } as never);
+
+        const refetched = await queue.fetchNextRequest();
+        expect(refetched).toBe(null);
+    });
+
     test('Request.userData.__crawlee internal object is non-enumerable and always defined', async () => {
         const url = 'http://example.com';
         const method = 'POST';
