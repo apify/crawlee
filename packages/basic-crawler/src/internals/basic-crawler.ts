@@ -1518,22 +1518,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return false;
         }
 
-        if (source instanceof RequestQueueV1) {
-            // eslint-disable-next-line dot-notation
-            source['inProgress']?.delete(request.id!);
-        }
-
         const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(
             `Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`,
         );
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
-
-            if (source instanceof RequestQueueV1) {
-                // eslint-disable-next-line dot-notation
-                source['inProgress'].add(request.id!);
-            }
 
             await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
         }, delay);
