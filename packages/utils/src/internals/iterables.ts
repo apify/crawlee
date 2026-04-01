@@ -85,24 +85,34 @@ export async function* asyncifyIterable<T>(iterable: Iterable<T> | AsyncIterable
  */
 export async function* chunkedAsyncIterable<T>(
     iterable: AsyncIterable<T> | Iterable<T>,
-    chunkSize: number,
+    chunkSize: number | (() => number),
 ): AsyncIterable<T[]> {
-    if (typeof chunkSize !== 'number' || chunkSize < 1) {
+    const getChunkSize = typeof chunkSize === 'function' ? chunkSize : () => chunkSize;
+
+    if (typeof chunkSize === 'number' && chunkSize < 1) {
         throw new Error(`Chunk size must be a positive number (${inspect(chunkSize)}) received`);
     }
 
-    let chunk: T[] = [];
+    const iterator =
+        Symbol.asyncIterator in iterable
+            ? (iterable as AsyncIterable<T>)[Symbol.asyncIterator]()
+            : (iterable as Iterable<T>)[Symbol.iterator]();
 
-    for await (const item of iterable) {
-        chunk.push(item);
+    while (true) {
+        const currentSize = getChunkSize();
+        if (currentSize < 1) break;
 
-        if (chunk.length >= chunkSize) {
-            yield chunk;
-            chunk = [];
+        const chunk: T[] = [];
+
+        for (let i = 0; i < currentSize; i++) {
+            const next = await iterator.next();
+            if (next.done) {
+                break;
+            }
+            chunk.push(next.value);
         }
-    }
 
-    if (chunk.length) {
+        if (chunk.length === 0) break;
         yield chunk;
     }
 }

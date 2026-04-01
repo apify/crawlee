@@ -1202,7 +1202,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const requestLimit = this.calculateEnqueuedRequestLimit();
 
         const skippedBecauseOfRobots = new Set<string>();
-        const skippedBecauseOfLimit = new Set<string>();
         const skippedBecauseOfMaxCrawlDepth = new Set<string>();
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
@@ -1216,15 +1215,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         );
 
         async function* filteredRequests() {
-            let yieldedRequestCount = 0;
-
             for await (const request of requests) {
                 const url = typeof request === 'string' ? request : request.url!;
-
-                if (requestLimit !== undefined && yieldedRequestCount >= requestLimit) {
-                    skippedBecauseOfLimit.add(url);
-                    continue;
-                }
 
                 if (maxCrawlDepth !== undefined && (request as any).crawlDepth > maxCrawlDepth) {
                     skippedBecauseOfMaxCrawlDepth.add(url);
@@ -1233,14 +1225,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
                 if (await isAllowedBasedOnRobotsTxtFile(url)) {
                     yield request;
-                    yieldedRequestCount += 1;
                 } else {
                     skippedBecauseOfRobots.add(url);
                 }
             }
         }
 
-        const result = await this.requestManager!.addRequestsBatched(filteredRequests(), options);
+        const result = await this.requestManager!.addRequestsBatched(filteredRequests(), {
+            ...options,
+            maxNewRequests: requestLimit,
+        });
+
+        // Report requests skipped due to the maxNewRequests budget (i.e. maxRequestsPerCrawl limit)
+        const skippedBecauseOfLimit = result.requestsOverLimit ?? [];
 
         if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
@@ -1250,7 +1247,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (
             skippedBecauseOfRobots.size > 0 ||
-            skippedBecauseOfLimit.size > 0 ||
+            skippedBecauseOfLimit.length > 0 ||
             skippedBecauseOfMaxCrawlDepth.size > 0
         ) {
             await Promise.all(
@@ -1259,7 +1256,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         return this.handleSkippedRequest({ url, reason: 'robotsTxt' });
                     })
                     .concat(
-                        [...skippedBecauseOfLimit].map((url) => {
+                        skippedBecauseOfLimit.map((request) => {
+                            const url = typeof request === 'string' ? request : request.url!;
                             return this.handleSkippedRequest({ url, reason: 'limit' });
                         }),
                         [...skippedBecauseOfMaxCrawlDepth].map((url) => {
