@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { Configuration, type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { Configuration, StatisticStateSchema, type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
@@ -13,6 +13,8 @@ import { sleep } from 'crawlee';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+
+import { z } from 'zod'; 
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -538,5 +540,50 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         // This should not throw since we've persisted valid state
         await expect(newPredictor.initialize()).resolves.not.toThrow();
-    });
+    }),
+    test('preserves both custom user metrics and internal adaptive metrics', async () => {
+        // The user defines their custom schema
+        const customSchema = StatisticStateSchema.extend({
+            customAdaptiveMetric: z.number().default(0),
+        });
+
+        // Extract the TypeScript type for the handler
+        type CustomState = z.infer<typeof customSchema>;
+
+        const crawler = new AdaptivePlaywrightCrawler({
+            statisticsStateSchema: customSchema as any,
+            maxRequestsPerCrawl: 1,
+            
+            // Isolate the test data
+            configuration: new Configuration({
+                purgeOnStart: true,
+            }),
+
+            // The main handler
+            async requestHandler() {
+                const state = crawler.stats.state as CustomState;
+                state.customAdaptiveMetric += 42;
+
+                // Simulate the adaptive crawler doing its internal tracking
+                (crawler.stats as any).trackRenderingTypeMisprediction();
+            },
+
+            // The fallback handler
+            async failedRequestHandler() {
+                const state = crawler.stats.state as CustomState;
+                state.customAdaptiveMetric += 42;
+
+                // Simulate the adaptive crawler doing its internal tracking
+                (crawler.stats as any).trackRenderingTypeMisprediction();
+            }
+        });
+
+        await crawler.run([`http://${HOSTNAME}:${port}/static`]);
+
+        const finalState = crawler.stats.state as any;
+
+        expect(finalState.customAdaptiveMetric).toBe(42);
+        expect(finalState.renderingTypeMispredictions).toBe(1);
+        
+    }, 30000);
 });
