@@ -86,6 +86,8 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
 
+import { z } from 'zod';
+
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {}
 
 /**
@@ -134,6 +136,7 @@ export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    State extends StatisticState = StatisticState,
 > {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
@@ -384,7 +387,12 @@ export interface BasicCrawlerOptions<
      * Customize the way statistics collecting works, such as logging interval or
      * whether to output them to the Key-Value store.
      */
-    statisticsOptions?: StatisticsOptions;
+    statisticsOptions?: StatisticsOptions<State>;
+
+    /**
+     * Optional custom Zod schema for extending crawler statistics.
+     */
+    statisticsStateSchema?: z.ZodType<State, any, any>;
 
     /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
@@ -532,6 +540,7 @@ export class BasicCrawler<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    State extends StatisticState = StatisticState,
 > {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
@@ -544,7 +553,7 @@ export class BasicCrawler<
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
      */
-    readonly stats: Statistics;
+    readonly stats: Statistics<State>;
 
     /**
      * A reference to the underlying {@apilink RequestList} class that manages the crawler's {@apilink Request|requests}.
@@ -712,6 +721,7 @@ export class BasicCrawler<
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
+        statisticsStateSchema: ow.optional.object,
 
         id: ow.optional.string,
     };
@@ -720,7 +730,7 @@ export class BasicCrawler<
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> &
+        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, State> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
@@ -859,7 +869,8 @@ export class BasicCrawler<
             this.maxCrawlDepth = maxCrawlDepth;
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
             this.maxSessionRotations = maxSessionRotations;
-            this.stats = new Statistics({
+            this.stats = new Statistics<State>({
+                stateSchema: options.statisticsStateSchema,
                 logMessage: `${this.constructor.name} request statistics:`,
                 log: this.log,
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),

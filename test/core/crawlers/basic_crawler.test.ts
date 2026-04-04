@@ -17,7 +17,7 @@ import {
     RequestQueue,
     serviceLocator,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
+import { RequestState, StatisticStateSchema } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -29,6 +29,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 
 import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
+
+import { z } from 'zod';
 
 describe('BasicCrawler', () => {
     let logLevel: number;
@@ -1491,7 +1493,34 @@ describe('BasicCrawler', () => {
 
         log.setLevel(log.LEVELS.OFF);
         process.env.CRAWLEE_VERBOSE_LOG = undefined;
-    });
+    }),
+    
+    test('verifies custom statistics metrics via Zod schema', async () => {
+        const customSchema = StatisticStateSchema.extend({
+            customBasicMetric: z.number().default(0),
+        });
+
+        type CustomState = z.infer<typeof customSchema>;
+
+        const crawler = new BasicCrawler({
+            statisticsStateSchema: customSchema as any,
+            maxRequestsPerCrawl: 1,
+            
+            async requestHandler() {
+                const state = crawler.stats.state as CustomState;
+                state.customBasicMetric += 10;
+            },
+            
+            async failedRequestHandler() {
+                const state = crawler.stats.state as CustomState;
+                state.customBasicMetric += 10;
+            }
+        });
+
+        await crawler.run(['http://example.com/basic-test']);
+        
+        expect((crawler.stats.state as CustomState).customBasicMetric).toBe(10);
+});;
 
     describe('Uses SessionPool', () => {
         it('should use SessionPool', async () => {
