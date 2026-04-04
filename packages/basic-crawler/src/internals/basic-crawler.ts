@@ -39,6 +39,7 @@ import {
     GotScrapingHttpClient,
     KeyValueStore,
     mergeCookies,
+    Monitor,
     NonRetryableError,
     purgeDefaultStorages,
     RequestListAdapter,
@@ -405,6 +406,20 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Defaults to a new instance of {@apilink GotScrapingHttpClient}
      */
     httpClient?: BaseHttpClient;
+
+    /**
+     * Enables monitor mode: a compact real-time status block printed to `process.stderr` during the crawl.
+     *
+     * In interactive terminals (TTY), the block overwrites itself in-place.
+     * In non-TTY environments (CI, piped output), plain lines are printed instead.
+     *
+     * @default false
+     * @example
+     * ```ts
+     * const crawler = new BasicCrawler({ monitor: true });
+     * ```
+     */
+    monitor?: boolean;
 }
 
 /**
@@ -574,6 +589,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
+    protected monitorEnabled: boolean;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
@@ -612,6 +628,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
         onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
+        monitor: ow.optional.boolean,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -679,6 +696,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             statisticsOptions,
             httpClient,
+            monitor: monitorEnabled = false,
         } = options;
 
         if (requestManager !== undefined) {
@@ -696,6 +714,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         this.httpClient = httpClient ?? new GotScrapingHttpClient();
         this.log = log;
+        this.monitorEnabled = monitorEnabled;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
         this.events = config.getEventManager();
@@ -1038,9 +1057,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         let stats = {} as FinalStatistics;
 
+        const monitor = this.monitorEnabled
+            ? new Monitor(this.stats, this.autoscaledPool, {}, () => this.requestManager?.getTotalCount())
+            : null;
+
+        monitor?.start();
+
         try {
             await this.autoscaledPool!.run();
         } finally {
+            monitor?.stop();
             await this.teardown();
             await this.stats.stopCapturing();
 
