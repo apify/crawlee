@@ -34,3 +34,4 @@ test/e2e/**/packages
 
 # Local vitest config overrides
 vitest.config.local.mts
+.worktrees/
