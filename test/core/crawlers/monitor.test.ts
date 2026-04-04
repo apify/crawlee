@@ -152,4 +152,58 @@ describe('Monitor', () => {
         const combined = writes.join('');
         expect(combined).toContain('\x1b[5A');
     });
+
+    test('ETA is never negative when finished > total (approximate count)', () => {
+        const stats = new Statistics();
+        // Simulate 11 finished but total = 10 (approximate)
+        for (let i = 0; i < 11; i++) {
+            stats.startJob(`r${i}`);
+            stats.finishJob(`r${i}`, 0);
+        }
+
+        const monitor = new Monitor(stats, undefined, {}, () => 10);
+        const lines = monitor.buildLines();
+
+        // ETA should be ~00:00:00 (zero remaining), never a negative duration
+        expect(lines[2]).not.toMatch(/~-/);
+        expect(lines[2]).toContain('~00:00:00');
+    });
+
+    test('monitorOptions.intervalSecs controls the refresh interval', () => {
+        const writes: string[] = [];
+        vi.spyOn(process.stderr, 'write').mockImplementation((chunk: any) => {
+            writes.push(String(chunk));
+            return true;
+        });
+        Object.defineProperty(process.stderr, 'isTTY', { value: false, configurable: true });
+
+        const stats = new Statistics();
+        const monitor = new Monitor(stats, undefined, { intervalSecs: 3 });
+
+        monitor.start();
+        // At 2 s: only the immediate render from start() — interval has not fired yet
+        vi.advanceTimersByTime(2000);
+        const writeCountBefore = writes.length;
+
+        // At 3 s: interval fires once
+        vi.advanceTimersByTime(1000);
+        monitor.stop();
+
+        // After 3 s total, the interval should have fired exactly once, adding 5 more lines
+        expect(writes.length).toBe(writeCountBefore + 5);
+    });
+
+    test('CPU line shows N/A on Windows', () => {
+        const originalPlatform = process.platform;
+        Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+        vi.spyOn(os, 'loadavg').mockReturnValue([0, 0, 0]);
+
+        const stats = new Statistics();
+        const monitor = new Monitor(stats);
+        const lines = monitor.buildLines();
+
+        Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+
+        expect(lines[3]).toContain('CPU: N/A');
+    });
 });

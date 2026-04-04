@@ -60,6 +60,7 @@ export class Monitor {
     start(): void {
         this.render(); // render immediately so short crawls always show output
         this.intervalId = setInterval(() => this.render(), this.intervalMs);
+        this.intervalId.unref(); // don't prevent process exit if the event loop would otherwise be empty
     }
 
     /** Stops the periodic display and clears the last rendered block from the terminal. */
@@ -108,7 +109,8 @@ export class Monitor {
 
         let etaStr = 'N/A';
         if (total != null && total > 0 && speed > 0) {
-            const remaining = total - finished;
+            // Use Math.max to guard against negative remaining (e.g. when total is an approximate count)
+            const remaining = Math.max(0, total - finished);
             const etaMs = (remaining / speed) * 60 * 1000;
             etaStr = `~${formatDuration(etaMs)}`;
         }
@@ -118,7 +120,10 @@ export class Monitor {
         const usedMem = totalMem - os.freemem();
         const cpus = os.cpus();
         const cpuLoad = os.loadavg()[0];
-        const cpuPct = cpus.length > 0 ? Math.min(100, (cpuLoad / cpus.length) * 100).toFixed(0) : '?';
+        // os.loadavg() always returns [0,0,0] on Windows — show N/A to avoid misleading output.
+        const cpuPct = process.platform === 'win32'
+            ? 'N/A'
+            : cpus.length > 0 ? Math.min(100, (cpuLoad / cpus.length) * 100).toFixed(0) : '?';
 
         const concurrency = this.autoscaledPool
             ? `${this.autoscaledPool.currentConcurrency}/${this.autoscaledPool.maxConcurrency} (desired: ${this.autoscaledPool.desiredConcurrency})`

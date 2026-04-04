@@ -40,6 +40,7 @@ import {
     KeyValueStore,
     mergeCookies,
     Monitor,
+    type MonitorOptions,
     NonRetryableError,
     purgeDefaultStorages,
     RequestListAdapter,
@@ -420,6 +421,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * ```
      */
     monitor?: boolean;
+
+    /**
+     * Options for the monitor display. Only used when `monitor` is `true`.
+     */
+    monitorOptions?: MonitorOptions;
 }
 
 /**
@@ -590,6 +596,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
     protected monitorEnabled: boolean;
+    protected monitorOptions: MonitorOptions;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
@@ -629,6 +636,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
         monitor: ow.optional.boolean,
+        monitorOptions: ow.optional.object,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -697,6 +705,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             statisticsOptions,
             httpClient,
             monitor: monitorEnabled = false,
+            monitorOptions = {},
         } = options;
 
         if (requestManager !== undefined) {
@@ -715,6 +724,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.httpClient = httpClient ?? new GotScrapingHttpClient();
         this.log = log;
         this.monitorEnabled = monitorEnabled;
+        this.monitorOptions = monitorOptions;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
         this.events = config.getEventManager();
@@ -956,6 +966,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         const log = async () => {
+            // When monitor mode is active, it owns the display — skip the periodic log to avoid
+            // interleaving plain log lines with ANSI cursor-movement sequences.
+            if (this.monitorEnabled) return;
+
             const { mode: operationMode, failedDelta } = getOperationMode();
             let message: string;
 
@@ -1058,7 +1072,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         let stats = {} as FinalStatistics;
 
         const monitor = this.monitorEnabled
-            ? new Monitor(this.stats, this.autoscaledPool, {}, () => this.requestManager?.getTotalCount())
+            ? new Monitor(this.stats, this.autoscaledPool, this.monitorOptions, () => this.requestManager?.getTotalCount())
             : null;
 
         monitor?.start();
