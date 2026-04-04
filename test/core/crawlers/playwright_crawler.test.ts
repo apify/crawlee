@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
-import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
+import { PlaywrightCrawler, RequestList, Configuration } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
@@ -12,6 +12,10 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
+
+import { StatisticStateSchema } from '@crawlee/core';
+
+import { z } from 'zod';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 
@@ -211,5 +215,42 @@ describe('PlaywrightCrawler', () => {
             requestHandler,
         });
         await playwrightCrawler.run();
+    });
+
+    test('tracks custom metrics using statisticsStateSchema', async () => {
+        const customSchema = StatisticStateSchema.extend({
+            customPlaywrightMetric: z.number().default(0),
+        });
+
+        type CustomState = z.infer<typeof customSchema>;
+
+        const crawler = new PlaywrightCrawler({
+            statisticsStateSchema: customSchema as any,
+            maxRequestsPerCrawl: 1,
+            
+            // Isolate the test data
+            configuration: new Configuration({
+                purgeOnStart: true,
+            }),
+
+            async requestHandler() {
+                // Using the outer 'crawler' variable to avoid TypeScript 'never' generic issues
+                const state = crawler.stats.state as CustomState;
+                state.customPlaywrightMetric += 50;
+            },
+
+            async failedRequestHandler() {
+                const state = crawler.stats.state as CustomState;
+                state.customPlaywrightMetric += 50;
+            }
+        });
+
+        // Run against the local server using backticks for interpolation
+        await crawler.run([`http://${HOSTNAME}:${port}/static`]);
+
+        const finalState = crawler.stats.state as CustomState;
+
+        // Verify the schema initialized the default and tracked the addition
+        expect(finalState.customPlaywrightMetric).toBe(50);
     });
 });

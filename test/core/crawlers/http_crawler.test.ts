@@ -6,6 +6,7 @@ import { HttpCrawler } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
+
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
     res.setHeader('content-type', 'text/html; charset=utf-8');
