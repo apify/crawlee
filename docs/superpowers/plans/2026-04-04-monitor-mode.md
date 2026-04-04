@@ -4,7 +4,7 @@
 
 **Goal:** Add an opt-in `monitor: true` option to `BasicCrawler` that prints a compact real-time status block to `process.stderr` during a crawl run.
 
-**Architecture:** A new `Monitor` class in `packages/core` reads from the `Statistics` instance (for progress/speed) and uses Node.js `os` and `process` built-ins (for CPU/memory). It writes a fixed-height block to `process.stderr` using ANSI escape codes to overwrite itself in TTY mode, falling back to plain newlines in non-TTY mode. `BasicCrawler.run()` instantiates `Monitor` (after `_init()`) when `monitor: true`, starts it, and stops it in the `finally` block.
+**Architecture:** A new `Monitor` class in `packages/core` reads from the `Statistics` instance (for progress/speed) and uses Node.js `os` and `process` built-ins (for CPU/memory). It writes a fixed-height block to `process.stderr` using ANSI escape codes to overwrite itself in TTY mode, falling back to plain newlines in non-TTY mode. `BasicCrawler.run()` instantiates `Monitor` (after `_init()`) when `monitor: true`, renders an initial frame immediately on `start()`, and stops it at the **very start** of the `finally` block (before any teardown logging). When `monitor: true`, `getPeriodicLogger()` is called with an option to suppress its output so the two writers do not interleave.
 
 **Tech Stack:** TypeScript, Node.js built-ins (`os`, `process`), Vitest (tests), `@crawlee/core`, `@crawlee/basic`
 
@@ -108,8 +108,9 @@ export class Monitor {
         this.intervalMs = (options.intervalSecs ?? 5) * 1000;
     }
 
-    /** Starts the periodic display. */
+    /** Starts the periodic display. Renders an initial frame immediately, then repeats on each interval. */
     start(): void {
+        this.render(); // ISSUE-1 fix: render immediately so short crawls always show output
         this.intervalId = setInterval(() => this.render(), this.intervalMs);
     }
 
@@ -140,18 +141,25 @@ export class Monitor {
         const finished = state.requestsFinished;
         const failed = state.requestsFailed;
         const total = this.totalRequests?.();
+        // ISSUE-6 note: getTotalCount() on RequestManagerTandem may be an approximate sum
+        // of the underlying RequestList + RequestQueue. The plan treats this as a best-effort
+        // estimate: progress % and ETA are shown when total > 0, hidden when total === 0.
+        // This matches the existing behaviour in PR #2692 and is acceptable for a "monitor mode"
+        // display (non-authoritative progress indicator). No special-casing per request-source mode.
         const speed = calculated.requestsFinishedPerMinute;
 
-        const progressStr = total != null
+        const progressStr = total != null && total > 0
             ? `${finished}/${total} (${((finished / total) * 100).toFixed(1)}%)`
-            : `${finished}/? (?%)`;
+            : total === 0
+              ? `${finished}/0 (N/A%)`
+              : `${finished}/? (?%)`;
 
         const failedPct = finished + failed > 0
             ? ` | Failed: ${failed} (${((failed / (finished + failed)) * 100).toFixed(1)}%)`
             : '';
 
         let etaStr = 'N/A';
-        if (total != null && speed > 0) {
+        if (total != null && total > 0 && speed > 0) {
             const remaining = total - finished;
             const etaMs = (remaining / speed) * 60 * 1000;
             etaStr = `~${formatDuration(etaMs)}`;
@@ -279,16 +287,20 @@ import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 describe('Monitor', () => {
     const localStorageEmulator = new MemoryStorageEmulator();
+    let originalIsTTY: boolean | undefined; // ISSUE-7 fix: save original descriptor
 
     beforeEach(async () => {
         await localStorageEmulator.init();
         vi.useFakeTimers();
+        originalIsTTY = process.stderr.isTTY; // save before any test mutates it
     });
 
     afterEach(async () => {
         await localStorageEmulator.destroy();
         vi.useRealTimers();
         vi.restoreAllMocks();
+        // Restore isTTY to original value (Object.defineProperty mutations not undone by vi.restoreAllMocks)
+        Object.defineProperty(process.stderr, 'isTTY', { value: originalIsTTY, configurable: true });
     });
 
     test('constructs without throwing', () => {
@@ -570,9 +582,12 @@ this.monitorEnabled = monitor;
 
 - [ ] **Step 4: Instantiate and run `Monitor` inside `run()`**
 
-Find the `run()` method. After `const periodicLogger = this.getPeriodicLogger();` (around line 1033), add:
+Find the `run()` method. **Check how `getPeriodicLogger()` is called** — it returns an object with a `stop()` method. When `monitor: true`, the periodic logger must be silenced so both do not write to stderr simultaneously. Do this by checking if `BasicCrawlerOptions` already has a `statusMessageLoggingInterval` option; if `monitor` is true, pass `statusMessageLoggingInterval: 0` (effectively disabling periodic status log messages) to the periodic logger or set the logging to `Number.POSITIVE_INFINITY` to suppress it.
+
+Concretely, after `await this._init();` and `await this.stats.startCapturing();`, replace the existing `const periodicLogger = this.getPeriodicLogger();` line with:
 
 ```typescript
+const periodicLogger = this.getPeriodicLogger();
 const monitorInstance = this.monitorEnabled
     ? new Monitor(
           this.stats,
@@ -581,14 +596,21 @@ const monitorInstance = this.monitorEnabled
           () => this.requestManager?.getTotalCount(),
       )
     : null;
+// When monitor is active, suppress the periodic status logger (ISSUE-2 fix)
+if (this.monitorEnabled) {
+    periodicLogger.stop();
+}
 monitorInstance?.start();
 ```
 
-In the `finally` block, before `periodicLogger.stop()`, add:
+In the `finally` block, **as the very first statement** (ISSUE-3 fix — before `await this.teardown()` and before any final logging), add:
 
 ```typescript
+// Stop monitor first so its ANSI block is cleared before any teardown logs
 monitorInstance?.stop();
 ```
+
+Then resume with the existing teardown logic.
 
 - [ ] **Step 5: Run TypeScript check**
 
@@ -618,11 +640,17 @@ The file has a top-level `describe('BasicCrawler', ...)`. Add a new nested `desc
 
 - [ ] **Step 2: Add the integration tests**
 
-Add this block inside `describe('BasicCrawler', ...)`:
+Add this block inside `describe('BasicCrawler', ...)`. **These tests spy on `process.stderr.write` to verify actual monitor output is produced (ISSUE-4 fix).**
 
 ```typescript
 describe('monitor option', () => {
-    test('crawler with monitor: true completes successfully and returns final stats', async () => {
+    test('crawler with monitor: true writes to stderr during run', async () => {
+        const writes: string[] = [];
+        const writeStub = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: any) => {
+            writes.push(String(chunk));
+            return true;
+        });
+
         const requestList = await RequestList.open(null, [
             `http://${HOSTNAME}:${port}/`,
         ]);
@@ -637,11 +665,22 @@ describe('monitor option', () => {
 
         const stats = await crawler.run();
 
+        writeStub.mockRestore();
+
         expect(stats.requestsFinished).toBe(1);
         expect(stats.requestsFailed).toBe(0);
+        // Monitor must have written at least one 5-line block containing known marker
+        const combined = writes.join('');
+        expect(combined).toContain('Progress:'); // ISSUE-4 fix: assert monitor-specific marker, not just non-empty
     });
 
-    test('crawler with monitor: false behaves the same as without the option', async () => {
+    test('crawler with monitor: false does not write monitor output to stderr', async () => {
+        const writes: string[] = [];
+        const writeStub = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: any) => {
+            writes.push(String(chunk));
+            return true;
+        });
+
         const requestList = await RequestList.open(null, [
             `http://${HOSTNAME}:${port}/`,
         ]);
@@ -656,8 +695,13 @@ describe('monitor option', () => {
 
         const stats = await crawler.run();
 
+        writeStub.mockRestore();
+
         expect(stats.requestsFinished).toBe(1);
         expect(stats.requestsFailed).toBe(0);
+        // No monitor block: stderr writes should be empty or contain no progress line
+        const combined = writes.join('');
+        expect(combined).not.toContain('Progress:');
     });
 });
 ```
@@ -712,9 +756,12 @@ git commit -m "test: add integration tests for BasicCrawler monitor option"
 | Export from `@crawlee/core` | Task 2 |
 | `monitor?: boolean` option on `BasicCrawlerOptions` | Task 4 Step 2 |
 | Instantiated in `run()` after `_init()` | Task 4 Step 4 |
-| Stopped in `finally` block | Task 4 Step 4 |
+| Initial render on `start()` for short crawls | Task 1 — `start()` calls `render()` immediately (ISSUE-1) |
+| `stop()` at very start of `finally`, before teardown logs | Task 4 Step 4 (ISSUE-3) |
+| Periodic logger suppressed when monitor active | Task 4 Step 4 (ISSUE-2) |
+| `total = 0` handled — shows `N/A%` not `NaN` | Task 1 — `buildLines()` (ISSUE-5) |
+| Integration tests verify stderr output, not just stats | Task 5 — `vi.spyOn(process.stderr.write)` (ISSUE-4) |
 | Unit tests for `Monitor` | Task 3 |
-| Integration tests for `BasicCrawler` | Task 5 |
 
 All requirements covered. ✅
 
