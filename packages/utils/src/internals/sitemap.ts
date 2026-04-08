@@ -194,6 +194,13 @@ export interface ParseSitemapOptions {
      * @default true
      */
     reportNetworkErrors?: boolean;
+    /**
+     * Optional filter for nested sitemap URLs discovered in sitemap index files.
+     * Called with the URL of each child sitemap before it is fetched.
+     * Return `true` to include the sitemap, `false` to skip it.
+     * If not provided, all nested sitemaps are followed.
+     */
+    sitemapFilter?: (sitemapUrl: string) => boolean;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -209,6 +216,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         sitemapRetries = 3,
         networkTimeouts,
         reportNetworkErrors = true,
+        sitemapFilter,
     } = options ?? {};
 
     const sources = [...initialSources];
@@ -340,6 +348,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
+                if (sitemapFilter && !sitemapFilter(item.url)) {
+                    log.debug(`Skipping sitemap ${item.url} due to sitemapFilter.`);
+                    continue;
+                }
+
                 sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
                 if (emitNestedSitemaps) {
                     yield { loc: item.url, originSitemapUrl: null } as any;
