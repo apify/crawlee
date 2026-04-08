@@ -1,20 +1,21 @@
 import type { StorageClient } from '@crawlee/types';
-import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { Log } from '@apify/log';
-import type { BetterIntervalID } from '@apify/utilities';
-import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';
-import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
+import type { ClientLoadSignal, ClientSnapshot } from './client_load_signal';
+import { createClientLoadSignal } from './client_load_signal';
+import type { CpuLoadSignal, CpuSnapshot } from './cpu_load_signal';
+import { createCpuLoadSignal } from './cpu_load_signal';
+import type { EventLoopLoadSignal, EventLoopSnapshot } from './event_loop_load_signal';
+import { createEventLoopLoadSignal } from './event_loop_load_signal';
+import type { LoadSignal } from './load_signal';
+import type { MemorySnapshot } from './memory_load_signal';
+import { MemoryLoadSignal } from './memory_load_signal';
 import type { SystemInfo } from './system_status';
-
-const RESERVE_MEMORY_RATIO = 0.5;
-const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
-const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10000;
 
 export interface SnapshotterOptions {
     /**
@@ -68,28 +69,6 @@ export interface SnapshotterOptions {
     config?: Configuration;
 }
 
-interface MemorySnapshot {
-    createdAt: Date;
-    isOverloaded: boolean;
-    usedBytes?: number;
-}
-interface CpuSnapshot {
-    createdAt: Date;
-    isOverloaded: boolean;
-    usedRatio: number;
-    ticks?: { idle: number; total: number };
-}
-interface EventLoopSnapshot {
-    createdAt: Date;
-    isOverloaded: boolean;
-    exceededMillis: number;
-}
-interface ClientSnapshot {
-    createdAt: Date;
-    isOverloaded: boolean;
-    rateLimitErrorCount: number;
-}
-
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
  * as either overloaded or not during the last interval. Keeps a history of the snapshots.
@@ -113,6 +92,7 @@ interface ClientSnapshot {
  *
  * Client becomes overloaded when rate limit errors (429 - Too Many Requests),
  * typically received from the request queue, exceed the set limit within the set interval.
+ *
  * @category Scaling
  */
 export class Snapshotter {
@@ -120,24 +100,36 @@ export class Snapshotter {
     client: StorageClient;
     config: Configuration;
     events: EventManager;
-    eventLoopSnapshotIntervalMillis: number;
-    clientSnapshotIntervalMillis: number;
-    snapshotHistoryMillis: number;
-    maxBlockedMillis: number;
-    maxUsedMemoryRatio: number;
-    maxClientErrors: number;
-    maxMemoryBytes!: number;
-    private maxMemoryRatio: number | undefined;
 
-    cpuSnapshots: CpuSnapshot[] = [];
-    eventLoopSnapshots: EventLoopSnapshot[] = [];
-    memorySnapshots: MemorySnapshot[] = [];
-    clientSnapshots: ClientSnapshot[] = [];
+    private readonly memorySignal: MemoryLoadSignal;
+    private readonly eventLoopSignal: EventLoopLoadSignal;
+    private readonly cpuSignal: CpuLoadSignal;
+    private readonly clientSignal: ClientLoadSignal;
 
-    eventLoopInterval: BetterIntervalID = null!;
-    clientInterval: BetterIntervalID = null!;
+    /**
+     * Returns the four built-in signals as an array, so `SystemStatus` can
+     * iterate them alongside any custom `LoadSignal` instances.
+     */
+    getLoadSignals(): LoadSignal[] {
+        return [this.memorySignal, this.eventLoopSignal, this.cpuSignal, this.clientSignal];
+    }
 
-    lastLoggedCriticalMemoryOverloadAt: Date | null = null;
+    // Legacy public properties kept for backward compat (tests read these directly)
+    get cpuSnapshots(): CpuSnapshot[] {
+        return this.cpuSignal.store.getAll();
+    }
+
+    get eventLoopSnapshots(): EventLoopSnapshot[] {
+        return this.eventLoopSignal.store.getAll();
+    }
+
+    get memorySnapshots(): MemorySnapshot[] {
+        return this.memorySignal.getMemorySnapshots();
+    }
+
+    get clientSnapshots(): ClientSnapshot[] {
+        return this.clientSignal.store.getAll();
+    }
 
     /**
      * @param [options] All `Snapshotter` configuration options.
@@ -175,60 +167,52 @@ export class Snapshotter {
         this.config = config;
         this.events = this.config.getEventManager();
 
-        this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
-        this.clientSnapshotIntervalMillis = clientSnapshotIntervalSecs * 1000;
-        this.snapshotHistoryMillis = snapshotHistorySecs * 1000;
-        this.maxBlockedMillis = maxBlockedMillis;
-        this.maxUsedMemoryRatio = maxUsedMemoryRatio;
-        this.maxClientErrors = maxClientErrors;
-        // We need to pre-bind those functions to be able to successfully remove listeners.
-        this._snapshotCpu = this._snapshotCpu.bind(this);
-        this._snapshotMemory = this._snapshotMemory.bind(this);
+        const snapshotHistoryMillis = snapshotHistorySecs * 1000;
+
+        this.memorySignal = new MemoryLoadSignal({
+            maxUsedMemoryRatio,
+            snapshotHistoryMillis,
+            config: this.config,
+            log: this.log,
+        });
+
+        this.eventLoopSignal = createEventLoopLoadSignal({
+            eventLoopSnapshotIntervalSecs,
+            maxBlockedMillis,
+            snapshotHistoryMillis,
+        });
+
+        this.cpuSignal = createCpuLoadSignal({
+            snapshotHistoryMillis,
+            config: this.config,
+        });
+
+        this.clientSignal = createClientLoadSignal({
+            client: this.client,
+            clientSnapshotIntervalSecs,
+            maxClientErrors,
+            snapshotHistoryMillis,
+        });
     }
 
     /**
      * Starts capturing snapshots at configured intervals.
      */
     async start(): Promise<void> {
-        const memoryMbytes = this.config.get('memoryMbytes', 0);
-
-        if (memoryMbytes > 0) {
-            this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
-        } else {
-            this.maxMemoryRatio = this.config.get('availableMemoryRatio');
-            if (!this.maxMemoryRatio) {
-                throw new Error('availableMemoryRatio is not set in configuration.');
-            } else {
-                this.log.debug(
-                    `Setting max memory of this run to ${this.maxMemoryRatio * 100} % of available memory. ` +
-                        'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
-                );
-            }
-            // Create a fallback memory measurement in case of missing memTotalBytes in SystemInfo. Weak types of
-            // SystemInfo do not guarantee that memTotalBytes is always present, and without it, we cannot compute the
-            // maxMemoryBytes.
-            // This does not happen in practice, but code allows it.
-            this.maxMemoryBytes = await this.getTotalMemoryBytes();
-        }
-
-        // Start snapshotting.
-        this.eventLoopInterval = betterSetInterval(
-            this._snapshotEventLoop.bind(this),
-            this.eventLoopSnapshotIntervalMillis,
-        );
-        this.clientInterval = betterSetInterval(this._snapshotClient.bind(this), this.clientSnapshotIntervalMillis);
-        this.events.on(EventType.SYSTEM_INFO, this._snapshotCpu);
-        this.events.on(EventType.SYSTEM_INFO, this._snapshotMemory);
+        await this.memorySignal.start();
+        await this.eventLoopSignal.start();
+        await this.cpuSignal.start();
+        await this.clientSignal.start();
     }
 
     /**
      * Stops all resource capturing.
      */
     async stop(): Promise<void> {
-        betterClearInterval(this.eventLoopInterval);
-        betterClearInterval(this.clientInterval);
-        this.events.off(EventType.SYSTEM_INFO, this._snapshotCpu);
-        this.events.off(EventType.SYSTEM_INFO, this._snapshotMemory);
+        await this.memorySignal.stop();
+        await this.eventLoopSignal.stop();
+        await this.cpuSignal.stop();
+        await this.clientSignal.stop();
         // Allow microtask queue to unwind before stop returns.
         await new Promise((resolve) => {
             setImmediate(resolve);
@@ -239,206 +223,73 @@ export class Snapshotter {
      * Returns a sample of latest memory snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getMemorySample(sampleDurationMillis?: number) {
-        return this._getSample(this.memorySnapshots, sampleDurationMillis);
+    getMemorySample(sampleDurationMillis?: number): MemorySnapshot[] {
+        return this.memorySignal.getSample(sampleDurationMillis);
     }
 
     /**
      * Returns a sample of latest event loop snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getEventLoopSample(sampleDurationMillis?: number) {
-        return this._getSample(this.eventLoopSnapshots, sampleDurationMillis);
+    getEventLoopSample(sampleDurationMillis?: number): EventLoopSnapshot[] {
+        return this.eventLoopSignal.getSample(sampleDurationMillis);
     }
 
     /**
      * Returns a sample of latest CPU snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getCpuSample(sampleDurationMillis?: number) {
-        return this._getSample(this.cpuSnapshots, sampleDurationMillis);
+    getCpuSample(sampleDurationMillis?: number): CpuSnapshot[] {
+        return this.cpuSignal.getSample(sampleDurationMillis);
     }
 
     /**
      * Returns a sample of latest Client snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
-    getClientSample(sampleDurationMillis?: number) {
-        return this._getSample(this.clientSnapshots, sampleDurationMillis);
+    getClientSample(sampleDurationMillis?: number): ClientSnapshot[] {
+        return this.clientSignal.getSample(sampleDurationMillis);
     }
 
     /**
-     * Finds the latest snapshots by sampleDurationMillis in the provided array.
-     */
-    protected _getSample<T extends { createdAt: Date }>(snapshots: T[], sampleDurationMillis?: number): T[] {
-        if (!sampleDurationMillis) return snapshots;
-
-        const sample: T[] = [];
-        let idx = snapshots.length;
-        if (!idx) return sample;
-
-        const latestTime = snapshots[idx - 1].createdAt;
-        while (idx--) {
-            const snapshot = snapshots[idx];
-            if (+latestTime - +snapshot.createdAt <= sampleDurationMillis) {
-                sample.unshift(snapshot);
-            } else {
-                break;
-            }
-        }
-
-        return sample;
-    }
-
-    /**
-     * Creates a snapshot of current memory usage
-     * using the Apify platform `systemInfo` event.
+     * @deprecated Kept for backward compatibility.
      */
     protected _snapshotMemory(systemInfo: SystemInfo) {
-        const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
-        this._pruneSnapshots(this.memorySnapshots, createdAt);
-        const { memCurrentBytes, memTotalBytes } = systemInfo;
-
-        let maxMemoryBytes = this.maxMemoryBytes!;
-        if (this.maxMemoryRatio !== undefined && this.maxMemoryRatio > 0) {
-            maxMemoryBytes = this.maxMemoryRatio * (memTotalBytes ?? this.maxMemoryBytes);
-        }
-
-        const snapshot: MemorySnapshot = {
-            createdAt,
-            isOverloaded: memCurrentBytes! / maxMemoryBytes > this.maxUsedMemoryRatio,
-            usedBytes: memCurrentBytes,
-        };
-
-        this.memorySnapshots.push(snapshot);
-        this._memoryOverloadWarning(systemInfo, maxMemoryBytes);
+        this.memorySignal._onSystemInfo(systemInfo);
     }
 
     /**
-     * Checks for critical memory overload and logs it to the console.
+     * @deprecated Kept for backward compatibility.
      */
-    protected _memoryOverloadWarning(systemInfo: SystemInfo, maxMemoryBytes: number) {
-        const { memCurrentBytes } = systemInfo;
-        const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
-        if (
-            this.lastLoggedCriticalMemoryOverloadAt &&
-            +createdAt < +this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS
-        )
-            return;
-
-        const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * maxMemoryBytes;
-        const reserveMemory = maxMemoryBytes * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
-        const criticalOverloadBytes = maxDesiredMemoryBytes + reserveMemory;
-        const isCriticalOverload = memCurrentBytes! > criticalOverloadBytes;
-
-        if (isCriticalOverload) {
-            const usedPercentage = Math.round((memCurrentBytes! / maxMemoryBytes) * 100);
-            const toMb = (bytes: number) => Math.round(bytes / 1024 ** 2);
-            this.log.warning(
-                'Memory is critically overloaded. ' +
-                    `Using ${toMb(memCurrentBytes!)} MB of ${toMb(
-                        maxMemoryBytes,
-                    )} MB (${usedPercentage}%). Consider increasing available memory.`,
-            );
-            this.lastLoggedCriticalMemoryOverloadAt = createdAt;
-        }
+    protected _memoryOverloadWarning(systemInfo: SystemInfo) {
+        this.memorySignal._memoryOverloadWarning(systemInfo);
     }
 
     /**
-     * Creates a snapshot of current event loop delay.
+     * @deprecated Kept for backward compatibility.
      */
     protected _snapshotEventLoop(intervalCallback: () => unknown) {
-        const now = new Date();
-        this._pruneSnapshots(this.eventLoopSnapshots, now);
-
-        const snapshot = {
-            createdAt: now,
-            isOverloaded: false,
-            exceededMillis: 0,
-        };
-
-        const previousSnapshot = this.eventLoopSnapshots[this.eventLoopSnapshots.length - 1];
-        if (previousSnapshot) {
-            const { createdAt } = previousSnapshot;
-            const delta = now.getTime() - +createdAt - this.eventLoopSnapshotIntervalMillis;
-
-            if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
-            snapshot.exceededMillis = Math.max(delta - this.maxBlockedMillis, 0);
-        }
-
-        this.eventLoopSnapshots.push(snapshot);
-        intervalCallback();
+        this.eventLoopSignal.handle(intervalCallback);
     }
 
     /**
-     * Creates a snapshot of current CPU usage using the Apify platform `systemInfo` event.
+     * @deprecated Kept for backward compatibility.
      */
     protected _snapshotCpu(systemInfo: SystemInfo) {
-        const { cpuCurrentUsage, isCpuOverloaded } = systemInfo;
-        const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
-        this._pruneSnapshots(this.cpuSnapshots, createdAt);
-
-        this.cpuSnapshots.push({
-            createdAt,
-            isOverloaded: isCpuOverloaded!,
-            usedRatio: Math.ceil(cpuCurrentUsage! / 100),
-        });
+        this.cpuSignal.handle(systemInfo);
     }
 
     /**
-     * Creates a snapshot of current API state by checking for
-     * rate limit errors. Only errors produced by a 2nd retry
-     * of the API call are considered for snapshotting since
-     * earlier errors may just be caused by a random spike in
-     * number of requests and do not necessarily signify API
-     * overloading.
+     * @deprecated Kept for backward compatibility.
      */
     protected _snapshotClient(intervalCallback: () => unknown) {
-        const now = new Date();
-        this._pruneSnapshots(this.clientSnapshots, now);
-
-        const allErrorCounts = this.client.stats?.rateLimitErrors ?? []; // storage client might not support this
-        const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
-
-        // Handle empty snapshots array
-        const snapshot = {
-            createdAt: now,
-            isOverloaded: false,
-            rateLimitErrorCount: currentErrCount,
-        };
-        const previousSnapshot = this.clientSnapshots[this.clientSnapshots.length - 1];
-        if (previousSnapshot) {
-            const { rateLimitErrorCount } = previousSnapshot;
-            const delta = currentErrCount - rateLimitErrorCount;
-            if (delta > this.maxClientErrors) snapshot.isOverloaded = true;
-        }
-
-        this.clientSnapshots.push(snapshot);
-        intervalCallback();
+        this.clientSignal.handle(intervalCallback);
     }
 
     /**
-     * Removes snapshots that are older than the snapshotHistorySecs option
-     * from the array (destructively - in place).
+     * @deprecated Pruning is now handled by individual signals.
      */
-    protected _pruneSnapshots(
-        snapshots: MemorySnapshot[] | CpuSnapshot[] | EventLoopSnapshot[] | ClientSnapshot[],
-        now: Date,
-    ) {
-        let oldCount = 0;
-        for (let i = 0; i < snapshots.length; i++) {
-            const { createdAt } = snapshots[i];
-            if (now.getTime() - new Date(createdAt).getTime() > this.snapshotHistoryMillis) oldCount++;
-            else break;
-        }
-        snapshots.splice(0, oldCount);
-    }
-
-    protected async getTotalMemoryBytes() {
-        if (this.config.get('systemInfoV2')) {
-            const containerized = this.config.get('containerized', await isContainerized());
-            return (await getMemoryInfoV2(containerized)).totalBytes;
-        }
-        return (await getMemoryInfo()).totalBytes;
+    protected _pruneSnapshots(_snapshots: any[], _now: Date) {
+        // no-op — signals prune themselves
     }
 }

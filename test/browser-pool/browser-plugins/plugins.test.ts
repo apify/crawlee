@@ -16,8 +16,8 @@ import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper';
 
+import { runExampleComServer } from '../../shared/_helper';
 import { createProxyServer } from './create-proxy-server';
 
 // Firefox browser launch is significantly slower than Chromium/WebKit (~12s vs <1s).

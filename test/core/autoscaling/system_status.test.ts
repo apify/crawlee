@@ -13,6 +13,18 @@ describe('SystemStatus', () => {
         log.setLevel(logLevel);
     });
 
+    function mockSignal(name: string, snapshots: any[]) {
+        return {
+            name,
+            overloadedRatio: 0, // overridden by SystemStatusOptions anyway
+            getSample(sampleDurationMillis?: number) {
+                return sampleDurationMillis ? snapshots.slice(-sampleDurationMillis) : snapshots;
+            },
+            async start() {},
+            async stop() {},
+        };
+    }
+
     class MockSnapshotter {
         constructor(
             readonly memSnapshots: any[],
@@ -20,6 +32,15 @@ describe('SystemStatus', () => {
             readonly cpuSnapshots: any[],
             readonly clientSnapshots: any[],
         ) {}
+
+        getLoadSignals() {
+            return [
+                mockSignal('memInfo', this.memSnapshots),
+                mockSignal('eventLoopInfo', this.loopSnapshots),
+                mockSignal('cpuInfo', this.cpuSnapshots),
+                mockSignal('clientInfo', this.clientSnapshots),
+            ];
+        }
 
         getMemorySample(offset: number) {
             return this.memSnapshots.slice(-offset);
@@ -119,8 +140,11 @@ describe('SystemStatus', () => {
 
     test('should overload when threshold is crossed', () => {
         const snaps = generateSnapsSync(50, true);
-        const systemStatus = new SystemStatus({
-            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps) as any,
+        const mock = new MockSnapshotter(snaps, snaps, snaps, snaps) as any;
+
+        // At exactly 0.5, the 50% overloaded sample should NOT trigger (uses >)
+        let systemStatus = new SystemStatus({
+            snapshotter: mock,
             maxMemoryOverloadedRatio: 0.5,
             maxEventLoopOverloadedRatio: 0.5,
             maxCpuOverloadedRatio: 0.5,
@@ -129,36 +153,36 @@ describe('SystemStatus', () => {
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxMemoryOverloadedRatio = 0.49;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxEventLoopOverloadedRatio = 0.49;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxCpuOverloadedRatio = 0.49;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxClientOverloadedRatio = 0.49;
+        // Drop all thresholds below 0.5 → all four overloaded
+        systemStatus = new SystemStatus({
+            snapshotter: mock,
+            maxMemoryOverloadedRatio: 0.49,
+            maxEventLoopOverloadedRatio: 0.49,
+            maxCpuOverloadedRatio: 0.49,
+            maxClientOverloadedRatio: 0.49,
+        });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxMemoryOverloadedRatio = 0.5;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxEventLoopOverloadedRatio = 0.5;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxCpuOverloadedRatio = 0.49;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxClientOverloadedRatio = 0.49;
+        // Memory & eventLoop at threshold, CPU & client below → still overloaded
+        systemStatus = new SystemStatus({
+            snapshotter: mock,
+            maxMemoryOverloadedRatio: 0.5,
+            maxEventLoopOverloadedRatio: 0.5,
+            maxCpuOverloadedRatio: 0.49,
+            maxClientOverloadedRatio: 0.49,
+        });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxMemoryOverloadedRatio = 1;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxEventLoopOverloadedRatio = 1;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxCpuOverloadedRatio = 1;
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.maxClientOverloadedRatio = 1;
+        // All thresholds well above → idle
+        systemStatus = new SystemStatus({
+            snapshotter: mock,
+            maxMemoryOverloadedRatio: 1,
+            maxEventLoopOverloadedRatio: 1,
+            maxCpuOverloadedRatio: 1,
+            maxClientOverloadedRatio: 1,
+        });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
     });
