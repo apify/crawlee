@@ -1064,9 +1064,9 @@ __metadata:
     "@apify/tsconfig": "npm:^0.1.0"
     "@biomejs/biome": "npm:^2.3.11"
     "@commitlint/config-conventional": "npm:^20.0.0"
-    "@playwright/browser-chromium": "npm:1.58.1"
-    "@playwright/browser-firefox": "npm:1.58.1"
-    "@playwright/browser-webkit": "npm:1.58.1"
+    "@playwright/browser-chromium": "npm:1.58.2"
+    "@playwright/browser-firefox": "npm:1.58.2"
+    "@playwright/browser-webkit": "npm:1.58.2"
     "@stylistic/eslint-plugin": "npm:^5.0.0"
     "@types/content-type": "npm:^1.1.5"
     "@types/deep-equal": "npm:^1.0.1"
@@ -1108,7 +1108,7 @@ __metadata:
     lerna: "npm:^9.0.0"
     lint-staged: "npm:^16.0.0"
     nock: "npm:^13.4.0"
-    playwright: "npm:1.58.1"
+    playwright: "npm:1.58.2"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
     puppeteer: "npm:24.36.1"
@@ -2859,30 +2859,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/browser-chromium@npm:1.58.1":
-  version: 1.58.1
-  resolution: "@playwright/browser-chromium@npm:1.58.1"
+"@playwright/browser-chromium@npm:1.58.2":
+  version: 1.58.2
+  resolution: "@playwright/browser-chromium@npm:1.58.2"
   dependencies:
-    playwright-core: "npm:1.58.1"
-  checksum: 10c0/ca8dad86d446630adc9e2b1a01ac7fb575cce4c9087e376e60fb6c2e9f6377c9efb554622cc400754856cb6779602e55523e66a7bda988a0a3196ed97bcb9cac
+    playwright-core: "npm:1.58.2"
+  checksum: 10c0/f19ce6ed2902e4ee1d8143243dc4f82e492053b52b6c9e51d0b1575f37e53dbf225739db88e454789f68f40a4e68fff27be9007d51d30a82074b0c84e7fd0e11
   languageName: node
   linkType: hard
 
-"@playwright/browser-firefox@npm:1.58.1":
-  version: 1.58.1
-  resolution: "@playwright/browser-firefox@npm:1.58.1"
+"@playwright/browser-firefox@npm:1.58.2":
+  version: 1.58.2
+  resolution: "@playwright/browser-firefox@npm:1.58.2"
   dependencies:
-    playwright-core: "npm:1.58.1"
-  checksum: 10c0/fa977af5190fb06628c2fe422368321f01cfd4a1f62900a05908fc3df863d5ec41da63cf0125062fb4e58ada50034685b48d5148dae21bafe0a3df8bc6bbe0c8
+    playwright-core: "npm:1.58.2"
+  checksum: 10c0/f5198f90c48418fddb4a442a4fa355827e25e601568767e2be7d9b76b24e1bbed6ae8d7d3f49ed695192b3332e787ddcc53489895219a48613037301c8aa17e4
   languageName: node
   linkType: hard
 
-"@playwright/browser-webkit@npm:1.58.1":
-  version: 1.58.1
-  resolution: "@playwright/browser-webkit@npm:1.58.1"
+"@playwright/browser-webkit@npm:1.58.2":
+  version: 1.58.2
+  resolution: "@playwright/browser-webkit@npm:1.58.2"
   dependencies:
-    playwright-core: "npm:1.58.1"
-  checksum: 10c0/cc49e094764af2c3651c48ad8d6fae05f53ea1d223e25d5a342d3028664e12c77d08b86f67d7ece49c7ca29e1a9fcc4509e67565bc483e39934a40deea197cb6
+    playwright-core: "npm:1.58.2"
+  checksum: 10c0/40e04008db65a65c383388589470b3ea2db74bc1ccef3586a57502ac4f865708deb32e8c1e319205fafc89d3ddc8beef608456a78cc22016fe03779848c28900
   languageName: node
   linkType: hard
 
@@ -12420,27 +12420,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.58.1, playwright-core@npm:^1.54.1":
-  version: 1.58.1
-  resolution: "playwright-core@npm:1.58.1"
+"playwright-core@npm:1.58.2, playwright-core@npm:^1.54.1":
+  version: 1.58.2
+  resolution: "playwright-core@npm:1.58.2"
   bin:
     playwright-core: cli.js
-  checksum: 10c0/2c12755579148cbd13811cc1a01e9693432f0e4595c76ebb02d2e1b4ee7286719c6769fdb26cda61f218bc49b7ddd4de5d856abbd034acde4ff3dbeee93e4773
+  checksum: 10c0/5aa15b2b764e6ffe738293a09081a6f7023847a0dbf4cd05fe10eed2e25450d321baf7482f938f2d2eb330291e197fa23e57b29a5b552b89927ceb791266225b
   languageName: node
   linkType: hard
 
-"playwright@npm:1.58.1, playwright@npm:^1.52.0, playwright@npm:^1.58.0":
-  version: 1.58.1
-  resolution: "playwright@npm:1.58.1"
+"playwright@npm:1.58.2, playwright@npm:^1.52.0, playwright@npm:^1.58.0":
+  version: 1.58.2
+  resolution: "playwright@npm:1.58.2"
   dependencies:
     fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.58.1"
+    playwright-core: "npm:1.58.2"
   dependenciesMeta:
     fsevents:
       optional: true
   bin:
     playwright: cli.js
-  checksum: 10c0/29cb2b34ad80f9dc1b27d26d8cf56e0964d7787e0beb18b25fd9d087a09ce56a359779104d2a1717d08789c2f2713928ef59140b2905e6ef00b2cb6df58bb107
+  checksum: 10c0/d060d9b7cc124bd8b5dffebaab5e84f6b34654a553758fe7b19cc598dfbee93f6ecfbdc1832b40a6380ae04eade86ef3285ba03aa0b136799e83402246dc0727
   languageName: node
   linkType: hard
 
@@ -13457,12 +13457,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.0.0, semver@npm:^7.1.1, semver@npm:^7.3.4, semver@npm:^7.3.5, semver@npm:^7.3.7, semver@npm:^7.5.3, semver@npm:^7.5.4, semver@npm:^7.6.0, semver@npm:^7.6.3, semver@npm:^7.7.2, semver@npm:^7.7.3":
+"semver@npm:^7.0.0, semver@npm:^7.1.1, semver@npm:^7.3.4, semver@npm:^7.3.5, semver@npm:^7.3.7, semver@npm:^7.5.3, semver@npm:^7.5.4, semver@npm:^7.6.0, semver@npm:^7.6.3, semver@npm:^7.7.2":
   version: 7.7.3
   resolution: "semver@npm:7.7.3"
   bin:
     semver: bin/semver.js
   checksum: 10c0/4afe5c986567db82f44c8c6faef8fe9df2a9b1d98098fc1721f57c696c4c21cebd572f297fc21002f81889492345b8470473bc6f4aff5fb032a6ea59ea2bc45e
+  languageName: node
+  linkType: hard
+
+"semver@npm:^7.7.3":
+  version: 7.7.4
+  resolution: "semver@npm:7.7.4"
+  bin:
+    semver: bin/semver.js
+  checksum: 10c0/5215ad0234e2845d4ea5bb9d836d42b03499546ddafb12075566899fc617f68794bb6f146076b6881d755de17d6c6cc73372555879ec7dce2c2feee947866ad2
   languageName: node
   linkType: hard
 
@@ -14815,9 +14824,9 @@ __metadata:
   linkType: hard
 
 "typed-query-selector@npm:^2.12.0":
-  version: 2.12.0
-  resolution: "typed-query-selector@npm:2.12.0"
-  checksum: 10c0/069509887ecfff824a470f5f93d300cc9223cb059a36c47ac685f2812c4c9470340e07615893765e4264cef1678507532fa78f642fd52f276b589f7f5d791f79
+  version: 2.12.1
+  resolution: "typed-query-selector@npm:2.12.1"
+  checksum: 10c0/2c81c8560910d87f98a64e1c0b03247a7c94c3703d11f2f048553718c18da8dcab8469be76a39d2d258f0ff5a9b0bf419394d8b1c804fdf72a06181a0631d70d
   languageName: node
   linkType: hard
 
