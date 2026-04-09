@@ -1030,6 +1030,9 @@ export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions 
      * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} instead.
      *
      * This is useful in combination with `maxRequestsPerCrawl` to avoid duplicate URLs consuming the budget.
+     *
+     * **Note:** Setting this option implicitly enables {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`},
+     * since all batches must complete before leftover requests can be accurately reported.
      */
     maxNewRequests?: number;
 }
