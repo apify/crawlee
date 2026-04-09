@@ -1914,6 +1914,49 @@ describe('BasicCrawler', () => {
             ]);
         });
 
+        test('addRequestsBatched with maxNewRequests should correctly report requestsOverLimit for array input', async () => {
+            const queue = await RequestQueue.open();
+
+            const result = await queue.addRequestsBatched(
+                [
+                    { url: 'http://example.com/a' },
+                    { url: 'http://example.com/b' },
+                    { url: 'http://example.com/c' },
+                    { url: 'http://example.com/d' },
+                    { url: 'http://example.com/e' },
+                ],
+                { maxNewRequests: 2 },
+            );
+
+            const addedUrls = result.addedRequests.filter((r) => !r.wasAlreadyPresent).map((r) => r.uniqueKey);
+
+            const overLimitUrls = (result.requestsOverLimit ?? []).map((r) => (typeof r === 'string' ? r : r.url));
+
+            expect(addedUrls).toHaveLength(2);
+            expect(overLimitUrls).toHaveLength(3);
+        });
+
+        test('addRequestsBatched with maxNewRequests should correctly report requestsOverLimit for generator input', async () => {
+            const queue = await RequestQueue.open();
+
+            async function* urls() {
+                yield { url: 'http://example.com/a' };
+                yield { url: 'http://example.com/b' };
+                yield { url: 'http://example.com/c' };
+                yield { url: 'http://example.com/d' };
+                yield { url: 'http://example.com/e' };
+            }
+
+            const result = await queue.addRequestsBatched(urls(), { maxNewRequests: 2 });
+
+            const addedUrls = result.addedRequests.filter((r) => !r.wasAlreadyPresent).map((r) => r.uniqueKey);
+
+            const overLimitUrls = (result.requestsOverLimit ?? []).map((r) => (typeof r === 'string' ? r : r.url));
+
+            expect(addedUrls).toHaveLength(2);
+            expect(overLimitUrls).toHaveLength(3);
+        });
+
         test('should not count duplicate URLs toward maxRequestsPerCrawl limit (enqueueLinks)', async () => {
             const requestQueue = await RequestQueue.open();
 

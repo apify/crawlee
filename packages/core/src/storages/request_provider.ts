@@ -464,8 +464,11 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         const effectiveChunkSize =
             maxNewRequests !== undefined ? () => Math.min(batchSize, remainingBudget) : batchSize;
 
+        // Hold onto the underlying iterator so we can drain leftovers from it in buildResult
+        const requestIterator = generateRequests();
+
         const chunks = peekableAsyncIterable(
-            chunkedAsyncIterable(generateRequests(), effectiveChunkSize) as AsyncIterable<Source[]>,
+            chunkedAsyncIterable(requestIterator, effectiveChunkSize) as AsyncIterable<Source[]>,
         );
         const chunksIterator = chunks[Symbol.asyncIterator]();
 
@@ -505,14 +508,21 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         /**
          * Build the final result. When maxNewRequests is set, drains any remaining items
-         * from the source generator into requestsOverLimit first.
+         * from the underlying request iterator into requestsOverLimit.
+         *
+         * We accept the iterator explicitly (rather than closing over it) to make it obvious
+         * that this is the *same* iterator that `chunkedAsyncIterable` has been consuming —
+         * so only unconsumed items are drained. We drain `requestIterator` (not `chunks`)
+         * because `chunkedAsyncIterable` stops yielding when the budget-based chunk size
+         * drops to 0, leaving unconsumed items in the underlying iterator.
          */
         const buildResult = async (
             addedRequests: ProcessedRequest[],
             waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>,
+            unconsumedIterator: AsyncGenerator<RequestOptions>,
         ): Promise<AddRequestsBatchedResult> => {
             if (maxNewRequests !== undefined) {
-                for await (const request of generateRequests()) {
+                for await (const request of unconsumedIterator) {
                     requestsOverLimit.push(request);
                 }
             }
@@ -523,7 +533,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         // Add initial batch to process right away
         const initialChunk = await chunksIterator.peek();
         if (initialChunk === undefined) {
-            return buildResult([], Promise.resolve([]));
+            return buildResult([], Promise.resolve([]), requestIterator);
         }
 
         const addedRequests = await processChunk(initialChunk);
@@ -531,7 +541,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         // If we have no more requests to add (either exhausted or budget hit), return immediately
         if ((await chunksIterator.peek()) === undefined) {
-            return buildResult(addedRequests, Promise.resolve([]));
+            return buildResult(addedRequests, Promise.resolve([]), requestIterator);
         }
 
         // eslint-disable-next-line no-async-promise-executor
@@ -556,7 +566,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             addedRequests.push(...(await promise));
         }
 
-        return buildResult(addedRequests, promise);
+        return buildResult(addedRequests, promise, requestIterator);
     }
 
     /**
