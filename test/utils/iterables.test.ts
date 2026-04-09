@@ -114,6 +114,32 @@ describe('chunkedAsyncIterable', () => {
         expect(result).toEqual([[1, 2]]);
     });
 
+    it('should leave the underlying iterator drainable after partial consumption', async () => {
+        async function* source() {
+            yield 1;
+            yield 2;
+            yield 3;
+            yield 4;
+            yield 5;
+        }
+
+        const iterator = source();
+
+        // Consume only the first chunk via chunkedAsyncIterable
+        let size = 2;
+        for await (const _ of chunkedAsyncIterable(iterator, () => size)) {
+            size = 0; // stop after first chunk
+        }
+
+        // The underlying iterator should still be drainable
+        const remaining: number[] = [];
+        for await (const value of iterator) {
+            remaining.push(value);
+        }
+
+        expect(remaining).toEqual([3, 4, 5]);
+    });
+
     it('should throw error for invalid chunk size', async () => {
         await expect(
             (async () => {
