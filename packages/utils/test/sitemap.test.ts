@@ -294,6 +294,33 @@ describe('Sitemap', () => {
         );
     });
 
+    it('respects nestedSitemapFilter when following sitemap indexes', async () => {
+        const items: SitemapUrl[] = [];
+
+        for await (const item of parseSitemap(
+            [{ type: 'url', url: 'http://not-exists.com/sitemap_parent.xml' }],
+            undefined,
+            {
+                nestedSitemapFilter: (url) => !url.includes('sitemap_child_2'),
+            },
+        )) {
+            items.push(item);
+        }
+
+        expect(items).toHaveLength(5);
+        expect(items.every((item) => item.originSitemapUrl === 'http://not-exists.com/sitemap_child.xml')).toBe(true);
+    });
+
+    it('follows all nested sitemaps when nestedSitemapFilter is not provided', async () => {
+        const items: SitemapUrl[] = [];
+
+        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap_parent.xml' }])) {
+            items.push(item);
+        }
+
+        expect(items).toHaveLength(10);
+    });
+
     it('does not break on invalid xml', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
         expect(sitemap.urls).toEqual([]);
