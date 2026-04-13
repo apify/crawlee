@@ -264,14 +264,16 @@ export class Configuration {
     }
 
     /**
-     * Reads the first non-empty env var value for a field definition.
+     * Reads the first defined env var value for a field definition.
+     * Empty strings are passed through — schema coercion handles them
+     * (e.g. `coerceBoolean` treats `''` as `false`).
      */
     private static readEnvVar(fieldDef: ConfigField): string | undefined {
         if (!fieldDef.envVar) return undefined;
         const envVars = Array.isArray(fieldDef.envVar) ? fieldDef.envVar : [fieldDef.envVar];
         for (const envVar of envVars) {
             const value = process.env[envVar];
-            if (value != null && value !== '') return value;
+            if (value != null) return value;
         }
         return undefined;
     }

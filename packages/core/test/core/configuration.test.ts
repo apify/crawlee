@@ -106,6 +106,22 @@ describe('Configuration', () => {
             expect(new Configuration().headless).toBe(true);
         });
 
+        it('treats empty-string boolean env var as false', () => {
+            setEnv('CRAWLEE_HEADLESS', '');
+            expect(new Configuration().headless).toBe(false);
+
+            setEnv('CRAWLEE_PURGE_ON_START', '');
+            expect(new Configuration().purgeOnStart).toBe(false);
+        });
+
+        it('coerces empty-string number env var to 0', () => {
+            setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '');
+            expect(new Configuration().persistStateIntervalMillis).toBe(0);
+
+            setEnv('CRAWLEE_MEMORY_MBYTES', '');
+            expect(new Configuration().memoryMbytes).toBe(0);
+        });
+
         it('coerces number env vars', () => {
             setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '30000');
             expect(new Configuration().persistStateIntervalMillis).toBe(30_000);
