@@ -232,25 +232,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/eslint-config@npm:^1.0.0":
-  version: 1.1.0
-  resolution: "@apify/eslint-config@npm:1.1.0"
+"@apify/eslint-config@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@apify/eslint-config@npm:2.0.0"
   dependencies:
-    "@eslint/compat": "npm:^1.2.6"
-    eslint-config-airbnb-base: "npm:^15.0.0"
     eslint-plugin-import: "npm:^2.32.0"
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
     globals: "npm:^15.14.0"
   peerDependencies:
+    "@stylistic/eslint-plugin": ^5.0.0
+    "@vitest/eslint-plugin": ^1.6.14
     eslint: ^9.19.0
     eslint-plugin-jest: ^28.11.0
     typescript-eslint: ^8.23.0
   peerDependenciesMeta:
+    "@stylistic/eslint-plugin":
+      optional: true
+    "@vitest/eslint-plugin":
+      optional: true
     eslint-plugin-jest:
       optional: true
     typescript-eslint:
       optional: true
-  checksum: 10c0/9c1461d859d02bbbb59a6004aa289054a7fca33e573d703ffb6fe62f021607ba298e1dba2ac8c1cc43362150be5444e0112efa98f768d8d06409c3f939671c0e
+  checksum: 10c0/b2139b231e735853f0d6c10b9962a8da5f49cb2388429368484471366423a5d0cc7be68d376f6bb8fdaa5825d100f52be913069b3a8b38821dc883e278225652
   languageName: node
   linkType: hard
 
@@ -1059,7 +1063,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/root@workspace:."
   dependencies:
-    "@apify/eslint-config": "npm:^1.0.0"
+    "@apify/eslint-config": "npm:^2.0.0"
     "@apify/log": "npm:^2.4.0"
     "@apify/tsconfig": "npm:^0.1.0"
     "@biomejs/biome": "npm:^2.3.11"
@@ -1662,20 +1666,6 @@ __metadata:
   version: 4.12.2
   resolution: "@eslint-community/regexpp@npm:4.12.2"
   checksum: 10c0/fddcbc66851b308478d04e302a4d771d6917a0b3740dc351513c0da9ca2eab8a1adf99f5e0aa7ab8b13fa0df005c81adeee7e63a92f3effd7d367a163b721c2d
-  languageName: node
-  linkType: hard
-
-"@eslint/compat@npm:^1.2.6":
-  version: 1.4.1
-  resolution: "@eslint/compat@npm:1.4.1"
-  dependencies:
-    "@eslint/core": "npm:^0.17.0"
-  peerDependencies:
-    eslint: ^8.40 || 9
-  peerDependenciesMeta:
-    eslint:
-      optional: true
-  checksum: 10c0/46f5ff884873c2e2366df55dd7b2d6b12f7f852bfba8e2a48dae4819cc5e58756deefa9b7f87f1b107af725ee883a05fcc02caf969b58fb142e790c6036a0450
   languageName: node
   linkType: hard
 
@@ -5594,13 +5584,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"confusing-browser-globals@npm:^1.0.10":
-  version: 1.0.11
-  resolution: "confusing-browser-globals@npm:1.0.11"
-  checksum: 10c0/475d0a284fa964a5182b519af5738b5b64bf7e413cfd703c1b3496bf6f4df9f827893a9b221c0ea5873c1476835beb1e0df569ba643eff0734010c1eb780589e
-  languageName: node
-  linkType: hard
-
 "console-control-strings@npm:^1.1.0":
   version: 1.1.0
   resolution: "console-control-strings@npm:1.1.0"
@@ -6910,21 +6893,6 @@ __metadata:
     escodegen: bin/escodegen.js
     esgenerate: bin/esgenerate.js
   checksum: 10c0/e1450a1f75f67d35c061bf0d60888b15f62ab63aef9df1901cffc81cffbbb9e8b3de237c5502cf8613a017c1df3a3003881307c78835a1ab54d8c8d2206e01d3
-  languageName: node
-  linkType: hard
-
-"eslint-config-airbnb-base@npm:^15.0.0":
-  version: 15.0.0
-  resolution: "eslint-config-airbnb-base@npm:15.0.0"
-  dependencies:
-    confusing-browser-globals: "npm:^1.0.10"
-    object.assign: "npm:^4.1.2"
-    object.entries: "npm:^1.1.5"
-    semver: "npm:^6.3.0"
-  peerDependencies:
-    eslint: ^7.32.0 || ^8.2.0
-    eslint-plugin-import: ^2.25.2
-  checksum: 10c0/93639d991654414756f82ad7860aac30b0dc6797277b7904ddb53ed88a32c470598696bbc6c503e066414024d305221974d3769e6642de65043bedf29cbbd30f
   languageName: node
   linkType: hard
 
@@ -11568,7 +11536,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"object.assign@npm:^4.1.2, object.assign@npm:^4.1.4, object.assign@npm:^4.1.7":
+"object.assign@npm:^4.1.4, object.assign@npm:^4.1.7":
   version: 4.1.7
   resolution: "object.assign@npm:4.1.7"
   dependencies:
@@ -11579,18 +11547,6 @@ __metadata:
     has-symbols: "npm:^1.1.0"
     object-keys: "npm:^1.1.1"
   checksum: 10c0/3b2732bd860567ea2579d1567525168de925a8d852638612846bd8082b3a1602b7b89b67b09913cbb5b9bd6e95923b2ae73580baa9d99cb4e990564e8cbf5ddc
-  languageName: node
-  linkType: hard
-
-"object.entries@npm:^1.1.5":
-  version: 1.1.9
-  resolution: "object.entries@npm:1.1.9"
-  dependencies:
-    call-bind: "npm:^1.0.8"
-    call-bound: "npm:^1.0.4"
-    define-properties: "npm:^1.2.1"
-    es-object-atoms: "npm:^1.1.1"
-  checksum: 10c0/d4b8c1e586650407da03370845f029aa14076caca4e4d4afadbc69cfb5b78035fd3ee7be417141abdb0258fa142e59b11923b4c44d8b1255b28f5ffcc50da7db
   languageName: node
   linkType: hard
 
@@ -13468,7 +13424,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^6.3.0, semver@npm:^6.3.1":
+"semver@npm:^6.3.1":
   version: 6.3.1
   resolution: "semver@npm:6.3.1"
   bin:
