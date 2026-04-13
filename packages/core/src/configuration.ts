@@ -31,7 +31,7 @@ export const coerceBoolean = z.preprocess((val) => {
     return val;
 }, z.boolean());
 
-const coerceNumber = z.preprocess((val) => {
+export const coerceNumber = z.preprocess((val) => {
     if (typeof val === 'string') return Number(val);
     return val;
 }, z.number());
