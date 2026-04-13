@@ -708,6 +708,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                     wasAlreadyHandled: false,
                 })),
                 waitForAllRequestsToBeAdded: Promise.resolve([]),
+                requestsOverLimit: [],
             };
         };
         // We need to use a mock request queue implementation, in order to add the requests into our result object

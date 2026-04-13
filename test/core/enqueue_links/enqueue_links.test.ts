@@ -1008,7 +1008,7 @@ describe('enqueueLinks()', () => {
                 for await (const request of requests) {
                     enqueued.push({ request: typeof request === 'string' ? { url: request } : request, options });
                 }
-                return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
+                return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]), requestsOverLimit: [] };
             };
 
             await cheerioCrawlerEnqueueLinks({

@@ -488,16 +488,18 @@ export async function enqueueLinks(
         return filtered;
     }
 
-    let requests = await createFilteredRequests();
-    if (typeof limit === 'number' && limit < requests.length) {
-        await reportSkippedRequests(requests.slice(limit), 'enqueueLimit');
-        requests = requests.slice(0, limit);
-    }
-
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, {
+    const { addedRequests, requestsOverLimit } = await requestQueue.addRequestsBatched(await createFilteredRequests(), {
         forefront,
         waitForAllRequestsToBeAdded,
+        maxNewRequests: limit,
     });
+
+    if (requestsOverLimit?.length !== undefined && requestsOverLimit.length > 0) {
+        await reportSkippedRequests(
+            requestsOverLimit.map((r) => ({ url: typeof r === 'string' ? r : r.url! })),
+            'enqueueLimit',
+        );
+    }
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }

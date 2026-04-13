@@ -413,6 +413,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 waitForAllRequestsToBeAdded: ow.optional.boolean,
                 batchSize: ow.optional.number,
                 waitBetweenBatchesMillis: ow.optional.number,
+                maxNewRequests: ow.optional.number,
             }),
         );
 
@@ -454,9 +455,21 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             }
         }
 
-        const { batchSize = 1000, waitBetweenBatchesMillis = 1000 } = options;
+        const { batchSize = 1000, waitBetweenBatchesMillis = 1000, maxNewRequests } = options;
 
-        const chunks = peekableAsyncIterable(chunkedAsyncIterable(generateRequests(), batchSize));
+        let remainingBudget = maxNewRequests ?? Infinity;
+        const requestsOverLimit: Source[] = [];
+
+        // If there's a limit on the number of added requests, do not send batches bigger than the limit
+        const effectiveChunkSize =
+            maxNewRequests !== undefined ? () => Math.min(batchSize, remainingBudget) : batchSize;
+
+        // Hold onto the underlying iterator so we can drain leftovers from it in buildResult
+        const requestIterator = generateRequests();
+
+        const chunks = peekableAsyncIterable(
+            chunkedAsyncIterable(requestIterator, effectiveChunkSize) as AsyncIterable<Source[]>,
+        );
         const chunksIterator = chunks[Symbol.asyncIterator]();
 
         const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
@@ -480,21 +493,55 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             return resultsToReturn;
         };
 
-        // Add initial batch of `batchSize` to process them right away
+        /**
+         * Process a chunk: send it to the queue, then update the remaining budget if maxNewRequests is active.
+         */
+        const processChunk = async (chunk: Source[], cache = true) => {
+            const results = await attemptToAddToQueueAndAddAnyUnprocessed(chunk, cache);
+
+            if (maxNewRequests !== undefined) {
+                remainingBudget -= results.filter((r) => !r.wasAlreadyPresent).length;
+            }
+
+            return results;
+        };
+
+        /**
+         * Build the final result. When maxNewRequests is set, drains any remaining items
+         * from the underlying request iterator into requestsOverLimit.
+         *
+         * We accept the iterator explicitly (rather than closing over it) to make it obvious
+         * that this is the *same* iterator that `chunkedAsyncIterable` has been consuming —
+         * so only unconsumed items are drained. We drain `requestIterator` (not `chunks`)
+         * because `chunkedAsyncIterable` stops yielding when the budget-based chunk size
+         * drops to 0, leaving unconsumed items in the underlying iterator.
+         */
+        const buildResult = async (
+            addedRequests: ProcessedRequest[],
+            waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>,
+            unconsumedIterator: AsyncGenerator<RequestOptions>,
+        ): Promise<AddRequestsBatchedResult> => {
+            if (maxNewRequests !== undefined) {
+                for await (const request of unconsumedIterator) {
+                    requestsOverLimit.push(request);
+                }
+            }
+
+            return { addedRequests, waitForAllRequestsToBeAdded, requestsOverLimit };
+        };
+
+        // Add initial batch to process right away
         const initialChunk = await chunksIterator.peek();
         if (initialChunk === undefined) {
-            return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
+            return buildResult([], Promise.resolve([]), requestIterator);
         }
 
-        const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
+        const addedRequests = await processChunk(initialChunk);
         await chunksIterator.next();
 
-        // If we have no more requests to add, return immediately
+        // If we have no more requests to add (either exhausted or budget hit), return immediately
         if ((await chunksIterator.peek()) === undefined) {
-            return {
-                addedRequests,
-                waitForAllRequestsToBeAdded: Promise.resolve([]),
-            };
+            return buildResult(addedRequests, Promise.resolve([]), requestIterator);
         }
 
         // eslint-disable-next-line no-async-promise-executor
@@ -502,8 +549,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             const finalAddedRequests: ProcessedRequest[] = [];
 
             for await (const requestChunk of chunks) {
-                finalAddedRequests.push(...(await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk, false)));
-
+                finalAddedRequests.push(...(await processChunk(requestChunk, false)));
                 await sleep(waitBetweenBatchesMillis);
             }
 
@@ -515,15 +561,12 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             this.inProgressRequestBatchCount -= 1;
         });
 
-        // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
-        if (options.waitForAllRequestsToBeAdded) {
+        // When maxNewRequests is set, we must wait for all batches so we can accurately report skipped requests.
+        if (options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined) {
             addedRequests.push(...(await promise));
         }
 
-        return {
-            addedRequests,
-            waitForAllRequestsToBeAdded: promise,
-        };
+        return buildResult(addedRequests, promise, requestIterator);
     }
 
     /**
@@ -980,6 +1023,18 @@ export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions 
      * @default 1000
      */
     waitBetweenBatchesMillis?: number;
+
+    /**
+     * If set, only this many *actually new* requests (i.e. not already present in the queue) will be added.
+     * Once the budget is reached, remaining requests from the iterable will be collected in
+     * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} instead.
+     *
+     * This is useful in combination with `maxRequestsPerCrawl` to avoid duplicate URLs consuming the budget.
+     *
+     * **Note:** Setting this option implicitly enables {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`},
+     * since all batches must complete before leftover requests can be accurately reported.
+     */
+    maxNewRequests?: number;
 }
 
 export interface AddRequestsBatchedResult {
@@ -1001,4 +1056,11 @@ export interface AddRequestsBatchedResult {
      * ```
      */
     waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>;
+
+    /**
+     * Requests from the input that were not added to the queue because the
+     * {@apilink AddRequestsBatchedOptions.maxNewRequests|`maxNewRequests`} budget was reached.
+     * Empty when `maxNewRequests` is not set.
+     */
+    requestsOverLimit?: Source[];
 }
