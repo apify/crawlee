@@ -9,7 +9,9 @@ import type { Template } from '@crawlee/templates';
 import { fetchManifest } from '@crawlee/templates';
 import colors from 'ansi-colors';
 import { ensureDir } from 'fs-extra';
-import { prompt } from 'inquirer';
+// eslint-disable-next-line import/no-named-as-default-member
+import inquirer from 'inquirer';
+const { prompt } = inquirer as unknown as { prompt: (questions: unknown[]) => Promise<any> };
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 
 interface CreateProjectArgs {
@@ -143,7 +145,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
                     name: 'projectName',
                     message: 'Name of the new project folder:',
                     type: 'input',
-                    validate: (promptText) => {
+                    validate: (promptText: string) => {
                         try {
                             validateProjectName(promptText);
                         } catch (err: any) {

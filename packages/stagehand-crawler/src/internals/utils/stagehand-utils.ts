@@ -66,7 +66,7 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
         try {
             // Pass the page option to ensure Stagehand operates on this specific page
             // Cast needed because Stagehand types reference older playwright-core versions
-            return await stagehand.act(instruction, { ...options, page: page as ActOptions['page'] });
+            return await stagehand.act(instruction, { ...options, page: page as unknown as ActOptions['page'] });
         } catch (error) {
             throw new Error(`Stagehand act() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
@@ -86,7 +86,10 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
         try {
             // Pass the page option to ensure Stagehand operates on this specific page
             // Cast needed because Stagehand types reference older playwright-core versions
-            return await stagehand.extract(instruction, schema, { ...options, page: page as ExtractOptions['page'] });
+            return await stagehand.extract(instruction, schema, {
+                ...options,
+                page: page as unknown as ExtractOptions['page'],
+            });
         } catch (error) {
             throw new Error(`Stagehand extract() failed: ${improveErrorMessage(error)}`, {
                 cause: error,
@@ -102,7 +105,7 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
         try {
             // Pass the page option to ensure Stagehand operates on this specific page
             // Cast needed because Stagehand types reference older playwright-core versions
-            return await stagehand.observe({ ...options, page: page as ObserveOptions['page'] });
+            return await stagehand.observe({ ...options, page: page as unknown as ObserveOptions['page'] });
         } catch (error) {
             throw new Error(`Stagehand observe() failed: ${improveErrorMessage(error)}`, {
                 cause: error,

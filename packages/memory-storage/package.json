@@ -39,7 +39,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "yarn clean && yarn compile && yarn copy",
+        "build": "pnpm clean && pnpm compile && pnpm copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
         "copy": "tsx ../../scripts/copy.ts"
@@ -49,7 +49,7 @@
     },
     "dependencies": {
         "@apify/log": "^2.4.0",
-        "@crawlee/types": "3.16.0",
+        "@crawlee/types": "workspace:*",
         "@sapphire/async-queue": "^1.5.0",
         "@sapphire/shapeshift": "^3.0.0",
         "content-type": "^1.0.4",

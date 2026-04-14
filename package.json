@@ -2,9 +2,6 @@
     "name": "@crawlee/root",
     "private": true,
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
-    "workspaces": [
-        "packages/*"
-    ],
     "keywords": [
         "apify",
         "headless",
@@ -33,7 +30,6 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "postinstall": "npx husky install",
         "prepublishOnly": "turbo run copy",
         "clean": "turbo run clean && rimraf .turbo packages/*/.turbo packages/*/*.tsbuildinfo",
         "build": "turbo run build && node ./scripts/typescript_fixes.mjs",
@@ -44,9 +40,9 @@
         "tsc-check-tests": "tsc --noEmit --project test/tsconfig.json",
         "coverage": "vitest --coverage",
         "publish:next": "lerna publish from-package --contents dist --dist-tag next --force-publish",
-        "release:next": "yarn build && yarn publish:next",
+        "release:next": "pnpm build && pnpm publish:next",
         "publish:prod": "lerna publish from-package --contents dist --force-publish",
-        "release:prod": "yarn build && yarn publish:prod",
+        "release:prod": "pnpm build && pnpm publish:prod",
         "release:pin-versions": "turbo run copy -- -- --pin-versions",
         "lint": "eslint \"packages/**/*.ts\" \"test/**/*.ts\"",
         "lint:fix": "eslint \"packages/**/*.ts\" \"test/**/*.ts\" --fix",
@@ -118,9 +114,8 @@
     "lint-staged": {
         "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"
     },
-    "packageManager": "yarn@4.10.3",
+    "packageManager": "pnpm@10.24.0",
     "volta": {
-        "node": "24.14.1",
-        "yarn": "4.10.3"
+        "node": "24.14.1"
     }
 }

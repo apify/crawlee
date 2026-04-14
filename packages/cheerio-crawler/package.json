@@ -44,7 +44,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "yarn clean && yarn compile && yarn copy",
+        "build": "pnpm clean && pnpm compile && pnpm copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
         "copy": "tsx ../../scripts/copy.ts"
@@ -53,9 +53,9 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/http": "3.16.0",
-        "@crawlee/types": "3.16.0",
-        "@crawlee/utils": "3.16.0",
+        "@crawlee/http": "workspace:*",
+        "@crawlee/types": "workspace:*",
+        "@crawlee/utils": "workspace:*",
         "cheerio": "1.0.0-rc.12",
         "htmlparser2": "^9.0.0",
         "tslib": "^2.4.0"

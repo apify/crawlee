@@ -19,27 +19,18 @@ jobs:
         steps:
             -   uses: actions/checkout@v6
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
+            -   uses: ./.github/actions/pnpm-install
 
             -   name: Build & deploy docs
                 run: |
-                    # install project deps
-                    yarn
-                    # go to website dir
                     cd website
-                    # install website deps
-                    yarn
-                    # build the docs
-                    yarn build
+                    pnpm build
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
                     SEGMENT_TOKEN: ${{ secrets.SEGMENT_TOKEN }}
