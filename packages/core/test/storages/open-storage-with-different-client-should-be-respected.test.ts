@@ -12,6 +12,8 @@ describe('Opening a storage with a different storage client should be respected'
     test('opening a RequestQueue with default client from Configuration', async () => {
         const queue = await RequestQueue.open('test-rq-open-client-from-config');
 
+        // The sub-client should have been created by newClient (MemoryStorage),
+        // so its internal `client` field should reference newClient.
         expect((queue.client as any).client).toBe(newClient);
     });
 

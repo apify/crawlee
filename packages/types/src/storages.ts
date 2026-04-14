@@ -15,18 +15,6 @@ export interface QueueOperationInfo {
     requestId: string;
 }
 
-export interface DatasetCollectionClientOptions {
-    storageDir: string;
-}
-
-export interface DatasetCollectionData {
-    id: string;
-    name?: string;
-    createdAt: Date;
-    modifiedAt: Date;
-    accessedAt: Date;
-}
-
 export interface PaginatedList<Data> {
     /** Total count of entries in the dataset. */
     total: number;
@@ -40,18 +28,6 @@ export interface PaginatedList<Data> {
     desc?: boolean;
     /** Dataset entries based on chosen format parameter. */
     items: Data[];
-}
-
-export interface Dataset extends DatasetCollectionData {
-    itemCount: number;
-}
-
-/**
- * Dataset collection client.
- */
-export interface DatasetCollectionClient {
-    list(): Promise<PaginatedList<Dataset>>;
-    getOrCreate(name?: string): Promise<DatasetCollectionData>;
 }
 
 export interface DatasetClientUpdateOptions {
@@ -82,7 +58,7 @@ export interface DatasetStats {
 }
 
 export interface DatasetClient<Data extends Dictionary = Dictionary> {
-    get(): Promise<DatasetInfo | undefined>;
+    getMetadata(): Promise<DatasetInfo>;
     update(newFields: DatasetClientUpdateOptions): Promise<Partial<DatasetInfo>>;
     delete(): Promise<void>;
     downloadItems(...args: unknown[]): Promise<Buffer>;
@@ -111,14 +87,6 @@ export interface KeyValueStoreInfo {
     actId?: string;
     actRunId?: string;
     stats?: KeyValueStoreStats;
-}
-
-/**
- * Key-value store collection client.
- */
-export interface KeyValueStoreCollectionClient {
-    list(): Promise<PaginatedList<KeyValueStoreInfo>>;
-    getOrCreate(name?: string): Promise<KeyValueStoreInfo>;
 }
 
 export interface KeyValueStoreRecord {
@@ -166,7 +134,7 @@ export interface KeyValueStoreClientGetRecordOptions {
  * Key-value Store client.
  */
 export interface KeyValueStoreClient {
-    get(): Promise<KeyValueStoreInfo | undefined>;
+    getMetadata(): Promise<KeyValueStoreInfo>;
     update(newFields: KeyValueStoreClientUpdateOptions): Promise<Partial<KeyValueStoreInfo>>;
     delete(): Promise<void>;
     listKeys(
@@ -205,14 +173,6 @@ export interface RequestQueueInfo {
     actRunId?: string;
     hadMultipleClients?: boolean;
     stats?: RequestQueueStats;
-}
-
-/**
- * Request queue collection client.
- */
-export interface RequestQueueCollectionClient {
-    list(): Promise<PaginatedList<RequestQueueInfo>>;
-    getOrCreate(name: string): Promise<RequestQueueInfo>;
 }
 
 export interface RequestQueueHeadItem {
@@ -302,7 +262,7 @@ export interface BatchAddRequestsResult {
 }
 
 export interface RequestQueueClient {
-    get(): Promise<RequestQueueInfo | undefined>;
+    getMetadata(): Promise<RequestQueueInfo>;
     update(newFields: { name?: string }): Promise<Partial<RequestQueueInfo> | undefined>;
     delete(): Promise<void>;
     listHead(options?: ListOptions): Promise<QueueHead>;
@@ -327,15 +287,73 @@ export interface SetStatusMessageOptions {
 }
 
 /**
- * Represents a storage capable of working with datasets, KV stores and request queues.
+ * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
+ */
+export interface CreateDatasetClientOptions {
+    /** ID of an existing dataset to open. */
+    id?: string;
+    /** Name of the dataset to open or create. */
+    name?: string;
+}
+
+/**
+ * Options for creating a key-value store client via {@apilink StorageClient.createKeyValueStoreClient}.
+ */
+export interface CreateKeyValueStoreClientOptions {
+    /** ID of an existing key-value store to open. */
+    id?: string;
+    /** Name of the key-value store to open or create. */
+    name?: string;
+}
+
+/**
+ * Options for creating a request queue client via {@apilink StorageClient.createRequestQueueClient}.
+ */
+export interface CreateRequestQueueClientOptions {
+    /** ID of an existing request queue to open. */
+    id?: string;
+    /** Name of the request queue to open or create. */
+    name?: string;
+    /** Client key for request locking. */
+    clientKey?: string;
+    /** Timeout in seconds for request queue operations. */
+    timeoutSecs?: number;
+}
+
+/**
+ * Represents a storage backend capable of working with datasets, key-value stores and request queues.
+ *
+ * A new storage backend needs to implement 4 classes:
+ * - `StorageClient` - the factory that creates sub-clients
+ * - `DatasetClient` - operations on a single dataset
+ * - `KeyValueStoreClient` - operations on a single key-value store
+ * - `RequestQueueClient` - operations on a single request queue
+ *
+ * The `StorageClient` acts as an async factory: each `create*` method either opens an existing
+ * storage or creates a new one, returning a sub-client bound to that storage instance.
  */
 export interface StorageClient {
-    datasets(): DatasetCollectionClient;
-    dataset(id: string): DatasetClient;
-    keyValueStores(): KeyValueStoreCollectionClient;
-    keyValueStore(id: string): KeyValueStoreClient;
-    requestQueues(): RequestQueueCollectionClient;
-    requestQueue(id: string, options?: RequestQueueOptions): RequestQueueClient;
+    /**
+     * Create (or open) a dataset client.
+     * If `id` is provided, opens the dataset with that ID.
+     * If `name` is provided, opens an existing dataset with that name or creates a new one.
+     * If neither is provided, opens or creates the default dataset.
+     */
+    createDatasetClient(options?: CreateDatasetClientOptions): Promise<DatasetClient>;
+    /**
+     * Create (or open) a key-value store client.
+     * If `id` is provided, opens the key-value store with that ID.
+     * If `name` is provided, opens an existing key-value store with that name or creates a new one.
+     * If neither is provided, opens or creates the default key-value store.
+     */
+    createKeyValueStoreClient(options?: CreateKeyValueStoreClientOptions): Promise<KeyValueStoreClient>;
+    /**
+     * Create (or open) a request queue client.
+     * If `id` is provided, opens the request queue with that ID.
+     * If `name` is provided, opens an existing request queue with that name or creates a new one.
+     * If neither is provided, opens or creates the default request queue.
+     */
+    createRequestQueueClient(options?: CreateRequestQueueClientOptions): Promise<RequestQueueClient>;
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
     setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;

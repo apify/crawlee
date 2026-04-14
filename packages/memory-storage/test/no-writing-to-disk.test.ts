@@ -20,9 +20,7 @@ describe('persistStorage option', () => {
         });
 
         test('creating a key-value pair in a key-value store should not write data to the disk', async () => {
-            const keyValueStoreInfo = await storage.keyValueStores().getOrCreate();
-
-            const keyValueStore = storage.keyValueStore(keyValueStoreInfo.id);
+            const keyValueStore = await storage.createKeyValueStoreClient();
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
 
             // We check that reading the directory for the store throws an error, which means it wasn't created on disk
@@ -39,11 +37,10 @@ describe('persistStorage option', () => {
         });
 
         test('creating a key-value pair in a key-value store should not write data to the disk, but it should write the __metadata__ file', async () => {
-            const keyValueStoreInfo = await storage.keyValueStores().getOrCreate();
-
-            const keyValueStore = storage.keyValueStore(keyValueStoreInfo.id);
+            const keyValueStore = await storage.createKeyValueStoreClient();
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
 
+            const keyValueStoreInfo = await keyValueStore.getMetadata();
             const storePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}`);
 
             await waitTillWrittenToDisk(storePath);

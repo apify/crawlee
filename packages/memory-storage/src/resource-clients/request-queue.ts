@@ -86,7 +86,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return existingQueueById;
     }
 
-    async get(): Promise<storage.RequestQueueInfo | undefined> {
+    async getMetadata(): Promise<storage.RequestQueueInfo> {
         const found = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
         if (found) {
@@ -94,7 +94,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             return found.toRequestQueueInfo();
         }
 
-        return undefined;
+        return this.toRequestQueueInfo();
     }
 
     async update(newFields: { name?: string | undefined }): Promise<storage.RequestQueueInfo | undefined> {

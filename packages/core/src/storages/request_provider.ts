@@ -8,7 +8,6 @@ import type {
     QueueOperationInfo,
     RequestQueueClient,
     RequestQueueInfo,
-    StorageClient,
 } from '@crawlee/types';
 import {
     chunkedAsyncIterable,
@@ -146,10 +145,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         this.id = options.id;
         this.name = options.name;
         this.events = serviceLocator.getEventManager();
-        this.client = options.client.requestQueue(this.id, {
-            clientKey: this.clientKey,
-            timeoutSecs: this.timeoutSecs,
-        });
+        this.client = options.client;
 
         this.proxyConfiguration = options.proxyConfiguration;
 
@@ -781,10 +777,10 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      * }
      * ```
      */
-    async getInfo(): Promise<RequestQueueInfo | undefined> {
+    async getInfo(): Promise<RequestQueueInfo> {
         checkStorageAccess();
 
-        return this.client.get();
+        return this.client.getMetadata();
     }
 
     /**
@@ -889,10 +885,10 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         const queue = await manager.openStorage(queueIdOrName, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
 
-        const queueInfo = await queue.client.get();
+        const queueInfo = await queue.client.getMetadata();
 
-        queue.initialCount = queueInfo?.totalRequestCount ?? 0;
-        queue.initialHandledCount = queueInfo?.handledRequestCount ?? 0;
+        queue.initialCount = queueInfo.totalRequestCount;
+        queue.initialHandledCount = queueInfo.handledRequestCount;
         queue.httpClient = options.httpClient;
 
         return queue;
@@ -921,7 +917,7 @@ interface RequestLruItem {
 export interface RequestProviderOptions {
     id: string;
     name?: string;
-    client: StorageClient;
+    client: RequestQueueClient;
 
     /**
      * Used to pass the proxy configuration for the `requestsFromUrl` objects.

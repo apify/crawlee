@@ -20,19 +20,19 @@ describe('writeMetadata option', () => {
         });
 
         test('creating a data store should not write __metadata__.json file', async () => {
-            const keyValueStore = await storage.keyValueStores().getOrCreate();
-            const expectedPath = resolve(storage.keyValueStoresDirectory, `${keyValueStore.id}`);
+            const keyValueStore = await storage.createKeyValueStoreClient();
+            const info = await keyValueStore.getMetadata();
+            const expectedPath = resolve(storage.keyValueStoresDirectory, `${info.id}`);
 
             // We check that reading the directory for the store throws an error, which means it wasn't created on disk
             await expect(async () => readdir(expectedPath)).rejects.toThrow();
         });
 
         test('creating a key-value pair in a key-value store should not write __metadata__.json file for the value', async () => {
-            const keyValueStoreInfo = await storage.keyValueStores().getOrCreate();
-
-            const keyValueStore = storage.keyValueStore(keyValueStoreInfo.id);
+            const keyValueStore = await storage.createKeyValueStoreClient();
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
 
+            const keyValueStoreInfo = await keyValueStore.getMetadata();
             const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);
             await waitTillWrittenToDisk(expectedFilePath);
 
@@ -50,8 +50,9 @@ describe('writeMetadata option', () => {
         });
 
         test('creating a data store should write __metadata__.json file', async () => {
-            const keyValueStore = await storage.keyValueStores().getOrCreate();
-            const expectedPath = resolve(storage.keyValueStoresDirectory, `${keyValueStore.id}`);
+            const keyValueStore = await storage.createKeyValueStoreClient();
+            const info = await keyValueStore.getMetadata();
+            const expectedPath = resolve(storage.keyValueStoresDirectory, `${info.id}`);
             await waitTillWrittenToDisk(expectedPath);
 
             const directoryFiles = await readdir(expectedPath);
@@ -60,11 +61,10 @@ describe('writeMetadata option', () => {
         });
 
         test('creating a key-value pair in a key-value store should write __metadata__.json file for the value', async () => {
-            const keyValueStoreInfo = await storage.keyValueStores().getOrCreate();
-
-            const keyValueStore = storage.keyValueStore(keyValueStoreInfo.id);
+            const keyValueStore = await storage.createKeyValueStoreClient();
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
 
+            const keyValueStoreInfo = await keyValueStore.getMetadata();
             const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);
             const expectedMetadataPath = resolve(
                 storage.keyValueStoresDirectory,

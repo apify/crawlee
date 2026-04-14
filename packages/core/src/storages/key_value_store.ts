@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreClient } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
@@ -108,7 +108,6 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
-    readonly storageObject?: Record<string, unknown>;
     private readonly client: KeyValueStoreClient;
     private persistStateEventStarted = false;
 
@@ -124,8 +123,7 @@ export class KeyValueStore {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.storageObject = options.storageObject;
-        this.client = options.client.keyValueStore(this.id);
+        this.client = options.client;
     }
 
     /**
@@ -829,8 +827,7 @@ export interface KeyConsumer {
 export interface KeyValueStoreOptions {
     id: string;
     name?: string;
-    client: StorageClient;
-    storageObject?: Record<string, unknown>;
+    client: KeyValueStoreClient;
 }
 
 export interface RecordOptions {

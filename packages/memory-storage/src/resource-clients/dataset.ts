@@ -57,7 +57,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         this.client = options.client;
     }
 
-    async get(): Promise<storage.DatasetInfo | undefined> {
+    async getMetadata(): Promise<storage.DatasetInfo> {
         const found = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
 
         if (found) {
@@ -65,7 +65,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             return found.toDatasetInfo();
         }
 
-        return undefined;
+        return this.toDatasetInfo();
     }
 
     async update(newFields: storage.DatasetClientUpdateOptions = {}): Promise<storage.DatasetInfo> {

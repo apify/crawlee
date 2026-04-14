@@ -1,4 +1,4 @@
-import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
+import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
@@ -234,7 +234,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
     client: DatasetClient<Data>;
-    readonly storageObject?: Record<string, unknown>;
     log: CrawleeLogger;
 
     /**
@@ -246,8 +245,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client.dataset(this.id) as DatasetClient<Data>;
-        this.storageObject = options.storageObject;
+        this.client = options.client;
         this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
 
@@ -457,10 +455,10 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * }
      * ```
      */
-    async getInfo(): Promise<DatasetInfo | undefined> {
+    async getInfo(): Promise<DatasetInfo> {
         checkStorageAccess();
 
-        return this.client.get();
+        return this.client.getMetadata();
     }
 
     /**
@@ -809,8 +807,7 @@ export interface DatasetReducer<T, Data> {
 export interface DatasetOptions {
     id: string;
     name?: string;
-    client: StorageClient;
-    storageObject?: Record<string, unknown>;
+    client: DatasetClient;
 }
 
 export interface DatasetContent<Data> {
