@@ -12,3 +12,18 @@ overrides:
     playwright-core: 1.58.2
     "@browserbasehq/stagehand": 3.0.7
     minimatch: "^9.0.0"
+
+onlyBuiltDependencies:
+    - "@apify/ui-icons"
+    - "@playwright/browser-chromium"
+    - "@playwright/browser-firefox"
+    - "@playwright/browser-webkit"
+    - "@swc/core"
+    - better-sqlite3
+    - bufferutil
+    - core-js
+    - esbuild
+    - nx
+    - protobufjs
+    - puppeteer
+    - unrs-resolver
