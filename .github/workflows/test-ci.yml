@@ -51,6 +51,9 @@ jobs:
             -   name: Install Playwright browsers
                 run: pnpm exec playwright install --with-deps
 
+            -   name: Install Puppeteer Chrome
+                run: pnpm exec puppeteer browsers install chrome
+
             -   name: Build
                 run: pnpm ci:build
 
