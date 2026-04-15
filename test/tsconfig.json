@@ -1,25 +1,25 @@
 {
-	"extends": "../tsconfig.json",
-	"include": ["**/*", "../packages/*/src/**/*"],
-	"exclude": ["e2e", "**/fixtures/*"],
-	"compilerOptions": {
-		"module": "NodeNext",
-		"moduleResolution": "NodeNext",
-		"sourceMap": true,
-		"noUnusedLocals": false,
-		"noUnusedParameters": false,
-		"types": ["vitest/globals"],
-		"paths": {
-			"crawlee": ["packages/crawlee/src/index.ts"],
-			"@crawlee/basic": ["packages/basic-crawler/src/index.ts"],
-			"@crawlee/browser": ["packages/browser-crawler/src/index.ts"],
-			"@crawlee/http": ["packages/http-crawler/src/index.ts"],
-			"@crawlee/linkedom": ["packages/linkedom-crawler/src/index.ts"],
-			"@crawlee/jsdom": ["packages/jsdom-crawler/src/index.ts"],
-			"@crawlee/cheerio": ["packages/cheerio-crawler/src/index.ts"],
-			"@crawlee/playwright": ["packages/playwright-crawler/src/index.ts"],
-			"@crawlee/puppeteer": ["packages/puppeteer-crawler/src/index.ts"],
-			"@crawlee/*": ["packages/*/src/index.ts"]
-		}
-	}
+    "extends": "../tsconfig.json",
+    "include": ["**/*", "../packages/*/src/**/*"],
+    "exclude": ["e2e", "**/fixtures/*"],
+    "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "sourceMap": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "types": ["vitest/globals"],
+        "paths": {
+            "crawlee": ["packages/crawlee/src/index.ts"],
+            "@crawlee/basic": ["packages/basic-crawler/src/index.ts"],
+            "@crawlee/browser": ["packages/browser-crawler/src/index.ts"],
+            "@crawlee/http": ["packages/http-crawler/src/index.ts"],
+            "@crawlee/linkedom": ["packages/linkedom-crawler/src/index.ts"],
+            "@crawlee/jsdom": ["packages/jsdom-crawler/src/index.ts"],
+            "@crawlee/cheerio": ["packages/cheerio-crawler/src/index.ts"],
+            "@crawlee/playwright": ["packages/playwright-crawler/src/index.ts"],
+            "@crawlee/puppeteer": ["packages/puppeteer-crawler/src/index.ts"],
+            "@crawlee/*": ["packages/*/src/index.ts"]
+        }
+    }
 }

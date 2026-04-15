@@ -107,10 +107,10 @@ export interface BrowserCrawlerOptions<
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
-        BasicCrawlerOptions<Context, ExtendedContext>,
-        // Overridden with browser context
-        'requestHandler' | 'failedRequestHandler' | 'errorHandler'
-    > {
+    BasicCrawlerOptions<Context, ExtendedContext>,
+    // Overridden with browser context
+    'requestHandler' | 'failedRequestHandler' | 'errorHandler'
+> {
     launchContext?: BrowserLaunchContext<any, any>;
 
     /**

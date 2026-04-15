@@ -150,8 +150,10 @@ export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' 
     collectAllKeys?: boolean;
 }
 
-export interface DatasetIteratorOptions
-    extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
+export interface DatasetIteratorOptions extends Omit<
+    DatasetDataOptions,
+    'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'
+> {
     /** @internal */
     offset?: number;
 
