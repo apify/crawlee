@@ -126,7 +126,7 @@ describe('enqueueLinks()', () => {
                     label: 'COOL',
                     globs,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
@@ -187,7 +187,7 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     regexps,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
@@ -246,7 +246,7 @@ describe('enqueueLinks()', () => {
                     globs,
                     exclude,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
@@ -284,7 +284,7 @@ describe('enqueueLinks()', () => {
                     globs,
                     exclude,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
@@ -321,7 +321,7 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
@@ -599,7 +599,7 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     globs,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
@@ -658,7 +658,7 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     regexps,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
@@ -697,7 +697,7 @@ describe('enqueueLinks()', () => {
                     userData: { label: 'DEFAULT' },
                     pseudoUrls,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;

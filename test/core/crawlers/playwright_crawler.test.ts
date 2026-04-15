@@ -7,7 +7,7 @@ import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 

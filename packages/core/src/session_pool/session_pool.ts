@@ -297,7 +297,7 @@ export class SessionPool extends EventEmitter {
         try {
             if (sessionId) {
                 const session = this.sessionMap.get(sessionId);
-                if (session && session.isUsable()) return session;
+                if (session?.isUsable()) return session;
                 return undefined;
             }
 

@@ -1601,8 +1601,8 @@ export class BasicCrawler<
     async exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]> {
         const supportedFormats = ['json', 'csv'];
 
-        if (!format && path.match(/\.(json|csv)$/i)) {
-            format = path.toLowerCase().match(/\.(json|csv)$/)![1] as 'json' | 'csv';
+        if (!format && /\.(json|csv)$/i.exec(path)) {
+            format = /\.(json|csv)$/.exec(path.toLowerCase())![1] as 'json' | 'csv';
         }
 
         if (!format) {
@@ -2245,9 +2245,12 @@ export class BasicCrawler<
 
     private async _getRequestQueue() {
         // Check if it's explicitly disabled
+        // oxlint-disable-next-line typescript/no-deprecated -- still honored for opt-out until the flag is removed
         if (this.experiments.requestLocking === false) {
+            // oxlint-disable-next-line typescript/no-deprecated
             if (!this._experimentWarnings.requestLocking) {
                 this.log.info('Using the old RequestQueue implementation without request locking.');
+                // oxlint-disable-next-line typescript/no-deprecated
                 this._experimentWarnings.requestLocking = true;
             }
 

@@ -18,7 +18,7 @@ import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Sessio
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 
@@ -105,12 +105,7 @@ describe('PuppeteerCrawler', () => {
             asserts.push(response!.status() === 200);
             request.userData.title = await page.title();
             processed.push(request);
-            asserts.push(
-                !response!
-                    .request()
-                    .headers()
-                    ['user-agent'].match(/headless/i),
-            );
+            asserts.push(!/headless/i.exec(response!.request().headers()['user-agent']));
             asserts.push(!(await page.evaluate(() => window.navigator.webdriver)));
         };
 

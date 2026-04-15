@@ -615,7 +615,7 @@ export abstract class BrowserCrawler<
     protected async _handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
         const { session } = crawlingContext;
 
-        if (error && error.constructor.name === 'TimeoutError') {
+        if (error?.constructor.name === 'TimeoutError') {
             handleRequestTimeout({ session, errorMessage: error.message });
         }
 

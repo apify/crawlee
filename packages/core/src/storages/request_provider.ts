@@ -901,7 +901,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
 declare class BuiltRequestProvider extends RequestProvider {
     override fetchNextRequest<T extends Dictionary = Dictionary>(
-        options?: RequestOptions<Dictionary> | undefined,
+        options?: RequestOptions<Dictionary>,
     ): Promise<Request<T> | null>;
 
     protected override ensureHeadIsNonEmpty(): Promise<void>;

@@ -387,8 +387,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         }
 
         throw new Error(`Unsupported content type: ${contentType}`);
-
-        return items;
     }
 
     /**

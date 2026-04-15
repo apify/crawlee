@@ -49,21 +49,19 @@
         "publish:prod": "lerna publish from-package --contents dist --force-publish",
         "release:prod": "yarn build && yarn publish:prod",
         "release:pin-versions": "turbo run copy -- -- --pin-versions",
-        "lint": "eslint \"packages/**/*.ts\" \"test/**/*.ts\"",
-        "lint:fix": "eslint \"packages/**/*.ts\" \"test/**/*.{ts,mjs}\" --fix",
+        "lint": "oxlint packages test docs --tsconfig=tsconfig.json --type-aware",
+        "lint:fix": "oxlint packages test docs --tsconfig=tsconfig.json --type-aware --fix",
         "format": "oxfmt packages test docs --write",
         "format:check": "oxfmt packages test docs",
         "prepare": "husky"
     },
     "devDependencies": {
-        "@apify/eslint-config": "^1.0.0",
         "@apify/log": "^2.5.18",
         "@apify/tsconfig": "^0.1.2",
         "@commitlint/config-conventional": "^20.0.0",
         "@playwright/browser-chromium": "1.58.1",
         "@playwright/browser-firefox": "1.58.1",
         "@playwright/browser-webkit": "1.58.1",
-        "@stylistic/eslint-plugin": "^5.0.0",
         "@types/content-type": "^1.1.8",
         "@types/deep-equal": "^1.0.4",
         "@types/domhandler": "^3.1.0",
@@ -92,12 +90,9 @@
         "commitlint": "^20.0.0",
         "cross-env": "^10.0.0",
         "deep-equal": "^2.2.3",
-        "eslint": "^9.26.0",
-        "eslint-config-prettier": "^10.1.3",
         "express": "^5.1.0",
         "fs-extra": "^11.3.0",
         "gen-esm-wrapper": "^1.1.3",
-        "globals": "^17.0.0",
         "globby": "^15.0.0",
         "got": "^14.4.7",
         "husky": "^9.1.7",
@@ -107,6 +102,8 @@
         "lint-staged": "^16.0.0",
         "nock": "^14.0.10",
         "oxfmt": "^0.45.0",
+        "oxlint": "^1.59.0",
+        "oxlint-tsgolint": "^0.20.0",
         "playwright": "1.58.1",
         "portastic": "^1.0.1",
         "proxy": "^2.2.0",
@@ -115,12 +112,14 @@
         "tsx": "^4.19.4",
         "turbo": "^2.5.3",
         "typescript": "^5.8.3",
-        "typescript-eslint": "^8.32.0",
         "vite-tsconfig-paths": "^5.1.4",
         "vitest": "^4.1.0-beta.6"
     },
     "lint-staged": {
-        "*.ts": "oxfmt --write --no-error-on-unmatched-pattern"
+        "*.ts": [
+            "oxlint --fix",
+            "oxfmt --write --no-error-on-unmatched-pattern"
+        ]
     },
     "packageManager": "yarn@4.10.3",
     "volta": {

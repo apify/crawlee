@@ -170,7 +170,7 @@ jobs:
             -   name: Install Dependencies
                 run: yarn
 
-            -   name: ESLint
+            -   name: Oxlint
                 run: yarn lint
 
             -   name: Oxfmt format check

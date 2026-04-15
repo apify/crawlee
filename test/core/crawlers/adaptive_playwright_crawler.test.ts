@@ -11,8 +11,8 @@ import type {
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { startExpressAppPromise } from '../../shared/_helper.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages

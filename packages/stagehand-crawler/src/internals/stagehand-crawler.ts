@@ -172,7 +172,7 @@ export interface StagehandPage extends Page {
      * );
      * ```
      */
-    extract<T>(instruction: string, schema: z.ZodSchema<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
+    extract<T>(instruction: string, schema: z.ZodType<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
 
     /**
      * Observe the page and get AI-suggested actions.

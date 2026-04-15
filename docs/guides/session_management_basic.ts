@@ -52,7 +52,7 @@ const crawler = new BasicCrawler({
 
             newCookies?.forEach((cookie) => {
                 if (cookie) {
-                    session?.cookieJar?.setCookie(cookie, url);
+                    void session?.cookieJar?.setCookie(cookie, url);
                 }
             });
         }

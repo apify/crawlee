@@ -17,8 +17,8 @@ import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
-import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { responseSamples, runExampleComServer } from '../../shared/_helper.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 

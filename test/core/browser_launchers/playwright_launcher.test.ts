@@ -18,7 +18,7 @@ import type { Browser, BrowserType } from 'playwright';
 // @ts-expect-error no types
 import portastic from 'portastic';
 import { createProxy } from 'proxy';
-import { runExampleComServer } from 'test/shared/_helper.js';
+import { runExampleComServer } from '../../shared/_helper.js';
 
 let proxyServer: Server;
 let proxyPort: number;

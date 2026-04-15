@@ -1,6 +1,6 @@
 import type { Dictionary } from '@crawlee/core';
 import { Configuration, KeyValueStore, serviceLocator, useState } from '@crawlee/core';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('useState', () => {
     const emulator = new MemoryStorageEmulator();

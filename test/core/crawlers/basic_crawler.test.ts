@@ -21,7 +21,7 @@ import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';

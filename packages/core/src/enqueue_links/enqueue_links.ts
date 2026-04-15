@@ -325,6 +325,7 @@ export async function enqueueLinks(
         requestQueue,
         limit,
         urls,
+        // oxlint-disable-next-line typescript/no-deprecated -- still accepted for backwards compat
         pseudoUrls,
         exclude,
         globs,
