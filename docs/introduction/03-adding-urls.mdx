@@ -140,17 +140,17 @@ If you provide one of those options, the default `same-hostname` strategy will *
 
 ```ts
 await enqueueLinks({
-    globs: ['http?(s)://apify.com/*/*'],
+    include: ['http?(s)://apify.com/*/*'],
 });
 ```
 
 ### Transform requests
 
-To have absolute control, we have the <ApiLink to="core/interface/EnqueueLinksOptions/#transformRequestFunction">`transformRequestFunction`</ApiLink>. Just before a new <ApiLink to="core/class/Request">`Request`</ApiLink> is constructed and enqueued to the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, this function can be used to skip it or modify its contents such as `userData`, `payload` or, most importantly, `uniqueKey`. This is useful when you need to enqueue multiple requests to the queue, and these requests share the same URL, but differ in methods or payloads. Another use case is to dynamically update or create the `userData`.
+To have absolute control, we have the <ApiLink to="core/interface/EnqueueLinksOptions/#transformRequestFunction">`transformRequestFunction`</ApiLink>. After request options are filtered by `include`/`exclude` patterns, this function can be used to skip them or modify their contents such as `userData`, `payload` or, most importantly, `uniqueKey`. This is useful when you need to enqueue multiple requests to the queue, and these requests share the same URL, but differ in methods or payloads. Another use case is to dynamically update or create the `userData`.
 
 ```ts
 await enqueueLinks({
-    globs: ['http?(s)://apify.com/*/*'],
+    include: ['http?(s)://apify.com/*/*'],
     transformRequestFunction(req) {
         // ignore all links ending with `.pdf`
         if (req.url.endsWith('.pdf')) return false;
