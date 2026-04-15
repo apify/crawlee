@@ -1,7 +1,5 @@
 packages:
     - packages/*
-    - website
-    - docs
 
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
