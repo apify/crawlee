@@ -140,10 +140,16 @@ export class PuppeteerController extends BrowserController<
     }
 
     protected async _getCookies(page: PuppeteerTypes.Page): Promise<Cookie[]> {
-        return page.cookies();
+        return page.browserContext().cookies();
     }
 
     protected async _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void> {
-        return page.setCookie(...cookies);
+        // BrowserContext.setCookie requires `url` or `domain`; the page-level API used to back-fill
+        // the page's current URL for us. Replicate that so callers who pass neither don't get rejected.
+        const pageUrl = page.url();
+        const normalized = cookies.map((cookie) =>
+            cookie.url || cookie.domain ? cookie : { ...cookie, url: pageUrl },
+        );
+        return page.browserContext().setCookie(...(normalized as PuppeteerTypes.CookieData[]));
     }
 }
