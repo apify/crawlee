@@ -5,6 +5,10 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
     - "@apify/*"
     - "@crawlee/*"
+    - "apify-client"
+    - "apify"
+    - "crawlee"
+    - "got-scraping"
 
 overrides:
     playwright-core: 1.58.2
