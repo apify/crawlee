@@ -32,3 +32,9 @@ onlyBuiltDependencies:
     - protobufjs
     - puppeteer
     - unrs-resolver
+
+nodeLinker: hoisted
+linkWorkspacePackages: true
+preferWorkspacePackages: true
+publicHoistPattern:
+    - "*"
