@@ -59,7 +59,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: ./.github/actions/pnpm-install
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Install Playwright browsers
                 run: pnpm exec playwright install --with-deps
@@ -98,7 +98,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: ./.github/actions/pnpm-install
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build
                 run: pnpm ci:build
@@ -175,7 +175,7 @@ jobs:
             -   name: Install jq
                 run: sudo apt-get install jq
 
-            -   uses: ./.github/actions/pnpm-install
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Snapshot the current version
                 run: |

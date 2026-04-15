@@ -49,7 +49,7 @@ jobs:
             -   name: Add Apify secrets for E2E tests
                 run: apify secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
 
-            -   uses: ./.github/actions/pnpm-install
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Install Playwright Dependencies
                 if: (matrix.storage != 'PLATFORM')
