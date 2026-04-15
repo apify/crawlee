@@ -3,7 +3,7 @@
     "private": true,
     "scripts": {
         "examples": "docusaurus-examples",
-        "postinstall": "pnpm exec patch-package",
+        "postinstall": "pnpm exec patch-package || true",
         "start": "rimraf .docusaurus && docusaurus start",
         "start:fast": "rimraf .docusaurus && CRAWLEE_DOCS_FAST=1 docusaurus start",
         "build": "rimraf .docusaurus && node --max_old_space_size=16000 \"$(node -p \"require.resolve('@docusaurus/core/bin/docusaurus.mjs')\")\" build",
