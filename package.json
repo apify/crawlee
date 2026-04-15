@@ -116,6 +116,13 @@
         "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"
     },
     "packageManager": "pnpm@10.24.0",
+    "devEngines": {
+        "packageManager": {
+            "name": "pnpm",
+            "version": "10.x",
+            "onFail": "error"
+        }
+    },
     "volta": {
         "node": "24.14.1"
     }
