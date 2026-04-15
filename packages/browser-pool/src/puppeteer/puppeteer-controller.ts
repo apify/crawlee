@@ -140,10 +140,10 @@ export class PuppeteerController extends BrowserController<
     }
 
     protected async _getCookies(page: PuppeteerTypes.Page): Promise<Cookie[]> {
-        return page.cookies();
+        return page.browserContext().cookies();
     }
 
     protected async _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void> {
-        return page.setCookie(...cookies);
+        return page.browserContext().setCookie(...(cookies as PuppeteerTypes.CookieData[]));
     }
 }
