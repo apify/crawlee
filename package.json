@@ -48,7 +48,8 @@
         "lint:fix": "eslint \"packages/**/*.ts\" \"test/**/*.ts\" --fix",
         "format": "biome format --write .",
         "format:check": "biome format .",
-        "prepare": "husky"
+        "prepare": "husky",
+        "postinstall": "node ./scripts/cleanup-nested-readmes.mjs"
     },
     "devDependencies": {
         "@apify/eslint-config": "^2.0.0",
