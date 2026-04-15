@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions, BrowserHook, LoadedRequest, Request } from '@crawlee/browser';
-import { extractUrlsFromPage } from '@crawlee/browser';
+import { browserCrawlerEnqueueLinks, extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
@@ -25,6 +25,7 @@ import {
     Router,
     serviceLocator,
     Statistics,
+    StatisticStateSchema,
     withCheckedStorageAccess,
 } from '@crawlee/core';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
@@ -39,6 +40,8 @@ import { addTimeoutToPromise } from '@apify/timeout';
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions } from './playwright-crawler.js';
 import { PlaywrightCrawler } from './playwright-crawler.js';
 import { type RenderingType, RenderingTypePredictor } from './utils/rendering-type-prediction.js';
+
+import { z } from 'zod';
 
 type Result<TResult> =
     | { result: TResult; ok: true; logs?: LogProxyCall[] }
@@ -60,7 +63,22 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
     override state: AdaptivePlaywrightCrawlerStatisticState = null as any; // this needs to be assigned for a valid override, but the initialization is done by a reset() call from the parent constructor
 
     constructor(options: StatisticsOptions = {}) {
-        super(options);
+
+        const baseAdaptiveSchema = StatisticStateSchema.extend({
+            trackHttpOnlyRequestHandlerRuns: z.number().default(0),
+            browserRequestHandlerRuns: z.number().default(0),
+            renderingTypeMispredictions: z.number().default(0),
+        });
+
+        const finalSchema = options.stateSchema
+            ? baseAdaptiveSchema.merge(options.stateSchema as any)
+            : baseAdaptiveSchema;
+
+        super ({
+            ...options,
+            stateSchema: finalSchema as any,
+        });
+
         this.reset();
     }
 
@@ -391,6 +409,7 @@ export class AdaptivePlaywrightCrawler<
         this.stats = new AdaptivePlaywrightCrawlerStatistics({
             logMessage: `${this.log.getOptions().prefix} request statistics:`,
             ...statisticsOptions,
+            stateSchema: options.statisticsStateSchema,
         });
 
         this.preventDirectStorageAccess = preventDirectStorageAccess;

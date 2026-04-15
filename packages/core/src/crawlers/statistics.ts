@@ -6,6 +6,7 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { ErrorTracker } from './error_tracker.js';
+import { z } from 'zod';
 
 /**
  * @ignore
@@ -54,7 +55,7 @@ export interface PersistenceOptions {
  *
  * @category Crawlers
  */
-export class Statistics {
+export class Statistics<State extends StatisticState = StatisticState> {
     private static id = 0;
 
     /**
@@ -75,7 +76,7 @@ export class Statistics {
     /**
      * Current statistic state used for doing calculations on {@apilink Statistics.calculate} calls
      */
-    state!: StatisticState;
+    state!: State;
 
     /**
      * Contains the current retries histogram. Index 0 means 0 retries, index 2, 2 retries, and so on
@@ -93,6 +94,7 @@ export class Statistics {
     private logInterval: unknown;
     private _events?: EventManager;
     private persistenceOptions: PersistenceOptions;
+    private stateSchema: z.ZodType<State>;
 
     private get events(): EventManager {
         if (!this._events) {
@@ -104,7 +106,7 @@ export class Statistics {
     /**
      * @internal
      */
-    constructor(options: StatisticsOptions = {}) {
+    constructor(options: StatisticsOptions<State> = {}) {
         ow(
             options,
             ow.object.exactShape({
@@ -115,6 +117,7 @@ export class Statistics {
                 persistenceOptions: ow.optional.object,
                 saveErrorSnapshots: ow.optional.boolean,
                 id: ow.optional.any(ow.number, ow.string),
+                stateSchema: ow.optional.object,
             }),
         );
 
@@ -141,6 +144,8 @@ export class Statistics {
         this.listener = this.persistState.bind(this);
         this.persistenceOptions = persistenceOptions;
 
+        this.stateSchema = options.stateSchema ?? (StatisticStateSchema as unknown as z.ZodType<State>);
+
         // initialize by "resetting"
         this.reset();
     }
@@ -152,24 +157,10 @@ export class Statistics {
         this.errorTracker.reset();
         this.errorTrackerRetry.reset();
 
-        this.state = {
-            requestsFinished: 0,
-            requestsFailed: 0,
-            requestsRetries: 0,
-            requestsFailedPerMinute: 0,
-            requestsFinishedPerMinute: 0,
-            requestMinDurationMillis: Infinity,
-            requestMaxDurationMillis: 0,
-            requestTotalFailedDurationMillis: 0,
-            requestTotalFinishedDurationMillis: 0,
-            crawlerStartedAt: null,
-            crawlerFinishedAt: null,
-            statsPersistedAt: null,
-            crawlerRuntimeMillis: 0,
-            requestsWithStatusCode: {},
+        this.state = this.stateSchema.parse({
             errors: this.errorTracker.result,
             retryErrors: this.errorTrackerRetry.result,
-        };
+        });
 
         this.requestRetryHistogram.length = 0;
         this.requestsInProgress.clear();
@@ -419,7 +410,7 @@ export class Statistics {
             statsId: this.id,
             statsPersistedAt: new Date().toISOString(),
             ...this.calculate(),
-        };
+        } as unknown as StatisticPersistedState;
 
         Reflect.deleteProperty(result, 'requestsWithStatusCode');
         Reflect.deleteProperty(result, 'errors');
@@ -436,7 +427,7 @@ export class Statistics {
 /**
  * Configuration for the {@apilink Statistics} instance used by the crawler
  */
-export interface StatisticsOptions {
+export interface StatisticsOptions<State extends StatisticState = StatisticState> {
     /**
      * Interval in seconds to log the current statistics
      * @default 60
@@ -481,6 +472,11 @@ export interface StatisticsOptions {
      * if crawler creation order changes.
      */
     id?: string;
+
+    /**
+     * Optional custom zod schema for extending crawler statistics.
+     */
+    stateSchema?: z.ZodType<State, any, any>;
 }
 
 /**
@@ -498,23 +494,33 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 }
 
 /**
- * Contains the statistics state
+ * Contains the zod statistics state schema
  */
-export interface StatisticState {
-    requestsFinished: number;
-    requestsFailed: number;
-    requestsRetries: number;
-    requestsFailedPerMinute: number;
-    requestsFinishedPerMinute: number;
-    requestMinDurationMillis: number;
-    requestMaxDurationMillis: number;
-    requestTotalFailedDurationMillis: number;
-    requestTotalFinishedDurationMillis: number;
-    crawlerStartedAt: Date | string | null;
-    crawlerFinishedAt: Date | string | null;
-    crawlerRuntimeMillis: number;
-    statsPersistedAt: Date | string | null;
-    errors: Record<string, unknown>;
-    retryErrors: Record<string, unknown>;
-    requestsWithStatusCode: Record<string, number>;
-}
+
+export const StatisticStateSchema = z.object({
+    requestsFinished: z.number().default(0),
+    requestsFailed: z.number().default(0),
+    requestsRetries: z.number().default(0),
+    requestsFailedPerMinute: z.number().default(0),
+    requestsFinishedPerMinute: z.number().default(0),
+    requestMinDurationMillis: z.number().default(Infinity),
+    requestMaxDurationMillis: z.number().default(0),
+    requestTotalFailedDurationMillis: z.number().default(0),
+    requestTotalFinishedDurationMillis: z.number().default(0),
+
+    crawlerStartedAt: z.coerce.date().nullable().default(null),
+    crawlerFinishedAt: z.coerce.date().nullable().default(null),
+    crawlerRuntimeMillis: z.number().default(0),
+
+    statsPersistedAt: z.coerce.date().nullable().default(null),
+
+    errors: z.any().default({}),
+    retryErrors: z.any().default({}),
+    requestsWithStatusCode: z.any().default({}),
+});
+
+/**
+ * Infers the StatisticsState interface from zod schema above
+ */
+
+export type StatisticState = z.infer<typeof StatisticStateSchema>;

@@ -19,6 +19,9 @@ import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { StatisticStateSchema } from '@crawlee/core';
+import { Configuration } from '@crawlee/cheerio';
+import { z } from 'zod';
 
 import log from '@apify/log';
 
@@ -1351,5 +1354,40 @@ describe('CheerioCrawler', () => {
 
         expect(succeeded).toHaveLength(2);
         expect(succeeded).toEqual(['Example Domain', 'Example Domains']);
+    });
+    describe('Manual Statistics Test', () => {
+        test('verifies custom metrics in JSON', async () => {
+            console.log('--- STARTING MANUAL CRAWL ---');
+
+            const customSchema = StatisticStateSchema.extend({
+                customCheerioMetric: z.number().default(0),
+            });
+
+            const crawler = new CheerioCrawler({
+                statisticsStateSchema: customSchema,
+                maxRequestsPerCrawl: 2,
+
+                configuration: new Configuration({
+                    purgeOnStart: true,
+                }),
+
+                async requestHandler(ctx: any) {
+                    const state = crawler.stats.state as any;
+                    state.customCheerioMetric += 10;
+                },
+                async failedRequestHandler(ctx: any, error: any) {
+                    const state = crawler.stats.state as any;
+
+                    state.customCheerioMetric += 10;
+                    console.log(`[Blocked by test suite] ${ctx.request.url} | Metric: ${state.customCheerioMetric}`);
+                },
+            });
+
+            await crawler.run(['https://example.com', 'https://example.org']);
+
+            console.log('Final Custom Metric:', (crawler as any).stats.state.customCheerioMetric);
+
+            expect((crawler as any).stats.state.customCheerioMetric).toBe(20);
+        }, 30000);
     });
 });

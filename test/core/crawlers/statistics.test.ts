@@ -1,6 +1,7 @@
-import { Configuration, EventType, serviceLocator, Statistics } from '@crawlee/core';
+import { Configuration, EventType, serviceLocator, Statistics, StatisticStateSchema } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { z } from 'zod';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount: number, totalTickMillis: number) => {
@@ -373,6 +374,24 @@ describe('Statistics', () => {
             expect(statsB.state.requestsFinished).toEqual(0);
 
             await statsB.stopCapturing();
+        });
+        test('allows extending state with custom Zod schema', () => {
+            const customSchema = StatisticStateSchema.extend({
+                adaptiveBans: z.number().default(0),
+            });
+
+            type CustomState = z.infer<typeof customSchema>;
+
+            const stats = new Statistics<CustomState>({
+                stateSchema: customSchema,
+            });
+
+            expect(stats.state.adaptiveBans).toBe(0);
+            stats.state.adaptiveBans += 5;
+            expect(stats.state.adaptiveBans).toBe(5);
+
+            const json = stats.toJSON() as any;
+            expect(json.adaptiveBans).toBe(5);
         });
     });
 });
