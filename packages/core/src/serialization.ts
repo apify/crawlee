@@ -135,7 +135,6 @@ function createChunkCollector<T extends string | Buffer>(
 
 function pluckValue(streamArray: Chain) {
     const realPush = streamArray.push.bind(streamArray);
-    // oxlint-disable-next-line typescript/prefer-optional-chain -- stream-json terminates on null push; `?.` returns undefined instead which breaks the pipeline
-    streamArray.push = (obj) => realPush(obj && obj.value);
+    streamArray.push = (obj) => realPush(obj?.value ?? null);
     return streamArray;
 }
