@@ -719,7 +719,10 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     protected _reset() {
         this.lastActivity = new Date();
         this.queueHeadIds.clear();
-        this.recentlyHandledRequestsCache.clear();
+        // NOTE: recentlyHandledRequestsCache is intentionally NOT cleared here.
+        // Clearing it causes handled requests to be refetched from the server
+        // after a watchdog reset, since listHead() may still return them due to
+        // server-side consistency delays.
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;
         this.requestCache.clear();
