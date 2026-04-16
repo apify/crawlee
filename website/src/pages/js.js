@@ -278,7 +278,7 @@ function DeployToCloudSection() {
                         <div>2</div>
                     </div>
                     <div className={styles.deployToCloudStepText}>
-                        Add <pre>Actor.init()</pre> to the begining and{' '}
+                        Add <pre>Actor.init()</pre> to the beginning and{' '}
                         <pre>Actor.exit()</pre> to the end of your code.
                     </div>
                 </div>

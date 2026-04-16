@@ -166,6 +166,30 @@ module.exports = {
                         from: '/js/docs/guides/apify-platform',
                         to: '/js/docs/deployment/apify-platform',
                     },
+                    {
+                        from: '/js/docs/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/next/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/next/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.13/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.13/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.14/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.14/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.15/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.15/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.16/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/experiments/experiments-system-information-v2',
+                    },
                 ],
                 // createRedirects(existingPath) {
                 //     if (!existingPath.endsWith('/')) {
