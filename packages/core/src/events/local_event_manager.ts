@@ -5,10 +5,16 @@ import { getCurrentCpuTicksV2, getMemoryInfo, getMemoryInfoV2, isContainerized }
 import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import type { SystemInfo } from '../autoscaling';
 import { EventManager, EventType } from './event_manager';
 
-export class LocalEventManager extends EventManager {
+interface LocalSystemInfo {
+    createdAt: Date;
+    cpuCurrentUsage: number;
+    isCpuOverloaded: boolean;
+    memCurrentBytes?: number;
+}
+
+export class LocalEventManager extends EventManager<LocalSystemInfo> {
     private previousTicks = { idle: 0, total: 0 };
 
     /**
@@ -79,7 +85,7 @@ export class LocalEventManager extends EventManager {
             createdAt: new Date(),
             ...(await this.createCpuInfo(options)),
             ...(await this.createMemoryInfo()),
-        } as SystemInfo;
+        };
     }
 
     private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
