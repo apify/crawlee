@@ -183,6 +183,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
 
     /**
+     * User-agent name to use when evaluating {@apilink EnqueueLinksOptions.robotsTxtFile|`robotsTxtFile`} rules.
+     * Defaults to `*` when not provided.
+     */
+    robotsTxtUserAgent?: string;
+
+    /**
      * When a request is skipped for some reason, you can use this callback to act on it.
      * This is currently fired for requests skipped
      * 1. based on robots.txt file,
@@ -296,6 +302,7 @@ export async function enqueueLinks(
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('addRequestsBatched'),
             robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
+            robotsTxtUserAgent: ow.optional.string,
             onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
@@ -426,7 +433,7 @@ export async function enqueueLinks(
         const skippedRequests: RequestOptions[] = [];
 
         requestOptions = requestOptions.filter((request) => {
-            if (robotsTxtFile.isAllowed(request.url)) {
+            if (robotsTxtFile.isAllowed(request.url, options.robotsTxtUserAgent ?? '*')) {
                 return true;
             }
 
