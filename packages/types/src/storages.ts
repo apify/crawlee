@@ -276,11 +276,6 @@ export interface RequestQueueClient {
     deleteRequestLock(id: string, options?: DeleteRequestLockOptions): Promise<void>;
 }
 
-export interface RequestQueueOptions {
-    clientKey?: string;
-    timeoutSecs?: number;
-}
-
 export interface SetStatusMessageOptions {
     isStatusMessageTerminal?: boolean;
     level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
