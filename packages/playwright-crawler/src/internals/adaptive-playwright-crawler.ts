@@ -708,7 +708,7 @@ export class AdaptivePlaywrightCrawler<
             ...calls.pushData.map(async (params) => crawlingContext.pushData(...params)),
             ...calls.addRequests.map(async (params) => crawlingContext.addRequests(...params)),
             ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
-                const store = await crawlingContext.getKeyValueStore(storeIdOrName);
+                const store = await crawlingContext.getKeyValueStore({ id: storeIdOrName });
                 await Promise.all(
                     Object.entries(changes).map(async ([key, { changedValue, options }]) =>
                         store.setValue(key, changedValue, options),
