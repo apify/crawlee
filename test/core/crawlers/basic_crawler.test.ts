@@ -1994,6 +1994,31 @@ describe('BasicCrawler', () => {
             await pendingResult;
         });
 
+        test('addRequests should still report skipped requests for maxRequestsPerCrawl when the source is async', async () => {
+            const requestQueue = await RequestQueue.open();
+            const onSkippedRequestMock = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 2,
+                onSkippedRequest: onSkippedRequestMock,
+                requestHandler: async () => {},
+            });
+
+            async function* urls() {
+                yield 'http://example.com/a';
+                yield 'http://example.com/b';
+                yield 'http://example.com/c';
+            }
+
+            await crawler.addRequests(urls());
+
+            expect(onSkippedRequestMock).toHaveBeenCalledWith({
+                url: 'http://example.com/c',
+                reason: 'limit',
+            });
+        });
+
         test('should not count duplicate URLs toward maxRequestsPerCrawl limit (enqueueLinks)', async () => {
             const requestQueue = await RequestQueue.open();
 
