@@ -314,9 +314,17 @@ export interface CreateRequestQueueClientOptions {
     id?: string;
     /** Name of the request queue to open or create. */
     name?: string;
-    /** Client key for request locking. */
+    /**
+     * Client key for request locking.
+     * TODO: This is an Apify-platform concern and should eventually be pushed down
+     * into the Apify SDK's client implementation (aligning with crawlee-python).
+     */
     clientKey?: string;
-    /** Timeout in seconds for request queue operations. */
+    /**
+     * Timeout in seconds for request queue operations.
+     * TODO: This is an Apify-platform concern and should eventually be pushed down
+     * into the Apify SDK's client implementation (aligning with crawlee-python).
+     */
     timeoutSecs?: number;
 }
 

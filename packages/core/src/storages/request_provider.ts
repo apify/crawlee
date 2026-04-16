@@ -8,6 +8,7 @@ import type {
     QueueOperationInfo,
     RequestQueueClient,
     RequestQueueInfo,
+    StorageClient,
 } from '@crawlee/types';
 import {
     chunkedAsyncIterable,
@@ -884,6 +885,17 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         const manager = StorageManager.getManager(this as typeof BuiltRequestProvider);
         const queue = await manager.openStorage(queueIdOrName, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
+
+        // Re-create the request queue client with clientKey and timeoutSecs so that
+        // request locking works correctly for API-backed implementations.
+        // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
+        // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
+        // where locking is handled internally by the client (see crawlee-python PR #1194).
+        queue.client = await options.storageClient.createRequestQueueClient({
+            id: queue.id,
+            clientKey: queue.clientKey,
+            timeoutSecs: queue.timeoutSecs,
+        });
 
         const queueInfo = await queue.client.getMetadata();
 
