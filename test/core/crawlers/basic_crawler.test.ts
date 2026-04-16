@@ -1742,6 +1742,7 @@ describe('BasicCrawler', () => {
                 }
             })({
                 requestQueue,
+                maxConcurrency: 1,
                 respectRobotsTxtFile: { userAgent: 'MyCrawler' },
                 requestHandler: async (context) => {
                     visitedUrls.push(context.request.url);
