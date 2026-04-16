@@ -53,7 +53,7 @@
         "access": "public"
     },
     "peerDependencies": {
-        "@crawlee/core": "workspace:*"
+        "@crawlee/core": "workspace:^"
     },
     "devDependencies": {
         "@crawlee/core": "workspace:*"

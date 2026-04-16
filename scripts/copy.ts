@@ -108,6 +108,12 @@ if (options['pin-versions']) {
         }
     }
 
+    for (const dep of Object.keys(pkgJson.peerDependencies ?? {})) {
+        if (dep.startsWith('@crawlee/') || dep === 'crawlee') {
+            pkgJson.peerDependencies[dep] = version;
+        }
+    }
+
     console.info(`pin-versions: version ${version}`, pkgJson.dependencies);
 
     writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
