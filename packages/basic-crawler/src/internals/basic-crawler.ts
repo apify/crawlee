@@ -1074,7 +1074,7 @@ export class BasicCrawler<
             log: this.log,
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            getKeyValueStore: async (identifier?) => KeyValueStore.open(identifier),
+            getKeyValueStore: async (identifier?: StorageIdentifier) => KeyValueStore.open(identifier),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
                 deferredCleanup.push(cleanup);
             },
