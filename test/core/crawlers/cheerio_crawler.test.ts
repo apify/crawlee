@@ -16,7 +16,6 @@ import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
-import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
 import { responseSamples, runExampleComServer } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
@@ -216,6 +215,31 @@ describe('CheerioCrawler', () => {
 
         // @ts-expect-error Accessing private prop
         expect(cheerioCrawler.ignoreSslErrors).toBeTruthy();
+    });
+
+    test('should work with skipNavigation', async () => {
+        const processed: Request[] = [];
+        const failed: Request[] = [];
+
+        const cheerioCrawler = new CheerioCrawler({
+            maxConcurrency: 1,
+            requestHandler: ({ request }) => {
+                processed.push(request);
+            },
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await cheerioCrawler.run([
+            {
+                url: 'http://example.com/',
+                skipNavigation: true,
+            },
+        ]);
+
+        expect(processed).toHaveLength(1);
+        expect(failed).toHaveLength(0);
     });
 
     test('should work with not encoded urls', async () => {
@@ -1005,23 +1029,30 @@ describe('CheerioCrawler', () => {
                         headers: { cookie: 'foo=bar2; baz=123' },
                     },
                 ]),
-
                 persistCookiesPerSession: false,
                 sessionPool: new SessionPool({
                     maxPoolSize: 1,
                 }),
+                preNavigationHooks: [
+                    ({ session, request }) => {
+                        // this should get overriden by the server
+                        session.setCookie('foo=bar1', request.url);
+                        session.setCookie('other=cookie1', request.url);
+
+                        request.headers ??= {};
+                        request.headers.cookie += '; coo=kie';
+                    },
+                ],
                 requestHandler: ({ json }) => {
                     responses.push(json);
                 },
             });
 
-            const sessSpy = vitest.spyOn(Session.prototype, 'getCookieString');
-            sessSpy.mockReturnValueOnce('foo=bar1; other=cookie1; coo=kie');
             await crawler.run();
             expect(responses).toHaveLength(1);
             expect(responses[0]).toMatchObject({
                 headers: {
-                    cookie: 'foo=bar2; other=cookie1; coo=kie; baz=123',
+                    cookie: 'foo=bar2; other=cookie1; baz=123; coo=kie',
                 },
             });
         });
@@ -1168,6 +1199,35 @@ describe('CheerioCrawler', () => {
             expect(responses).toHaveLength(2);
             expect(responses[0].cookies).toContain('sharedCookie=sharedValue');
             expect(responses[1].cookies).toContain('sharedCookie=sharedValue');
+        });
+
+        test('sendRequest should respect Cookie header override', async () => {
+            const responses: { cookies: string }[] = [];
+
+            const crawler = new CheerioCrawler({
+                requestList: await RequestList.open(null, [
+                    { url: `${serverAddress}/special/set-cookie?name=sessionCookie&value=fromSession` },
+                ]),
+                requestHandler: async ({ sendRequest }) => {
+                    const withHeader = await sendRequest({
+                        url: `${serverAddress}/special/get-cookies`,
+                        headers: new Headers({ Cookie: 'custom=override' }),
+                    });
+                    responses.push((await withHeader.json()) as { cookies: string });
+
+                    const withoutOverride = await sendRequest({
+                        url: `${serverAddress}/special/get-cookies`,
+                    });
+                    responses.push((await withoutOverride.json()) as { cookies: string });
+                },
+            });
+
+            await crawler.run();
+            expect(responses).toHaveLength(2);
+            expect(responses[0].cookies).toContain('custom=override');
+            expect(responses[0].cookies).toContain('sessionCookie=fromSession');
+            expect(responses[1].cookies).toContain('sessionCookie=fromSession');
+            expect(responses[1].cookies).not.toContain('custom=override');
         });
     });
 
