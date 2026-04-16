@@ -20,7 +20,14 @@
 			"automergeType": "branch"
 		},
 		{
-			"matchPackageNames": ["@apify/*", "@crawlee/*"],
+			"matchPackageNames": [
+				"@apify/*",
+				"@crawlee/*",
+				"apify-client",
+				"apify",
+				"crawlee",
+				"got-scraping"
+			],
 			"minimumReleaseAge": "0 days"
 		}
 	],
