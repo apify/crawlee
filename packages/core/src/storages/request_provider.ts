@@ -35,7 +35,7 @@ import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { IStorage, StorageManagerOptions } from './storage_manager.js';
+import type { IStorage, StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
 import { StorageManager } from './storage_manager.js';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
 
@@ -859,15 +859,17 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      *
      * For more details and code examples, see the {@apilink RequestQueue} class.
      *
-     * @param [queueIdOrName]
+     * @param [identifier]
      *   ID or name of the request queue to be opened. If `null` or `undefined`,
      *   the function returns the default request queue associated with the crawler run.
      * @param [options] Open Request Queue options.
      */
-    static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestProvider> {
+    static async open(
+        identifier?: StorageIdentifier | null,
+        options: StorageManagerOptions = {},
+    ): Promise<RequestProvider> {
         checkStorageAccess();
 
-        ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
         ow(
             options,
             ow.object.exactShape({
@@ -883,7 +885,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
         const manager = StorageManager.getManager(this as typeof BuiltRequestProvider);
-        const queue = await manager.openStorage(queueIdOrName, options.storageClient);
+        const queue = await manager.openStorage(identifier, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
 
         // Re-create the request queue client with clientKey and timeoutSecs so that

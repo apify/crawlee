@@ -27,6 +27,7 @@ import type {
     Source,
     StatisticsOptions,
     StatisticState,
+    StorageIdentifier,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -1073,7 +1074,7 @@ export class BasicCrawler<
             log: this.log,
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName),
+            getKeyValueStore: async (identifier?) => KeyValueStore.open(identifier),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
                 deferredCleanup.push(cleanup);
             },
@@ -1574,16 +1575,16 @@ export class BasicCrawler<
     /**
      * Pushes data to the specified {@apilink Dataset}, or the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
      */
-    async pushData(data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string): Promise<void> {
-        const dataset = await this.getDataset(datasetIdOrName);
+    async pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: StorageIdentifier): Promise<void> {
+        const dataset = await this.getDataset(datasetIdentifier);
         return dataset.pushData(data);
     }
 
     /**
      * Retrieves the specified {@apilink Dataset}, or the default crawler {@apilink Dataset}.
      */
-    async getDataset(idOrName?: string): Promise<Dataset> {
-        return Dataset.open(idOrName, { config: serviceLocator.getConfiguration() });
+    async getDataset(identifier?: StorageIdentifier): Promise<Dataset> {
+        return Dataset.open(identifier, { config: serviceLocator.getConfiguration() });
     }
 
     /**

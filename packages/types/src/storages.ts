@@ -287,33 +287,30 @@ export interface SetStatusMessageOptions {
 }
 
 /**
- * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
+ * Identifies a storage by either its ID or its name. At most one should be provided.
+ * If neither is provided, the default storage for the given type is used.
  */
-export interface CreateDatasetClientOptions {
-    /** ID of an existing dataset to open. */
+export interface StorageIdentifier {
+    /** ID of an existing storage to open. */
     id?: string;
-    /** Name of the dataset to open or create. */
+    /** Name of the storage to open or create. */
     name?: string;
 }
+
+/**
+ * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
+ */
+export interface CreateDatasetClientOptions extends StorageIdentifier {}
 
 /**
  * Options for creating a key-value store client via {@apilink StorageClient.createKeyValueStoreClient}.
  */
-export interface CreateKeyValueStoreClientOptions {
-    /** ID of an existing key-value store to open. */
-    id?: string;
-    /** Name of the key-value store to open or create. */
-    name?: string;
-}
+export interface CreateKeyValueStoreClientOptions extends StorageIdentifier {}
 
 /**
  * Options for creating a request queue client via {@apilink StorageClient.createRequestQueueClient}.
  */
-export interface CreateRequestQueueClientOptions {
-    /** ID of an existing request queue to open. */
-    id?: string;
-    /** Name of the request queue to open or create. */
-    name?: string;
+export interface CreateRequestQueueClientOptions extends StorageIdentifier {
     /**
      * Client key for request locking.
      * TODO: This is an Apify-platform concern and should eventually be pushed down
@@ -351,14 +348,14 @@ export interface StorageClient {
     /**
      * Create (or open) a key-value store client.
      * If `id` is provided, opens the key-value store with that ID.
-     * If `name` is provided, opens an existing key-value store with that name or creates a new one.
+     * If `name` is provided, opens an existing store with that name or creates a new one.
      * If neither is provided, opens or creates the default key-value store.
      */
     createKeyValueStoreClient(options?: CreateKeyValueStoreClientOptions): Promise<KeyValueStoreClient>;
     /**
      * Create (or open) a request queue client.
      * If `id` is provided, opens the request queue with that ID.
-     * If `name` is provided, opens an existing request queue with that name or creates a new one.
+     * If `name` is provided, opens an existing queue with that name or creates a new one.
      * If neither is provided, opens or creates the default request queue.
      */
     createRequestQueueClient(options?: CreateRequestQueueClientOptions): Promise<RequestQueueClient>;

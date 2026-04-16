@@ -10,7 +10,7 @@ beforeEach(() => {
 
 describe('Opening a storage with a different storage client should be respected', () => {
     test('opening a RequestQueue with default client from Configuration', async () => {
-        const queue = await RequestQueue.open('test-rq-open-client-from-config');
+        const queue = await RequestQueue.open({ name: 'test-rq-open-client-from-config' });
 
         // The sub-client should have been created by newClient (MemoryStorage),
         // so its internal `client` field should reference newClient.
@@ -22,7 +22,7 @@ describe('Opening a storage with a different storage client should be respected'
         // @ts-expect-error Using this to ensure the test/impl works
         thirdClient._name = 'third-client';
 
-        const queue = await RequestQueue.open('test-rq-open-custom-client', { storageClient: thirdClient });
+        const queue = await RequestQueue.open({ name: 'test-rq-open-custom-client' }, { storageClient: thirdClient });
 
         expect((queue.client as any).client).toBe(thirdClient);
     });

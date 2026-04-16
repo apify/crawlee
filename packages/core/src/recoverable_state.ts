@@ -118,9 +118,14 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
             return this.currentValue;
         }
 
-        this.keyValueStore = await KeyValueStore.open(this.persistStateKvsName ?? this.persistStateKvsId, {
-            config: serviceLocator.getConfiguration(),
-        });
+        this.keyValueStore = await KeyValueStore.open(
+            this.persistStateKvsName
+                ? { name: this.persistStateKvsName }
+                : this.persistStateKvsId
+                  ? { id: this.persistStateKvsId }
+                  : null,
+            { config: serviceLocator.getConfiguration() },
+        );
 
         await this.loadSavedState();
 

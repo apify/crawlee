@@ -10,7 +10,7 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { StorageManagerOptions } from './storage_manager.js';
+import type { StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
 import { StorageManager } from './storage_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -175,8 +175,8 @@ export interface DatasetIteratorOptions
 }
 
 export interface DatasetExportToOptions extends DatasetExportOptions {
-    fromDataset?: string;
-    toKVS?: string;
+    fromDataset?: StorageIdentifier;
+    toKVS?: StorageIdentifier;
 }
 
 /**
@@ -699,18 +699,17 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * For more details and code examples, see the {@apilink Dataset} class.
      *
-     * @param [datasetIdOrName]
+     * @param [identifier]
      *   ID or name of the dataset to be opened. If `null` or `undefined`,
      *   the function returns the default dataset associated with the crawler run.
      * @param [options] Storage manager options.
      */
     static async open<Data extends Dictionary = Dictionary>(
-        datasetIdOrName?: string | null,
+        identifier?: StorageIdentifier | null,
         options: StorageManagerOptions = {},
     ): Promise<Dataset<Data>> {
         checkStorageAccess();
 
-        ow(datasetIdOrName, ow.optional.string);
         ow(
             options,
             ow.object.exactShape({
@@ -726,7 +725,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         const manager = StorageManager.getManager<Dataset<Data>>(this);
 
-        return manager.openStorage(datasetIdOrName, options.storageClient);
+        return manager.openStorage(identifier, options.storageClient);
     }
 
     /**

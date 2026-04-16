@@ -211,9 +211,12 @@ export class SessionPool extends EventEmitter {
             return;
         }
 
-        this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, {
-            config: serviceLocator.getConfiguration(),
-        });
+        this.keyValueStore = await KeyValueStore.open(
+            this.persistStateKeyValueStoreId ? { id: this.persistStateKeyValueStoreId } : null,
+            {
+                config: serviceLocator.getConfiguration(),
+            },
+        );
 
         if (!this.persistStateKeyValueStoreId) {
             this.log.debug(

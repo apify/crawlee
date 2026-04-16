@@ -4,6 +4,7 @@ import type {
     KeyValueStoreClient,
     RequestQueueClient,
     StorageClient,
+    StorageIdentifier,
 } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 
@@ -11,6 +12,8 @@ import type { Configuration } from '../configuration.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
+
+export type { StorageIdentifier } from '@crawlee/types';
 
 const DEFAULT_ID_CONFIG_KEYS = {
     Dataset: 'defaultDatasetId',
@@ -43,10 +46,10 @@ export class StorageManager<T extends IStorage = IStorage> {
 
     static async openStorage<T extends IStorage>(
         storageClass: Constructor<T>,
-        idOrName?: string,
+        identifier?: StorageIdentifier,
         client?: StorageClient,
     ): Promise<T> {
-        return this.getManager(storageClass).openStorage(idOrName, client);
+        return this.getManager(storageClass).openStorage(identifier, client);
     }
 
     static getManager<T extends IStorage>(storageClass: Constructor<T>): StorageManager<T> {
@@ -59,20 +62,23 @@ export class StorageManager<T extends IStorage = IStorage> {
         return serviceLocator.getStorageManager(storageClass) as StorageManager<T>;
     }
 
-    async openStorage(idOrName?: string | null, client?: StorageClient): Promise<T> {
+    async openStorage(identifier?: StorageIdentifier | null, client?: StorageClient): Promise<T> {
         await this.storageOpenQueue.wait();
 
-        if (!idOrName) {
+        let id = identifier?.id;
+        let name = identifier?.name;
+
+        if (!id && !name) {
             const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
-            idOrName = this.config.get(defaultIdConfigKey) as string;
+            id = this.config.get(defaultIdConfigKey) as string;
         }
 
-        const cacheKey = idOrName;
+        const cacheKey = id ?? name!;
         let storage = this.cache.get(cacheKey);
 
         if (!storage) {
             client ??= serviceLocator.getStorageClient();
-            const subClient = await this._createSubClient(idOrName, this.name, client);
+            const subClient = await this._createSubClient({ id, name }, this.name, client);
             const storageInfo = await (
                 subClient as DatasetClient | KeyValueStoreClient | RequestQueueClient
             ).getMetadata();
@@ -106,17 +112,17 @@ export class StorageManager<T extends IStorage = IStorage> {
      * Creates a sub-client for the given storage type using the new factory-based StorageClient interface.
      */
     protected async _createSubClient(
-        storageIdOrName: string,
+        identifier: StorageIdentifier,
         storageConstructorName: string,
         apiClient: StorageClient,
     ): Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient> {
         switch (storageConstructorName) {
             case 'Dataset':
-                return apiClient.createDatasetClient({ name: storageIdOrName });
+                return apiClient.createDatasetClient(identifier);
             case 'KeyValueStore':
-                return apiClient.createKeyValueStoreClient({ name: storageIdOrName });
+                return apiClient.createKeyValueStoreClient(identifier);
             case 'RequestQueue':
-                return apiClient.createRequestQueueClient({ name: storageIdOrName });
+                return apiClient.createRequestQueueClient(identifier);
             default:
                 throw new Error(`Unknown storage type: ${storageConstructorName}`);
         }

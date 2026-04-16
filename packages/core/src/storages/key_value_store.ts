@@ -12,7 +12,7 @@ import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { StorageManagerOptions } from './storage_manager.js';
+import type { StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
 import { StorageManager } from './storage_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -591,15 +591,17 @@ export class KeyValueStore {
      *
      * For more details and code examples, see the {@apilink KeyValueStore} class.
      *
-     * @param [storeIdOrName]
+     * @param [identifier]
      *   ID or name of the key-value store to be opened. If `null` or `undefined`,
      *   the function returns the default key-value store associated with the crawler run.
      * @param [options] Storage manager options.
      */
-    static async open(storeIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<KeyValueStore> {
+    static async open(
+        identifier?: StorageIdentifier | null,
+        options: StorageManagerOptions = {},
+    ): Promise<KeyValueStore> {
         checkStorageAccess();
 
-        ow(storeIdOrName, ow.optional.any(ow.string, ow.null));
         ow(
             options,
             ow.object.exactShape({
@@ -615,7 +617,7 @@ export class KeyValueStore {
 
         const manager = StorageManager.getManager(this);
 
-        return manager.openStorage(storeIdOrName, options.storageClient);
+        return manager.openStorage(identifier, options.storageClient);
     }
 
     /**
