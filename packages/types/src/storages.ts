@@ -58,6 +58,13 @@ export interface DatasetStats {
 }
 
 export interface DatasetClient<Data extends Dictionary = Dictionary> {
+    /**
+     * Returns metadata about the dataset (id, name, timestamps, item count, etc.).
+     *
+     * Implementations should throw if the underlying storage no longer exists
+     * (e.g. it was deleted externally). This method should never return stale data
+     * for a storage that has been removed.
+     */
     getMetadata(): Promise<DatasetInfo>;
     update(newFields: DatasetClientUpdateOptions): Promise<Partial<DatasetInfo>>;
     delete(): Promise<void>;
@@ -134,6 +141,13 @@ export interface KeyValueStoreClientGetRecordOptions {
  * Key-value Store client.
  */
 export interface KeyValueStoreClient {
+    /**
+     * Returns metadata about the key-value store (id, name, timestamps, etc.).
+     *
+     * Implementations should throw if the underlying storage no longer exists
+     * (e.g. it was deleted externally). This method should never return stale data
+     * for a storage that has been removed.
+     */
     getMetadata(): Promise<KeyValueStoreInfo>;
     update(newFields: KeyValueStoreClientUpdateOptions): Promise<Partial<KeyValueStoreInfo>>;
     delete(): Promise<void>;
@@ -262,6 +276,13 @@ export interface BatchAddRequestsResult {
 }
 
 export interface RequestQueueClient {
+    /**
+     * Returns metadata about the request queue (id, name, timestamps, request counts, etc.).
+     *
+     * Implementations should throw if the underlying storage no longer exists
+     * (e.g. it was deleted externally). This method should never return stale data
+     * for a storage that has been removed.
+     */
     getMetadata(): Promise<RequestQueueInfo>;
     update(newFields: { name?: string }): Promise<Partial<RequestQueueInfo> | undefined>;
     delete(): Promise<void>;
