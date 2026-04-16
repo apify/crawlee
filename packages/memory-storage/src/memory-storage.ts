@@ -7,7 +7,7 @@ import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra/esm';
 
-import { scheduleBackgroundTask, promiseMap } from './background-handler/index.js';
+import { promiseMap, scheduleBackgroundTask } from './background-handler/index.js';
 import {
     findOrCacheDatasetByPossibleId,
     findOrCacheKeyValueStoreByPossibleId,

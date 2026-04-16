@@ -66,7 +66,7 @@ export class StorageManager<T extends IStorage = IStorage> {
         await this.storageOpenQueue.wait();
 
         let id = identifier?.id;
-        let name = identifier?.name;
+        const name = identifier?.name;
 
         if (!id && !name) {
             const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
