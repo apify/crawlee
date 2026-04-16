@@ -559,7 +559,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * If the dataset is empty, reduce will return undefined.
      *
      * @param iteratee
-     * @param memo Unset parameter, neccesary to be able to pass options
+     * @param memo Unset parameter, necessary to be able to pass options
      * @param [options] An object containing extra options for `reduce()`
      */
     async reduce(
