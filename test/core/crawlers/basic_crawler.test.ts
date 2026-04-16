@@ -2139,4 +2139,51 @@ describe('BasicCrawler', () => {
             expect(crawlerB.requestQueue?.config).toBe(configB);
         });
     });
+
+    describe('monitor option', () => {
+        test('crawler runs successfully with monitor: true', async () => {
+            const handledUrls: string[] = [];
+
+            const crawler = new BasicCrawler({
+                monitor: true,
+                requestHandler: ({ request }) => {
+                    handledUrls.push(request.url);
+                },
+            });
+
+            await crawler.run([{ url: `http://${HOSTNAME}:${port}` }]);
+            expect(handledUrls).toHaveLength(1);
+        });
+
+        test('crawler runs successfully with monitor: false (default)', async () => {
+            const handledUrls: string[] = [];
+
+            const crawler = new BasicCrawler({
+                requestHandler: ({ request }) => {
+                    handledUrls.push(request.url);
+                },
+            });
+
+            await crawler.run([{ url: `http://${HOSTNAME}:${port}` }]);
+            expect(handledUrls).toHaveLength(1);
+        });
+
+        test('monitor: true does not suppress request errors — failedRequestHandler still fires', async () => {
+            let failed = 0;
+
+            const crawler = new BasicCrawler({
+                monitor: true,
+                maxRequestRetries: 0,
+                requestHandler: () => {
+                    throw new Error('forced failure');
+                },
+                failedRequestHandler: () => {
+                    failed++;
+                },
+            });
+
+            await crawler.run([{ url: `http://${HOSTNAME}:${port}` }]);
+            expect(failed).toBe(1);
+        });
+    });
 });
