@@ -49,16 +49,6 @@ jobs:
                   node-version: 24
                   package-manager-cache: false
 
-            - name: Enable corepack
-              run: |
-                  corepack enable
-                  corepack prepare yarn@stable --activate
-
-            - name: Activate cache for Node.js 24
-              uses: actions/setup-node@v6
-              with:
-                  cache: 'yarn'
-
             - name: Turbo cache
               id: turbo-cache
               uses: actions/cache@v5
@@ -68,16 +58,15 @@ jobs:
                   restore-keys: |
                       turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            - name: Install dependencies
-              run: yarn
+            - uses: apify/workflows/pnpm-install@main
 
             - name: Build packages
-              run: yarn ci:build
+              run: pnpm ci:build
 
             - name: Bump canary versions
               if: inputs.dist-tag == 'next'
               run: |
-                    yarn turbo copy --force -- --canary --preid=beta
+                    pnpm turbo copy --force -- --canary --preid=beta
 
             - name: Commit changes
               if: inputs.dist-tag == 'next'
@@ -96,7 +85,7 @@ jobs:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: git checkout . && yarn publish:prod --yes
+                  command: git checkout . && pnpm publish:prod -- --yes
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
@@ -107,6 +96,6 @@ jobs:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: git checkout . && yarn publish:next --yes
+                  command: git checkout . && pnpm publish:next -- --yes
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

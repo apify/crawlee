@@ -1,8 +1,8 @@
 {
   "name": "crawlee-docs",
+  "private": true,
   "description": "Documentation and examples for Crawlee. This package is not published to npm, only used locally for TS build checks.",
   "type": "module",
-  "packageManager": "yarn@4.10.3",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -10,6 +10,12 @@
     "typescript": "^6.0.0"
   },
   "dependencies": {
+    "@crawlee/browser-pool": "workspace:*",
+    "@crawlee/core": "workspace:*",
+    "@crawlee/impit-client": "workspace:*",
+    "@crawlee/stagehand": "workspace:*",
+    "apify": "*",
+    "crawlee": "workspace:*",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"

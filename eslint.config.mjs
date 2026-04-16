@@ -36,6 +36,12 @@ export default [
             'import/no-extraneous-dependencies': 'off',
             'import/extensions': 'off',
             'import/no-default-export': 'off',
+            // Off: re-exports across @crawlee/* packages (core re-exported
+            // by basic, cheerio, http, etc.) are a core pattern of this
+            // monorepo.
+            'import/export': 'off',
+            'import/newline-after-import': 'off',
+            'import/first': 'off',
             '@typescript-eslint/array-type': 'error',
             '@typescript-eslint/ban-ts-comment': 0,
             '@typescript-eslint/consistent-type-imports': [

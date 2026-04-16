@@ -7,7 +7,6 @@ on:
         branches: [ master ]
 
 env:
-    YARN_IGNORE_NODE: 1
     RETRY_TESTS: 1
 
 concurrency:
@@ -15,7 +14,6 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    # `yarn install` is done in a separate job and cached to speed up the following jobs.
     build_and_test:
         name: Build & Test
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
@@ -27,7 +25,7 @@ jobs:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
                 os: [ ubuntu-22.04 ]
-                node-version: [ 18, 20, 22, 24 ]
+                node-version: [ 20, 22, 24 ]
 
         steps:
             -   name: Checkout repository
@@ -39,16 +37,6 @@ jobs:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v5
@@ -58,35 +46,26 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: |
-                    yarn
-                    yarn playwright install --with-deps
-                env:
-                    YARN_IGNORE_NODE: 1
+            -   uses: apify/workflows/pnpm-install@main
+
+            -   name: Install Playwright browsers
+                run: pnpm exec playwright install --with-deps
+
+            -   name: Install Puppeteer Chrome
+                run: pnpm exec puppeteer browsers install chrome
 
             -   name: Build
-                run: yarn ci:build
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm ci:build
 
             -   name: Test TS
-                run: yarn tsc-check-tests
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm tsc-check-tests
 
             -   name: Typecheck documentation examples
                 working-directory: ./docs
-                run: |
-                    yarn
-                    yarn typecheck
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm typecheck
 
             -   name: Tests
-                run: yarn test
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm test
 
     docs:
         name: Docs build
@@ -96,21 +75,11 @@ jobs:
             -   name: Checkout Source code
                 uses: actions/checkout@v6
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
                     package-manager-cache: false
-
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 20
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
 
             -   name: Turbo cache
                 id: turbo-cache
@@ -121,14 +90,12 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build & deploy docs
                 run: |
                     cd website
-                    yarn
-                    yarn build
+                    pnpm build
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
                     SEGMENT_TOKEN: ${{ secrets.SEGMENT_TOKEN }}
@@ -141,7 +108,7 @@ jobs:
             -   name: Start Docusaurus server
                 run: |
                     cd website
-                    nohup yarn docusaurus serve --port 3000 --no-open &
+                    nohup pnpm docusaurus serve --port 3000 --no-open &
                     sleep 5
                     curl -f http://localhost:3000 > /dev/null
 
@@ -238,21 +205,11 @@ jobs:
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
-            -   name: Use Node.js 20
+            -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
                     node-version: 24
                     package-manager-cache: false
-
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 20
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
 
             -   name: Turbo cache
                 id: turbo-cache
@@ -263,14 +220,13 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: ESLint
-                run: yarn lint
+                run: pnpm lint
 
             -   name: Biome format
-                run: yarn format:check
+                run: pnpm format:check
 
     release_next:
         name: Release @next
@@ -291,16 +247,6 @@ jobs:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v5
@@ -310,11 +256,10 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build
-                run: yarn ci:build
+                run: pnpm ci:build
 
             -   name: Generate changed packages list
                 id: changed-packages

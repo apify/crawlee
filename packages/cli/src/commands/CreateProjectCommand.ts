@@ -9,8 +9,10 @@ import type { Template } from '@crawlee/templates';
 import { fetchManifest } from '@crawlee/templates';
 import colors from 'ansi-colors';
 import { ensureDir } from 'fs-extra';
-import { prompt } from 'inquirer';
+import inquirer from 'inquirer';
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
+
+const { prompt } = inquirer;
 
 interface CreateProjectArgs {
     projectName?: string;
