@@ -1601,8 +1601,9 @@ export class BasicCrawler<
     async exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]> {
         const supportedFormats = ['json', 'csv'];
 
-        if (!format && /\.(json|csv)$/i.exec(path)) {
-            format = /\.(json|csv)$/.exec(path.toLowerCase())![1] as 'json' | 'csv';
+        const formatMatch = /\.(json|csv)$/i.exec(path);
+        if (!format && formatMatch) {
+            format = formatMatch[1].toLowerCase() as 'json' | 'csv';
         }
 
         if (!format) {
