@@ -292,7 +292,7 @@ export class RequestHandlerResult {
     };
 
     private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
-        const id = storeKey ?? this.config.get('defaultKeyValueStoreId');
+        const id = storeKey ?? this.config.get('defaultKeyValueStoreId') ?? 'default';
         this._keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
@@ -303,7 +303,7 @@ export class RequestHandlerResult {
         changedValue: unknown,
         options?: RecordOptions,
     ) => {
-        const id = storeKey ?? this.config.get('defaultKeyValueStoreId');
+        const id = storeKey ?? this.config.get('defaultKeyValueStoreId') ?? 'default';
         this._keyValueStoreChanges[id] ??= {};
         this._keyValueStoreChanges[id][key] = { changedValue, options };
     };

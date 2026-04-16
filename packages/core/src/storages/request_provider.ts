@@ -8,7 +8,6 @@ import type {
     QueueOperationInfo,
     RequestQueueClient,
     RequestQueueInfo,
-    StorageClient,
 } from '@crawlee/types';
 import {
     chunkedAsyncIterable,
