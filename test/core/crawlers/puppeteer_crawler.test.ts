@@ -22,6 +22,7 @@ import {
     RequestQueue,
     RequestValidationError,
     Session,
+    SessionPool,
 } from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
@@ -332,13 +333,13 @@ describe('PuppeteerCrawler', () => {
             requestList,
 
             persistCookiesPerSession: true,
-            sessionPoolOptions: {
+            sessionPool: new SessionPool({
                 createSessionFunction: (sessionPool) => {
                     const session = new Session({ sessionPool });
                     session.setCookies(cookies, serverUrl);
                     return session;
                 },
-            },
+            }),
             requestHandler: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
                 sessionCookies = session!.getCookieString(serverUrl);
@@ -365,11 +366,11 @@ describe('PuppeteerCrawler', () => {
                 },
             },
             maxConcurrency: 1,
-            sessionPoolOptions: {
+            sessionPool: new SessionPool({
                 sessionOptions: {
                     maxUsageCount: 1,
                 },
-            },
+            }),
             proxyConfiguration,
             requestHandler: async ({ proxyInfo, session }) => {
                 proxies.add(proxyInfo!.url);
