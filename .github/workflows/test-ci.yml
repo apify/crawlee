@@ -170,10 +170,10 @@ jobs:
             -   name: Install Dependencies
                 run: yarn
 
-            -   name: ESLint
+            -   name: Oxlint
                 run: yarn lint
 
-            -   name: Biome format
+            -   name: Oxfmt format check
                 run: yarn format:check
 
     release_next:

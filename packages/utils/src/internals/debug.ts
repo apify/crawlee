@@ -64,7 +64,7 @@ export function getObjectType(value: unknown): string {
     }
 
     const objectType = Object.prototype.toString.call(value);
-    const type = objectType.match(/\[object (\w+)]/)![1];
+    const type = /\[object (\w+)]/.exec(objectType)![1];
 
     if (type === 'Uint8Array') {
         return 'Buffer';

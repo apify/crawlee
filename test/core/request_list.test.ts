@@ -9,7 +9,7 @@ import {
     serviceLocator,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
 
 import log from '@apify/log';
@@ -812,15 +812,15 @@ describe('RequestList', () => {
                 } catch (err) {
                     const e = err as Error;
                     expect(e.message).not.toBe('wrong error');
-                    if (e.message.match('argument to be of type `string`')) {
+                    if (/argument to be of type `string`/.exec(e.message)) {
                         expect(e.message).toMatch('received type `undefined`');
-                    } else if (e.message.match('argument to be of type `array`')) {
+                    } else if (/argument to be of type `array`/.exec(e.message)) {
                         const isMatched =
-                            e.message.match('received type `Object`') ||
-                            e.message.match('received type `number`') ||
-                            e.message.match('received type `undefined`');
+                            /received type `Object`/.exec(e.message) ||
+                            /received type `number`/.exec(e.message) ||
+                            /received type `undefined`/.exec(e.message);
                         expect(isMatched).toBeTruthy();
-                    } else if (e.message.match('argument to be of type `null`')) {
+                    } else if (/argument to be of type `null`/.exec(e.message)) {
                         expect(e.message).toMatch('received type `undefined`');
                     }
                 }

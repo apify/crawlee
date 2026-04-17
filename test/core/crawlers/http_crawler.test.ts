@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 
 import { HttpCrawler } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
@@ -341,7 +341,7 @@ test('should work with delete requests', async () => {
 
     await cheerioCrawler.run([
         {
-            url: `${url}`,
+            url,
             method: 'DELETE',
         },
     ]);

@@ -1,6 +1,6 @@
 import { BaseCrawleeLogger, EventType, KeyValueStore, serviceLocator, Session, SessionPool } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;

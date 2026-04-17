@@ -7,8 +7,8 @@ import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState
 import { sleep } from '@crawlee/utils';
 import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { runExampleComServer } from '../../shared/_helper.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import { ENV_VARS } from '@apify/consts';
 import log from '@apify/log';

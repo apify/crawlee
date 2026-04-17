@@ -1,4 +1,4 @@
-import { pipeline, Transform } from 'stream';
+import { pipeline, Transform } from 'node:stream';
 
 import { FileDownload, type CrawleeLogger } from 'crawlee';
 

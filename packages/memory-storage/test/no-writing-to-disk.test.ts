@@ -44,7 +44,7 @@ describe('persistStorage option', () => {
             const keyValueStore = storage.keyValueStore(keyValueStoreInfo.id);
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
 
-            const storePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}`);
+            const storePath = resolve(storage.keyValueStoresDirectory, keyValueStoreInfo.id);
 
             await waitTillWrittenToDisk(storePath);
 

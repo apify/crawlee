@@ -7,7 +7,7 @@ import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 
@@ -150,49 +150,49 @@ describe('PlaywrightCrawler', () => {
         expect(Object.keys(options.browserPoolOptions).length).toBe(0);
     });
 
-    test.each([
-        { useIncognitoPages: true },
-        { useIncognitoPages: false },
-    ])('should apply launchOptions with useIncognitoPages: $useIncognitoPages', async ({ useIncognitoPages }) => {
-        // Some launch options apply to the browser, while some apply to the context.
-        // Here we use some context options to verify that those are actually applied.
-        const launchOptions = {
-            locale: 'cz-CZ',
-            reducedMotion: 'reduce' as const,
-            timezoneId: 'Pacific/Tahiti',
-        };
+    test.each([{ useIncognitoPages: true }, { useIncognitoPages: false }])(
+        'should apply launchOptions with useIncognitoPages: $useIncognitoPages',
+        async ({ useIncognitoPages }) => {
+            // Some launch options apply to the browser, while some apply to the context.
+            // Here we use some context options to verify that those are actually applied.
+            const launchOptions = {
+                locale: 'cz-CZ',
+                reducedMotion: 'reduce' as const,
+                timezoneId: 'Pacific/Tahiti',
+            };
 
-        let [timezone, locale, reducedMotion] = ['', '', ''];
+            let [timezone, locale, reducedMotion] = ['', '', ''];
 
-        const playwrightCrawler = new PlaywrightCrawler({
-            maxConcurrency: 1,
-            launchContext: {
-                useIncognitoPages,
-                launchOptions,
-            },
-            browserPoolOptions: {
-                // don't overwrite locale with fingerprint's locale
-                useFingerprints: false,
-            },
-            requestHandler: async ({ page }) => {
-                [timezone, locale, reducedMotion] = await Promise.all([
-                    page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
-                    page.evaluate(() => navigator.language),
-                    page.evaluate(() => {
-                        return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                            ? 'reduce'
-                            : 'no-preference';
-                    }),
-                ]);
-            },
-        });
+            const playwrightCrawler = new PlaywrightCrawler({
+                maxConcurrency: 1,
+                launchContext: {
+                    useIncognitoPages,
+                    launchOptions,
+                },
+                browserPoolOptions: {
+                    // don't overwrite locale with fingerprint's locale
+                    useFingerprints: false,
+                },
+                requestHandler: async ({ page }) => {
+                    [timezone, locale, reducedMotion] = await Promise.all([
+                        page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
+                        page.evaluate(() => navigator.language),
+                        page.evaluate(() => {
+                            return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                                ? 'reduce'
+                                : 'no-preference';
+                        }),
+                    ]);
+                },
+            });
 
-        await playwrightCrawler.run([`http://${HOSTNAME}:${port}/`]);
+            await playwrightCrawler.run([`http://${HOSTNAME}:${port}/`]);
 
-        expect(timezone).toBe(launchOptions.timezoneId);
-        expect(locale).toBe(launchOptions.locale);
-        expect(reducedMotion).toBe(launchOptions.reducedMotion);
-    });
+            expect(timezone).toBe(launchOptions.timezoneId);
+            expect(locale).toBe(launchOptions.locale);
+            expect(reducedMotion).toBe(launchOptions.reducedMotion);
+        },
+    );
 
     test('should have correct types in crawling context', async () => {
         const requestHandler = async (crawlingContext: PlaywrightCrawlingContext) => {

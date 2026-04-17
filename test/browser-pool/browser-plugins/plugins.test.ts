@@ -16,7 +16,7 @@ import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper.js';
+import { runExampleComServer } from '../../shared/_helper.js';
 
 import { createProxyServer } from './create-proxy-server.js';
 

@@ -172,7 +172,7 @@ export interface StagehandPage extends Page {
      * );
      * ```
      */
-    extract<T>(instruction: string, schema: z.ZodSchema<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
+    extract<T>(instruction: string, schema: z.ZodType<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
 
     /**
      * Observe the page and get AI-suggested actions.
@@ -207,8 +207,12 @@ export interface StagehandPage extends Page {
 /**
  * Crawling context for StagehandCrawler with enhanced page object.
  */
-export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<StagehandPage, Response, StagehandController, UserData> {
+export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<
+    StagehandPage,
+    Response,
+    StagehandController,
+    UserData
+> {
     /**
      * Enhanced Playwright page with Stagehand AI methods.
      * Use page.act(), page.extract(), page.observe(), page.agent() for AI-powered operations.
@@ -244,14 +248,14 @@ export interface StagehandCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension,
 > extends BrowserCrawlerOptions<
-        StagehandPage,
-        Response,
-        StagehandController,
-        StagehandCrawlingContext,
-        ContextExtension,
-        ExtendedContext,
-        { browserPlugins: [StagehandPlugin] }
-    > {
+    StagehandPage,
+    Response,
+    StagehandController,
+    StagehandCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    { browserPlugins: [StagehandPlugin] }
+> {
     /**
      * Stagehand-specific configuration options.
      * These options configure the AI behavior and Browserbase integration.
