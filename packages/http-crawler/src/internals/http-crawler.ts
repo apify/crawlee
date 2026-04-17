@@ -222,8 +222,10 @@ export interface InternalHttpCrawlingContext<
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
-export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
-    extends InternalHttpCrawlingContext<UserData, JSONData> {}
+export interface HttpCrawlingContext<
+    UserData extends Dictionary = any,
+    JSONData extends JsonValue = any,
+> extends InternalHttpCrawlingContext<UserData, JSONData> {}
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

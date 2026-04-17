@@ -14,11 +14,18 @@ import type {
     PuppeteerGoToOptions,
     Request,
 } from '@crawlee/puppeteer';
-import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Session } from '@crawlee/puppeteer';
+import {
+    ProxyConfiguration,
+    PuppeteerCrawler,
+    RequestList,
+    RequestQueue,
+    Session,
+    SessionPool,
+} from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 
@@ -105,12 +112,7 @@ describe('PuppeteerCrawler', () => {
             asserts.push(response!.status() === 200);
             request.userData.title = await page.title();
             processed.push(request);
-            asserts.push(
-                !response!
-                    .request()
-                    .headers()
-                    ['user-agent'].match(/headless/i),
-            );
+            asserts.push(!/headless/i.exec(response!.request().headers()['user-agent']));
             asserts.push(!(await page.evaluate(() => window.navigator.webdriver)));
         };
 
@@ -328,13 +330,13 @@ describe('PuppeteerCrawler', () => {
             requestList,
 
             persistCookiesPerSession: true,
-            sessionPoolOptions: {
+            sessionPool: new SessionPool({
                 createSessionFunction: (sessionPool) => {
                     const session = new Session({ sessionPool });
                     session.setCookies(cookies, serverUrl);
                     return session;
                 },
-            },
+            }),
             requestHandler: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
                 sessionCookies = session!.getCookieString(serverUrl);
@@ -361,11 +363,11 @@ describe('PuppeteerCrawler', () => {
                 },
             },
             maxConcurrency: 1,
-            sessionPoolOptions: {
+            sessionPool: new SessionPool({
                 sessionOptions: {
                     maxUsageCount: 1,
                 },
-            },
+            }),
             proxyConfiguration,
             requestHandler: async ({ proxyInfo, session }) => {
                 proxies.add(proxyInfo!.url);

@@ -1,4 +1,4 @@
-import { HttpCrawler, ProxyConfiguration } from 'crawlee';
+import { HttpCrawler, ProxyConfiguration, SessionPool } from 'crawlee';
 
 const proxyConfiguration = new ProxyConfiguration({
     /* opts */
@@ -8,12 +8,12 @@ const crawler = new HttpCrawler({
     // To use the proxy IP session rotation logic, you must turn the proxy usage on.
     proxyConfiguration,
     // Overrides default Session pool configuration.
-    sessionPoolOptions: { maxPoolSize: 100 },
+    sessionPool: new SessionPool({ maxPoolSize: 100 }),
     // Set to true if you want the crawler to save cookies per session,
     // and set the cookie header to request automatically (default is true).
     persistCookiesPerSession: true,
     async requestHandler({ session, body }) {
-        const title = (body as string).match(/<title(?:.*?)>(.*?)<\/title>/)?.[1];
+        const title = /<title(?:.*?)>(.*?)<\/title>/.exec(body as string)?.[1];
 
         if (title === 'Blocked') {
             session?.retire();

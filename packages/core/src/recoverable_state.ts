@@ -28,8 +28,9 @@ export interface RecoverableStatePersistenceOptions {
 /**
  * Options for configuring the RecoverableState
  */
-export interface RecoverableStateOptions<TStateModel = Record<string, unknown>>
-    extends RecoverableStatePersistenceOptions {
+export interface RecoverableStateOptions<
+    TStateModel = Record<string, unknown>,
+> extends RecoverableStatePersistenceOptions {
     /**
      * The default state used if no persisted state is found.
      * A deep copy is made each time the state is used.

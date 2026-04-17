@@ -22,7 +22,7 @@ describe('writeMetadata option', () => {
         test('creating a data store should not write __metadata__.json file', async () => {
             const keyValueStore = await storage.createKeyValueStoreClient();
             const info = await keyValueStore.getMetadata();
-            const expectedPath = resolve(storage.keyValueStoresDirectory, `${info.id}`);
+            const expectedPath = resolve(storage.keyValueStoresDirectory, info.id);
 
             // We check that reading the directory for the store throws an error, which means it wasn't created on disk
             await expect(async () => readdir(expectedPath)).rejects.toThrow();
@@ -36,7 +36,7 @@ describe('writeMetadata option', () => {
             const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);
             await waitTillWrittenToDisk(expectedFilePath);
 
-            const directoryFiles = await readdir(resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}`));
+            const directoryFiles = await readdir(resolve(storage.keyValueStoresDirectory, keyValueStoreInfo.id));
 
             expect(directoryFiles).toHaveLength(1);
         });
@@ -52,7 +52,7 @@ describe('writeMetadata option', () => {
         test('creating a data store should write __metadata__.json file', async () => {
             const keyValueStore = await storage.createKeyValueStoreClient();
             const info = await keyValueStore.getMetadata();
-            const expectedPath = resolve(storage.keyValueStoresDirectory, `${info.id}`);
+            const expectedPath = resolve(storage.keyValueStoresDirectory, info.id);
             await waitTillWrittenToDisk(expectedPath);
 
             const directoryFiles = await readdir(expectedPath);
@@ -72,7 +72,7 @@ describe('writeMetadata option', () => {
             );
             await Promise.all([waitTillWrittenToDisk(expectedFilePath), waitTillWrittenToDisk(expectedMetadataPath)]);
 
-            const directoryFiles = await readdir(resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}`));
+            const directoryFiles = await readdir(resolve(storage.keyValueStoresDirectory, keyValueStoreInfo.id));
 
             expect(directoryFiles).toHaveLength(3);
         });

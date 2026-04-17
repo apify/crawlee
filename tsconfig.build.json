@@ -5,7 +5,6 @@
 		"moduleResolution": "NodeNext",
 		"target": "ESNext",
 		"lib": ["DOM", "ES2023", "ES2024", "DOM.AsyncIterable"],
-		"baseUrl": ".",
 		"allowJs": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": false,

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { CheerioCrawler, log } from 'crawlee';
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 
 // We will bind an HTTP response that we want to send to the Request.uniqueKey
 const requestsToResponses = new Map();

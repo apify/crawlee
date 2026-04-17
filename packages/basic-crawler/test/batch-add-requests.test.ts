@@ -61,3 +61,50 @@ describe('BasicCrawler#addRequests with big batch sizes', () => {
         expect(result.addedRequests).toHaveLength(2000);
     });
 });
+
+describe('BasicCrawler - request.sessionId', () => {
+    const localStorageEmulator = new MemoryStorageEmulator();
+
+    beforeEach(async () => {
+        await localStorageEmulator.init();
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
+    });
+
+    test('uses the session matching request.sessionId from the session pool', async () => {
+        let resolvedSessionId: string | undefined;
+
+        const crawler = new BasicCrawler({
+            requestHandler({ session }) {
+                resolvedSessionId = session.id;
+            },
+        });
+
+        const session = await crawler.sessionPool.newSession({ id: 'my-session' });
+
+        await crawler.run([{ url: 'http://localhost', sessionId: session.id }]);
+
+        expect(resolvedSessionId).toBe('my-session');
+    });
+
+    test('throws when request.sessionId is not found in the session pool', async () => {
+        const errors: Error[] = [];
+
+        const crawler = new BasicCrawler({
+            maxRequestRetries: 0,
+            requestHandler() {},
+            failedRequestHandler(_ctx, error) {
+                errors.push(error);
+            },
+        });
+
+        await crawler.run([{ url: 'http://localhost', sessionId: 'nonexistent' }]);
+
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain(
+            "The current SessionPool instance doesn't contain the requested sessionId: nonexistent",
+        );
+    });
+});

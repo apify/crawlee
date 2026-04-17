@@ -26,28 +26,26 @@ export * from './browser-pool.js';
 export * from './playwright/playwright-plugin.js';
 export * from './puppeteer/puppeteer-plugin.js';
 export * from './events.js';
-export {
-    BrowserName,
-    DeviceCategory,
-    OperatingSystemsName,
+export type {
     BrowserSpecification,
     FingerprintGenerator,
     FingerprintGeneratorOptions,
     GetFingerprintReturn,
 } from './fingerprinting/types.js';
-export { BrowserController, BrowserControllerEvents } from './abstract-classes/browser-controller.js';
+export { BrowserName, DeviceCategory, OperatingSystemsName } from './fingerprinting/types.js';
+export type { BrowserControllerEvents } from './abstract-classes/browser-controller.js';
+export { BrowserController } from './abstract-classes/browser-controller.js';
 export { PuppeteerController } from './puppeteer/puppeteer-controller.js';
 export { PlaywrightController } from './playwright/playwright-controller.js';
 export { PlaywrightBrowser } from './playwright/playwright-browser.js';
-export {
+export type {
     CommonPage,
     CommonLibrary,
-    BrowserPlugin,
     BrowserPluginOptions,
     CreateLaunchContextOptions,
-    BrowserLaunchError,
-    DEFAULT_USER_AGENT,
 } from './abstract-classes/browser-plugin.js';
-export { LaunchContext, LaunchContextOptions } from './launch-context.js';
-export { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
+export { BrowserPlugin, BrowserLaunchError, DEFAULT_USER_AGENT } from './abstract-classes/browser-plugin.js';
+export type { LaunchContextOptions } from './launch-context.js';
+export { LaunchContext } from './launch-context.js';
+export type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy.js';

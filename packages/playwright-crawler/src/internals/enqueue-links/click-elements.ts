@@ -266,6 +266,7 @@ export async function enqueueLinksByClickingElements(
         requestQueue,
         selector,
         clickOptions,
+        // oxlint-disable-next-line typescript/no-deprecated -- still accepted for backwards compat
         pseudoUrls,
         globs,
         regexps,
@@ -324,7 +325,7 @@ export async function enqueueLinksByClickingElements(
     );
 
     if (onSkippedRequest && skippedByFilters.length > 0) {
-        await Promise.all(skippedByFilters.map((url) => onSkippedRequest({ url, reason: 'filters' })));
+        await Promise.all(skippedByFilters.map(async (url) => onSkippedRequest({ url, reason: 'filters' })));
     }
 
     if (transformRequestFunction) {
@@ -333,7 +334,9 @@ export async function enqueueLinksByClickingElements(
             skippedByTransform.push(r),
         );
         if (onSkippedRequest && skippedByTransform.length > 0) {
-            await Promise.all(skippedByTransform.map((r) => onSkippedRequest({ url: r.url, reason: 'transform' })));
+            await Promise.all(
+                skippedByTransform.map(async (r) => onSkippedRequest({ url: r.url, reason: 'transform' })),
+            );
         }
     }
 
@@ -566,9 +569,6 @@ async function waitForPageIdle({
 }: WaitForPageIdleOptions): Promise<void> {
     return new Promise<void>((resolve) => {
         let timeout: NodeJS.Timeout;
-        let maxTimeout: NodeJS.Timeout;
-
-        page.on('popup', activityHandler);
 
         function activityHandler() {
             clearTimeout(timeout);
@@ -591,7 +591,8 @@ async function waitForPageIdle({
             resolve();
         }
 
-        maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
+        const maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
+        page.on('popup', activityHandler);
         activityHandler(); // We call this once manually in case there would be no requests at all.
         page.on('request', activityHandler);
         page.on('framenavigated', activityHandler);

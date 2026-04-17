@@ -16,12 +16,13 @@ import {
     RequestList,
     RequestQueue,
     serviceLocator,
+    SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
@@ -519,61 +520,61 @@ describe('BasicCrawler', () => {
         expect(state2.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
     });
 
-    test.each([
-        EventType.MIGRATING,
-        EventType.ABORTING,
-    ])('should pause on %s event and persist RequestList state', async (event) => {
-        const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
+    test.each([EventType.MIGRATING, EventType.ABORTING])(
+        'should pause on %s event and persist RequestList state',
+        async (event) => {
+            const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
 
-        let persistResolve!: (value?: unknown) => void;
-        const persistPromise = new Promise((res) => {
-            persistResolve = res;
-        });
+            let persistResolve!: (value?: unknown) => void;
+            const persistPromise = new Promise((res) => {
+                persistResolve = res;
+            });
 
-        // Mock the calls to persist sources.
-        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        getValueSpy.mockResolvedValue(null);
+            // Mock the calls to persist sources.
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
+            getValueSpy.mockResolvedValue(null);
 
-        const processed: { url: string }[] = [];
-        const requestList = await RequestList.open('reqList', sources);
-        const requestHandler: RequestHandler = async ({ request }) => {
-            if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
-            processed.push({ url: request.url });
-        };
+            const processed: { url: string }[] = [];
+            const requestList = await RequestList.open('reqList', sources);
+            const requestHandler: RequestHandler = async ({ request }) => {
+                if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
+                processed.push({ url: request.url });
+            };
 
-        const basicCrawler = new BasicCrawler({
-            requestList,
-            minConcurrency: 25,
-            maxConcurrency: 25,
-            requestHandler,
-        });
+            const basicCrawler = new BasicCrawler({
+                requestList,
+                minConcurrency: 25,
+                maxConcurrency: 25,
+                requestHandler,
+            });
 
-        let finished = false;
-        // Mock the call to persist state.
-        setValueSpy.mockImplementationOnce(persistResolve as any);
-        // The crawler will pause after 200 requests
-        const runPromise = basicCrawler.run();
-        void runPromise.then(() => {
-            finished = true;
-        });
+            let finished = false;
+            // Mock the call to persist state.
+            setValueSpy.mockImplementationOnce(persistResolve as any);
+            // The crawler will pause after 200 requests
+            const runPromise = basicCrawler.run();
+            void runPromise.then(() => {
+                finished = true;
+            });
 
-        // need to monkeypatch the stats class, otherwise it will never finish
-        basicCrawler.stats.persistState = async () => Promise.resolve();
-        await persistPromise;
+            // need to monkeypatch the stats class, otherwise it will never finish
+            basicCrawler.stats.persistState = async () => Promise.resolve();
+            await persistPromise;
 
-        expect(finished).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(processed.length).toBe(200);
+            expect(finished).toBe(false);
+            expect(await requestList.isFinished()).toBe(false);
+            expect(await requestList.isEmpty()).toBe(false);
+            expect(processed.length).toBe(200);
 
-        expect(getValueSpy).toBeCalled();
-        expect(setValueSpy).toBeCalled();
+            expect(getValueSpy).toBeCalled();
+            expect(setValueSpy).toBeCalled();
 
-        // clean up
-        // @ts-expect-error Accessing private method
-        await basicCrawler.autoscaledPool!._destroy();
-    });
+            // clean up
+            // @ts-expect-error Accessing private method
+            await basicCrawler.autoscaledPool!._destroy();
+        },
+    );
 
     test('should retry failed requests', async () => {
         const sources = [
@@ -1493,10 +1494,10 @@ describe('BasicCrawler', () => {
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 10,
                     persistStateKey: 'POOL',
-                },
+                }),
                 requestHandler: async ({ session }) => {
                     expect(session.constructor.name).toEqual('Session');
                     expect(session.id).toBeDefined();
@@ -1519,10 +1520,10 @@ describe('BasicCrawler', () => {
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 10,
                     persistStateKey: 'POOL',
-                },
+                }),
                 requestHandler: async () => {},
                 failedRequestHandler: async () => {},
             });
@@ -1532,19 +1533,16 @@ describe('BasicCrawler', () => {
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
 
-        it('should destroy Session pool after it is finished', async () => {
+        it('should accept a pre-initialized SessionPool instance', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
-            serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
+            const sharedPool = new SessionPool({ maxPoolSize: 25 });
 
             const crawler = new BasicCrawler({
                 requestList,
-                requestHandlerTimeoutSecs: 0.01,
-                maxRequestRetries: 1,
-                sessionPoolOptions: {
-                    maxPoolSize: 10,
-                },
-                requestHandler: async () => {
+                sessionPool: sharedPool,
+                requestHandler: async ({ session }) => {
+                    expect(session).toBeDefined();
                     expect(crawler.sessionPool).toBeDefined();
                     expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
                 },
@@ -1552,9 +1550,60 @@ describe('BasicCrawler', () => {
             });
 
             await crawler.run();
-            expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(0);
-            // @ts-expect-error private symbol
-            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
+
+            expect(crawler.sessionPool).toBe(sharedPool);
+            await sharedPool.teardown();
+        });
+
+        it('should not tear down an injected SessionPool', async () => {
+            const url = 'https://example.com';
+            const requestList = await RequestList.open({ sources: [{ url }] });
+            const sharedPool = new SessionPool({ maxPoolSize: 25 });
+            const teardownSpy = vitest.spyOn(sharedPool, 'teardown');
+
+            const crawler = new BasicCrawler({
+                requestList,
+                sessionPool: sharedPool,
+                requestHandler: async () => {},
+            });
+            await crawler.run();
+
+            expect(teardownSpy).not.toHaveBeenCalled();
+            await sharedPool.teardown();
+        });
+
+        it('should share sessions across crawlers using the same SessionPool', async () => {
+            const sharedPool = new SessionPool({ maxPoolSize: 5 });
+            const crawler1Sessions = new Set<string>();
+            const crawler2Sessions = new Set<string>();
+
+            const requestList1 = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+            const crawler1 = new BasicCrawler({
+                requestList: requestList1,
+                sessionPool: sharedPool,
+                requestHandler: async ({ session }) => {
+                    crawler1Sessions.add(session.id);
+                },
+            });
+            await crawler1.run();
+
+            expect(crawler1Sessions.size).toBeGreaterThan(0);
+            const poolSizeAfterCrawler1 = sharedPool.usableSessionsCount;
+
+            const requestList2 = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+            const crawler2 = new BasicCrawler({
+                requestList: requestList2,
+                sessionPool: sharedPool,
+                requestHandler: async ({ session }) => {
+                    crawler2Sessions.add(session.id);
+                },
+            });
+            await crawler2.run();
+
+            expect(crawler1.sessionPool).toBe(crawler2.sessionPool);
+            // crawler2 should reuse sessions created by crawler1, not grow the pool further
+            expect(sharedPool.usableSessionsCount).toBe(poolSizeAfterCrawler1);
+            await sharedPool.teardown();
         });
     });
 

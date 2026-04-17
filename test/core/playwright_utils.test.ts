@@ -4,8 +4,8 @@ import path from 'node:path';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
-import { runExampleComServer } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { runExampleComServer } from '../shared/_helper.js';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 

@@ -27,8 +27,7 @@ import type {
 import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
 
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>,
-        PuppeteerContextUtils {}
+    extends BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
@@ -36,14 +35,14 @@ export interface PuppeteerCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
 > extends BrowserCrawlerOptions<
-        Page,
-        HTTPResponse,
-        PuppeteerController,
-        PuppeteerCrawlingContext,
-        ContextExtension,
-        ExtendedContext,
-        { browserPlugins: [PuppeteerPlugin] }
-    > {
+    Page,
+    HTTPResponse,
+    PuppeteerController,
+    PuppeteerCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    { browserPlugins: [PuppeteerPlugin] }
+> {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
      */
