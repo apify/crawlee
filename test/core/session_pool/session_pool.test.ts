@@ -301,7 +301,7 @@ describe('SessionPool - testing session pool', () => {
         await newSessionPool.teardown();
 
         // @ts-expect-error private symbol
-        const kvStore = await KeyValueStore.open(newSessionPool.persistStateKeyValueStoreId);
+        const kvStore = await KeyValueStore.open({ id: newSessionPool.persistStateKeyValueStoreId });
         // @ts-expect-error private symbol
         const state = await kvStore.getValue(newSessionPool.persistStateKey);
 
