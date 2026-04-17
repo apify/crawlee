@@ -14,7 +14,9 @@ export * from './internals/robots.js';
 export * from './internals/sitemap.js';
 export * from './internals/url.js';
 
-export { getCurrentCpuTicksV2, CpuSample } from './internals/system-info/cpu-info.js';
-export { getMemoryInfo, MemoryInfo } from './internals/system-info/memory-info.js';
+export type { CpuSample } from './internals/system-info/cpu-info.js';
+export { getCurrentCpuTicksV2 } from './internals/system-info/cpu-info.js';
+export type { MemoryInfo } from './internals/system-info/memory-info.js';
+export { getMemoryInfo } from './internals/system-info/memory-info.js';
 
-export { Dictionary, Awaitable, Constructor } from '@crawlee/types';
+export type { Dictionary, Awaitable, Constructor } from '@crawlee/types';

@@ -8,7 +8,7 @@ import { setTimeout } from 'node:timers/promises';
 import { FileDownload } from '@crawlee/http';
 import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { startExpressAppPromise } from '../../shared/_helper.js';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 
 class ReadableStreamGenerator {

@@ -267,6 +267,7 @@ export async function enqueueLinksByClickingElements(
         requestQueue,
         selector,
         clickOptions,
+        // oxlint-disable-next-line typescript/no-deprecated -- still accepted for backwards compat
         pseudoUrls,
         globs,
         regexps,
@@ -325,7 +326,7 @@ export async function enqueueLinksByClickingElements(
     );
 
     if (onSkippedRequest && skippedByFilters.length > 0) {
-        await Promise.all(skippedByFilters.map((url) => onSkippedRequest({ url, reason: 'filters' })));
+        await Promise.all(skippedByFilters.map(async (url) => onSkippedRequest({ url, reason: 'filters' })));
     }
 
     if (transformRequestFunction) {
@@ -334,7 +335,9 @@ export async function enqueueLinksByClickingElements(
             skippedByTransform.push(r),
         );
         if (onSkippedRequest && skippedByTransform.length > 0) {
-            await Promise.all(skippedByTransform.map((r) => onSkippedRequest({ url: r.url, reason: 'transform' })));
+            await Promise.all(
+                skippedByTransform.map(async (r) => onSkippedRequest({ url: r.url, reason: 'transform' })),
+            );
         }
     }
     const requests = filteredOptions.map((opts) => new Request(opts));
@@ -403,6 +406,7 @@ function createInterceptRequestHandler(page: Page, requests: Set<string>): (req:
                 url,
                 headers: req.headers(),
                 method: req.method(),
+                // oxlint-disable-next-line typescript/no-deprecated -- fetchPostData() is async and adds a CDP roundtrip per request; keep the sync page-cached read
                 payload: req.postData(),
             }),
         );
@@ -451,6 +455,7 @@ function createTargetCreatedHandler(page: Page, requests: Set<string>): (target:
  * There will generally be a lot of other targets being created in the browser.
  */
 export function isTargetRelevant(page: Page, target: Target): boolean {
+    // oxlint-disable-next-line typescript/no-deprecated -- the non-deprecated replacement (opener.page()) is async and would force every call site to await, including EventEmitter callbacks
     return target.type() === 'page' && page.target() === target.opener();
 }
 
@@ -585,7 +590,6 @@ async function waitForPageIdle({
 }: WaitForPageIdleOptions): Promise<void> {
     return new Promise<void>((resolve) => {
         let timeout: NodeJS.Timeout;
-        let maxTimeout: NodeJS.Timeout;
         const context = page.browserContext();
 
         function newTabTracker(target: Target) {
@@ -615,7 +619,7 @@ async function waitForPageIdle({
             resolve();
         }
 
-        maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
+        const maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
         activityHandler(); // We call this once manually in case there would be no requests at all.
         page.on('request', activityHandler);
         page.on('framenavigated', activityHandler);

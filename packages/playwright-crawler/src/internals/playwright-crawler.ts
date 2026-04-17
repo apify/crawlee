@@ -30,8 +30,7 @@ import type {
 import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 
 export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>,
-        PlaywrightContextUtils {}
+    extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 
@@ -39,14 +38,14 @@ export interface PlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
 > extends BrowserCrawlerOptions<
-        Page,
-        Response,
-        PlaywrightController,
-        PlaywrightCrawlingContext,
-        ContextExtension,
-        ExtendedContext,
-        { browserPlugins: [PlaywrightPlugin] }
-    > {
+    Page,
+    Response,
+    PlaywrightController,
+    PlaywrightCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    { browserPlugins: [PlaywrightPlugin] }
+> {
     /**
      * The same options as used by {@apilink launchPlaywright}.
      */
