@@ -1,8 +1,13 @@
 import fs from 'node:fs';
 
-import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
+import type { Browser as PlaywrightBrowser, BrowserType, ConnectOverCDPOptions, ConnectOptions } from 'playwright';
 
-import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
+import {
+    BrowserLaunchError,
+    BrowserPlugin,
+    type BrowserPluginOptions,
+    type CreateLaunchContextOptions,
+} from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { createProxyServerForContainers } from '../container-proxy-server.js';
 import type { LaunchContext } from '../launch-context.js';
@@ -10,6 +15,29 @@ import { getLocalProxyAddress } from '../proxy-server.js';
 import type { SafeParameters } from '../utils.js';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser.js';
 import { PlaywrightController } from './playwright-controller.js';
+
+/**
+ * Options for connecting to a remote browser via CDP.
+ * Mirrors `browserType.connectOverCDP(endpointURL, options?)`.
+ */
+export interface PlaywrightConnectOverCDPOptions extends ConnectOverCDPOptions {
+    /** The CDP endpoint URL to connect to (required). Overrides the deprecated optional `endpointURL` from Playwright. */
+    endpointURL: string;
+}
+
+/**
+ * Options for connecting to a remote browser via WebSocket.
+ * Mirrors `browserType.connect(wsEndpoint, options?)`.
+ */
+export interface PlaywrightConnectOptions extends ConnectOptions {
+    /** The WebSocket endpoint URL to connect to (required). */
+    wsEndpoint: string;
+}
+
+export interface PlaywrightPluginOptions extends BrowserPluginOptions<SafeParameters<BrowserType['launch']>[0]> {
+    connectOptions?: PlaywrightConnectOptions;
+    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
+}
 
 export class PlaywrightPlugin extends BrowserPlugin<
     BrowserType,
@@ -19,7 +47,96 @@ export class PlaywrightPlugin extends BrowserPlugin<
     private _browserVersion?: string;
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
+    connectOptions?: PlaywrightConnectOptions;
+    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
+
+    constructor(library: BrowserType, options: PlaywrightPluginOptions = {}) {
+        const { connectOptions, connectOverCDPOptions, ...baseOptions } = options;
+
+        if (connectOptions && connectOverCDPOptions) {
+            throw new Error("Cannot set both 'connectOptions' and 'connectOverCDPOptions' — pick one protocol.");
+        }
+
+        if (connectOverCDPOptions && !connectOverCDPOptions.endpointURL) {
+            throw new Error("'connectOverCDPOptions.endpointURL' must be a non-empty string.");
+        }
+
+        if (connectOptions && !connectOptions.wsEndpoint) {
+            throw new Error("'connectOptions.wsEndpoint' must be a non-empty string.");
+        }
+
+        super(library, baseOptions);
+        this.connectOptions = connectOptions;
+        this.connectOverCDPOptions = connectOverCDPOptions;
+
+        // We check options.useIncognitoPages (not this.useIncognitoPages) because super() collapses undefined to false.
+        // This preserves the distinction between "not set" (undefined → default to true) and "explicitly false".
+        if (this.connectOptions || this.connectOverCDPOptions) {
+            if (options.useIncognitoPages === undefined) {
+                this.useIncognitoPages = true;
+                this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
+            } else if (options.useIncognitoPages === false) {
+                const message = this.connectOptions
+                    ? 'useIncognitoPages is set to false with a remote WebSocket connection. ' +
+                      'This may cause errors because browserType.connect() returns a browser with no default context.'
+                    : 'useIncognitoPages is set to false with a remote browser connection. ' +
+                      'Pages will share cookies and storage on the remote browser instance.';
+                this.log.warning(message);
+            }
+        }
+    }
+
+    override createLaunchContext(options: CreateLaunchContextOptions<BrowserType> = {}): LaunchContext<BrowserType> {
+        return super.createLaunchContext({
+            ...options,
+            isRemote: options.isRemote ?? !!(this.connectOptions || this.connectOverCDPOptions),
+        });
+    }
+
+    private _sanitizeEndpointForLog(endpoint: string): string {
+        try {
+            const url = new URL(endpoint);
+            if (url.username || url.password) {
+                url.username = '***';
+                url.password = '***';
+            }
+            return url.toString();
+        } catch {
+            return '<invalid URL>';
+        }
+    }
+
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
+        // Remote CDP connection — skip all local launch/proxy logic
+        if (this.connectOverCDPOptions) {
+            const { endpointURL, ...options } = this.connectOverCDPOptions;
+            this.log.info('Connecting to remote browser via connectOverCDP.');
+            try {
+                return await this.library.connectOverCDP(endpointURL, options);
+            } catch (cause) {
+                throw new BrowserLaunchError(
+                    `Failed to connect to remote browser via CDP at "${this._sanitizeEndpointForLog(endpointURL)}". ` +
+                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\n\u200b',
+                    { cause },
+                );
+            }
+        }
+
+        // Remote Playwright WebSocket connection — skip all local launch/proxy logic
+        if (this.connectOptions) {
+            const { wsEndpoint, ...options } = this.connectOptions;
+            this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
+            try {
+                return await this.library.connect(wsEndpoint, options);
+            } catch (cause) {
+                throw new BrowserLaunchError(
+                    `Failed to connect to remote browser via WebSocket at "${this._sanitizeEndpointForLog(wsEndpoint)}". ` +
+                        'Check that the endpoint is reachable and the Playwright server is running.\n\u200b',
+                    { cause },
+                );
+            }
+        }
+
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;
         let browser: PlaywrightBrowser;
 
