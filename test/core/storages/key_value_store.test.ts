@@ -2,7 +2,7 @@ import { PassThrough } from 'node:stream';
 
 import { Configuration, KeyValueStore, maybeStringify, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const localStorageEmulator = new MemoryStorageEmulator();
 

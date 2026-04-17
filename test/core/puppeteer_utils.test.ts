@@ -5,8 +5,8 @@ import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawle
 import type { Dictionary } from '@crawlee/utils';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { runExampleComServer } from '../shared/_helper.js';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 

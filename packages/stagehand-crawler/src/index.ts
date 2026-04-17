@@ -54,10 +54,7 @@
 export * from '@crawlee/browser';
 
 // Export main crawler class
-export {
-    StagehandCrawler,
-    createStagehandRouter,
-} from './internals/stagehand-crawler';
+export { StagehandCrawler, createStagehandRouter } from './internals/stagehand-crawler';
 
 // Export types
 export type {

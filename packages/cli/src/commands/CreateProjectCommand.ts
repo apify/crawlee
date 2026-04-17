@@ -188,7 +188,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         );
 
         // Run npm install in project dir.
-        const npm = /^win/.test(process.platform) ? 'npm.cmd' : 'npm';
+        const npm = process.platform.startsWith('win') ? 'npm.cmd' : 'npm';
         execSync(`${npm} install`, { cwd: projectDir, stdio: 'inherit' });
 
         console.log(
