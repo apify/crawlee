@@ -22,7 +22,6 @@ import type {
     RouterHandler,
     RouterRoutes,
     Session,
-    SessionPoolOptions,
     SkippedRequestCallback,
     Source,
     StatisticsOptions,
@@ -313,9 +312,11 @@ export interface BasicCrawlerOptions<
     keepAlive?: boolean;
 
     /**
-     * The configuration options for {@apilink SessionPool} to use.
+     * An existing {@apilink SessionPool} instance to use. When provided, the crawler will use this
+     * pool directly instead of creating a new one, enabling session sharing across multiple crawlers.
+     * The crawler will not tear down a shared pool — the caller is responsible for its lifecycle.
      */
-    sessionPoolOptions?: SessionPoolOptions;
+    sessionPool?: SessionPool;
 
     /**
      * Defines the length of the interval for calling the `setStatusMessage` in seconds.
@@ -570,6 +571,11 @@ export class BasicCrawler<
     sessionPool: SessionPool;
 
     /**
+     * Indicates whether the crawler owns the session pool (it was not passed from the outside using the `sessionPool` constructor option).
+     */
+    private ownsSessionPool: boolean;
+
+    /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
      * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
      * We can use it to change the concurrency settings on the fly,
@@ -642,7 +648,6 @@ export class BasicCrawler<
     protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
-    protected sessionPoolOptions?: SessionPoolOptions;
     protected blockedStatusCodes = new Set<number>();
     protected additionalHttpErrorStatusCodes: Set<number>;
     protected ignoreHttpErrorStatusCodes: Set<number>;
@@ -682,7 +687,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
-        sessionPoolOptions: ow.optional.object,
+        sessionPool: ow.optional.object.instanceOf(SessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
@@ -736,7 +741,7 @@ export class BasicCrawler<
             maxCrawlDepth,
             autoscaledPoolOptions = {},
             keepAlive,
-            sessionPoolOptions = {},
+            sessionPool,
             proxyConfiguration,
 
             additionalHttpErrorStatusCodes = [],
@@ -865,11 +870,11 @@ export class BasicCrawler<
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
-            this.sessionPoolOptions = {
-                ...sessionPoolOptions,
-                log: this.log,
-            };
-            this.sessionPool = new SessionPool(this.sessionPoolOptions);
+
+            this.sessionPool = sessionPool ?? new SessionPool();
+            this.sessionPool.setMaxListeners(20);
+
+            this.ownsSessionPool = !sessionPool;
 
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
@@ -1278,7 +1283,9 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            await this.sessionPool?.resetStore();
+            if (this.ownsSessionPool) {
+                await this.sessionPool.resetStore();
+            }
         }
 
         this.unexpectedStop = false;
@@ -1665,7 +1672,6 @@ export class BasicCrawler<
         // so that the caller can get a reference to it before awaiting the promise returned from run()
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-        this.sessionPool.setMaxListeners(20);
 
         await this.initializeRequestManager();
         await this._loadHandledRequestCount();
@@ -2224,10 +2230,12 @@ export class BasicCrawler<
     async teardown(): Promise<void> {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
 
-        await this.sessionPool?.teardown();
-
         if (this._closeEvents) {
             await serviceLocator.getEventManager().close();
+        }
+
+        if (this.ownsSessionPool) {
+            await this.sessionPool.teardown();
         }
 
         await this.autoscaledPool?.abort();

@@ -27,6 +27,13 @@ export interface CreateSession {
 
 export interface SessionPoolOptions {
     /**
+     * Unique identifier for this session pool instance. Used to generate a unique
+     * persistence key when `persistStateKey` is not provided.
+     * If not provided, an auto-incrementing ID is used.
+     */
+    id?: string | number;
+
+    /**
      * Maximum size of the pool. Indicates how many sessions are rotated.
      * @default 1000
      */
@@ -39,8 +46,8 @@ export interface SessionPoolOptions {
     persistStateKeyValueStoreId?: string;
 
     /**
-     * Session pool persists it's state under this key in Key value store.
-     * @default SESSION_POOL_STATE
+     * Session pool persists its state under this key in Key value store.
+     * @default SDK_SESSION_POOL_STATE_{id}
      */
     persistStateKey?: string;
 
@@ -114,6 +121,9 @@ export interface SessionPoolOptions {
  * @category Scaling
  */
 export class SessionPool extends EventEmitter {
+    private static nextId = 0;
+
+    readonly id: string;
     protected log: CrawleeLogger;
     protected maxPoolSize: number;
     protected createSessionFunction: CreateSession;
@@ -136,6 +146,7 @@ export class SessionPool extends EventEmitter {
         ow(
             options,
             ow.object.exactShape({
+                id: ow.optional.any(ow.number, ow.string),
                 maxPoolSize: ow.optional.number,
                 persistStateKeyValueStoreId: ow.optional.string,
                 persistStateKey: ow.optional.string,
@@ -147,9 +158,10 @@ export class SessionPool extends EventEmitter {
         );
 
         const {
+            id,
             maxPoolSize = MAX_POOL_SIZE,
             persistStateKeyValueStoreId,
-            persistStateKey = PERSIST_STATE_KEY,
+            persistStateKey,
             createSessionFunction,
             sessionOptions = {},
             log = serviceLocator.getLogger(),
@@ -158,6 +170,7 @@ export class SessionPool extends EventEmitter {
             },
         } = options;
 
+        this.id = id != null ? String(id) : String(SessionPool.nextId++);
         this.events = serviceLocator.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
@@ -176,7 +189,7 @@ export class SessionPool extends EventEmitter {
 
         // Session keyValueStore
         this.persistStateKeyValueStoreId = persistStateKeyValueStoreId;
-        this.persistStateKey = persistStateKey;
+        this.persistStateKey = persistStateKey ?? `${PERSIST_STATE_KEY}_${this.id}`;
     }
 
     /**

@@ -132,6 +132,9 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should persist state and recreate it from storage', async () => {
+        const persistStateKey = 'PERSIST_TEST';
+        sessionPool = new SessionPool({ persistStateKey });
+
         await sessionPool.getSession();
         await sessionPool.persistState();
 
@@ -164,7 +167,7 @@ describe('SessionPool - testing session pool', () => {
             });
         });
 
-        const loadedSessionPool = new SessionPool();
+        const loadedSessionPool = new SessionPool({ persistStateKey });
         // @ts-expect-error Accessing protected method
         await loadedSessionPool.ensureInitialized();
         // @ts-expect-error private symbol
@@ -252,6 +255,9 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should recreate only usable sessions', async () => {
+        const persistStateKey = 'RECREATE_TEST';
+        sessionPool = new SessionPool({ persistStateKey });
+
         let invalidSessionsCount = 0;
         for (let i = 0; i < 10; i++) {
             const session = await sessionPool.getSession();
@@ -266,7 +272,7 @@ describe('SessionPool - testing session pool', () => {
 
         await sessionPool.persistState();
 
-        const newSessionPool = new SessionPool();
+        const newSessionPool = new SessionPool({ persistStateKey });
         // @ts-expect-error Accessing protected method
         await newSessionPool.ensureInitialized();
         // @ts-expect-error Accessing private property
@@ -276,10 +282,19 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should restore persisted maxUsageCount of recreated sessions', async () => {
-        sessionPool = new SessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 66 } });
+        const persistStateKey = 'MAX_USAGE_TEST';
+        sessionPool = new SessionPool({
+            maxPoolSize: 1,
+            sessionOptions: { maxUsageCount: 66 },
+            persistStateKey,
+        });
         await sessionPool.getSession();
         await sessionPool.persistState();
-        const loadedSessionPool = new SessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 88 } });
+        const loadedSessionPool = new SessionPool({
+            maxPoolSize: 1,
+            sessionOptions: { maxUsageCount: 88 },
+            persistStateKey,
+        });
 
         const recreatedSession = await loadedSessionPool.getSession();
 
@@ -409,5 +424,69 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.sessionMap.size).toEqual(1);
         // @ts-expect-error private symbol
         expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
+    });
+
+    describe('multiple SessionPool instances isolation', () => {
+        test('should use unique persist keys by default', async () => {
+            const pool1 = new SessionPool();
+            const pool2 = new SessionPool();
+
+            // @ts-expect-error private symbol
+            expect(pool1.persistStateKey).not.toEqual(pool2.persistStateKey);
+
+            await pool1.teardown();
+            await pool2.teardown();
+        });
+
+        test("should not overwrite each other's persisted state", async () => {
+            const pool1 = new SessionPool({ maxPoolSize: 5 });
+            const pool2 = new SessionPool({ maxPoolSize: 5 });
+
+            for (let i = 0; i < 3; i++) await pool1.getSession();
+            for (let i = 0; i < 5; i++) await pool2.getSession();
+
+            await pool1.persistState();
+            await pool2.persistState();
+
+            const pool1Reloaded = new SessionPool({
+                // @ts-expect-error private symbol
+                persistStateKey: pool1.persistStateKey,
+            });
+            const pool2Reloaded = new SessionPool({
+                // @ts-expect-error private symbol
+                persistStateKey: pool2.persistStateKey,
+            });
+
+            // @ts-expect-error -- we're reading the private sessions field, public methods initialize the instance automatically
+            await pool1Reloaded.ensureInitialized();
+            // @ts-expect-error
+            await pool2Reloaded.ensureInitialized();
+
+            // @ts-expect-error private symbol
+            expect(pool1Reloaded.sessions).toHaveLength(3);
+            // @ts-expect-error private symbol
+            expect(pool2Reloaded.sessions).toHaveLength(5);
+
+            await pool1.teardown();
+            await pool2.teardown();
+            await pool1Reloaded.teardown();
+            await pool2Reloaded.teardown();
+        });
+
+        test('retiring sessions in one pool should not affect another', async () => {
+            const pool1 = new SessionPool({ maxPoolSize: 2 });
+            const pool2 = new SessionPool({ maxPoolSize: 2 });
+
+            const session1 = await pool1.getSession();
+            await pool2.getSession();
+
+            session1.retire();
+
+            expect(await pool1.retiredSessionsCount()).toBe(1);
+            expect(await pool2.retiredSessionsCount()).toBe(0);
+
+            await pool1.teardown();
+            await pool2.teardown();
+        });
     });
 });
