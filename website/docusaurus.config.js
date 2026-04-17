@@ -68,7 +68,7 @@ module.exports = {
     },
     themes: ['@docusaurus/theme-mermaid'],
     future: {
-        faster: {
+        experimental_faster: {
             // ssgWorkerThreads: true,
             swcJsLoader: true,
             swcJsMinimizer: true,
