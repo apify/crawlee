@@ -1,0 +1,27 @@
+{
+    "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxfmt/configuration_schema.json",
+    "printWidth": 120,
+    "tabWidth": 4,
+    "useTabs": false,
+    "singleQuote": true,
+    "semi": true,
+    "trailingComma": "all",
+    "quoteProps": "preserve",
+    "endOfLine": "lf",
+    "ignorePatterns": [
+        "**/node_modules",
+        "**/dist",
+        "**/coverage",
+        "**/.turbo",
+        "**/website/build",
+        "**/website/.docusaurus",
+        "**/*.d.ts",
+        "**/package.json",
+        "**/lerna.json",
+        "**/CHANGELOG.md",
+        "**/README.md",
+        "**/*.md",
+        "**/*.mdx",
+        "scripts/actions/docker-images/state.json"
+    ]
+}

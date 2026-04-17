@@ -50,11 +50,11 @@ const crawler = new BasicCrawler({
                 ?.split(';')
                 .map((x) => Cookie.parse(x));
 
-            newCookies?.forEach((cookie) => {
+            for (const cookie of newCookies ?? []) {
                 if (cookie) {
-                    session?.cookieJar?.setCookie(cookie, url);
+                    await session?.cookieJar?.setCookie(cookie, url);
                 }
-            });
+            }
         }
     },
 });

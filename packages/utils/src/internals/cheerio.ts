@@ -53,7 +53,7 @@ export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
             if (elem.type === 'text') {
                 // Compress spaces, unless we're inside <pre> element
                 let compr;
-                if (elem.parent && elem.parent.tagName === 'pre') compr = elem.data;
+                if (elem.parent?.tagName === 'pre') compr = elem.data;
                 else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
                 if (compr.startsWith(' ') && /(^|\s)$/.test(text)) compr = compr.substring(1);

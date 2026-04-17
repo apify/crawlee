@@ -383,49 +383,49 @@ describe('AdaptivePlaywrightCrawler', () => {
         });
     });
 
-    test.each([
-        ['static'],
-        ['clientOnly'],
-    ] as const)('should respect the strategy option for enqueueLinks (%s)', async (renderingType) => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
-            detectionProbabilityRecommendation: 0,
-            renderingType,
-        });
-        const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
-        const enqueuedUrls = new Set<string>();
-        const visitedUrls = new Set<string>();
+    test.each([['static'], ['clientOnly']] as const)(
+        'should respect the strategy option for enqueueLinks (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
+            const enqueuedUrls = new Set<string>();
+            const visitedUrls = new Set<string>();
 
-        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-            async ({ enqueueLinks, request }) => {
-                visitedUrls.add(request.loadedUrl);
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ enqueueLinks, request }) => {
+                    visitedUrls.add(request.loadedUrl);
 
-                if (!request.label) {
-                    const result = await enqueueLinks({
-                        label: 'enqueued-url',
-                        strategy: 'same-hostname',
-                    });
+                    if (!request.label) {
+                        const result = await enqueueLinks({
+                            label: 'enqueued-url',
+                            strategy: 'same-hostname',
+                        });
 
-                    for (const processedRequest of result.processedRequests) {
-                        enqueuedUrls.add(processedRequest.uniqueKey);
+                        for (const processedRequest of result.processedRequests) {
+                            enqueuedUrls.add(processedRequest.uniqueKey);
+                        }
                     }
-                }
-            },
-        );
+                },
+            );
 
-        const crawler = await makeOneshotCrawler(
-            {
-                requestHandler,
-                renderingTypePredictor,
-                maxRequestsPerCrawl: 10,
-            },
-            [url.toString()],
-        );
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    maxRequestsPerCrawl: 10,
+                },
+                [url.toString()],
+            );
 
-        await crawler.run();
+            await crawler.run();
 
-        expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
-        expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
-    });
+            expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
+            expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
+        },
+    );
 
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({

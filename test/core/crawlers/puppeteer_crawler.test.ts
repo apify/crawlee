@@ -114,12 +114,7 @@ describe('PuppeteerCrawler', () => {
             asserts.push(response!.status() === 200);
             request.userData.title = await page.title();
             processed.push(request);
-            asserts.push(
-                !response!
-                    .request()
-                    .headers()
-                    ['user-agent'].match(/headless/i),
-            );
+            asserts.push(!/headless/i.exec(response!.request().headers()['user-agent']));
             asserts.push(!(await page.evaluate(() => window.navigator.webdriver)));
         };
 

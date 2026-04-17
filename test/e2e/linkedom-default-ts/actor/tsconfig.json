@@ -1,10 +1,10 @@
 {
-	"extends": "@apify/tsconfig",
-	"compilerOptions": {
-		"module": "NodeNext",
-		"moduleResolution": "NodeNext",
-		"target": "ES2022",
-		"lib": ["DOM"]
-	},
-	"include": ["./**/*.ts"]
+    "extends": "@apify/tsconfig",
+    "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "target": "ES2022",
+        "lib": ["DOM"]
+    },
+    "include": ["./**/*.ts"]
 }

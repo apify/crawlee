@@ -18,7 +18,7 @@ import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper.js';
+import { runExampleComServer } from '../../shared/_helper.js';
 
 import { createProxyServer } from './create-proxy-server.js';
 
