@@ -54,7 +54,7 @@ export class KeyValueStoreClient extends BaseClient {
         this.client = options.client;
     }
 
-    async get(): Promise<storage.KeyValueStoreInfo | undefined> {
+    async getMetadata(): Promise<storage.KeyValueStoreInfo> {
         const found = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
 
         if (found) {
@@ -62,7 +62,7 @@ export class KeyValueStoreClient extends BaseClient {
             return found.toKeyValueStoreInfo();
         }
 
-        return undefined;
+        return this.toKeyValueStoreInfo();
     }
 
     async update(newFields: storage.KeyValueStoreClientUpdateOptions = {}): Promise<storage.KeyValueStoreInfo> {

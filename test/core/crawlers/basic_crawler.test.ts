@@ -943,10 +943,8 @@ describe('BasicCrawler', () => {
         ];
         const processed: Dictionary<Request> = {};
         const requestList = await RequestList.open(null, sources);
-        const requestQueue = new RequestQueue(
-            { id: 'xxx', client: serviceLocator.getStorageClient() },
-            serviceLocator.getConfiguration(),
-        );
+        const rqClient = await serviceLocator.getStorageClient().createRequestQueueClient({ id: 'xxx' });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient }, serviceLocator.getConfiguration());
 
         const requestHandler: RequestHandler = async ({ request }) => {
             await sleep(10);
@@ -1017,10 +1015,8 @@ describe('BasicCrawler', () => {
     });
 
     test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
-        const requestQueue = new RequestQueue(
-            { id: 'xxx', client: serviceLocator.getStorageClient() },
-            serviceLocator.getConfiguration(),
-        );
+        const rqClient = await serviceLocator.getStorageClient().createRequestQueueClient({ id: 'xxx' });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient }, serviceLocator.getConfiguration());
         requestQueue.isEmpty = async () => Promise.resolve(true);
 
         const crawler = new BasicCrawler({
@@ -1033,10 +1029,8 @@ describe('BasicCrawler', () => {
     });
 
     test('should be possible to override isFinishedFunction and isTaskReadyFunction of underlying AutoscaledPool', async () => {
-        const requestQueue = new RequestQueue(
-            { id: 'xxx', client: serviceLocator.getStorageClient() },
-            serviceLocator.getConfiguration(),
-        );
+        const rqClient = await serviceLocator.getStorageClient().createRequestQueueClient({ id: 'xxx' });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient }, serviceLocator.getConfiguration());
         const processed: Request[] = [];
         const queue: Request[] = [];
         let isFinished = false;
@@ -1110,10 +1104,8 @@ describe('BasicCrawler', () => {
     });
 
     test('keepAlive', async () => {
-        const requestQueue = new RequestQueue(
-            { id: 'xxx', client: serviceLocator.getStorageClient() },
-            serviceLocator.getConfiguration(),
-        );
+        const rqClient = await serviceLocator.getStorageClient().createRequestQueueClient({ id: 'xxx' });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient }, serviceLocator.getConfiguration());
         const processed: Request[] = [];
         const queue: Request[] = [];
 
@@ -1214,10 +1206,8 @@ describe('BasicCrawler', () => {
     });
 
     test('should load handledRequestCount from storages', async () => {
-        const requestQueue = new RequestQueue(
-            { id: 'id', client: serviceLocator.getStorageClient() },
-            serviceLocator.getConfiguration(),
-        );
+        const rqClient = await serviceLocator.getStorageClient().createRequestQueueClient({ id: 'id' });
+        const requestQueue = new RequestQueue({ id: 'id', client: rqClient }, serviceLocator.getConfiguration());
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
 

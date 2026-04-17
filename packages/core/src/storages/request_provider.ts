@@ -8,7 +8,6 @@ import type {
     QueueOperationInfo,
     RequestQueueClient,
     RequestQueueInfo,
-    StorageClient,
 } from '@crawlee/types';
 import {
     chunkedAsyncIterable,
@@ -35,7 +34,7 @@ import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { IStorage, StorageManagerOptions } from './storage_manager.js';
+import type { IStorage, StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
 import { StorageManager } from './storage_manager.js';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
 
@@ -146,10 +145,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         this.id = options.id;
         this.name = options.name;
         this.events = serviceLocator.getEventManager();
-        this.client = options.client.requestQueue(this.id, {
-            clientKey: this.clientKey,
-            timeoutSecs: this.timeoutSecs,
-        });
+        this.client = options.client;
 
         this.proxyConfiguration = options.proxyConfiguration;
 
@@ -753,25 +749,18 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      */
     async handledCount(): Promise<number> {
         // NOTE: We keep this function for compatibility with RequestList.handledCount()
-        const { handledRequestCount } = (await this.getInfo()) ?? {};
-        return handledRequestCount ?? 0;
+        const { handledRequestCount } = await this.getInfo();
+        return handledRequestCount;
     }
 
     /**
      * Returns an object containing general information about the request queue.
-     *
-     * The function returns the same object as the Apify API Client's
-     * [getQueue](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-requestQueues)
-     * function, which in turn calls the
-     * [Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
-     * API endpoint.
      *
      * **Example:**
      * ```
      * {
      *   id: "WkzbQMuFYuamGv3YF",
      *   name: "my-queue",
-     *   userId: "wRsJZtadYvn4mBZmm",
      *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
      *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
      *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
@@ -780,11 +769,13 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      *   pendingRequestCount: 20,
      * }
      * ```
+     *
+     * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
      */
-    async getInfo(): Promise<RequestQueueInfo | undefined> {
+    async getInfo(): Promise<RequestQueueInfo> {
         checkStorageAccess();
 
-        return this.client.get();
+        return this.client.getMetadata();
     }
 
     /**
@@ -862,15 +853,18 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      *
      * For more details and code examples, see the {@apilink RequestQueue} class.
      *
-     * @param [queueIdOrName]
-     *   ID or name of the request queue to be opened. If `null` or `undefined`,
-     *   the function returns the default request queue associated with the crawler run.
+     * @param [identifier]
+     *   ID or name of the request queue to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default request queue associated with the crawler run.
      * @param [options] Open Request Queue options.
      */
-    static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestProvider> {
+    static async open(
+        identifier?: string | StorageIdentifier | null,
+        options: StorageManagerOptions = {},
+    ): Promise<RequestProvider> {
         checkStorageAccess();
 
-        ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
         ow(
             options,
             ow.object.exactShape({
@@ -886,13 +880,24 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
         const manager = StorageManager.getManager(this as typeof BuiltRequestProvider);
-        const queue = await manager.openStorage(queueIdOrName, options.storageClient);
+        const queue = await manager.openStorage(identifier, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
 
-        const queueInfo = await queue.client.get();
+        // Re-create the request queue client with clientKey and timeoutSecs so that
+        // request locking works correctly for API-backed implementations.
+        // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
+        // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
+        // where locking is handled internally by the client (see crawlee-python PR #1194).
+        queue.client = await options.storageClient.createRequestQueueClient({
+            id: queue.id,
+            clientKey: queue.clientKey,
+            timeoutSecs: queue.timeoutSecs,
+        });
 
-        queue.initialCount = queueInfo?.totalRequestCount ?? 0;
-        queue.initialHandledCount = queueInfo?.handledRequestCount ?? 0;
+        const queueInfo = await queue.client.getMetadata();
+
+        queue.initialCount = queueInfo.totalRequestCount;
+        queue.initialHandledCount = queueInfo.handledRequestCount;
         queue.httpClient = options.httpClient;
 
         return queue;
@@ -921,7 +926,7 @@ interface RequestLruItem {
 export interface RequestProviderOptions {
     id: string;
     name?: string;
-    client: StorageClient;
+    client: RequestQueueClient;
 
     /**
      * Used to pass the proxy configuration for the `requestsFromUrl` objects.

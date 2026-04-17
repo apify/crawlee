@@ -1,20 +1,21 @@
 /* eslint-disable import/no-duplicates */
-import { readdir, rm } from 'node:fs/promises';
+import { access, readdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
-import type { Dictionary } from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra/esm';
 
-import { promiseMap } from './background-handler/index.js';
+import { promiseMap, scheduleBackgroundTask } from './background-handler/index.js';
+import {
+    findOrCacheDatasetByPossibleId,
+    findOrCacheKeyValueStoreByPossibleId,
+    findRequestQueueByPossibleId,
+} from './cache-helpers.js';
 import { DatasetClient } from './resource-clients/dataset.js';
-import { DatasetCollectionClient } from './resource-clients/dataset-collection.js';
 import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
-import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection.js';
 import { RequestQueueClient } from './resource-clients/request-queue.js';
-import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection.js';
 
 export interface MemoryStorageOptions {
     /**
@@ -92,52 +93,147 @@ export class MemoryStorage implements storage.StorageClient {
                 : true);
     }
 
-    datasets(): storage.DatasetCollectionClient {
-        return new DatasetCollectionClient({
-            baseStorageDirectory: this.datasetsDirectory,
-            client: this,
-        });
+    async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
+        const name = options.name ?? options.id;
+
+        if (name) {
+            const found = await findOrCacheDatasetByPossibleId(this, name);
+            if (found) {
+                return found;
+            }
+        }
+
+        const newStore = new DatasetClient({ name, baseStorageDirectory: this.datasetsDirectory, client: this });
+        this.datasetClientsHandled.push(newStore);
+
+        // Schedule the worker to write to the disk
+        const datasetInfo = newStore.toDatasetInfo();
+
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                entityType: 'datasets',
+                entityDirectory: newStore.datasetDirectory,
+                id: datasetInfo.name ?? datasetInfo.id,
+                data: datasetInfo,
+                writeMetadata: this.writeMetadata,
+                persistStorage: this.persistStorage,
+            },
+            this.logger,
+        );
+
+        return newStore;
     }
 
-    dataset<Data extends Dictionary = Dictionary>(id: string): storage.DatasetClient<Data> {
-        s.string().parse(id);
+    async createKeyValueStoreClient(
+        options: storage.CreateKeyValueStoreClientOptions = {},
+    ): Promise<storage.KeyValueStoreClient> {
+        const name = options.name ?? options.id;
 
-        return new DatasetClient({ id, baseStorageDirectory: this.datasetsDirectory, client: this });
-    }
+        if (name) {
+            const found = await findOrCacheKeyValueStoreByPossibleId(this, name);
+            if (found) {
+                return found;
+            }
+        }
 
-    keyValueStores(): storage.KeyValueStoreCollectionClient {
-        return new KeyValueStoreCollectionClient({
+        const newStore = new KeyValueStoreClient({
+            name,
             baseStorageDirectory: this.keyValueStoresDirectory,
             client: this,
         });
+        this.keyValueStoresHandled.push(newStore);
+
+        // Schedule the worker to write to the disk
+        const kvStoreInfo = newStore.toKeyValueStoreInfo();
+
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                entityType: 'keyValueStores',
+                entityDirectory: newStore.keyValueStoreDirectory,
+                id: kvStoreInfo.name ?? kvStoreInfo.id,
+                data: kvStoreInfo,
+                writeMetadata: this.writeMetadata,
+                persistStorage: this.persistStorage,
+            },
+            this.logger,
+        );
+
+        return newStore;
     }
 
-    keyValueStore(id: string): storage.KeyValueStoreClient {
-        s.string().parse(id);
+    async createRequestQueueClient(
+        options: storage.CreateRequestQueueClientOptions = {},
+    ): Promise<storage.RequestQueueClient> {
+        const name = options.name ?? options.id;
 
-        return new KeyValueStoreClient({ id, baseStorageDirectory: this.keyValueStoresDirectory, client: this });
-    }
+        if (name) {
+            const found = await findRequestQueueByPossibleId(this, name);
+            if (found) {
+                return found;
+            }
+        }
 
-    requestQueues(): storage.RequestQueueCollectionClient {
-        return new RequestQueueCollectionClient({
+        const newStore = new RequestQueueClient({
+            name,
             baseStorageDirectory: this.requestQueuesDirectory,
             client: this,
         });
+        this.requestQueuesHandled.push(newStore);
+
+        // Schedule the worker to write to the disk
+        const queueInfo = newStore.toRequestQueueInfo();
+
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                entityType: 'requestQueues',
+                entityDirectory: newStore.requestQueueDirectory,
+                id: queueInfo.name ?? queueInfo.id,
+                data: queueInfo,
+                writeMetadata: this.writeMetadata,
+                persistStorage: this.persistStorage,
+            },
+            this.logger,
+        );
+
+        return newStore;
     }
 
-    requestQueue(id: string, options: storage.RequestQueueOptions = {}): storage.RequestQueueClient {
-        s.string().parse(id);
-        s.object({
-            clientKey: s.string().optional(),
-            timeoutSecs: s.number().optional(),
-        }).parse(options);
+    async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
+        let clients: { id: string }[];
+        let baseDir: string;
 
-        return new RequestQueueClient({
-            id,
-            baseStorageDirectory: this.requestQueuesDirectory,
-            client: this,
-            ...options,
-        });
+        switch (type) {
+            case 'Dataset':
+                clients = this.datasetClientsHandled;
+                baseDir = this.datasetsDirectory;
+                break;
+            case 'KeyValueStore':
+                clients = this.keyValueStoresHandled;
+                baseDir = this.keyValueStoresDirectory;
+                break;
+            case 'RequestQueue':
+                clients = this.requestQueuesHandled;
+                baseDir = this.requestQueuesDirectory;
+                break;
+            default:
+                return false;
+        }
+
+        // Check in-memory cache first
+        if (clients.some((store) => store.id === id)) {
+            return true;
+        }
+
+        // Check if a directory with that ID exists on disk
+        try {
+            await access(resolve(baseDir, id));
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
