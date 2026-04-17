@@ -11,6 +11,8 @@
   "dependencies": {
     "@crawlee/browser-pool": "workspace:*",
     "@crawlee/core": "workspace:*",
+    "@crawlee/got-scraping-client": "workspace:*",
+    "@crawlee/http-client": "workspace:*",
     "@crawlee/impit-client": "workspace:*",
     "@crawlee/stagehand": "workspace:*",
     "apify": "*",
