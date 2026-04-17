@@ -36,6 +36,15 @@ export class SessionError extends RetryRequestError {
     }
 }
 
+/**
+ * Thrown when a requested session is not found in the referenced SessionPool.
+ */
+export class MissingSessionError extends Error {
+    constructor(sessionId: string) {
+        super(`The current SessionPool instance doesn't contain the requested sessionId: ${sessionId}`);
+    }
+}
+
 export class ContextPipelineInterruptedError extends Error {
     constructor(message?: string) {
         super(`Request handling was interrupted during context initialization ${message ? ` - ${message}` : ''}`);

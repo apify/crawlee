@@ -55,6 +55,9 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      */
     label?: string;
 
+    /** Sets {@apilink Request.sessionId} for newly enqueued requests. */
+    sessionId?: string;
+
     /**
      * If set to `true`, tells the crawler to skip navigation and process the request directly.
      * @default false
@@ -304,6 +307,7 @@ export async function enqueueLinks(
             onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
+            sessionId: ow.optional.string,
             limit: ow.optional.number,
             selector: ow.optional.string,
             baseUrl: ow.optional.string,
