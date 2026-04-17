@@ -1,5 +1,5 @@
 /* eslint-disable import/no-duplicates */
-import { readdir, rm } from 'node:fs/promises';
+import { access, readdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
@@ -199,6 +199,41 @@ export class MemoryStorage implements storage.StorageClient {
         );
 
         return newStore;
+    }
+
+    async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
+        let clients: { id: string }[];
+        let baseDir: string;
+
+        switch (type) {
+            case 'Dataset':
+                clients = this.datasetClientsHandled;
+                baseDir = this.datasetsDirectory;
+                break;
+            case 'KeyValueStore':
+                clients = this.keyValueStoresHandled;
+                baseDir = this.keyValueStoresDirectory;
+                break;
+            case 'RequestQueue':
+                clients = this.requestQueuesHandled;
+                baseDir = this.requestQueuesDirectory;
+                break;
+            default:
+                return false;
+        }
+
+        // Check in-memory cache first
+        if (clients.some((store) => store.id === id)) {
+            return true;
+        }
+
+        // Check if a directory with that ID exists on disk
+        try {
+            await access(resolve(baseDir, id));
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {

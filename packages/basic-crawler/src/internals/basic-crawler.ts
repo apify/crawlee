@@ -1080,7 +1080,7 @@ export class BasicCrawler<
             log: this.log,
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            getKeyValueStore: async (identifier?: StorageIdentifier) => KeyValueStore.open(identifier),
+            getKeyValueStore: async (identifier?: string | StorageIdentifier) => KeyValueStore.open(identifier),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
                 deferredCleanup.push(cleanup);
             },
@@ -1593,7 +1593,10 @@ export class BasicCrawler<
     /**
      * Pushes data to the specified {@apilink Dataset}, or the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
      */
-    async pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: StorageIdentifier): Promise<void> {
+    async pushData(
+        data: Parameters<Dataset['pushData']>[0],
+        datasetIdentifier?: string | StorageIdentifier,
+    ): Promise<void> {
         const dataset = await this.getDataset(datasetIdentifier);
         return dataset.pushData(data);
     }
@@ -1601,8 +1604,10 @@ export class BasicCrawler<
     /**
      * Retrieves the specified {@apilink Dataset}, or the default crawler {@apilink Dataset}.
      */
-    async getDataset(identifier?: StorageIdentifier): Promise<Dataset> {
-        return Dataset.open(identifier, { config: serviceLocator.getConfiguration() });
+    async getDataset(identifier?: string | StorageIdentifier): Promise<Dataset> {
+        return Dataset.open(identifier, {
+            config: serviceLocator.getConfiguration(),
+        });
     }
 
     /**

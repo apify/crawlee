@@ -46,7 +46,7 @@ export class StorageManager<T extends IStorage = IStorage> {
 
     static async openStorage<T extends IStorage>(
         storageClass: Constructor<T>,
-        identifier?: StorageIdentifier,
+        identifier?: string | StorageIdentifier,
         client?: StorageClient,
     ): Promise<T> {
         return this.getManager(storageClass).openStorage(identifier, client);
@@ -62,23 +62,17 @@ export class StorageManager<T extends IStorage = IStorage> {
         return serviceLocator.getStorageManager(storageClass) as StorageManager<T>;
     }
 
-    async openStorage(identifier?: StorageIdentifier | null, client?: StorageClient): Promise<T> {
+    async openStorage(identifier?: string | StorageIdentifier | null, client?: StorageClient): Promise<T> {
         await this.storageOpenQueue.wait();
 
-        let id = identifier?.id;
-        const name = identifier?.name;
+        const resolvedIdentifier = await this._resolveIdentifier(identifier, client);
 
-        if (!id && !name) {
-            const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
-            id = this.config.get(defaultIdConfigKey) as string;
-        }
-
-        const cacheKey = id ?? name!;
+        const cacheKey = resolvedIdentifier.id ?? resolvedIdentifier.name!;
         let storage = this.cache.get(cacheKey);
 
         if (!storage) {
             client ??= serviceLocator.getStorageClient();
-            const subClient = await this._createSubClient({ id, name }, this.name, client);
+            const subClient = await this._createSubClient(resolvedIdentifier, this.name, client);
             const storageInfo = await (
                 subClient as DatasetClient | KeyValueStoreClient | RequestQueueClient
             ).getMetadata();
@@ -96,6 +90,39 @@ export class StorageManager<T extends IStorage = IStorage> {
         this.storageOpenQueue.shift();
 
         return storage;
+    }
+
+    /**
+     * Resolves the user-provided identifier to an unambiguous `StorageIdentifier`.
+     *
+     * - `null`/`undefined` → uses the default storage ID from config
+     * - `StorageIdentifier` object → passed through (with default ID fallback if empty)
+     * - `string` → tries to find an existing storage with that ID first;
+     *   if none exists, treats the string as a name
+     */
+    private async _resolveIdentifier(
+        identifier?: string | StorageIdentifier | null,
+        client?: StorageClient,
+    ): Promise<StorageIdentifier> {
+        if (typeof identifier === 'string') {
+            client ??= serviceLocator.getStorageClient();
+
+            if (client.storageExists && (await client.storageExists(identifier, this.name))) {
+                return { id: identifier };
+            }
+
+            return { name: identifier };
+        }
+
+        let id = identifier?.id;
+        const name = identifier?.name;
+
+        if (!id && !name) {
+            const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
+            id = this.config.get(defaultIdConfigKey) as string;
+        }
+
+        return { id, name };
     }
 
     closeStorage(storage: { id: string; name?: string }): void {

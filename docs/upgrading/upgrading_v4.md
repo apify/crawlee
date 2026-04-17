@@ -310,11 +310,11 @@ If you implemented a custom `StorageClient`, you need to:
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
 3. Rename `get()` to `getMetadata()` on your `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` implementations.
 
-## Storage `.open()` now takes `{ id?, name? }` instead of a string
+## Storage `.open()` now also accepts `{ id?, name? }`
 
 `Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
 
-The first parameter is now a `StorageIdentifier` object with separate `id` and `name` fields:
+The first parameter now also accepts a `StorageIdentifier` object with separate `id` and `name` fields:
 
 ```ts
 interface StorageIdentifier {
@@ -323,18 +323,18 @@ interface StorageIdentifier {
 }
 ```
 
-**Before:**
+Passing a plain string still works — it is first looked up as an ID, and if no such storage exists, it is treated as a name (matching the v3 behavior):
+
 ```typescript
 const dataset = await Dataset.open('my-dataset');
 const store = await KeyValueStore.open('my-store');
 const queue = await RequestQueue.open('my-queue');
 ```
 
-**After:**
+You can also use the object form, which additionally allows opening a storage by ID:
+
 ```typescript
 const dataset = await Dataset.open({ name: 'my-dataset' });
-const store = await KeyValueStore.open({ name: 'my-store' });
-const queue = await RequestQueue.open({ name: 'my-queue' });
 
 // Opening by ID (e.g. on the Apify platform):
 const dataset = await Dataset.open({ id: 'WkzbQMuFYuamGv3YF' });
@@ -346,7 +346,7 @@ Opening the default storage (no arguments or `null`) still works as before:
 const dataset = await Dataset.open();
 ```
 
-The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `StorageIdentifier` instead of a plain string for identifying the target storage.
+The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
 
 ## `transformRequestFunction` precedence in `enqueueLinks`
 

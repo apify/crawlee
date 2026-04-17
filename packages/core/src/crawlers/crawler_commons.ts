@@ -51,7 +51,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      */
     pushData(
         data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>,
-        datasetIdentifier?: StorageIdentifier,
+        datasetIdentifier?: string | StorageIdentifier,
     ): Promise<void>;
 
     /**
@@ -102,7 +102,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * Get a key-value store with given name or id, or the default one for the crawler.
      */
     getKeyValueStore: (
-        identifier?: StorageIdentifier,
+        identifier?: string | StorageIdentifier,
     ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
 
     /**
@@ -212,7 +212,7 @@ export class RequestHandlerResult {
     /**
      * Items added to datasets by a request handler.
      */
-    get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdentifier?: StorageIdentifier }[]> {
+    get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdentifier?: string | StorageIdentifier }[]> {
         return this.pushDataCalls.flatMap(([data, datasetIdentifier]) =>
             (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdentifier })),
         );
@@ -277,11 +277,11 @@ export class RequestHandlerResult {
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
         const store = await KeyValueStore.open(identifier, { config: this.config });
-        const storeKey = identifier?.id ?? identifier?.name;
+        const storeKey = store.id;
 
         return {
             id: storeKey ?? this.config.get('defaultKeyValueStoreId'),
-            name: identifier?.name,
+            name: store.name,
             getValue: async (key) => this.getKeyValueStoreChangedValue(storeKey, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
                 this.setKeyValueStoreChangedValue(storeKey, key, value, options);

@@ -854,12 +854,13 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      * For more details and code examples, see the {@apilink RequestQueue} class.
      *
      * @param [identifier]
-     *   ID or name of the request queue to be opened. If `null` or `undefined`,
-     *   the function returns the default request queue associated with the crawler run.
+     *   ID or name of the request queue to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default request queue associated with the crawler run.
      * @param [options] Open Request Queue options.
      */
     static async open(
-        identifier?: StorageIdentifier | null,
+        identifier?: string | StorageIdentifier | null,
         options: StorageManagerOptions = {},
     ): Promise<RequestProvider> {
         checkStorageAccess();

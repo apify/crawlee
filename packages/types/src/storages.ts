@@ -375,6 +375,13 @@ export interface StorageClient {
      * If neither is provided, opens or creates the default request queue.
      */
     createRequestQueueClient(options?: CreateRequestQueueClientOptions): Promise<RequestQueueClient>;
+    /**
+     * Check whether a storage with the given ID exists.
+     *
+     * Used internally to resolve ambiguous `idOrName` strings passed to `Dataset.open()`,
+     * `KeyValueStore.open()`, and `RequestQueue.open()`.
+     */
+    storageExists?(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
     setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;

@@ -592,12 +592,13 @@ export class KeyValueStore {
      * For more details and code examples, see the {@apilink KeyValueStore} class.
      *
      * @param [identifier]
-     *   ID or name of the key-value store to be opened. If `null` or `undefined`,
-     *   the function returns the default key-value store associated with the crawler run.
+     *   ID or name of the key-value store to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default key-value store associated with the crawler run.
      * @param [options] Storage manager options.
      */
     static async open(
-        identifier?: StorageIdentifier | null,
+        identifier?: string | StorageIdentifier | null,
         options: StorageManagerOptions = {},
     ): Promise<KeyValueStore> {
         checkStorageAccess();
