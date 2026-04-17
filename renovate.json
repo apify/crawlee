@@ -10,9 +10,6 @@
 		"automerge": true,
 		"automergeType": "branch"
 	},
-	"constraints": {
-		"npm": "^8.0.0"
-	},
 	"packageRules": [
 		{
 			"matchUpdateTypes": ["patch", "minor"],
@@ -21,10 +18,21 @@
 			"groupSlug": "all-non-major",
 			"automerge": true,
 			"automergeType": "branch"
+		},
+		{
+			"matchPackageNames": [
+				"@apify/*",
+				"@crawlee/*",
+				"apify-client",
+				"apify",
+				"crawlee",
+				"got-scraping"
+			],
+			"minimumReleaseAge": "0 days"
 		}
 	],
 	"schedule": ["every weekday"],
 	"minimumReleaseAge": "1 day",
 	"internalChecksFilter": "strict",
-	"ignoreDeps": ["crawlee"]
+	"ignoreDeps": ["crawlee", "cheerio"]
 }
