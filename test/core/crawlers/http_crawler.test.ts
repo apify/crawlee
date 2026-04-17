@@ -2,7 +2,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
-import { HttpCrawler } from '@crawlee/http';
+import { HttpCrawler, SessionPool } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
@@ -218,9 +218,9 @@ test('handles cookies from redirects', async () => {
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        sessionPoolOptions: {
+        sessionPool: new SessionPool({
             maxPoolSize: 1,
-        },
+        }),
         requestHandler: async ({ body }) => {
             results.push(JSON.parse(body.toString()));
         },
@@ -255,9 +255,9 @@ test('handles cookies from redirects - no empty cookie header', async () => {
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        sessionPoolOptions: {
+        sessionPool: new SessionPool({
             maxPoolSize: 1,
-        },
+        }),
         requestHandler: async ({ body }) => {
             const str = body.toString();
 
@@ -276,9 +276,9 @@ test('no empty cookie header', async () => {
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        sessionPoolOptions: {
+        sessionPool: new SessionPool({
             maxPoolSize: 1,
-        },
+        }),
         requestHandler: async ({ body }) => {
             const str = body.toString();
 
