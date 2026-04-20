@@ -267,7 +267,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getStorageInstanceManager(): StorageInstanceManager {
         if (!ServiceLocator.storageInstanceManager) {
-            ServiceLocator.storageInstanceManager = new StorageInstanceManager(this.getConfiguration());
+            ServiceLocator.storageInstanceManager = new StorageInstanceManager();
         }
         return ServiceLocator.storageInstanceManager;
     }

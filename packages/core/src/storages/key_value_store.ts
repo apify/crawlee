@@ -13,6 +13,7 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /**
@@ -614,19 +615,14 @@ export class KeyValueStore {
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
+        const resolved = await resolveStorageIdentifier('KeyValueStore', identifier, client, options.config);
         const clientCacheKey = client.getStorageClientCacheKey?.() ?? '';
 
-        return serviceLocator
-            .getStorageInstanceManager()
-            .openStorage<KeyValueStore>(
-                this,
-                identifier,
-                () =>
-                    client.createKeyValueStoreClient(
-                        typeof identifier === 'string' ? undefined : (identifier ?? undefined),
-                    ),
-                clientCacheKey,
-            );
+        return serviceLocator.getStorageInstanceManager().openStorage<KeyValueStore>(this, {
+            ...resolved,
+            clientOpener: () => client.createKeyValueStoreClient(resolved),
+            clientCacheKey,
+        });
     }
 
     /**
