@@ -1,0 +1,44 @@
+packages:
+    - packages/*
+    - docs
+    - website
+
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+    - "@apify/*"
+    - "@crawlee/*"
+    - "apify-client"
+    - "apify"
+    - "crawlee"
+    - "got-scraping"
+
+overrides:
+    playwright-core: 1.61.1
+    "@browserbasehq/stagehand": 3.0.7
+    minimatch: "^9.0.0"
+    tmp: "^0.2.7"
+    "@puppeteer/browsers": "^3.0.4"
+    form-data: "^4.0.6"
+    tar: "^7.5.16"
+    "lerna>js-yaml": "^4.2.0"
+
+onlyBuiltDependencies:
+    - "@apify/ui-icons"
+    - "@playwright/browser-chromium"
+    - "@playwright/browser-firefox"
+    - "@playwright/browser-webkit"
+    - "@swc/core"
+    - better-sqlite3
+    - bufferutil
+    - core-js
+    - esbuild
+    - nx
+    - protobufjs
+    - puppeteer
+    - unrs-resolver
+
+nodeLinker: hoisted
+linkWorkspacePackages: true
+preferWorkspacePackages: true
+publicHoistPattern:
+    - "*"

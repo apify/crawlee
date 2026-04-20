@@ -1,6 +1,6 @@
 import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { RobotsTxtFile } from '../src/internals/robots.js';
 
@@ -36,6 +36,7 @@ describe('RobotsTxtFile', () => {
     });
 
     afterEach(() => {
+        nock.abortPendingRequests();
         nock.cleanAll();
         nock.enableNetConnect();
     });

@@ -13,7 +13,7 @@
       "assets": []
     }
   },
-  "npmClient": "yarn",
+  "npmClient": "pnpm",
   "useNx": false,
   "ignoreChanges": [
     "**/test/**",

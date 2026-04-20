@@ -10,9 +10,6 @@
 		"automerge": true,
 		"automergeType": "branch"
 	},
-	"constraints": {
-		"npm": "^8.0.0"
-	},
 	"packageRules": [
 		{
 			"description": "Freeze eslint tooling until oxlint lands in v4",
@@ -34,6 +31,17 @@
 			],
 			"matchPackageNames": ["playwright"],
 			"enabled": false
+		},
+		{
+			"matchPackageNames": [
+				"@apify/*",
+				"@crawlee/*",
+				"apify-client",
+				"apify",
+				"crawlee",
+				"got-scraping"
+			],
+			"minimumReleaseAge": "0 days"
 		}
 	],
 	"schedule": ["every weekday"],
