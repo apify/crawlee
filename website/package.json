@@ -66,6 +66,11 @@
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
+    "packageManager": "pnpm@10.24.0",
+    "volta": {
+        "node": "24.13.0",
+        "pnpm": "10.24.0"
+    },
     "browserslist": {
         "production": [
             ">0.5%",
