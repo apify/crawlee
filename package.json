@@ -32,7 +32,6 @@
     "homepage": "https://crawlee.dev",
     "scripts": {
         "preinstall": "npx only-allow pnpm",
-        "postinstall": "node ./scripts/cleanup-nested-readmes.mjs",
         "prepublishOnly": "turbo run copy --filter=./packages/*",
         "clean": "turbo run clean --filter=./packages/* && rimraf .turbo packages/*/.turbo packages/*/*.tsbuildinfo",
         "build": "turbo run build --filter=./packages/* && node ./scripts/typescript_fixes.mjs",
