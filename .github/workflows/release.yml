@@ -1,7 +1,6 @@
 name: Release @latest
 
 env:
-    YARN_IGNORE_NODE: 1
     RETRY_TESTS: 1
 
 on:
@@ -51,16 +50,6 @@ jobs:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v7
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v6
@@ -70,26 +59,16 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
-
-            -   name: Cache Playwright browsers
-                uses: actions/cache@v6
-                with:
-                    path: ~/.cache/ms-playwright
-                    key: playwright-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-                    restore-keys: |
-                        playwright-${{ runner.os }}-
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Install Playwright browsers
-                timeout-minutes: 10
-                run: yarn playwright install --with-deps
+                run: pnpm exec playwright install --with-deps
 
             -   name: Build
-                run: yarn ci:build
+                run: pnpm ci:build
 
             -   name: Tests
-                run: yarn test
+                run: pnpm test
 
     release:
         name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
@@ -110,16 +89,6 @@ jobs:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v7
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v6
@@ -129,15 +98,14 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build
-                run: yarn ci:build
+                run: pnpm ci:build
 
             -   name: Bump version to custom version
                 if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
-                run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
+                run: pnpm exec lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     GIT_AUTHOR_NAME: Apify Release Bot
@@ -147,7 +115,7 @@ jobs:
 
             -   name: Bump version to ${{ github.event.inputs.version }} version
                 if: ${{ github.event.inputs.version != 'custom' }}
-                run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
+                run: pnpm exec lerna version ${{ github.event.inputs.version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     GIT_AUTHOR_NAME: Apify Release Bot
@@ -157,8 +125,8 @@ jobs:
 
             -   name: Pin versions in internal dependencies and update lockfile
                 run: |
-                    yarn release:pin-versions
-                    yarn install --no-immutable
+                    pnpm release:pin-versions
+                    pnpm install --no-frozen-lockfile
 
             -   name: Commit changes
                 id: commit
@@ -208,23 +176,7 @@ jobs:
             -   name: Install jq
                 run: sudo apt-get install jq
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v7
-                with:
-                    cache: 'yarn'
-
-            -   name: Install dependencies
-                run: |
-                    # install project deps
-                    yarn
-                    # install website deps
-                    cd website
-                    yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Snapshot the current version
                 run: |
@@ -236,8 +188,8 @@ jobs:
                     fi
                     echo "VERSION=$VERSION" >> "$GITHUB_ENV"
                     MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
-                    yarn docusaurus docs:version $MAJOR_MINOR
-                    yarn docusaurus api:version $MAJOR_MINOR
+                    pnpm docusaurus docs:version $MAJOR_MINOR
+                    pnpm docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
                 uses: EndBug/add-and-commit@v10

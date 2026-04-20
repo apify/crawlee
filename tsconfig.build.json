@@ -11,7 +11,8 @@
 		"resolveJsonModule": false,
 		"emitDecoratorMetadata": false,
 		"declarationMap": false,
-		"sourceMap": false
+		"sourceMap": false,
+		"incremental": false
 	},
 	"exclude": ["**/node_modules", "**/dist"]
 }
