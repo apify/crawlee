@@ -1,4 +1,4 @@
-import { unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { coerceBoolean, Configuration, crawleeConfigFields, field, LogLevel } from '@crawlee/core';
@@ -49,6 +49,16 @@ describe('Configuration', () => {
             expect(config.systemInfoIntervalMillis).toBe(1_000);
         });
 
+        // `disableBrowserSandbox`, `containerized`, and `logLevel` are intentionally optional
+        // (no default) — `undefined` is a meaningful signal for each:
+        //   - `disableBrowserSandbox`: only a boolean check is done at the call site, so `undefined`
+        //     behaves the same as `false` and leaves room to distinguish "unset" from "explicitly false"
+        //     if callers ever need to.
+        //   - `containerized`: consumers fall back to runtime detection via `isContainerized()` using
+        //     `config.containerized ?? (await isContainerized())`; defaulting to `false` would disable
+        //     auto-detection.
+        //   - `logLevel`: the log system already has its own default (INFO). Defaulting here would
+        //     cause every `new Configuration()` to override any previously-configured log level.
         it('returns undefined for optional fields with no default', () => {
             const config = new Configuration();
             expect(config.memoryMbytes).toBeUndefined();
@@ -60,7 +70,7 @@ describe('Configuration', () => {
         });
     });
 
-    describe('priority: constructor > env > defaults', () => {
+    describe('priority: constructor > env > crawlee.json > defaults', () => {
         it('constructor options override env vars', () => {
             setEnv('CRAWLEE_HEADLESS', 'true');
             const config = new Configuration({ headless: false });
@@ -88,6 +98,36 @@ describe('Configuration', () => {
             setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '99999');
             const config = new Configuration({ persistStateIntervalMillis: 10_000 });
             expect(config.persistStateIntervalMillis).toBe(10_000);
+        });
+
+        describe('with crawlee.json', () => {
+            const crawleeJsonPath = join(process.cwd(), 'crawlee.json');
+
+            afterEach(() => {
+                if (existsSync(crawleeJsonPath)) {
+                    unlinkSync(crawleeJsonPath);
+                }
+            });
+
+            it('crawlee.json overrides defaults', () => {
+                writeFileSync(crawleeJsonPath, JSON.stringify({ persistStateIntervalMillis: 5_000 }));
+                const config = new Configuration();
+                expect(config.persistStateIntervalMillis).toBe(5_000);
+            });
+
+            it('env vars override crawlee.json', () => {
+                writeFileSync(crawleeJsonPath, JSON.stringify({ persistStateIntervalMillis: 5_000 }));
+                setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '7000');
+                const config = new Configuration();
+                expect(config.persistStateIntervalMillis).toBe(7_000);
+            });
+
+            it('constructor options override crawlee.json and env vars', () => {
+                writeFileSync(crawleeJsonPath, JSON.stringify({ persistStateIntervalMillis: 5_000 }));
+                setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '7000');
+                const config = new Configuration({ persistStateIntervalMillis: 10_000 });
+                expect(config.persistStateIntervalMillis).toBe(10_000);
+            });
         });
     });
 
@@ -147,7 +187,7 @@ describe('Configuration', () => {
     });
 
     describe('direct property access', () => {
-        it('accesses all fields as properties', () => {
+        it('exposes resolved values as instance properties', () => {
             const config = new Configuration({
                 headless: false,
                 defaultDatasetId: 'my-dataset',

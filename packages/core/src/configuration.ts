@@ -7,7 +7,9 @@ import { z } from 'zod';
 import { log, LogLevel } from './log.js';
 import { serviceLocator } from './service_locator.js';
 
-// Increase the global limit for event emitter memory leak warnings.
+// Crawlee attaches many listeners to shared EventEmitters (one per crawler/session/autoscaled pool),
+// which can exceed Node's default limit of 10 and trigger spurious MaxListenersExceededWarning logs.
+// Raising the global default avoids false positives; real leaks will still manifest as unbounded growth.
 EventEmitter.defaultMaxListeners = 50;
 
 // --- Field definition helpers ---
@@ -180,11 +182,9 @@ export class Configuration {
      * over crawlee.json values, which take precedence over schema defaults.
      */
     constructor(options: ConfigurationInput = {}) {
+        const fields = (this.constructor as typeof Configuration).fields;
         const fileOptions = Configuration.loadFileOptions();
-        this.resolvedValues = (this.constructor as typeof Configuration).resolveAll(
-            options as Record<string, unknown>,
-            fileOptions,
-        );
+        this.resolvedValues = Configuration.resolveAll(fields, options as Record<string, unknown>, fileOptions);
         this.registerAccessors();
 
         // Set the log level
@@ -207,11 +207,11 @@ export class Configuration {
      * Resolves all field values once using the priority chain:
      * constructor options > env vars > crawlee.json > schema defaults.
      */
-    protected static resolveAll(
+    private static resolveAll(
+        fields: Record<string, ConfigField>,
         userOptions: Record<string, unknown>,
         fileOptions: Record<string, unknown>,
     ): Record<string, unknown> {
-        const fields = this.fields;
         const values: Record<string, unknown> = {};
 
         for (const [key, fieldDef] of Object.entries(fields)) {

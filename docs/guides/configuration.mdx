@@ -139,6 +139,8 @@ The last option to adjust Crawlee configuration is to use the <ApiLink to="core/
 
 By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can get access to it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink> function. Configuration values are accessible directly as properties.
 
+Under the hood, `Configuration.getGlobalConfig()` delegates to <ApiLink to="core/class/ServiceLocator">`serviceLocator`</ApiLink>, which is the single source of truth for Crawlee's shared services (configuration, event manager, storage client, logger). You can access the same instance via `serviceLocator.getConfiguration()` and swap services globally with `serviceLocator.setConfiguration(...)` before any crawler is created.
+
 ```js
 import { CheerioCrawler, Configuration, sleep } from 'crawlee';
 
