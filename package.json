@@ -114,7 +114,7 @@
         "vitest": "^4.1.0-beta.6"
     },
     "lint-staged": {
-        "*.{js,ts,mjs,mts,cjs,cts}": [
+        "{packages,test,docs}/**/*.{js,ts,mjs,mts,cjs,cts}": [
             "oxlint --fix",
             "oxfmt --write --no-error-on-unmatched-pattern"
         ]
