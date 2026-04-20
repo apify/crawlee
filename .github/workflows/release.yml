@@ -136,6 +136,7 @@ jobs:
                   author_name: Apify Release Bot
                   author_email: noreply@apify.com
                   message: 'chore(release): update internal dependencies [skip ci]'
+                  pull: '--rebase --autostash'
 
             -   name: Publish packages
                 uses: apify/workflows/execute-workflow@main
