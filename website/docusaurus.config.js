@@ -94,6 +94,7 @@ module.exports = {
                     showLastUpdateAuthor: true,
                     showLastUpdateTime: true,
                     path: '../docs',
+                    exclude: ['**/node_modules/**'],
                     routeBasePath: 'js/docs',
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
