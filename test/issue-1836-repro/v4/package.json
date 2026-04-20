@@ -1,0 +1,11 @@
+{
+    "name": "issue-1836-repro-v4",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "start": "node reproduce.mjs"
+    },
+    "dependencies": {
+        "crawlee": "4.0.0-beta.47"
+    }
+}
