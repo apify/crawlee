@@ -135,9 +135,10 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     /**
      * Unified storage instance manager for Dataset, KeyValueStore, and RequestQueue.
-     * Manages caching and lifecycle of storage instances.
+     * Shared across all ServiceLocator instances (global singleton), matching crawlee-python.
+     * Per-crawler isolation is achieved via `clientCacheKey`, not separate manager instances.
      */
-    private storageInstanceManager?: StorageInstanceManager;
+    private static storageInstanceManager?: StorageInstanceManager;
 
     /**
      * Creates a new ServiceLocator instance.
@@ -265,23 +266,23 @@ export class ServiceLocator implements ServiceLocatorInterface {
     }
 
     getStorageInstanceManager(): StorageInstanceManager {
-        if (!this.storageInstanceManager) {
-            this.storageInstanceManager = new StorageInstanceManager(this.getConfiguration());
+        if (!ServiceLocator.storageInstanceManager) {
+            ServiceLocator.storageInstanceManager = new StorageInstanceManager(this.getConfiguration());
         }
-        return this.storageInstanceManager;
+        return ServiceLocator.storageInstanceManager;
     }
 
     clearStorageManagerCache(): void {
-        if (this.storageInstanceManager) {
+        if (ServiceLocator.storageInstanceManager) {
             // KeyValueStore instances have a clearCache method — call it on any cached
             // instance that exposes it, without importing KeyValueStore (avoids circular deps).
-            for (const instance of this.storageInstanceManager.getAllInstances()) {
+            for (const instance of ServiceLocator.storageInstanceManager.getAllInstances()) {
                 if ('clearCache' in instance && typeof (instance as any).clearCache === 'function') {
                     (instance as any).clearCache();
                 }
             }
 
-            this.storageInstanceManager.clearCache();
+            ServiceLocator.storageInstanceManager.clearCache();
         }
     }
 
@@ -291,7 +292,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.storageClient = undefined;
         this.logger = undefined;
         this.clearStorageManagerCache();
-        this.storageInstanceManager = undefined;
+        ServiceLocator.storageInstanceManager = undefined;
     }
 }
 
