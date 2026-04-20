@@ -380,6 +380,17 @@ export interface StorageClient {
      * `KeyValueStore.open()`, and `RequestQueue.open()`.
      */
     storageExists?(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
+    /**
+     * Return an opaque key that uniquely identifies this storage backend instance.
+     *
+     * The key is used by `StorageInstanceManager` to cache storage instances per-backend,
+     * so that the same logical storage opened through different `StorageClient` instances
+     * is cached separately (e.g. filesystem vs. cloud).
+     *
+     * The default implementation (when this method is not provided) uses an empty string,
+     * meaning all instances of the same `StorageClient` class share a single cache partition.
+     */
+    getStorageClientCacheKey?(): string;
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
     setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;

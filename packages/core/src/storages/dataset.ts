@@ -10,8 +10,7 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
-import { StorageManager } from './storage_manager.js';
+import type { StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
@@ -681,8 +680,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(Dataset);
-        manager.closeStorage(this);
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
     /**
@@ -715,13 +713,22 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= serviceLocator.getStorageClient();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
+        const client = options.storageClient ?? serviceLocator.getStorageClient();
 
-        const manager = StorageManager.getManager<Dataset<Data>>(this);
+        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
-        return manager.openStorage(identifier, options.storageClient);
+        const clientCacheKey = client.getStorageClientCacheKey?.() ?? '';
+
+        return serviceLocator
+            .getStorageInstanceManager()
+            .openStorage<Dataset<Data>>(
+                this,
+                identifier,
+                () =>
+                    client.createDatasetClient(typeof identifier === 'string' ? undefined : (identifier ?? undefined)),
+                clientCacheKey,
+            );
     }
 
     /**

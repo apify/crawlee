@@ -32,10 +32,8 @@ import type { ProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import type { Constructor } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { IStorage, StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
-import { StorageManager } from './storage_manager.js';
+import type { IStorage, StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
 
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
@@ -722,8 +720,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>);
-        manager.closeStorage(this);
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
     /**
@@ -875,12 +872,23 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             }),
         );
 
-        options.storageClient ??= serviceLocator.getStorageClient();
+        const client = (options.storageClient ??= serviceLocator.getStorageClient());
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
-        const manager = StorageManager.getManager(this as typeof BuiltRequestProvider);
-        const queue = await manager.openStorage(identifier, options.storageClient);
+        const clientCacheKey = client.getStorageClientCacheKey?.() ?? '';
+
+        const queue = await serviceLocator
+            .getStorageInstanceManager()
+            .openStorage<RequestProvider>(
+                this as typeof BuiltRequestProvider,
+                identifier,
+                () =>
+                    client.createRequestQueueClient(
+                        typeof identifier === 'string' ? undefined : (identifier ?? undefined),
+                    ),
+                clientCacheKey,
+            );
         queue.proxyConfiguration = options.proxyConfiguration;
 
         // Re-create the request queue client with clientKey and timeoutSecs so that
@@ -888,7 +896,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
         // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
         // where locking is handled internally by the client (see crawlee-python PR #1194).
-        queue.client = await options.storageClient.createRequestQueueClient({
+        queue.client = await client.createRequestQueueClient({
             id: queue.id,
             clientKey: queue.clientKey,
             timeoutSecs: queue.timeoutSecs,
