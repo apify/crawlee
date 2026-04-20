@@ -91,28 +91,42 @@ describe('Session - testing session behaviour ', () => {
         expect(session.usageCount).toBe(1);
     });
 
-    test('should retire session after marking bad', () => {
-        // @ts-expect-error Private property
-        vitest.spyOn(session, '_maybeSelfRetire');
-        vitest.spyOn(session, 'retire');
+    test('should emit retired event after marking bad', () => {
+        const retired = vitest.fn();
+        sessionPool.on(EVENT_SESSION_RETIRED, retired);
         session.markBad();
-        expect(session.retire).toBeCalledTimes(0);
+        expect(retired).toBeCalledTimes(0);
         session.isUsable = () => false;
         session.markBad();
-        expect(session.retire).toBeCalledTimes(1);
+        expect(retired).toBeCalledTimes(1);
     });
 
-    test('should retire session after marking good', () => {
-        // @ts-expect-error Private property
-        vitest.spyOn(session, '_maybeSelfRetire');
-        vitest.spyOn(session, 'retire');
+    test('should emit retired event after marking good', () => {
+        const retired = vitest.fn();
+        sessionPool.on(EVENT_SESSION_RETIRED, retired);
 
         session.markGood();
-        expect(session.retire).toBeCalledTimes(0);
+        expect(retired).toBeCalledTimes(0);
 
         session.isUsable = () => false;
         session.markGood();
-        expect(session.retire).toBeCalledTimes(1);
+        expect(retired).toBeCalledTimes(1);
+    });
+
+    test('should not overshoot maxUsageCount when self-retiring on markGood', () => {
+        session = new Session({ maxUsageCount: 1, sessionPool });
+        session.markGood();
+        expect(session.usageCount).toBe(1);
+        expect(session.errorScore).toBe(0);
+        expect(session.isUsable()).toBe(false);
+    });
+
+    test('should not overshoot maxErrorScore when self-retiring on markBad', () => {
+        session = new Session({ maxErrorScore: 1, sessionPool });
+        session.markBad();
+        expect(session.usageCount).toBe(1);
+        expect(session.errorScore).toBe(1);
+        expect(session.isUsable()).toBe(false);
     });
 
     test('should reevaluate usability of session after marking the session', () => {

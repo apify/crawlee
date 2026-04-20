@@ -375,12 +375,11 @@ export class Session implements ISession {
         }
     }
 
-    /**
-     * Checks if session is not usable. if it is not retires the session.
-     */
+    // Emits the retired event without re-bumping `usageCount` / `errorScore` — the session
+    // already hit the limits that made `isUsable()` false, calling retire() would overshoot.
     protected _maybeSelfRetire(): void {
         if (!this.isUsable()) {
-            this.retire();
+            this.sessionPool.emit(EVENT_SESSION_RETIRED, this);
         }
     }
 }
