@@ -38,7 +38,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "yarn clean && yarn compile && yarn copy",
+        "build": "pnpm clean && pnpm compile && pnpm copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"
@@ -49,10 +49,11 @@
     "dependencies": {
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
-        "@crawlee/basic": "4.0.0",
-        "@crawlee/http-client": "4.0.0",
-        "@crawlee/types": "4.0.0",
-        "@crawlee/utils": "4.0.0",
+        "@crawlee/basic": "workspace:*",
+        "@crawlee/core": "workspace:*",
+        "@crawlee/http-client": "workspace:*",
+        "@crawlee/types": "workspace:*",
+        "@crawlee/utils": "workspace:*",
         "@types/content-type": "^1.1.8",
         "cheerio": "^1.0.0",
         "content-type": "^1.0.5",
