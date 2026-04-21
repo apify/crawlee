@@ -303,30 +303,28 @@ export interface SetStatusMessageOptions {
 }
 
 /**
- * Identifies a storage by either its ID or its name. At most one should be provided.
+ * Identifies a storage by either its ID or its name, but not both.
  * If neither is provided, the default storage for the given type is used.
  */
-export interface StorageIdentifier {
-    /** ID of an existing storage to open. */
-    id?: string;
-    /** Name of the storage to open or create. */
-    name?: string;
-}
+export type StorageIdentifier =
+    | { id: string; name?: never }
+    | { id?: never; name: string }
+    | { id?: never; name?: never };
 
 /**
  * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
  */
-export interface CreateDatasetClientOptions extends StorageIdentifier {}
+export type CreateDatasetClientOptions = StorageIdentifier;
 
 /**
  * Options for creating a key-value store client via {@apilink StorageClient.createKeyValueStoreClient}.
  */
-export interface CreateKeyValueStoreClientOptions extends StorageIdentifier {}
+export type CreateKeyValueStoreClientOptions = StorageIdentifier;
 
 /**
  * Options for creating a request queue client via {@apilink StorageClient.createRequestQueueClient}.
  */
-export interface CreateRequestQueueClientOptions extends StorageIdentifier {
+export type CreateRequestQueueClientOptions = StorageIdentifier & {
     /**
      * Client key for request locking.
      * TODO: This is an Apify-platform concern and should eventually be pushed down
@@ -339,7 +337,7 @@ export interface CreateRequestQueueClientOptions extends StorageIdentifier {
      * into the Apify SDK's client implementation (aligning with crawlee-python).
      */
     timeoutSecs?: number;
-}
+};
 
 /**
  * Represents a storage backend capable of working with datasets, key-value stores and request queues.

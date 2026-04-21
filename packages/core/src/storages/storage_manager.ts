@@ -114,15 +114,18 @@ export class StorageManager<T extends IStorage = IStorage> {
             return { name: identifier };
         }
 
-        let id = identifier?.id;
-        const name = identifier?.name;
-
-        if (!id && !name) {
-            const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
-            id = this.config.get(defaultIdConfigKey) as string;
+        if (identifier?.id) {
+            return { id: identifier.id };
         }
 
-        return { id, name };
+        if (identifier?.name) {
+            return { name: identifier.name };
+        }
+
+        const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
+        const defaultId = this.config.get(defaultIdConfigKey) as string;
+
+        return { id: defaultId };
     }
 
     closeStorage(storage: { id: string; name?: string }): void {
