@@ -481,7 +481,7 @@ describe('SessionPool - testing session pool', () => {
                 // @ts-expect-error private symbol
                 expect(sessionPool.sessions).toHaveLength(3);
 
-                await sessionPool.getSession();
+                for (let i = 0; i < 50; i++) await sessionPool.getSession();
 
                 // @ts-expect-error private symbol
                 expect(sessionPool.sessions).toHaveLength(3);

@@ -491,32 +491,19 @@ export class SessionPool extends EventEmitter {
         if (this.sessionReuseStrategy !== 'use-until-failure' && this._hasSpaceForSession()) return undefined;
 
         if (this.sessionReuseStrategy === 'use-until-failure') {
-            for (const session of this.sessions) {
-                if (session.isUsable()) return session;
-            }
-            return undefined;
+            return this.sessions.find((session) => session.isUsable());
         }
 
-        // For random and round-robin: if any session in a full pool is retired, trigger cleanup
-        // by returning undefined so getSession calls _removeRetiredSessions + _createSession.
-        for (const session of this.sessions) {
-            if (!session.isUsable()) return undefined;
-        }
-
+        let picked: Session;
         if (this.sessionReuseStrategy === 'round-robin') {
-            const { length } = this.sessions;
-            const index = this.roundRobinIndex % length;
+            const index = this.roundRobinIndex % this.sessions.length;
             this.roundRobinIndex = index + 1;
-            return this.sessions[index];
+            picked = this.sessions[index];
+        } else {
+            picked = this.sessions[this._getRandomIndex()];
         }
 
-        // random: reservoir sampling over sessions (all usable at this point)
-        let selected: Session | undefined;
-        let count = 0;
-        for (const session of this.sessions) {
-            if (++count === 1 || Math.random() < 1 / count) selected = session;
-        }
-        return selected;
+        return picked.isUsable() ? picked : undefined;
     }
 
     /**
