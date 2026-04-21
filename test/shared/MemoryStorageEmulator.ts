@@ -31,7 +31,8 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getDataset(id?: string) {
-        return this.storage.createDatasetClient({ id: id ?? Configuration.getGlobalConfig().get('defaultDatasetId') });
+        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultDatasetId');
+        return this.storage.createDatasetClient(resolvedId ? { id: resolvedId } : {});
     }
 
     async getDatasetItems(id?: string) {
@@ -40,9 +41,8 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getRequestQueue(id?: string) {
-        return this.storage.createRequestQueueClient({
-            id: id ?? Configuration.getGlobalConfig().get('defaultRequestQueueId'),
-        });
+        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultRequestQueueId');
+        return this.storage.createRequestQueueClient(resolvedId ? { id: resolvedId } : {});
     }
 
     async getRequestQueueItems(id?: string) {
@@ -52,9 +52,8 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getKeyValueStore(id?: string) {
-        return this.storage.createKeyValueStoreClient({
-            id: id ?? Configuration.getGlobalConfig().get('defaultKeyValueStoreId'),
-        });
+        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultKeyValueStoreId');
+        return this.storage.createKeyValueStoreClient(resolvedId ? { id: resolvedId } : {});
     }
 
     async getState() {

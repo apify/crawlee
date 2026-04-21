@@ -39,7 +39,7 @@ beforeEach(async () => {
 
 describe('RequestQueue remote', () => {
     async function createRequestQueue(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createRequestQueueClient({ id, name });
+        const client = await serviceLocator.getStorageClient().createRequestQueueClient(name ? { name } : { id });
         return new RequestQueue({ id, name, client }, serviceLocator.getConfiguration());
     }
 

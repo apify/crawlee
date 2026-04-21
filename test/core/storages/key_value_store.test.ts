@@ -16,7 +16,7 @@ afterAll(async () => {
 
 describe('KeyValueStore', () => {
     async function createKeyValueStore(id = 'some-id-1', name?: string) {
-        const client = await serviceLocator.getStorageClient().createKeyValueStoreClient({ id, name });
+        const client = await serviceLocator.getStorageClient().createKeyValueStoreClient(name ? { name } : { id });
         return new KeyValueStore({ id, name, client });
     }
 

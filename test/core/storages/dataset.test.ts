@@ -16,7 +16,7 @@ afterAll(async () => {
 
 describe('dataset', () => {
     async function createDataset(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createDatasetClient({ id, name });
+        const client = await serviceLocator.getStorageClient().createDatasetClient(name ? { name } : { id });
         return new Dataset({ id, name, client });
     }
 
