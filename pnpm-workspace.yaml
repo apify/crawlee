@@ -42,3 +42,7 @@ linkWorkspacePackages: true
 preferWorkspacePackages: true
 publicHoistPattern:
     - "*"
+
+patchedDependencies:
+    "@docusaurus/core@3.9.2": patches/@docusaurus__core@3.9.2.patch
+    "@signalwire/docusaurus-plugin-llms-txt@1.2.2": patches/@signalwire+docusaurus-plugin-llms-txt+1.2.2.patch
