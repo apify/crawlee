@@ -36,6 +36,15 @@ export class SessionError extends RetryRequestError {
     }
 }
 
+/**
+ * Thrown when a requested session is not found in the referenced SessionPool.
+ */
+export class MissingSessionError extends Error {
+    constructor(sessionId: string) {
+        super(`The current SessionPool instance doesn't contain the requested sessionId: ${sessionId}`);
+    }
+}
+
 export class ContextPipelineInterruptedError extends Error {
     constructor(message?: string) {
         super(`Request handling was interrupted during context initialization ${message ? ` - ${message}` : ''}`);
@@ -78,3 +87,9 @@ export class ServiceConflictError extends Error {
         );
     }
 }
+
+/**
+ * Thrown by crawlers when `skipNavigation` is used on a request.
+ * Subclasses can catch this error to skip their own navigation-dependent logic.
+ */
+export class NavigationSkippedError extends NonRetryableError {}

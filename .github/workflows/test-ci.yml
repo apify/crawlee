@@ -7,11 +7,13 @@ on:
         branches: [ master, v4 ]
 
 env:
-    YARN_IGNORE_NODE: 1
     RETRY_TESTS: 1
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
-    # `yarn install` is done in a separate job and cached to speed up the following jobs.
     build_and_test:
         name: Build & Test
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
@@ -26,11 +28,6 @@ jobs:
                 node-version: [ 22, 24 ]
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.13.0
-                with:
-                    access_token: ${{ github.token }}
-
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
@@ -39,16 +36,6 @@ jobs:
                 with:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
-
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
 
             -   name: Turbo cache
                 id: turbo-cache
@@ -59,39 +46,30 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: |
-                    yarn
-                    yarn playwright install --with-deps
-                env:
-                    YARN_IGNORE_NODE: 1
+            -   uses: apify/workflows/pnpm-install@main
+
+            -   name: Install Playwright browsers
+                run: pnpm exec playwright install --with-deps
+
+            -   name: Install Puppeteer Chrome
+                run: pnpm exec puppeteer browsers install chrome
 
             -   name: Build
-                run: yarn ci:build
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm ci:build
 
             -   name: Test TS
-                run: yarn tsc-check-tests
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm tsc-check-tests
 
             -   name: Typecheck documentation examples
                 working-directory: ./docs
-                run: |
-                    yarn
-                    yarn typecheck
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm typecheck
 
             -   name: Tests
-                run: yarn test
-                env:
-                    YARN_IGNORE_NODE: 1
+                run: pnpm test
 
     docs:
         name: Docs build
-        if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
+        if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/v4')
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
@@ -103,16 +81,6 @@ jobs:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v5
@@ -122,14 +90,12 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build & deploy docs
                 run: |
                     cd website
-                    yarn
-                    yarn build
+                    pnpm build
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
                     SEGMENT_TOKEN: ${{ secrets.SEGMENT_TOKEN }}
@@ -148,16 +114,6 @@ jobs:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v5
@@ -167,14 +123,13 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
-            -   name: ESLint
-                run: yarn lint
+            -   name: Oxlint
+                run: pnpm lint
 
-            -   name: Biome format
-                run: yarn format:check
+            -   name: Oxfmt format check
+                run: pnpm format:check
 
     release_next:
         name: Release @next
@@ -195,16 +150,6 @@ jobs:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
                 uses: actions/cache@v5
@@ -214,11 +159,10 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build
-                run: yarn ci:build
+                run: pnpm ci:build
 
             -   name: Generate changed packages list
                 id: changed-packages
@@ -237,25 +181,5 @@ jobs:
                     inputs: >
                       {
                         "ref": "${{ steps.commit.outputs.commit_long_sha || github.sha }}",
-                        "dist-tag": "next"
+                        "dist-tag": "v4"
                       }
-
-#            -   name: Collect versions for Docker images
-#                id: versions
-#                run: |
-#                    crawlee=`node -p "require('./packages/crawlee/package.json').version"`
-#                    echo "crawlee=$crawlee" | tee -a $GITHUB_OUTPUT
-#
-#            -   name: Trigger Docker image builds
-#                uses: peter-evans/repository-dispatch@v4
-#                # Trigger next images only if we have something new pushed
-#                if: steps.changed-packages.outputs.changed_packages != '0'
-#                with:
-#                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-#                    repository: apify/apify-actor-docker
-#                    event-type: build-node-images
-#                    client-payload: >
-#                        {
-#                          "crawlee_version": "${{ steps.versions.outputs.crawlee }}",
-#                          "release_tag": "beta"
-#                        }

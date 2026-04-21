@@ -2,9 +2,9 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
-import { HttpCrawler } from '@crawlee/http';
+import { HttpCrawler, SessionPool } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
@@ -212,9 +212,9 @@ test('handles cookies from redirects', async () => {
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        sessionPoolOptions: {
+        sessionPool: new SessionPool({
             maxPoolSize: 1,
-        },
+        }),
         requestHandler: async ({ body }) => {
             results.push(JSON.parse(body.toString()));
         },
@@ -229,9 +229,9 @@ test('handles cookies from redirects - no empty cookie header', async () => {
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        sessionPoolOptions: {
+        sessionPool: new SessionPool({
             maxPoolSize: 1,
-        },
+        }),
         requestHandler: async ({ body }) => {
             const str = body.toString();
 
@@ -250,9 +250,9 @@ test('no empty cookie header', async () => {
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        sessionPoolOptions: {
+        sessionPool: new SessionPool({
             maxPoolSize: 1,
-        },
+        }),
         requestHandler: async ({ body }) => {
             const str = body.toString();
 
@@ -341,7 +341,7 @@ test('should work with delete requests', async () => {
 
     await cheerioCrawler.run([
         {
-            url: `${url}`,
+            url,
             method: 'DELETE',
         },
     ]);
@@ -355,11 +355,12 @@ test('should retry on 403 even with disallowed content-type', async () => {
     const crawler = new HttpCrawler({
         maxConcurrency: 1,
         maxRequestRetries: 1,
+        maxSessionRotations: 1,
         preNavigationHooks: [
             async ({ request }) => {
                 // mock 403 response with octet stream on first request attempt, but not on
                 // subsequent retries, so the request should eventually succeed
-                if (request.retryCount === 0) {
+                if (request.sessionRotationCount === 0) {
                     request.url = `${url}/403-with-octet-stream`;
                 } else {
                     request.url = url;
@@ -374,7 +375,7 @@ test('should retry on 403 even with disallowed content-type', async () => {
     await crawler.run([url]);
 
     expect(succeeded).toHaveLength(1);
-    expect(succeeded[0].retryCount).toBe(1);
+    expect(succeeded[0].sessionRotationCount).toBe(1);
 });
 
 test('works with a custom HttpClient', async () => {

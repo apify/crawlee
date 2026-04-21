@@ -22,7 +22,6 @@ import type {
     RouterHandler,
     RouterRoutes,
     Session,
-    SessionPoolOptions,
     SkippedRequestCallback,
     Source,
     StatisticsOptions,
@@ -31,6 +30,7 @@ import type {
 import {
     AutoscaledPool,
     bindMethodsToServiceLocator,
+    BLOCKED_STATUS_CODES,
     ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -43,6 +43,8 @@ import {
     KeyValueStore,
     LogLevel,
     mergeCookies,
+    MissingSessionError,
+    NavigationSkippedError,
     NonRetryableError,
     purgeDefaultStorages,
     RequestHandlerError,
@@ -311,15 +313,11 @@ export interface BasicCrawlerOptions<
     keepAlive?: boolean;
 
     /**
-     * Basic crawler will initialize the {@apilink SessionPool} with the corresponding {@apilink SessionPoolOptions|`sessionPoolOptions`}.
-     * The session instance will be than available in the {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
+     * An existing {@apilink SessionPool} instance to use. When provided, the crawler will use this
+     * pool directly instead of creating a new one, enabling session sharing across multiple crawlers.
+     * The crawler will not tear down a shared pool — the caller is responsible for its lifecycle.
      */
-    useSessionPool?: boolean;
-
-    /**
-     * The configuration options for {@apilink SessionPool} to use.
-     */
-    sessionPoolOptions?: SessionPoolOptions;
+    sessionPool?: SessionPool;
 
     /**
      * Defines the length of the interval for calling the `setStatusMessage` in seconds.
@@ -343,6 +341,12 @@ export interface BasicCrawlerOptions<
      * ```
      */
     statusMessageCallback?: StatusMessageCallback;
+
+    /**
+     * HTTP status codes that indicate the session should be retired.
+     * @default [401, 403, 429]
+     */
+    blockedStatusCodes?: number[];
 
     /**
      * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
@@ -432,6 +436,18 @@ export interface BasicCrawlerOptions<
      *
      */
     id?: string;
+
+    /**
+     * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
+     * By default, status codes >= 500 trigger errors.
+     */
+    ignoreHttpErrorStatusCodes?: number[];
+
+    /**
+     * An array of additional HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be treated as errors.
+     * By default, status codes >= 500 trigger errors.
+     */
+    additionalHttpErrorStatusCodes?: number[];
 }
 
 /**
@@ -552,9 +568,13 @@ export class BasicCrawler<
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
-     * Only available if used by the crawler.
      */
-    sessionPool?: SessionPool;
+    sessionPool: SessionPool;
+
+    /**
+     * Indicates whether the crawler owns the session pool (it was not passed from the outside using the `sessionPool` constructor option).
+     */
+    private ownsSessionPool: boolean;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
@@ -629,8 +649,9 @@ export class BasicCrawler<
     protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
-    protected sessionPoolOptions: SessionPoolOptions;
-    protected useSessionPool: boolean;
+    protected blockedStatusCodes = new Set<number>();
+    protected additionalHttpErrorStatusCodes: Set<number>;
+    protected ignoreHttpErrorStatusCodes: Set<number>;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
@@ -667,13 +688,16 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
-        sessionPoolOptions: ow.optional.object,
-        useSessionPool: ow.optional.boolean,
+        sessionPool: ow.optional.object.instanceOf(SessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
         statusMessageCallback: ow.optional.function,
 
+        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+
+        blockedStatusCodes: ow.optional.array.ofType(ow.number),
         retryOnBlocked: ow.optional.boolean,
         respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
         onSkippedRequest: ow.optional.function,
@@ -718,9 +742,11 @@ export class BasicCrawler<
             maxCrawlDepth,
             autoscaledPoolOptions = {},
             keepAlive,
-            sessionPoolOptions = {},
-            useSessionPool = true,
+            sessionPool,
             proxyConfiguration,
+
+            additionalHttpErrorStatusCodes = [],
+            ignoreHttpErrorStatusCodes = [],
 
             // Service locator options
             configuration,
@@ -733,6 +759,7 @@ export class BasicCrawler<
             maxConcurrency,
             maxRequestsPerMinute,
 
+            blockedStatusCodes: blockedStatusCodesInput,
             retryOnBlocked = false,
             respectRobotsTxtFile = false,
             onSkippedRequest,
@@ -795,7 +822,7 @@ export class BasicCrawler<
                 this.requestQueue = requestQueue;
             }
 
-            this.httpClient = httpClient ?? new GotScrapingHttpClient();
+            this.httpClient = httpClient ?? new GotScrapingHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -803,6 +830,9 @@ export class BasicCrawler<
             this.experiments = experiments;
             this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
             this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
+
+            this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
+            this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
 
             this.requestHandler = requestHandler ?? this.router;
             this.failedRequestHandler = failedRequestHandler;
@@ -841,19 +871,13 @@ export class BasicCrawler<
                 ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
                 ...statisticsOptions,
             });
-            this.sessionPoolOptions = {
-                ...sessionPoolOptions,
-                log: this.log,
-            };
-            if (this.retryOnBlocked) {
-                this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
-                if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
-                    this.log.warning(
-                        `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
-                    );
-                }
-            }
-            this.useSessionPool = useSessionPool;
+
+            this.sessionPool = sessionPool ?? new SessionPool();
+            this.sessionPool.setMaxListeners(20);
+
+            this.ownsSessionPool = !sessionPool;
+
+            this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
             const maxSignedInteger = 2 ** 31 - 1;
             if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
@@ -897,13 +921,13 @@ export class BasicCrawler<
                     try {
                         await this.basicContextPipeline
                             .chain(this.contextPipeline)
-                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source));
+                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
                             await this._timeoutAndRetry(
-                                async () => this.requestManager?.markRequestHandled(crawlingContext.request!),
+                                async () => this.requestManager?.markRequestHandled(request),
                                 this.internalTimeoutMillis,
                                 `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
                                     this.internalTimeoutMillis / 1e3
@@ -922,6 +946,7 @@ export class BasicCrawler<
                             await this._requestFunctionErrorHandler(
                                 unwrappedError,
                                 crawlingContext as CrawlingContext,
+                                request,
                                 this.requestManager!,
                             );
                             crawlingContext.session?.markBad();
@@ -988,6 +1013,19 @@ export class BasicCrawler<
         } finally {
             serviceLocatorScope.exitScope();
         }
+    }
+
+    /**
+     * Determines if the given HTTP status code is an error status code given
+     * the default behaviour and user-set preferences.
+     * @param status
+     * @returns `true` if the status code is considered an error, `false` otherwise
+     */
+    protected isErrorStatusCode(status: number): boolean {
+        const excludeError = this.ignoreHttpErrorStatusCodes.has(status);
+        const includeError = this.additionalHttpErrorStatusCodes.has(status);
+
+        return (status >= 500 && !excludeError) || includeError;
     }
 
     /**
@@ -1065,25 +1103,33 @@ export class BasicCrawler<
     }
 
     private async resolveSession({ request }: { request: Request }) {
-        const session = this.useSessionPool
-            ? await this._timeoutAndRetry(
-                  async () => {
-                      return await this.sessionPool!.newSession({
-                          proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                              request: request ?? undefined,
-                          }),
-                          maxUsageCount: 1,
-                      });
-                  },
-                  this.internalTimeoutMillis,
-                  `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-              )
-            : undefined;
+        const session = await this._timeoutAndRetry(
+            async () => {
+                if (request.sessionId) {
+                    const existingSession = await this.sessionPool!.getSession(request.sessionId);
 
-        return { session, proxyInfo: session?.proxyInfo };
+                    if (!existingSession) {
+                        throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
+                    }
+
+                    return existingSession;
+                }
+
+                return await this.sessionPool!.newSession({
+                    proxyInfo: await this.proxyConfiguration?.newProxyInfo({
+                        request: request ?? undefined,
+                    }),
+                    maxUsageCount: 1,
+                });
+            },
+            this.internalTimeoutMillis,
+            `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+        );
+
+        return { session, proxyInfo: session.proxyInfo };
     }
 
-    private async createContextHelpers({ request, session }: { request: Request; session?: Session }) {
+    private async createContextHelpers({ request, session }: { request: Request; session: Session }) {
         const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
             const requestQueue = await this.getRequestQueue();
 
@@ -1248,7 +1294,9 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            await this.sessionPool?.resetStore();
+            if (this.ownsSessionPool) {
+                await this.sessionPool.resetStore();
+            }
         }
 
         this.unexpectedStop = false;
@@ -1571,8 +1619,9 @@ export class BasicCrawler<
     async exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]> {
         const supportedFormats = ['json', 'csv'];
 
-        if (!format && path.match(/\.(json|csv)$/i)) {
-            format = path.toLowerCase().match(/\.(json|csv)$/)![1] as 'json' | 'csv';
+        const formatMatch = /\.(json|csv)$/i.exec(path);
+        if (!format && formatMatch) {
+            format = formatMatch[1].toLowerCase() as 'json' | 'csv';
         }
 
         if (!format) {
@@ -1635,12 +1684,6 @@ export class BasicCrawler<
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
 
-        if (this.useSessionPool) {
-            this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
-            // Assuming there are not more than 20 browsers running at once;
-            this.sessionPool.setMaxListeners(20);
-        }
-
         await this.initializeRequestManager();
         await this._loadHandledRequestCount();
     }
@@ -1656,11 +1699,11 @@ export class BasicCrawler<
     /**
      * Handles blocked request
      */
-    protected _throwOnBlockedRequest(session: Session, statusCode: number) {
-        const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
+    protected _throwOnBlockedRequest(statusCode: number) {
+        if (this.retryOnBlocked) return;
 
-        if (isBlocked) {
-            throw new Error(`Request blocked - received ${statusCode} status code.`);
+        if (this.blockedStatusCodes.has(statusCode)) {
+            throw new SessionError(`Request blocked - received ${statusCode} status code.`);
         }
     }
 
@@ -1688,7 +1731,7 @@ export class BasicCrawler<
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsTxtFile.find(url);
+            const robotsTxtFile = await RobotsTxtFile.find(url, { logger: this.log });
             this.robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;
@@ -1815,9 +1858,7 @@ export class BasicCrawler<
     }
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
-    protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager) {
-        const { request } = crawlingContext;
-
+    protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
 
@@ -1841,14 +1882,14 @@ export class BasicCrawler<
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
-            crawlingContext.session?.markGood();
+            crawlingContext.session.markGood();
         } catch (rawError) {
             const err = this.unwrapError(rawError);
 
             try {
                 request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    async () => this._requestFunctionErrorHandler(err, crawlingContext, requestSource),
+                    async () => this._requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${
                         this.internalTimeoutMillis / 1e3
@@ -1879,7 +1920,7 @@ export class BasicCrawler<
                 throw unwrappedSecondaryError;
             }
             // decrease the session score if the request fails (but the error handler did not throw)
-            crawlingContext.session?.markBad();
+            crawlingContext.session.markBad();
         } finally {
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && requestSource instanceof RequestProvider) {
@@ -2009,7 +2050,7 @@ export class BasicCrawler<
 
         request.sessionRotationCount ??= 0;
         request.sessionRotationCount++;
-        crawlingContext.session?.retire();
+        crawlingContext.session.retire();
     }
 
     /**
@@ -2029,13 +2070,15 @@ export class BasicCrawler<
 
     /**
      * Handles errors thrown by user provided requestHandler()
+     *
+     * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
+        request: Request,
         source: IRequestList | IRequestManager,
     ): Promise<void> {
-        const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
         if (error instanceof CriticalError) {
@@ -2056,7 +2099,9 @@ export class BasicCrawler<
             }
 
             if (!request.noRetry) {
-                request.retryCount++;
+                if (!(error instanceof SessionError)) {
+                    request.retryCount++;
+                }
 
                 const { url, retryCount, id } = request;
 
@@ -2072,6 +2117,10 @@ export class BasicCrawler<
                 await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
                 return;
             }
+        }
+
+        if (error instanceof SessionError) {
+            crawlingContext.session?.retire();
         }
 
         // If the request is non-retryable, the error and snapshot aren't saved in the errorTrackerRetry object.
@@ -2192,10 +2241,12 @@ export class BasicCrawler<
     async teardown(): Promise<void> {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
 
-        await this.sessionPool?.teardown();
-
         if (this._closeEvents) {
             await serviceLocator.getEventManager().close();
+        }
+
+        if (this.ownsSessionPool) {
+            await this.sessionPool.teardown();
         }
 
         await this.autoscaledPool?.abort();
@@ -2214,9 +2265,12 @@ export class BasicCrawler<
 
     private async _getRequestQueue() {
         // Check if it's explicitly disabled
+        // oxlint-disable-next-line typescript/no-deprecated -- still honored for opt-out until the flag is removed
         if (this.experiments.requestLocking === false) {
+            // oxlint-disable-next-line typescript/no-deprecated
             if (!this._experimentWarnings.requestLocking) {
                 this.log.info('Using the old RequestQueue implementation without request locking.');
+                // oxlint-disable-next-line typescript/no-deprecated
                 this._experimentWarnings.requestLocking = true;
             }
 
@@ -2227,6 +2281,18 @@ export class BasicCrawler<
     }
 
     private requestMatchesEnqueueStrategy(request: Request) {
+        // If `skipNavigation` was used, just return `true`
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            request.loadedUrl;
+        } catch (err) {
+            if (err instanceof NavigationSkippedError) {
+                return true;
+            }
+
+            throw err;
+        }
+
         const { url, loadedUrl } = request;
 
         // eslint-disable-next-line dot-notation -- private access
@@ -2275,7 +2341,7 @@ export class BasicCrawler<
 
 export interface CreateContextOptions {
     request: Request;
-    session?: Session;
+    session: Session;
     proxyInfo?: ProxyInfo;
 }
 

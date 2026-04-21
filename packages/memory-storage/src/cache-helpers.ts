@@ -196,7 +196,7 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
                 try {
                     json5.parse(stringifiedJson);
                 } catch {
-                    memoryStorageLog.warning(
+                    client.logger?.warning(
                         `Key-value entry "${entry.name}" for store ${entryNameOrId} has invalid JSON content and will be ignored from the store.`,
                     );
                     continue;
@@ -250,6 +250,7 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
             persistStorage: true,
             storeDirectory: keyValueStoreDir,
             writeMetadata: hasSeenMetadataForEntry,
+            logger: client.logger,
         });
 
         // eslint-disable-next-line dot-notation
@@ -336,7 +337,7 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
 
                         entries.add(entryName);
                     } catch {
-                        memoryStorageLog.warning(
+                        client.logger?.warning(
                             `Request queue entry "${entry.name}" for store ${entryNameOrId} has invalid JSON content and will be ignored from the store.`,
                         );
                     }
@@ -392,4 +393,3 @@ import { DatasetClient } from './resource-clients/dataset.js';
 import type { InternalKeyRecord } from './resource-clients/key-value-store.js';
 import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
 import { RequestQueueClient } from './resource-clients/request-queue.js';
-import { memoryStorageLog } from './utils.js';

@@ -15,12 +15,12 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
-    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
+    NavigationSkippedError,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
@@ -37,7 +37,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, ProxyInfo } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -107,10 +107,10 @@ export interface BrowserCrawlerOptions<
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
-        BasicCrawlerOptions<Context, ExtendedContext>,
-        // Overridden with browser context
-        'requestHandler' | 'failedRequestHandler' | 'errorHandler'
-    > {
+    BasicCrawlerOptions<Context, ExtendedContext>,
+    // Overridden with browser context
+    'requestHandler' | 'failedRequestHandler' | 'errorHandler'
+> {
     launchContext?: BrowserLaunchContext<any, any>;
 
     /**
@@ -220,8 +220,7 @@ export interface BrowserCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
-     * Defines whether the cookies should be persisted for sessions.
-     * This can only be used when `useSessionPool` is set to `true`.
+     * Defines whether the cookies should be persisted for sessions. Enabled by default.
      */
     persistCookiesPerSession?: boolean;
 
@@ -324,9 +323,7 @@ export abstract class BrowserCrawler<
         launchContext: ow.optional.object,
         headless: ow.optional.any(ow.boolean, ow.string),
         browserPoolOptions: ow.object,
-        sessionPoolOptions: ow.optional.object,
         persistCookiesPerSession: ow.optional.boolean,
-        useSessionPool: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
     };
 
@@ -348,7 +345,7 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
-            persistCookiesPerSession,
+            persistCookiesPerSession = true,
             launchContext = {},
             browserPoolOptions,
             preNavigationHooks = [],
@@ -372,11 +369,6 @@ export abstract class BrowserCrawler<
             extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
         });
 
-        // Cookies should be persisted per session only if session pool is used
-        if (!this.useSessionPool && persistCookiesPerSession) {
-            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
-        }
-
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
         this.proxyConfiguration = proxyConfiguration;
@@ -390,11 +382,7 @@ export abstract class BrowserCrawler<
             (this.launchContext.launchOptions as Dictionary).headless = headless;
         }
 
-        if (this.useSessionPool) {
-            this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
-        } else {
-            this.persistCookiesPerSession = false;
-        }
+        this.persistCookiesPerSession = persistCookiesPerSession;
 
         if (launchContext?.userAgent) {
             if (browserPoolOptions.useFingerprints)
@@ -402,12 +390,8 @@ export abstract class BrowserCrawler<
             browserPoolOptions.useFingerprints = false;
         }
 
-        const { preLaunchHooks = [], postLaunchHooks = [], ...rest } = browserPoolOptions;
-
         this.browserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(rest as any),
-            preLaunchHooks: [this._extendLaunchContext.bind(this), ...preLaunchHooks],
-            postLaunchHooks: [this._maybeAddSessionRetiredListener.bind(this), ...postLaunchHooks],
+            ...(browserPoolOptions as any),
         });
     }
 
@@ -444,13 +428,6 @@ export abstract class BrowserCrawler<
     ): Promise<string | false> {
         const { page, response } = crawlingContext;
 
-        const blockedStatusCodes =
-            // eslint-disable-next-line dot-notation
-            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
-                ? // eslint-disable-next-line dot-notation
-                  this.sessionPool!['blockedStatusCodes']
-                : DEFAULT_BLOCKED_STATUS_CODES;
-
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
         if ((await this.containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS)) && response?.status() === 403) {
             await sleep(5000);
@@ -463,10 +440,10 @@ export abstract class BrowserCrawler<
         }
 
         const foundSelectors = await this.containsSelectors(page, RETRY_CSS_SELECTORS);
-        const blockedStatusCode = blockedStatusCodes.find((x) => x === (response?.status() ?? 0));
+        const statusCode = response?.status() ?? 0;
 
         if (foundSelectors) return `Found selectors: ${foundSelectors.join(', ')}`;
-        if (blockedStatusCode) return `Received blocked status code: ${blockedStatusCode}`;
+        if (this.blockedStatusCodes.has(statusCode)) return `Received blocked status code: ${statusCode}`;
 
         return false;
     }
@@ -480,25 +457,12 @@ export abstract class BrowserCrawler<
             id: crawlingContext.id,
         };
 
-        const useIncognitoPages = this.launchContext?.useIncognitoPages;
-
         if (crawlingContext.session?.proxyInfo) {
             const proxyInfo = crawlingContext.session.proxyInfo;
-            crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
-
-            if (proxyInfo?.ignoreTlsErrors) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                newPageOptions.pageOptions = {
-                    ignoreHTTPSErrors: true,
-                    acceptInsecureCerts: true,
-                };
-            }
+            newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
         }
 
         const page = (await this.browserPool.newPage(newPageOptions)) as Page;
@@ -508,11 +472,9 @@ export abstract class BrowserCrawler<
             page as any,
         ) as ProvidedController;
 
-        const contextEnqueueLinks = crawlingContext.enqueueLinks;
+        this.addSessionRetiredListener(crawlingContext.session, browserControllerInstance);
 
-        const session = useIncognitoPages
-            ? crawlingContext.session
-            : (browserControllerInstance.launchContext.session as Session);
+        const contextEnqueueLinks = crawlingContext.enqueueLinks;
 
         return {
             page,
@@ -522,8 +484,6 @@ export abstract class BrowserCrawler<
                 );
             },
             browserController: browserControllerInstance,
-            session,
-            proxyInfo: session?.proxyInfo,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
@@ -548,7 +508,7 @@ export abstract class BrowserCrawler<
                 request: new Proxy(crawlingContext.request, {
                     get(target, propertyName, receiver) {
                         if (propertyName === 'loadedUrl') {
-                            throw new Error(
+                            throw new NavigationSkippedError(
                                 'The `request.loadedUrl` property is not available - `skipNavigation` was used',
                             );
                         }
@@ -556,7 +516,9 @@ export abstract class BrowserCrawler<
                     },
                 }) as LoadedRequest<Request>,
                 get response(): Response {
-                    throw new Error('The `response` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `response` property is not available - `skipNavigation` was used',
+                    );
                 },
             };
         }
@@ -652,7 +614,7 @@ export abstract class BrowserCrawler<
     protected async _handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
         const { session } = crawlingContext;
 
-        if (error && error.constructor.name === 'TimeoutError') {
+        if (error?.constructor.name === 'TimeoutError') {
             handleRequestTimeout({ session, errorMessage: error.message });
         }
 
@@ -683,11 +645,19 @@ export abstract class BrowserCrawler<
             const status: number = response.status();
 
             this.stats.registerStatusCode(status);
+
+            if (this.isErrorStatusCode(status)) {
+                if (this.additionalHttpErrorStatusCodes.has(status)) {
+                    throw new Error(`${status} - Error status code was set by user.`);
+                }
+
+                throw new Error(`${status} - Internal Server Error`);
+            }
         }
 
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
-                this._throwOnBlockedRequest(session, response.status());
+                this._throwOnBlockedRequest(response.status());
             } else {
                 this.log.debug('Got a malformed Browser response.', { request, response });
             }
@@ -696,55 +666,37 @@ export abstract class BrowserCrawler<
         request.loadedUrl = await page.url();
     }
 
-    protected async _extendLaunchContext(_pageId: string, launchContext: LaunchContext): Promise<void> {
-        const launchContextExtends: { session?: Session; proxyInfo?: ProxyInfo } = {};
+    private browserSessionIds = new WeakMap<Context['browserController'], Set<string>>();
 
-        if (this.sessionPool) {
-            launchContextExtends.session = await this.sessionPool.newSession({
-                proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                    // cannot pass a request here, since session is created on browser launch
-                }),
-            });
+    private addSessionRetiredListener(session: Session, browserController: Context['browserController']): void {
+        if (!this.sessionPool) {
+            return;
         }
 
-        if (!launchContext.proxyUrl && launchContextExtends.session?.proxyInfo) {
-            const proxyInfo = launchContextExtends.session.proxyInfo;
+        let sessionIds = this.browserSessionIds.get(browserController);
 
-            launchContext.proxyUrl = proxyInfo?.url;
-            launchContextExtends.proxyInfo = proxyInfo;
+        if (sessionIds) {
+            sessionIds.add(session.id);
+            return;
+        }
 
-            // Disable SSL verification for MITM proxies
-            if (proxyInfo?.ignoreTlsErrors) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
-                (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
+        sessionIds = new Set([session.id]);
+        this.browserSessionIds.set(browserController, sessionIds);
+
+        const listener = (retired: Session) => {
+            if (this.browserSessionIds.get(browserController)?.has(retired.id)) {
+                this.browserPool.retireBrowserController(
+                    browserController as Parameters<
+                        BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
+                    >[0],
+                );
             }
-        }
+        };
 
-        launchContext.extend(launchContextExtends);
-    }
-
-    protected _maybeAddSessionRetiredListener(_pageId: string, browserController: Context['browserController']): void {
-        if (this.sessionPool) {
-            const listener = (session: Session) => {
-                const { launchContext } = browserController;
-                if (session.id === (launchContext.session as Session).id) {
-                    this.browserPool.retireBrowserController(
-                        browserController as Parameters<
-                            BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
-                        >[0],
-                    );
-                }
-            };
-
-            this.sessionPool.on(EVENT_SESSION_RETIRED, listener);
-            browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
-                return this.sessionPool!.removeListener(EVENT_SESSION_RETIRED, listener);
-            });
-        }
+        this.sessionPool.on(EVENT_SESSION_RETIRED, listener);
+        browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
+            return this.sessionPool!.removeListener(EVENT_SESSION_RETIRED, listener);
+        });
     }
 
     /**

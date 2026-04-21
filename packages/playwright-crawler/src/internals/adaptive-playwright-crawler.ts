@@ -102,8 +102,9 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
     }
 }
 
-export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = Dictionary>
-    extends CrawlingContext<UserData> {
+export interface AdaptivePlaywrightCrawlerContext<
+    UserData extends Dictionary = Dictionary,
+> extends CrawlingContext<UserData> {
     request: LoadedRequest<Request<UserData>>;
     /**
      * The HTTP response, either from the HTTP client or from the initial request from playwright's navigation.
@@ -153,21 +154,20 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
-interface AdaptiveHook
-    extends BrowserHook<
-        Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> & {
-            page?: Page;
-            request: Request;
-        },
-        PlaywrightGotoOptions
-    > {}
+interface AdaptiveHook extends BrowserHook<
+    Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> & {
+        page?: Page;
+        request: Request;
+    },
+    PlaywrightGotoOptions
+> {}
 
 export interface AdaptivePlaywrightCrawlerOptions<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
 > extends Omit<
-        BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
-        'preNavigationHooks' | 'postNavigationHooks'
-    > {
+    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
+    'preNavigationHooks' | 'postNavigationHooks'
+> {
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies.
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
@@ -328,7 +328,6 @@ export class AdaptivePlaywrightCrawler<
         }
         const staticCrawler = new CheerioCrawler({
             ...rest,
-            useSessionPool: false,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
@@ -350,7 +349,6 @@ export class AdaptivePlaywrightCrawler<
 
         const browserCrawler = new PlaywrightCrawler({
             ...rest,
-            useSessionPool: false,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },

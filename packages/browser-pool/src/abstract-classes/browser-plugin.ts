@@ -90,11 +90,8 @@ export interface CreateLaunchContextOptions<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > extends Partial<
-        Omit<
-            LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
-            'browserPlugin'
-        >
-    > {}
+    Omit<LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, 'browserPlugin'>
+> {}
 
 /**
  * The `BrowserPlugin` serves two purposes. First, it is the base class that

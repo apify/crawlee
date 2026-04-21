@@ -105,4 +105,36 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
         expect(enqueued[0].url).toBe('https://example.com/first');
         expect(enqueued[0].label).toBe('first');
     });
+
+    test('sets sessionId on all enqueued requests', async () => {
+        const { enqueued, requestQueue } = createRequestQueueMock();
+
+        await cheerioCrawlerEnqueueLinks({
+            options: {
+                sessionId: 'my-session',
+            },
+            $,
+            requestQueue,
+            originalRequestUrl: 'https://example.com',
+        });
+
+        expect(enqueued).toHaveLength(2);
+        expect(enqueued[0].userData?.__crawlee?.sessionId).toBe('my-session');
+        expect(enqueued[1].userData?.__crawlee?.sessionId).toBe('my-session');
+    });
+
+    test('does not set sessionId when option is not provided', async () => {
+        const { enqueued, requestQueue } = createRequestQueueMock();
+
+        await cheerioCrawlerEnqueueLinks({
+            options: {},
+            $,
+            requestQueue,
+            originalRequestUrl: 'https://example.com',
+        });
+
+        expect(enqueued).toHaveLength(2);
+        expect(enqueued[0].userData?.__crawlee?.sessionId).toBeUndefined();
+        expect(enqueued[1].userData?.__crawlee?.sessionId).toBeUndefined();
+    });
 });

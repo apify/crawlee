@@ -155,25 +155,6 @@ describe('Session - testing session behaviour ', () => {
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 
-    test('should checkStatus work', () => {
-        session = new Session({ sessionPool });
-        expect(session.retireOnBlockedStatusCodes(100)).toBeFalsy();
-        expect(session.retireOnBlockedStatusCodes(200)).toBeFalsy();
-        expect(session.retireOnBlockedStatusCodes(400)).toBeFalsy();
-        expect(session.retireOnBlockedStatusCodes(500)).toBeFalsy();
-        // @ts-expect-error
-        sessionPool.blockedStatusCodes.forEach((status) => {
-            const sess = new Session({ sessionPool });
-            let isCalled;
-            const call = () => {
-                isCalled = true;
-            };
-            sess.retire = call;
-            expect(sess.retireOnBlockedStatusCodes(status)).toBeTruthy();
-            expect(isCalled).toBeTruthy();
-        });
-    });
-
     test('setCookies should work', () => {
         const url = 'https://example.com';
         const cookies = [

@@ -36,7 +36,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "yarn clean && yarn compile && yarn copy",
+        "build": "pnpm clean && pnpm compile && pnpm copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"
@@ -45,7 +45,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/templates": "4.0.0",
+        "@crawlee/templates": "workspace:*",
         "@inquirer/prompts": "^7.5.0",
         "ansi-colors": "^4.1.3",
         "fs-extra": "^11.3.0",

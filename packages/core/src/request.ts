@@ -24,6 +24,7 @@ const requestOptionalPredicates = {
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
     sessionRotationCount: ow.optional.number,
+    sessionId: ow.optional.string,
     maxRetries: ow.optional.number,
     errorMessages: ow.optional.array.ofType(ow.string),
     headers: ow.optional.object,
@@ -170,6 +171,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             noRetry = false,
             retryCount = 0,
             sessionRotationCount = 0,
+            sessionId,
             maxRetries,
             errorMessages = [],
             headers = {},
@@ -185,6 +187,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             loadedUrl?: string;
             retryCount?: number;
             sessionRotationCount?: number;
+            sessionId?: string;
             errorMessages?: string[];
             handledAt?: string | Date;
         };
@@ -256,6 +259,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
         if (crawlDepth != null) this.userData.__crawlee.crawlDepth ??= crawlDepth;
+        if (sessionId) this.sessionId = sessionId;
 
         // If it's already set, don't override it (for instance when fetching from storage)
         if (enqueueStrategy) {
@@ -275,12 +279,24 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         });
     }
 
-    /** Tells the crawler processing this request to skip the navigation and process the request directly. */
+    /**
+     * Tells the crawler processing this request to skip the navigation and process the request directly.
+     *
+     * When this is set to `true`, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
+     */
     get skipNavigation(): boolean {
         return this.userData.__crawlee?.skipNavigation ?? false;
     }
 
-    /** Tells the crawler processing this request to skip the navigation and process the request directly. */
+    /**
+     * Tells the crawler processing this request to skip the navigation and process the request directly.
+     *
+     * When this is set to `true`, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
+     */
     set skipNavigation(value: boolean) {
         if (!this.userData.__crawlee) {
             (this.userData as Dictionary).__crawlee = { skipNavigation: value };
@@ -318,6 +334,16 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         } else {
             this.userData.__crawlee.sessionRotationCount = value;
         }
+    }
+
+    /** ID of a session to use for this request. When set, the crawler will fetch this session from the session pool instead of creating a new one. */
+    get sessionId(): string | undefined {
+        return this.userData.__crawlee?.sessionId;
+    }
+
+    set sessionId(value: string | undefined) {
+        (this.userData as Dictionary).__crawlee ??= {};
+        this.userData.__crawlee.sessionId = value;
     }
 
     /** shortcut for getting `request.userData.label` */
@@ -546,8 +572,18 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     noRetry?: boolean;
 
     /**
+     * ID of a session from the crawler's `SessionPool` to use for this request.
+     * When set, the crawler will fetch this session from the pool instead of creating a new one.
+     */
+    sessionId?: string;
+
+    /**
      * If set to `true` then the crawler processing this request evaluates
      * the `requestHandler` immediately without prior browser navigation.
+     *
+     * When enabled, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
      * @default false
      */
     skipNavigation?: boolean;

@@ -306,14 +306,17 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         }
 
         const data = this.toDatasetInfo();
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            data,
-            entityType: 'datasets',
-            entityDirectory: this.datasetDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                data,
+                entityType: 'datasets',
+                entityDirectory: this.datasetDirectory,
+                id: this.name ?? this.id,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
     }
 }

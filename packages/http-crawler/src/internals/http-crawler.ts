@@ -15,9 +15,8 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
-    BLOCKED_STATUS_CODES,
     ContextPipeline,
-    mergeCookies,
+    NavigationSkippedError,
     RequestState,
     Router,
     SessionError,
@@ -137,24 +136,12 @@ export interface HttpCrawlerOptions<
     forceResponseEncoding?: string;
 
     /**
-     * Automatically saves cookies to Session. Works only if Session Pool is used.
+     * Automatically saves cookies to Session. Enabled by default.
      *
      * It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
      * It passes the "Cookie" header to the request with the session cookies.
      */
     persistCookiesPerSession?: boolean;
-
-    /**
-     * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
-     * By default, status codes >= 500 trigger errors.
-     */
-    ignoreHttpErrorStatusCodes?: number[];
-
-    /**
-     * An array of additional HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be treated as errors.
-     * By default, status codes >= 500 trigger errors.
-     */
-    additionalHttpErrorStatusCodes?: number[];
 }
 
 /**
@@ -235,8 +222,10 @@ export interface InternalHttpCrawlingContext<
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
-export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
-    extends InternalHttpCrawlingContext<UserData, JSONData> {}
+export interface HttpCrawlingContext<
+    UserData extends Dictionary = any,
+    JSONData extends JsonValue = any,
+> extends InternalHttpCrawlingContext<UserData, JSONData> {}
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -322,8 +311,6 @@ export class HttpCrawler<
     protected ignoreSslErrors: boolean;
     protected suggestResponseEncoding?: string;
     protected forceResponseEncoding?: string;
-    protected additionalHttpErrorStatusCodes: Set<number>;
-    protected ignoreHttpErrorStatusCodes: Set<number>;
     protected readonly supportedMimeTypes: Set<string>;
 
     protected static override optionsShape = {
@@ -335,9 +322,6 @@ export class HttpCrawler<
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
         persistCookiesPerSession: ow.optional.boolean,
-
-        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
-        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
 
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
@@ -358,11 +342,9 @@ export class HttpCrawler<
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-            persistCookiesPerSession,
+            persistCookiesPerSession = true,
             preNavigationHooks = [],
             postNavigationHooks = [],
-            additionalHttpErrorStatusCodes = [],
-            ignoreHttpErrorStatusCodes = [],
 
             // BasicCrawler
             autoscaledPoolOptions = HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
@@ -378,11 +360,6 @@ export class HttpCrawler<
                 (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
         });
 
-        // Cookies should be persisted per session only if session pool is used
-        if (!this.useSessionPool && persistCookiesPerSession) {
-            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
-        }
-
         this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
@@ -396,19 +373,13 @@ export class HttpCrawler<
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
-        this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
-        this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
             ...postNavigationHooks,
         ];
 
-        if (this.useSessionPool) {
-            this.persistCookiesPerSession = persistCookiesPerSession ?? true;
-        } else {
-            this.persistCookiesPerSession = false;
-        }
+        this.persistCookiesPerSession = persistCookiesPerSession;
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
@@ -430,7 +401,7 @@ export class HttpCrawler<
                 request: new Proxy(request, {
                     get(target, propertyName, receiver) {
                         if (propertyName === 'loadedUrl') {
-                            throw new Error(
+                            throw new NavigationSkippedError(
                                 'The `request.loadedUrl` property is not available - `skipNavigation` was used',
                             );
                         }
@@ -438,27 +409,21 @@ export class HttpCrawler<
                     },
                 }) as LoadedRequest<CrawleeRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
-                    throw new Error('The `response` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `response` property is not available - `skipNavigation` was used',
+                    );
                 },
             };
         }
 
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
-
         request.state = RequestState.BEFORE_NAV;
-        // Execute pre navigation hooks before applying session pool cookies,
-        // as they may also set cookies in the session
         await this._executeHooks(this.preNavigationHooks, crawlingContext);
         tryCancel();
-
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
-
-        const cookieString = this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
 
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         const httpResponse = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl, cookieString }),
+            async () => this._requestFunction({ request, session, proxyUrl }),
             this.navigationTimeoutMillis,
             `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -478,19 +443,29 @@ export class HttpCrawler<
         if (crawlingContext.request.skipNavigation) {
             return {
                 get contentType(): InternalHttpCrawlingContext['contentType'] {
-                    throw new Error('The `contentType` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `contentType` property is not available - `skipNavigation` was used',
+                    );
                 },
                 get body(): InternalHttpCrawlingContext['body'] {
-                    throw new Error('The `body` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `body` property is not available - `skipNavigation` was used',
+                    );
                 },
                 get json(): InternalHttpCrawlingContext['json'] {
-                    throw new Error('The `json` property is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `json` property is not available - `skipNavigation` was used',
+                    );
                 },
                 get waitForSelector(): InternalHttpCrawlingContext['waitForSelector'] {
-                    throw new Error('The `waitForSelector` method is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `waitForSelector` method is not available - `skipNavigation` was used',
+                    );
                 },
                 get parseWithCheerio(): InternalHttpCrawlingContext['parseWithCheerio'] {
-                    throw new Error('The `parseWithCheerio` method is not available - `skipNavigation` was used');
+                    throw new NavigationSkippedError(
+                        'The `parseWithCheerio` method is not available - `skipNavigation` was used',
+                    );
                 },
             };
         }
@@ -520,12 +495,10 @@ export class HttpCrawler<
             return $;
         };
 
-        if (this.useSessionPool) {
-            this._throwOnBlockedRequest(crawlingContext.session!, response.status!);
-        }
+        this._throwOnBlockedRequest(response.status);
 
         if (this.persistCookiesPerSession) {
-            crawlingContext.session!.setCookiesFromResponse(response);
+            crawlingContext.session.setCookiesFromResponse(response);
         }
 
         return {
@@ -560,14 +533,7 @@ export class HttpCrawler<
             }
         }
 
-        const blockedStatusCodes =
-            // eslint-disable-next-line dot-notation
-            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
-                ? // eslint-disable-next-line dot-notation
-                  this.sessionPool!['blockedStatusCodes']
-                : BLOCKED_STATUS_CODES;
-
-        if (blockedStatusCodes.includes(crawlingContext.response.status!)) {
+        if (this.blockedStatusCodes.has(crawlingContext.response.status!)) {
             return `Blocked by status code ${crawlingContext.response.status}`;
         }
 
@@ -575,36 +541,15 @@ export class HttpCrawler<
     }
 
     /**
-     * Returns the `Cookie` header value based on the current context and
-     * any changes that occurred in the navigation hooks.
-     */
-    protected _applyCookies(
-        { session, request }: CrawlingContext,
-        preHookCookies: string,
-        postHookCookies: string,
-    ): string {
-        const sessionCookie = session?.getCookieString(request.url) ?? '';
-
-        const sourceCookies = [sessionCookie, preHookCookies, postHookCookies];
-
-        return mergeCookies(request.url, sourceCookies);
-    }
-
-    /**
      * Function to make the HTTP request. It performs optimizations
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
-    protected async _requestFunction({
-        request,
-        session,
-        proxyUrl,
-        cookieString,
-    }: RequestFunctionOptions): Promise<Response> {
+    protected async _requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
         const opts = this._getRequestOptions(request, session, proxyUrl);
 
         try {
-            return await this._requestAsBrowser(opts, session, cookieString);
+            return await this._requestAsBrowser(opts, session);
         } catch (e) {
             if (e instanceof Error && e.constructor.name === 'TimeoutError') {
                 this._handleRequestTimeout(session);
@@ -632,10 +577,7 @@ export class HttpCrawler<
             this.stats.registerStatusCode(status);
         }
 
-        const excludeError = this.ignoreHttpErrorStatusCodes.has(status);
-        const includeError = this.additionalHttpErrorStatusCodes.has(status);
-
-        if ((status >= 500 && !excludeError) || includeError) {
+        if (this.isErrorStatusCode(status)) {
             const body = await reencodedResponse.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
 
             // Errors are often sent as JSON, so attempt to parse them,
@@ -647,7 +589,7 @@ export class HttpCrawler<
                 throw new Error(`${status} - ${message}`);
             }
 
-            if (includeError) {
+            if (this.additionalHttpErrorStatusCodes.has(status)) {
                 throw new Error(`${status} - Error status code was set by user.`);
             }
 
@@ -668,13 +610,13 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: CrawleeRequest, session?: Session, proxyUrl?: string) {
+    protected _getRequestOptions(request: CrawleeRequest, session: Session, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
             proxyUrl,
             timeout: this.navigationTimeoutMillis,
-            cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
+            cookieJar: this.persistCookiesPerSession ? session.cookieJar : undefined,
             sessionToken: session,
             headers: request.headers,
             https: {
@@ -683,11 +625,13 @@ export class HttpCrawler<
             body: undefined as string | undefined,
         };
 
-        // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
-        Reflect.deleteProperty(requestOptions.headers!, 'cookie');
+        if (requestOptions.headers?.cookie || requestOptions.headers?.Cookie) {
+            requestOptions.headers!.Cookie = this._getCookieHeaderFromRequest(request);
+            delete requestOptions.headers!.cookie;
+        }
 
         // Disable SSL verification for MITM proxies
-        if (session?.proxyInfo?.ignoreTlsErrors) {
+        if (session.proxyInfo?.ignoreTlsErrors) {
             requestOptions.https = {
                 ...requestOptions.https,
                 rejectUnauthorized: false,
@@ -766,8 +710,8 @@ export class HttpCrawler<
     /**
      * Handles timeout request
      */
-    protected _handleRequestTimeout(session?: Session) {
-        session?.markBad();
+    protected _handleRequestTimeout(session: Session) {
+        session.markBad();
         throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
@@ -775,10 +719,7 @@ export class HttpCrawler<
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        // eslint-disable-next-line dot-notation -- accessing private property
-        const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
-        // if we retry the request, can the Content-Type change?
-        const isTransientContentType = status >= 500 || blockedStatusCodes.includes(status);
+        const isTransientContentType = status >= 500 || this.blockedStatusCodes.has(status);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;
@@ -792,18 +733,12 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = async (options: Dictionary<any>, session?: Session, cookieString?: string) => {
+    private _requestAsBrowser = async (options: Dictionary<any>, session: Session) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
             cookieJar: options.cookieJar,
             responseType: 'text',
         });
-
-        if (cookieString) {
-            opts.headers?.delete('Cookie');
-            opts.headers?.delete('cookie');
-            opts.headers?.set('Cookie', cookieString);
-        }
 
         const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
@@ -825,9 +760,8 @@ export class HttpCrawler<
 
 interface RequestFunctionOptions {
     request: CrawleeRequest;
-    session?: Session;
+    session: Session;
     proxyUrl?: string;
-    cookieString?: string;
 }
 
 /**

@@ -6,8 +6,8 @@ import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra/esm';
-import type { RequestQueueFileSystemEntry } from 'packages/memory-storage/src/fs/request-queue/fs.js';
-import type { RequestQueueMemoryEntry } from 'packages/memory-storage/src/fs/request-queue/memory.js';
+import type { RequestQueueFileSystemEntry } from '../fs/request-queue/fs.js';
+import type { RequestQueueMemoryEntry } from '../fs/request-queue/memory.js';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
 import { findRequestQueueByPossibleId } from '../cache-helpers.js';
@@ -625,15 +625,18 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             forefrontRequestIds: this.forefrontRequestIds,
         };
 
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            data,
-            entityType: 'requestQueues',
-            entityDirectory: this.requestQueueDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                data,
+                entityType: 'requestQueues',
+                entityDirectory: this.requestQueueDirectory,
+                id: this.name ?? this.id,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
     }
 
     private _jsonToRequest<T>(requestJson?: string): T | undefined {

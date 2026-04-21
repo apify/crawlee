@@ -1,14 +1,14 @@
 import type { Server } from 'node:http';
 
 import { BROWSER_POOL_EVENTS, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
-import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator } from '@crawlee/core';
+import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator, SessionPool } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
 import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { runExampleComServer } from '../../shared/_helper.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import { ENV_VARS } from '@apify/consts';
 import log from '@apify/log';
@@ -114,7 +114,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 1,
             });
@@ -163,7 +163,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 1,
             });
@@ -194,7 +194,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [hook],
@@ -227,7 +227,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 postNavigationHooks: [hook],
@@ -350,7 +350,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [
@@ -457,7 +457,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: false,
+
                 requestHandler: async () => {},
             });
 
@@ -482,21 +482,21 @@ describe('BrowserCrawler', () => {
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
-                useSessionPool: true,
+
                 persistCookiesPerSession: false,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     sessionOptions: {
                         maxUsageCount: 1,
                     },
                     persistStateKeyValueStoreId: 'abc',
-                },
+                }),
                 requestHandler: async () => {},
             });
 
             // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPoolOptions.sessionOptions.maxUsageCount).toBe(1);
+            expect(crawler.sessionPool.sessionOptions.maxUsageCount).toBe(1);
             // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
+            expect(crawler.sessionPool.persistStateKeyValueStoreId).toBe('abc');
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -524,10 +524,9 @@ describe('BrowserCrawler', () => {
                 browserPlugins: [puppeteerPlugin],
             },
             requestList,
-            useSessionPool: true,
             persistCookiesPerSession: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session!.getCookieString(request.url));
+                loadedCookies.push(session.getCookieString(request.url));
                 return Promise.resolve();
             },
             preNavigationHooks: [
@@ -582,7 +581,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 persistCookiesPerSession: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
@@ -717,7 +716,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 persistCookiesPerSession: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
@@ -777,7 +776,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                useSessionPool: true,
+
                 requestHandler: async () => {
                     await retirementPromise;
                 },
@@ -804,10 +803,9 @@ describe('BrowserCrawler', () => {
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
-                useSessionPool: true,
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 1,
-                },
+                }),
                 requestHandler: async ({ session }) => {
                     sessionUsageHistory.push(session!.usageCount);
                 },
@@ -822,7 +820,7 @@ describe('BrowserCrawler', () => {
                 { url: `${serverAddress}/?q=6` },
             ]);
 
-            expect(sessionUsageHistory).toEqual([0, 1, 2, 3, 4, 5]);
+            expect(sessionUsageHistory).toEqual([0, 0, 0, 0, 0, 0]);
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -848,7 +846,7 @@ describe('BrowserCrawler', () => {
                     },
                 },
                 requestList,
-                useSessionPool: false,
+
                 requestHandler: async ({ browserController }) => {
                     expect(browserController.launchContext.fingerprint).toBeDefined();
                 },
@@ -862,88 +860,6 @@ describe('BrowserCrawler', () => {
     });
 
     describe('proxy', () => {
-        // TODO move to actor sdk tests before splitting the repos
-        // test('browser should launch with correct proxyUrl', async () => {
-        //     process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        //     const status = { connected: true };
-        //     const fakeCall = async () => {
-        //         return { body: status } as never;
-        //     };
-        //
-        //     // @ts-expect-error FIXME
-        //     const stub = gotScrapingSpy.mockImplementation(fakeCall);
-        //     const proxyConfiguration = await Actor.createProxyConfiguration();
-        //     const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href.slice(0, -1);
-        //     let browserProxy;
-        //
-        //     const browserCrawler = new BrowserCrawlerTest({
-        //         browserPoolOptions: {
-        //             browserPlugins: [puppeteerPlugin],
-        //             postLaunchHooks: [(pageId, browserController) => {
-        //                 browserProxy = browserController.launchContext.proxyUrl;
-        //             }],
-        //         },
-        //         useSessionPool: false,
-        //         persistCookiesPerSession: false,
-        //         navigationTimeoutSecs: 1,
-        //         requestList,
-        //         maxRequestsPerCrawl: 1,
-        //         maxRequestRetries: 0,
-        //         requestHandler: async () => {},
-        //         proxyConfiguration,
-        //     });
-        //     await browserCrawler.run();
-        //     delete process.env[ENV_VARS.PROXY_PASSWORD];
-        //
-        //     expect(browserProxy).toEqual(generatedProxyUrl);
-        //
-        //     stub.mockClear();
-        // });
-
-        // TODO move to actor sdk tests before splitting the repos
-        // test('requestHandler should expose the proxyInfo object with sessions correctly', async () => {
-        //     process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        //     const status = { connected: true };
-        //     const fakeCall = async () => {
-        //         return { body: status } as never;
-        //     };
-        //
-        //     // @ts-expect-error FIXME
-        //     const stub = gotScrapingSpy.mockImplementation(fakeCall);
-        //
-        //     const proxyConfiguration = await Actor.createProxyConfiguration();
-        //     const proxies: ProxyInfo[] = [];
-        //     const sessions: Session[] = [];
-        //     const requestHandler = async ({ session, proxyInfo }: BrowserCrawlingContext) => {
-        //         proxies.push(proxyInfo);
-        //         sessions.push(session);
-        //     };
-        //
-        //     const browserCrawler = new BrowserCrawlerTest({
-        //         browserPoolOptions: {
-        //             browserPlugins: [puppeteerPlugin],
-        //         },
-        //         requestList,
-        //         requestHandler,
-        //
-        //         proxyConfiguration,
-        //         useSessionPool: true,
-        //         sessionPoolOptions: {
-        //             maxPoolSize: 1,
-        //         },
-        //     });
-        //
-        //     await browserCrawler.run();
-        //
-        //     expect(proxies[0].sessionId).toEqual(sessions[0].id);
-        //     expect(proxies[1].sessionId).toEqual(sessions[1].id);
-        //     expect(proxies[2].sessionId).toEqual(sessions[2].id);
-        //     expect(proxies[3].sessionId).toEqual(sessions[3].id);
-        //
-        //     delete process.env[ENV_VARS.PROXY_PASSWORD];
-        //     stub.mockClear();
-        // });
-
         // This test manipulates environment variables, so it must NOT be run concurrently
         test('browser should launch with rotated custom proxy', async () => {
             const localStorageEmulator = new MemoryStorageEmulator();
@@ -1038,7 +954,7 @@ describe('BrowserCrawler', () => {
                     requestList,
                     maxRequestRetries: 0,
                     maxConcurrency: 1,
-                    useSessionPool: true,
+
                     proxyConfiguration,
                     requestHandler,
                 });
@@ -1218,7 +1134,7 @@ describe('BrowserCrawler', () => {
                     requestList,
                     maxRequestRetries: 0,
                     maxConcurrency: 1,
-                    useSessionPool: true,
+
                     requestHandler,
                     failedRequestHandler,
                 });

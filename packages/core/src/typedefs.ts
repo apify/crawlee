@@ -14,4 +14,4 @@ export function keys<T extends {}>(obj: T) {
     return Object.keys(obj) as (keyof T)[];
 }
 
-export { AllowedHttpMethods } from '@crawlee/types';
+export type { AllowedHttpMethods } from '@crawlee/types';

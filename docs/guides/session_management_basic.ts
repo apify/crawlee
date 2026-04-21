@@ -1,4 +1,4 @@
-import { BasicCrawler, ProxyConfiguration } from 'crawlee';
+import { BasicCrawler, ProxyConfiguration, SessionPool } from 'crawlee';
 import { Impit } from 'impit';
 import { Cookie } from 'tough-cookie';
 
@@ -7,10 +7,8 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new BasicCrawler({
-    // Activates the Session pool (default is true).
-    useSessionPool: true,
     // Overrides default Session pool configuration.
-    sessionPoolOptions: { maxPoolSize: 100 },
+    sessionPool: new SessionPool({ maxPoolSize: 100 }),
     async requestHandler({ request, session }) {
         const { url } = request;
         const client = new Impit({
@@ -36,9 +34,6 @@ const crawler = new BasicCrawler({
             throw e;
         }
 
-        // Automatically retires the session based on response HTTP status code.
-        session?.retireOnBlockedStatusCodes(response.status);
-
         if ((await response.text()).includes('You are blocked!')) {
             // You are sure it is blocked.
             // This will throw away the session.
@@ -55,11 +50,11 @@ const crawler = new BasicCrawler({
                 ?.split(';')
                 .map((x) => Cookie.parse(x));
 
-            newCookies?.forEach((cookie) => {
+            for (const cookie of newCookies ?? []) {
                 if (cookie) {
-                    session?.cookieJar?.setCookie(cookie, url);
+                    await session?.cookieJar?.setCookie(cookie, url);
                 }
-            });
+            }
         }
     },
 });

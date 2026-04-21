@@ -422,9 +422,7 @@ export class KeyValueStoreClient extends BaseClient {
                 s.instance(ArrayBuffer),
                 s.typedArray(),
                 // disabling validation will make shapeshift only check the object given is an actual object, not null, nor array
-                s
-                    .object({})
-                    .setValidationEnabled(false),
+                s.object({}).setValidationEnabled(false),
             ]),
             contentType: s.string().lengthGreaterThan(0).optional(),
         }).parse(record);
@@ -481,6 +479,7 @@ export class KeyValueStoreClient extends BaseClient {
             persistStorage: this.client.persistStorage,
             storeDirectory: existingStoreById.keyValueStoreDirectory,
             writeMetadata: existingStoreById.client.writeMetadata,
+            logger: this.client.logger,
         });
 
         await entry.update(_record);
@@ -528,14 +527,17 @@ export class KeyValueStoreClient extends BaseClient {
         }
 
         const data = this.toKeyValueStoreInfo();
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            data,
-            entityType: 'keyValueStores',
-            entityDirectory: this.keyValueStoreDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
+        scheduleBackgroundTask(
+            {
+                action: 'update-metadata',
+                data,
+                entityType: 'keyValueStores',
+                entityDirectory: this.keyValueStoreDirectory,
+                id: this.name ?? this.id,
+                writeMetadata: this.client.writeMetadata,
+                persistStorage: this.client.persistStorage,
+            },
+            this.client.logger,
+        );
     }
 }
