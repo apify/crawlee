@@ -488,25 +488,19 @@ export class SessionPool extends EventEmitter {
      * Returns `undefined` when no session should be reused and a new one should be created instead.
      */
     protected _pickSession(): Session | undefined {
-        if (this.sessionReuseStrategy === 'random') {
-            if (this._hasSpaceForSession()) return undefined;
-            const usable = this.sessions.filter((s) => s.isUsable());
-            if (usable.length === 0) return undefined;
-            return usable[Math.floor(Math.random() * usable.length)];
-        }
+        if (this.sessionReuseStrategy !== 'use-until-failure' && this._hasSpaceForSession()) return undefined;
 
         const usable = this.sessions.filter((s) => s.isUsable());
         if (usable.length === 0) return undefined;
 
-        if (this.sessionReuseStrategy === 'use-until-failure') {
-            return usable[0];
-        }
+        if (this.sessionReuseStrategy === 'use-until-failure') return usable[0];
 
         if (this.sessionReuseStrategy === 'round-robin') {
-            if (this._hasSpaceForSession()) return undefined;
             this.roundRobinIndex = this.roundRobinIndex % usable.length;
             return usable[this.roundRobinIndex++];
         }
+
+        return usable[Math.floor(Math.random() * usable.length)];
     }
 
     /**
