@@ -86,7 +86,7 @@ The `sessionReuseStrategy` option controls how sessions are picked from the pool
 
 **`random`** (default) — the pool fills up to `maxPoolSize` by creating a new session for every request, then picks randomly from the available sessions. Best for maximising fingerprint and IP diversity.
 
-**`round-robin`** — the pool reuses existing sessions immediately, cycling through them in order. A new session is only created when all existing ones have been retired. Best when you want even load distribution across sessions, for example when combined with `maxUsageCount` to ensure all sessions expire at roughly the same time.
+**`round-robin`** — like `random`, the pool fills up to `maxPoolSize` first, then cycles through the sessions in order instead of picking randomly. Best when you want even load distribution across sessions, for example when combined with `maxUsageCount` to ensure all sessions expire at roughly the same time.
 
 **`use-until-failure`** — the same session is returned on every call until it is retired, then the next available one is used. Best for proxy session stickiness, where you want to keep the same IP for as long as possible before rotating.
 

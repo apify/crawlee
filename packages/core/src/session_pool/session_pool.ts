@@ -503,6 +503,7 @@ export class SessionPool extends EventEmitter {
         }
 
         if (this.sessionReuseStrategy === 'round-robin') {
+            if (this._hasSpaceForSession()) return undefined;
             this.roundRobinIndex = this.roundRobinIndex % usable.length;
             return usable[this.roundRobinIndex++];
         }
