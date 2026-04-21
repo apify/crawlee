@@ -14,6 +14,9 @@ import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
 
+const SESSION_REUSE_STRATEGIES = ['random', 'round-robin', 'use-until-failure'] as const;
+export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
+
 /**
  * Factory user-function which creates customized {@apilink Session} instances.
  */
@@ -57,6 +60,15 @@ export interface SessionPoolOptions {
      * Function receives `SessionPool` instance as a parameter
      */
     createSessionFunction?: CreateSession;
+
+    /**
+     * Strategy for picking sessions from the pool.
+     * - `'random'` (default): fills the pool up to `maxPoolSize`, then picks a random usable session
+     * - `'round-robin'`: reuses existing sessions cycling through them in order, only creates new ones when all are retired
+     * - `'use-until-failure'`: always reuses the same session until it is retired, then moves to the next one
+     * @default 'random'
+     */
+    sessionReuseStrategy?: SessionReuseStrategy;
 
     /** @internal */
     log?: CrawleeLogger;
@@ -136,9 +148,11 @@ export class SessionPool extends EventEmitter {
     protected _listener?: () => Promise<void>;
     protected events: EventManager;
     protected persistenceOptions: PersistenceOptions;
+    protected sessionReuseStrategy: SessionReuseStrategy;
 
     private initPromise?: Promise<void>;
     private queue = new AsyncQueue();
+    private roundRobinIndex = 0;
 
     constructor(options: SessionPoolOptions = {}) {
         super();
@@ -154,6 +168,7 @@ export class SessionPool extends EventEmitter {
                 sessionOptions: ow.optional.object,
                 log: ow.optional.object,
                 persistenceOptions: ow.optional.object,
+                sessionReuseStrategy: ow.optional.string.oneOf([...SESSION_REUSE_STRATEGIES]),
             }),
         );
 
@@ -168,9 +183,11 @@ export class SessionPool extends EventEmitter {
             persistenceOptions = {
                 enable: true,
             },
+            sessionReuseStrategy = 'random',
         } = options;
 
         this.id = id != null ? String(id) : String(SessionPool.nextId++);
+        this.sessionReuseStrategy = sessionReuseStrategy;
         this.events = serviceLocator.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
@@ -314,13 +331,11 @@ export class SessionPool extends EventEmitter {
                 return undefined;
             }
 
+            const pickedSession = this._pickSession();
+            if (pickedSession) return pickedSession;
+
             if (this._hasSpaceForSession()) {
                 return await this._createSession();
-            }
-
-            const pickedSession = this._pickSession();
-            if (pickedSession.isUsable()) {
-                return pickedSession;
             }
 
             this._removeRetiredSessions();
@@ -469,11 +484,28 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Picks random session from the `SessionPool`.
-     * @returns Picked `Session`.
+     * Picks a session from the `SessionPool` according to the configured `sessionReuseStrategy`.
+     * Returns `undefined` when no session should be reused and a new one should be created instead.
      */
-    protected _pickSession(): Session {
-        return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
+    protected _pickSession(): Session | undefined {
+        if (this.sessionReuseStrategy === 'random') {
+            if (this._hasSpaceForSession()) return undefined;
+            const usable = this.sessions.filter((s) => s.isUsable());
+            if (usable.length === 0) return undefined;
+            return usable[Math.floor(Math.random() * usable.length)];
+        }
+
+        const usable = this.sessions.filter((s) => s.isUsable());
+        if (usable.length === 0) return undefined;
+
+        if (this.sessionReuseStrategy === 'use-until-failure') {
+            return usable[0];
+        }
+
+        if (this.sessionReuseStrategy === 'round-robin') {
+            this.roundRobinIndex = this.roundRobinIndex % usable.length;
+            return usable[this.roundRobinIndex++];
+        }
     }
 
     /**
