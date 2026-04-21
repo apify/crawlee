@@ -3,12 +3,10 @@ import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
 import {
     browserCrawlerEnqueueLinks,
-    Configuration,
     EnqueueStrategy,
     launchPuppeteer,
     Request,
     RequestQueue,
-    serviceLocator,
 } from '@crawlee/puppeteer';
 import { type CheerioRoot } from '@crawlee/utils';
 import { load } from 'cheerio';
@@ -16,8 +14,6 @@ import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playw
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
 
 import log from '@apify/log';
-
-const apifyClient = serviceLocator.getStorageClient();
 
 const HTML = `
 <html>
@@ -48,8 +44,7 @@ const HTML = `
 
 async function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const rqClient = await apifyClient.createRequestQueueClient({ id: 'xxx' });
-    const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient }, serviceLocator.getConfiguration());
+    const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
@@ -974,8 +969,7 @@ describe('enqueueLinks()', () => {
 
         test('accepts forefront option', async () => {
             const enqueued: { request: Source; options?: RequestQueueOperationOptions }[] = [];
-            const rqClient = await apifyClient.createRequestQueueClient({ id: 'xxx' });
-            const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient }, serviceLocator.getConfiguration());
+            const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
             requestQueue.addRequests = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
@@ -1004,8 +998,7 @@ describe('enqueueLinks()', () => {
 
         test('accepts waitForAllRequestsToBeAdded option', async () => {
             const enqueued: { request: string | Source; options?: AddRequestsBatchedOptions }[] = [];
-            const rqClient = await apifyClient.createRequestQueueClient({ id: 'xxx' });
-            const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient }, serviceLocator.getConfiguration());
+            const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
             requestQueue.addRequestsBatched = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
@@ -1169,8 +1162,7 @@ describe('enqueueLinks()', () => {
 
             test('transformRequestFunction can return a new plain object instead of modifying in place', async () => {
                 const enqueued: Source[] = [];
-                const rqClient = await apifyClient.createRequestQueueClient({ id: 'xxx' });
-                const requestQueue = new RequestQueue({ id: 'xxx', client: rqClient });
+                const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
                 // Custom mock that checks for Request instances - we override addRequestsBatched
                 // to verify that request options returned by transformRequestFunction are converted to Request instances
