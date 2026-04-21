@@ -6,11 +6,11 @@ on:
         # Runs at 2 am every day
         -   cron: '0 2 * * *'
 
-env:
-    YARN_IGNORE_NODE: 1
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-    # NPM install is done in a separate job and cached to speed up the following jobs.
     build_and_test:
         name: Build & Test
         runs-on: ubuntu-22.04
@@ -21,11 +21,6 @@ jobs:
                 storage: [ LOCAL, MEMORY, PLATFORM ]
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.13.0
-                with:
-                    access_token: ${{ github.token }}
-
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
@@ -34,16 +29,6 @@ jobs:
                 with:
                     node-version: 24
                     package-manager-cache: false
-
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
 
             -   name: Turbo cache
                 id: turbo-cache
@@ -54,25 +39,29 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Login to Apify
-                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
+
+            -   name: Setup Apify CLI
+                uses: apify/setup-apify-cli-action@main
+                with:
+                    version: 'beta'
+                    token: ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
             -   name: Add Apify secrets for E2E tests
-                run: npx -y apify-cli@beta secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
+                run: apify secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Install Playwright Dependencies
                 if: (matrix.storage != 'PLATFORM')
-                run: yarn playwright install --with-deps
+                run: pnpm exec playwright install --with-deps
 
             -   name: Build
-                run: yarn ci:build
+                run: pnpm ci:build
 
             -   name: Test with storage ${{ matrix.storage }}
-                run: yarn test:e2e
+                run: pnpm test:e2e
                 env:
                     STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
                     APIFY_HTTPBIN_TOKEN: ${{ secrets.APIFY_HTTPBIN_TOKEN }}
                     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+                    GITHUB_TOKEN: ${{ github.token }}

@@ -24,15 +24,15 @@
         "url": "https://github.com/apify/crawlee/issues"
     },
     "scripts": {
-        "build": "yarn clean && yarn compile && yarn copy",
+        "build": "pnpm clean && pnpm compile && pnpm copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json",
         "copy": "tsx ../../scripts/copy.ts"
     },
     "dependencies": {
         "@apify/timeout": "^0.3.2",
-        "@crawlee/core": "4.0.0",
-        "@crawlee/types": "4.0.0",
+        "@crawlee/core": "workspace:*",
+        "@crawlee/types": "workspace:*",
         "fingerprint-generator": "^2.1.68",
         "fingerprint-injector": "^2.1.68",
         "lodash.merge": "^4.6.2",

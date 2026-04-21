@@ -1,17 +1,18 @@
 {
+    "name": "crawlee-website",
+    "private": true,
     "scripts": {
         "examples": "docusaurus-examples",
-        "postinstall": "npx patch-package",
         "start": "rimraf .docusaurus && docusaurus start",
         "start:fast": "rimraf .docusaurus && CRAWLEE_DOCS_FAST=1 docusaurus start",
-        "build": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs build",
+        "build": "rimraf .docusaurus && NODE_OPTIONS=--max-old-space-size=16000 docusaurus build",
         "publish-gh-pages": "docusaurus-publish",
         "write-translations": "docusaurus write-translations",
         "version": "docusaurus version",
         "rename-version": "docusaurus rename-version",
         "prettify": "prettier --write --config ./tools/docs-prettier.config.js ../docs/guides/*.md",
         "swizzle": "docusaurus swizzle",
-        "deploy": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs deploy",
+        "deploy": "rimraf .docusaurus && NODE_OPTIONS=--max-old-space-size=16000 docusaurus deploy",
         "docusaurus": "docusaurus",
         "postbuild": "node ./tools/joinLlmsFiles.mjs"
     },
@@ -27,7 +28,6 @@
         "eslint-plugin-react": "^7.32.2",
         "eslint-plugin-react-hooks": "^7.0.0",
         "fs-extra": "^11.1.0",
-        "patch-package": "^8.0.0",
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^6.0.0",
@@ -44,7 +44,7 @@
         "@docusaurus/plugin-content-docs": "3.9.2",
         "@docusaurus/preset-classic": "3.9.2",
         "@docusaurus/theme-common": "3.9.2",
-        "@docusaurus/theme-mermaid": "^3.9.2",
+        "@docusaurus/theme-mermaid": "3.9.2",
         "@giscus/react": "^3.0.0",
         "@mdx-js/react": "^3.0.1",
         "@signalwire/docusaurus-plugin-llms-txt": "^1.2.1",
@@ -64,6 +64,11 @@
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
+    "packageManager": "pnpm@10.24.0",
+    "volta": {
+        "node": "24.13.0",
+        "pnpm": "10.24.0"
+    },
     "browserslist": {
         "production": [
             ">0.5%",
@@ -75,6 +80,5 @@
             "last 3 firefox version",
             "last 5 safari version"
         ]
-    },
-    "packageManager": "yarn@4.10.3"
+    }
 }

@@ -8,7 +8,8 @@
 		"allowJs": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": false,
-		"emitDecoratorMetadata": false
+		"emitDecoratorMetadata": false,
+		"incremental": false
 	},
 	"exclude": ["**/node_modules", "**/dist"]
 }
