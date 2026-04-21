@@ -37,3 +37,6 @@ linkWorkspacePackages: true
 preferWorkspacePackages: true
 publicHoistPattern:
     - "*"
+
+patchedDependencies:
+    "@docusaurus/core@3.9.2": patches/@docusaurus__core@3.9.2.patch
