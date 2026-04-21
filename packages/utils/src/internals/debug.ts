@@ -56,6 +56,17 @@ export function createRequestDebugInfo(
     };
 }
 
+/**
+ * Returns a human-readable string representation of an unknown value.
+ * For objects, returns the constructor name; for primitives, returns `String(value)`.
+ */
+export function describe(value: unknown): string {
+    if (typeof value === 'object' && value !== null) {
+        return value.constructor.name;
+    }
+    return String(value);
+}
+
 export function getObjectType(value: unknown): string {
     const simple = typeof value;
 
