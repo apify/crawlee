@@ -64,7 +64,7 @@ export interface SessionPoolOptions {
     /**
      * Strategy for picking sessions from the pool.
      * - `'random'` (default): fills the pool up to `maxPoolSize`, then picks a random usable session
-     * - `'round-robin'`: reuses existing sessions cycling through them in order, only creates new ones when all are retired
+     * - `'round-robin'`: fills the pool up to `maxPoolSize`, then reuses sessions cycling through them in order
      * - `'use-until-failure'`: always reuses the same session until it is retired, then moves to the next one
      * @default 'random'
      */
@@ -490,17 +490,33 @@ export class SessionPool extends EventEmitter {
     protected _pickSession(): Session | undefined {
         if (this.sessionReuseStrategy !== 'use-until-failure' && this._hasSpaceForSession()) return undefined;
 
-        const usable = this.sessions.filter((s) => s.isUsable());
-        if (usable.length === 0) return undefined;
-
-        if (this.sessionReuseStrategy === 'use-until-failure') return usable[0];
-
-        if (this.sessionReuseStrategy === 'round-robin') {
-            this.roundRobinIndex = this.roundRobinIndex % usable.length;
-            return usable[this.roundRobinIndex++];
+        if (this.sessionReuseStrategy === 'use-until-failure') {
+            for (const session of this.sessions) {
+                if (session.isUsable()) return session;
+            }
+            return undefined;
         }
 
-        return usable[Math.floor(Math.random() * usable.length)];
+        // For random and round-robin: if any session in a full pool is retired, trigger cleanup
+        // by returning undefined so getSession calls _removeRetiredSessions + _createSession.
+        for (const session of this.sessions) {
+            if (!session.isUsable()) return undefined;
+        }
+
+        if (this.sessionReuseStrategy === 'round-robin') {
+            const { length } = this.sessions;
+            const index = this.roundRobinIndex % length;
+            this.roundRobinIndex = index + 1;
+            return this.sessions[index];
+        }
+
+        // random: reservoir sampling over sessions (all usable at this point)
+        let selected: Session | undefined;
+        let count = 0;
+        for (const session of this.sessions) {
+            if (++count === 1 || Math.random() < 1 / count) selected = session;
+        }
+        return selected;
     }
 
     /**

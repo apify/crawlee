@@ -467,6 +467,29 @@ describe('SessionPool - testing session pool', () => {
             expect(s2.id).not.toBe(s1.id);
         });
 
+        test.each(['random', 'round-robin'] as const)(
+            '%s should evict a retired session from a full pool and replenish',
+            async (strategy) => {
+                sessionPool = new SessionPool({ sessionReuseStrategy: strategy, maxPoolSize: 3 });
+
+                const s1 = await sessionPool.getSession();
+                await sessionPool.getSession();
+                await sessionPool.getSession();
+
+                s1.retire();
+
+                // @ts-expect-error private symbol
+                expect(sessionPool.sessions).toHaveLength(3);
+
+                await sessionPool.getSession();
+
+                // @ts-expect-error private symbol
+                expect(sessionPool.sessions).toHaveLength(3);
+                // @ts-expect-error private symbol
+                expect(sessionPool.sessions.find((s) => s.id === s1.id)).toBeUndefined();
+            },
+        );
+
         test('use-until-failure should keep reusing the same session', async () => {
             sessionPool = new SessionPool({ sessionReuseStrategy: 'use-until-failure' });
 
