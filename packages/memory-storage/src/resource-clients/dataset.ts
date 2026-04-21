@@ -88,7 +88,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         }
 
         // Check that name is not in use already
-        const existingStoreByName = this.client.datasetClientsHandled.find(
+        const existingStoreByName = this.client.datasetClientCache.find(
             (store) => store.name?.toLowerCase() === parsed.name!.toLowerCase(),
         );
 
@@ -114,10 +114,10 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     }
 
     async delete(): Promise<void> {
-        const storeIndex = this.client.datasetClientsHandled.findIndex((store) => store.id === this.id);
+        const storeIndex = this.client.datasetClientCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
-            const [oldClient] = this.client.datasetClientsHandled.splice(storeIndex, 1);
+            const [oldClient] = this.client.datasetClientCache.splice(storeIndex, 1);
             oldClient.itemCount = 0;
             oldClient.datasetEntries.clear();
 

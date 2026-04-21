@@ -53,9 +53,9 @@ export class MemoryStorage implements storage.StorageClient {
     readonly persistStorage: boolean;
     readonly logger?: CrawleeLogger;
 
-    readonly keyValueStoresHandled: KeyValueStoreClient[] = [];
-    readonly datasetClientsHandled: DatasetClient[] = [];
-    readonly requestQueuesHandled: RequestQueueClient[] = [];
+    readonly keyValueStoreCache: KeyValueStoreClient[] = [];
+    readonly datasetClientCache: DatasetClient[] = [];
+    readonly requestQueueCache: RequestQueueClient[] = [];
 
     constructor(options: MemoryStorageOptions = {}) {
         s.object({
@@ -94,6 +94,7 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
+        // In MemoryStorage, both id and name resolve to the same directory name.
         const name = options.name ?? options.id;
 
         if (name) {
@@ -104,7 +105,7 @@ export class MemoryStorage implements storage.StorageClient {
         }
 
         const newStore = new DatasetClient({ name, baseStorageDirectory: this.datasetsDirectory, client: this });
-        this.datasetClientsHandled.push(newStore);
+        this.datasetClientCache.push(newStore);
 
         // Schedule the worker to write to the disk
         const datasetInfo = newStore.toDatasetInfo();
@@ -128,6 +129,7 @@ export class MemoryStorage implements storage.StorageClient {
     async createKeyValueStoreClient(
         options: storage.CreateKeyValueStoreClientOptions = {},
     ): Promise<storage.KeyValueStoreClient> {
+        // In MemoryStorage, both id and name resolve to the same directory name.
         const name = options.name ?? options.id;
 
         if (name) {
@@ -142,7 +144,7 @@ export class MemoryStorage implements storage.StorageClient {
             baseStorageDirectory: this.keyValueStoresDirectory,
             client: this,
         });
-        this.keyValueStoresHandled.push(newStore);
+        this.keyValueStoreCache.push(newStore);
 
         // Schedule the worker to write to the disk
         const kvStoreInfo = newStore.toKeyValueStoreInfo();
@@ -166,6 +168,7 @@ export class MemoryStorage implements storage.StorageClient {
     async createRequestQueueClient(
         options: storage.CreateRequestQueueClientOptions = {},
     ): Promise<storage.RequestQueueClient> {
+        // In MemoryStorage, both id and name resolve to the same directory name.
         const name = options.name ?? options.id;
 
         if (name) {
@@ -180,7 +183,7 @@ export class MemoryStorage implements storage.StorageClient {
             baseStorageDirectory: this.requestQueuesDirectory,
             client: this,
         });
-        this.requestQueuesHandled.push(newStore);
+        this.requestQueueCache.push(newStore);
 
         // Schedule the worker to write to the disk
         const queueInfo = newStore.toRequestQueueInfo();
@@ -207,15 +210,15 @@ export class MemoryStorage implements storage.StorageClient {
 
         switch (type) {
             case 'Dataset':
-                clients = this.datasetClientsHandled;
+                clients = this.datasetClientCache;
                 baseDir = this.datasetsDirectory;
                 break;
             case 'KeyValueStore':
-                clients = this.keyValueStoresHandled;
+                clients = this.keyValueStoreCache;
                 baseDir = this.keyValueStoresDirectory;
                 break;
             case 'RequestQueue':
-                clients = this.requestQueuesHandled;
+                clients = this.requestQueueCache;
                 baseDir = this.requestQueuesDirectory;
                 break;
             default:
