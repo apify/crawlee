@@ -185,6 +185,25 @@ describe('playwrightUtils', () => {
         }
     });
 
+    test('parseWithCheerio() iframe expansion works with Trusted Types CSP', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe-csp', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            const headings = $('h1')
+                .map((_, el) => $(el).text())
+                .get();
+
+            expect(headings).toEqual(['Outside iframe', 'In iframe']);
+        } finally {
+            await browser.close();
+        }
+    });
+
     describe('blockRequests()', () => {
         let browser: Browser = null as any;
         beforeAll(async () => {

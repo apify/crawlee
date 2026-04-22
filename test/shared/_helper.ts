@@ -320,6 +320,11 @@ export async function runExampleComServer(): Promise<[Server, number]> {
             res.type('html').send(responseSamples.outsideIframe);
         });
 
+        special.get('/outside-iframe-csp', (_req, res) => {
+            res.setHeader('Content-Security-Policy', "require-trusted-types-for 'script'");
+            res.type('html').send(responseSamples.outsideIframe);
+        });
+
         special.get('/inside-iframe', (_req, res) => {
             res.type('html').send(responseSamples.insideIframe);
         });
