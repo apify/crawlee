@@ -14,7 +14,7 @@ const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/
 
 export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entryNameOrId: string) {
     // First check memory cache
-    const found = client.datasetClientsHandled.find(
+    const found = client.datasetClientCache.find(
         (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
     );
 
@@ -110,14 +110,14 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
         newClient['datasetEntries'].set(entryId, entry);
     }
 
-    client.datasetClientsHandled.push(newClient);
+    client.datasetClientCache.push(newClient);
 
     return newClient;
 }
 
 export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage, entryNameOrId: string) {
     // First check memory cache
-    const found = client.keyValueStoresHandled.find(
+    const found = client.keyValueStoreCache.find(
         (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
     );
 
@@ -264,14 +264,14 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
         newClient['keyValueEntries'].set(key, entry);
     }
 
-    client.keyValueStoresHandled.push(newClient);
+    client.keyValueStoreCache.push(newClient);
 
     return newClient;
 }
 
 export async function findRequestQueueByPossibleId(client: MemoryStorage, entryNameOrId: string) {
     // First check memory cache
-    const found = client.requestQueuesHandled.find(
+    const found = client.requestQueueCache.find(
         (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
     );
 
@@ -383,7 +383,7 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
         newClient['requests'].set(requestId, entry);
     }
 
-    client.requestQueuesHandled.push(newClient);
+    client.requestQueueCache.push(newClient);
 
     return newClient;
 }

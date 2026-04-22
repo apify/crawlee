@@ -53,8 +53,8 @@ describe('when falling back to fs, Request queue should ignore non-JSON files', 
     });
 
     test('attempting to list "default" request queue should ignore non-JSON files', async () => {
-        const defaultQueueInfo = await storage.requestQueues().getOrCreate('default');
-        const defaultQueue = storage.requestQueue(defaultQueueInfo.id);
+        const defaultQueue = await storage.createRequestQueueClient({ name: 'default' });
+        const defaultQueueInfo = await defaultQueue.getMetadata();
 
         expect(defaultQueueInfo.name).toEqual('default');
 

@@ -1,7 +1,7 @@
 import { PlaywrightCrawler, KeyValueStore } from 'crawlee';
 
 // Create a key value store for all images we find
-const imageStore = await KeyValueStore.open('images');
+const imageStore = await KeyValueStore.open({ name: 'images' });
 
 const crawler = new PlaywrightCrawler({
     async requestHandler({ request, page, sendRequest }) {
