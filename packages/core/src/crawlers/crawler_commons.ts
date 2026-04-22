@@ -9,6 +9,7 @@ import type { Session } from '../session_pool/session.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_provider.js';
+import type { StorageIdentifier } from '../storages/storage_manager.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -48,7 +49,10 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      *
      * @param [data] Data to be pushed to the default dataset.
      */
-    pushData(data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>, datasetIdOrName?: string): Promise<void>;
+    pushData(
+        data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>,
+        datasetIdentifier?: string | StorageIdentifier,
+    ): Promise<void>;
 
     /**
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
@@ -98,7 +102,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * Get a key-value store with given name or id, or the default one for the crawler.
      */
     getKeyValueStore: (
-        idOrName?: string,
+        identifier?: string | StorageIdentifier,
     ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
 
     /**
@@ -208,9 +212,9 @@ export class RequestHandlerResult {
     /**
      * Items added to datasets by a request handler.
      */
-    get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdOrName?: string }[]> {
-        return this.pushDataCalls.flatMap(([data, datasetIdOrName]) =>
-            (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })),
+    get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdentifier?: string | StorageIdentifier }[]> {
+        return this.pushDataCalls.flatMap(([data, datasetIdentifier]) =>
+            (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdentifier })),
         );
     }
 
@@ -271,36 +275,35 @@ export class RequestHandlerResult {
         return await store.getAutoSavedValue(this.crawleeStateKey, defaultValue);
     };
 
-    getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (idOrName) => {
-        const store = await KeyValueStore.open(idOrName, { config: this.config });
+    getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
+        const store = await KeyValueStore.open(identifier, { config: this.config });
+        const storeId = store.id;
 
         return {
-            id: this.idOrDefault(idOrName),
-            name: idOrName,
-            getValue: async (key) => this.getKeyValueStoreChangedValue(idOrName, key) ?? (await store.getValue(key)),
+            id: storeId ?? this.config.get('defaultKeyValueStoreId'),
+            name: store.name,
+            getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
-                this.setKeyValueStoreChangedValue(idOrName, key, value, options);
+                this.setKeyValueStoreChangedValue(storeId, key, value, options);
             },
             getAutoSavedValue: store.getAutoSavedValue.bind(store),
             getPublicUrl: store.getPublicUrl.bind(store),
         };
     };
 
-    private idOrDefault = (idOrName?: string): string => idOrName ?? this.config.get('defaultKeyValueStoreId');
-
-    private getKeyValueStoreChangedValue = (idOrName: string | undefined, key: string) => {
-        const id = this.idOrDefault(idOrName);
+    private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
+        const id = storeKey ?? this.config.get('defaultKeyValueStoreId') ?? 'default';
         this._keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
 
     private setKeyValueStoreChangedValue = (
-        idOrName: string | undefined,
+        storeKey: string | undefined,
         key: string,
         changedValue: unknown,
         options?: RecordOptions,
     ) => {
-        const id = this.idOrDefault(idOrName);
+        const id = storeKey ?? this.config.get('defaultKeyValueStoreId') ?? 'default';
         this._keyValueStoreChanges[id] ??= {};
         this._keyValueStoreChanges[id][key] = { changedValue, options };
     };

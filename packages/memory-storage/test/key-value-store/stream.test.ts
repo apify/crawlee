@@ -10,8 +10,7 @@ describe('KeyValueStore should drain streams when setting records', () => {
     const fsStream = Readable.from([Buffer.from('hello'), Buffer.from('world')]);
 
     test('should drain stream', async () => {
-        const defaultStoreInfo = await storage.keyValueStores().getOrCreate('default');
-        const defaultStore = storage.keyValueStore(defaultStoreInfo.id);
+        const defaultStore = await storage.createKeyValueStoreClient({ name: 'default' });
 
         await defaultStore.setRecord({ key: 'streamz', value: fsStream, contentType: 'text/plain' });
 

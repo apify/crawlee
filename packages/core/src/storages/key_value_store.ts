@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreClient } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
@@ -12,7 +12,7 @@ import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { StorageManagerOptions } from './storage_manager.js';
+import type { StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
 import { StorageManager } from './storage_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -108,7 +108,6 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
-    readonly storageObject?: Record<string, unknown>;
     private readonly client: KeyValueStoreClient;
     private persistStateEventStarted = false;
 
@@ -124,8 +123,7 @@ export class KeyValueStore {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.storageObject = options.storageObject;
-        this.client = options.client.keyValueStore(this.id);
+        this.client = options.client;
     }
 
     /**
@@ -593,15 +591,18 @@ export class KeyValueStore {
      *
      * For more details and code examples, see the {@apilink KeyValueStore} class.
      *
-     * @param [storeIdOrName]
-     *   ID or name of the key-value store to be opened. If `null` or `undefined`,
-     *   the function returns the default key-value store associated with the crawler run.
+     * @param [identifier]
+     *   ID or name of the key-value store to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default key-value store associated with the crawler run.
      * @param [options] Storage manager options.
      */
-    static async open(storeIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<KeyValueStore> {
+    static async open(
+        identifier?: string | StorageIdentifier | null,
+        options: StorageManagerOptions = {},
+    ): Promise<KeyValueStore> {
         checkStorageAccess();
 
-        ow(storeIdOrName, ow.optional.any(ow.string, ow.null));
         ow(
             options,
             ow.object.exactShape({
@@ -617,7 +618,7 @@ export class KeyValueStore {
 
         const manager = StorageManager.getManager(this);
 
-        return manager.openStorage(storeIdOrName, options.storageClient);
+        return manager.openStorage(identifier, options.storageClient);
     }
 
     /**
@@ -829,8 +830,7 @@ export interface KeyConsumer {
 export interface KeyValueStoreOptions {
     id: string;
     name?: string;
-    client: StorageClient;
-    storageObject?: Record<string, unknown>;
+    client: KeyValueStoreClient;
 }
 
 export interface RecordOptions {

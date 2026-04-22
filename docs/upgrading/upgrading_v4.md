@@ -269,6 +269,85 @@ const response = await sendRequest({ url: '...' }, { cookieJar: jar });
 
 The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
 
+## `StorageClient` interface simplified
+
+The `StorageClient` interface (from `@crawlee/types`) has been redesigned to match the simplified architecture from Crawlee for Python. A new storage backend now needs **4 classes** instead of the previous 7.
+
+### What changed
+
+The three **collection client** interfaces have been removed:
+
+- `DatasetCollectionClient`
+- `KeyValueStoreCollectionClient`
+- `RequestQueueCollectionClient`
+
+Along with their associated types (`DatasetCollectionData`, `DatasetCollectionClientOptions`, and the `Dataset` interface from `@crawlee/types`).
+
+The `StorageClient` interface changed from synchronous sub-client getters to **async factory methods**:
+
+| Before (v3) | After (v4) |
+|---|---|
+| `client.dataset(id)` | `client.createDatasetClient({ id?, name? })` |
+| `client.datasets().getOrCreate(name)` | _(absorbed into `createDatasetClient`)_ |
+| `client.keyValueStore(id)` | `client.createKeyValueStoreClient({ id?, name? })` |
+| `client.keyValueStores().getOrCreate(name)` | _(absorbed into `createKeyValueStoreClient`)_ |
+| `client.requestQueue(id, opts)` | `client.createRequestQueueClient({ id?, name?, clientKey?, timeoutSecs? })` |
+| `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueClient`)_ |
+
+The `get()` method on `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` has been renamed to **`getMetadata()`**.
+
+The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
+
+### Removed `list()` method
+
+The `list()` method on collection clients (e.g. `client.datasets().list()`) has no replacement. If you were using it to enumerate all storages, you will need to use the Apify API client directly.
+
+### Migration guide
+
+If you implemented a custom `StorageClient`, you need to:
+
+1. Remove your `*CollectionClient` classes.
+2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
+3. Rename `get()` to `getMetadata()` on your `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` implementations.
+
+## Storage `.open()` now also accepts `{ id?, name? }`
+
+`Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
+
+The first parameter now also accepts a `StorageIdentifier` object with separate `id` and `name` fields:
+
+```ts
+interface StorageIdentifier {
+    id?: string;
+    name?: string;
+}
+```
+
+Passing a plain string still works — it is first looked up as an ID, and if no such storage exists, it is treated as a name (matching the v3 behavior):
+
+```typescript
+const dataset = await Dataset.open('my-dataset');
+const store = await KeyValueStore.open('my-store');
+const queue = await RequestQueue.open('my-queue');
+```
+
+You can also use the object form, which additionally allows opening a storage by ID:
+
+```typescript
+const dataset = await Dataset.open({ name: 'my-dataset' });
+
+// Opening by ID (e.g. on the Apify platform):
+const dataset = await Dataset.open({ id: 'WkzbQMuFYuamGv3YF' });
+```
+
+Opening the default storage (no arguments or `null`) still works as before:
+
+```typescript
+const dataset = await Dataset.open();
+```
+
+The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
+
 ## `transformRequestFunction` precedence in `enqueueLinks`
 
 The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`globs`, `regexps`, `pseudoUrls`) instead of before. This means it has the highest priority and can overwrite any request options set by patterns or the global `label` option.

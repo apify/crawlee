@@ -55,8 +55,8 @@ describe('fallback to fs for reading', () => {
     // POST INIT //
 
     test('attempting to read "default" key value store with "__metadata__" present should read from fs', async () => {
-        const defaultStoreInfo = await storage.keyValueStores().getOrCreate('default');
-        const defaultStore = storage.keyValueStore(defaultStoreInfo.id);
+        const defaultStore = await storage.createKeyValueStoreClient({ name: 'default' });
+        const defaultStoreInfo = await defaultStore.getMetadata();
 
         expect(defaultStoreInfo.name).toEqual('default');
         expect(defaultStoreInfo.createdAt).toEqual(expectedFsDate);
@@ -70,7 +70,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('attempting to read "other" key value store with no "__metadata__" present should read from fs, even if accessed without generating id first', async () => {
-        const otherStore = storage.keyValueStore('other');
+        const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
 
         const input = await otherStore.getRecord('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
@@ -80,12 +80,14 @@ describe('fallback to fs for reading', () => {
         });
     });
 
-    test('attempting to read non-existent "default_2" key value store should return undefined', async () => {
-        await expect(storage.keyValueStore('default_2').get()).resolves.toBeUndefined();
+    test('attempting to read "default_2" key value store that has no data on disk should still be accessible after creation', async () => {
+        const default2Store = await storage.createKeyValueStoreClient({ name: 'default_2' });
+        const info = await default2Store.getMetadata();
+        expect(info.name).toEqual('default_2');
     });
 
     test('attempting to read "no-ext" key value store should load the missing extension file correctly', async () => {
-        const noExtStore = storage.keyValueStore('no-ext');
+        const noExtStore = await storage.createKeyValueStoreClient({ name: 'no-ext' });
 
         const input = await noExtStore.getRecord('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
@@ -96,7 +98,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('attempting to read "invalid-json" key value store should ignore the invalid "INPUT" json file', async () => {
-        const invalidJsonStore = storage.keyValueStore('invalid-json');
+        const invalidJsonStore = await storage.createKeyValueStoreClient({ name: 'invalid-json' });
 
         const input = await invalidJsonStore.getRecord('INPUT');
         expect(input).toBeUndefined();
