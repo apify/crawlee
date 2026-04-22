@@ -524,7 +524,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const store = localStorageEmulator.getKeyValueStore();
+        const store = await localStorageEmulator.getKeyValueStore();
 
         expect((await store.getRecord('1'))!.value).toEqual({ content: 42 });
         expect((await store.getRecord('2'))!.value).toEqual({ content: 42 });
@@ -561,7 +561,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
         );
 
-        const store = localStorageEmulator.getKeyValueStore();
+        const store = await localStorageEmulator.getKeyValueStore();
         expect(await store.getRecord('1')).toBeUndefined();
     });
 

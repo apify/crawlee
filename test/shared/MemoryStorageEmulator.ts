@@ -31,30 +31,33 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getDataset(id?: string) {
-        return this.storage.dataset(id ?? Configuration.getGlobalConfig().get('defaultDatasetId'));
+        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultDatasetId');
+        return this.storage.createDatasetClient(resolvedId ? { id: resolvedId } : {});
     }
 
     async getDatasetItems(id?: string) {
-        const dataset = this.getDataset(id);
+        const dataset = await this.getDataset(id);
         return (await dataset.listItems()).items;
     }
 
     getRequestQueue(id?: string) {
-        return this.storage.requestQueue(id ?? Configuration.getGlobalConfig().get('defaultRequestQueueId'));
+        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultRequestQueueId');
+        return this.storage.createRequestQueueClient(resolvedId ? { id: resolvedId } : {});
     }
 
     async getRequestQueueItems(id?: string) {
-        const requestQueue = this.getRequestQueue(id);
+        const requestQueue = await this.getRequestQueue(id);
         const { items: heads } = await requestQueue.listHead();
         return heads;
     }
 
     getKeyValueStore(id?: string) {
-        return this.storage.keyValueStore(id ?? Configuration.getGlobalConfig().get('defaultKeyValueStoreId'));
+        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultKeyValueStoreId');
+        return this.storage.createKeyValueStoreClient(resolvedId ? { id: resolvedId } : {});
     }
 
     async getState() {
-        return await this.getKeyValueStore().getRecord('CRAWLEE_STATE');
+        return await (await this.getKeyValueStore()).getRecord('CRAWLEE_STATE');
     }
 }
 

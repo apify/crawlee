@@ -20,8 +20,7 @@ describe('Dataset#listItems respects the desc option', () => {
     });
 
     beforeAll(async () => {
-        const { id: falseDatasetId } = await storage.datasets().getOrCreate('false');
-        dataset = storage.dataset(falseDatasetId);
+        dataset = await storage.createDatasetClient({ name: 'false' });
 
         await dataset.pushItems(elements);
     });

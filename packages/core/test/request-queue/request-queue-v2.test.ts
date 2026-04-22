@@ -1,14 +1,15 @@
 import { MemoryStorage } from '@crawlee/memory-storage';
-import type { ListAndLockHeadResult } from '@crawlee/types';
+import type { ListAndLockHeadResult, RequestQueueClient } from '@crawlee/types';
 import { RequestQueueV2 } from 'crawlee';
 import type { MockInstance } from 'vitest';
 
 const storage = new MemoryStorage({ persistStorage: false, writeMetadata: false });
 
 async function makeQueue(name: string, numOfRequestsToAdd = 0) {
-    const queueData = await storage.requestQueues().getOrCreate(name);
+    const rqClient = await storage.createRequestQueueClient({ name });
+    const rqInfo = await rqClient.getMetadata();
 
-    const queue = new RequestQueueV2({ id: queueData.id, client: storage });
+    const queue = new RequestQueueV2({ id: rqInfo.id, client: rqClient });
 
     if (numOfRequestsToAdd) {
         await queue.addRequests(
