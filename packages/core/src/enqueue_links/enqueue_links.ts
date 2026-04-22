@@ -183,10 +183,11 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
 
     /**
-     * User-agent name to use when evaluating {@apilink EnqueueLinksOptions.robotsTxtFile|`robotsTxtFile`} rules.
-     * Defaults to `*` when not provided.
+     * Mirrors {@apilink BasicCrawlerOptions.respectRobotsTxtFile}: pass `false` to disable filtering or
+     * `{ userAgent }` to evaluate rules for a specific user-agent. Defaults to `*` when
+     * {@apilink EnqueueLinksOptions.robotsTxtFile|`robotsTxtFile`} is provided.
      */
-    robotsTxtUserAgent?: string;
+    respectRobotsTxtFile?: boolean | { userAgent?: string };
 
     /**
      * When a request is skipped for some reason, you can use this callback to act on it.
@@ -302,7 +303,7 @@ export async function enqueueLinks(
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('addRequestsBatched'),
             robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
-            robotsTxtUserAgent: ow.optional.string,
+            respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object.exactShape({ userAgent: ow.optional.string })),
             onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
@@ -429,11 +430,13 @@ export async function enqueueLinks(
 
     let requestOptions = createRequestOptions(urls, options);
 
-    if (robotsTxtFile) {
+    if (robotsTxtFile && options.respectRobotsTxtFile !== false) {
+        const robotsUserAgent =
+            typeof options.respectRobotsTxtFile === 'object' ? (options.respectRobotsTxtFile.userAgent ?? '*') : '*';
         const skippedRequests: RequestOptions[] = [];
 
         requestOptions = requestOptions.filter((request) => {
-            if (robotsTxtFile.isAllowed(request.url, options.robotsTxtUserAgent ?? '*')) {
+            if (robotsTxtFile.isAllowed(request.url, robotsUserAgent)) {
                 return true;
             }
 

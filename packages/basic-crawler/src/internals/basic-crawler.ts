@@ -1703,9 +1703,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         request: Request<Dictionary>,
         requestQueue: RequestProvider,
     ): Promise<BatchAddRequestsResult> {
-        const robotsTxtUserAgent =
-            typeof this.respectRobotsTxtFile === 'object' ? this.respectRobotsTxtFile?.userAgent : undefined;
-
         const transformRequestFunctionWrapper: RequestTransform = (newRequest) => {
             newRequest.crawlDepth = request.crawlDepth + 1;
 
@@ -1737,7 +1734,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return enqueueLinks({
             requestQueue,
             robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-            robotsTxtUserAgent,
+            respectRobotsTxtFile: this.respectRobotsTxtFile,
             onSkippedRequest,
             limit: this.calculateEnqueuedRequestLimit(options.limit),
 

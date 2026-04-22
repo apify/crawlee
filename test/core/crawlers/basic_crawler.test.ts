@@ -1772,6 +1772,29 @@ describe('BasicCrawler', () => {
             ]);
         });
 
+        test('enqueueLinks forwards respectRobotsTxtFile.userAgent to the robots.txt check', async () => {
+            const requestQueue = await RequestQueue.open();
+            const isAllowedSpy = vitest.fn(() => true);
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+                requestHandler: async (context) => {
+                    if (context.request.label) return;
+                    await context.enqueueLinks({ urls: ['http://example.com/child'], label: 'child' });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(isAllowedSpy).toHaveBeenCalledWith('http://example.com/child', 'MyCrawler');
+        });
+
         test('enqueueLinks should respect maxRequestsPerCrawl', async () => {
             const requestQueue = await RequestQueue.open();
             const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
