@@ -23,8 +23,7 @@ describe('Async iteration support', () => {
         let dataset: DatasetClient;
 
         beforeAll(async () => {
-            const { id } = await storage.datasets().getOrCreate('async-iteration-dataset');
-            dataset = storage.dataset(id);
+            dataset = await storage.createDatasetClient({ name: 'async-iteration-dataset' });
             await dataset.pushItems(elements);
         });
 
@@ -98,8 +97,7 @@ describe('Async iteration support', () => {
         let kvStore: KeyValueStoreClient;
 
         beforeAll(async () => {
-            const { id } = await storage.keyValueStores().getOrCreate('async-iteration-kvs');
-            kvStore = storage.keyValueStore(id);
+            kvStore = await storage.createKeyValueStoreClient({ name: 'async-iteration-kvs' });
 
             for (const key of keys) {
                 await kvStore.setRecord({ key, value: { data: key } });
@@ -127,8 +125,7 @@ describe('Async iteration support', () => {
 
         test('respects limit option when iterating (10 items, limit 2)', async () => {
             // Create a fresh store with exactly 10 items to match the reported bug scenario
-            const { id } = await storage.keyValueStores().getOrCreate('limit-test-kvs');
-            const testStore = storage.keyValueStore(id);
+            const testStore = await storage.createKeyValueStoreClient({ name: 'limit-test-kvs' });
 
             for (let i = 0; i < 10; i++) {
                 await testStore.setRecord({ key: `key-${i}`, value: `value-${i}` });
@@ -175,8 +172,7 @@ describe('Async iteration support', () => {
         let kvStore: KeyValueStoreClient;
 
         beforeAll(async () => {
-            const { id } = await storage.keyValueStores().getOrCreate('async-iteration-kvs-keys');
-            kvStore = storage.keyValueStore(id);
+            kvStore = await storage.createKeyValueStoreClient({ name: 'async-iteration-kvs-keys' });
 
             for (const key of keys) {
                 await kvStore.setRecord({ key, value: { data: key } });
@@ -263,8 +259,7 @@ describe('Async iteration support', () => {
         let kvStore: KeyValueStoreClient;
 
         beforeAll(async () => {
-            const { id } = await storage.keyValueStores().getOrCreate('async-iteration-kvs-values');
-            kvStore = storage.keyValueStore(id);
+            kvStore = await storage.createKeyValueStoreClient({ name: 'async-iteration-kvs-values' });
 
             for (const key of keys) {
                 await kvStore.setRecord({ key, value: { data: key } });
@@ -350,8 +345,7 @@ describe('Async iteration support', () => {
         let kvStore: KeyValueStoreClient;
 
         beforeAll(async () => {
-            const { id } = await storage.keyValueStores().getOrCreate('async-iteration-kvs-entries');
-            kvStore = storage.keyValueStore(id);
+            kvStore = await storage.createKeyValueStoreClient({ name: 'async-iteration-kvs-entries' });
 
             for (const key of keys) {
                 await kvStore.setRecord({ key, value: { data: key } });
@@ -492,8 +486,7 @@ describe('Async iteration support', () => {
         let kvStore: KeyValueStoreClient;
 
         beforeAll(async () => {
-            const { id } = await storage.keyValueStores().getOrCreate('lazy-test-kvs-values');
-            kvStore = storage.keyValueStore(id);
+            kvStore = await storage.createKeyValueStoreClient({ name: 'lazy-test-kvs-values' });
 
             for (let i = 0; i < 5; i++) {
                 await kvStore.setRecord({ key: `key-${i}`, value: { data: i } });
@@ -533,8 +526,7 @@ describe('Async iteration support', () => {
         let kvStore: KeyValueStoreClient;
 
         beforeAll(async () => {
-            const { id } = await storage.keyValueStores().getOrCreate('lazy-test-kvs-entries');
-            kvStore = storage.keyValueStore(id);
+            kvStore = await storage.createKeyValueStoreClient({ name: 'lazy-test-kvs-entries' });
 
             for (let i = 0; i < 5; i++) {
                 await kvStore.setRecord({ key: `key-${i}`, value: { data: i } });

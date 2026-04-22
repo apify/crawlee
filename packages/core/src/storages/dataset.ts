@@ -1,4 +1,4 @@
-import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
+import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
@@ -10,7 +10,7 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { StorageManagerOptions } from './storage_manager.js';
+import type { StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
 import { StorageManager } from './storage_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -177,8 +177,8 @@ export interface DatasetIteratorOptions extends Omit<
 }
 
 export interface DatasetExportToOptions extends DatasetExportOptions {
-    fromDataset?: string;
-    toKVS?: string;
+    fromDataset?: string | StorageIdentifier;
+    toKVS?: string | StorageIdentifier;
 }
 
 /**
@@ -236,7 +236,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
     client: DatasetClient<Data>;
-    readonly storageObject?: Record<string, unknown>;
     log: CrawleeLogger;
 
     /**
@@ -248,8 +247,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client.dataset(this.id) as DatasetClient<Data>;
-        this.storageObject = options.storageObject;
+        this.client = options.client;
         this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
 
@@ -438,29 +436,24 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Returns an object containing general information about the dataset.
      *
-     * The function returns the same object as the Apify API Client's
-     * [getDataset](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-datasets-getDataset)
-     * function, which in turn calls the
-     * [Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)
-     * API endpoint.
-     *
      * **Example:**
      * ```
      * {
      *   id: "WkzbQMuFYuamGv3YF",
      *   name: "my-dataset",
-     *   userId: "wRsJZtadYvn4mBZmm",
      *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
      *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
      *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
      *   itemCount: 14,
      * }
      * ```
+     *
+     * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
      */
-    async getInfo(): Promise<DatasetInfo | undefined> {
+    async getInfo(): Promise<DatasetInfo> {
         checkStorageAccess();
 
-        return this.client.get();
+        return this.client.getMetadata();
     }
 
     /**
@@ -701,18 +694,18 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * For more details and code examples, see the {@apilink Dataset} class.
      *
-     * @param [datasetIdOrName]
-     *   ID or name of the dataset to be opened. If `null` or `undefined`,
-     *   the function returns the default dataset associated with the crawler run.
+     * @param [identifier]
+     *   ID or name of the dataset to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default dataset associated with the crawler run.
      * @param [options] Storage manager options.
      */
     static async open<Data extends Dictionary = Dictionary>(
-        datasetIdOrName?: string | null,
+        identifier?: string | StorageIdentifier | null,
         options: StorageManagerOptions = {},
     ): Promise<Dataset<Data>> {
         checkStorageAccess();
 
-        ow(datasetIdOrName, ow.optional.string);
         ow(
             options,
             ow.object.exactShape({
@@ -728,7 +721,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         const manager = StorageManager.getManager<Dataset<Data>>(this);
 
-        return manager.openStorage(datasetIdOrName, options.storageClient);
+        return manager.openStorage(identifier, options.storageClient);
     }
 
     /**
@@ -809,8 +802,7 @@ export interface DatasetReducer<T, Data> {
 export interface DatasetOptions {
     id: string;
     name?: string;
-    client: StorageClient;
-    storageObject?: Record<string, unknown>;
+    client: DatasetClient;
 }
 
 export interface DatasetContent<Data> {

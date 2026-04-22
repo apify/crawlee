@@ -1,10 +1,19 @@
-import type { BaseHttpClient, StorageClient } from '@crawlee/types';
+import type {
+    BaseHttpClient,
+    DatasetClient,
+    KeyValueStoreClient,
+    RequestQueueClient,
+    StorageClient,
+    StorageIdentifier,
+} from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 
 import type { Configuration } from '../configuration.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
+
+export type { StorageIdentifier } from '@crawlee/types';
 
 const DEFAULT_ID_CONFIG_KEYS = {
     Dataset: 'defaultDatasetId',
@@ -37,10 +46,10 @@ export class StorageManager<T extends IStorage = IStorage> {
 
     static async openStorage<T extends IStorage>(
         storageClass: Constructor<T>,
-        idOrName?: string,
+        identifier?: string | StorageIdentifier,
         client?: StorageClient,
     ): Promise<T> {
-        return this.getManager(storageClass).openStorage(idOrName, client);
+        return this.getManager(storageClass).openStorage(identifier, client);
     }
 
     static getManager<T extends IStorage>(storageClass: Constructor<T>): StorageManager<T> {
@@ -53,26 +62,25 @@ export class StorageManager<T extends IStorage = IStorage> {
         return serviceLocator.getStorageManager(storageClass) as StorageManager<T>;
     }
 
-    async openStorage(idOrName?: string | null, client?: StorageClient): Promise<T> {
+    async openStorage(identifier?: string | StorageIdentifier | null, client?: StorageClient): Promise<T> {
         await this.storageOpenQueue.wait();
 
-        if (!idOrName) {
-            const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
-            idOrName = this.config.get(defaultIdConfigKey) as string;
-        }
+        const resolvedIdentifier = await this._resolveIdentifier(identifier, client);
 
-        const cacheKey = idOrName;
+        const cacheKey = resolvedIdentifier.id ?? resolvedIdentifier.name!;
         let storage = this.cache.get(cacheKey);
 
         if (!storage) {
             client ??= serviceLocator.getStorageClient();
-            const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
+            const subClient = await this._createSubClient(resolvedIdentifier, this.name, client);
+            const storageInfo = await (
+                subClient as DatasetClient | KeyValueStoreClient | RequestQueueClient
+            ).getMetadata();
             storage = new this.StorageConstructor(
                 {
-                    id: storageObject.id,
-                    name: storageObject.name,
-                    storageObject,
-                    client,
+                    id: storageInfo.id,
+                    name: storageInfo.name,
+                    client: subClient,
                 },
                 this.config,
             );
@@ -82,6 +90,42 @@ export class StorageManager<T extends IStorage = IStorage> {
         this.storageOpenQueue.shift();
 
         return storage;
+    }
+
+    /**
+     * Resolves the user-provided identifier to an unambiguous `StorageIdentifier`.
+     *
+     * - `null`/`undefined` → uses the default storage ID from config
+     * - `StorageIdentifier` object → passed through (with default ID fallback if empty)
+     * - `string` → tries to find an existing storage with that ID first;
+     *   if none exists, treats the string as a name
+     */
+    private async _resolveIdentifier(
+        identifier?: string | StorageIdentifier | null,
+        client?: StorageClient,
+    ): Promise<StorageIdentifier> {
+        if (typeof identifier === 'string') {
+            client ??= serviceLocator.getStorageClient();
+
+            if (client.storageExists && (await client.storageExists(identifier, this.name))) {
+                return { id: identifier };
+            }
+
+            return { name: identifier };
+        }
+
+        if (identifier?.id) {
+            return { id: identifier.id };
+        }
+
+        if (identifier?.name) {
+            return { name: identifier.name };
+        }
+
+        const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
+        const defaultId = this.config.get(defaultIdConfigKey) as string;
+
+        return { id: defaultId };
     }
 
     closeStorage(storage: { id: string; name?: string }): void {
@@ -95,36 +139,23 @@ export class StorageManager<T extends IStorage = IStorage> {
     }
 
     /**
-     * Helper function that first requests storage by ID and if storage doesn't exist then gets it by name.
+     * Creates a sub-client for the given storage type using the new factory-based StorageClient interface.
      */
-    protected async _getOrCreateStorage(
-        storageIdOrName: string,
+    protected async _createSubClient(
+        identifier: StorageIdentifier,
         storageConstructorName: string,
         apiClient: StorageClient,
-    ) {
-        const { createStorageClient, createStorageCollectionClient } = this._getStorageClientFactories(
-            apiClient,
-            storageConstructorName,
-        );
-
-        const storageClient = createStorageClient(storageIdOrName);
-        const existingStorage = await storageClient.get();
-        if (existingStorage) return existingStorage;
-
-        const storageCollectionClient = createStorageCollectionClient();
-        return storageCollectionClient.getOrCreate(storageIdOrName);
-    }
-
-    protected _getStorageClientFactories(client: StorageClient, storageConstructorName: string) {
-        // Dataset => dataset
-        const clientName = (storageConstructorName[0].toLowerCase() + storageConstructorName.slice(1)) as ClientNames;
-        // dataset => datasets
-        const collectionClientName = `${clientName}s` as ClientCollectionNames;
-
-        return {
-            createStorageClient: client[clientName!].bind(client),
-            createStorageCollectionClient: client[collectionClientName!].bind(client),
-        };
+    ): Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient> {
+        switch (storageConstructorName) {
+            case 'Dataset':
+                return apiClient.createDatasetClient(identifier);
+            case 'KeyValueStore':
+                return apiClient.createKeyValueStoreClient(identifier);
+            case 'RequestQueue':
+                return apiClient.createRequestQueueClient(identifier);
+            default:
+                throw new Error(`Unknown storage type: ${storageConstructorName}`);
+        }
     }
 
     protected _addStorageToCache(storage: T): void {
@@ -137,9 +168,6 @@ export class StorageManager<T extends IStorage = IStorage> {
         }
     }
 }
-
-type ClientNames = 'dataset' | 'keyValueStore' | 'requestQueue';
-type ClientCollectionNames = 'datasets' | 'keyValueStores' | 'requestQueues';
 
 export interface StorageManagerOptions {
     /**
