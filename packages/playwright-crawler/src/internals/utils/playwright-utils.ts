@@ -34,7 +34,7 @@ import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import ow from 'ow';
-import type { Page, Response, Route } from 'playwright';
+import type { Download, Page, Response, Route } from 'playwright';
 
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
@@ -1062,12 +1062,40 @@ export interface PlaywrightContextUtils {
      * @param [options]
      */
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+
+    /**
+     * A list of {@link https://playwright.dev/docs/api/class-download | Download} objects
+     * triggered during the current page navigation.
+     *
+     * Playwright intercepts downloads before they complete, so the objects are available
+     * as soon as the browser starts the download — including inside `errorHandler` when
+     * `page.goto` throws `"Download is starting"`.
+     *
+     * > **Note:** Playwright saves download data to a temporary file on disk. For very large
+     * > files this may be a concern; prefer re-enqueueing the URL to a streaming downloader
+     * > when file size is unpredictable.
+     *
+     * **Example usage**
+     * ```ts
+     * errorHandler: async ({ downloads, request }, error) => {
+     *     if (error.message.includes('Download is starting')) {
+     *         for (const download of downloads) {
+     *             const stream = await download.createReadStream();
+     *             // stream to storage...
+     *         }
+     *     }
+     * },
+     * ```
+     */
+    downloads: Download[];
 }
 
 export function registerUtilsToContext(
     context: PlaywrightCrawlingContext,
     crawlerOptions: PlaywrightCrawlerOptions,
 ): void {
+    context.downloads = [];
+
     context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
         injectFile(context.page, filePath, options);
     context.injectJQuery = async () => {
