@@ -277,14 +277,14 @@ export class RequestHandlerResult {
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
         const store = await KeyValueStore.open(identifier, { config: this.config });
-        const storeKey = store.id;
+        const storeId = store.id;
 
         return {
-            id: storeKey ?? this.config.get('defaultKeyValueStoreId'),
+            id: storeId ?? this.config.get('defaultKeyValueStoreId'),
             name: store.name,
-            getValue: async (key) => this.getKeyValueStoreChangedValue(storeKey, key) ?? (await store.getValue(key)),
+            getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
-                this.setKeyValueStoreChangedValue(storeKey, key, value, options);
+                this.setKeyValueStoreChangedValue(storeId, key, value, options);
             },
             getAutoSavedValue: store.getAutoSavedValue.bind(store),
             getPublicUrl: store.getPublicUrl.bind(store),
