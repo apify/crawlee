@@ -177,8 +177,8 @@ export interface DatasetIteratorOptions extends Omit<
 }
 
 export interface DatasetExportToOptions extends DatasetExportOptions {
-    fromDataset?: StorageIdentifier;
-    toKVS?: StorageIdentifier;
+    fromDataset?: string | StorageIdentifier;
+    toKVS?: string | StorageIdentifier;
 }
 
 /**
