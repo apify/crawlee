@@ -623,6 +623,12 @@ export async function parseWithCheerio(
         const frames = await page.$$('iframe');
         const cheerioIframes = $('iframe').toArray();
 
+        if (frames.length !== cheerioIframes.length) {
+            log.warning(
+                `parseWithCheerio: iframe count mismatch between live DOM (${frames.length}) and page snapshot (${cheerioIframes.length}). Some iframes may not be expanded.`,
+            );
+        }
+
         await Promise.all(
             frames.map(async (frame, index) => {
                 try {
