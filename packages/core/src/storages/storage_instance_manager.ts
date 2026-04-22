@@ -163,7 +163,7 @@ export async function resolveStorageIdentifier(
     identifier: string | StorageIdentifier | null | undefined,
     client: StorageClient,
     config: Configuration,
-): Promise<{ id?: string; name?: string }> {
+): Promise<StorageIdentifier> {
     if (typeof identifier === 'string') {
         if (client.storageExists && (await client.storageExists(identifier, storageTypeName as any))) {
             return { id: identifier };
