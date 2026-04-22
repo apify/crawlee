@@ -204,7 +204,6 @@ describe('Async iteration support', () => {
         });
 
         test('yields strings directly, not objects', async () => {
-            // eslint-disable-next-line no-unreachable-loop
             for await (const key of kvStore.keys()) {
                 expect(typeof key).toBe('string');
                 break; // Only need to check the first one
@@ -291,7 +290,6 @@ describe('Async iteration support', () => {
         });
 
         test('yields values directly, not KeyValueStoreRecord objects', async () => {
-            // eslint-disable-next-line no-unreachable-loop
             for await (const value of kvStore.values()) {
                 // Should be the actual value, not a record wrapper
                 expect(value).toStrictEqual({ data: 'key-00' });
@@ -380,7 +378,6 @@ describe('Async iteration support', () => {
         });
 
         test('yields [key, value] tuples', async () => {
-            // eslint-disable-next-line no-unreachable-loop
             for await (const [key, value] of kvStore.entries()) {
                 expect(typeof key).toBe('string');
                 expect(key).toBe('key-00');

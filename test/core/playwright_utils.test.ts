@@ -4,10 +4,11 @@ import path from 'node:path';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
+
+import { runExampleComServer } from '../shared/_helper';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 let serverAddress = 'http://localhost:';
 let port: number;

@@ -27,6 +27,7 @@ export type StreamHandlerContext = Omit<
     'body' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
 > & {
     stream: Request; // TODO BC - remove in v4
+    abortDownload: () => void;
 };
 
 type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
@@ -229,6 +230,16 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
         });
 
         let pollingInterval: NodeJS.Timeout | undefined;
+        let abortedByHandler = false;
+
+        const abortDownload = () => {
+            if (abortedByHandler || !response.stream.readable) {
+                return;
+            }
+
+            abortedByHandler = true;
+            response.stream.destroy();
+        };
 
         const cleanUp = () => {
             clearInterval(pollingInterval!);
@@ -245,6 +256,11 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }, 5000);
 
             response.stream.on('error', async (error: Error) => {
+                if (abortedByHandler) {
+                    resolve();
+                    return;
+                }
+
                 cleanUp();
                 reject(error);
             });
@@ -254,6 +270,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             try {
                 context.stream = response.stream;
                 context.response = response as any;
+                (context as any).abortDownload = abortDownload;
                 streamHandlerResult = this.streamHandler!(context as any);
             } catch (e) {
                 cleanUp();
@@ -274,7 +291,15 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }
         });
 
-        await Promise.all([downloadPromise, finished(response.stream)]);
+        const streamFinishedPromise = finished(response.stream).catch((error) => {
+            if (abortedByHandler) {
+                return;
+            }
+
+            throw error;
+        });
+
+        await Promise.all([downloadPromise, streamFinishedPromise]);
 
         cleanUp();
     }

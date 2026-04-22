@@ -1,8 +1,9 @@
 import { Configuration, EventType, KeyValueStore, Session, SessionPool } from '@crawlee/core';
 import { entries } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { Log } from '@apify/log';
+
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
@@ -111,18 +112,17 @@ describe('SessionPool - testing session pool', () => {
             await sessionPool.getSession();
             let isCalled = false;
             // @ts-expect-error Accessing private property
-            const oldPick = sessionPool._pickSession; //eslint-disable-line
+            const oldPick = sessionPool._pickSession;
 
             // @ts-expect-error Overriding private property
             sessionPool._pickSession = () => {
-                //eslint-disable-line
                 isCalled = true;
                 return oldPick.bind(sessionPool)();
             };
 
             await sessionPool.getSession();
 
-            expect(isCalled).toBe(true); //eslint-disable-line
+            expect(isCalled).toBe(true);
         });
 
         test('should delete picked session when it is unusable and create a new one', async () => {

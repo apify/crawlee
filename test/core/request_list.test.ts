@@ -9,10 +9,11 @@ import {
 } from '@crawlee/core';
 import type { gotScraping } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { beforeAll, type MockedFunction } from 'vitest';
 
 import log from '@apify/log';
+
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)

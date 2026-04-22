@@ -15,12 +15,12 @@ import {
 import { sleep } from '@crawlee/utils';
 import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { ENV_VARS } from '@apify/consts';
 import log from '@apify/log';
 
+import { runExampleComServer } from '../../shared/_helper';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 import { BrowserCrawlerTest } from './basic_browser_crawler';
 
 describe('BrowserCrawler', () => {

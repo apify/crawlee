@@ -104,19 +104,21 @@ export class LocalEventManager extends EventManager {
 
     private async createMemoryInfo() {
         try {
-            if (this.config.get('systemInfoV2')) {
-                const memInfo = await getMemoryInfoV2(await this.isContainerizedWrapper());
-                return {
-                    memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
-                };
-            }
-            const memInfo = await getMemoryInfo();
+            const memInfo = await this.getMemoryInfo();
             return {
+                memTotalBytes: memInfo.totalBytes,
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
             };
         } catch (err) {
             log.exception(err as Error, 'Memory snapshot failed.');
             return {};
         }
+    }
+
+    private async getMemoryInfo() {
+        if (this.config.get('systemInfoV2')) {
+            return getMemoryInfoV2(await this.isContainerizedWrapper());
+        }
+        return getMemoryInfo();
     }
 }

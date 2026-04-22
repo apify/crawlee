@@ -6,7 +6,7 @@
     "dependencies": {
         "camoufox-js": "^0.9.0",
         "crawlee": "^3.0.0",
-        "playwright": "*"
+        "playwright": "1.58.2"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
@@ -14,7 +14,7 @@
         "@types/node": "^24.0.0",
         "fs-extra": "^11.3.0",
         "tsx": "^4.4.0",
-        "typescript": "~5.9.0"
+        "typescript": "~6.0.0"
     },
     "scripts": {
         "start": "npm run start:dev",

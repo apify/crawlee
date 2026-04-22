@@ -9,6 +9,10 @@ on:
 env:
     YARN_IGNORE_NODE: 1
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
     # NPM install is done in a separate job and cached to speed up the following jobs.
     build_and_test:
@@ -21,11 +25,6 @@ jobs:
                 storage: [ LOCAL, MEMORY, PLATFORM ]
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.13.0
-                with:
-                    access_token: ${{ github.token }}
-
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
@@ -54,11 +53,15 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Login to Apify
-                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
+
+            -   name: Setup Apify CLI
+                uses: apify/setup-apify-cli-action@main
+                with:
+                    version: 'beta'
+                    token: ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
             -   name: Add Apify secrets for E2E tests
-                run: npx -y apify-cli@beta secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
+                run: apify secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
 
             -   name: Install Dependencies
                 run: yarn
@@ -76,3 +79,4 @@ jobs:
                     STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
                     APIFY_HTTPBIN_TOKEN: ${{ secrets.APIFY_HTTPBIN_TOKEN }}
                     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+                    GITHUB_TOKEN: ${{ github.token }}

@@ -10,6 +10,10 @@ env:
     YARN_IGNORE_NODE: 1
     RETRY_TESTS: 1
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
     # `yarn install` is done in a separate job and cached to speed up the following jobs.
     build_and_test:
@@ -26,11 +30,6 @@ jobs:
                 node-version: [ 18, 20, 22, 24 ]
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.13.0
-                with:
-                    access_token: ${{ github.token }}
-
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
@@ -133,6 +132,103 @@ jobs:
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
                     SEGMENT_TOKEN: ${{ secrets.SEGMENT_TOKEN }}
+
+            -   name: Install Nginx
+                run: |
+                    sudo apt-get update
+                    sudo apt-get install -y nginx
+
+            -   name: Start Docusaurus server
+                run: |
+                    cd website
+                    nohup yarn docusaurus serve --port 3000 --no-open &
+                    sleep 5
+                    curl -f http://localhost:3000 > /dev/null
+
+            -   name: Start Nginx with project config
+                run: |
+                    PWD_PATH="$(pwd)"
+                    cat > default.conf <<EOF
+                    worker_processes auto;
+                    error_log ${PWD_PATH}/logs/error.log;
+                    pid ${PWD_PATH}/logs/nginx.pid;
+                    events {}
+                    http {
+                        access_log ${PWD_PATH}/logs/access.log;
+                        include ${PWD_PATH}/website/nginx.conf;
+                    }
+                    EOF
+                    sed -i 's|https://apify.github.io/crawlee|http://localhost:3000|g' default.conf
+                    mkdir -p "${PWD_PATH}/logs"
+                    nginx -c "${PWD_PATH}/default.conf"
+                    sleep 1
+
+            -   name: Run header assertions
+                run: |
+                    set -euo pipefail
+                    function assert_header() {
+                        url=$1
+                        header=$2
+                        expected=$3
+                        shift 3
+                        extra_args=("$@")
+                        actual=$(curl -s -D - -o /dev/null "${extra_args[@]}" "$url" | grep -i "^$header" | tr -d '\r' || true)
+                        echo "→ $url → $actual"
+                        echo "$actual" | grep -q "$expected" || (echo "❌ Expected '$expected' in '$header' for $url" && exit 1)
+                    }
+
+                    function assert_status() {
+                        url=$1
+                        expected=$2
+                        shift 2
+                        extra_args=("$@")
+                        actual=$(curl -s -o /dev/null -w "%{http_code}" "${extra_args[@]}" "$url")
+                        echo "→ $url → HTTP $actual"
+                        [ "$actual" = "$expected" ] || (echo "❌ Expected HTTP $expected but got $actual for $url" && exit 1)
+                    }
+
+                    function assert_no_redirect() {
+                        url=$1
+                        shift
+                        extra_args=("$@")
+                        response=$(curl -s -D - -o /dev/null -w "\n%{http_code}" "${extra_args[@]}" "$url" 2>/dev/null)
+                        status=$(echo "$response" | tail -1)
+                        location=$(echo "$response" | grep -i "^location:" | tr -d '\r' || true)
+                        echo "→ $url → HTTP $status ${location:+(${location})}"
+                        if [ "$status" = "301" ] || [ "$status" = "302" ]; then
+                            echo "❌ Got redirect for $url: $location" && exit 1
+                        fi
+                    }
+
+                    echo "🧪 Checking open redirect protection..."
+                    assert_no_redirect "http://localhost:8080///%5Cevil.com/"
+                    assert_no_redirect "http://localhost:8080/%5Cevil.com/"
+                    assert_no_redirect "http://localhost:8080///%5cevil.com/"
+                    assert_no_redirect "http://localhost:8080" --request-target '/\evil.com/'
+                    assert_no_redirect "http://localhost:8080" --request-target '///\evil.com/'
+                    assert_status "http://localhost:8080/js/docs/quick-start/" "302"
+
+                    echo "🧪 Checking Nginx responses... (crawlee JS)"
+                    assert_header "http://localhost:8080/" "Content-Type" "text/html"
+                    assert_header "http://localhost:8080/" "Content-Type" "text/markdown" -H "Accept: text/markdown"
+                    assert_header "http://localhost:8080/js/docs/quick-start" "Content-Type" "text/html"
+                    assert_header "http://localhost:8080/js/docs/quick-start.md" "Content-Type" "text/markdown"
+                    assert_header "http://localhost:8080/js/docs/quick-start" "Content-Type" "text/markdown" -H "Accept: text/markdown"
+                    assert_header "http://localhost:8080/llms.txt" "Content-Type" "text/markdown"
+                    assert_header "http://localhost:8080/llms-full.txt" "Content-Type" "text/markdown"
+
+                    echo "🧪 Checking Nginx responses... (crawlee Python)"
+                    assert_header "http://localhost:8080/python/docs/quick-start" "Content-Type" "text/html"
+                    assert_header "http://localhost:8080/python/docs/quick-start.md" "Content-Type" "text/markdown"
+                    assert_header "http://localhost:8080/python/docs/quick-start" "Content-Type" "text/markdown" -H "Accept: text/markdown"
+                    assert_header "http://localhost:8080/python/llms.txt" "Content-Type" "text/markdown"
+                    assert_header "http://localhost:8080/python/llms-full.txt" "Content-Type" "text/markdown"
+
+                    echo "✅ All Nginx header checks passed."
+
+            -   name: Stop Nginx
+                if: always()
+                run: nginx -c "$(pwd)/default.conf" -s stop
 
     lint:
         name: Lint
