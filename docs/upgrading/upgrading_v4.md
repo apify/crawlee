@@ -130,30 +130,25 @@ const crawler = new BasicCrawler({
 
 The `tieredProxyUrls` option (along with `ProxyConfiguration.reportProxyError`, the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`) has been removed. The feature saw little adoption and the tier rotation bled into APIs that otherwise had no business knowing about proxy tiers. In v4 the `Session` is the main rotation unit — a session already carries its own proxy, cookies and error score, so the pool naturally rotates the whole fingerprint when a session gets retired on a block.
 
-If you need per-session proxy assignment, use a custom `createSessionFunction` on the `SessionPool` to stamp each `Session` with its own proxy URL. With `retryOnBlocked` enabled, blocked sessions are already retired for you — but `request.sessionId` (the pin that decides which session handles a given request) is not cleared automatically, so on the retry the crawler would try to fetch the now-missing session. Reassign it from an `errorHandler` to hand the retry over to a freshly drawn session (and, implicitly, a new proxy). Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
+If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can emulate the same thing by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
 
 ```typescript
-import { BasicCrawler, Session, SessionPool } from '@crawlee/core';
+import { BasicCrawler, SessionPool } from '@crawlee/core';
 
-const proxyUrls = ['http://proxy-1.com', 'http://proxy-2.com', 'http://proxy-3.com'];
+const proxyInfoFromUrl = (proxyUrl: string) => {
+    const { username, password, hostname, port } = new URL(proxyUrl);
+    return {
+        url: proxyUrl,
+        username: decodeURIComponent(username),
+        password: decodeURIComponent(password),
+        hostname,
+        port,
+    };
+};
 
-const sessionPool = new SessionPool({
-    createSessionFunction: async (pool) => {
-        const proxyUrl = proxyUrls[Math.floor(Math.random() * proxyUrls.length)];
-        const { username, password, hostname, port } = new URL(proxyUrl);
-
-        return new Session({
-            sessionPool: pool,
-            proxyInfo: {
-                url: proxyUrl,
-                username: decodeURIComponent(username),
-                password: decodeURIComponent(password),
-                hostname,
-                port,
-            },
-        });
-    },
-});
+const sessionPool = new SessionPool();
+await sessionPool.addSession({ id: 'basic', proxyInfo: proxyInfoFromUrl('http://cheap-proxy.com') });
+await sessionPool.addSession({ id: 'premium', proxyInfo: proxyInfoFromUrl('http://expensive-proxy.com') });
 
 const crawler = new BasicCrawler({
     sessionPool,
@@ -162,12 +157,14 @@ const crawler = new BasicCrawler({
         await sendRequest({ url: request.url });
     },
     errorHandler: async ({ request }) => {
-        request.sessionId = (await sessionPool.getSession()).id;
+        request.sessionId = 'premium';
     },
 });
+
+await crawler.run([{ url: 'https://example.com', sessionId: 'basic' }]);
 ```
 
-Any further tier/priority logic (weighted draws, sticky assignment, cooldown on failing pools, etc.) now lives in `createSessionFunction` and the `request.sessionId` reassignment rather than in `ProxyConfiguration`, where you have full control over it.
+Richer routing (more tiers, weighted draws, sticky assignment, cooldowns) can be expressed with additional named sessions and the logic you put in `errorHandler` — it's now just regular user code instead of a built-in.
 
 ## Remove `experimentalContainers` option
 
