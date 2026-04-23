@@ -89,13 +89,13 @@ class StorageCache {
     removeFromCache(instance: IStorage): void {
         const storageType = instance.constructor as Constructor<IStorage>;
 
-        // Remove from ID cache
+        // Remove from ID cache — remove all entries matching this exact instance
+        // (there may be multiple clientCacheKey entries for the same instance).
         const idKeyMap = this.byId.get(storageType)?.get(instance.id);
         if (idKeyMap) {
             for (const [key, cached] of idKeyMap) {
                 if (cached === instance) {
                     idKeyMap.delete(key);
-                    break;
                 }
             }
             if (idKeyMap.size === 0) this.byId.get(storageType)!.delete(instance.id);
@@ -108,7 +108,6 @@ class StorageCache {
                 for (const [key, cached] of nameKeyMap) {
                     if (cached === instance) {
                         nameKeyMap.delete(key);
-                        break;
                     }
                 }
                 if (nameKeyMap.size === 0) this.byName.get(storageType)!.delete(instance.name);
