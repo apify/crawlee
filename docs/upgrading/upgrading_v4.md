@@ -126,6 +126,46 @@ const crawler = new BasicCrawler({
 });
 ```
 
+## `tieredProxyUrls` is removed from `ProxyConfiguration`
+
+The `tieredProxyUrls` option (along with `ProxyConfiguration.reportProxyError`, the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`) has been removed. The feature saw little adoption and the tier rotation bled into APIs that otherwise had no business knowing about proxy tiers. In v4 the `Session` is the main rotation unit — a session already carries its own proxy, cookies and error score, so the pool naturally rotates the whole fingerprint when a session gets retired on a block.
+
+If you need per-session proxy assignment, use a custom `createSessionFunction` on the `SessionPool` to stamp each `Session` with its own proxy URL. Retire the session on error so the pool creates a fresh one (with a fresh proxy draw) for the next request. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
+
+```typescript
+import { BasicCrawler, Session, SessionPool } from '@crawlee/core';
+
+const proxyUrls = ['http://proxy-1.com', 'http://proxy-2.com', 'http://proxy-3.com'];
+
+const sessionPool = new SessionPool({
+    createSessionFunction: async (pool) => {
+        const proxyUrl = proxyUrls[Math.floor(Math.random() * proxyUrls.length)];
+        const { username, password, hostname, port } = new URL(proxyUrl);
+
+        return new Session({
+            sessionPool: pool,
+            proxyInfo: {
+                url: proxyUrl,
+                username: decodeURIComponent(username),
+                password: decodeURIComponent(password),
+                hostname,
+                port,
+            },
+        });
+    },
+});
+
+const crawler = new BasicCrawler({
+    sessionPool,
+    requestHandler: async ({ request, session, sendRequest }) => {
+        const response = await sendRequest({ url: request.url });
+        if (response.status === 403) session!.retire();
+    },
+});
+```
+
+Any further tier/priority logic (weighted draws, sticky assignment, cooldown on failing pools, etc.) now lives in `createSessionFunction` rather than in `ProxyConfiguration`, where you have full control over it.
+
 ## Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
