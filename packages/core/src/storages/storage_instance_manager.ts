@@ -269,6 +269,12 @@ export class StorageInstanceManager {
             return instance;
         } finally {
             queue.shift();
+
+            // Clean up idle locks so the map doesn't grow unboundedly
+            // (mirrors crawlee-python's WeakValueDictionary behaviour).
+            if (queue.remaining === 0) {
+                this._openerLocks.delete(lockKey);
+            }
         }
     }
 
