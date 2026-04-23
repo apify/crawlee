@@ -2,7 +2,6 @@ import type { Server } from 'node:http';
 
 import type { RequestQueueOperationOptions, Source } from 'crawlee';
 import {
-    Configuration,
     launchPlaywright,
     launchPuppeteer,
     playwrightClickElements,
@@ -10,7 +9,6 @@ import {
     puppeteerClickElements,
     puppeteerUtils,
     RequestQueue,
-    serviceLocator,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 import type { Browser as PPBrowser, Target } from 'puppeteer';
@@ -24,11 +22,9 @@ function isPlaywrightBrowser(browser: PPBrowser | PWBrowser): browser is PWBrows
     return (browser as PWBrowser).browserType !== undefined;
 }
 
-const apifyClient = serviceLocator.getStorageClient();
-
-function createRequestQueueMock() {
+async function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient }, serviceLocator.getConfiguration());
+    const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
@@ -87,7 +83,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
         });
 
         test('should work', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const html = `
 <html>
     <body>
@@ -116,10 +112,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
 
         test('accepts forefront option', async () => {
             const addedRequests: { request: Source; options?: RequestQueueOperationOptions }[] = [];
-            const requestQueue = new RequestQueue(
-                { id: 'xxx', client: serviceLocator.getStorageClient() },
-                serviceLocator.getConfiguration(),
-            );
+            const requestQueue = await RequestQueue.open({ id: 'xxx' });
             requestQueue.addRequests = async (requests, options) => {
                 for await (const request of requests) {
                     addedRequests.push({ request: typeof request === 'string' ? { url: request } : request, options });

@@ -86,7 +86,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return existingQueueById;
     }
 
-    async get(): Promise<storage.RequestQueueInfo | undefined> {
+    async getMetadata(): Promise<storage.RequestQueueInfo> {
         const found = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
         if (found) {
@@ -94,7 +94,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             return found.toRequestQueueInfo();
         }
 
-        return undefined;
+        return this.toRequestQueueInfo();
     }
 
     async update(newFields: { name?: string | undefined }): Promise<storage.RequestQueueInfo | undefined> {
@@ -119,7 +119,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
 
         // Check that name is not in use already
-        const existingQueueByName = this.client.requestQueuesHandled.find(
+        const existingQueueByName = this.client.requestQueueCache.find(
             (queue) => queue.name?.toLowerCase() === parsed.name!.toLowerCase(),
         );
 
@@ -145,10 +145,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async delete(): Promise<void> {
-        const storeIndex = this.client.requestQueuesHandled.findIndex((queue) => queue.id === this.id);
+        const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
 
         if (storeIndex !== -1) {
-            const [oldClient] = this.client.requestQueuesHandled.splice(storeIndex, 1);
+            const [oldClient] = this.client.requestQueueCache.splice(storeIndex, 1);
             oldClient.pendingRequestCount = 0;
             oldClient.requests.clear();
 

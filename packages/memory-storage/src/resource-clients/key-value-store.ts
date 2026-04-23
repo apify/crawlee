@@ -54,7 +54,7 @@ export class KeyValueStoreClient extends BaseClient {
         this.client = options.client;
     }
 
-    async get(): Promise<storage.KeyValueStoreInfo | undefined> {
+    async getMetadata(): Promise<storage.KeyValueStoreInfo> {
         const found = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
 
         if (found) {
@@ -62,7 +62,7 @@ export class KeyValueStoreClient extends BaseClient {
             return found.toKeyValueStoreInfo();
         }
 
-        return undefined;
+        return this.toKeyValueStoreInfo();
     }
 
     async update(newFields: storage.KeyValueStoreClientUpdateOptions = {}): Promise<storage.KeyValueStoreInfo> {
@@ -85,7 +85,7 @@ export class KeyValueStoreClient extends BaseClient {
         }
 
         // Check that name is not in use already
-        const existingStoreByName = this.client.keyValueStoresHandled.find(
+        const existingStoreByName = this.client.keyValueStoreCache.find(
             (store) => store.name?.toLowerCase() === parsed.name!.toLowerCase(),
         );
 
@@ -111,10 +111,10 @@ export class KeyValueStoreClient extends BaseClient {
     }
 
     async delete(): Promise<void> {
-        const storeIndex = this.client.keyValueStoresHandled.findIndex((store) => store.id === this.id);
+        const storeIndex = this.client.keyValueStoreCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
-            const [oldClient] = this.client.keyValueStoresHandled.splice(storeIndex, 1);
+            const [oldClient] = this.client.keyValueStoreCache.splice(storeIndex, 1);
             oldClient.keyValueEntries.clear();
 
             await rm(oldClient.keyValueStoreDirectory, { recursive: true, force: true });

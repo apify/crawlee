@@ -15,7 +15,10 @@ afterAll(async () => {
 });
 
 describe('dataset', () => {
-    const storageClient = serviceLocator.getStorageClient();
+    async function createDataset(id = 'some-id', name?: string) {
+        const client = await serviceLocator.getStorageClient().createDatasetClient(name ? { name } : { id });
+        return new Dataset({ id, name, client });
+    }
 
     beforeEach(async () => {
         vitest.clearAllMocks();
@@ -25,10 +28,7 @@ describe('dataset', () => {
         const mockData = (bytes: number) => 'x'.repeat(bytes);
 
         test('should work', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
             const pushItemSpy = vitest.spyOn(dataset.client, 'pushItems');
 
@@ -57,10 +57,7 @@ describe('dataset', () => {
         test('should successfully save large data', async () => {
             const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
 
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
             mockPushItems.mockResolvedValueOnce(undefined);
@@ -81,10 +78,7 @@ describe('dataset', () => {
             const expectedFirst = JSON.stringify(Array(count - 1).fill(chunk));
             const expectedSecond = JSON.stringify([chunk]);
 
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
             const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
             mockPushItems.mockResolvedValueOnce(undefined);
@@ -99,7 +93,7 @@ describe('dataset', () => {
 
         test('should throw on too large file', async () => {
             const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
-            const dataset = new Dataset({ id: 'some-id', client: storageClient });
+            const dataset = await createDataset();
             try {
                 await dataset.pushData({ foo: full });
                 throw new Error('Should fail!');
@@ -110,7 +104,7 @@ describe('dataset', () => {
         });
         test('should throw on too large file in an array', async () => {
             const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
-            const dataset = new Dataset({ id: 'some-id', client: storageClient });
+            const dataset = await createDataset();
             try {
                 await dataset.pushData([{ foo: 0 }, { foo: 1 }, { foo: 2 }, { foo: full }, { foo: 4 }]);
                 throw new Error('Should fail!');
@@ -121,10 +115,7 @@ describe('dataset', () => {
         });
 
         test('getData() should work', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
             const expected = {
                 items: [{ foo: 'bar' }, { foo: 'hotel' }],
@@ -161,7 +152,7 @@ describe('dataset', () => {
         });
 
         test('getInfo() should work', async () => {
-            const dataset = new Dataset({ id: 'some-id', client: storageClient });
+            const dataset = await createDataset();
 
             const expected: Awaited<ReturnType<Dataset['getInfo']>> = {
                 id: 'WkzbQMuFYuamGv3YF',
@@ -172,7 +163,7 @@ describe('dataset', () => {
                 itemCount: 14,
             };
 
-            const mockGetDataset = vitest.spyOn(dataset.client, 'get');
+            const mockGetDataset = vitest.spyOn(dataset.client, 'getMetadata');
             mockGetDataset.mockResolvedValueOnce(expected);
 
             const result = await dataset.getInfo();
@@ -180,11 +171,8 @@ describe('dataset', () => {
             expect(result).toEqual(expected);
         });
 
-        const getRemoteDataset = () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+        const getRemoteDataset = async () => {
+            const dataset = await createDataset();
 
             const firstResolve = {
                 items: [{ foo: 'a' }, { foo: 'b' }],
@@ -224,7 +212,7 @@ describe('dataset', () => {
         };
 
         test('forEach() should work', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const items: Dictionary[] = [];
             const indexes: number[] = [];
@@ -245,7 +233,7 @@ describe('dataset', () => {
         });
 
         test('map() should work', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.map(
                 (item, index) => {
@@ -267,7 +255,7 @@ describe('dataset', () => {
         });
 
         test('map() should support promises', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.map(
                 async (item, index) => {
@@ -290,7 +278,7 @@ describe('dataset', () => {
         });
 
         test('reduce() should work', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.reduce(
                 (memo, item, index) => {
@@ -316,7 +304,7 @@ describe('dataset', () => {
         });
 
         test('reduce() should support promises', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.reduce(
                 async (memo, item, index) => {
@@ -342,11 +330,7 @@ describe('dataset', () => {
         });
 
         test('reduce() uses first value as memo if no memo is provided', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                name: 'some-name',
-                client: storageClient,
-            });
+            const dataset = await createDataset('some-id', 'some-name');
             const mockListItems = vitest.spyOn(dataset.client, 'listItems');
             mockListItems.mockResolvedValueOnce({
                 items: [{ foo: 4 }, { foo: 5 }],
@@ -395,10 +379,7 @@ describe('dataset', () => {
 
     describe('pushData', () => {
         test('throws on invalid args', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
             // @ts-expect-error JS-side validation
             await expect(dataset.pushData()).rejects.toThrow(
                 'Expected `data` to be of type `object` but received type `undefined`',
@@ -501,7 +482,7 @@ describe('dataset', () => {
             ];
 
             it('Should work', async () => {
-                const dataset = await Dataset.open(Math.random().toString(36));
+                const dataset = await Dataset.open({ name: Math.random().toString(36) });
                 await dataset.pushData(dataToPush);
                 await dataset.exportToJSON('HELLO');
 
@@ -535,7 +516,7 @@ describe('dataset', () => {
             ];
 
             it('Should work', async () => {
-                const dataset = await Dataset.open(Math.random().toString(36));
+                const dataset = await Dataset.open({ name: Math.random().toString(36) });
                 await dataset.pushData(dataToPush);
                 await dataset.exportToCSV('HELLO-csv');
 
@@ -561,7 +542,7 @@ describe('dataset', () => {
                 await dataset.exportTo(
                     'test.csv',
                     {
-                        toKVS: kvStore.name,
+                        toKVS: { name: kvStore.name! },
                         collectAllKeys: true,
                     },
                     'text/csv',

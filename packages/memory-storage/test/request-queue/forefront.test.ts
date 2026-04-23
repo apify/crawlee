@@ -11,8 +11,7 @@ describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
     let requestQueue: RequestQueueClient;
 
     beforeEach(async () => {
-        const { id } = await storage.requestQueues().getOrCreate('forefront');
-        requestQueue = storage.requestQueue(id);
+        requestQueue = await storage.createRequestQueueClient({ name: 'forefront' });
     });
 
     afterEach(async () => {
@@ -199,8 +198,7 @@ describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
     let requestQueue: RequestQueueClient;
 
     beforeEach(async () => {
-        const { id } = await storage.requestQueues().getOrCreate('forefront-v2');
-        requestQueue = storage.requestQueue(id);
+        requestQueue = await storage.createRequestQueueClient({ name: 'forefront-v2' });
     });
 
     afterEach(async () => {

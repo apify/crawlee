@@ -3,7 +3,6 @@
     "private": true,
     "scripts": {
         "examples": "docusaurus-examples",
-        "postinstall": "pnpm exec patch-package || true",
         "start": "rimraf .docusaurus && docusaurus start",
         "start:fast": "rimraf .docusaurus && CRAWLEE_DOCS_FAST=1 docusaurus start",
         "build": "rimraf .docusaurus && NODE_OPTIONS=--max-old-space-size=16000 docusaurus build",
@@ -29,7 +28,6 @@
         "eslint-plugin-react": "^7.32.2",
         "eslint-plugin-react-hooks": "^7.0.0",
         "fs-extra": "^11.1.0",
-        "patch-package": "^8.0.0",
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^6.0.0",

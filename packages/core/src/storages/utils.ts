@@ -90,7 +90,7 @@ export async function useState<State extends Dictionary = Dictionary>(
     defaultValue = {} as State,
     options?: UseStateOptions,
 ) {
-    const kvStore = await KeyValueStore.open(options?.keyValueStoreName, {
+    const kvStore = await KeyValueStore.open(options?.keyValueStoreName ? { name: options.keyValueStoreName } : null, {
         config: options?.config || serviceLocator.getConfiguration(),
     });
     return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
