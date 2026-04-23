@@ -23,42 +23,43 @@ export interface IStorage {
     name?: string;
 }
 
-type ClientOpener = () => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
+type StorageTypeName = 'Dataset' | 'KeyValueStore' | 'RequestQueue';
+type ClientOpener = (resolved: StorageIdentifier) => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
 type Hashable = string;
+
+/** Reserved alias for the default (unnamed) storage. */
+const DEFAULT_STORAGE_ALIAS = '__default__';
 
 // ---------------------------------------------------------------------------
 // Storage cache
 // ---------------------------------------------------------------------------
 
+type CacheTier = Map<Constructor<IStorage>, Map<string, Map<Hashable, IStorage>>>;
+
 /**
- * Two-tier cache for storage instances, keyed by `[storageClass][identifier][clientCacheKey]`.
+ * Three-tier cache for storage instances, modelled after crawlee-python's `_StorageCache`.
  *
- * Modelled after crawlee-python's `_StorageCache`, minus the `by_alias` tier
- * (aliases will be introduced separately).
+ * Each tier maps `[storageClass][key][clientCacheKey] → instance`:
+ *   - `byId`    — keyed by the backend-assigned storage id
+ *   - `byName`  — keyed by the persistent storage name
+ *   - `byAlias` — keyed by a run-scoped alias (e.g. `'__default__'` for unnamed storages)
  */
 class StorageCache {
-    /** `storageClass → id → clientCacheKey → instance` */
-    readonly byId = new Map<Constructor<IStorage>, Map<string, Map<Hashable, IStorage>>>();
-
-    /** `storageClass → name → clientCacheKey → instance` */
-    readonly byName = new Map<Constructor<IStorage>, Map<string, Map<Hashable, IStorage>>>();
+    readonly byId: CacheTier = new Map();
+    readonly byName: CacheTier = new Map();
+    readonly byAlias: CacheTier = new Map();
 
     get<T extends IStorage>(
         cls: Constructor<T>,
-        { id, name, clientCacheKey }: { id?: string; name?: string; clientCacheKey: Hashable },
+        { id, name, alias, clientCacheKey }: { id?: string; name?: string; alias?: string; clientCacheKey: Hashable },
     ): T | undefined {
-        if (id !== undefined) {
-            const cached = this.byId.get(cls)?.get(id)?.get(clientCacheKey);
-            if (cached) {
-                if (cached instanceof (cls as unknown as abstract new (...args: any[]) => any)) {
-                    return cached as T;
-                }
-                throw new Error('Cached storage instance type mismatch.');
-            }
-        }
-
-        if (name !== undefined) {
-            const cached = this.byName.get(cls)?.get(name)?.get(clientCacheKey);
+        for (const [tier, key] of [
+            [this.byId, id],
+            [this.byName, name],
+            [this.byAlias, alias],
+        ] as [CacheTier, string | undefined][]) {
+            if (key === undefined) continue;
+            const cached = tier.get(cls)?.get(key)?.get(clientCacheKey);
             if (cached) {
                 if (cached instanceof (cls as unknown as abstract new (...args: any[]) => any)) {
                     return cached as T;
@@ -70,47 +71,51 @@ class StorageCache {
         return undefined;
     }
 
-    set<T extends IStorage>(cls: Constructor<T>, instance: T, clientCacheKey: Hashable): void {
-        // by id — always cache
-        if (!this.byId.has(cls)) this.byId.set(cls, new Map());
-        const idMap = this.byId.get(cls)!;
-        if (!idMap.has(instance.id)) idMap.set(instance.id, new Map());
-        idMap.get(instance.id)!.set(clientCacheKey, instance);
+    /** Write a single entry into a given tier. */
+    setInMap<T extends IStorage>(
+        tier: CacheTier,
+        cls: Constructor<T>,
+        key: string,
+        instance: T,
+        clientCacheKey: Hashable,
+    ): void {
+        if (!tier.has(cls)) tier.set(cls, new Map());
+        const keyMap = tier.get(cls)!;
+        if (!keyMap.has(key)) keyMap.set(key, new Map());
+        keyMap.get(key)!.set(clientCacheKey, instance);
+    }
 
-        // by name — only if named
+    /**
+     * Cache an instance under its actual id, name, and an optional alias.
+     */
+    set<T extends IStorage>(cls: Constructor<T>, instance: T, clientCacheKey: Hashable, alias?: string): void {
+        // Always cache by id.
+        this.setInMap(this.byId, cls, instance.id, instance, clientCacheKey);
+
+        // Cache by name — only for named storages.
         if (instance.name) {
-            if (!this.byName.has(cls)) this.byName.set(cls, new Map());
-            const nameMap = this.byName.get(cls)!;
-            if (!nameMap.has(instance.name)) nameMap.set(instance.name, new Map());
-            nameMap.get(instance.name)!.set(clientCacheKey, instance);
+            this.setInMap(this.byName, cls, instance.name, instance, clientCacheKey);
+        }
+
+        // Cache by alias — only for unnamed storages opened via alias.
+        if (alias !== undefined) {
+            this.setInMap(this.byAlias, cls, alias, instance, clientCacheKey);
         }
     }
 
     removeFromCache(instance: IStorage): void {
         const storageType = instance.constructor as Constructor<IStorage>;
 
-        // Remove from ID cache — remove all entries matching this exact instance
-        // (there may be multiple clientCacheKey entries for the same instance).
-        const idKeyMap = this.byId.get(storageType)?.get(instance.id);
-        if (idKeyMap) {
-            for (const [key, cached] of idKeyMap) {
-                if (cached === instance) {
-                    idKeyMap.delete(key);
-                }
-            }
-            if (idKeyMap.size === 0) this.byId.get(storageType)!.delete(instance.id);
-        }
+        for (const tier of [this.byId, this.byName, this.byAlias]) {
+            const classMap = tier.get(storageType);
+            if (!classMap) continue;
 
-        // Remove from name cache
-        if (instance.name) {
-            const nameKeyMap = this.byName.get(storageType)?.get(instance.name);
-            if (nameKeyMap) {
-                for (const [key, cached] of nameKeyMap) {
+            for (const keyMap of classMap.values()) {
+                for (const [cacheKey, cached] of keyMap) {
                     if (cached === instance) {
-                        nameKeyMap.delete(key);
+                        keyMap.delete(cacheKey);
                     }
                 }
-                if (nameKeyMap.size === 0) this.byName.get(storageType)!.delete(instance.name);
             }
         }
     }
@@ -133,56 +138,55 @@ class StorageCache {
     clear(): void {
         this.byId.clear();
         this.byName.clear();
+        this.byAlias.clear();
     }
 }
 
 // ---------------------------------------------------------------------------
-// Identifier resolution (called by storage open() methods before the manager)
+// Identifier resolution
 // ---------------------------------------------------------------------------
-
-const DEFAULT_ID_CONFIG_KEYS = {
-    Dataset: 'defaultDatasetId',
-    KeyValueStore: 'defaultKeyValueStoreId',
-    RequestQueue: 'defaultRequestQueueId',
-} as const;
 
 /**
  * Resolves a user-provided identifier to an unambiguous `{ id?, name? }` object.
  *
- * - `null`/`undefined` → uses the default storage ID from config
- * - `StorageIdentifier` object → passed through (with default ID fallback if empty)
+ * Only called when the caller provided an explicit id, name, or string —
+ * default (unnamed) storages use the alias tier instead.
+ *
+ * - `StorageIdentifier` object → passed through
  * - `string` → tries to find an existing storage with that ID first;
  *   if none exists, treats the string as a name
- *
- * This is called by `Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()`
- * before delegating to `StorageInstanceManager.openStorage()`.
  */
-export async function resolveStorageIdentifier(
-    storageTypeName: string,
-    identifier: string | StorageIdentifier | null | undefined,
+async function resolveStorageIdentifier(
+    identifier: string | StorageIdentifier,
     client: StorageClient,
-    config: Configuration,
 ): Promise<StorageIdentifier> {
     if (typeof identifier === 'string') {
-        if (client.storageExists && (await client.storageExists(identifier, storageTypeName as any))) {
+        if (client.storageExists && (await client.storageExists(identifier, 'Dataset'))) {
             return { id: identifier };
         }
         return { name: identifier };
     }
 
-    if (identifier?.id) {
+    if (identifier.id) {
         return { id: identifier.id };
     }
 
-    if (identifier?.name) {
+    if (identifier.name) {
         return { name: identifier.name };
     }
 
-    const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[storageTypeName];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config key is dynamically determined
-    const defaultId = config.get(defaultIdConfigKey as any) as string;
+    // Empty object — shouldn't happen (callers should use alias for defaults), but handle gracefully.
+    return {};
+}
 
-    return { id: defaultId };
+/**
+ * Compute a stable lock key from the raw user-provided identifier.
+ */
+function rawIdentifierKey(identifier: string | StorageIdentifier | null): string {
+    if (typeof identifier === 'string') return identifier;
+    if (identifier?.id) return identifier.id;
+    if (identifier?.name) return identifier.name;
+    return DEFAULT_STORAGE_ALIAS;
 }
 
 // ---------------------------------------------------------------------------
@@ -192,64 +196,100 @@ export async function resolveStorageIdentifier(
 /**
  * Unified manager for opening and caching storage instances (Dataset, KeyValueStore, RequestQueue).
  *
- * Modelled after crawlee-python's `StorageInstanceManager`. A single instance manages all storage
- * types. Instances are cached by `(storageClass, id/name, clientCacheKey)` so the same storage
- * is never opened twice.
+ * A single instance manages all storage types. Instances are cached by
+ * `(storageClass, id/name/alias, clientCacheKey)` so the same storage is never opened twice.
  *
- * The manager is stateless — it has no configuration dependency. Identifier resolution
- * (default IDs, string-to-id/name disambiguation) is handled by the caller before
- * calling `openStorage()`.
+ * Modelled after crawlee-python's `StorageInstanceManager`. When no identifier is provided,
+ * the storage is cached under the reserved alias `'__default__'` rather than resolving to a
+ * config-based default ID. This avoids mismatches when the backend assigns a different ID
+ * (e.g. a UUID) than the logical identifier used to open the storage.
  *
  * @ignore
  */
 export class StorageInstanceManager {
-    private readonly _cache = new StorageCache();
-    private readonly _openerLocks = new Map<string, AsyncQueue>();
+    private readonly cache = new StorageCache();
+    private readonly openerLocks = new Map<string, AsyncQueue>();
 
     /**
      * Open (or retrieve from cache) a storage instance.
      *
-     * @param cls             The storage class constructor (e.g. `Dataset`, `KeyValueStore`, `RequestQueue`).
-     * @param id              Storage ID (already resolved by the caller).
-     * @param name            Storage name (already resolved by the caller).
-     * @param clientOpener    A **lazy** factory function that creates the sub-client. It will only be
-     *                        called on a cache miss. This follows the coroutine-as-parameter pattern
-     *                        from crawlee-python.
-     * @param clientCacheKey  Opaque key identifying the storage backend, so that the same logical
-     *                        storage opened through different clients is cached separately.
+     * @param cls               The storage class constructor (e.g. `Dataset`, `KeyValueStore`, `RequestQueue`).
+     * @param storageTypeName   `'Dataset' | 'KeyValueStore' | 'RequestQueue'` — used for identifier resolution.
+     * @param identifier        The raw user-provided identifier (string, `{ id }`, `{ name }`, or null/undefined).
+     * @param client            The storage client to use.
+     * @param config            SDK configuration (for default storage IDs).
+     * @param clientOpener      A **lazy** factory that creates the sub-client from a resolved identifier.
+     *                          Only called on a cache miss.
+     * @param clientCacheKey    Opaque key identifying the storage backend, so that the same logical
+     *                          storage opened through different clients is cached separately.
      */
     async openStorage<T extends IStorage>(
         cls: Constructor<T>,
         {
-            id,
-            name,
+            storageTypeName,
+            identifier,
+            client,
+            config,
             clientOpener,
             clientCacheKey,
-        }: StorageIdentifier & {
+        }: {
+            storageTypeName: StorageTypeName;
+            identifier: string | StorageIdentifier | null;
+            client: StorageClient;
+            config: Configuration;
             clientOpener: ClientOpener;
             clientCacheKey: Hashable;
         },
     ): Promise<T> {
-        // Fast path: check cache without lock.
-        const cached = this._cache.get(cls, { id, name, clientCacheKey });
-        if (cached) return cached;
+        // Determine whether this is an alias lookup (no explicit id/name) or a direct id/name lookup.
+        const isDefaultStorage = identifier === null || identifier === undefined;
+        const isEmptyIdentifier =
+            !isDefaultStorage && typeof identifier === 'object' && !identifier.id && !identifier.name;
+        const alias = isDefaultStorage || isEmptyIdentifier ? DEFAULT_STORAGE_ALIAS : undefined;
 
-        // Build a per-(class, identifier, clientCacheKey) lock key.
-        const lockKey = `${cls.name}:${id ?? ''}:${name ?? ''}:${clientCacheKey}`;
-
-        if (!this._openerLocks.has(lockKey)) {
-            this._openerLocks.set(lockKey, new AsyncQueue());
+        // Fast-path cache check (no lock).
+        if (alias !== undefined) {
+            const cached = this.cache.get(cls, { alias, clientCacheKey });
+            if (cached) return cached;
+        } else if (typeof identifier !== 'string') {
+            // StorageIdentifier with id or name — can resolve synchronously.
+            const cached = this.cache.get(cls, {
+                id: (identifier as StorageIdentifier).id,
+                name: (identifier as StorageIdentifier).name,
+                clientCacheKey,
+            });
+            if (cached) return cached;
         }
-        const queue = this._openerLocks.get(lockKey)!;
+
+        const identifierKey = rawIdentifierKey(identifier);
+        const lockKey = `${cls.name}:${identifierKey}:${clientCacheKey}`;
+
+        if (!this.openerLocks.has(lockKey)) {
+            this.openerLocks.set(lockKey, new AsyncQueue());
+        }
+        const queue = this.openerLocks.get(lockKey)!;
 
         await queue.wait();
         try {
-            // Double-check after acquiring lock.
-            const cachedAfterLock = this._cache.get(cls, { id, name, clientCacheKey });
-            if (cachedAfterLock) return cachedAfterLock;
+            // Resolve the identifier to pass to the client opener.
+            let resolved: StorageIdentifier;
+            if (alias !== undefined) {
+                // Default storage — resolve from config.
+                resolved = this.getDefaultStorageIdentifier(storageTypeName, config);
+
+                // Double-check cache under alias (another caller may have filled it while we waited).
+                const cached = this.cache.get(cls, { alias, clientCacheKey });
+                if (cached) return cached;
+            } else {
+                resolved = await resolveStorageIdentifier(identifier!, client);
+
+                // Double-check cache under the resolved id/name.
+                const cached = this.cache.get(cls, { ...resolved, clientCacheKey });
+                if (cached) return cached;
+            }
 
             // Cache miss — create the sub-client and storage instance.
-            const subClient = await clientOpener();
+            const subClient = await clientOpener(resolved);
             const storageInfo = await (
                 subClient as DatasetClient | KeyValueStoreClient | RequestQueueClient
             ).getMetadata();
@@ -264,7 +304,7 @@ export class StorageInstanceManager {
             ) as T;
 
             // Atomic cache writes (no awaits between these).
-            this._cache.set(cls, instance, clientCacheKey);
+            this.cache.set(cls, instance, clientCacheKey, alias);
 
             return instance;
         } finally {
@@ -273,7 +313,7 @@ export class StorageInstanceManager {
             // Clean up idle locks so the map doesn't grow unboundedly
             // (mirrors crawlee-python's WeakValueDictionary behaviour).
             if (queue.remaining === 0) {
-                this._openerLocks.delete(lockKey);
+                this.openerLocks.delete(lockKey);
             }
         }
     }
@@ -282,14 +322,14 @@ export class StorageInstanceManager {
      * Remove a storage instance from the cache (called from `storage.drop()`).
      */
     removeFromCache(instance: IStorage): void {
-        this._cache.removeFromCache(instance);
+        this.cache.removeFromCache(instance);
     }
 
     /**
      * Clear the entire cache. Called during service locator reset.
      */
     clearCache(): void {
-        this._cache.clear();
+        this.cache.clear();
     }
 
     /**
@@ -298,7 +338,21 @@ export class StorageInstanceManager {
      * without importing the KeyValueStore class (avoids circular dependencies).
      */
     *getAllInstances(): IterableIterator<IStorage> {
-        yield* this._cache.allValues();
+        yield* this.cache.allValues();
+    }
+
+    /**
+     * Get the default storage identifier from configuration.
+     */
+    private getDefaultStorageIdentifier(storageTypeName: StorageTypeName, config: Configuration): StorageIdentifier {
+        switch (storageTypeName) {
+            case 'Dataset':
+                return { id: config.get('defaultDatasetId') as string };
+            case 'KeyValueStore':
+                return { id: config.get('defaultKeyValueStoreId') as string };
+            case 'RequestQueue':
+                return { id: config.get('defaultRequestQueueId') as string };
+        }
     }
 }
 

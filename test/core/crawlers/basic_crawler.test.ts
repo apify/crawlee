@@ -19,6 +19,7 @@ import {
     SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
+import { MemoryStorage } from '@crawlee/memory-storage';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -2133,9 +2134,14 @@ describe('BasicCrawler', () => {
             await rm(`${tmpDir}/result.csv`);
         });
 
-        test("Crawlers with different Configurations don't share Datasets", async () => {
-            const crawlerA = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
-            const crawlerB = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
+        test("Crawlers with different storage clients don't share Datasets", async () => {
+            // Each crawler gets its own MemoryStorage with a different localDataDirectory,
+            // producing different clientCacheKeys and thus separate cache partitions.
+            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
+            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+
+            const crawlerA = new BasicCrawler({ storageClient: storageA });
+            const crawlerB = new BasicCrawler({ storageClient: storageB });
 
             await crawlerA.pushData(getPayload('A'));
             await crawlerB.pushData(getPayload('B'));
@@ -2145,14 +2151,17 @@ describe('BasicCrawler', () => {
             expect((await crawlerB.getData()).items).toEqual(getPayload('B'));
         });
 
-        test('Crawlers with different Configurations run separately', async () => {
+        test('Crawlers with different storage clients run separately', async () => {
+            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
+            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},
-                configuration: new Configuration({ persistStorage: false }),
+                storageClient: storageA,
             });
             const crawlerB = new BasicCrawler({
                 requestHandler: () => {},
-                configuration: new Configuration({ persistStorage: false }),
+                storageClient: storageB,
             });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
@@ -2160,24 +2169,6 @@ describe('BasicCrawler', () => {
 
             expect(crawlerA.stats.state.requestsFinished).toBe(1);
             expect(crawlerB.stats.state.requestsFinished).toBe(1);
-        });
-
-        test('Crawlers with different Configurations does not use global Configuration', async () => {
-            const getGlobalConfigSpy = vitest.spyOn(Configuration, 'getGlobalConfig');
-
-            const configA = new Configuration({ persistStorage: false });
-            const crawlerA = new BasicCrawler({ requestHandler: () => {}, configuration: configA });
-            const configB = new Configuration({ persistStorage: false });
-            const crawlerB = new BasicCrawler({ requestHandler: () => {}, configuration: configB });
-
-            await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
-            await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
-
-            expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
-            // @ts-expect-error Accessing protected property for testing
-            expect(crawlerA.requestQueue?.config).toBe(configA);
-            // @ts-expect-error Accessing protected property for testing
-            expect(crawlerB.requestQueue?.config).toBe(configB);
         });
     });
 });

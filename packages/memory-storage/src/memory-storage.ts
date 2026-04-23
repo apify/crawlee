@@ -93,6 +93,16 @@ export class MemoryStorage implements storage.StorageClient {
                 : true);
     }
 
+    /**
+     * Return a cache key that includes the resolved storage directory, so that
+     * two `MemoryStorage` instances pointing at different directories get separate
+     * cache partitions. Mirrors crawlee-python's `FileSystemStorageClient` which
+     * includes `configuration.storage_dir` in its cache key.
+     */
+    getStorageClientCacheKey(): string {
+        return `MemoryStorage:${resolve(this.localDataDirectory)}`;
+    }
+
     async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
         // In MemoryStorage, both id and name resolve to the same directory name.
         const name = options.name ?? options.id;
