@@ -130,7 +130,7 @@ const crawler = new BasicCrawler({
 
 The `tieredProxyUrls` option (along with `ProxyConfiguration.reportProxyError`, the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`) has been removed. The feature saw little adoption and the tier rotation bled into APIs that otherwise had no business knowing about proxy tiers. In v4 the `Session` is the main rotation unit — a session already carries its own proxy, cookies and error score, so the pool naturally rotates the whole fingerprint when a session gets retired on a block.
 
-If you need per-session proxy assignment, use a custom `createSessionFunction` on the `SessionPool` to stamp each `Session` with its own proxy URL. Retire the session on error so the pool creates a fresh one (with a fresh proxy draw) for the next request. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
+If you need per-session proxy assignment, use a custom `createSessionFunction` on the `SessionPool` to stamp each `Session` with its own proxy URL. With `retryOnBlocked` enabled, blocked sessions are already retired for you — but `request.sessionId` (the pin that decides which session handles a given request) is not cleared automatically, so on the retry the crawler would try to fetch the now-missing session. Reassign it from an `errorHandler` to hand the retry over to a freshly drawn session (and, implicitly, a new proxy). Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
 
 ```typescript
 import { BasicCrawler, Session, SessionPool } from '@crawlee/core';
@@ -157,14 +157,17 @@ const sessionPool = new SessionPool({
 
 const crawler = new BasicCrawler({
     sessionPool,
-    requestHandler: async ({ request, session, sendRequest }) => {
-        const response = await sendRequest({ url: request.url });
-        if (response.status === 403) session!.retire();
+    retryOnBlocked: true,
+    requestHandler: async ({ request, sendRequest }) => {
+        await sendRequest({ url: request.url });
+    },
+    errorHandler: async ({ request }) => {
+        request.sessionId = (await sessionPool.getSession()).id;
     },
 });
 ```
 
-Any further tier/priority logic (weighted draws, sticky assignment, cooldown on failing pools, etc.) now lives in `createSessionFunction` rather than in `ProxyConfiguration`, where you have full control over it.
+Any further tier/priority logic (weighted draws, sticky assignment, cooldown on failing pools, etc.) now lives in `createSessionFunction` and the `request.sessionId` reassignment rather than in `ProxyConfiguration`, where you have full control over it.
 
 ## Remove `experimentalContainers` option
 
