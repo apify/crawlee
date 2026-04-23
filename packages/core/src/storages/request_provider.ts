@@ -884,7 +884,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             client,
             options.config ?? serviceLocator.getConfiguration(),
         );
-        const clientCacheKey = client.getStorageClientCacheKey?.() ?? '';
+        const clientCacheKey = client.getStorageClientCacheKey?.() ?? client.constructor.name;
 
         const queue = await serviceLocator
             .getStorageInstanceManager()

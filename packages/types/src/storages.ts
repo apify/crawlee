@@ -387,8 +387,8 @@ export interface StorageClient {
      * so that the same logical storage opened through different `StorageClient` instances
      * is cached separately (e.g. filesystem vs. cloud).
      *
-     * The default implementation (when this method is not provided) uses an empty string,
-     * meaning all instances of the same `StorageClient` class share a single cache partition.
+     * When not provided, the fallback uses the client's constructor name, so different
+     * `StorageClient` implementations automatically get separate cache partitions.
      */
     getStorageClientCacheKey?(): string;
     purge?(): Promise<void>;

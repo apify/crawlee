@@ -616,7 +616,7 @@ export class KeyValueStore {
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
         const resolved = await resolveStorageIdentifier('KeyValueStore', identifier, client, options.config);
-        const clientCacheKey = client.getStorageClientCacheKey?.() ?? '';
+        const clientCacheKey = client.getStorageClientCacheKey?.() ?? client.constructor.name;
 
         return serviceLocator.getStorageInstanceManager().openStorage<KeyValueStore>(this, {
             ...resolved,

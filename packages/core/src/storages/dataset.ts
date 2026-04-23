@@ -720,7 +720,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
         const resolved = await resolveStorageIdentifier('Dataset', identifier, client, options.config);
-        const clientCacheKey = client.getStorageClientCacheKey?.() ?? '';
+        const clientCacheKey = client.getStorageClientCacheKey?.() ?? client.constructor.name;
 
         return serviceLocator.getStorageInstanceManager().openStorage<Dataset<Data>>(this, {
             ...resolved,
