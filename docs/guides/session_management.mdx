@@ -24,8 +24,8 @@ The main benefit of using Session pool is that we can filter out blocked or non-
 so our actor does not retry requests over known blocked/non-working proxies.
 Another benefit of using SessionPool is that we can store information tied tightly to an IP address,
 such as cookies, auth tokens, and particular headers. Having our cookies and other identifiers used only with a specific IP will reduce the chance of being blocked.
-The last but not least benefit is the even rotation of IP addresses - SessionPool  picks the session randomly,
-which should prevent burning out a small pool of available IPs.
+The last but not least benefit is the even rotation of IP addresses - by default, SessionPool picks sessions randomly,
+which should prevent burning out a small pool of available IPs. The selection strategy is configurable — see below.
 
 Check out the [avoid blocking guide](./avoid-blocking) for more information about blocking.
 
@@ -79,3 +79,19 @@ Now let's take a look at the examples of how to use Session pool:
 These are the basics of configuring SessionPool.
 Please, bear in mind that a Session pool needs time to find working IPs and build up the pool,
 so we will probably see a lot of errors until it becomes stabilized.
+
+## Session reuse strategy
+
+The `sessionReuseStrategy` option controls how sessions are picked from the pool. Three strategies are available:
+
+**`random`** (default) — the pool fills up to `maxPoolSize` by creating a new session for every request, then picks randomly from the available sessions. Best for maximising fingerprint and IP diversity.
+
+**`round-robin`** — like `random`, the pool fills up to `maxPoolSize` first, then cycles through the sessions in order instead of picking randomly. Best when you want even load distribution across sessions, for example when combined with `maxUsageCount` to ensure all sessions expire at roughly the same time.
+
+**`use-until-failure`** — the same session is returned on every call until it is retired, then the next available one is used. Best for proxy session stickiness, where you want to keep the same IP for as long as possible before rotating.
+
+```js
+const sessionPool = new SessionPool({
+    sessionReuseStrategy: 'use-until-failure',
+});
+```
