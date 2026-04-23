@@ -99,33 +99,6 @@ The `sessionId` parameter is always provided and allows us to differentiate betw
 
 The `options` parameter is an object containing a <ApiLink to="core/class/Request">`Request`</ApiLink>, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly. Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
 
-### Tiered proxies
-
-You can also provide a list of proxy tiers to the `ProxyConfiguration` class. This is useful when you want to switch between different proxies automatically based on the blocking behavior of the website.
-
-:::warning
-
-Note that the `tieredProxyUrls` option requires `ProxyConfiguration` to be used from a crawler instance ([see below](#crawler-integration)).
-
-Using this configuration through the `newUrl` calls will not yield the expected results.
-
-:::
-
-```javascript
-const proxyConfiguration = new ProxyConfiguration({
-    tieredProxyUrls: [
-        [null], // At first, we try to connect without a proxy
-        ['http://okay-proxy.com'],
-        ['http://slightly-better-proxy.com', 'http://slightly-better-proxy-2.com'],
-        ['http://very-good-and-expensive-proxy.com'],
-    ]
-});
-```
-
-This configuration will start with no proxy, then switch to `http://okay-proxy.com` if Crawlee recognizes we're getting blocked by the target website. If that proxy is also blocked, we will switch to one of the `slightly-better-proxy` URLs. If those are blocked, we will switch to the `very-good-and-expensive-proxy.com` URL.
-
-Crawlee also periodically probes lower tier proxies to see if they are unblocked, and if they are, it will switch back to them.
-
 ## Crawler integration
 
 `ProxyConfiguration` integrates seamlessly into <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink>, <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.

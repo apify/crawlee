@@ -461,7 +461,6 @@ export abstract class BrowserCrawler<
             const proxyInfo = crawlingContext.session.proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
-            newPageOptions.proxyTier = proxyInfo?.proxyTier;
             newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
         }
 
