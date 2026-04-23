@@ -9,7 +9,7 @@ import {
     launchPuppeteer,
     RequestQueue,
 } from '@crawlee/puppeteer';
-import { RobotsTxtFile, type CheerioRoot } from '@crawlee/utils';
+import { type CheerioRoot, RobotsTxtFile } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
