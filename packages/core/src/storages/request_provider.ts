@@ -873,7 +873,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             }),
         );
 
-        const client = (options.storageClient ??= serviceLocator.getStorageClient());
+        const client = options.storageClient ?? serviceLocator.getStorageClient();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 

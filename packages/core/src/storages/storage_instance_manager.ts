@@ -140,11 +140,11 @@ class StorageCache {
 // Identifier resolution (called by storage open() methods before the manager)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_ID_CONFIG_KEYS: Record<string, string> = {
+const DEFAULT_ID_CONFIG_KEYS = {
     Dataset: 'defaultDatasetId',
     KeyValueStore: 'defaultKeyValueStoreId',
     RequestQueue: 'defaultRequestQueueId',
-};
+} as const;
 
 /**
  * Resolves a user-provided identifier to an unambiguous `{ id?, name? }` object.
