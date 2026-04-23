@@ -119,6 +119,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
     private initialCount = 0;
     private initialHandledCount = 0; // We track this separately from `assumedHandledCount` which is used non-trivially by RequestQueueV1
+    private isInitialized = false;
 
     protected queueHeadIds = new ListDictionary<string>();
     protected requestCache: LruCache<RequestLruItem>;
@@ -893,23 +894,26 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 clientCacheKey,
             });
         queue.proxyConfiguration = options.proxyConfiguration;
-
-        // Re-create the request queue client with clientKey and timeoutSecs so that
-        // request locking works correctly for API-backed implementations.
-        // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
-        // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
-        // where locking is handled internally by the client (see crawlee-python PR #1194).
-        queue.client = await client.createRequestQueueClient({
-            id: queue.id,
-            clientKey: queue.clientKey,
-            timeoutSecs: queue.timeoutSecs,
-        });
-
-        const queueInfo = await queue.client.getMetadata();
-
-        queue.initialCount = queueInfo.totalRequestCount;
-        queue.initialHandledCount = queueInfo.handledRequestCount;
         queue.httpClient = options.httpClient;
+
+        if (!queue.isInitialized) {
+            // Re-create the request queue client with clientKey and timeoutSecs so that
+            // request locking works correctly for API-backed implementations.
+            // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
+            // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
+            // where locking is handled internally by the client (see crawlee-python PR #1194).
+            queue.client = await client.createRequestQueueClient({
+                id: queue.id,
+                clientKey: queue.clientKey,
+                timeoutSecs: queue.timeoutSecs,
+            });
+
+            const queueInfo = await queue.client.getMetadata();
+
+            queue.initialCount = queueInfo.totalRequestCount;
+            queue.initialHandledCount = queueInfo.handledRequestCount;
+            queue.isInitialized = true;
+        }
 
         return queue;
     }
