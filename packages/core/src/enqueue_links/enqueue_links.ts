@@ -183,6 +183,13 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
 
     /**
+     * Mirrors {@apilink BasicCrawlerOptions.respectRobotsTxtFile}: pass `false` to disable filtering or
+     * `{ userAgent }` to evaluate rules for a specific user-agent. Defaults to `*` when
+     * {@apilink EnqueueLinksOptions.robotsTxtFile|`robotsTxtFile`} is provided.
+     */
+    respectRobotsTxtFile?: boolean | { userAgent?: string };
+
+    /**
      * When a request is skipped for some reason, you can use this callback to act on it.
      * This is currently fired for requests skipped
      * 1. based on robots.txt file,
@@ -296,6 +303,7 @@ export async function enqueueLinks(
             urls: ow.array.ofType(ow.string),
             requestQueue: ow.object.hasKeys('addRequestsBatched'),
             robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
+            respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object.exactShape({ userAgent: ow.optional.string })),
             onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
@@ -422,11 +430,13 @@ export async function enqueueLinks(
 
     let requestOptions = createRequestOptions(urls, options);
 
-    if (robotsTxtFile) {
+    if (robotsTxtFile && options.respectRobotsTxtFile !== false) {
+        const robotsUserAgent =
+            typeof options.respectRobotsTxtFile === 'object' ? (options.respectRobotsTxtFile.userAgent ?? '*') : '*';
         const skippedRequests: RequestOptions[] = [];
 
         requestOptions = requestOptions.filter((request) => {
-            if (robotsTxtFile.isAllowed(request.url)) {
+            if (robotsTxtFile.isAllowed(request.url, robotsUserAgent)) {
                 return true;
             }
 

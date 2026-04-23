@@ -1,4 +1,5 @@
 import { type AddRequestsBatchedOptions, cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
+import { enqueueLinks } from '@crawlee/core';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
 import {
@@ -8,7 +9,7 @@ import {
     launchPuppeteer,
     RequestQueue,
 } from '@crawlee/puppeteer';
-import { type CheerioRoot } from '@crawlee/utils';
+import { type CheerioRoot, RobotsTxtFile } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
@@ -1025,6 +1026,64 @@ describe('enqueueLinks()', () => {
             for (let i = 0; i < 5; i++) {
                 expect(enqueued[i].options!.waitForAllRequestsToBeAdded).toBe(true);
             }
+        });
+    });
+
+    describe('respectRobotsTxtFile option', () => {
+        const robotsTxtFile = RobotsTxtFile.from(
+            'http://example.com/robots.txt',
+            `User-agent: *
+             Disallow: /
+             Allow: /yes
+
+             User-agent: MyCrawler
+             Disallow: /no
+             Allow: /my-crawler
+            `,
+        );
+
+        const urls = [
+            'http://example.com/yes',
+            'http://example.com/no',
+            'http://example.com/no-globally',
+            'http://example.com/my-crawler/anything',
+        ];
+
+        test('defaults to the catch-all user-agent when not provided', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+
+            await enqueueLinks({ urls, requestQueue, robotsTxtFile });
+
+            expect(enqueued.map((r) => r.url)).toEqual(['http://example.com/yes']);
+        });
+
+        test('applies rules for the configured user-agent', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+
+            await enqueueLinks({
+                urls,
+                requestQueue,
+                robotsTxtFile,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+            });
+
+            expect(enqueued.map((r) => r.url)).toEqual([
+                'http://example.com/yes',
+                'http://example.com/my-crawler/anything',
+            ]);
+        });
+
+        test('skips filtering when set to false even if robotsTxtFile is provided', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+
+            await enqueueLinks({
+                urls,
+                requestQueue,
+                robotsTxtFile,
+                respectRobotsTxtFile: false,
+            });
+
+            expect(enqueued.map((r) => r.url)).toEqual(urls);
         });
     });
 });

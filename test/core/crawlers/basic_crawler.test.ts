@@ -1722,6 +1722,79 @@ describe('BasicCrawler', () => {
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
         });
 
+        test('enqueueLinks should respect custom user-agent robots.txt rules', async () => {
+            const requestQueue = await RequestQueue.open();
+            const visitedUrls: string[] = [];
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from(
+                        'http://example.com/robots.txt',
+                        `User-agent: *
+                         Disallow: /
+                         Allow: /yes
+
+                         User-agent: MyCrawler
+                         Disallow: /no
+                         Allow: /my-crawler
+                        `,
+                    );
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+                requestHandler: async (context) => {
+                    visitedUrls.push(context.request.url);
+
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: [
+                            'http://example.com/yes',
+                            'http://example.com/no',
+                            'http://example.com/no-globally',
+                            'http://example.com/my-crawler/anything',
+                        ],
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(visitedUrls).toEqual([
+                'http://example.com/start',
+                'http://example.com/yes',
+                'http://example.com/my-crawler/anything',
+            ]);
+        });
+
+        test('enqueueLinks forwards respectRobotsTxtFile.userAgent to the robots.txt check', async () => {
+            const requestQueue = await RequestQueue.open();
+            const isAllowedSpy = vitest.fn(() => true);
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+                requestHandler: async (context) => {
+                    if (context.request.label) return;
+                    await context.enqueueLinks({ urls: ['http://example.com/child'], label: 'child' });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(isAllowedSpy).toHaveBeenCalledWith('http://example.com/child', 'MyCrawler');
+        });
+
         test('enqueueLinks should respect maxRequestsPerCrawl', async () => {
             const requestQueue = await RequestQueue.open();
             const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');

@@ -1734,6 +1734,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return enqueueLinks({
             requestQueue,
             robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
+            respectRobotsTxtFile: this.respectRobotsTxtFile,
             onSkippedRequest,
             limit: this.calculateEnqueuedRequestLimit(options.limit),
 
