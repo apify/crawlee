@@ -3,6 +3,7 @@ Release of new versions is managed by GitHub Actions. On pushes to the `master` 
 are automatically produced. Latest releases are triggered manually through the GitHub release tool.
 After creating a release there, Actions will automatically produce a latest version of the package.
 
+
 ## TLDR;
 - To **NOT** release anything on a push to `master`, add `[skip ci]` to your commit message.
 - To release `beta`, just push to `master`. If it breaks with a `Version already exists error` increment version
