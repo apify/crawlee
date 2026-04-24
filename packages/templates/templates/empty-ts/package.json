@@ -4,6 +4,7 @@
     "type": "module",
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
+        "@crawlee/impit-client": "^3.0.0",
         "crawlee": "^3.0.0"
     },
     "devDependencies": {
