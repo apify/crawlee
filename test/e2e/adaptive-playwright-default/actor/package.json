@@ -21,7 +21,7 @@
             "@crawlee/utils": "file:./packages/utils"
         },
         "@apify/storage-local": {
-            "better-sqlite3": "^11.10.0"
+            "better-sqlite3": "^12.2.0"
         }
     },
     "scripts": {
