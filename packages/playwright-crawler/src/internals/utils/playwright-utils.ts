@@ -1067,22 +1067,17 @@ export interface PlaywrightContextUtils {
      * A list of {@link https://playwright.dev/docs/api/class-download | Download} objects
      * triggered during the current page navigation.
      *
-     * Playwright intercepts downloads before they complete, so the objects are available
-     * as soon as the browser starts the download — including inside `errorHandler` when
-     * `page.goto` throws `"Download is starting"`.
-     *
-     * > **Note:** Playwright saves download data to a temporary file on disk. For very large
-     * > files this may be a concern; prefer re-enqueueing the URL to a streaming downloader
-     * > when file size is unpredictable.
+     * Useful for accessing files that the page downloads automatically during navigation.
+     * For most use cases, prefer re-enqueueing the URL to {@apilink FileDownload}.
+     * Use this only when direct access to the Playwright `Download` object is required.
      *
      * **Example usage**
      * ```ts
-     * errorHandler: async ({ downloads, request }, error) => {
-     *     if (error.message.includes('Download is starting')) {
-     *         for (const download of downloads) {
-     *             const stream = await download.createReadStream();
-     *             // stream to storage...
-     *         }
+     * requestHandler: async ({ downloads }) => {
+     *     for (const download of downloads) {
+     *         const stream = await download.createReadStream();
+     *         if (!stream) continue; // download failed or was cancelled
+     *         // stream to storage...
      *     }
      * },
      * ```
