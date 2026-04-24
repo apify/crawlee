@@ -7,11 +7,11 @@ FROM apify/actor-node:20
 # to speed up the build using Docker layer cache.
 COPY package*.json ./
 
-# Install NPM packages, skip development dependencies to
+# Install NPM packages, skip optional and development dependencies to
 # keep the image small. Avoid logging too much and print the dependency
 # tree for debugging
 RUN npm --quiet set progress=false \
-    && npm install --omit=dev \
+    && npm install --omit=dev --omit=optional \
     && echo "Installed NPM packages:" \
     && (npm list --omit=dev --all || true) \
     && echo "Node.js version:" \
