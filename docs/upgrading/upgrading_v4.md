@@ -128,9 +128,9 @@ const crawler = new BasicCrawler({
 
 ## `tieredProxyUrls` is removed from `ProxyConfiguration`
 
-The `tieredProxyUrls` option (along with `ProxyConfiguration.reportProxyError`, the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`) has been removed. The feature saw little adoption and the tier rotation bled into APIs that otherwise had no business knowing about proxy tiers. In v4 the `Session` is the main rotation unit — a session already carries its own proxy, cookies and error score, so the pool naturally rotates the whole fingerprint when a session gets retired on a block.
+The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
 
-If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can emulate the same thing by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
+If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions - one per proxy tier - and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler - the session already carries its own proxy.
 
 ```typescript
 import { BasicCrawler, SessionPool } from '@crawlee/core';
@@ -164,7 +164,7 @@ const crawler = new BasicCrawler({
 await crawler.run([{ url: 'https://example.com', sessionId: 'basic' }]);
 ```
 
-Richer routing (more tiers, weighted draws, sticky assignment, cooldowns) can be expressed with additional named sessions and the logic you put in `errorHandler` — it's now just regular user code instead of a built-in.
+More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) can be expressed with additional named sessions and custom `errorHandler` logic.
 
 ## Remove `experimentalContainers` option
 
