@@ -4,6 +4,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
+import type { Session } from '@crawlee/basic';
 import {
     BasicCrawler,
     Configuration,
@@ -12,6 +13,7 @@ import {
     KeyValueStore,
     MissingRouteError,
     NonRetryableError,
+    ProxyConfiguration,
     Request,
     RequestList,
     RequestQueue,
@@ -19,6 +21,7 @@ import {
     SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
+import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -1599,6 +1602,38 @@ describe('BasicCrawler', () => {
             // crawler2 should reuse sessions created by crawler1, not grow the pool further
             expect(sharedPool.usableSessionsCount).toBe(poolSizeAfterCrawler1);
             await sharedPool.teardown();
+        });
+    });
+
+    describe('proxyConfiguration', () => {
+        it('assigns a proxyInfo from the proxyConfiguration to each Session and exposes it on the context', async () => {
+            const proxyUrls = [0, 1, 2].map((n) => `http://proxy.example.com:${1000 + n}`);
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
+
+            const sessions: Session[] = [];
+            const proxyInfos: (ProxyInfo | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                proxyConfiguration,
+                requestHandler: async ({ session, proxyInfo }) => {
+                    sessions.push(session);
+                    proxyInfos.push(proxyInfo);
+                },
+            });
+
+            await crawler.run([
+                { url: 'https://example.com/a' },
+                { url: 'https://example.com/b' },
+                { url: 'https://example.com/c' },
+            ]);
+
+            expect(sessions).toHaveLength(3);
+            for (let i = 0; i < sessions.length; i++) {
+                const proxyInfo = proxyInfos[i];
+                expect(proxyInfo).toBeDefined();
+                expect(proxyUrls).toContain(proxyInfo!.url);
+                expect(sessions[i].proxyInfo).toBe(proxyInfo);
+            }
         });
     });
 

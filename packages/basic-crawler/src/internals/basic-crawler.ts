@@ -21,7 +21,6 @@ import type {
     RequestTransform,
     RouterHandler,
     RouterRoutes,
-    Session,
     SkippedRequestCallback,
     Source,
     StatisticsOptions,
@@ -59,6 +58,7 @@ import {
     Router,
     ServiceLocator,
     serviceLocator,
+    Session,
     SessionError,
     SessionPool,
     Statistics,
@@ -873,7 +873,25 @@ export class BasicCrawler<
                 ...statisticsOptions,
             });
 
-            this.sessionPool = sessionPool ?? new SessionPool();
+            if (sessionPool && proxyConfiguration) {
+                this.log.warning(
+                    'Both `sessionPool` and `proxyConfiguration` were provided to the crawler. ' +
+                        'The `proxyConfiguration` is ignored - sessions from the supplied pool keep whatever ' +
+                        '`proxyInfo` they were created with. Configure proxies on the pool instead, ' +
+                        'e.g. via `addSession({ proxyInfo })` or a custom `createSessionFunction`.',
+                );
+            }
+
+            this.sessionPool =
+                sessionPool ??
+                new SessionPool({
+                    createSessionFunction: async (pool, opts) =>
+                        new Session({
+                            proxyInfo: await this.proxyConfiguration?.newProxyInfo(),
+                            ...opts?.sessionOptions,
+                            sessionPool: pool,
+                        }),
+                });
             this.sessionPool.setMaxListeners(20);
 
             this.ownsSessionPool = !sessionPool;
@@ -1116,12 +1134,7 @@ export class BasicCrawler<
                     return existingSession;
                 }
 
-                return await this.sessionPool!.newSession({
-                    proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                        request: request ?? undefined,
-                    }),
-                    maxUsageCount: 1,
-                });
+                return await this.sessionPool!.getSession();
             },
             this.internalTimeoutMillis,
             `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
