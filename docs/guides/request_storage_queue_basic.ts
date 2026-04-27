@@ -11,7 +11,7 @@ await requestQueue.addRequests([
 ]);
 
 // Open the named request queue
-const namedRequestQueue = await RequestQueue.open('named-queue');
+const namedRequestQueue = await RequestQueue.open({ name: 'named-queue' });
 
 // Remove the named request queue
 await namedRequestQueue.drop();

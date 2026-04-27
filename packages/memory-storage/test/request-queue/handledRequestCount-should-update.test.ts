@@ -9,8 +9,7 @@ describe('RequestQueue handledRequestCount should update', () => {
     let requestQueue: RequestQueueClient;
 
     beforeAll(async () => {
-        const { id } = await storage.requestQueues().getOrCreate('handledRequestCount');
-        requestQueue = storage.requestQueue(id);
+        requestQueue = await storage.createRequestQueueClient({ name: 'handledRequestCount' });
     });
 
     test('after updating the request, it should increment the handledRequestCount', async () => {
@@ -23,8 +22,8 @@ describe('RequestQueue handledRequestCount should update', () => {
             handledAt: new Date().toISOString(),
         });
 
-        const updatedStatistics = await requestQueue.get();
-        expect(updatedStatistics?.handledRequestCount).toEqual(1);
+        const updatedStatistics = await requestQueue.getMetadata();
+        expect(updatedStatistics.handledRequestCount).toEqual(1);
     });
 
     test('adding an already handled request should increment the handledRequestCount', async () => {
@@ -34,8 +33,8 @@ describe('RequestQueue handledRequestCount should update', () => {
             handledAt: new Date().toISOString(),
         });
 
-        const updatedStatistics = await requestQueue.get();
-        expect(updatedStatistics?.handledRequestCount).toEqual(2);
+        const updatedStatistics = await requestQueue.getMetadata();
+        expect(updatedStatistics.handledRequestCount).toEqual(2);
     });
 
     test('deleting a request should decrement the handledRequestCount', async () => {
@@ -47,7 +46,7 @@ describe('RequestQueue handledRequestCount should update', () => {
 
         await requestQueue.deleteRequest(requestId);
 
-        const updatedStatistics = await requestQueue.get();
-        expect(updatedStatistics?.handledRequestCount).toEqual(2);
+        const updatedStatistics = await requestQueue.getMetadata();
+        expect(updatedStatistics.handledRequestCount).toEqual(2);
     });
 });

@@ -5,7 +5,7 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
-import type { KeyValueStoreClient, KeyValueStoreInfo } from '@crawlee/types';
+import type { KeyValueStoreClient } from '@crawlee/types';
 
 describe('MemoryStorage should not crash when saving a big buffer', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/no-buffer-crash');
@@ -14,12 +14,10 @@ describe('MemoryStorage should not crash when saving a big buffer', () => {
         persistStorage: false,
     });
 
-    let kvs: KeyValueStoreInfo;
     let store: KeyValueStoreClient;
 
     beforeAll(async () => {
-        kvs = await storage.keyValueStores().getOrCreate();
-        store = storage.keyValueStore(kvs.id);
+        store = await storage.createKeyValueStoreClient();
     });
 
     afterAll(async () => {
