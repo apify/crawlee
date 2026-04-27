@@ -89,6 +89,14 @@ export class ProxyConfiguration {
      */
     constructor(options: ProxyConfigurationOptions = {}) {
         const { validateRequired, ...rest } = options as Dictionary;
+
+        if ('tieredProxyUrls' in rest) {
+            throw new Error(
+                'The `tieredProxyUrls` option has been removed in Crawlee v4. ' +
+                    'See the v4 upgrading guide for the recommended migration to named sessions.',
+            );
+        }
+
         ow(
             rest,
             ow.object.exactShape({
