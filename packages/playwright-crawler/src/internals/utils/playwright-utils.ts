@@ -1064,33 +1064,34 @@ export interface PlaywrightContextUtils {
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
 
     /**
-     * A list of {@link https://playwright.dev/docs/api/class-download | Download} objects
-     * triggered during the current page navigation.
+     * Returns the list of {@link https://playwright.dev/docs/api/class-download | Download} objects
+     * collected during the current page navigation and request handler.
      *
-     * Useful for accessing files that the page downloads automatically during navigation.
+     * Useful for accessing files that the page downloads automatically.
      * For most use cases, prefer re-enqueueing the URL to {@apilink FileDownload}.
      * Use this only when direct access to the Playwright `Download` object is required.
      *
      * **Example usage**
      * ```ts
-     * requestHandler: async ({ downloads }) => {
-     *     for (const download of downloads) {
-     *         const stream = await download.createReadStream();
-     *         if (!stream) continue; // download failed or was cancelled
-     *         // stream to storage...
+     * requestHandler: async ({ listDownloads }) => {
+     *     for (const download of listDownloads()) {
+     *         try {
+     *             const stream = await download.createReadStream();
+     *             // stream to storage...
+     *         } catch {
+     *             // download failed or was cancelled
+     *         }
      *     }
      * },
      * ```
      */
-    downloads: Download[];
+    listDownloads(): Download[];
 }
 
 export function registerUtilsToContext(
     context: PlaywrightCrawlingContext,
     crawlerOptions: PlaywrightCrawlerOptions,
 ): void {
-    context.downloads = [];
-
     context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
         injectFile(context.page, filePath, options);
     context.injectJQuery = async () => {
