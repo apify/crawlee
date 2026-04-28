@@ -105,6 +105,37 @@ const count = await sessionPool.usableSessionsCount();
 const state = await sessionPool.getState();
 ```
 
+## Custom `createSessionFunction` receives merged session options
+
+`SessionPool` now merges its pool-wide `sessionOptions` (including the pool-scoped logger) with per-call overrides before invoking `createSessionFunction`. Custom implementations no longer need to spread `pool.sessionOptions` themselves to inherit pool defaults.
+
+**Before:**
+```typescript
+new SessionPool({
+    sessionOptions: { maxUsageCount: 5 },
+    createSessionFunction: async (pool, opts) =>
+        new Session({
+            ...pool.sessionOptions, // had to be spread manually for the logger / pool defaults to apply
+            ...opts?.sessionOptions,
+            sessionPool: pool,
+        }),
+});
+```
+
+**After:**
+```typescript
+new SessionPool({
+    sessionOptions: { maxUsageCount: 5 },
+    createSessionFunction: async (pool, opts) =>
+        new Session({
+            ...opts?.sessionOptions, // already merged with pool-wide defaults
+            sessionPool: pool,
+        }),
+});
+```
+
+If you were already spreading `pool.sessionOptions`, the change is harmless - pool defaults now appear twice in the spread chain, with the later (per-call) one winning, exactly as before.
+
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
 `Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).

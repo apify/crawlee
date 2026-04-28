@@ -179,11 +179,11 @@ export class SessionPool extends EventEmitter {
         this.maxPoolSize = maxPoolSize;
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
-        // Session configuration
+        // Session configuration. The pool-scoped logger is merged into per-call sessionOptions inside
+        // `_invokeCreateSessionFunction`, so every Session inherits it without custom createSessionFunctions
+        // having to know about it.
         this.sessionOptions = {
             ...sessionOptions,
-            // the log needs to propagate to createSessionFunction as in "new Session({ ...sessionPool.sessionOptions })"
-            // and can't go inside _defaultCreateSessionFunction
             log: this.log,
         };
 
@@ -264,8 +264,7 @@ export class SessionPool extends EventEmitter {
             this._removeRetiredSessions();
         }
 
-        const newSession =
-            options instanceof Session ? options : await this.createSessionFunction(this, { sessionOptions: options });
+        const newSession = options instanceof Session ? options : await this._invokeCreateSessionFunction(options);
         this.log.debug(`Adding new Session - ${newSession.id}`);
 
         this._addSession(newSession);
@@ -280,7 +279,7 @@ export class SessionPool extends EventEmitter {
     async newSession(sessionOptions?: SessionOptions): Promise<Session> {
         await this.ensureInitialized();
 
-        const newSession = await this.createSessionFunction(this, { sessionOptions });
+        const newSession = await this._invokeCreateSessionFunction(sessionOptions);
         this._addSession(newSession);
 
         return newSession;
@@ -446,10 +445,18 @@ export class SessionPool extends EventEmitter {
         const { sessionOptions = {} } = options;
 
         return new Session({
-            ...this.sessionOptions,
             ...sessionOptions,
             sessionPool,
         });
+    }
+
+    /**
+     * Invokes `createSessionFunction` with `sessionOptions` already merged from pool-wide defaults and
+     * the supplied per-call overrides, so custom implementations don't need to spread `pool.sessionOptions` themselves.
+     */
+    private async _invokeCreateSessionFunction(perCallOptions?: SessionOptions): Promise<Session> {
+        const sessionOptions = { ...this.sessionOptions, ...perCallOptions };
+        return this.createSessionFunction(this, { sessionOptions });
     }
 
     /**
@@ -457,7 +464,7 @@ export class SessionPool extends EventEmitter {
      * @returns Newly created `Session` instance.
      */
     protected async _createSession(): Promise<Session> {
-        const newSession = await this.createSessionFunction(this);
+        const newSession = await this._invokeCreateSessionFunction();
         this._addSession(newSession);
         this.log.debug(`Created new Session - ${newSession.id}`);
 
@@ -498,7 +505,7 @@ export class SessionPool extends EventEmitter {
             sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
-            const recreatedSession = await this.createSessionFunction(this, { sessionOptions: sessionObject });
+            const recreatedSession = await this._invokeCreateSessionFunction(sessionObject);
 
             if (recreatedSession.isUsable()) {
                 this._addSession(recreatedSession);

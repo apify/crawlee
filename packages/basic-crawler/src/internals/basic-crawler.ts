@@ -887,9 +887,9 @@ export class BasicCrawler<
                 new SessionPool({
                     createSessionFunction: async (pool, opts) =>
                         new Session({
+                            ...opts?.sessionOptions,
                             proxyInfo:
                                 opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
-                            ...opts?.sessionOptions,
                             sessionPool: pool,
                         }),
                 });
