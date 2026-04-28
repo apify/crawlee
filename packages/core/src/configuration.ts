@@ -76,7 +76,8 @@ export const crawleeConfigFields = {
     xvfb: field(coerceBoolean.default(false), 'CRAWLEE_XVFB'),
     chromeExecutablePath: field(z.string().optional(), 'CRAWLEE_CHROME_EXECUTABLE_PATH'),
     defaultBrowserPath: field(z.string().optional(), 'CRAWLEE_DEFAULT_BROWSER_PATH'),
-    disableBrowserSandbox: field(coerceBoolean.optional(), 'CRAWLEE_DISABLE_BROWSER_SANDBOX'),
+    /** @default false */
+    disableBrowserSandbox: field(coerceBoolean.default(false), 'CRAWLEE_DISABLE_BROWSER_SANDBOX'),
     logLevel: field(logLevelSchema.optional(), 'CRAWLEE_LOG_LEVEL'),
     /** @default true */
     persistStorage: field(coerceBoolean.default(true), 'CRAWLEE_PERSIST_STORAGE'),

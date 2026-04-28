@@ -41,6 +41,7 @@ describe('Configuration', () => {
             expect(config.inputKey).toBe('INPUT');
             expect(config.headless).toBe(true);
             expect(config.xvfb).toBe(false);
+            expect(config.disableBrowserSandbox).toBe(false);
             expect(config.purgeOnStart).toBe(true);
             expect(config.persistStorage).toBe(true);
             expect(config.maxUsedCpuRatio).toBe(0.95);
@@ -49,11 +50,7 @@ describe('Configuration', () => {
             expect(config.systemInfoIntervalMillis).toBe(1_000);
         });
 
-        // `disableBrowserSandbox`, `containerized`, and `logLevel` are intentionally optional
-        // (no default) — `undefined` is a meaningful signal for each:
-        //   - `disableBrowserSandbox`: only a boolean check is done at the call site, so `undefined`
-        //     behaves the same as `false` and leaves room to distinguish "unset" from "explicitly false"
-        //     if callers ever need to.
+        // `containerized` and `logLevel` are intentionally optional — `undefined` is a meaningful signal:
         //   - `containerized`: consumers fall back to runtime detection via `isContainerized()` using
         //     `config.containerized ?? (await isContainerized())`; defaulting to `false` would disable
         //     auto-detection.
@@ -64,7 +61,6 @@ describe('Configuration', () => {
             expect(config.memoryMbytes).toBeUndefined();
             expect(config.chromeExecutablePath).toBeUndefined();
             expect(config.defaultBrowserPath).toBeUndefined();
-            expect(config.disableBrowserSandbox).toBeUndefined();
             expect(config.containerized).toBeUndefined();
             expect(config.logLevel).toBeUndefined();
         });
