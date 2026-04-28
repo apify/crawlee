@@ -226,13 +226,13 @@ describe('PlaywrightCrawler', () => {
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: async ({ page, listDownloads }) => {
-                countBefore = listDownloads().length;
+                countBefore = (await listDownloads()).length;
 
                 const downloadPromise = page.waitForEvent('download');
                 await page.click('a#download-link');
                 await downloadPromise;
 
-                const downloads = listDownloads();
+                const downloads = await listDownloads();
                 countAfter = downloads.length;
                 suggestedFilename = downloads[0]?.suggestedFilename();
             },

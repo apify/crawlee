@@ -1074,7 +1074,7 @@ export interface PlaywrightContextUtils {
      * **Example usage**
      * ```ts
      * requestHandler: async ({ listDownloads }) => {
-     *     for (const download of listDownloads()) {
+     *     for (const download of await listDownloads()) {
      *         try {
      *             const stream = await download.createReadStream();
      *             // stream to storage...
@@ -1085,7 +1085,7 @@ export interface PlaywrightContextUtils {
      * },
      * ```
      */
-    listDownloads(): Download[];
+    listDownloads(): Promise<Download[]>;
 }
 
 export function registerUtilsToContext(

@@ -246,7 +246,7 @@ export class PlaywrightCrawler extends BrowserCrawler<
         super._enhanceCrawlingContextWithPageInfo(crawlingContext, page, createNewSession);
         const downloads: Download[] = [];
         (page as Page).on('download', (download) => downloads.push(download));
-        crawlingContext.listDownloads = () => downloads;
+        crawlingContext.listDownloads = async () => downloads;
     }
 
     protected override async _runRequestHandler(context: PlaywrightCrawlingContext) {
