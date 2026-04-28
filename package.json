@@ -54,6 +54,7 @@
     },
     "devDependencies": {
         "@apify/log": "^2.5.18",
+        "@apify/oxlint-config": "^0.2.4",
         "@apify/tsconfig": "^0.1.2",
         "@commitlint/config-conventional": "^20.0.0",
         "@playwright/browser-chromium": "1.58.1",
@@ -99,7 +100,7 @@
         "lint-staged": "^16.0.0",
         "nock": "^14.0.10",
         "oxfmt": "^0.45.0",
-        "oxlint": "^1.59.0",
+        "oxlint": "^1.61.0",
         "oxlint-tsgolint": "^0.20.0",
         "playwright": "1.58.1",
         "portastic": "^1.0.1",
