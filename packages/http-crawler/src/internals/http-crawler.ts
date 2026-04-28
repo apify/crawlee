@@ -616,7 +616,6 @@ export class HttpCrawler<
             method: request.method,
             proxyUrl,
             timeout: this.navigationTimeoutMillis,
-            cookieJar: this.persistCookiesPerSession ? session.cookieJar : undefined,
             sessionToken: session,
             headers: request.headers,
             https: {
@@ -738,9 +737,13 @@ export class HttpCrawler<
     private _requestAsBrowser = async (options: Dictionary<any>, session: Session) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
-            cookieJar: options.cookieJar,
             responseType: 'text',
         });
+
+        // When persistCookiesPerSession is false, the response cookies must not mutate the
+        // session jar. Reads still go through the session (so session.setCookie() in pre-nav
+        // hooks keeps working) but a per-request clone is passed in so writes are discarded.
+        const cookieJar = this.persistCookiesPerSession ? session.cookieJar : await session.cookieJar.clone();
 
         const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
@@ -752,6 +755,7 @@ export class HttpCrawler<
             } as RequestInit),
             {
                 session,
+                cookieJar,
                 timeoutMillis: opts.timeout,
             },
         );

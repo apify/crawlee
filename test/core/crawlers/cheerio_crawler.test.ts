@@ -17,6 +17,7 @@ import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
+import { CookieJar } from 'tough-cookie';
 import { responseSamples, runExampleComServer } from '../../shared/_helper.js';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
@@ -1228,6 +1229,85 @@ describe('CheerioCrawler', () => {
             expect(responses[0].cookies).toContain('sessionCookie=fromSession');
             expect(responses[1].cookies).toContain('sessionCookie=fromSession');
             expect(responses[1].cookies).not.toContain('custom=override');
+        });
+
+        test('sendRequest should respect cookieJar override', async () => {
+            const responses: { cookies: string }[] = [];
+
+            const crawler = new CheerioCrawler({
+                requestList: await RequestList.open(null, [
+                    { url: `${serverAddress}/special/set-cookie?name=sessionCookie&value=fromSession` },
+                ]),
+                requestHandler: async ({ sendRequest }) => {
+                    const customJar = new CookieJar();
+                    await customJar.setCookie('jar=fromCustomJar', `${serverAddress}/special/get-cookies`);
+
+                    const withJar = await sendRequest(
+                        { url: `${serverAddress}/special/get-cookies` },
+                        { cookieJar: customJar },
+                    );
+                    responses.push((await withJar.json()) as { cookies: string });
+
+                    const withoutOverride = await sendRequest({ url: `${serverAddress}/special/get-cookies` });
+                    responses.push((await withoutOverride.json()) as { cookies: string });
+                },
+            });
+
+            await crawler.run();
+            expect(responses).toHaveLength(2);
+            expect(responses[0].cookies).toContain('jar=fromCustomJar');
+            expect(responses[0].cookies).not.toContain('sessionCookie=fromSession');
+            expect(responses[1].cookies).toContain('sessionCookie=fromSession');
+            expect(responses[1].cookies).not.toContain('jar=fromCustomJar');
+        });
+
+        test('persistCookiesPerSession=false should not persist response cookies into the session', async () => {
+            const sessionCookies: string[] = [];
+
+            const crawler = new CheerioCrawler({
+                sessionPool: new SessionPool({ maxPoolSize: 1 }),
+                persistCookiesPerSession: false,
+                maxConcurrency: 1,
+                requestList: await RequestList.open(null, [
+                    {
+                        url: `${serverAddress}/special/set-cookie?name=responseCookie&value=fromResponse`,
+                        uniqueKey: '1',
+                    },
+                    {
+                        url: `${serverAddress}/special/set-cookie?name=responseCookie&value=fromResponse`,
+                        uniqueKey: '2',
+                    },
+                ]),
+                requestHandler: async ({ session, request }) => {
+                    sessionCookies.push(session.getCookieString(request.url));
+                },
+            });
+
+            await crawler.run();
+            expect(sessionCookies).toEqual(['', '']);
+        });
+
+        test('persistCookiesPerSession=false should still send session-set cookies to the request', async () => {
+            const responses: { cookies: string }[] = [];
+
+            const crawler = new CheerioCrawler({
+                sessionPool: new SessionPool({ maxPoolSize: 1 }),
+                persistCookiesPerSession: false,
+                maxConcurrency: 1,
+                requestList: await RequestList.open(null, [`${serverAddress}/special/get-cookies`]),
+                preNavigationHooks: [
+                    ({ session, request }) => {
+                        session.setCookie('manual=fromHook', request.url);
+                    },
+                ],
+                requestHandler: ({ json }) => {
+                    responses.push(json as { cookies: string });
+                },
+            });
+
+            await crawler.run();
+            expect(responses).toHaveLength(1);
+            expect(responses[0].cookies).toContain('manual=fromHook');
         });
     });
 
