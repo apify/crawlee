@@ -1635,6 +1635,36 @@ describe('BasicCrawler', () => {
                 expect(sessions[i].proxyInfo).toBe(proxyInfo);
             }
         });
+
+        it('reuses the same Session across multiple requests when the pool is restricted', async () => {
+            const sessions: Session[] = [];
+            const proxyInfos: (ProxyInfo | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                sessionPool: new SessionPool({ maxPoolSize: 1 }),
+                requestHandler: async ({ session, proxyInfo }) => {
+                    sessions.push(session);
+                    proxyInfos.push(proxyInfo);
+                },
+            });
+
+            await crawler.run([
+                { url: 'https://example.com/a' },
+                { url: 'https://example.com/b' },
+                { url: 'https://example.com/c' },
+            ]);
+
+            expect(sessions).toHaveLength(3);
+            const firstId = sessions[0].id;
+            for (const session of sessions) {
+                expect(session.id).toBe(firstId);
+                expect(session.proxyInfo).toBe(sessions[0].proxyInfo);
+            }
+            for (const proxyInfo of proxyInfos) {
+                expect(proxyInfo).toBe(sessions[0].proxyInfo);
+            }
+            expect(sessions[0].usageCount).toBe(3);
+        });
     });
 
     test('extendContext', async () => {
