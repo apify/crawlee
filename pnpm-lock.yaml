@@ -418,9 +418,6 @@ importers:
       '@apify/log':
         specifier: ^2.5.18
         version: 2.5.35
-      '@apify/pseudo_url':
-        specifier: ^2.0.59
-        version: 2.0.76
       '@apify/timeout':
         specifier: ^0.3.2
         version: 0.3.3
