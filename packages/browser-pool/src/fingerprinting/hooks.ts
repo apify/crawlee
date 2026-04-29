@@ -19,6 +19,9 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
     } = browserPool;
 
     return (_pageId: string, launchContext: LaunchContext) => {
+        // Remote browsers may have their own fingerprinting — skip local fingerprint injection
+        if (launchContext.isRemote) return;
+
         const { useIncognitoPages } = launchContext;
         const cacheKey = (launchContext.session as { id: string } | undefined)?.id ?? launchContext.proxyUrl;
         const { launchOptions }: { launchOptions: any } = launchContext;
@@ -62,6 +65,7 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
 export function createPrePageCreateHook() {
     return (_pageId: string, browserController: BrowserController, pageOptions: any): void => {
         const { launchContext, browserPlugin } = browserController;
+        if (launchContext.isRemote) return;
         const { fingerprint } = launchContext.fingerprint!;
 
         if (launchContext.useIncognitoPages && browserPlugin instanceof PlaywrightPlugin && pageOptions) {
@@ -80,6 +84,7 @@ export function createPrePageCreateHook() {
 export function createPostPageCreateHook(fingerprintInjector: FingerprintInjector) {
     return async (page: any, browserController: BrowserController): Promise<void> => {
         const { browserPlugin, launchContext } = browserController;
+        if (launchContext.isRemote) return;
         const fingerprint = launchContext.fingerprint!;
 
         // TODO this will require refactoring, we should use common API instead of branching based on plugin type,

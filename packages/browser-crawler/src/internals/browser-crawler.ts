@@ -673,6 +673,13 @@ export abstract class BrowserCrawler<
             return;
         }
 
+        // Remote browsers are expensive — don't retire them when a session retires.
+        // Let retireBrowserAfterPageCount control the browser lifecycle instead.
+        // See also: PR #3605 which fixes the root cause (maxUsageCount: 1 in BasicCrawler).
+        if (browserController.launchContext.isRemote) {
+            return;
+        }
+
         let sessionIds = this.browserSessionIds.get(browserController);
 
         if (sessionIds) {

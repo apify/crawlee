@@ -1,29 +1,43 @@
 import 'dotenv/config';
 
+import { RemoteBrowserProvider } from '@crawlee/browser-pool';
 import { PuppeteerCrawler } from 'crawlee';
 
+// Local Docker (preferred): docker run -p 3000:3000 -e CONCURRENT=4 ghcr.io/browserless/chromium
+// Remote: set BROWSERLESS_TOKEN in .env
 const token = process.env.BROWSERLESS_TOKEN;
+const endpointUrl = token ? `wss://production-sfo.browserless.io?token=${token}` : 'ws://localhost:3000';
 
-if (!token) {
-    throw new Error('BROWSERLESS_TOKEN env variable is required');
+class BrowserlessProvider extends RemoteBrowserProvider {
+    async connect() {
+        return { url: endpointUrl };
+    }
 }
 
 const crawler = new PuppeteerCrawler({
     launchContext: {
-        connectOverCDPOptions: {
-            browserWSEndpoint: `wss://production-sfo.browserless.io?token=${token}`,
-        },
+        remoteBrowser: new BrowserlessProvider(),
     },
-    async requestHandler({ page, request, enqueueLinks }) {
+    browserPoolOptions: {
+        retireBrowserAfterPageCount: 5,
+        maxOpenPagesPerBrowser: 1,
+    },
+    maxConcurrency: 4,
+    maxRequestsPerCrawl: 9,
+    async requestHandler({ page, request }) {
         const title = await page.title();
-        console.log(`[${request.loadedUrl}] ${title}`);
-
-        await enqueueLinks({
-            globs: ['https://www.crawlee.dev/**'],
-            limit: 5,
-        });
+        console.log(`[Page] ${request.loadedUrl} — "${title}"`);
     },
-    maxRequestsPerCrawl: 10,
 });
 
-await crawler.run(['https://www.crawlee.dev']);
+await crawler.run([
+    'https://example.com',
+    'https://crawlee.dev',
+    'https://www.google.com',
+    'https://github.com',
+    'https://wikipedia.org',
+    'https://httpbin.org',
+    'https://jsonplaceholder.typicode.com',
+    'https://news.ycombinator.com',
+    'https://books.toscrape.com',
+]);

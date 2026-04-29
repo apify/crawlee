@@ -1,26 +1,42 @@
 import 'dotenv/config';
 
+import { RemoteBrowserProvider } from '@crawlee/browser-pool';
 import { PuppeteerCrawler } from 'crawlee';
 
 const apiKey = process.env.STEEL_API_KEY;
+if (!apiKey) throw new Error('STEEL_API_KEY env variable is required');
 
-if (!apiKey) {
-    throw new Error('STEEL_API_KEY env variable is required');
+class SteelProvider extends RemoteBrowserProvider {
+    async connect() {
+        return { url: `wss://connect.steel.dev?apiKey=${apiKey}` };
+    }
 }
 
-// Steel direct connection: no session creation needed.
-// A session is auto-created when you connect and auto-released on disconnect.
 const crawler = new PuppeteerCrawler({
     launchContext: {
-        connectOverCDPOptions: {
-            browserWSEndpoint: `wss://connect.steel.dev?apiKey=${apiKey}`,
-        },
+        remoteBrowser: new SteelProvider(),
     },
+    browserPoolOptions: {
+        retireBrowserAfterPageCount: 3,
+        maxOpenPagesPerBrowser: 1,
+    },
+    maxConcurrency: 4,
+    maxRequestsPerCrawl: 10,
     async requestHandler({ page, request }) {
         const title = await page.title();
-        console.log(`[${request.loadedUrl}] ${title}`);
+        console.log(`[Page] ${request.loadedUrl} — "${title}"`);
     },
-    maxRequestsPerCrawl: 1,
 });
 
-await crawler.run(['https://example.com']);
+await crawler.run([
+    'https://example.com',
+    'https://crawlee.dev',
+    'https://www.google.com',
+    'https://github.com',
+    'https://wikipedia.org',
+    'https://httpbin.org',
+    'https://jsonplaceholder.typicode.com',
+    'https://news.ycombinator.com',
+    'https://books.toscrape.com',
+    'https://quotes.toscrape.com',
+]);

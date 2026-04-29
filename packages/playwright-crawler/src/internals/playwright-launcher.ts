@@ -1,7 +1,12 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
-import type { PlaywrightConnectOptions, PlaywrightConnectOverCDPOptions } from '@crawlee/browser-pool';
+import type {
+    PlaywrightConnectOptions,
+    PlaywrightConnectOverCDPOptions,
+    RemoteBrowserConfig,
+    RemoteBrowserProvider,
+} from '@crawlee/browser-pool';
 import { serviceLocator } from '@crawlee/core';
 import ow from 'ow';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
@@ -84,6 +89,35 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
      * When provided, the browser will be connected to using `browserType.connectOverCDP()` instead of launched.
      */
     connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
+
+    /**
+     * Configuration for connecting to a remote browser service.
+     * Supports both static endpoint URLs and dynamic session creation functions.
+     *
+     * Takes precedence over `connectOverCDPOptions` / `connectOptions` if both are set.
+     *
+     * @example
+     * ```typescript
+     * {
+     *     endpoint: 'wss://browserless.io?token=xxx',
+     *     type: 'cdp', // or 'websocket'
+     * }
+     * ```
+     */
+    remoteBrowser?: PlaywrightRemoteBrowserConfig | RemoteBrowserProvider<any>;
+}
+
+/**
+ * Remote browser configuration for Playwright crawlers.
+ * Supports both CDP and WebSocket connection types.
+ */
+export interface PlaywrightRemoteBrowserConfig extends RemoteBrowserConfig {
+    /**
+     * Connection type to use. `'cdp'` uses `browserType.connectOverCDP()`,
+     * `'websocket'` uses `browserType.connect()`.
+     * @default 'cdp'
+     */
+    type?: 'cdp' | 'websocket';
 }
 
 /**
@@ -97,6 +131,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         launchContextOptions: ow.optional.object,
         connectOptions: ow.optional.object,
         connectOverCDPOptions: ow.optional.object,
+        remoteBrowser: ow.optional.object,
     };
 
     /**

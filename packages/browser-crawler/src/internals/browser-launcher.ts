@@ -113,6 +113,7 @@ export abstract class BrowserLauncher<
         userDataDir: ow.optional.string,
         launchOptions: ow.optional.object,
         userAgent: ow.optional.string,
+        remoteBrowser: ow.optional.object,
     };
 
     static requireLauncherOrThrow<T>(launcher: string, apifyImageName: string): T {

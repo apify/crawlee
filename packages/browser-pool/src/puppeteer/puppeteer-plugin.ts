@@ -43,12 +43,29 @@ export class PuppeteerPlugin extends BrowserPlugin<
             throw new Error("connectOverCDPOptions must include either 'browserWSEndpoint' or 'browserURL'.");
         }
 
+        if (baseOptions.remoteBrowser?.type === 'websocket') {
+            throw new Error("Puppeteer does not support 'websocket' connection type. Use 'cdp' (default) instead.");
+        }
+
+        const remoteBrowserIgnored = !!(baseOptions.remoteBrowser && connectOverCDPOptions);
+        if (remoteBrowserIgnored) {
+            baseOptions.remoteBrowser = undefined;
+        }
+
         super(library, baseOptions);
         this.connectOverCDPOptions = connectOverCDPOptions;
 
+        if (remoteBrowserIgnored) {
+            this.log.warning(
+                'Both remoteBrowser and connectOverCDPOptions are set. ' +
+                    'remoteBrowser is ignored when explicit connect options are provided.',
+            );
+        }
+
         // We check options.useIncognitoPages (not this.useIncognitoPages) because super() collapses undefined to false.
         // This preserves the distinction between "not set" (undefined → default to true) and "explicitly false".
-        if (this.connectOverCDPOptions) {
+        const isRemoteConnection = this.remoteBrowser || this.connectOverCDPOptions;
+        if (isRemoteConnection) {
             if (options.useIncognitoPages === undefined) {
                 this.useIncognitoPages = true;
                 this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
@@ -71,21 +88,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
     ): LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions> {
         return super.createLaunchContext({
             ...options,
-            isRemote: options.isRemote ?? !!this.connectOverCDPOptions,
+            isRemote: options.isRemote ?? !!(this.remoteBrowser || this.connectOverCDPOptions),
         });
-    }
-
-    private _sanitizeEndpointForLog(endpoint: string): string {
-        try {
-            const url = new URL(endpoint);
-            if (url.username || url.password) {
-                url.username = '***';
-                url.password = '***';
-            }
-            return url.toString();
-        } catch {
-            return '<invalid URL>';
-        }
     }
 
     protected async _launch(
@@ -111,7 +115,34 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
         let browser: PuppeteerTypes.Browser;
 
-        if (this.connectOverCDPOptions) {
+        if (this.remoteBrowser) {
+            let url: string;
+            let context: Record<string, unknown> | undefined;
+            try {
+                const result = await this._resolveRemoteEndpoint();
+                url = result.url;
+                context = result.context;
+            } catch (cause) {
+                throw new BrowserLaunchError(
+                    'Failed to resolve remote browser endpoint from remoteBrowser.endpoint() function.\n\u200b',
+                    { cause },
+                );
+            }
+
+            launchContext.extend({ _resolvedRemoteEndpoint: url, _remoteContext: context });
+
+            this.log.info('Connecting to remote browser via connect (CDP).');
+            try {
+                browser = await this.library.connect({ browserWSEndpoint: url });
+            } catch (cause) {
+                await this._callRelease(url, context);
+                throw new BrowserLaunchError(
+                    `Failed to connect to remote browser at "${this._sanitizeEndpointForLog(url)}". ` +
+                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\n\u200b',
+                    { cause },
+                );
+            }
+        } else if (this.connectOverCDPOptions) {
             // Remote CDP connection — skip local launch/proxy/headless logic
             const endpoint = this.connectOverCDPOptions.browserWSEndpoint || this.connectOverCDPOptions.browserURL!;
             this.log.info('Connecting to remote browser via connect (CDP).');
@@ -200,7 +231,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         browser.on('targetcreated', targetCreatedHandler);
 
         // Clean up the listener when a remote browser disconnects to prevent leaks
-        if (this.connectOverCDPOptions) {
+        if (this.remoteBrowser || this.connectOverCDPOptions) {
             browser.once('disconnected', () => {
                 browser.off('targetcreated', targetCreatedHandler);
             });
@@ -232,7 +263,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
 
                         if (useIncognitoPages) {
                             // Skip proxy setup for remote connections — proxy is managed by the remote service.
-                            const effectiveProxyUrl = this.connectOverCDPOptions ? undefined : proxyUrl;
+                            const effectiveProxyUrl =
+                                this.remoteBrowser || this.connectOverCDPOptions ? undefined : proxyUrl;
                             const [anonymizedProxyUrl, close] = effectiveProxyUrl
                                 ? await anonymizeProxySugar(effectiveProxyUrl, undefined, undefined, {
                                       ignoreProxyCertificate,

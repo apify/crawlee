@@ -65,18 +65,32 @@ export class PlaywrightPlugin extends BrowserPlugin<
             throw new Error("'connectOptions.wsEndpoint' must be a non-empty string.");
         }
 
+        const remoteBrowserIgnored = !!(baseOptions.remoteBrowser && (connectOverCDPOptions || connectOptions));
+        if (remoteBrowserIgnored) {
+            baseOptions.remoteBrowser = undefined;
+        }
+
         super(library, baseOptions);
         this.connectOptions = connectOptions;
         this.connectOverCDPOptions = connectOverCDPOptions;
 
+        if (remoteBrowserIgnored) {
+            this.log.warning(
+                'Both remoteBrowser and connectOverCDPOptions/connectOptions are set. ' +
+                    'remoteBrowser is ignored when explicit connect options are provided.',
+            );
+        }
+
         // We check options.useIncognitoPages (not this.useIncognitoPages) because super() collapses undefined to false.
         // This preserves the distinction between "not set" (undefined → default to true) and "explicitly false".
-        if (this.connectOptions || this.connectOverCDPOptions) {
+        const isRemoteConnection = this.remoteBrowser || this.connectOptions || this.connectOverCDPOptions;
+        if (isRemoteConnection) {
             if (options.useIncognitoPages === undefined) {
                 this.useIncognitoPages = true;
                 this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
             } else if (options.useIncognitoPages === false) {
-                const message = this.connectOptions
+                const isWebSocket = this.connectOptions || this.remoteBrowser?.type === 'websocket';
+                const message = isWebSocket
                     ? 'useIncognitoPages is set to false with a remote WebSocket connection. ' +
                       'This may cause errors because browserType.connect() returns a browser with no default context.'
                     : 'useIncognitoPages is set to false with a remote browser connection. ' +
@@ -89,24 +103,45 @@ export class PlaywrightPlugin extends BrowserPlugin<
     override createLaunchContext(options: CreateLaunchContextOptions<BrowserType> = {}): LaunchContext<BrowserType> {
         return super.createLaunchContext({
             ...options,
-            isRemote: options.isRemote ?? !!(this.connectOptions || this.connectOverCDPOptions),
+            isRemote: options.isRemote ?? !!(this.remoteBrowser || this.connectOptions || this.connectOverCDPOptions),
         });
     }
 
-    private _sanitizeEndpointForLog(endpoint: string): string {
-        try {
-            const url = new URL(endpoint);
-            if (url.username || url.password) {
-                url.username = '***';
-                url.password = '***';
-            }
-            return url.toString();
-        } catch {
-            return '<invalid URL>';
-        }
-    }
-
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
+        if (this.remoteBrowser) {
+            const type = this.remoteBrowser.type ?? 'cdp';
+            let url: string;
+            let context: Record<string, unknown> | undefined;
+            try {
+                const result = await this._resolveRemoteEndpoint();
+                url = result.url;
+                context = result.context;
+            } catch (cause) {
+                throw new BrowserLaunchError(
+                    'Failed to resolve remote browser endpoint from remoteBrowser.endpoint() function.\n\u200b',
+                    { cause },
+                );
+            }
+
+            launchContext.extend({ _resolvedRemoteEndpoint: url, _remoteContext: context });
+
+            try {
+                if (type === 'websocket') {
+                    this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
+                    return await this.library.connect(url, {});
+                }
+                this.log.info('Connecting to remote browser via connectOverCDP.');
+                return await this.library.connectOverCDP(url, {});
+            } catch (cause) {
+                await this._callRelease(url, context);
+                throw new BrowserLaunchError(
+                    `Failed to connect to remote browser at "${this._sanitizeEndpointForLog(url)}". ` +
+                        `Connection type: ${type}. Check that the endpoint is reachable.\n\u200b`,
+                    { cause },
+                );
+            }
+        }
+
         // Remote CDP connection — skip all local launch/proxy logic
         if (this.connectOverCDPOptions) {
             const { endpointURL, ...options } = this.connectOverCDPOptions;

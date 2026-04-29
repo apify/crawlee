@@ -43,9 +43,12 @@ export type {
     CommonLibrary,
     BrowserPluginOptions,
     CreateLaunchContextOptions,
+    RemoteBrowserConfig,
+    RemoteBrowserEndpointResult,
 } from './abstract-classes/browser-plugin.js';
 export { BrowserPlugin, BrowserLaunchError, DEFAULT_USER_AGENT } from './abstract-classes/browser-plugin.js';
 export type { LaunchContextOptions } from './launch-context.js';
 export { LaunchContext } from './launch-context.js';
+export { RemoteBrowserProvider } from './remote-browser-provider.js';
 export type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy.js';
