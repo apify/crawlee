@@ -137,7 +137,7 @@ The last option to adjust Crawlee configuration is to use the <ApiLink to="core/
 
 ### Global Configuration
 
-By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can access it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink>, which delegates to the global <ApiLink to="core/class/ServiceLocator">`serviceLocator`</ApiLink> — the single source of truth for Crawlee's shared services (configuration, event manager, storage client, logger). You can also reach the same instance directly via `serviceLocator.getConfiguration()` or swap services globally with `serviceLocator.setConfiguration(...)` before any crawler is created. Configuration values are accessible directly as properties on the instance.
+By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can access it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink>, which delegates to the global <ApiLink to="core/class/ServiceLocator">`serviceLocator`</ApiLink> — the single source of truth for Crawlee's shared services (for example the configuration, event manager, storage client, and logger). You can also reach the same instance directly via `serviceLocator.getConfiguration()` or swap services globally with `serviceLocator.setConfiguration(...)` before any crawler is created. Configuration values are accessible directly as properties on the instance.
 
 ```js
 import { CheerioCrawler, Configuration, sleep } from 'crawlee';
@@ -148,13 +148,13 @@ const config = Configuration.getGlobalConfig();
 console.log(config.persistStateIntervalMillis);
 
 // To use custom configuration values, create a new Configuration instance
-const customConfig = new Configuration({
+const configuration = new Configuration({
     // Set the 'persistStateIntervalMillis' option to 10 seconds
     persistStateIntervalMillis: 10_000,
 });
 
 // Pass the configuration to the crawler
-const crawler = new CheerioCrawler({ configuration: customConfig });
+const crawler = new CheerioCrawler({ configuration });
 
 crawler.router.addDefaultHandler(async ({ request }) => {
     // For the first request we wait for 5 seconds,
@@ -195,13 +195,13 @@ You can create a custom configuration and pass it to the crawler via the `config
 import { CheerioCrawler, Configuration, sleep } from 'crawlee';
 
 // Create new configuration
-const config = new Configuration({
+const configuration = new Configuration({
     // Set the 'persistStateIntervalMillis' option to 10 seconds
     persistStateIntervalMillis: 10_000,
 });
 
 // Pass the configuration to the crawler
-const crawler = new CheerioCrawler({ configuration: config });
+const crawler = new CheerioCrawler({ configuration });
 
 crawler.router.addDefaultHandler(async ({ request }) => {
     // for the first request we wait for 5 seconds,
