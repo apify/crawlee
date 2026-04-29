@@ -14,7 +14,7 @@ const router = createCheerioRouter();
 router.addHandler('START', async ({ enqueueLinks }) => {
     await enqueueLinks({
         label: 'DETAIL',
-        globs: ['**/examples/accept-user-input'],
+        include: ['**/examples/accept-user-input'],
     });
 });
 

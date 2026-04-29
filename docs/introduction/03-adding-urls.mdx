@@ -130,7 +130,7 @@ await enqueueLinks({
 
 ### Filter URLs with patterns
 
-For even more control, you can use `globs`, `regexps` and `pseudoUrls` to filter the URLs. Each of those arguments is always an `Array`, but the contents can take on many forms. <ApiLink to="core/interface/EnqueueLinksOptions">See the reference</ApiLink> for more information about them as well as other options.
+For even more control, you can use `include` and `exclude` to filter the URLs. Each accepts an `Array` of glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects. <ApiLink to="core/interface/EnqueueLinksOptions">See the reference</ApiLink> for more information about them as well as other options.
 
 :::caution Defaults override
 

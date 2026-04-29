@@ -17,7 +17,7 @@ crawler.router.addDefaultHandler(async ({ log, request, enqueueLinks, pushData }
     log.info(`Processing ${request.loadedUrl}`);
     await enqueueLinks({
         // '/cart' is disallowed by robots.txt
-        globs: ['**/cart', '**/collections/*'],
+        include: ['**/cart', '**/collections/*'],
     });
     await pushData({ url: request.url, loadedUrl: request.loadedUrl });
 });
