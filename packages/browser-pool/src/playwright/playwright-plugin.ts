@@ -88,7 +88,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
             if (options.useIncognitoPages === undefined) {
                 this.useIncognitoPages = true;
                 this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
-            } else if (options.useIncognitoPages === false) {
+            } else if (!options.useIncognitoPages) {
                 const isWebSocket = this.connectOptions || this.remoteBrowser?.type === 'websocket';
                 const message = isWebSocket
                     ? 'useIncognitoPages is set to false with a remote WebSocket connection. ' +

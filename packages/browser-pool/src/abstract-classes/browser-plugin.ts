@@ -98,6 +98,12 @@ export interface RemoteBrowserConfig {
      * @default 'cdp'
      */
     type?: 'cdp' | 'websocket';
+    /**
+     * Maximum number of browsers that can be open at the same time.
+     * When the limit is reached, the crawler waits for a browser to close before launching a new one.
+     * Set this to your remote service's concurrent session limit to avoid 429 errors.
+     */
+    maxOpenBrowsers?: number;
 }
 
 export interface BrowserPluginOptions<LibraryOptions> {
@@ -211,6 +217,7 @@ export abstract class BrowserPlugin<
                 endpoint: () => provider.connect(),
                 release: ({ context }) => provider.release(context as any),
                 type: provider.type,
+                maxOpenBrowsers: provider.maxOpenBrowsers,
             };
         } else {
             this.remoteBrowser = remoteBrowser;

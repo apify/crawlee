@@ -41,6 +41,12 @@ export abstract class RemoteBrowserProvider<TContext extends Record<string, unkn
     type: 'cdp' | 'websocket' = 'cdp';
 
     /**
+     * Maximum number of browsers that can be open at the same time.
+     * Set this to your remote service's concurrent session limit to avoid 429 errors.
+     */
+    maxOpenBrowsers?: number;
+
+    /**
      * Called once per browser launch. Return the WebSocket/CDP endpoint URL
      * and an optional `context` object that will be passed back to {@link release}.
      */

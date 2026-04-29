@@ -393,6 +393,12 @@ export abstract class BrowserCrawler<
         this.browserPool = new BrowserPool<InternalBrowserPoolOptions>({
             ...(browserPoolOptions as any),
         });
+
+        // Read maxOpenBrowsers from the remote browser config and apply it to the pool.
+        const remoteMaxBrowsers = this.browserPool.browserPlugins[0]?.remoteBrowser?.maxOpenBrowsers;
+        if (remoteMaxBrowsers) {
+            this.browserPool.maxOpenBrowsers = remoteMaxBrowsers;
+        }
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -710,6 +716,16 @@ export abstract class BrowserCrawler<
      * Function for cleaning up after all requests are processed.
      * @ignore
      */
+    protected override async _isTaskReadyFunction(): Promise<boolean> {
+        // Don't start new tasks if browser pool is at its limit and no active browser has capacity.
+        // AutoscaledPool will retry automatically when a browser closes and frees a slot.
+        if (!this.browserPool.hasFreeBrowserSlot() && !this.browserPool.hasActiveBrowserWithFreeCapacity()) {
+            return false;
+        }
+
+        return super._isTaskReadyFunction();
+    }
+
     override async teardown(): Promise<void> {
         await this.browserPool.destroy();
         await super.teardown();
