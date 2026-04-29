@@ -132,22 +132,19 @@ We use this to ensure the parent process stays alive until all the worker proces
 
 There are three steps we want to do for the worker processes:
 
-- ensure the default storages do **not** get purged on start, as otherwise we'd lose the queue we prepared
 - get the queue that supports locking from the same location as the parent process
-- initialize a special storage for worker processes so they do not collide with each other
+- ensure the default storages do **not** get purged on start, as otherwise we'd lose the queue we prepared, and initialize a special storage for worker processes so they do not collide with each other
 
 In order, that's what these lines do:
 
 ```javascript title="src/parallel-scraper.mjs"
-// Disable the automatic purge on start (step 1)
-// This is needed when running locally, as otherwise multiple processes will try to clear the default storage (and that will cause clashes)
-Configuration.set('purgeOnStart', false);
-
-// Get the request queue from the parent process (step 2)
+// Get the request queue from the parent process (step 1)
 const requestQueue = await getOrInitQueue(false);
 
-// Configure crawlee to store the worker-specific data in a separate directory (needs to be done AFTER the queue is initialized when running locally) (step 3)
+// Disable the automatic purge on start and configure crawlee to store the worker-specific data
+// in a separate directory (needs to be done AFTER the queue is initialized when running locally) (step 2)
 const config = new Configuration({
+    purgeOnStart: false,
     storageClientOptions: {
         localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
     },

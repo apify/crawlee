@@ -2,7 +2,7 @@ import { once } from 'node:events';
 import { URL } from 'node:url';
 import { Worker, workerData } from 'node:worker_threads';
 
-import { CheerioCrawler, Configuration, Dataset } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset, serviceLocator } from '@crawlee/cheerio';
 import { Actor } from 'apify';
 
 process.env.CRAWLEE_PURGE_ON_START = '0';
@@ -48,7 +48,7 @@ if (workerData !== '#actor') {
             },
         });
 
-        Configuration.getGlobalConfig().getStorageClient().__purged = false;
+        serviceLocator.getStorageClient().__purged = false;
 
         await crawler.run(['https://crawlee.dev']);
     }, mainOptions);

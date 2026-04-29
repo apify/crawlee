@@ -1,5 +1,6 @@
 import type { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
+import { serviceLocator } from '../service_locator.js';
 import type { LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
@@ -23,7 +24,7 @@ export function createCpuLoadSignal(options: CpuLoadSignalOptions) {
     return SnapshotStore.fromEvent<CpuSnapshot, SystemInfo>({
         name: 'cpuInfo',
         overloadedRatio: options.overloadedRatio ?? 0.4,
-        events: options.config.getEventManager(),
+        events: serviceLocator.getEventManager(),
         event: EventType.SYSTEM_INFO,
         snapshotHistoryMillis: options.snapshotHistoryMillis,
         handler(store, systemInfo) {

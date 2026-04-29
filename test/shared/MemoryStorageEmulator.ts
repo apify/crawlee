@@ -31,7 +31,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getDataset(id?: string) {
-        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultDatasetId');
+        const resolvedId = id ?? Configuration.getGlobalConfig().defaultDatasetId;
         return this.storage.createDatasetClient(resolvedId ? { id: resolvedId } : {});
     }
 
@@ -41,7 +41,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getRequestQueue(id?: string) {
-        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultRequestQueueId');
+        const resolvedId = id ?? Configuration.getGlobalConfig().defaultRequestQueueId;
         return this.storage.createRequestQueueClient(resolvedId ? { id: resolvedId } : {});
     }
 
@@ -52,7 +52,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     getKeyValueStore(id?: string) {
-        const resolvedId = id ?? Configuration.getGlobalConfig().get('defaultKeyValueStoreId');
+        const resolvedId = id ?? Configuration.getGlobalConfig().defaultKeyValueStoreId;
         return this.storage.createKeyValueStoreClient(resolvedId ? { id: resolvedId } : {});
     }
 

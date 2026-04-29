@@ -48,12 +48,14 @@ The crawler following options are removed:
 - `BrowserCrawler._handleNavigation` (protected)
 - `HttpCrawler.userRequestHandlerTimeoutMillis` (protected)
 - `HttpCrawler._handleNavigation` (protected)
+- `HttpCrawler._applyCookies` (protected) - cookie merging is now handled by `BaseHttpClient`
 - `HttpCrawler._parseHTML` (protected)
 - `HttpCrawler._parseResponse` (protected) - made private
 - `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
 - `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
+- `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
 
 ### The protected `BasicCrawler.crawlingContexts` map is removed
 
@@ -84,9 +86,29 @@ const crawler = new CheerioCrawler({
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
 
+## `SessionPool` is now lazy-initialized
+
+`SessionPool.open()` static factory method is removed. Create instances with `new SessionPool(options)` instead — all public methods automatically initialize the pool on first use.
+
+`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters. `SessionPool.getState()` is also async now.
+
+**Before:**
+```typescript
+const sessionPool = await SessionPool.open({ maxPoolSize: 100 });
+const count = sessionPool.usableSessionsCount;
+const state = sessionPool.getState();
+```
+
+**After:**
+```typescript
+const sessionPool = new SessionPool({ maxPoolSize: 100 });
+const count = await sessionPool.usableSessionsCount();
+const state = await sessionPool.getState();
+```
+
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
-`Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`). `ignoreHttpErrorStatusCodes` in `HttpCrawler` now also excludes matching codes from the blocked status codes list.
+`Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).
 
 ## Remove `experimentalContainers` option
 
@@ -116,6 +138,40 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+## Configuration class redesign
+
+The `Configuration` class has been redesigned for v4. The main changes are:
+
+### Direct property access replaces `get()` and `set()`
+
+**Before:**
+```ts
+const config = Configuration.getGlobalConfig();
+config.set('persistStateIntervalMillis', 10_000);
+const headless = config.get('headless');
+```
+
+**After:**
+```ts
+// Configuration is now immutable — set options via the constructor
+const config = new Configuration({ persistStateIntervalMillis: 10_000 });
+const headless = config.headless;
+```
+
+The `get()` and `set()` methods are removed. Access config values directly as properties.
+Configuration instances are immutable — attempting to assign a property throws a `TypeError`.
+
+### Constructor options now take precedence over environment variables
+
+**New priority order (highest to lowest):**
+1. Constructor options
+2. Environment variables
+3. `crawlee.json`
+4. Schema defaults
+
+Previously, environment variables always won. Now `new Configuration({ headless: false })`
+works even when `CRAWLEE_HEADLESS=true` is set.
+
 ## Service management moved from `Configuration` to `ServiceLocator`
 
 The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class, following the pattern established in Crawlee for Python.
@@ -128,6 +184,7 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
 - `Configuration.useStorageClient()` - use `ServiceLocator.setStorageClient()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
+- `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
 
 The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfig()` factory method to create an instance with intervals derived from a `Configuration` object.
@@ -206,6 +263,30 @@ const config = serviceLocator.getConfiguration();
 ```
 
 Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+
+## Cookie handling in `HttpCrawler` and `sendRequest`
+
+Cookie handling was refactored to be simpler and more predictable. The `BaseHttpClient` is now the single place where the `Cookie` request header is assembled, by merging cookies from the session's cookie jar with any `Cookie` header already present on the request. Explicit `Cookie` headers take precedence over jar cookies with the same name.
+
+This means `sendRequest` now respects user-provided cookies. In v3, passing a `Cookie` header via `sendRequest` headers was silently overwritten by the session's cookie jar — this is no longer the case.
+
+The precedence (highest to lowest) is:
+
+1. `sendRequest` `Cookie` header and `cookieJar` overrides
+2. `Cookie` header set directly on the request (via `request.headers`)
+3. Session cookie jar (persisted cookies received from `Set-Cookie` response headers or set manually)
+
+To fully replace the cookie jar for a `sendRequest` call, pass a custom `cookieJar` in the options:
+
+```typescript
+import { CookieJar } from 'tough-cookie';
+
+const jar = new CookieJar();
+await jar.setCookie('my=cookie', request.url);
+const response = await sendRequest({ url: '...' }, { cookieJar: jar });
+```
+
+The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
 
 ## `transformRequestFunction` precedence in `enqueueLinks`
 

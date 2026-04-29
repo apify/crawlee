@@ -5,7 +5,6 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new HttpCrawler({
-    useSessionPool: true,
     persistCookiesPerSession: true,
     proxyConfiguration,
     // ...
