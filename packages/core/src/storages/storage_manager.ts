@@ -123,7 +123,7 @@ export class StorageManager<T extends IStorage = IStorage> {
         }
 
         const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
-        const defaultId = this.config.get(defaultIdConfigKey) as string;
+        const defaultId = this.config[defaultIdConfigKey] as string;
 
         return { id: defaultId };
     }

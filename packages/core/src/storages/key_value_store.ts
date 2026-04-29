@@ -273,7 +273,7 @@ export class KeyValueStore {
         }
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = this.config.persistStateIntervalMillis;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
 
         serviceLocator.getEventManager().on('persistState', async () => {
@@ -785,7 +785,7 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        const inputKey = store.config.get('inputKey')!;
+        const inputKey = store.config.inputKey;
 
         const cwd = process.cwd();
         const possibleExtensions = ['', '.json', '.txt'];
