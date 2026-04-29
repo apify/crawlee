@@ -445,9 +445,6 @@ importers:
       csv-stringify:
         specifier: ^6.5.2
         version: 6.7.0
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.4
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -472,6 +469,9 @@ importers:
       type-fest:
         specifier: ^4.41.0
         version: 4.41.0
+      zod:
+        specifier: ^3.24.0 || ^4.0.0
+        version: 4.3.6
 
   packages/crawlee:
     dependencies:

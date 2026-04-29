@@ -331,7 +331,7 @@ export class Statistics {
         this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().persistStateIntervalMillis;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
             .setValue(this.persistStateKey, this.toJSON(), {

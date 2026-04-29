@@ -1,10 +1,10 @@
 import { load } from 'cheerio';
 import type { Source } from 'crawlee';
-import { cheerioCrawlerEnqueueLinks, Configuration, EnqueueStrategy, RequestQueue } from 'crawlee';
+import { cheerioCrawlerEnqueueLinks, EnqueueStrategy, RequestQueue, serviceLocator } from 'crawlee';
 
 import log from '@apify/log';
 
-const apifyClient = Configuration.getStorageClient();
+const apifyClient = serviceLocator.getStorageClient();
 
 const HTML = `
 <html>

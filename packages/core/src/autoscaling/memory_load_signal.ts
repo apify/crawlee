@@ -1,13 +1,13 @@
-import { getMemoryInfo, getMemoryInfoV2, isContainerized } from '@crawlee/utils';
+import { getMemoryInfo, isContainerized } from '@crawlee/utils';
 
 import type { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
 import type { LoadSignal, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
-import { serviceLocator } from '../service_locator.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10_000;
@@ -44,7 +44,7 @@ export class MemoryLoadSignal implements LoadSignal {
     constructor(options: MemoryLoadSignalOptions) {
         this.store = new SnapshotStore(options.snapshotHistoryMillis);
         this.config = options.config;
-        this.events = this.config.getEventManager();
+        this.events = serviceLocator.getEventManager();
         this.log = options.log ?? serviceLocator.getLogger().child({ prefix: 'MemoryLoadSignal' });
         this.maxUsedMemoryRatio = options.maxUsedMemoryRatio ?? 0.9;
         this.overloadedRatio = options.overloadedRatio ?? 0.2;
@@ -52,12 +52,12 @@ export class MemoryLoadSignal implements LoadSignal {
     }
 
     async start(): Promise<void> {
-        const memoryMbytes = this.config.get('memoryMbytes', 0);
+        const memoryMbytes = this.config.memoryMbytes ?? 0;
 
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            this.maxMemoryRatio = this.config.get('availableMemoryRatio');
+            this.maxMemoryRatio = this.config.availableMemoryRatio;
             if (!this.maxMemoryRatio) {
                 throw new Error('availableMemoryRatio is not set in configuration.');
             } else {
@@ -138,10 +138,7 @@ export class MemoryLoadSignal implements LoadSignal {
     }
 
     private async _getTotalMemoryBytes(): Promise<number> {
-        if (this.config.get('systemInfoV2')) {
-            const containerized = this.config.get('containerized', await isContainerized());
-            return (await getMemoryInfoV2(containerized)).totalBytes;
-        }
-        return (await getMemoryInfo()).totalBytes;
+        const containerized = this.config.containerized ?? (await isContainerized());
+        return (await getMemoryInfo({ containerized, logger: serviceLocator.getLogger() })).totalBytes;
     }
 }

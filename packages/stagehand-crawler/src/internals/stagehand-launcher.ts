@@ -131,7 +131,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
  * @ignore
  */
 function getDefaultExecutablePath(launchContext: StagehandLaunchContext, config: Configuration): string | undefined {
-    const pathFromPlaywrightImage = config.get('defaultBrowserPath');
+    const pathFromPlaywrightImage = config.defaultBrowserPath;
     const { launchOptions = {} } = launchContext;
 
     if (launchOptions.executablePath) {
