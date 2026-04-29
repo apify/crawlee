@@ -85,7 +85,7 @@ jobs:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: git checkout . && pnpm publish:prod -- --yes
+                  command: git checkout . && pnpm publish:prod
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
@@ -96,6 +96,6 @@ jobs:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: git checkout . && pnpm publish:next -- --yes
+                  command: git checkout . && pnpm publish:next
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
