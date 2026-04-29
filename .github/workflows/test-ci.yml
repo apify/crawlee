@@ -166,8 +166,14 @@ jobs:
 
             -   name: Generate changed packages list
                 id: changed-packages
+                # `set -eo pipefail` plus an explicit assignment ensures a lerna
+                # crash fails the step instead of being swallowed by the outer
+                # `echo | tee` (which would otherwise emit `changed_packages=0`
+                # and skip the publish step silently).
                 run: |
-                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" | tee -a $GITHUB_OUTPUT
+                    set -eo pipefail
+                    changed=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)
+                    echo "changed_packages=$changed" | tee -a "$GITHUB_OUTPUT"
 
             -   name: Report nothing to release
                 if: steps.changed-packages.outputs.changed_packages == '0'

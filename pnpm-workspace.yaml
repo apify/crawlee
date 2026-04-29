@@ -15,7 +15,12 @@ minimumReleaseAgeExclude:
 overrides:
     playwright-core: 1.58.2
     "@browserbasehq/stagehand": 3.0.7
+    # Dedup minimatch to v9 everywhere except inside lerna — lerna 9.x's bundled
+    # code (`__toESM(require('minimatch')).default(...)`) only works with v3,
+    # whose CJS export *is* the function. Pinning v9 there caused the publish
+    # step to silently report 0 changed packages.
     minimatch: "^9.0.0"
+    "lerna>minimatch": "^3.1.4"
 
 onlyBuiltDependencies:
     - "@apify/ui-icons"
