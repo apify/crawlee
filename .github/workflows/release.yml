@@ -224,6 +224,7 @@ jobs:
                         echo "Error: VERSION is empty. Ensure lerna.json exists and contains a valid .version field."
                         exit 1
                     fi
+                    echo "VERSION=$VERSION" >> "$GITHUB_ENV"
                     MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
                     yarn docusaurus docs:version $MAJOR_MINOR
                     yarn docusaurus api:version $MAJOR_MINOR
@@ -233,6 +234,6 @@ jobs:
                     git config --global user.name "Apify Release Bot"
                     git config --global user.email "noreply@apify.com"
                     git add .
-                    git diff-index --quiet HEAD || git commit -m 'docs: update docs for ${{ inputs.version }} version'
+                    git diff-index --quiet HEAD || git commit -m "docs: update docs for $VERSION version"
                     git pull --rebase --autostash
                     git push
