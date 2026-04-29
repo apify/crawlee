@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "strict": false,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "baseUrl": ".",
+        "paths": {
+            "@crawlee/lightpanda": ["../src/index.ts"],
+            "@crawlee/basic": ["../../basic-crawler/src/index.ts"],
+            "@crawlee/browser": ["../../browser-crawler/src/index.ts"],
+            "@crawlee/browser-pool": ["../../browser-pool/src/index.ts"],
+            "@crawlee/cheerio": ["../../cheerio-crawler/src/index.ts"],
+            "@crawlee/core": ["../../core/src/index.ts"],
+            "@crawlee/http": ["../../http-crawler/src/index.ts"],
+            "@crawlee/jsdom": ["../../jsdom-crawler/src/index.ts"],
+            "@crawlee/linkedom": ["../../linkedom-crawler/src/index.ts"],
+            "@crawlee/memory-storage": ["../../memory-storage/src/index.ts"],
+            "@crawlee/playwright": ["../../playwright-crawler/src/index.ts"],
+            "@crawlee/puppeteer": ["../../puppeteer-crawler/src/index.ts"],
+            "@crawlee/types": ["../../types/src/index.ts"],
+            "@crawlee/utils": ["../../utils/src/index.ts"],
+            "crawlee": ["../../crawlee/src/index.ts"]
+        }
+    },
+    "include": ["./**/*.ts"]
+}
