@@ -64,12 +64,12 @@ jobs:
               run: pnpm ci:build
 
             - name: Bump canary versions
-              if: inputs.dist-tag == 'next'
+              if: inputs.dist-tag != 'prod'
               run: |
                     pnpm turbo copy --force -- --canary=major --preid=beta
 
             - name: Commit changes
-              if: inputs.dist-tag == 'next'
+              if: inputs.dist-tag != 'prod'
               uses: EndBug/add-and-commit@v10
               id: commit
               with:
@@ -90,7 +90,7 @@ jobs:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             - name: Publish to NPM (@next)
-              if: inputs.dist-tag == 'next'
+              if: inputs.dist-tag != 'prod'
               uses: nick-fields/retry@v4
               with:
                   timeout_minutes: 10
