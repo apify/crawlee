@@ -312,29 +312,39 @@ export type StorageIdentifier =
     | { id?: never; name?: never };
 
 /**
+ * Options for opening a storage client. At most one of `id`, `name`, or `alias` may be provided.
+ * `alias` identifies a run-scoped unnamed storage (e.g. `'__default__'` for the default storage).
+ *
+ * TODO merge this into `StorageIdentifier` in https://github.com/apify/crawlee/issues/3074
+ */
+export type StorageClientOpenOptions = StorageIdentifier | { id?: never; name?: never; alias: string };
+
+/**
  * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
  */
-export type CreateDatasetClientOptions = StorageIdentifier;
+export type CreateDatasetClientOptions = StorageClientOpenOptions;
 
 /**
  * Options for creating a key-value store client via {@apilink StorageClient.createKeyValueStoreClient}.
  */
-export type CreateKeyValueStoreClientOptions = StorageIdentifier;
+export type CreateKeyValueStoreClientOptions = StorageClientOpenOptions;
 
 /**
  * Options for creating a request queue client via {@apilink StorageClient.createRequestQueueClient}.
  */
-export type CreateRequestQueueClientOptions = StorageIdentifier & {
+export type CreateRequestQueueClientOptions = StorageClientOpenOptions & {
     /**
      * Client key for request locking.
      * TODO: This is an Apify-platform concern and should eventually be pushed down
      * into the Apify SDK's client implementation (aligning with crawlee-python).
+     * https://github.com/apify/crawlee/issues/3328
      */
     clientKey?: string;
     /**
      * Timeout in seconds for request queue operations.
      * TODO: This is an Apify-platform concern and should eventually be pushed down
      * into the Apify SDK's client implementation (aligning with crawlee-python).
+     * https://github.com/apify/crawlee/issues/3328
      */
     timeoutSecs?: number;
 };

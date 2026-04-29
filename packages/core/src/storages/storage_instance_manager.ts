@@ -23,8 +23,6 @@ export interface IStorage {
     name?: string;
 }
 
-type StorageTypeName = 'Dataset' | 'KeyValueStore' | 'RequestQueue';
-type ClientOpener = (resolved: StorageIdentifier) => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
 type Hashable = string;
 
 /** Reserved alias for the default (unnamed) storage. */
@@ -51,7 +49,16 @@ class StorageCache {
 
     get<T extends IStorage>(
         cls: Constructor<T>,
-        { id, name, alias, clientCacheKey }: { id?: string; name?: string; alias?: string; clientCacheKey: Hashable },
+        {
+            id,
+            name,
+            alias,
+            clientCacheKey,
+        }: (
+            | { id: string; name?: string; alias?: undefined }
+            | { id?: string; name: string; alias?: undefined }
+            | { id?: undefined; name?: undefined; alias: string }
+        ) & { clientCacheKey: Hashable },
     ): T | undefined {
         for (const [tier, key] of [
             [this.byId, id],
@@ -143,53 +150,6 @@ class StorageCache {
 }
 
 // ---------------------------------------------------------------------------
-// Identifier resolution
-// ---------------------------------------------------------------------------
-
-/**
- * Resolves a user-provided identifier to an unambiguous `{ id?, name? }` object.
- *
- * Only called when the caller provided an explicit id, name, or string —
- * default (unnamed) storages use the alias tier instead.
- *
- * - `StorageIdentifier` object → passed through
- * - `string` → tries to find an existing storage with that ID first;
- *   if none exists, treats the string as a name
- */
-async function resolveStorageIdentifier(
-    identifier: string | StorageIdentifier,
-    client: StorageClient,
-): Promise<StorageIdentifier> {
-    if (typeof identifier === 'string') {
-        if (client.storageExists && (await client.storageExists(identifier, 'Dataset'))) {
-            return { id: identifier };
-        }
-        return { name: identifier };
-    }
-
-    if (identifier.id) {
-        return { id: identifier.id };
-    }
-
-    if (identifier.name) {
-        return { name: identifier.name };
-    }
-
-    // Empty object — shouldn't happen (callers should use alias for defaults), but handle gracefully.
-    return {};
-}
-
-/**
- * Compute a stable lock key from the raw user-provided identifier.
- */
-function rawIdentifierKey(identifier: string | StorageIdentifier | null): string {
-    if (typeof identifier === 'string') return identifier;
-    if (identifier?.id) return identifier.id;
-    if (identifier?.name) return identifier.name;
-    return DEFAULT_STORAGE_ALIAS;
-}
-
-// ---------------------------------------------------------------------------
 // StorageInstanceManager
 // ---------------------------------------------------------------------------
 
@@ -199,10 +159,10 @@ function rawIdentifierKey(identifier: string | StorageIdentifier | null): string
  * A single instance manages all storage types. Instances are cached by
  * `(storageClass, id/name/alias, clientCacheKey)` so the same storage is never opened twice.
  *
- * Modelled after crawlee-python's `StorageInstanceManager`. When no identifier is provided,
- * the storage is cached under the reserved alias `'__default__'` rather than resolving to a
- * config-based default ID. This avoids mismatches when the backend assigns a different ID
- * (e.g. a UUID) than the logical identifier used to open the storage.
+ * Modelled after crawlee-python's `StorageInstanceManager`. The manager itself does not
+ * resolve identifiers — callers pass explicit `id`, `name`, or `alias` (at most one), and
+ * a pre-bound `clientOpener` promise. When none of `id`, `name`, `alias` are provided,
+ * the manager automatically assigns the reserved alias `'__default__'`.
  *
  * @ignore
  */
@@ -214,11 +174,11 @@ export class StorageInstanceManager {
      * Open (or retrieve from cache) a storage instance.
      *
      * @param cls               The storage class constructor (e.g. `Dataset`, `KeyValueStore`, `RequestQueue`).
-     * @param storageTypeName   `'Dataset' | 'KeyValueStore' | 'RequestQueue'` — used for identifier resolution.
-     * @param identifier        The raw user-provided identifier (string, `{ id }`, `{ name }`, or null/undefined).
-     * @param client            The storage client to use.
-     * @param config            SDK configuration (for default storage IDs).
-     * @param clientOpener      A **lazy** factory that creates the sub-client from a resolved identifier.
+     * @param id                Storage ID (mutually exclusive with `name` and `alias`).
+     * @param name              Storage name (mutually exclusive with `id` and `alias`).
+     * @param alias             Run-scoped alias (mutually exclusive with `id` and `name`).
+     *                          Auto-set to `'__default__'` when no identifier is provided.
+     * @param clientOpener      A **lazy** factory that creates the sub-client.
      *                          Only called on a cache miss.
      * @param clientCacheKey    Opaque key identifying the storage backend, so that the same logical
      *                          storage opened through different clients is cached separately.
@@ -226,42 +186,39 @@ export class StorageInstanceManager {
     async openStorage<T extends IStorage>(
         cls: Constructor<T>,
         {
-            storageTypeName,
-            identifier,
-            client,
-            config,
+            id,
+            name,
+            alias,
             clientOpener,
             clientCacheKey,
-        }: {
-            storageTypeName: StorageTypeName;
-            identifier: string | StorageIdentifier | null;
-            client: StorageClient;
-            config: Configuration;
-            clientOpener: ClientOpener;
+        }: (
+            | { id: string; name?: never; alias?: never }
+            | { id?: never; name: string; alias?: never }
+            | { id?: never; name?: never; alias: string }
+            | { id?: never; name?: never; alias?: never }
+        ) & {
+            clientOpener: () => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
             clientCacheKey: Hashable;
         },
     ): Promise<T> {
-        // Determine whether this is an alias lookup (no explicit id/name) or a direct id/name lookup.
-        const isDefaultStorage = identifier === null || identifier === undefined;
-        const isEmptyIdentifier =
-            !isDefaultStorage && typeof identifier === 'object' && !identifier.id && !identifier.name;
-        const alias = isDefaultStorage || isEmptyIdentifier ? DEFAULT_STORAGE_ALIAS : undefined;
+        // Auto-set alias='__default__' when no parameters are specified (mirrors crawlee-python).
+        if (!id && !name && !alias) {
+            alias = DEFAULT_STORAGE_ALIAS;
+        }
 
         // Fast-path cache check (no lock).
         if (alias !== undefined) {
             const cached = this.cache.get(cls, { alias, clientCacheKey });
             if (cached) return cached;
-        } else if (typeof identifier !== 'string') {
-            // StorageIdentifier with id or name — can resolve synchronously.
-            const cached = this.cache.get(cls, {
-                id: (identifier as StorageIdentifier).id,
-                name: (identifier as StorageIdentifier).name,
-                clientCacheKey,
-            });
+        } else if (id) {
+            const cached = this.cache.get(cls, { id, clientCacheKey });
+            if (cached) return cached;
+        } else if (name) {
+            const cached = this.cache.get(cls, { name, clientCacheKey });
             if (cached) return cached;
         }
 
-        const identifierKey = rawIdentifierKey(identifier);
+        const identifierKey = id ?? name ?? alias ?? DEFAULT_STORAGE_ALIAS;
         const lockKey = `${cls.name}:${identifierKey}:${clientCacheKey}`;
 
         if (!this.openerLocks.has(lockKey)) {
@@ -271,25 +228,20 @@ export class StorageInstanceManager {
 
         await queue.wait();
         try {
-            // Resolve the identifier to pass to the client opener.
-            let resolved: StorageIdentifier;
+            // Double-check cache under lock (another caller may have filled it while we waited).
             if (alias !== undefined) {
-                // Default storage — resolve from config.
-                resolved = this.getDefaultStorageIdentifier(storageTypeName, config);
-
-                // Double-check cache under alias (another caller may have filled it while we waited).
                 const cached = this.cache.get(cls, { alias, clientCacheKey });
                 if (cached) return cached;
-            } else {
-                resolved = await resolveStorageIdentifier(identifier!, client);
-
-                // Double-check cache under the resolved id/name.
-                const cached = this.cache.get(cls, { ...resolved, clientCacheKey });
+            } else if (id) {
+                const cached = this.cache.get(cls, { id, clientCacheKey });
+                if (cached) return cached;
+            } else if (name) {
+                const cached = this.cache.get(cls, { name, clientCacheKey });
                 if (cached) return cached;
             }
 
             // Cache miss — create the sub-client and storage instance.
-            const subClient = await clientOpener(resolved);
+            const subClient = await clientOpener();
             const storageInfo = await (
                 subClient as DatasetClient | KeyValueStoreClient | RequestQueueClient
             ).getMetadata();
@@ -340,20 +292,56 @@ export class StorageInstanceManager {
     *getAllInstances(): IterableIterator<IStorage> {
         yield* this.cache.allValues();
     }
+}
 
-    /**
-     * Get the default storage identifier from configuration.
-     */
-    private getDefaultStorageIdentifier(storageTypeName: StorageTypeName, config: Configuration): StorageIdentifier {
-        switch (storageTypeName) {
-            case 'Dataset':
-                return { id: config.get('defaultDatasetId') as string };
-            case 'KeyValueStore':
-                return { id: config.get('defaultKeyValueStoreId') as string };
-            case 'RequestQueue':
-                return { id: config.get('defaultRequestQueueId') as string };
-        }
+// ---------------------------------------------------------------------------
+// Identifier resolution (used by storage frontends)
+// ---------------------------------------------------------------------------
+
+/**
+ * Result of resolving a user-provided identifier. Exactly one of `id`, `name`,
+ * or `alias` will be present — matching the `StorageClientOpenOptions` discriminated union.
+ */
+export type ResolvedIdentifier =
+    | { id: string; name?: never; alias?: never }
+    | { id?: never; name: string; alias?: never }
+    | { id?: never; name?: never; alias: string };
+
+/**
+ * Decompose a user-provided `identifier` (the `Dataset.open()` / `KeyValueStore.open()` /
+ * `RequestQueue.open()` argument) into separate `id`, `name`, and `alias` fields that
+ * the `StorageInstanceManager` and `StorageClient.create*Client` expect.
+ *
+ * - `null` / `undefined` / `{}` → `{ alias: '__default__' }`
+ * - `string` → resolved via `storageExists` (ID-first, then name)
+ * - `{ id }` → `{ id }`
+ * - `{ name }` → `{ name }`
+ */
+export async function resolveStorageIdentifier(
+    identifier: string | StorageIdentifier | null | undefined,
+    client: StorageClient,
+): Promise<ResolvedIdentifier> {
+    if (identifier === null || identifier === undefined) {
+        return { alias: DEFAULT_STORAGE_ALIAS };
     }
+
+    if (typeof identifier === 'string') {
+        if (client.storageExists && (await client.storageExists(identifier, 'Dataset'))) {
+            return { id: identifier };
+        }
+        return { name: identifier };
+    }
+
+    if (identifier.id) {
+        return { id: identifier.id };
+    }
+
+    if (identifier.name) {
+        return { name: identifier.name };
+    }
+
+    // Empty object — treated as default storage.
+    return { alias: DEFAULT_STORAGE_ALIAS };
 }
 
 // ---------------------------------------------------------------------------

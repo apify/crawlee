@@ -34,6 +34,7 @@ import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { IStorage, StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
 
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
@@ -878,14 +879,13 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config });
 
+        const resolved = await resolveStorageIdentifier(identifier, client);
+
         const queue = await serviceLocator
             .getStorageInstanceManager()
             .openStorage<RequestProvider>(this as typeof BuiltRequestProvider, {
-                storageTypeName: 'RequestQueue',
-                identifier: identifier ?? null,
-                client,
-                config,
-                clientOpener: (resolved) => client.createRequestQueueClient(resolved),
+                ...resolved,
+                clientOpener: () => client.createRequestQueueClient(resolved),
                 clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
             });
         queue.proxyConfiguration = options.proxyConfiguration;

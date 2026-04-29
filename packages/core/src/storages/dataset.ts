@@ -11,6 +11,7 @@ import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
@@ -718,12 +719,11 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
+        const resolved = await resolveStorageIdentifier(identifier, client);
+
         return serviceLocator.getStorageInstanceManager().openStorage<Dataset<Data>>(this, {
-            storageTypeName: 'Dataset',
-            identifier: identifier ?? null,
-            client,
-            config: options.config,
-            clientOpener: (resolved) => client.createDatasetClient(resolved),
+            ...resolved,
+            clientOpener: () => client.createDatasetClient(resolved),
             clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
         });
     }

@@ -104,8 +104,8 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        // In MemoryStorage, both id and name resolve to the same directory name.
-        const name = options.name ?? options.id;
+        // In MemoryStorage, id, name, and alias all resolve to the same directory name.
+        const name = 'alias' in options ? options.alias : (options.name ?? options.id);
 
         if (name) {
             const found = await findOrCacheDatasetByPossibleId(this, name);
@@ -139,8 +139,8 @@ export class MemoryStorage implements storage.StorageClient {
     async createKeyValueStoreClient(
         options: storage.CreateKeyValueStoreClientOptions = {},
     ): Promise<storage.KeyValueStoreClient> {
-        // In MemoryStorage, both id and name resolve to the same directory name.
-        const name = options.name ?? options.id;
+        // In MemoryStorage, id, name, and alias all resolve to the same directory name.
+        const name = 'alias' in options ? options.alias : (options.name ?? options.id);
 
         if (name) {
             const found = await findOrCacheKeyValueStoreByPossibleId(this, name);
@@ -178,8 +178,8 @@ export class MemoryStorage implements storage.StorageClient {
     async createRequestQueueClient(
         options: storage.CreateRequestQueueClientOptions = {},
     ): Promise<storage.RequestQueueClient> {
-        // In MemoryStorage, both id and name resolve to the same directory name.
-        const name = options.name ?? options.id;
+        // In MemoryStorage, id, name, and alias all resolve to the same directory name.
+        const name = 'alias' in options ? options.alias : (options.name ?? options.id);
 
         if (name) {
             const found = await findRequestQueueByPossibleId(this, name);
@@ -274,7 +274,7 @@ export class MemoryStorage implements storage.StorageClient {
                 keyValueStorePromises.push(
                     (await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))(),
                 );
-            } else if (keyValueStoreFolder === 'default') {
+            } else if (keyValueStoreFolder === 'default' || keyValueStoreFolder === '__default__') {
                 keyValueStorePromises.push(
                     this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder))(),
                 );
@@ -288,7 +288,11 @@ export class MemoryStorage implements storage.StorageClient {
         const datasetPromises: Promise<void>[] = [];
 
         for (const datasetFolder of datasets) {
-            if (datasetFolder === 'default' || datasetFolder.startsWith('__CRAWLEE_TEMPORARY')) {
+            if (
+                datasetFolder === 'default' ||
+                datasetFolder === '__default__' ||
+                datasetFolder.startsWith('__CRAWLEE_TEMPORARY')
+            ) {
                 datasetPromises.push((await this.batchRemoveFiles(resolve(this.datasetsDirectory, datasetFolder)))());
             }
         }
@@ -300,7 +304,11 @@ export class MemoryStorage implements storage.StorageClient {
         const requestQueuePromises: Promise<void>[] = [];
 
         for (const requestQueueFolder of requestQueues) {
-            if (requestQueueFolder === 'default' || requestQueueFolder.startsWith('__CRAWLEE_TEMPORARY')) {
+            if (
+                requestQueueFolder === 'default' ||
+                requestQueueFolder === '__default__' ||
+                requestQueueFolder.startsWith('__CRAWLEE_TEMPORARY')
+            ) {
                 requestQueuePromises.push(
                     (await this.batchRemoveFiles(resolve(this.requestQueuesDirectory, requestQueueFolder)))(),
                 );
