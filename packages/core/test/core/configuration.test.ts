@@ -142,20 +142,22 @@ describe('Configuration', () => {
             expect(new Configuration().headless).toBe(true);
         });
 
-        it('treats empty-string boolean env var as false', () => {
+        it('treats empty-string env var as unset across all field types', () => {
+            // Empty boolean env var falls through to default (true), not coerced to false
             setEnv('CRAWLEE_HEADLESS', '');
-            expect(new Configuration().headless).toBe(false);
+            expect(new Configuration().headless).toBe(true);
 
-            setEnv('CRAWLEE_PURGE_ON_START', '');
-            expect(new Configuration().purgeOnStart).toBe(false);
-        });
-
-        it('coerces empty-string number env var to 0', () => {
+            // Empty number env var falls through to default (60_000), not coerced to 0
             setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '');
-            expect(new Configuration().persistStateIntervalMillis).toBe(0);
+            expect(new Configuration().persistStateIntervalMillis).toBe(60_000);
 
+            // Empty string env var falls through to default ('default'), not coerced to ''
+            setEnv('CRAWLEE_DEFAULT_DATASET_ID', '');
+            expect(new Configuration().defaultDatasetId).toBe('default');
+
+            // Optional fields with no default stay undefined
             setEnv('CRAWLEE_MEMORY_MBYTES', '');
-            expect(new Configuration().memoryMbytes).toBe(0);
+            expect(new Configuration().memoryMbytes).toBeUndefined();
         });
 
         it('coerces number env vars', () => {

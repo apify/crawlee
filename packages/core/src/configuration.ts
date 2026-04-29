@@ -26,10 +26,10 @@ export function field<T extends z.ZodType>(schema: T, envVar?: string | string[]
 
 // --- Zod preprocessors ---
 
-/** Zod preprocessor treating `'0'`, `'false'`, and `''` as falsy. */
+/** Zod preprocessor treating `'0'` and `'false'` as falsy. */
 export const coerceBoolean = z.preprocess((val) => {
     if (typeof val === 'string') {
-        return !['0', 'false', ''].includes(val.toLowerCase());
+        return !['0', 'false'].includes(val.toLowerCase());
     }
     return val;
 }, z.boolean());
@@ -267,15 +267,15 @@ export class Configuration {
 
     /**
      * Reads the first defined env var value for a field definition.
-     * Empty strings are passed through — schema coercion handles them
-     * (e.g. `coerceBoolean` treats `''` as `false`).
+     * Empty strings are treated as unset, falling through to crawlee.json or schema defaults.
+     * (Crawlee v3 coerced `''` to `false`/`0`/`''` per type — v4 drops that for consistency.)
      */
     private static readEnvVar(fieldDef: ConfigField): string | undefined {
         if (!fieldDef.envVar) return undefined;
         const envVars = Array.isArray(fieldDef.envVar) ? fieldDef.envVar : [fieldDef.envVar];
         for (const envVar of envVars) {
             const value = process.env[envVar];
-            if (value != null) return value;
+            if (value != null && value !== '') return value;
         }
         return undefined;
     }
