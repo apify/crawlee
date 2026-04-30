@@ -230,10 +230,9 @@ jobs:
                     yarn docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
-                run: |
-                    git config --global user.name "Apify Release Bot"
-                    git config --global user.email "noreply@apify.com"
-                    git add .
-                    git diff-index --quiet HEAD || git commit -m "docs: update docs for $VERSION version"
-                    git pull --rebase --autostash
-                    git push
+                uses: EndBug/add-and-commit@v10
+                with:
+                    author_name: Apify Release Bot
+                    author_email: noreply@apify.com
+                    message: 'docs: update docs for ${{ env.VERSION }} version'
+                    pull: '--rebase --autostash'
