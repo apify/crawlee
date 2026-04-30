@@ -4,28 +4,42 @@
  * Implement this class to encapsulate the lifecycle of a remote browser session
  * (creation, connection URL resolution, and cleanup). The framework calls
  * {@link connect} once per browser launch and {@link release} when the browser
- * closes or crashes.
+ * closes, crashes, the pool is destroyed, or the connection fails during launch.
+ *
+ * Pass the provider instance as the `remoteBrowser` option on the crawler's
+ * `launchContext` or directly on the plugin constructor:
+ *
+ * ```typescript
+ * const crawler = new PlaywrightCrawler({
+ *     launchContext: {
+ *         remoteBrowser: new MyProvider(),
+ *     },
+ * });
+ * ```
  *
  * **Example — simple static endpoint (e.g. Browserless):**
  * ```typescript
  * class BrowserlessProvider extends RemoteBrowserProvider {
- *     constructor(private url: string) { super(); }
- *     async connect() { return { url: this.url }; }
+ *     maxOpenBrowsers = 2; // respect the service's concurrent session limit
+ *
+ *     async connect() {
+ *         return { url: `wss://production-sfo.browserless.io?token=${token}` };
+ *     }
  * }
  * ```
  *
- * **Example — session lifecycle (e.g. Browserbase):**
+ * **Example — session lifecycle with concurrency limit (e.g. Browserbase):**
  * ```typescript
  * class BrowserbaseProvider extends RemoteBrowserProvider<{ id: string }> {
- *     constructor(private apiKey: string, private projectId: string) { super(); }
+ *     maxOpenBrowsers = 2; // respect the service's concurrent session limit
  *
  *     async connect() {
- *         const session = await createSession(this.apiKey, this.projectId);
+ *         const session = await createSession(apiKey, projectId);
  *         return { url: session.connectUrl, context: { id: session.id } };
  *     }
  *
  *     async release(context: { id: string }) {
- *         await releaseSession(this.apiKey, context.id);
+ *         await releaseSession(apiKey, context.id);
  *     }
  * }
  * ```
@@ -53,10 +67,12 @@ export abstract class RemoteBrowserProvider<TContext extends Record<string, unkn
     abstract connect(): Promise<{ url: string; context?: TContext }> | { url: string; context?: TContext };
 
     /**
-     * Called when the browser closes, crashes, or the pool is destroyed.
+     * Called when the browser closes, crashes, the pool is destroyed, or the
+     * connection fails right after {@link connect} succeeds.
      * Override this to clean up remote sessions, release API resources, etc.
      *
      * Errors thrown here are caught and logged as warnings — they never crash the crawler.
+     * Safe to assume this is called at most once per {@link connect} call.
      *
      * @param _context The same `context` object returned by {@link connect}.
      */
