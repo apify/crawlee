@@ -662,6 +662,9 @@ importers:
       '@crawlee/utils':
         specifier: workspace:*
         version: link:../utils
+      cheerio:
+        specifier: ^1.0.0
+        version: 1.2.0
       linkedom:
         specifier: ^0.18.10
         version: 0.18.12
