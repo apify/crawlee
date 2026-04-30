@@ -7,6 +7,8 @@ const apiKey = process.env.STEEL_API_KEY;
 if (!apiKey) throw new Error('STEEL_API_KEY env variable is required');
 
 class SteelProvider extends RemoteBrowserProvider {
+    maxOpenBrowsers = 4; // Steel Hobby tier effective concurrent limit
+
     async connect() {
         return { url: `wss://connect.steel.dev?apiKey=${apiKey}` };
     }
@@ -17,7 +19,7 @@ const crawler = new PuppeteerCrawler({
         remoteBrowser: new SteelProvider(),
     },
     browserPoolOptions: {
-        retireBrowserAfterPageCount: 3,
+        retireBrowserAfterPageCount: 5,
         maxOpenPagesPerBrowser: 1,
     },
     maxConcurrency: 4,

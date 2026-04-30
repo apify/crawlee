@@ -10,6 +10,8 @@ if (!apiKey) throw new Error('BROWSERBASE_API_KEY env variable is required');
 if (!projectId) throw new Error('BROWSERBASE_PROJECT_ID env variable is required');
 
 class BrowserbaseProvider extends RemoteBrowserProvider<{ id: string }> {
+    maxOpenBrowsers = 1;
+
     async connect() {
         const response = await fetch('https://api.browserbase.com/v1/sessions', {
             method: 'POST',
@@ -38,6 +40,7 @@ class BrowserbaseProvider extends RemoteBrowserProvider<{ id: string }> {
 }
 
 const crawler = new PlaywrightCrawler({
+
     launchContext: {
         remoteBrowser: new BrowserbaseProvider(),
     },
@@ -45,7 +48,6 @@ const crawler = new PlaywrightCrawler({
         retireBrowserAfterPageCount: 3,
         maxOpenPagesPerBrowser: 1,
     },
-    // Browserbase free tier: 3 concurrent sessions
     maxConcurrency: 2,
     maxRequestsPerCrawl: 10,
     async requestHandler({ page, request }) {

@@ -1,25 +1,21 @@
-import 'dotenv/config';
-
+/**
+ * Browserless local — Puppeteer CDP
+ * Docker: docker run -p 3000:3000 -e CONCURRENT=4 ghcr.io/browserless/chromium
+ */
 import { RemoteBrowserProvider } from '@crawlee/browser-pool';
-import { PlaywrightCrawler } from 'crawlee';
+import { PuppeteerCrawler } from 'crawlee';
 
-// Set BROWSERLESS_TOKEN in .env
-// For local Docker, see browserless-local-playwright-ws.ts
-const token = process.env.BROWSERLESS_TOKEN;
-if (!token) throw new Error('BROWSERLESS_TOKEN env variable is required');
-const endpointUrl = `wss://production-sfo.browserless.io/chromium/playwright?token=${token}`;
-
-class BrowserlessWsProvider extends RemoteBrowserProvider {
-    override type = 'websocket' as const;
+class BrowserlessLocalProvider extends RemoteBrowserProvider {
+    maxOpenBrowsers = 4; // match CONCURRENT=4 in docker
 
     async connect() {
-        return { url: endpointUrl };
+        return { url: 'ws://localhost:3000' };
     }
 }
 
-const crawler = new PlaywrightCrawler({
+const crawler = new PuppeteerCrawler({
     launchContext: {
-        remoteBrowser: new BrowserlessWsProvider(),
+        remoteBrowser: new BrowserlessLocalProvider(),
     },
     browserPoolOptions: {
         retireBrowserAfterPageCount: 5,

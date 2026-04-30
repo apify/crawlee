@@ -25,7 +25,7 @@ let peakConnections = 0;
 
 class BrowserlessProvider extends RemoteBrowserProvider {
     // Cap to match the service limit — prevents overlap during retirement
-    override maxOpenBrowsers = 2;
+    maxOpenBrowsers = 2;
 
     async connect() {
         activeConnections++;

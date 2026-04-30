@@ -1,25 +1,26 @@
-import 'dotenv/config';
-
+/**
+ * Browserless local — Playwright WebSocket protocol
+ * Docker: docker run -p 3000:3000 -e CONCURRENT=4 ghcr.io/browserless/chromium
+ *
+ * Uses browserType.connect() (Playwright native WS), not connectOverCDP().
+ * Browserless supports both protocols — the /chromium/playwright endpoint
+ * speaks the Playwright WebSocket protocol.
+ */
 import { RemoteBrowserProvider } from '@crawlee/browser-pool';
 import { PlaywrightCrawler } from 'crawlee';
 
-// Set BROWSERLESS_TOKEN in .env
-// For local Docker, see browserless-local-playwright-ws.ts
-const token = process.env.BROWSERLESS_TOKEN;
-if (!token) throw new Error('BROWSERLESS_TOKEN env variable is required');
-const endpointUrl = `wss://production-sfo.browserless.io/chromium/playwright?token=${token}`;
-
-class BrowserlessWsProvider extends RemoteBrowserProvider {
+class BrowserlessLocalWsProvider extends RemoteBrowserProvider {
     override type = 'websocket' as const;
+    maxOpenBrowsers = 4; // match CONCURRENT=4 in docker
 
     async connect() {
-        return { url: endpointUrl };
+        return { url: 'ws://localhost:3000/chromium/playwright' };
     }
 }
 
 const crawler = new PlaywrightCrawler({
     launchContext: {
-        remoteBrowser: new BrowserlessWsProvider(),
+        remoteBrowser: new BrowserlessLocalWsProvider(),
     },
     browserPoolOptions: {
         retireBrowserAfterPageCount: 5,

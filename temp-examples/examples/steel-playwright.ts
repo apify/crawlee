@@ -42,8 +42,9 @@ const crawler = new PlaywrightCrawler({
     },
     browserPoolOptions: {
         retireBrowserAfterPageCount: 5,
+        maxOpenPagesPerBrowser: 1,
     },
-    maxConcurrency: 1,
+    maxConcurrency: 5,
     maxRequestsPerCrawl: 10,
     async requestHandler({ page, request }) {
         const title = await page.title();

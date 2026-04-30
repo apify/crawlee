@@ -3,10 +3,11 @@ import 'dotenv/config';
 import { RemoteBrowserProvider } from '@crawlee/browser-pool';
 import { PuppeteerCrawler } from 'crawlee';
 
-// Local Docker (preferred): docker run -p 3000:3000 -e CONCURRENT=4 ghcr.io/browserless/chromium
-// Remote: set BROWSERLESS_TOKEN in .env
+// Set BROWSERLESS_TOKEN in .env
+// For local Docker, see browserless-local-puppeteer.ts
 const token = process.env.BROWSERLESS_TOKEN;
-const endpointUrl = token ? `wss://production-sfo.browserless.io?token=${token}` : 'ws://localhost:3000';
+if (!token) throw new Error('BROWSERLESS_TOKEN env variable is required');
+const endpointUrl = `wss://production-sfo.browserless.io?token=${token}`;
 
 class BrowserlessProvider extends RemoteBrowserProvider {
     async connect() {
