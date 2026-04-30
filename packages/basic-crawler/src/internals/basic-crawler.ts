@@ -1286,7 +1286,7 @@ export class BasicCrawler<
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored - as a failed requests is still handled.
             const isDefaultQueue = this.requestQueue?.name === 'default' || this.requestQueue?.name === '__default__';
-            if (isDefaultQueue && purgeRequestQueue) {
+            if (isDefaultQueue && purgeRequestQueue && this.requestQueue) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();
                 this.requestManager = undefined;
