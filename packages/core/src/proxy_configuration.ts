@@ -25,82 +25,10 @@ export interface ProxyConfigurationOptions {
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
-
-    /**
-     * An array of custom proxy URLs to be rotated stratified in tiers.
-     * This is a more advanced version of `proxyUrls` that allows you to define a hierarchy of proxy URLs
-     * If everything goes well, all the requests will be sent through the first proxy URL in the list.
-     * Whenever the crawler encounters a problem with the current proxy on the given domain, it will switch to the higher tier for this domain.
-     * The crawler probes lower-level proxies at intervals to check if it can make the tier downshift.
-     *
-     * This feature is useful when you have a set of proxies with different performance characteristics (speed, price, antibot performance etc.) and you want to use the best one for each domain.
-     *
-     * Use `null` as a proxy URL to disable the proxy for the given tier.
-     */
-    tieredProxyUrls?: UrlList[];
 }
 
-export interface TieredProxy {
-    proxyUrl: string | null;
-    proxyTier?: number;
-}
-
-interface TieredProxyOptions {
+interface NewUrlOptions {
     request?: Request;
-    proxyTier?: number;
-}
-
-/**
- * Internal class for tracking the proxy tier history for a specific domain.
- *
- * Predicts the best proxy tier for the next request based on the error history for different proxy tiers.
- */
-class ProxyTierTracker {
-    private histogram: number[];
-    private currentTier: number;
-
-    constructor(tieredProxyUrls: (string | null)[][]) {
-        this.histogram = tieredProxyUrls.map(() => 0);
-        this.currentTier = 0;
-    }
-
-    /**
-     * Processes a single step of the algorithm and updates the current tier prediction based on the error history.
-     */
-    private processStep(): void {
-        this.histogram.forEach((x, i) => {
-            if (this.currentTier === i) return;
-            if (x > 0) this.histogram[i]--;
-        });
-
-        const left = this.currentTier > 0 ? this.histogram[this.currentTier - 1] : Infinity;
-        const right = this.currentTier < this.histogram.length - 1 ? this.histogram[this.currentTier + 1] : Infinity;
-
-        if (this.histogram[this.currentTier] > Math.min(left, right)) {
-            this.currentTier = left <= right ? this.currentTier - 1 : this.currentTier + 1;
-        } else if (this.histogram[this.currentTier] === left) {
-            this.currentTier--;
-        }
-    }
-
-    /**
-     * Increases the error score for the given proxy tier. This raises the chance of picking a different proxy tier for the subsequent requests.
-     *
-     * The error score is increased by 10 for the given tier. This means that this tier will be disadvantaged for the next 10 requests (every new request prediction decreases the error score by 1).
-     * @param tier The proxy tier to mark as problematic.
-     */
-    addError(tier: number) {
-        this.histogram[tier] += 10;
-    }
-
-    /**
-     * Returns the best proxy tier for the next request based on the error history for different proxy tiers.
-     * @returns The proxy tier prediction
-     */
-    predictTier() {
-        this.processStep();
-        return this.currentTier;
-    }
 }
 
 /**
@@ -135,11 +63,9 @@ export class ProxyConfiguration {
     isManInTheMiddle = false;
     protected nextCustomUrlIndex = 0;
     protected proxyUrls?: UrlList;
-    protected tieredProxyUrls?: UrlList[];
     protected usedProxyUrls = new Map<string, string | null>();
     protected newUrlFunction?: ProxyConfigurationFunction;
     protected log = serviceLocator.getLogger().child({ prefix: 'ProxyConfiguration' });
-    protected domainTiers = new Map<string, ProxyTierTracker>();
 
     /**
      * Creates a {@apilink ProxyConfiguration} instance based on the provided options. Proxy servers are used to prevent target websites from
@@ -163,26 +89,29 @@ export class ProxyConfiguration {
      */
     constructor(options: ProxyConfigurationOptions = {}) {
         const { validateRequired, ...rest } = options as Dictionary;
+
+        if ('tieredProxyUrls' in rest) {
+            throw new Error(
+                'The `tieredProxyUrls` option has been removed in Crawlee v4. ' +
+                    'See the v4 upgrading guide for the recommended migration to named sessions.',
+            );
+        }
+
         ow(
             rest,
             ow.object.exactShape({
                 proxyUrls: ow.optional.array.nonEmpty.ofType(ow.any(ow.string.url, ow.null)),
                 newUrlFunction: ow.optional.function,
-                tieredProxyUrls: ow.optional.array.nonEmpty.ofType(
-                    ow.array.nonEmpty.ofType(ow.any(ow.string.url, ow.null)),
-                ),
             }),
         );
 
-        const { proxyUrls, newUrlFunction, tieredProxyUrls } = options;
+        const { proxyUrls, newUrlFunction } = options;
 
-        if ([proxyUrls, newUrlFunction, tieredProxyUrls].filter((x) => x).length > 1)
-            this._throwCannotCombineCustomMethods();
+        if (proxyUrls && newUrlFunction) this._throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this._throwNoOptionsProvided();
 
         this.proxyUrls = proxyUrls;
         this.newUrlFunction = newUrlFunction;
-        this.tieredProxyUrls = tieredProxyUrls;
     }
 
     /**
@@ -194,17 +123,8 @@ export class ProxyConfiguration {
      *
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(options?: TieredProxyOptions): Promise<ProxyInfo | undefined> {
-        let url: string | undefined;
-        let tier: number | undefined;
-        if (this.tieredProxyUrls) {
-            const { proxyUrl, proxyTier } = this._handleTieredUrl(options);
-            url = proxyUrl ?? undefined;
-            tier = proxyTier;
-        } else {
-            url = await this.newUrl(options);
-        }
-
+    async newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined> {
+        const url = await this.newUrl(options);
         if (!url) return undefined;
 
         const { username, password, port, hostname } = new URL(url);
@@ -215,75 +135,7 @@ export class ProxyConfiguration {
             password: decodeURIComponent(password),
             hostname,
             port: port!,
-            proxyTier: tier,
         };
-    }
-
-    /**
-     * Given a request / proxy tier, this function returns a new proxy URL based on the provided configuration options.
-     * @param options Options for the tiered proxy rotation
-     * @returns An object with the proxy URL and the proxy tier used.
-     */
-    protected _handleTieredUrl(options?: TieredProxyOptions): TieredProxy {
-        if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
-
-        if (!options || (!options?.request && options?.proxyTier === undefined)) {
-            const allProxyUrls = this.tieredProxyUrls.flat();
-            return {
-                proxyUrl: allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length],
-            };
-        }
-
-        let tierPrediction = options.proxyTier!;
-
-        if (typeof tierPrediction !== 'number') {
-            tierPrediction = this.predictProxyTier(options.request!)!;
-        }
-
-        const proxyTier = this.tieredProxyUrls![tierPrediction];
-
-        return {
-            proxyUrl: proxyTier[this.nextCustomUrlIndex++ % proxyTier.length],
-            proxyTier: tierPrediction,
-        };
-    }
-
-    /**
-     * Given a `Request` object, this function returns the tier of the proxy that should be used for the request.
-     *
-     * This returns `null` if `tieredProxyUrls` option is not set.
-     */
-    protected predictProxyTier(request: Request): number | null {
-        if (!this.tieredProxyUrls) return null;
-
-        const domain = new URL(request.url).hostname;
-        if (!this.domainTiers.has(domain)) {
-            this.domainTiers.set(domain, new ProxyTierTracker(this.tieredProxyUrls));
-        }
-
-        request.userData.__crawlee ??= {};
-
-        const tracker = this.domainTiers.get(domain)!;
-
-        if (typeof request.userData.__crawlee.lastProxyTier === 'number') {
-            tracker.addError(request.userData.__crawlee.lastProxyTier);
-        }
-
-        const tierPrediction = tracker.predictTier();
-
-        if (
-            typeof request.userData.__crawlee.lastProxyTier === 'number' &&
-            request.userData.__crawlee.lastProxyTier !== tierPrediction
-        ) {
-            this.log.debug(
-                `Changing proxy tier for domain "${domain}" from ${request.userData.__crawlee.lastProxyTier} to ${tierPrediction}.`,
-            );
-        }
-
-        request.userData.__crawlee.lastProxyTier = tierPrediction;
-        request.userData.__crawlee.forefront = true;
-
-        return tierPrediction;
     }
 
     /**
@@ -292,13 +144,9 @@ export class ProxyConfiguration {
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(options?: TieredProxyOptions): Promise<string | undefined> {
+    async newUrl(options?: NewUrlOptions): Promise<string | undefined> {
         if (this.newUrlFunction) {
             return (await this._callNewUrlFunction({ request: options?.request })) ?? undefined;
-        }
-
-        if (this.tieredProxyUrls) {
-            return this._handleTieredUrl(options).proxyUrl ?? undefined;
         }
 
         return this._handleProxyUrlsList() ?? undefined;
