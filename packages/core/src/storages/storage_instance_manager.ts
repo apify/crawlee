@@ -7,7 +7,6 @@ import type {
 } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 
-import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
 
 export type { StorageIdentifier } from '@crawlee/types';
@@ -229,14 +228,11 @@ export class StorageInstanceManager {
                 subClient as DatasetClient | KeyValueStoreClient | RequestQueueClient
             ).getMetadata();
 
-            const instance = new cls(
-                {
-                    id: storageInfo.id,
-                    name: storageInfo.name,
-                    client: subClient,
-                },
-                serviceLocator.getConfiguration(),
-            ) as T;
+            const instance = new cls({
+                id: storageInfo.id,
+                name: storageInfo.name,
+                client: subClient,
+            }) as T;
 
             // Atomic cache writes (no awaits between these).
             this.cache.set(cls, instance, clientCacheKey, alias);

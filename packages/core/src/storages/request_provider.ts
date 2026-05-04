@@ -141,7 +141,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
     constructor(
         options: InternalRequestProviderOptions,
-        protected readonly config: Configuration,
+        protected readonly config: Configuration = Configuration.getGlobalConfig(),
     ) {
         this.id = options.id;
         this.name = options.name;
