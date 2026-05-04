@@ -1,6 +1,7 @@
 {
     "name": "crawlee-playwright-js",
     "version": "0.0.1",
+    "private": true,
     "type": "module",
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
