@@ -25,10 +25,6 @@ type Hashable = string;
 /** Reserved alias for the default (unnamed) storage. */
 const DEFAULT_STORAGE_ALIAS = '__default__';
 
-// ---------------------------------------------------------------------------
-// Storage cache
-// ---------------------------------------------------------------------------
-
 type CacheTier = Map<Constructor<IStorage>, Map<string, Map<Hashable, IStorage>>>;
 
 /**
@@ -76,7 +72,7 @@ class StorageCache {
     }
 
     /** Write a single entry into a given tier. */
-    setInMap<T extends IStorage>(
+    private setInMap<T extends IStorage>(
         tier: CacheTier,
         cls: Constructor<T>,
         key: string,
@@ -146,20 +142,15 @@ class StorageCache {
     }
 }
 
-// ---------------------------------------------------------------------------
-// StorageInstanceManager
-// ---------------------------------------------------------------------------
-
 /**
  * Unified manager for opening and caching storage instances (Dataset, KeyValueStore, RequestQueue).
  *
  * A single instance manages all storage types. Instances are cached by
  * `(storageClass, id/name/alias, clientCacheKey)` so the same storage is never opened twice.
  *
- * Modelled after crawlee-python's `StorageInstanceManager`. The manager itself does not
- * resolve identifiers — callers pass explicit `id`, `name`, or `alias` (at most one), and
- * a pre-bound `clientOpener` promise. When none of `id`, `name`, `alias` are provided,
- * the manager automatically assigns the reserved alias `'__default__'`.
+ * The manager itself does not resolve identifiers — callers pass explicit `id`, `name`, or `alias` (at most one),
+ * and a pre-bound `clientOpener` promise. When none of `id`, `name`, `alias` are provided, the manager automatically
+ * assigns a reserved default alias.
  *
  * @ignore
  */
@@ -174,7 +165,7 @@ export class StorageInstanceManager {
      * @param id                Storage ID (mutually exclusive with `name` and `alias`).
      * @param name              Storage name (mutually exclusive with `id` and `alias`).
      * @param alias             Run-scoped alias (mutually exclusive with `id` and `name`).
-     *                          Auto-set to `'__default__'` when no identifier is provided.
+     *                          Automatically assigned when no identifier is provided.
      * @param clientOpener      A **lazy** factory that creates the sub-client.
      *                          Only called on a cache miss.
      * @param clientCacheKey    Opaque key identifying the storage backend, so that the same logical
@@ -188,12 +179,7 @@ export class StorageInstanceManager {
             alias,
             clientOpener,
             clientCacheKey,
-        }: (
-            | { id: string; name?: never; alias?: never }
-            | { id?: never; name: string; alias?: never }
-            | { id?: never; name?: never; alias: string }
-            | { id?: never; name?: never; alias?: never }
-        ) & {
+        }: (ExplicitStorageIdentifier | DefaultStorageIdentifier) & {
             clientOpener: () => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
             clientCacheKey: Hashable;
         },
@@ -291,25 +277,30 @@ export class StorageInstanceManager {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Identifier resolution (used by storage frontends)
-// ---------------------------------------------------------------------------
-
 /**
- * Result of resolving a user-provided identifier. Exactly one of `id`, `name`,
- * or `alias` will be present — matching the `StorageClientOpenOptions` discriminated union.
+ * A storage identifier where exactly one of `id`, `name`, or `alias` is specified.
+ * Produced by {@link resolveStorageIdentifier} from ambiguous user input.
  */
-export type ResolvedIdentifier =
+export type ExplicitStorageIdentifier =
     | { id: string; name?: never; alias?: never }
     | { id?: never; name: string; alias?: never }
     | { id?: never; name?: never; alias: string };
+
+/**
+ * Represents the case where no identifier was provided — the caller wants the default storage.
+ */
+export interface DefaultStorageIdentifier {
+    id?: never;
+    name?: never;
+    alias?: never;
+}
 
 /**
  * Decompose a user-provided `identifier` (the `Dataset.open()` / `KeyValueStore.open()` /
  * `RequestQueue.open()` argument) into separate `id`, `name`, and `alias` fields that
  * the `StorageInstanceManager` and `StorageClient.create*Client` expect.
  *
- * - `null` / `undefined` / `{}` → `{ alias: '__default__' }`
+ * - `null` / `undefined` / `{}` → default storage alias
  * - `string` → resolved via `storageExists` (ID-first, then name)
  * - `{ id }` → `{ id }`
  * - `{ name }` → `{ name }`
@@ -317,7 +308,7 @@ export type ResolvedIdentifier =
 export async function resolveStorageIdentifier(
     identifier: string | StorageIdentifier | null | undefined,
     client: StorageClient,
-): Promise<ResolvedIdentifier> {
+): Promise<ExplicitStorageIdentifier> {
     if (identifier === null || identifier === undefined) {
         return { alias: DEFAULT_STORAGE_ALIAS };
     }
