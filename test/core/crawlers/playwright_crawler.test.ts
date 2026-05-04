@@ -41,6 +41,16 @@ describe('PlaywrightCrawler', () => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
             res.status(200);
         });
+        app.get('/page-with-download', (_req, res) => {
+            res.status(200).send(
+                `<html><body><a id="download-link" href="/download-file" download="hello.txt">download</a></body></html>`,
+            );
+        });
+        app.get('/download-file', (_req, res) => {
+            res.setHeader('Content-Type', 'text/plain');
+            res.setHeader('Content-Disposition', 'attachment; filename="hello.txt"');
+            res.send('hello');
+        });
     });
 
     beforeAll(async () => {
@@ -205,6 +215,34 @@ describe('PlaywrightCrawler', () => {
         expect(timezone).toBe(launchOptions.timezoneId);
         expect(locale).toBe(launchOptions.locale);
         expect(reducedMotion).toBe(launchOptions.reducedMotion);
+    });
+
+    test('exposes triggered downloads via listDownloads()', async () => {
+        let countBefore = -1;
+        let countAfter = -1;
+        let suggestedFilename: string | undefined;
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            requestHandler: async ({ page, listDownloads }) => {
+                countBefore = (await listDownloads()).length;
+
+                const downloadPromise = page.waitForEvent('download');
+                await page.click('a#download-link');
+                await downloadPromise;
+
+                const downloads = await listDownloads();
+                countAfter = downloads.length;
+                suggestedFilename = downloads[0]?.suggestedFilename();
+            },
+        });
+
+        await playwrightCrawler.run([`http://${HOSTNAME}:${port}/page-with-download`]);
+
+        expect(countBefore).toBe(0);
+        expect(countAfter).toBe(1);
+        expect(suggestedFilename).toBe('hello.txt');
     });
 
     test('should have correct types in crawling context', async () => {

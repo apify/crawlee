@@ -157,6 +157,7 @@ jobs:
                   author_name: Apify Release Bot
                   author_email: noreply@apify.com
                   message: 'chore(release): update internal dependencies [skip ci]'
+                  pull: '--rebase --autostash'
 
             -   name: Publish packages
                 uses: apify/workflows/execute-workflow@main
@@ -223,14 +224,15 @@ jobs:
                         echo "Error: VERSION is empty. Ensure lerna.json exists and contains a valid .version field."
                         exit 1
                     fi
+                    echo "VERSION=$VERSION" >> "$GITHUB_ENV"
                     MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
                     yarn docusaurus docs:version $MAJOR_MINOR
                     yarn docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
-                run: |
-                    git config --global user.name "Apify Release Bot"
-                    git config --global user.email "noreply@apify.com"
-                    git add .
-                    git diff-index --quiet HEAD || git commit -m 'docs: update docs for ${{ inputs.version }} version'
-                    git push
+                uses: EndBug/add-and-commit@v10
+                with:
+                    author_name: Apify Release Bot
+                    author_email: noreply@apify.com
+                    message: 'docs: update docs for ${{ env.VERSION }} version'
+                    pull: '--rebase --autostash'

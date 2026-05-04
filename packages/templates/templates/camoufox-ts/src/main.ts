@@ -1,4 +1,5 @@
 // For more information, see https://crawlee.dev/
+import { Browser, ImpitHttpClient } from '@crawlee/impit-client';
 import { launchOptions } from 'camoufox-js';
 import { PlaywrightCrawler, ProxyConfiguration } from 'crawlee';
 import { firefox } from 'playwright';
@@ -9,6 +10,7 @@ const startUrls = ['https://crawlee.dev'];
 
 const crawler = new PlaywrightCrawler({
     // proxyConfiguration: new ProxyConfiguration({ proxyUrls: ['...'] }),
+    httpClient: new ImpitHttpClient({ browser: Browser.Firefox }),
     requestHandler: router,
     // Comment this option to scrape the full website.
     maxRequestsPerCrawl: 20,

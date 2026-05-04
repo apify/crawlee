@@ -34,7 +34,7 @@ import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import ow from 'ow';
-import type { Page, Response, Route } from 'playwright';
+import type { Download, Page, Response, Route } from 'playwright';
 
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
@@ -1065,6 +1065,30 @@ export interface PlaywrightContextUtils {
      * @param [options]
      */
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+
+    /**
+     * Returns the list of {@link https://playwright.dev/docs/api/class-download | Download} objects
+     * collected during the current page navigation and request handler.
+     *
+     * Useful for accessing files that the page downloads automatically.
+     * For most use cases, prefer re-enqueueing the URL to {@apilink FileDownload}.
+     * Use this only when direct access to the Playwright `Download` object is required.
+     *
+     * **Example usage**
+     * ```ts
+     * requestHandler: async ({ listDownloads }) => {
+     *     for (const download of await listDownloads()) {
+     *         try {
+     *             const stream = await download.createReadStream();
+     *             // stream to storage...
+     *         } catch {
+     *             // download failed or was cancelled
+     *         }
+     *     }
+     * },
+     * ```
+     */
+    listDownloads(): Promise<Download[]>;
 }
 
 export function registerUtilsToContext(

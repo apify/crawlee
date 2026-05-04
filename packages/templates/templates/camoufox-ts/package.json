@@ -1,9 +1,11 @@
 {
     "name": "crawlee-camoufox-ts",
     "version": "0.0.1",
+    "private": true,
     "type": "module",
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
+        "@crawlee/impit-client": "^3.0.0",
         "camoufox-js": "^0.9.0",
         "crawlee": "^3.0.0",
         "playwright": "1.58.2"
