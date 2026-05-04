@@ -12,7 +12,8 @@ import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
+import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -598,7 +599,7 @@ export class KeyValueStore {
      */
     static async open(
         identifier?: string | StorageIdentifier | null,
-        options: StorageManagerOptions = {},
+        options: StorageOpenOptions = {},
     ): Promise<KeyValueStore> {
         checkStorageAccess();
 

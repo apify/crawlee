@@ -1,5 +1,4 @@
 import type {
-    BaseHttpClient,
     DatasetClient,
     KeyValueStoreClient,
     RequestQueueClient,
@@ -8,8 +7,6 @@ import type {
 } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 
-import type { Configuration } from '../configuration.js';
-import type { ProxyConfiguration } from '../proxy_configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Constructor } from '../typedefs.js';
 
@@ -342,32 +339,4 @@ export async function resolveStorageIdentifier(
 
     // Empty object — treated as default storage.
     return { alias: DEFAULT_STORAGE_ALIAS };
-}
-
-// ---------------------------------------------------------------------------
-// Re-exports
-// ---------------------------------------------------------------------------
-
-export interface StorageManagerOptions {
-    /**
-     * SDK configuration instance, defaults to the static register.
-     */
-    config?: Configuration;
-
-    /**
-     * Optional storage client that should be used to open storages.
-     */
-    storageClient?: StorageClient;
-
-    /**
-     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
-     * Takes advantage of the internal address rotation and authentication process.
-     * If undefined, the `requestsFromUrl` requests will be made without proxy.
-     */
-    proxyConfiguration?: ProxyConfiguration;
-
-    /**
-     * HTTP client to be used to download the list of URLs in `RequestQueue`.
-     */
-    httpClient?: BaseHttpClient;
 }

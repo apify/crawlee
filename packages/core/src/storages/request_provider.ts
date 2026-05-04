@@ -33,7 +33,8 @@ import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { IStorage, StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
+import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
+import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
 
@@ -860,7 +861,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      */
     static async open(
         identifier?: string | StorageIdentifier | null,
-        options: StorageManagerOptions = {},
+        options: StorageOpenOptions = {},
     ): Promise<RequestProvider> {
         checkStorageAccess();
 

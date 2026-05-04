@@ -10,7 +10,8 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { StorageIdentifier, StorageManagerOptions } from './storage_instance_manager.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
+import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -701,7 +702,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      */
     static async open<Data extends Dictionary = Dictionary>(
         identifier?: string | StorageIdentifier | null,
-        options: StorageManagerOptions = {},
+        options: StorageOpenOptions = {},
     ): Promise<Dataset<Data>> {
         checkStorageAccess();
 
