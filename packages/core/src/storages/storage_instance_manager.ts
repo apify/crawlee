@@ -170,8 +170,8 @@ export class StorageInstanceManager {
      * @param clientCacheKey    Opaque key identifying the storage backend, so that the same logical
      *                          storage opened through different clients is cached separately.
      */
-    async openStorage<T extends IStorage>(
-        cls: Constructor<T>,
+    async openStorage<TStorage extends IStorage>(
+        cls: Constructor<TStorage>,
         {
             id,
             name,
@@ -182,7 +182,7 @@ export class StorageInstanceManager {
             clientOpener: () => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
             clientCacheKey: Hashable;
         },
-    ): Promise<T> {
+    ): Promise<TStorage> {
         // Auto-set alias='__default__' when no parameters are specified (mirrors crawlee-python).
         if (!id && !name && !alias) {
             alias = DEFAULT_STORAGE_ALIAS;
@@ -232,7 +232,7 @@ export class StorageInstanceManager {
                 id: storageInfo.id,
                 name: storageInfo.name,
                 client: subClient,
-            }) as T;
+            }) as TStorage;
 
             // Atomic cache writes (no awaits between these).
             this.cache.set(cls, instance, clientCacheKey, alias);
