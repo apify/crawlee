@@ -154,7 +154,6 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
-            proxyTier,
         } = options;
 
         return new LaunchContext({
@@ -166,7 +165,6 @@ export abstract class BrowserPlugin<
             userDataDir,
             browserPerProxy,
             ignoreProxyCertificate,
-            proxyTier,
         });
     }
 

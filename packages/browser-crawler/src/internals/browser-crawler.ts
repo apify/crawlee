@@ -355,7 +355,6 @@ export abstract class BrowserCrawler<
             ignoreShadowRoots = false,
             contextPipelineBuilder,
             extendContext,
-            proxyConfiguration,
             ...basicCrawlerOptions
         } = options;
 
@@ -371,7 +370,6 @@ export abstract class BrowserCrawler<
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
         this.ignoreIframes = ignoreIframes;
@@ -461,7 +459,6 @@ export abstract class BrowserCrawler<
             const proxyInfo = crawlingContext.session.proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
-            newPageOptions.proxyTier = proxyInfo?.proxyTier;
             newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
         }
 
