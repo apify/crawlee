@@ -138,6 +138,7 @@ export class LaunchContext<
      */
     set proxyUrl(url: string | undefined) {
         if (!url) {
+            this._proxyUrl = undefined;
             return;
         }
 

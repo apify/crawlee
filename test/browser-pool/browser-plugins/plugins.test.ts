@@ -112,6 +112,17 @@ const runPluginTest = <
             expect(context.userDataDir).toEqual('test');
         });
 
+        test.concurrent('should allow unsetting launchContext proxyUrl', () => {
+            const plugin = new Plugin(library as never);
+            const context = plugin.createLaunchContext();
+
+            context.proxyUrl = 'http://proxy.com/';
+            expect(context.proxyUrl).toEqual('http://proxy.com');
+
+            context.proxyUrl = undefined;
+            expect(context.proxyUrl).toBeUndefined();
+        });
+
         test.concurrent('should create browser controller', () => {
             const plugin = new Plugin(library as never);
             const browserController = plugin.createController();
