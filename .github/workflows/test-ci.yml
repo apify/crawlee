@@ -166,8 +166,14 @@ jobs:
 
             -   name: Generate changed packages list
                 id: changed-packages
+                # `set -eo pipefail` plus an explicit assignment ensures a lerna
+                # crash fails the step instead of being swallowed by the outer
+                # `echo | tee` (which would otherwise emit `changed_packages=0`
+                # and skip the publish step silently).
                 run: |
-                    echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" | tee -a $GITHUB_OUTPUT
+                    set -eo pipefail
+                    changed=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)
+                    echo "changed_packages=$changed" | tee -a "$GITHUB_OUTPUT"
 
             -   name: Report nothing to release
                 if: steps.changed-packages.outputs.changed_packages == '0'
@@ -183,3 +189,26 @@ jobs:
                         "ref": "${{ steps.commit.outputs.commit_long_sha || github.sha }}",
                         "dist-tag": "v4"
                       }
+
+            # Docker image builds are only published off master; gated here so this block
+            # carries cleanly to master when v4 is integrated, without firing on v4 pushes.
+            -   name: Collect versions for Docker images
+                id: versions
+                if: github.ref == 'refs/heads/master'
+                run: |
+                    crawlee=`node -p "require('./packages/crawlee/package.json').version"`
+                    echo "crawlee=$crawlee" | tee -a $GITHUB_OUTPUT
+
+            -   name: Trigger Docker image builds
+                uses: peter-evans/repository-dispatch@v4
+                # Trigger next images only if we have something new pushed
+                if: github.ref == 'refs/heads/master' && steps.changed-packages.outputs.changed_packages != '0'
+                with:
+                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                    repository: apify/apify-actor-docker
+                    event-type: build-node-images
+                    client-payload: >
+                        {
+                          "crawlee_version": "${{ steps.versions.outputs.crawlee }}",
+                          "release_tag": "beta"
+                        }

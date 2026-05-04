@@ -1,3 +1,5 @@
+import { inspectValue } from '@crawlee/utils';
+
 /**
  * Errors of `NonRetryableError` type will never be retried by the crawler.
  */
@@ -74,16 +76,9 @@ export class RequestHandlerError extends Error {
  */
 export class ServiceConflictError extends Error {
     constructor(serviceName: string, newValue: unknown, existingValue: unknown) {
-        const describe = (value: unknown): string => {
-            if (typeof value === 'object' && value !== null) {
-                return value.constructor.name;
-            }
-            return String(value);
-        };
-
         super(
             `Service ${serviceName} is already in use. ` +
-                `Existing value: ${describe(existingValue)}, attempted new value: ${describe(newValue)}.`,
+                `Existing value: ${inspectValue(existingValue)}, attempted new value: ${inspectValue(newValue)}.`,
         );
     }
 }

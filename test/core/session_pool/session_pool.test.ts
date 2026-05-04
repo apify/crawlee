@@ -426,6 +426,92 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
     });
 
+    describe('sessionReuseStrategy', () => {
+        test('random should fill pool before reusing sessions', async () => {
+            sessionPool = new SessionPool({ sessionReuseStrategy: 'random', maxPoolSize: 3 });
+
+            const s1 = await sessionPool.getSession();
+            const s2 = await sessionPool.getSession();
+            const s3 = await sessionPool.getSession();
+
+            expect(new Set([s1.id, s2.id, s3.id]).size).toBe(3);
+
+            const s4 = await sessionPool.getSession();
+            expect([s1.id, s2.id, s3.id]).toContain(s4.id);
+        });
+
+        test('round-robin should fill pool before cycling', async () => {
+            sessionPool = new SessionPool({ sessionReuseStrategy: 'round-robin', maxPoolSize: 3 });
+
+            const s1 = await sessionPool.getSession();
+            const s2 = await sessionPool.getSession();
+            const s3 = await sessionPool.getSession();
+
+            expect(new Set([s1.id, s2.id, s3.id]).size).toBe(3);
+
+            const ids: string[] = [];
+            for (let i = 0; i < 6; i++) {
+                ids.push((await sessionPool.getSession()).id);
+            }
+
+            expect(ids).toEqual([s1.id, s2.id, s3.id, s1.id, s2.id, s3.id]);
+        });
+
+        test('round-robin should create a new session when all existing ones are retired', async () => {
+            sessionPool = new SessionPool({ sessionReuseStrategy: 'round-robin', maxPoolSize: 1 });
+
+            const s1 = await sessionPool.getSession();
+            s1.retire();
+
+            const s2 = await sessionPool.getSession();
+            expect(s2.id).not.toBe(s1.id);
+        });
+
+        test.each(['random', 'round-robin'] as const)(
+            '%s should evict a retired session from a full pool and replenish',
+            async (strategy) => {
+                sessionPool = new SessionPool({ sessionReuseStrategy: strategy, maxPoolSize: 3 });
+
+                const s1 = await sessionPool.getSession();
+                await sessionPool.getSession();
+                await sessionPool.getSession();
+
+                s1.retire();
+
+                // @ts-expect-error private symbol
+                expect(sessionPool.sessions).toHaveLength(3);
+
+                for (let i = 0; i < 50; i++) await sessionPool.getSession();
+
+                // @ts-expect-error private symbol
+                expect(sessionPool.sessions).toHaveLength(3);
+                // @ts-expect-error private symbol
+                expect(sessionPool.sessions.find((s) => s.id === s1.id)).toBeUndefined();
+            },
+        );
+
+        test('use-until-failure should keep reusing the same session', async () => {
+            sessionPool = new SessionPool({ sessionReuseStrategy: 'use-until-failure' });
+
+            const s1 = await sessionPool.getSession();
+            const s2 = await sessionPool.getSession();
+            const s3 = await sessionPool.getSession();
+
+            expect(s1.id).toBe(s2.id);
+            expect(s2.id).toBe(s3.id);
+        });
+
+        test('use-until-failure should switch to a new session after the current one is retired', async () => {
+            sessionPool = new SessionPool({ sessionReuseStrategy: 'use-until-failure' });
+
+            const s1 = await sessionPool.getSession();
+            s1.retire();
+
+            const s2 = await sessionPool.getSession();
+            expect(s2.id).not.toBe(s1.id);
+        });
+    });
+
     describe('multiple SessionPool instances isolation', () => {
         test('should use unique persist keys by default', async () => {
             const pool1 = new SessionPool();

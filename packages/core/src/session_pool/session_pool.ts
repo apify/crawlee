@@ -14,6 +14,9 @@ import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
 
+const SESSION_REUSE_STRATEGIES = ['random', 'round-robin', 'use-until-failure'] as const;
+export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
+
 /**
  * Factory user-function which creates customized {@apilink Session} instances.
  */
@@ -57,6 +60,15 @@ export interface SessionPoolOptions {
      * Function receives `SessionPool` instance as a parameter
      */
     createSessionFunction?: CreateSession;
+
+    /**
+     * Strategy for picking sessions from the pool.
+     * - `'random'` (default): fills the pool up to `maxPoolSize`, then picks a random usable session
+     * - `'round-robin'`: fills the pool up to `maxPoolSize`, then reuses sessions cycling through them in order
+     * - `'use-until-failure'`: always reuses the same session until it is retired, then moves to the next one
+     * @default 'random'
+     */
+    sessionReuseStrategy?: SessionReuseStrategy;
 
     /** @internal */
     log?: CrawleeLogger;
@@ -136,9 +148,11 @@ export class SessionPool extends EventEmitter {
     protected _listener?: () => Promise<void>;
     protected events: EventManager;
     protected persistenceOptions: PersistenceOptions;
+    protected sessionReuseStrategy: SessionReuseStrategy;
 
     private initPromise?: Promise<void>;
     private queue = new AsyncQueue();
+    private roundRobinIndex = 0;
 
     constructor(options: SessionPoolOptions = {}) {
         super();
@@ -154,6 +168,7 @@ export class SessionPool extends EventEmitter {
                 sessionOptions: ow.optional.object,
                 log: ow.optional.object,
                 persistenceOptions: ow.optional.object,
+                sessionReuseStrategy: ow.optional.string.oneOf([...SESSION_REUSE_STRATEGIES]),
             }),
         );
 
@@ -168,9 +183,11 @@ export class SessionPool extends EventEmitter {
             persistenceOptions = {
                 enable: true,
             },
+            sessionReuseStrategy = 'random',
         } = options;
 
         this.id = id != null ? String(id) : String(SessionPool.nextId++);
+        this.sessionReuseStrategy = sessionReuseStrategy;
         this.events = serviceLocator.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
         this.persistenceOptions = persistenceOptions;
@@ -316,13 +333,11 @@ export class SessionPool extends EventEmitter {
                 return undefined;
             }
 
+            const pickedSession = this._pickSession();
+            if (pickedSession) return pickedSession;
+
             if (this._hasSpaceForSession()) {
                 return await this._createSession();
-            }
-
-            const pickedSession = this._pickSession();
-            if (pickedSession.isUsable()) {
-                return pickedSession;
             }
 
             this._removeRetiredSessions();
@@ -375,7 +390,7 @@ export class SessionPool extends EventEmitter {
         });
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = serviceLocator.getConfiguration().get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = serviceLocator.getConfiguration().persistStateIntervalMillis;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
             ?.setValue(this.persistStateKey, await this.getState(), {
@@ -479,11 +494,26 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Picks random session from the `SessionPool`.
-     * @returns Picked `Session`.
+     * Picks a session from the `SessionPool` according to the configured `sessionReuseStrategy`.
+     * Returns `undefined` when no session should be reused and a new one should be created instead.
      */
-    protected _pickSession(): Session {
-        return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
+    protected _pickSession(): Session | undefined {
+        if (this.sessionReuseStrategy !== 'use-until-failure' && this._hasSpaceForSession()) return undefined;
+
+        if (this.sessionReuseStrategy === 'use-until-failure') {
+            return this.sessions.find((session) => session.isUsable());
+        }
+
+        let picked: Session;
+        if (this.sessionReuseStrategy === 'round-robin') {
+            const index = this.roundRobinIndex % this.sessions.length;
+            this.roundRobinIndex = index + 1;
+            picked = this.sessions[index];
+        } else {
+            picked = this.sessions[this._getRandomIndex()];
+        }
+
+        return picked.isUsable() ? picked : undefined;
     }
 
     /**
