@@ -4,7 +4,7 @@
     "description": "Crawlee Introduction Guide (playwright + chrome)",
     "dependencies": {
         "apify": "next",
-        "@apify/storage-local": "^2.3.1-beta.3",
+        "@apify/storage-local": "^3.0.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser": "file:./packages/browser-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",

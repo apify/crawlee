@@ -4,7 +4,7 @@
     "description": "Migration Test",
     "dependencies": {
         "apify": "next",
-        "@apify/storage-local": "^2.3.1-beta.3",
+        "@apify/storage-local": "^3.0.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",
         "@crawlee/http": "file:./packages/http-crawler",
