@@ -227,7 +227,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
-        const record = await this.client.getRecord(key);
+        const record = await this.client.getValue(key);
 
         return (record?.value as T) ?? defaultValue ?? null;
     }
@@ -393,21 +393,15 @@ export class KeyValueStore {
         }
 
         // In this case delete the record.
-        if (value === null) return this.client.deleteRecord(key);
+        if (value === null) return this.client.deleteValue(key);
 
         value = maybeStringify(value, optionsCopy);
 
-        return this.client.setRecord(
-            {
-                key,
-                value,
-                contentType: optionsCopy.contentType,
-            },
-            {
-                timeoutSecs: optionsCopy.timeoutSecs,
-                doNotRetryTimeouts: optionsCopy.doNotRetryTimeouts,
-            },
-        );
+        return this.client.setValue({
+            key,
+            value,
+            contentType: optionsCopy.contentType,
+        });
     }
 
     /**
@@ -417,7 +411,7 @@ export class KeyValueStore {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.delete();
+        await this.client.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
@@ -432,7 +426,7 @@ export class KeyValueStore {
      * Iterates over key-value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
      * is the record key, `index` is a zero-based index of the key in the current iteration
-     * (regardless of `options.exclusiveStartKey`) and `info` is an object that contains a single property `size`
+     * and `info` is an object that contains a single property `size`
      * indicating size of the record in bytes.
      *
      * If the `iteratee` function returns a Promise then it is awaited before the next call.
@@ -452,33 +446,18 @@ export class KeyValueStore {
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
         checkStorageAccess();
 
-        return this._forEachKey(iteratee, options);
-    }
-
-    private async _forEachKey(
-        iteratee: KeyConsumer,
-        options: KeyValueStoreIteratorOptions = {},
-        index = 0,
-    ): Promise<void> {
-        const { exclusiveStartKey, prefix, collection } = options;
         ow(iteratee, ow.function);
         ow(
             options,
             ow.object.exactShape({
-                exclusiveStartKey: ow.optional.string,
                 prefix: ow.optional.string,
-                collection: ow.optional.string,
             }),
         );
 
-        const response = await this.client.listKeys({ exclusiveStartKey, prefix, collection });
-        const { nextExclusiveStartKey, isTruncated, items } = response;
-        for (const item of items) {
+        let index = 0;
+        for await (const item of this.client.iterateKeys(options)) {
             await iteratee(item.key, index++, { size: item.size });
         }
-        return isTruncated
-            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey, prefix, collection }, index)
-            : undefined; // [].forEach() returns undefined.
     }
 
     /**
@@ -498,11 +477,9 @@ export class KeyValueStore {
     async *keys(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<string, void, undefined> {
         checkStorageAccess();
 
-        if (!this.client.keys) {
-            throw new Error('Resource client is missing the "keys" method.');
+        for await (const item of this.client.iterateKeys(options)) {
+            yield item.key;
         }
-
-        yield* this.client.keys(options);
     }
 
     /**
@@ -519,14 +496,15 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
+    async *values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<T, void, undefined> {
         checkStorageAccess();
 
-        if (!this.client.values) {
-            throw new Error('Resource client is missing the "values" method.');
+        for await (const item of this.client.iterateKeys(options)) {
+            const record = await this.client.getValue(item.key);
+            if (record) {
+                yield record.value as T;
+            }
         }
-
-        return this.client.values(options) as AsyncIterable<T> & Promise<T[]>;
     }
 
     /**
@@ -543,16 +521,17 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    entries<T = unknown>(
+    async *entries<T = unknown>(
         options: KeyValueStoreIteratorOptions = {},
-    ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
+    ): AsyncGenerator<[string, T], void, undefined> {
         checkStorageAccess();
 
-        if (!this.client.entries) {
-            throw new Error('Resource client is missing the "entries" method.');
+        for await (const item of this.client.iterateKeys(options)) {
+            const record = await this.client.getValue(item.key);
+            if (record) {
+                yield [item.key, record.value as T];
+            }
         }
-
-        return this.client.entries(options) as AsyncIterable<[string, T]> & Promise<[string, T][]>;
     }
 
     /**
@@ -579,7 +558,7 @@ export class KeyValueStore {
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        return this.client.getRecordPublicUrl(key);
+        return this.client.getPublicUrl(key);
     }
 
     /**
@@ -856,15 +835,7 @@ export interface RecordOptions {
 
 export interface KeyValueStoreIteratorOptions {
     /**
-     * All keys up to this one (including) are skipped from the result.
-     */
-    exclusiveStartKey?: string;
-    /**
      * If set, only keys that start with this prefix are returned.
      */
     prefix?: string;
-    /**
-     * Collection name to use for listing keys.
-     */
-    collection?: string;
 }

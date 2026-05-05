@@ -1,26 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { Readable } from 'node:stream';
 
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra';
-import mime from 'mime-types';
-import pLimit from 'p-limit';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
 import { maybeParseBody } from '../body-parser.js';
 import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers.js';
-import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts.js';
+import { StorageTypes } from '../consts.js';
 import type { StorageImplementation } from '../fs/common.js';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
 import type { MemoryStorage } from '../index.js';
-import { createKeyList, createKeyStringList, createLazyIterablePromise, isBuffer, isStream } from '../utils.js';
+import { isBuffer, isStream } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
+import mime from 'mime-types';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
-const GET_RECORD_CONCURRENCY = 25;
 
 export interface KeyValueStoreClientOptions {
     name?: string;
@@ -37,7 +33,7 @@ export interface InternalKeyRecord {
     filePath?: string;
 }
 
-export class KeyValueStoreClient extends BaseClient {
+export class KeyValueStoreClient extends BaseClient implements storage.KeyValueStoreClient {
     name?: string;
     createdAt = new Date();
     accessedAt = new Date();
@@ -65,52 +61,7 @@ export class KeyValueStoreClient extends BaseClient {
         return this.toKeyValueStoreInfo();
     }
 
-    async update(newFields: storage.KeyValueStoreClientUpdateOptions = {}): Promise<storage.KeyValueStoreInfo> {
-        const parsed = s
-            .object({
-                name: s.string().lengthGreaterThan(0).optional(),
-            })
-            .parse(newFields);
-
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        // Skip if no changes
-        if (!parsed.name) {
-            return existingStoreById.toKeyValueStoreInfo();
-        }
-
-        // Check that name is not in use already
-        const existingStoreByName = this.client.keyValueStoreCache.find(
-            (store) => store.name?.toLowerCase() === parsed.name!.toLowerCase(),
-        );
-
-        if (existingStoreByName) {
-            this.throwOnDuplicateEntry(StorageTypes.KeyValueStore, 'name', parsed.name);
-        }
-
-        existingStoreById.name = parsed.name;
-
-        const previousDir = existingStoreById.keyValueStoreDirectory;
-
-        existingStoreById.keyValueStoreDirectory = resolve(
-            this.client.keyValueStoresDirectory,
-            parsed.name ?? existingStoreById.name ?? existingStoreById.id,
-        );
-
-        await move(previousDir, existingStoreById.keyValueStoreDirectory, { overwrite: true });
-
-        // Update timestamps
-        existingStoreById.updateTimestamps(true);
-
-        return existingStoreById.toKeyValueStoreInfo();
-    }
-
-    async delete(): Promise<void> {
+    async drop(): Promise<void> {
         const storeIndex = this.client.keyValueStoreCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
@@ -121,156 +72,31 @@ export class KeyValueStoreClient extends BaseClient {
         }
     }
 
-    listKeys(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData> {
-        const { limit, exclusiveStartKey, prefix } = s
+    async purge(): Promise<void> {
+        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
+
+        if (!existingStoreById) {
+            this.throwOnNonExisting(StorageTypes.KeyValueStore);
+        }
+
+        // Delete all entries
+        const entriesToDelete = [...existingStoreById.keyValueEntries.entries()];
+        for (const [key, entry] of entriesToDelete) {
+            existingStoreById.keyValueEntries.delete(key);
+            await entry.delete();
+        }
+
+        existingStoreById.updateTimestamps(true);
+    }
+
+    async *iterateKeys(
+        options: storage.KeyValueStoreIterateKeysOptions = {},
+    ): AsyncIterable<storage.KeyValueStoreItemData> {
+        const { prefix } = s
             .object({
-                limit: s.number().greaterThan(0).optional(),
-                exclusiveStartKey: s.string().optional(),
-                collection: s.string().optional(), // This is ignored, but kept for validation consistency with API client.
                 prefix: s.string().optional(),
             })
             .parse(options);
-
-        return createKeyList(
-            (pageExclusiveStartKey) =>
-                this.listKeysPage({
-                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
-                    exclusiveStartKey: pageExclusiveStartKey,
-                    prefix,
-                }),
-            { exclusiveStartKey, limit },
-        );
-    }
-
-    keys(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<string> & Promise<storage.KeyValueStoreClientListData> {
-        const { limit, exclusiveStartKey, prefix } = s
-            .object({
-                limit: s.number().greaterThan(0).optional(),
-                exclusiveStartKey: s.string().optional(),
-                collection: s.string().optional(),
-                prefix: s.string().optional(),
-            })
-            .parse(options);
-
-        return createKeyStringList(
-            (pageExclusiveStartKey) =>
-                this.listKeysPage({
-                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
-                    exclusiveStartKey: pageExclusiveStartKey,
-                    prefix,
-                }),
-            { exclusiveStartKey, limit },
-        );
-    }
-
-    values(options: storage.KeyValueStoreClientListOptions = {}): AsyncIterable<unknown> & Promise<unknown[]> {
-        const keys = this.keys.bind(this);
-        const getRecord = this.getRecord.bind(this);
-        const limit = options.limit;
-
-        const firstPageKeysPromise = keys(options);
-
-        const getFirstPageValues = async () => {
-            const firstPageKeys = await firstPageKeysPromise;
-            const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
-            const limiter = pLimit(GET_RECORD_CONCURRENCY);
-            const results = await Promise.all(keysToFetch.map((item) => limiter(() => getRecord(item.key))));
-            return results.filter((r) => r !== undefined).map((r) => r.value);
-        };
-
-        async function* asyncGenerator(): AsyncGenerator<unknown> {
-            const firstPageKeys = await firstPageKeysPromise;
-            let yielded = 0;
-
-            for (const item of firstPageKeys.items) {
-                if (limit !== undefined && yielded >= limit) return;
-                const record = await getRecord(item.key);
-                if (record) {
-                    yield record.value;
-                    yielded++;
-                }
-            }
-
-            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
-                for await (const key of keys({
-                    ...options,
-                    exclusiveStartKey: firstPageKeys.nextExclusiveStartKey,
-                })) {
-                    if (limit !== undefined && yielded >= limit) return;
-                    const record = await getRecord(key);
-                    if (record) {
-                        yield record.value;
-                        yielded++;
-                    }
-                }
-            }
-        }
-
-        return createLazyIterablePromise(getFirstPageValues, asyncGenerator);
-    }
-
-    entries(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]> {
-        const keys = this.keys.bind(this);
-        const getRecord = this.getRecord.bind(this);
-        const limit = options.limit;
-
-        const firstPageKeysPromise = keys(options);
-
-        const getFirstPageEntries = async () => {
-            const firstPageKeys = await firstPageKeysPromise;
-            const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
-            const limiter = pLimit(GET_RECORD_CONCURRENCY);
-            const results = await Promise.all(
-                keysToFetch.map((item) =>
-                    limiter(() => getRecord(item.key).then((record) => ({ key: item.key, record }))),
-                ),
-            );
-            return results
-                .filter((r) => r.record !== undefined)
-                .map((r) => [r.key, r.record!.value] as [string, unknown]);
-        };
-
-        async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {
-            const firstPageKeys = await firstPageKeysPromise;
-            let yielded = 0;
-
-            for (const item of firstPageKeys.items) {
-                if (limit !== undefined && yielded >= limit) return;
-                const record = await getRecord(item.key);
-                if (record) {
-                    yield [item.key, record.value];
-                    yielded++;
-                }
-            }
-
-            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
-                for await (const key of keys({
-                    ...options,
-                    exclusiveStartKey: firstPageKeys.nextExclusiveStartKey,
-                })) {
-                    if (limit !== undefined && yielded >= limit) return;
-                    const record = await getRecord(key);
-                    if (record) {
-                        yield [key, record.value];
-                        yielded++;
-                    }
-                }
-            }
-        }
-
-        return createLazyIterablePromise(getFirstPageEntries, asyncGenerator);
-    }
-
-    private async listKeysPage(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): Promise<storage.KeyValueStoreClientListData> {
-        const { limit = DEFAULT_API_PARAM_LIMIT, exclusiveStartKey, prefix } = options;
 
         // Check by id
         const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
@@ -279,7 +105,7 @@ export class KeyValueStoreClient extends BaseClient {
             this.throwOnNonExisting(StorageTypes.KeyValueStore);
         }
 
-        const items = [];
+        const items: storage.KeyValueStoreItemData[] = [];
 
         for (const storageEntry of existingStoreById.keyValueEntries.values()) {
             const record = await storageEntry.get();
@@ -292,36 +118,15 @@ export class KeyValueStoreClient extends BaseClient {
         }
 
         // Lexically sort to emulate API.
-        // TODO(vladfrangu): ensure the sorting works the same way as before (if it matters)
-        items.sort((a, b) => {
-            return a.key.localeCompare(b.key);
-        });
+        items.sort((a, b) => a.key.localeCompare(b.key));
 
         const filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
 
-        let truncatedItems = filteredItems;
-        if (exclusiveStartKey) {
-            const keyPos = filteredItems.findIndex((item) => item.key === exclusiveStartKey);
-            if (keyPos !== -1) truncatedItems = filteredItems.slice(keyPos + 1);
-        }
-
-        const limitedItems = truncatedItems.slice(0, limit);
-
-        const lastItemInStore = filteredItems.at(-1);
-        const lastSelectedItem = limitedItems.at(-1);
-        const isLastSelectedItemAbsolutelyLast = lastItemInStore === lastSelectedItem;
-        const nextExclusiveStartKey = isLastSelectedItemAbsolutelyLast ? undefined : lastSelectedItem?.key;
-
         existingStoreById.updateTimestamps(false);
 
-        return {
-            count: limitedItems.length,
-            limit,
-            exclusiveStartKey,
-            isTruncated: !isLastSelectedItemAbsolutelyLast,
-            nextExclusiveStartKey,
-            items: limitedItems,
-        };
+        for (const item of filteredItems) {
+            yield item;
+        }
     }
 
     /**
@@ -330,7 +135,7 @@ export class KeyValueStoreClient extends BaseClient {
      * Returns `undefined` if the record does not exist or has no associated file path (i.e., it is not stored as a file).
      * @param key The key of the record to generate the public URL for.
      */
-    async getRecordPublicUrl(key: string): Promise<string | undefined> {
+    async getPublicUrl(key: string): Promise<string | undefined> {
         s.string().parse(key);
 
         // Check by id
@@ -364,18 +169,8 @@ export class KeyValueStoreClient extends BaseClient {
         return existingStoreById.keyValueEntries.has(key);
     }
 
-    async getRecord(
-        key: string,
-        options: storage.KeyValueStoreClientGetRecordOptions = {},
-    ): Promise<storage.KeyValueStoreRecord | undefined> {
+    async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
-        s.object({
-            buffer: s.boolean().optional(),
-            // These options are ignored, but kept here
-            // for validation consistency with API client.
-            stream: s.boolean().optional(),
-            disableRedirect: s.boolean().optional(),
-        }).parse(options);
 
         // Check by id
         const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
@@ -398,20 +193,15 @@ export class KeyValueStoreClient extends BaseClient {
             contentType: entry.contentType ?? (mime.contentType(entry.extension) as string),
         };
 
-        if (options.stream) {
-            record.value = Readable.from(record.value);
-        } else if (options.buffer) {
-            record.value = Buffer.from(record.value);
-        } else {
-            record.value = maybeParseBody(record.value, record.contentType!);
-        }
+        // Auto-parse the body (JSON → object, text → string, etc.)
+        record.value = maybeParseBody(record.value, record.contentType!);
 
         existingStoreById.updateTimestamps(false);
 
         return record;
     }
 
-    async setRecord(record: storage.KeyValueStoreRecord): Promise<void> {
+    async setValue(record: storage.KeyValueStoreRecord): Promise<void> {
         s.object({
             key: s.string().lengthGreaterThan(0),
             value: s.union([
@@ -489,7 +279,7 @@ export class KeyValueStoreClient extends BaseClient {
         existingStoreById.updateTimestamps(true);
     }
 
-    async deleteRecord(key: string): Promise<void> {
+    async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
 
         // Check by id

@@ -1,8 +1,6 @@
-import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
+import type { DatasetClient, DatasetInfo, Dictionary } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
-
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
@@ -18,15 +16,15 @@ import { purgeDefaultStorages } from './utils.js';
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 
-const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
-
 /**
- * Accepts a JSON serializable object as an input, validates its serializability,
- * and validates its serialized size against limitBytes. Optionally accepts its index
- * in an array to provide better error messages. Returns serialized object.
+ * Validates that the given value is a plain JSON-serializable object
+ * (not an array, not a primitive, not circular).
+ *
+ * @param item The value to validate.
+ * @param index Optional index for error messages when validating inside an array.
  * @ignore
  */
-export function checkAndSerialize<T>(item: T, limitBytes: number, index?: number): string {
+export function isJsonSerializable<T>(item: T, index?: number): void {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
     const isItemObject = item && typeof item === 'object' && !Array.isArray(item);
 
@@ -34,20 +32,12 @@ export function checkAndSerialize<T>(item: T, limitBytes: number, index?: number
         throw new Error(`Data item${s}is not an object. You can push only objects into a dataset.`);
     }
 
-    let payload;
     try {
-        payload = JSON.stringify(item);
+        JSON.stringify(item);
     } catch (e) {
         const err = e as Error;
         throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
     }
-
-    const bytes = Buffer.byteLength(payload);
-    if (bytes > limitBytes) {
-        throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${limitBytes} bytes)`);
-    }
-
-    return payload;
 }
 
 /**
@@ -260,44 +250,21 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
      * otherwise the crawler process might finish before the data is stored!
      *
-     * The size of the data is limited by the receiving API and therefore `pushData()` will only
-     * allow objects whose JSON representation is smaller than 9MB. When an array is passed,
-     * none of the included objects
-     * may be larger than 9MB, but the array itself may be of any size.
-     *
-     * The function internally
-     * chunks the array into separate items and pushes them sequentially.
-     * The chunking process is stable (keeps order of data), but it does not provide a transaction
-     * safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
-     * the function's Promise will reject and the dataset will be left in a state where some of
-     * the items have already been saved to the dataset while other items from the source array were not.
-     * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
-     * and re-attempt the save of the data from this item onwards to prevent duplicates.
      * @param data Object or array of objects containing data to be stored in the default dataset.
-     *   The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+     *   The objects must be serializable to JSON.
      */
     async pushData(data: Data | Data[]): Promise<void> {
         checkStorageAccess();
 
         ow(data, 'data', ow.object);
-        const dispatch = async (payload: string) => this.client.pushItems(payload);
-        const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
-        // Handle singular Objects
-        if (!Array.isArray(data)) {
-            const payload = checkAndSerialize(data, limit);
-            await dispatch(payload);
-            return;
+        // Normalize to array and validate each item
+        const items = Array.isArray(data) ? data : [data];
+        for (let i = 0; i < items.length; i++) {
+            isJsonSerializable(items[i], i);
         }
 
-        // Handle Arrays
-        const payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
-        const chunks = chunkBySize(payloads, limit);
-
-        // Invoke client in series to preserve order of data
-        for (const chunk of chunks) {
-            await dispatch(chunk);
-        }
+        await this.client.pushData(items);
     }
 
     /**
@@ -307,7 +274,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         try {
-            return await this.client.listItems(options);
+            return await this.client.getData(options);
         } catch (e) {
             const error = e as Error;
             if (error.message.includes('Cannot create a string longer than')) {
@@ -330,7 +297,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         const fetchNextChunk = async (offset = 0): Promise<void> => {
             const limit = 1000;
-            const value = await this.client.listItems({ offset, limit, ...options });
+            const value = await this.client.getData({ offset, limit, ...options });
 
             if (value.count === 0) {
                 return;
@@ -616,20 +583,10 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * @param options Options for the iteration.
      */
-    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
+    async *values(options: DatasetIteratorOptions = {}): AsyncGenerator<Data> {
         checkStorageAccess();
 
-        const result = this.client.listItems(options) as AsyncIterable<Data> & Promise<PaginatedList<Data>>;
-
-        if (!(Symbol.asyncIterator in result)) {
-            Object.defineProperty(result, Symbol.asyncIterator, {
-                get() {
-                    throw new Error('Resource client "listItems" method does not return an async iterable.');
-                },
-            });
-        }
-
-        return result;
+        yield* this.client.iterateItems(options);
     }
 
     /**
@@ -646,16 +603,14 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * @param options Options for the iteration.
      */
-    entries(
-        options: DatasetIteratorOptions = {},
-    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>> {
+    async *entries(options: DatasetIteratorOptions = {}): AsyncGenerator<[number, Data]> {
         checkStorageAccess();
 
-        if (!this.client.listEntries) {
-            throw new Error('Resource client is missing the "listEntries" method.');
-        }
+        let index = options.offset ?? 0;
 
-        return this.client.listEntries(options);
+        for await (const item of this.client.iterateItems(options)) {
+            yield [index++, item];
+        }
     }
 
     /**
@@ -681,7 +636,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.delete();
+        await this.client.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 

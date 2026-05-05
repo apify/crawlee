@@ -722,7 +722,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.delete();
+        await this.client.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 

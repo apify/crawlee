@@ -6,7 +6,6 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers.js';
@@ -14,7 +13,6 @@ import { StorageTypes } from '../consts.js';
 import type { StorageImplementation } from '../fs/common.js';
 import { createDatasetStorageImplementation } from '../fs/dataset/index.js';
 import type { MemoryStorage } from '../index.js';
-import { createPaginatedEntryList, createPaginatedList } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 
 /**
@@ -68,52 +66,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         return this.toDatasetInfo();
     }
 
-    async update(newFields: storage.DatasetClientUpdateOptions = {}): Promise<storage.DatasetInfo> {
-        const parsed = s
-            .object({
-                name: s.string().lengthGreaterThan(0).optional(),
-            })
-            .parse(newFields);
-
-        // Check by id
-        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.Dataset);
-        }
-
-        // Skip if no changes
-        if (!parsed.name) {
-            return existingStoreById.toDatasetInfo();
-        }
-
-        // Check that name is not in use already
-        const existingStoreByName = this.client.datasetClientCache.find(
-            (store) => store.name?.toLowerCase() === parsed.name!.toLowerCase(),
-        );
-
-        if (existingStoreByName) {
-            this.throwOnDuplicateEntry(StorageTypes.Dataset, 'name', parsed.name);
-        }
-
-        existingStoreById.name = parsed.name;
-
-        const previousDir = existingStoreById.datasetDirectory;
-
-        existingStoreById.datasetDirectory = resolve(
-            this.client.datasetsDirectory,
-            parsed.name ?? existingStoreById.name ?? existingStoreById.id,
-        );
-
-        await move(previousDir, existingStoreById.datasetDirectory, { overwrite: true });
-
-        // Update timestamps
-        existingStoreById.updateTimestamps(true);
-
-        return existingStoreById.toDatasetInfo();
-    }
-
-    async delete(): Promise<void> {
+    async drop(): Promise<void> {
         const storeIndex = this.client.datasetClientCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
@@ -125,13 +78,31 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         }
     }
 
-    async downloadItems(): Promise<Buffer> {
-        throw new Error('This method is not implemented in @crawlee/memory-storage');
+    async purge(): Promise<void> {
+        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
+
+        if (!existingStoreById) {
+            this.throwOnNonExisting(StorageTypes.Dataset);
+        }
+
+        existingStoreById.itemCount = 0;
+        existingStoreById.datasetEntries.clear();
+
+        // Remove item files from disk but keep the directory
+        if (this.client.persistStorage) {
+            const { readdir } = await import('node:fs/promises');
+            const entries = await readdir(existingStoreById.datasetDirectory).catch(() => []);
+            for (const entry of entries) {
+                if (entry !== '__metadata__.json') {
+                    await rm(resolve(existingStoreById.datasetDirectory, entry), { force: true });
+                }
+            }
+        }
+
+        existingStoreById.updateTimestamps(true);
     }
 
-    listItems(
-        options: storage.DatasetClientListOptions = {},
-    ): AsyncIterable<Data> & Promise<storage.PaginatedList<Data>> {
+    getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { desc, limit, offset } = s
             .object({
                 desc: s.boolean().optional(),
@@ -140,21 +111,19 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             })
             .parse(options);
 
-        return createPaginatedList<Data>(
-            (pageOffset, pageLimit) =>
-                this.listItemsPage({
-                    desc,
-                    offset: pageOffset,
-                    limit: Math.min(pageLimit, LIST_ITEMS_LIMIT),
-                }),
-            { offset, limit },
-        );
+        return this.getDataPage({
+            desc,
+            offset: offset ?? 0,
+            limit: Math.min(limit ?? LIST_ITEMS_LIMIT, LIST_ITEMS_LIMIT),
+        });
     }
 
-    listEntries(
-        options: storage.DatasetClientListOptions = {},
-    ): AsyncIterable<[number, Data]> & Promise<storage.PaginatedList<[number, Data]>> {
-        const { desc, limit, offset } = s
+    async *iterateItems(options: storage.DatasetClientListOptions = {}): AsyncIterable<Data> {
+        const {
+            desc,
+            limit,
+            offset: startOffset,
+        } = s
             .object({
                 desc: s.boolean().optional(),
                 limit: s.number().int().optional(),
@@ -162,18 +131,30 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             })
             .parse(options);
 
-        return createPaginatedEntryList<Data>(
-            (pageOffset, pageLimit) =>
-                this.listItemsPage({
-                    desc,
-                    offset: pageOffset,
-                    limit: Math.min(pageLimit, LIST_ITEMS_LIMIT),
-                }),
-            { offset, limit },
-        );
+        let offset = startOffset ?? 0;
+        let yielded = 0;
+        const pageSize = 1000;
+
+        while (true) {
+            const pageLimit = limit !== undefined ? Math.min(pageSize, limit - yielded) : pageSize;
+            if (pageLimit <= 0) break;
+
+            const page = await this.getDataPage({ desc, offset, limit: pageLimit });
+
+            for (const item of page.items) {
+                yield item;
+                yielded++;
+            }
+
+            if (page.items.length < pageLimit || (limit !== undefined && yielded >= limit)) {
+                break;
+            }
+
+            offset += page.items.length;
+        }
     }
 
-    private async listItemsPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+    private async getDataPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 
         // Check by id
@@ -207,15 +188,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         };
     }
 
-    async pushItems(items: string | Data | string[] | Data[]): Promise<void> {
-        const rawItems = s
-            .union([
-                s.string(),
-                s.object<Data>({} as Data).passthrough(),
-                s.array(s.union([s.string(), s.object<Data>({} as Data).passthrough()])),
-            ])
-            .parse(items) as Data[];
-
+    async pushData(items: Data[]): Promise<void> {
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
 
@@ -223,11 +196,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             this.throwOnNonExisting(StorageTypes.Dataset);
         }
 
-        const normalized = this.normalizeItems(rawItems);
-
-        const addedIds: string[] = [];
-
-        for (const entry of normalized) {
+        for (const entry of items) {
             const idx = this.generateLocalEntryName(++existingStoreById.itemCount);
             const storageEntry = createDatasetStorageImplementation({
                 entityId: idx,
@@ -238,7 +207,6 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             await storageEntry.update(entry);
 
             existingStoreById.datasetEntries.set(idx, storageEntry);
-            addedIds.push(idx);
         }
 
         existingStoreById.updateTimestamps(true);
@@ -263,39 +231,6 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         const start = offset + 1;
         const end = Math.min(offset + limit, this.itemCount) + 1;
         return [start, end] as const;
-    }
-
-    /**
-     * To emulate API and split arrays of items into individual dataset items,
-     * we need to normalize the input items - which can be strings, objects
-     * or arrays of those - into objects, so that we can save them one by one
-     * later. We could potentially do this directly with strings, but let's
-     * not optimize prematurely.
-     */
-    private normalizeItems(items: string | Data | (string | Data)[]): Data[] {
-        if (typeof items === 'string') {
-            items = JSON.parse(items);
-        }
-
-        return Array.isArray(items) ? items.map((item) => this.normalizeItem(item)) : [this.normalizeItem(items)];
-    }
-
-    private normalizeItem(item: string | Data): Data {
-        if (typeof item === 'string') {
-            item = JSON.parse(item) as Data;
-        }
-
-        if (Array.isArray(item)) {
-            throw new Error(
-                `Each dataset item can only be a single JSON object, not an array. Received: [${item.join(',\n')}]`,
-            );
-        }
-
-        if (typeof item !== 'object' || item === null) {
-            throw new Error(`Each dataset item must be a JSON object. Received: ${item}`);
-        }
-
-        return item;
     }
 
     private updateTimestamps(hasBeenModified: boolean) {

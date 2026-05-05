@@ -30,7 +30,7 @@ describe('writeMetadata option', () => {
 
         test('creating a key-value pair in a key-value store should not write __metadata__.json file for the value', async () => {
             const keyValueStore = await storage.createKeyValueStoreClient();
-            await keyValueStore.setRecord({ key: 'foo', value: 'test' });
+            await keyValueStore.setValue({ key: 'foo', value: 'test' });
 
             const keyValueStoreInfo = await keyValueStore.getMetadata();
             const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);
@@ -62,7 +62,7 @@ describe('writeMetadata option', () => {
 
         test('creating a key-value pair in a key-value store should write __metadata__.json file for the value', async () => {
             const keyValueStore = await storage.createKeyValueStoreClient();
-            await keyValueStore.setRecord({ key: 'foo', value: 'test' });
+            await keyValueStore.setValue({ key: 'foo', value: 'test' });
 
             const keyValueStoreInfo = await keyValueStore.getMetadata();
             const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);

@@ -5,7 +5,6 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra/esm';
 import type { RequestQueueFileSystemEntry } from '../fs/request-queue/fs.js';
 import type { RequestQueueMemoryEntry } from '../fs/request-queue/memory.js';
 
@@ -97,54 +96,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return this.toRequestQueueInfo();
     }
 
-    async update(newFields: { name?: string | undefined }): Promise<storage.RequestQueueInfo | undefined> {
-        // The validation is intentionally loose to prevent issues
-        // when swapping to a remote queue in production.
-        const parsed = s
-            .object({
-                name: s.string().lengthGreaterThan(0).optional(),
-            })
-            .passthrough()
-            .parse(newFields);
-
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
-        // Skip if no changes
-        if (!parsed.name) {
-            return existingQueueById.toRequestQueueInfo();
-        }
-
-        // Check that name is not in use already
-        const existingQueueByName = this.client.requestQueueCache.find(
-            (queue) => queue.name?.toLowerCase() === parsed.name!.toLowerCase(),
-        );
-
-        if (existingQueueByName) {
-            this.throwOnDuplicateEntry(StorageTypes.RequestQueue, 'name', parsed.name);
-        }
-
-        existingQueueById.name = parsed.name;
-
-        const previousDir = existingQueueById.requestQueueDirectory;
-
-        existingQueueById.requestQueueDirectory = resolve(
-            this.client.requestQueuesDirectory,
-            parsed.name ?? existingQueueById.name ?? existingQueueById.id,
-        );
-
-        await move(previousDir, existingQueueById.requestQueueDirectory, { overwrite: true });
-
-        // Update timestamps
-        existingQueueById.updateTimestamps(true);
-
-        return existingQueueById.toRequestQueueInfo();
-    }
-
-    async delete(): Promise<void> {
+    async drop(): Promise<void> {
         const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
 
         if (storeIndex !== -1) {
@@ -154,6 +106,33 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
             await rm(oldClient.requestQueueDirectory, { recursive: true, force: true });
         }
+    }
+
+    async purge(): Promise<void> {
+        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
+
+        if (!existingQueueById) {
+            this.throwOnNonExisting(StorageTypes.RequestQueue);
+        }
+
+        // Clear all in-memory state
+        existingQueueById.requests.clear();
+        existingQueueById.forefrontRequestIds = [];
+        existingQueueById.handledRequestCount = 0;
+        existingQueueById.pendingRequestCount = 0;
+
+        // Remove request files from disk but keep the directory
+        if (this.client.persistStorage) {
+            const { readdir } = await import('node:fs/promises');
+            const entries = await readdir(existingQueueById.requestQueueDirectory).catch(() => []);
+            for (const entry of entries) {
+                if (entry !== '__metadata__.json') {
+                    await rm(resolve(existingQueueById.requestQueueDirectory, entry), { force: true });
+                }
+            }
+        }
+
+        existingQueueById.updateTimestamps(true);
     }
 
     private *requestKeyIterator(rqClient: RequestQueueClient): IterableIterator<string> {
@@ -570,31 +549,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             wasAlreadyHandled: requestWasHandledBeforeUpdate,
             wasAlreadyPresent: true,
         };
-    }
-
-    async deleteRequest(id: string): Promise<void> {
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
-        const entry = existingQueueById.requests.get(id);
-
-        if (entry) {
-            const request = await entry.get();
-
-            existingQueueById.requests.delete(id);
-            existingQueueById.updateTimestamps(true);
-
-            if (request.orderNo) {
-                existingQueueById.pendingRequestCount -= 1;
-            } else {
-                existingQueueById.handledRequestCount -= 1;
-            }
-
-            await entry.delete();
-        }
     }
 
     toRequestQueueInfo(): storage.RequestQueueInfo {
