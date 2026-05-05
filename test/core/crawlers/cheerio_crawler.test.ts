@@ -881,7 +881,7 @@ describe('CheerioCrawler', () => {
             const crawler = new CheerioCrawler({
                 requestList,
 
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 requestHandler: ({ session }) => {
                     expect(session).toBeInstanceOf(Session);
                 },
@@ -893,7 +893,7 @@ describe('CheerioCrawler', () => {
             const crawler = new CheerioCrawler({
                 requestList,
 
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 sessionPool: new SessionPool({
                     sessionOptions: {
                         maxUsageCount: 1,
@@ -956,7 +956,7 @@ describe('CheerioCrawler', () => {
                         headers: { 'Content-type': 'text/html' },
                     }),
 
-                    persistCookiesPerSession: false,
+                    saveResponseCookies: false,
                     maxRequestRetries: 10,
                     maxSessionRotations,
                     requestHandler: ({ session }) => {
@@ -1000,7 +1000,7 @@ describe('CheerioCrawler', () => {
                     '/getRawHeaders',
                 ),
 
-                persistCookiesPerSession: true,
+                saveResponseCookies: true,
                 sessionPool: new SessionPool({
                     maxPoolSize: 1,
                 }),
@@ -1030,7 +1030,7 @@ describe('CheerioCrawler', () => {
                         headers: { cookie: 'foo=bar2; baz=123' },
                     },
                 ]),
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 sessionPool: new SessionPool({
                     maxPoolSize: 1,
                 }),
@@ -1068,7 +1068,7 @@ describe('CheerioCrawler', () => {
                     },
                 ]),
 
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 sessionPool: new SessionPool({
                     maxPoolSize: 1,
                 }),
@@ -1261,12 +1261,12 @@ describe('CheerioCrawler', () => {
             expect(responses[1].cookies).not.toContain('jar=fromCustomJar');
         });
 
-        test('persistCookiesPerSession=false should not persist response cookies into the session', async () => {
+        test('saveResponseCookies=false should not persist response cookies into the session', async () => {
             const sessionCookies: string[] = [];
 
             const crawler = new CheerioCrawler({
                 sessionPool: new SessionPool({ maxPoolSize: 1 }),
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 maxConcurrency: 1,
                 requestList: await RequestList.open(null, [
                     {
@@ -1287,12 +1287,12 @@ describe('CheerioCrawler', () => {
             expect(sessionCookies).toEqual(['', '']);
         });
 
-        test('persistCookiesPerSession=false should still send session-set cookies to the request', async () => {
+        test('saveResponseCookies=false should still send session-set cookies to the request', async () => {
             const responses: { cookies: string }[] = [];
 
             const crawler = new CheerioCrawler({
                 sessionPool: new SessionPool({ maxPoolSize: 1 }),
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 maxConcurrency: 1,
                 requestList: await RequestList.open(null, [`${serverAddress}/special/get-cookies`]),
                 preNavigationHooks: [

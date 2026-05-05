@@ -329,7 +329,7 @@ describe('PuppeteerCrawler', () => {
         const puppeteerCrawler = new PuppeteerCrawler({
             requestList,
 
-            persistCookiesPerSession: true,
+            saveResponseCookies: true,
             sessionPool: new SessionPool({
                 createSessionFunction: (sessionPool) => {
                     const session = new Session({ sessionPool });
