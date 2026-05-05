@@ -36,7 +36,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
 
     async getDatasetItems(id?: string) {
         const dataset = await this.getDataset(id);
-        return (await dataset.listItems()).items;
+        return (await dataset.getData()).items;
     }
 
     getRequestQueue(id?: string) {
@@ -54,7 +54,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     async getState() {
-        return await (await this.getKeyValueStore()).getRecord('CRAWLEE_STATE');
+        return await (await this.getKeyValueStore()).getValue('CRAWLEE_STATE');
     }
 }
 

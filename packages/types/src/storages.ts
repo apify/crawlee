@@ -30,10 +30,6 @@ export interface PaginatedList<Data> {
     items: Data[];
 }
 
-export interface DatasetClientUpdateOptions {
-    name?: string;
-}
-
 export interface DatasetClientListOptions {
     desc?: boolean;
     limit?: number;
@@ -66,14 +62,21 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
      * for a storage that has been removed.
      */
     getMetadata(): Promise<DatasetInfo>;
-    update(newFields: DatasetClientUpdateOptions): Promise<Partial<DatasetInfo>>;
-    delete(): Promise<void>;
-    downloadItems(...args: unknown[]): Promise<Buffer>;
-    listItems(options?: DatasetClientListOptions): AsyncIterable<Data> & Promise<PaginatedList<Data>>;
-    listEntries?(
-        options?: DatasetClientListOptions,
-    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>>;
-    pushItems(items: Data | Data[] | string | string[]): Promise<void>;
+
+    /** Remove the dataset and all its data. */
+    drop(): Promise<void>;
+
+    /** Remove all items from the dataset but keep the dataset itself. */
+    purge(): Promise<void>;
+
+    /** Add items to the dataset. */
+    pushData(items: Data[]): Promise<void>;
+
+    /** Fetch a page of items from the dataset. */
+    getData(options?: DatasetClientListOptions): Promise<PaginatedList<Data>>;
+
+    /** Iterate over all items in the dataset. */
+    iterateItems(options?: DatasetClientListOptions): AsyncIterable<Data>;
 }
 
 export interface KeyValueStoreStats {
@@ -102,39 +105,14 @@ export interface KeyValueStoreRecord {
     contentType?: string;
 }
 
-export interface KeyValueStoreRecordOptions {
-    timeoutSecs?: number;
-    doNotRetryTimeouts?: boolean;
-}
-
-export interface KeyValueStoreClientUpdateOptions {
-    name?: string;
-}
-
-export interface KeyValueStoreClientListOptions {
-    limit?: number;
-    exclusiveStartKey?: string;
-    collection?: string;
+export interface KeyValueStoreIterateKeysOptions {
+    /** If set, only keys that start with this prefix are returned. */
     prefix?: string;
 }
 
 export interface KeyValueStoreItemData {
     key: string;
     size: number;
-}
-
-export interface KeyValueStoreClientListData {
-    count: number;
-    limit: number;
-    exclusiveStartKey?: string;
-    isTruncated: boolean;
-    nextExclusiveStartKey?: string;
-    items: KeyValueStoreItemData[];
-}
-
-export interface KeyValueStoreClientGetRecordOptions {
-    buffer?: boolean;
-    stream?: boolean;
 }
 
 /**
@@ -149,19 +127,30 @@ export interface KeyValueStoreClient {
      * for a storage that has been removed.
      */
     getMetadata(): Promise<KeyValueStoreInfo>;
-    update(newFields: KeyValueStoreClientUpdateOptions): Promise<Partial<KeyValueStoreInfo>>;
-    delete(): Promise<void>;
-    listKeys(
-        options?: KeyValueStoreClientListOptions,
-    ): Partial<AsyncIterable<KeyValueStoreItemData>> & Promise<KeyValueStoreClientListData>;
-    keys?(options?: KeyValueStoreClientListOptions): AsyncIterable<string> & Promise<KeyValueStoreClientListData>;
-    values?(options?: KeyValueStoreClientListOptions): AsyncIterable<unknown> & Promise<unknown[]>;
-    entries?(options?: KeyValueStoreClientListOptions): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]>;
+
+    /** Remove the key-value store and all its data. */
+    drop(): Promise<void>;
+
+    /** Remove all records from the store but keep the store itself. */
+    purge(): Promise<void>;
+
+    /** Get a record value by key. Returns the parsed value or `undefined` if not found. */
+    getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
+
+    /** Set a record value. */
+    setValue(record: KeyValueStoreRecord): Promise<void>;
+
+    /** Delete a record by key. */
+    deleteValue(key: string): Promise<void>;
+
+    /** Iterate over all keys in the store. */
+    iterateKeys(options?: KeyValueStoreIterateKeysOptions): AsyncIterable<KeyValueStoreItemData>;
+
+    /** Get the public URL for a record, or `undefined` if unavailable. */
+    getPublicUrl(key: string): Promise<string | undefined>;
+
+    /** Check whether a record with the given key exists. */
     recordExists(key: string): Promise<boolean>;
-    getRecordPublicUrl(key: string): Promise<string | undefined>;
-    getRecord(key: string, options?: KeyValueStoreClientGetRecordOptions): Promise<KeyValueStoreRecord | undefined>;
-    setRecord(record: KeyValueStoreRecord, options?: KeyValueStoreRecordOptions): Promise<void>;
-    deleteRecord(key: string): Promise<void>;
 }
 
 export interface RequestQueueStats {
@@ -284,14 +273,18 @@ export interface RequestQueueClient {
      * for a storage that has been removed.
      */
     getMetadata(): Promise<RequestQueueInfo>;
-    update(newFields: { name?: string }): Promise<Partial<RequestQueueInfo> | undefined>;
-    delete(): Promise<void>;
+
+    /** Remove the request queue and all its data. */
+    drop(): Promise<void>;
+
+    /** Remove all requests from the queue but keep the queue itself. */
+    purge(): Promise<void>;
+
     listHead(options?: ListOptions): Promise<QueueHead>;
     addRequest(request: RequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
     batchAddRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
     getRequest(id: string): Promise<RequestOptions | undefined>;
     updateRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
-    deleteRequest(id: string): Promise<unknown>;
     listAndLockHead(options: ListAndLockOptions): Promise<ListAndLockHeadResult>;
     prolongRequestLock(id: string, options: ProlongRequestLockOptions): Promise<ProlongRequestLockResult>;
     deleteRequestLock(id: string, options?: DeleteRequestLockOptions): Promise<void>;
