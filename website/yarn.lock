@@ -6206,7 +6206,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.15.2":
+"axios@npm:^1.16.0":
   version: 1.16.0
   resolution: "axios@npm:1.16.0"
   dependencies:
@@ -15997,7 +15997,7 @@ __metadata:
     "@types/react": "npm:^19.0.0"
     "@typescript-eslint/eslint-plugin": "npm:^7.0.0"
     "@typescript-eslint/parser": "npm:^7.0.0"
-    axios: "npm:^1.15.2"
+    axios: "npm:^1.16.0"
     buffer: "npm:^6.0.3"
     clsx: "npm:^2.0.0"
     crypto-browserify: "npm:^3.12.0"
