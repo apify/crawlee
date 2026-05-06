@@ -90,6 +90,12 @@ export interface BrowserCrawlingContext<
      * Helper function for extracting URLs from the current page and adding them to the request queue.
      */
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+
+    /**
+     * Marker that, when set by a post-navigation hook, makes {@link BrowserCrawler.processResponse} skip
+     * the blocked-status-code check for this request. See {@link SKIP_BLOCKED_STATUS_CODE_CHECK}.
+     */
+    [SKIP_BLOCKED_STATUS_CODE_CHECK]?: boolean;
 }
 
 export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Dictionary | undefined = Dictionary> = (
@@ -661,7 +667,7 @@ export abstract class BrowserCrawler<
 
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
-                if (!(crawlingContext as any)[SKIP_BLOCKED_STATUS_CODE_CHECK]) {
+                if (!crawlingContext[SKIP_BLOCKED_STATUS_CODE_CHECK]) {
                     this._throwOnBlockedRequest(response.status());
                 }
             } else {

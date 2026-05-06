@@ -300,7 +300,7 @@ export class PlaywrightCrawler<
                 if (handled) {
                     // A challenge was detected and solved; the original (403) navigation response
                     // should not be treated as blocked by `BrowserCrawler.processResponse`.
-                    (context as any)[SKIP_BLOCKED_STATUS_CODE_CHECK] = true;
+                    context[SKIP_BLOCKED_STATUS_CODE_CHECK] = true;
                 }
                 return handled;
             },
