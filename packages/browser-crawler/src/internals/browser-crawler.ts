@@ -53,6 +53,13 @@ interface BaseResponse {
 
 type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 
+/**
+ * Marker set on a {@link BrowserCrawlingContext} by a post-navigation hook to opt out of the
+ * blocked-status-code check in {@link BrowserCrawler.processResponse}. Used by helpers like
+ * `handleCloudflareChallenge` that recover from a "blocked" initial response.
+ */
+export const SKIP_BLOCKED_STATUS_CODE_CHECK = Symbol('SKIP_BLOCKED_STATUS_CODE_CHECK');
+
 export interface BrowserCrawlingContext<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
@@ -654,7 +661,9 @@ export abstract class BrowserCrawler<
 
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
-                this._throwOnBlockedRequest(response.status());
+                if (!(crawlingContext as any)[SKIP_BLOCKED_STATUS_CODE_CHECK]) {
+                    this._throwOnBlockedRequest(response.status());
+                }
             } else {
                 this.log.debug('Got a malformed Browser response.', { request, response });
             }
