@@ -5,7 +5,7 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new HttpCrawler({
-    persistCookiesPerSession: true,
+    saveResponseCookies: true,
     proxyConfiguration,
     // ...
 });

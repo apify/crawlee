@@ -5,7 +5,7 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new PuppeteerCrawler({
-    persistCookiesPerSession: true,
+    saveResponseCookies: true,
     proxyConfiguration,
     // ...
 });

@@ -11,7 +11,7 @@ const crawler = new HttpCrawler({
     sessionPool: new SessionPool({ maxPoolSize: 100 }),
     // Set to true if you want the crawler to save cookies per session,
     // and set the cookie header to request automatically (default is true).
-    persistCookiesPerSession: true,
+    saveResponseCookies: true,
     async requestHandler({ session, body }) {
         const title = /<title(?:.*?)>(.*?)<\/title>/.exec(body as string)?.[1];
 

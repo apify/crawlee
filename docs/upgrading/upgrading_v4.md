@@ -376,6 +376,10 @@ const response = await sendRequest({ url: '...' }, { cookieJar: jar });
 
 The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
 
+## `persistCookiesPerSession` renamed to `saveResponseCookies`
+
+The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. The behavior is unchanged - when enabled (the default), response `Set-Cookie` headers are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
+
 ## `StorageClient` interface simplified
 
 The `StorageClient` interface (from `@crawlee/types`) has been redesigned to match the simplified architecture from Crawlee for Python. A new storage backend now needs **4 classes** instead of the previous 7.

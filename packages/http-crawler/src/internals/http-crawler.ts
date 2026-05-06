@@ -144,7 +144,7 @@ export interface HttpCrawlerOptions<
      * It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
      * It passes the "Cookie" header to the request with the session cookies.
      */
-    persistCookiesPerSession?: boolean;
+    saveResponseCookies?: boolean;
 }
 
 /**
@@ -309,7 +309,7 @@ export class HttpCrawler<
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
-    protected persistCookiesPerSession: boolean;
+    protected saveResponseCookies: boolean;
     protected navigationTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
     protected suggestResponseEncoding?: string;
@@ -324,7 +324,7 @@ export class HttpCrawler<
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
-        persistCookiesPerSession: ow.optional.boolean,
+        saveResponseCookies: ow.optional.boolean,
 
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
@@ -345,7 +345,7 @@ export class HttpCrawler<
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-            persistCookiesPerSession = true,
+            saveResponseCookies = true,
             preNavigationHooks = [],
             postNavigationHooks = [],
 
@@ -382,7 +382,7 @@ export class HttpCrawler<
             ...postNavigationHooks,
         ];
 
-        this.persistCookiesPerSession = persistCookiesPerSession;
+        this.saveResponseCookies = saveResponseCookies;
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
@@ -500,7 +500,7 @@ export class HttpCrawler<
 
         this._throwOnBlockedRequest(response.status);
 
-        if (this.persistCookiesPerSession) {
+        if (this.saveResponseCookies) {
             crawlingContext.session.setCookiesFromResponse(response);
         }
 
@@ -619,7 +619,6 @@ export class HttpCrawler<
             method: request.method,
             proxyUrl,
             timeout: this.navigationTimeoutMillis,
-            cookieJar: this.persistCookiesPerSession ? session.cookieJar : undefined,
             sessionToken: session,
             headers: request.headers,
             https: {
@@ -741,9 +740,13 @@ export class HttpCrawler<
     private _requestAsBrowser = async (options: Dictionary<any>, session: Session) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
-            cookieJar: options.cookieJar,
             responseType: 'text',
         });
+
+        // When saveResponseCookies is false, the response cookies must not mutate the
+        // session jar. Reads still go through the session (so session.setCookie() in pre-nav
+        // hooks keeps working) but a per-request clone is passed in so writes are discarded.
+        const cookieJar = this.saveResponseCookies ? session.cookieJar : await session.cookieJar.clone();
 
         const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
@@ -755,6 +758,7 @@ export class HttpCrawler<
             } as RequestInit),
             {
                 session,
+                cookieJar,
                 timeoutMillis: opts.timeout,
             },
         );
