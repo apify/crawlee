@@ -716,12 +716,14 @@ export interface HandleCloudflareChallengeOptions {
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
  * @param url current URL for request identification, only used for logging
  * @param [options]
+ * @returns `true` when a Cloudflare challenge was detected and solved, `false` when no challenge was present
+ *          (or the helper bailed out before acting). Throws `SessionError` if the challenge could not be solved.
  */
 async function handleCloudflareChallenge(
     page: Page,
     url: string,
     options: HandleCloudflareChallengeOptions = {},
-): Promise<void> {
+): Promise<boolean> {
     options.isBlockedCallback ??= async () => {
         const isBlocked = await page.evaluate(() => {
             return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
@@ -750,7 +752,7 @@ async function handleCloudflareChallenge(
 
     if (!(await isChallenge())) {
         await retryBlocked();
-        return;
+        return false;
     }
 
     const logLevel = options.verbose ? 'info' : 'debug';
@@ -766,7 +768,7 @@ async function handleCloudflareChallenge(
         .catch(() => undefined);
 
     if (!bb) {
-        return;
+        return false;
     }
 
     const randomOffset = (range: number) => {
@@ -819,6 +821,7 @@ async function handleCloudflareChallenge(
     }
 
     await retryBlocked();
+    return true;
 }
 
 /** @internal */
@@ -1045,7 +1048,7 @@ export interface PlaywrightContextUtils {
      *
      * @param [options]
      */
-    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<boolean>;
 }
 
 export { enqueueLinksByClickingElements };

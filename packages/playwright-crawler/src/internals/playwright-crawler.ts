@@ -292,10 +292,17 @@ export class PlaywrightCrawler<
             compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
             closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
-                await playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options);
-                // The challenge resolved without throwing, so the original (often 403) navigation response
-                // should not be treated as blocked by `BrowserCrawler.processResponse`.
-                (context as any)[SKIP_BLOCKED_STATUS_CODE_CHECK] = true;
+                const handled = await playwrightUtils.handleCloudflareChallenge(
+                    context.page,
+                    context.request.url,
+                    options,
+                );
+                if (handled) {
+                    // A challenge was detected and solved; the original (403) navigation response
+                    // should not be treated as blocked by `BrowserCrawler.processResponse`.
+                    (context as any)[SKIP_BLOCKED_STATUS_CODE_CHECK] = true;
+                }
+                return handled;
             },
         };
     }
