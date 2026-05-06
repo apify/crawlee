@@ -238,11 +238,8 @@ export interface BasicCrawlerOptions<
 
     /**
      * Specifies the maximum number of retries allowed for a request if its processing fails.
-     * This includes retries due to navigation errors or errors thrown from user-supplied functions
-     * (`requestHandler`, `preNavigationHooks`, `postNavigationHooks`).
-     *
-     * This limit does not apply to retries triggered by session rotation
-     * (see {@apilink BasicCrawlerOptions.maxSessionRotations|`maxSessionRotations`}).
+     * This includes retries due to navigation errors, session/proxy errors, or errors thrown from user-supplied
+     * functions (`requestHandler`, `preNavigationHooks`, `postNavigationHooks`).
      * @default 3
      */
     maxRequestRetries?: number;
@@ -252,15 +249,6 @@ export interface BasicCrawlerOptions<
      * @default 0
      */
     sameDomainDelaySecs?: number;
-
-    /**
-     * Maximum number of session rotations per request.
-     * The crawler will automatically rotate the session in case of a proxy error or if it gets blocked by the website.
-     *
-     * The session rotations are not counted towards the {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} limit.
-     * @default 10
-     */
-    maxSessionRotations?: number;
 
     /**
      * Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
@@ -645,7 +633,6 @@ export class BasicCrawler<
     protected maxCrawlDepth?: number;
     protected sameDomainDelayMillis: number;
     protected domainAccessedTime: Map<string, number>;
-    protected maxSessionRotations: number;
     protected maxRequestsPerCrawl?: number;
     protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
@@ -685,7 +672,6 @@ export class BasicCrawler<
         failedRequestHandler: ow.optional.function,
         maxRequestRetries: ow.optional.number,
         sameDomainDelaySecs: ow.optional.number,
-        maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
@@ -738,7 +724,6 @@ export class BasicCrawler<
             requestManager,
             maxRequestRetries = 3,
             sameDomainDelaySecs = 0,
-            maxSessionRotations = 10,
             maxRequestsPerCrawl,
             maxCrawlDepth,
             autoscaledPoolOptions = {},
@@ -865,7 +850,6 @@ export class BasicCrawler<
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
-            this.maxSessionRotations = maxSessionRotations;
             this.stats = new Statistics({
                 logMessage: `${this.constructor.name} request statistics:`,
                 log: this.log,
@@ -2065,14 +2049,6 @@ export class BasicCrawler<
         return !this.requestManager || (await this.requestManager.isFinished());
     }
 
-    private async _rotateSession(crawlingContext: CrawlingContext) {
-        const { request } = crawlingContext;
-
-        request.sessionRotationCount ??= 0;
-        request.sessionRotationCount++;
-        crawlingContext.session.retire();
-    }
-
     /**
      * Unwraps errors thrown by the context pipeline to get the actual user error.
      * RequestHandlerError and ContextPipelineInitializationError wrap the actual error.
@@ -2115,13 +2091,11 @@ export class BasicCrawler<
             );
 
             if (error instanceof SessionError) {
-                await this._rotateSession(crawlingContext);
+                crawlingContext.session?.retire();
             }
 
             if (!request.noRetry) {
-                if (!(error instanceof SessionError)) {
-                    request.retryCount++;
-                }
+                request.retryCount++;
 
                 const { url, retryCount, id } = request;
 
@@ -2212,12 +2186,8 @@ export class BasicCrawler<
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
-        // Request should never be retried, or the error encountered makes it not able to be retried, or the session rotation limit has been reached
-        if (
-            request.noRetry ||
-            error instanceof NonRetryableError ||
-            (error instanceof SessionError && this.maxSessionRotations <= (request.sessionRotationCount ?? 0))
-        ) {
+        // Request should never be retried, or the error encountered makes it not able to be retried.
+        if (request.noRetry || error instanceof NonRetryableError) {
             return false;
         }
 
