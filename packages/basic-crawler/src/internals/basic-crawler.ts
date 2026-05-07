@@ -953,7 +953,11 @@ export class BasicCrawler<
                                 request,
                                 this.requestManager!,
                             );
-                            crawlingContext.session?.markBad();
+                            // SessionError already retired the session in `_requestFunctionErrorHandler`;
+                            // skip `markBad` to avoid double-counting usage/error score.
+                            if (!(unwrappedError instanceof SessionError)) {
+                                crawlingContext.session?.markBad();
+                            }
                             return;
                         }
                         throw this.unwrapError(error);
@@ -1923,8 +1927,11 @@ export class BasicCrawler<
                 request.state = RequestState.ERROR;
                 throw unwrappedSecondaryError;
             }
-            // decrease the session score if the request fails (but the error handler did not throw)
-            crawlingContext.session.markBad();
+            // decrease the session score if the request fails (but the error handler did not throw);
+            // skip when the error is a SessionError, which already retired the session
+            if (!(err instanceof SessionError)) {
+                crawlingContext.session.markBad();
+            }
         } finally {
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && requestSource instanceof RequestProvider) {

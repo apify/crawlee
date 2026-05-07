@@ -930,9 +930,8 @@ describe('BrowserCrawler', () => {
                 });
 
                 const goodProxyUrl = 'http://good.proxy';
-                const proxyConfiguration = new ProxyConfiguration({
-                    proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl],
-                });
+                const proxyUrls = ['http://localhost', 'http://localhost:1234', goodProxyUrl];
+                const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
                 const requestHandler = vitest.fn();
 
                 const browserCrawler = new (class extends BrowserCrawlerTest {
@@ -952,7 +951,7 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxRequestRetries: 10,
+                    maxRequestRetries: proxyUrls.length - 1,
                     maxConcurrency: 1,
 
                     proxyConfiguration,
