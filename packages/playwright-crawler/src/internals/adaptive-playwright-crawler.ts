@@ -196,6 +196,18 @@ export interface AdaptivePlaywrightCrawlerOptions
     resultChecker?: (result: RequestHandlerResult) => boolean;
 
     /**
+     * An optional callback that decides whether an error thrown during the plain HTTP request handler
+     * should be propagated (instead of falling back to browser navigation).
+     *
+     * If the callback returns `true`, the error is thrown, triggering the standard retry mechanism.
+     * If the callback returns `false` (or is not provided), the error is logged and the crawler
+     * falls back to browser navigation (default behavior).
+     *
+     * @default () => false
+     */
+    shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
+
+    /**
      * An optional callback used in rendering type detection. On each detection, the result of the plain HTTP run is compared to that of the browser one.
      * If a callback is provided, the contract is as follows:
      *   It the callback returns true or 'equal', the results are considered equal and the target site is considered static.
@@ -267,6 +279,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] & {};
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
+    private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
     private preventDirectStorageAccess: boolean;
     declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
@@ -289,6 +302,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             renderingTypeDetectionRatio = 0.1,
             renderingTypePredictor,
             resultChecker,
+            shouldPropagateError,
             resultComparator,
             statisticsOptions,
             preventDirectStorageAccess = true,
@@ -300,6 +314,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         this.renderingTypePredictor =
             renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
+        this.shouldPropagateError = shouldPropagateError ?? (() => false);
 
         if (resultComparator !== undefined) {
             this.resultComparator = resultComparator;
@@ -366,8 +381,14 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                     return;
                 }
                 if (!plainHTTPRun.ok) {
+                    const error = plainHTTPRun.error as Error;
+
+                    if (await this.shouldPropagateError(error, crawlingContext)) {
+                        throw error;
+                    }
+
                     crawlingContext.log.exception(
-                        plainHTTPRun.error as Error,
+                        error,
                         `HTTP-only request handler failed for ${crawlingContext.request.url}`,
                     );
                 } else {
