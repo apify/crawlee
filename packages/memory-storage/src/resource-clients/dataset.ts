@@ -8,8 +8,6 @@ import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
-import { findOrCacheDatasetByPossibleId } from '../cache-helpers.js';
-import { StorageTypes } from '../consts.js';
 import type { StorageImplementation } from '../fs/common.js';
 import { createDatasetStorageImplementation } from '../fs/dataset/index.js';
 import type { MemoryStorage } from '../index.js';
@@ -56,13 +54,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     }
 
     async getMetadata(): Promise<storage.DatasetInfo> {
-        const found = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (found) {
-            found.updateTimestamps(false);
-            return found.toDatasetInfo();
-        }
-
+        this.updateTimestamps(false);
         return this.toDatasetInfo();
     }
 
@@ -79,27 +71,21 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     }
 
     async purge(): Promise<void> {
-        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.Dataset);
-        }
-
-        existingStoreById.itemCount = 0;
-        existingStoreById.datasetEntries.clear();
+        this.itemCount = 0;
+        this.datasetEntries.clear();
 
         // Remove item files from disk but keep the directory
         if (this.client.persistStorage) {
             const { readdir } = await import('node:fs/promises');
-            const entries = await readdir(existingStoreById.datasetDirectory).catch(() => []);
+            const entries = await readdir(this.datasetDirectory).catch(() => []);
             for (const entry of entries) {
                 if (entry !== '__metadata__.json') {
-                    await rm(resolve(existingStoreById.datasetDirectory, entry), { force: true });
+                    await rm(resolve(this.datasetDirectory, entry), { force: true });
                 }
             }
         }
 
-        existingStoreById.updateTimestamps(true);
+        this.updateTimestamps(true);
     }
 
     getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
@@ -157,15 +143,8 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     private async getDataPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 
-        // Check by id
-        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.Dataset);
-        }
-
-        const [start, end] = existingStoreById.getStartAndEndIndexes(
-            desc ? Math.max(existingStoreById.itemCount - offset - limit, 0) : offset,
+        const [start, end] = this.getStartAndEndIndexes(
+            desc ? Math.max(this.itemCount - offset - limit, 0) : offset,
             limit,
         );
 
@@ -173,10 +152,10 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
 
         for (let idx = start; idx < end; idx++) {
             const entryNumber = this.generateLocalEntryName(idx);
-            items.push(await existingStoreById.datasetEntries.get(entryNumber)!.get());
+            items.push(await this.datasetEntries.get(entryNumber)!.get());
         }
 
-        existingStoreById.updateTimestamps(false);
+        this.updateTimestamps(false);
 
         return {
             count: items.length,
@@ -184,32 +163,25 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             items: desc ? items.reverse() : items,
             limit,
             offset,
-            total: existingStoreById.itemCount,
+            total: this.itemCount,
         };
     }
 
     async pushData(items: Data[]): Promise<void> {
-        // Check by id
-        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.Dataset);
-        }
-
         for (const entry of items) {
-            const idx = this.generateLocalEntryName(++existingStoreById.itemCount);
+            const idx = this.generateLocalEntryName(++this.itemCount);
             const storageEntry = createDatasetStorageImplementation({
                 entityId: idx,
                 persistStorage: this.client.persistStorage,
-                storeDirectory: existingStoreById.datasetDirectory,
+                storeDirectory: this.datasetDirectory,
             });
 
             await storageEntry.update(entry);
 
-            existingStoreById.datasetEntries.set(idx, storageEntry);
+            this.datasetEntries.set(idx, storageEntry);
         }
 
-        existingStoreById.updateTimestamps(true);
+        this.updateTimestamps(true);
     }
 
     toDatasetInfo(): storage.DatasetInfo {

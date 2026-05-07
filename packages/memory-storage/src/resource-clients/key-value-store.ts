@@ -7,8 +7,6 @@ import { s } from '@sapphire/shapeshift';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
 import { maybeParseBody } from '../body-parser.js';
-import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers.js';
-import { StorageTypes } from '../consts.js';
 import type { StorageImplementation } from '../fs/common.js';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
 import type { MemoryStorage } from '../index.js';
@@ -51,13 +49,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
-        const found = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (found) {
-            found.updateTimestamps(false);
-            return found.toKeyValueStoreInfo();
-        }
-
+        this.updateTimestamps(false);
         return this.toKeyValueStoreInfo();
     }
 
@@ -73,20 +65,14 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     }
 
     async purge(): Promise<void> {
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
         // Delete all entries
-        const entriesToDelete = [...existingStoreById.keyValueEntries.entries()];
+        const entriesToDelete = [...this.keyValueEntries.entries()];
         for (const [key, entry] of entriesToDelete) {
-            existingStoreById.keyValueEntries.delete(key);
+            this.keyValueEntries.delete(key);
             await entry.delete();
         }
 
-        existingStoreById.updateTimestamps(true);
+        this.updateTimestamps(true);
     }
 
     async *iterateKeys(
@@ -98,16 +84,9 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             })
             .parse(options);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
         const items: storage.KeyValueStoreItemData[] = [];
 
-        for (const storageEntry of existingStoreById.keyValueEntries.values()) {
+        for (const storageEntry of this.keyValueEntries.values()) {
             const record = await storageEntry.get();
 
             const size = Buffer.byteLength(record.value);
@@ -122,7 +101,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         const filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
 
-        existingStoreById.updateTimestamps(false);
+        this.updateTimestamps(false);
 
         for (const item of filteredItems) {
             yield item;
@@ -138,14 +117,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     async getPublicUrl(key: string): Promise<string | undefined> {
         s.string().parse(key);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        const storageEntry = await existingStoreById.keyValueEntries.get(key)?.get();
+        const storageEntry = await this.keyValueEntries.get(key)?.get();
 
         return storageEntry?.filePath;
     }
@@ -159,27 +131,13 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     async recordExists(key: string): Promise<boolean> {
         s.string().parse(key);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        return existingStoreById.keyValueEntries.has(key);
+        return this.keyValueEntries.has(key);
     }
 
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        const storageEntry = existingStoreById.keyValueEntries.get(key);
+        const storageEntry = this.keyValueEntries.get(key);
 
         if (!storageEntry) {
             return undefined;
@@ -196,7 +154,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         // Auto-parse the body (JSON → object, text → string, etc.)
         record.value = maybeParseBody(record.value, record.contentType!);
 
-        existingStoreById.updateTimestamps(false);
+        this.updateTimestamps(false);
 
         return record;
     }
@@ -216,13 +174,6 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             ]),
             contentType: s.string().lengthGreaterThan(0).optional(),
         }).parse(record);
-
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
 
         const { key } = record;
         let { value, contentType } = record;
@@ -267,33 +218,26 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         const entry = createKeyValueStorageImplementation({
             persistStorage: this.client.persistStorage,
-            storeDirectory: existingStoreById.keyValueStoreDirectory,
-            writeMetadata: existingStoreById.client.writeMetadata,
+            storeDirectory: this.keyValueStoreDirectory,
+            writeMetadata: this.client.writeMetadata,
             logger: this.client.logger,
         });
 
         await entry.update(_record);
 
-        existingStoreById.keyValueEntries.set(key, entry);
+        this.keyValueEntries.set(key, entry);
 
-        existingStoreById.updateTimestamps(true);
+        this.updateTimestamps(true);
     }
 
     async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        const entry = existingStoreById.keyValueEntries.get(key);
+        const entry = this.keyValueEntries.get(key);
 
         if (entry) {
-            existingStoreById.keyValueEntries.delete(key);
-            existingStoreById.updateTimestamps(true);
+            this.keyValueEntries.delete(key);
+            this.updateTimestamps(true);
             await entry.delete();
         }
     }

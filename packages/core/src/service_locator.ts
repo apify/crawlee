@@ -82,12 +82,6 @@ interface ServiceLocatorInterface {
     getStorageInstanceManager(): StorageInstanceManager;
 
     /**
-     * Clears all storage instance manager caches.
-     * @internal
-     */
-    clearStorageManagerCache(): void;
-
-    /**
      * Resets the service locator to its initial state.
      * Used mainly for testing purposes.
      * @internal
@@ -272,26 +266,12 @@ export class ServiceLocator implements ServiceLocatorInterface {
         return ServiceLocator.storageInstanceManager;
     }
 
-    clearStorageManagerCache(): void {
-        if (ServiceLocator.storageInstanceManager) {
-            // KeyValueStore instances have a clearCache method — call it on any cached
-            // instance that exposes it, without importing KeyValueStore (avoids circular deps).
-            for (const instance of ServiceLocator.storageInstanceManager.getAllInstances()) {
-                if ('clearCache' in instance && typeof (instance as any).clearCache === 'function') {
-                    (instance as any).clearCache();
-                }
-            }
-
-            ServiceLocator.storageInstanceManager.clearCache();
-        }
-    }
-
     reset(): void {
         this.configuration = undefined;
         this.eventManager = undefined;
         this.storageClient = undefined;
         this.logger = undefined;
-        this.clearStorageManagerCache();
+        ServiceLocator.storageInstanceManager?.clearCache();
         ServiceLocator.storageInstanceManager = undefined;
     }
 }
