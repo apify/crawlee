@@ -1299,7 +1299,8 @@ export class BasicCrawler<
             // we need to purge the default RQ to allow processing the same requests again - this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored - as a failed requests is still handled.
-            const isDefaultQueue = this.requestQueue?.name === 'default' || this.requestQueue?.name === '__default__';
+            // The default queue is an unnamed storage (opened with no identifier), so it has no name.
+            const isDefaultQueue = this.requestQueue?.name === undefined;
             if (isDefaultQueue && purgeRequestQueue && this.requestQueue) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();

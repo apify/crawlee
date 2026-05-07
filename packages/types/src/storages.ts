@@ -296,36 +296,35 @@ export interface SetStatusMessageOptions {
 }
 
 /**
- * Identifies a storage by either its ID or its name, but not both.
- * If neither is provided, the default storage for the given type is used.
+ * Identifies a storage by its ID, name, or alias. At most one may be provided.
+ *
+ * - `{ id }` — open a pre-existing storage by its unique ID.
+ * - `{ name }` — open or create a globally named storage (persists across runs).
+ * - `{ alias }` — open or create a run-scoped unnamed storage identified by this alias.
+ *   The alias is used locally (e.g. as a directory name or cache key) but the storage
+ *   itself has no persistent name. Use this for non-default unnamed storages.
+ * - `{}` / omitted — open the default storage.
  */
 export type StorageIdentifier =
-    | { id: string; name?: never }
-    | { id?: never; name: string }
-    | { id?: never; name?: never };
-
-/**
- * Options for opening a storage client. At most one of `id`, `name`, or `alias` may be provided.
- * `alias` identifies a run-scoped unnamed storage (e.g. `'__default__'` for the default storage).
- *
- * TODO merge this into `StorageIdentifier` in https://github.com/apify/crawlee/issues/3074
- */
-export type StorageClientOpenOptions = StorageIdentifier | { id?: never; name?: never; alias: string };
+    | { id: string; name?: never; alias?: never }
+    | { id?: never; name: string; alias?: never }
+    | { id?: never; name?: never; alias: string }
+    | { id?: never; name?: never; alias?: never };
 
 /**
  * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
  */
-export type CreateDatasetClientOptions = StorageClientOpenOptions;
+export type CreateDatasetClientOptions = StorageIdentifier;
 
 /**
  * Options for creating a key-value store client via {@apilink StorageClient.createKeyValueStoreClient}.
  */
-export type CreateKeyValueStoreClientOptions = StorageClientOpenOptions;
+export type CreateKeyValueStoreClientOptions = StorageIdentifier;
 
 /**
  * Options for creating a request queue client via {@apilink StorageClient.createRequestQueueClient}.
  */
-export type CreateRequestQueueClientOptions = StorageClientOpenOptions & {
+export type CreateRequestQueueClientOptions = StorageIdentifier & {
     /**
      * Client key for request locking.
      * TODO: This is an Apify-platform concern and should eventually be pushed down
