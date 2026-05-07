@@ -303,13 +303,14 @@ export interface DefaultStorageIdentifier {
 export async function resolveStorageIdentifier(
     identifier: string | StorageIdentifier | null | undefined,
     client: StorageClient,
+    storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue',
 ): Promise<ExplicitStorageIdentifier> {
     if (identifier === null || identifier === undefined) {
         return { alias: DEFAULT_STORAGE_ALIAS };
     }
 
     if (typeof identifier === 'string') {
-        if (client.storageExists && (await client.storageExists(identifier, 'Dataset'))) {
+        if (client.storageExists && (await client.storageExists(identifier, storageType))) {
             return { id: identifier };
         }
         return { name: identifier };

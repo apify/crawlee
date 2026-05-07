@@ -880,7 +880,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config });
 
-        const resolved = await resolveStorageIdentifier(identifier, client);
+        const resolved = await resolveStorageIdentifier(identifier, client, 'RequestQueue');
 
         const queue = await serviceLocator
             .getStorageInstanceManager()
