@@ -257,19 +257,18 @@ export class StorageInstanceManager {
     }
 
     /**
-     * Clear the entire cache. Called during service locator reset.
+     * Clear the entire cache. Also calls `clearCache()` on any cached KeyValueStore
+     * instances (duck-typed to avoid importing KeyValueStore and circular dependencies).
+     * Called during service locator reset.
      */
     clearCache(): void {
-        this.cache.clear();
-    }
+        for (const instance of this.cache.allValues()) {
+            if ('clearCache' in instance && typeof (instance as any).clearCache === 'function') {
+                (instance as any).clearCache();
+            }
+        }
 
-    /**
-     * Iterate all cached instances across all storage types.
-     * Used by the service locator to call `clearCache()` on KeyValueStore instances
-     * without importing the KeyValueStore class (avoids circular dependencies).
-     */
-    *getAllInstances(): IterableIterator<IStorage> {
-        yield* this.cache.allValues();
+        this.cache.clear();
     }
 }
 
