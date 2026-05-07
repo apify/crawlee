@@ -28,6 +28,12 @@ const LOCAL_ENTRY_NAME_DIGITS = 9;
 export interface DatasetClientOptions {
     id?: string;
     name?: string;
+    /**
+     * The directory name to use on disk. When provided, takes precedence over `name` and `id`
+     * for the directory path. This allows alias-opened storages to have a directory name
+     * that differs from their metadata `name` (which is `undefined` for unnamed storages).
+     */
+    directoryName?: string;
     baseStorageDirectory: string;
     client: MemoryStorage;
 }
@@ -37,6 +43,11 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     implements storage.DatasetClient<Data>
 {
     name?: string;
+    /**
+     * The key used for directory naming and cache lookup. For named storages, this equals
+     * the name. For alias (unnamed) storages, this is the alias string. Falls back to id.
+     */
+    directoryName: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
@@ -49,7 +60,8 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     constructor(options: DatasetClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.datasetDirectory = resolve(options.baseStorageDirectory, this.name ?? this.id);
+        this.directoryName = options.directoryName ?? this.name ?? this.id;
+        this.datasetDirectory = resolve(options.baseStorageDirectory, this.directoryName);
         this.client = options.client;
     }
 
