@@ -103,9 +103,14 @@ export class MemoryStorage implements storage.StorageClient {
         return `MemoryStorage:${resolve(this.localDataDirectory)}`;
     }
 
-    async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        // In MemoryStorage, id, name, and alias all resolve to the same directory name.
+    private static resolveStorageName(options: { id?: string; name?: string; alias?: string }): string | undefined {
         const name = 'alias' in options ? options.alias : (options.name ?? options.id);
+        // Normalize the internal __default__ alias to the user-facing 'default' name.
+        return name === '__default__' ? 'default' : name;
+    }
+
+    async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
+        const name = MemoryStorage.resolveStorageName(options);
 
         if (name) {
             const found = await findOrCacheDatasetByPossibleId(this, name);
@@ -139,8 +144,7 @@ export class MemoryStorage implements storage.StorageClient {
     async createKeyValueStoreClient(
         options: storage.CreateKeyValueStoreClientOptions = {},
     ): Promise<storage.KeyValueStoreClient> {
-        // In MemoryStorage, id, name, and alias all resolve to the same directory name.
-        const name = 'alias' in options ? options.alias : (options.name ?? options.id);
+        const name = MemoryStorage.resolveStorageName(options);
 
         if (name) {
             const found = await findOrCacheKeyValueStoreByPossibleId(this, name);
@@ -178,8 +182,7 @@ export class MemoryStorage implements storage.StorageClient {
     async createRequestQueueClient(
         options: storage.CreateRequestQueueClientOptions = {},
     ): Promise<storage.RequestQueueClient> {
-        // In MemoryStorage, id, name, and alias all resolve to the same directory name.
-        const name = 'alias' in options ? options.alias : (options.name ?? options.id);
+        const name = MemoryStorage.resolveStorageName(options);
 
         if (name) {
             const found = await findRequestQueueByPossibleId(this, name);
