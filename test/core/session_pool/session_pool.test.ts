@@ -163,7 +163,8 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should persist state and recreate it from storage', async () => {
-        await sessionPool.getSession();
+        await sessionPool.addSession({ id: 'test-session-1', fingerprint: { testing: 'fingerprint data' } });
+        await sessionPool.getSession('test-session-1');
         await sessionPool.persistState();
 
         const kvStore = await KeyValueStore.open();
@@ -206,6 +207,10 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
         // @ts-expect-error private symbol
         expect(sessionPool.persistStateKey).toEqual(loadedSessionPool.persistStateKey);
+
+        const restoredSession = await loadedSessionPool.getSession('test-session-1');
+        expect(restoredSession?.fingerprint).toEqual({ testing: 'fingerprint data' });
+
         await sessionPool.teardown();
     });
 

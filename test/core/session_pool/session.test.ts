@@ -125,6 +125,7 @@ describe('Session - testing session behaviour ', () => {
     });
 
     test('should get state', () => {
+        session = new Session({ sessionPool, fingerprint: { some: 'fingerprint data' } });
         const state = session.getState();
 
         expect(state.id).toBeDefined();
@@ -136,6 +137,7 @@ describe('Session - testing session behaviour ', () => {
         expect(state.createdAt).toBeDefined();
         expect(state.usageCount).toBeDefined();
         expect(state.errorScore).toBeDefined();
+        expect(state.fingerprint).toEqual({ some: 'fingerprint data' });
 
         entries(state).forEach(([key, value]) => {
             if (session[key] instanceof Date) {
