@@ -32,6 +32,7 @@ export interface SessionState {
     maxUsageCount: number;
     expiresAt: string;
     createdAt: string;
+    fingerprint?: Record<string, unknown> | unknown;
 }
 
 export interface SessionOptions {
@@ -86,6 +87,12 @@ export interface SessionOptions {
     /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
     sessionPool?: import('./session_pool').SessionPool;
 
+    /**
+     * Browser / HTTP client fingerprint (i.e., user-agent, TLS settings, etc.).
+     * The actual format of the fingerprint is TBD.
+     */
+    fingerprint?: Record<string, unknown> | unknown;
+
     log?: Log;
     errorScore?: number;
     cookieJar?: CookieJar;
@@ -101,6 +108,11 @@ export class Session {
     readonly id: string;
     private maxAgeSecs: number;
     userData: Dictionary;
+    /**
+     * Browser / HTTP client fingerprint (i.e., user-agent, TLS settings, etc.).
+     * The actual format of the fingerprint is TBD.
+     */
+    fingerprint: Record<string, unknown> | unknown;
     private _maxErrorScore: number;
     private _errorScoreDecrement: number;
     private _createdAt: Date;
@@ -163,6 +175,7 @@ export class Session {
                 usageCount: ow.optional.number,
                 errorScore: ow.optional.number,
                 maxUsageCount: ow.optional.number,
+                fingerprint: ow.optional.object,
                 log: ow.optional.object,
             }),
         );
@@ -179,6 +192,7 @@ export class Session {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
+            fingerprint,
             log = defaultLog,
         } = options;
 
@@ -190,6 +204,7 @@ export class Session {
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
+        this.fingerprint = fingerprint;
         this._maxErrorScore = maxErrorScore;
         this._errorScoreDecrement = errorScoreDecrement;
 
@@ -265,6 +280,7 @@ export class Session {
             usageCount: this.usageCount,
             maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
+            fingerprint: this.fingerprint,
         };
     }
 
@@ -401,7 +417,9 @@ export class Session {
 
         for (const cookie of cookies) {
             try {
-                this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
+                this.cookieJar.setCookieSync(cookie, url, {
+                    ignoreError: false,
+                });
             } catch (e) {
                 const err = e as Error;
                 errorMessages.push(err.message);
