@@ -754,38 +754,25 @@ describe('BrowserCrawler', () => {
             const requestList = await RequestList.open({
                 sources: [{ url: 'http://example.com/?q=1' }],
             });
-            let resolve: (value?: unknown) => void;
 
-            const retirementPromise = new Promise((r) => {
-                resolve = r;
-            });
-            let called = false;
-            const browserCrawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
-                    ctx: TestCrawlingContext,
-                ): Promise<HTTPResponse | null | undefined> {
-                    browserCrawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
-                        resolve();
-                        called = true;
-                    });
-                    ctx.session!.retire();
-                    return ctx.page.goto(ctx.request.url);
-                }
-            })({
+            let retiredBrowserCount = 0;
+            const browserCrawler = new BrowserCrawlerTest({
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-
-                requestHandler: async () => {
-                    await retirementPromise;
+                requestHandler: async ({ session }) => {
+                    session!.retire();
                 },
                 maxRequestRetries: 1,
+            });
+            browserCrawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
+                retiredBrowserCount += 1;
             });
 
             await browserCrawler.run();
 
-            expect(called).toBeTruthy();
+            expect(retiredBrowserCount).toBeGreaterThan(0);
         } finally {
             await localStorageEmulator.destroy();
         }
