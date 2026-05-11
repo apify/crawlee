@@ -235,6 +235,66 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(resultChecker).toHaveBeenCalledTimes(1);
     });
 
+    describe('shouldPropagateError', () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+        const failedRequestHandler = vi.fn();
+        const testError = new Error('HTTP handler failed');
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async () => {
+            throw testError;
+        });
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        test('should fall back to browser when shouldPropagateError returns false', async () => {
+            const shouldPropagateError = vi.fn(() => false);
+            const url = new URL(`http://${HOSTNAME}:${port}/static`);
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    shouldPropagateError,
+                    failedRequestHandler,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(shouldPropagateError).toHaveBeenCalledOnce();
+            expect(shouldPropagateError).toHaveBeenCalledWith(testError, expect.anything());
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+        });
+
+        test('should propagate error when shouldPropagateError returns true', async () => {
+            const shouldPropagateError = vi.fn(() => true);
+            const url = new URL(`http://${HOSTNAME}:${port}/static`);
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    shouldPropagateError,
+                    failedRequestHandler,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(shouldPropagateError).toHaveBeenCalledOnce();
+            expect(shouldPropagateError).toHaveBeenCalledWith(testError, expect.anything());
+            expect(requestHandler).toHaveBeenCalledTimes(1);
+            expect(failedRequestHandler).toHaveBeenCalledOnce();
+            expect(failedRequestHandler.mock.calls[0][1]).toBe(testError);
+        });
+    });
+
     test.each([
         ['static'],
         ['clientOnly'],
