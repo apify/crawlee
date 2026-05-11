@@ -1,5 +1,3 @@
-import { EventEmitter } from 'node:events';
-
 import type { Cookie as CookieObject, Dictionary, ISession, ProxyInfo, SessionState } from '@crawlee/types';
 import ow from 'ow';
 import type { Cookie } from 'tough-cookie';
@@ -15,7 +13,6 @@ import {
 } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import { EVENT_SESSION_RETIRED } from './events.js';
 
 export interface SessionOptions {
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
@@ -66,9 +63,6 @@ export interface SessionOptions {
      */
     maxUsageCount?: number;
 
-    /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
-    sessionPool?: import('./session_pool.js').SessionPool;
-
     log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
@@ -91,7 +85,6 @@ export class Session implements ISession {
     private _expiresAt: Date;
     private _usageCount: number;
     private _maxUsageCount: number;
-    private sessionPool: import('./session_pool.js').SessionPool;
     private _errorScore: number;
     private _retired = false;
     private _proxyInfo?: ProxyInfo;
@@ -137,11 +130,10 @@ export class Session implements ISession {
     /**
      * Session configuration.
      */
-    constructor(options: SessionOptions) {
+    constructor(options: SessionOptions = {}) {
         ow(
             options,
             ow.object.exactShape({
-                sessionPool: ow.object.instanceOf(EventEmitter),
                 id: ow.optional.string,
                 cookieJar: ow.optional.object,
                 proxyInfo: ow.optional.object,
@@ -159,7 +151,6 @@ export class Session implements ISession {
         );
 
         const {
-            sessionPool,
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
             proxyInfo = undefined,
@@ -192,7 +183,6 @@ export class Session implements ISession {
         this._usageCount = usageCount; // indicates how many times the session has been used
         this._errorScore = errorScore; // indicates number of markBaded request with the session
         this._maxUsageCount = maxUsageCount;
-        this.sessionPool = sessionPool;
     }
 
     /**
@@ -273,9 +263,6 @@ export class Session implements ISession {
         this._errorScore += this._maxErrorScore;
         this._usageCount += 1;
         this._retired = true;
-
-        // emit event so we can retire browser in puppeteer pool
-        this.sessionPool.emit(EVENT_SESSION_RETIRED, this);
     }
 
     /**
