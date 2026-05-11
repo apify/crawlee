@@ -11,6 +11,7 @@ import { KeyValueStore } from '../storages/key_value_store.js';
 import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
+import type { ISessionPool } from './session_pool_interface.js';
 
 const SESSION_REUSE_STRATEGIES = ['random', 'round-robin', 'use-until-failure'] as const;
 export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
@@ -130,7 +131,7 @@ export interface SessionPoolOptions {
  *
  * @category Scaling
  */
-export class SessionPool {
+export class SessionPool implements ISessionPool {
     private static nextId = 0;
 
     readonly id: string;
