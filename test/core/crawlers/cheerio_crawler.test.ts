@@ -933,7 +933,7 @@ describe('CheerioCrawler', () => {
         });
 
         test('should retire session on "blocked" status codes', async () => {
-            for (const code of [401, 403, 429]) {
+            for (const code of [401, 403]) {
                 const failed: Request[] = [];
                 const sessions: Session[] = [];
                 const crawler = new CheerioCrawler({

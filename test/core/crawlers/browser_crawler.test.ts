@@ -615,7 +615,7 @@ describe('BrowserCrawler', () => {
 
             await crawler.run();
 
-            expect(failedRequests.length).toBe(3);
+            expect(failedRequests.length).toBe(BLOCKED_STATUS_CODES.length);
             failedRequests.forEach((fr) => {
                 const [msg] = fr.errorMessages;
                 expect(msg).toContain(`Request blocked - received ${fr.userData.statusCode} status code.`);
@@ -750,7 +750,7 @@ describe('BrowserCrawler', () => {
 
             await crawler.run();
 
-            expect(failedRequests.length).toBe(3);
+            expect(failedRequests.length).toBe(BLOCKED_STATUS_CODES.length);
             failedRequests.forEach((fr) => {
                 const [msg] = fr.errorMessages;
                 expect(msg).toContain(`Request blocked - received ${fr.userData.statusCode} status code.`);
@@ -802,6 +802,55 @@ describe('BrowserCrawler', () => {
             await browserCrawler.run();
 
             expect(called).toBeTruthy();
+        } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('should handle 429 Rate Limit with Retry-After header', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        try {
+            const succeeded: Request[] = [];
+            const crawler = new BrowserCrawlerTest({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                useSessionPool: true,
+                sessionPoolOptions: {
+                    maxPoolSize: 1,
+                },
+                maxConcurrency: 1,
+                maxRequestRetries: 1,
+                requestHandler: async ({ request }) => {
+                    succeeded.push(request);
+                },
+            });
+
+            // @ts-expect-error Overriding protected method
+            crawler._navigationHandler = async ({ request }) => {
+                if (request.retryCount === 0) {
+                    return {
+                        status: () => 429,
+                        headers: () => ({ 'retry-after': '1' }),
+                    };
+                }
+
+                return {
+                    status: () => 200,
+                    headers: () => ({}),
+                };
+            };
+
+            const start = Date.now();
+            await crawler.run([serverAddress]);
+            const end = Date.now();
+
+            expect(succeeded).toHaveLength(1);
+            expect(succeeded[0].retryCount).toBe(1);
+            expect(end - start).toBeGreaterThanOrEqual(1000);
         } finally {
             await localStorageEmulator.destroy();
         }

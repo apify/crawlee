@@ -61,6 +61,17 @@ router.set('/403-with-octet-stream', (req, res) => {
     res.end();
 });
 
+router.set('/429-rate-limit', (req, res) => {
+    res.statusCode = 429;
+    res.setHeader('Retry-After', '1'); // 1 second
+    res.end();
+});
+
+router.set('/429-rate-limit-no-header', (req, res) => {
+    res.statusCode = 429;
+    res.end();
+});
+
 let server: http.Server;
 let url: string;
 
@@ -395,6 +406,81 @@ describe.each(
 
         expect(succeeded).toHaveLength(1);
         expect(succeeded[0].retryCount).toBe(1);
+    });
+
+    test('should handle 429 Rate Limit with Retry-After header', async () => {
+        const succeeded: any[] = [];
+        const sessionIds: string[] = [];
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxConcurrency: 1,
+            maxRequestRetries: 1,
+            sessionPoolOptions: {
+                maxPoolSize: 1,
+            },
+            preNavigationHooks: [
+                async ({ request, session }, gotOptions) => {
+                    sessionIds.push(session!.id);
+                    if (request.retryCount === 0) {
+                        request.url = `${url}/429-rate-limit`;
+                    } else {
+                        request.url = url;
+                    }
+                    if (gotOptions) {
+                        gotOptions.throwHttpErrors = false;
+                    }
+                },
+            ],
+            requestHandler: async ({ request }) => {
+                succeeded.push(request);
+            },
+            failedRequestHandler: async ({ request, error }) => {
+                console.error('FAILED', request.retryCount, request.url, error.message);
+            },
+        });
+
+        const start = Date.now();
+        await crawler.run([url]);
+        const end = Date.now();
+
+        expect(succeeded).toHaveLength(1);
+        expect(succeeded[0].retryCount).toBe(1);
+        expect(sessionIds).toHaveLength(2);
+        expect(sessionIds[0]).toBe(sessionIds[1]);
+        expect(end - start).toBeGreaterThanOrEqual(1000); // Should delay for at least 1s
+    });
+
+    test('should handle 429 Rate Limit without Retry-After header via cooldown', async () => {
+        const succeeded: any[] = [];
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxConcurrency: 1,
+            maxRequestRetries: 1,
+            rateLimitCooldownSecs: 1,
+            preNavigationHooks: [
+                async ({ request }, gotOptions) => {
+                    if (request.retryCount === 0) {
+                        request.url = `${url}/429-rate-limit-no-header`;
+                    } else {
+                        request.url = url;
+                    }
+                    if (gotOptions) {
+                        gotOptions.throwHttpErrors = false;
+                    }
+                },
+            ],
+            requestHandler: async ({ request }) => {
+                succeeded.push(request);
+            },
+        });
+
+        const start = Date.now();
+        await crawler.run([url]);
+        const end = Date.now();
+
+        expect(succeeded).toHaveLength(1);
+        expect(succeeded[0].retryCount).toBe(1);
+        expect(end - start).toBeGreaterThanOrEqual(1000);
     });
 
     test.skipIf(httpClient instanceof ImpitHttpClient)('should work with cacheable-request', async () => {
