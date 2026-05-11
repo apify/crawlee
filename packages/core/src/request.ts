@@ -23,7 +23,6 @@ const requestOptionalPredicates = {
     payload: ow.optional.any(ow.string, ow.uint8Array),
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
-    sessionRotationCount: ow.optional.number,
     sessionId: ow.optional.string,
     maxRetries: ow.optional.number,
     errorMessages: ow.optional.array.ofType(ow.string),
@@ -170,7 +169,6 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             payload,
             noRetry = false,
             retryCount = 0,
-            sessionRotationCount = 0,
             sessionId,
             maxRetries,
             errorMessages = [],
@@ -186,7 +184,6 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
-            sessionRotationCount?: number;
             sessionId?: string;
             errorMessages?: string[];
             handledAt?: string | Date;
@@ -208,7 +205,6 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         this.payload = payload;
         this.noRetry = noRetry;
         this.retryCount = retryCount;
-        this.sessionRotationCount = sessionRotationCount;
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
         this.handledAt = (handledAt as unknown) instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
@@ -320,20 +316,6 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
     set crawlDepth(value: number) {
         (this.userData as Dictionary).__crawlee ??= {};
         this.userData.__crawlee.crawlDepth = value;
-    }
-
-    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
-    get sessionRotationCount(): number {
-        return this.userData.__crawlee?.sessionRotationCount ?? 0;
-    }
-
-    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
-    set sessionRotationCount(value: number) {
-        if (!this.userData.__crawlee) {
-            (this.userData as Dictionary).__crawlee = { sessionRotationCount: value };
-        } else {
-            this.userData.__crawlee.sessionRotationCount = value;
-        }
     }
 
     /** ID of a session to use for this request. When set, the crawler will fetch this session from the session pool instead of creating a new one. */
