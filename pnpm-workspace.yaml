@@ -22,20 +22,27 @@ overrides:
     minimatch: "^9.0.0"
     "lerna>minimatch": "^3.1.4"
 
-onlyBuiltDependencies:
-    - "@apify/ui-icons"
-    - "@playwright/browser-chromium"
-    - "@playwright/browser-firefox"
-    - "@playwright/browser-webkit"
-    - "@swc/core"
-    - better-sqlite3
-    - bufferutil
-    - core-js
-    - esbuild
-    - nx
-    - protobufjs
-    - puppeteer
-    - unrs-resolver
+# pnpm 11 replaces `onlyBuiltDependencies` with an explicit `allowBuilds` map.
+# Each entry must be true (build allowed) or false (build skipped) — pnpm 11
+# refuses to install if any dep needs a build decision that isn't in the map
+# (combined with `strictDepBuilds: false` below so the install can still
+# proceed when new build-requesting deps appear without a manual entry).
+allowBuilds:
+    "@apify/ui-icons": true
+    "@playwright/browser-chromium": true
+    "@playwright/browser-firefox": true
+    "@playwright/browser-webkit": true
+    "@swc/core": true
+    better-sqlite3: true
+    bufferutil: true
+    core-js: true
+    esbuild: true
+    nx: true
+    protobufjs: true
+    puppeteer: true
+    unrs-resolver: true
+
+strictDepBuilds: false
 
 nodeLinker: hoisted
 linkWorkspacePackages: true
