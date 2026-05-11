@@ -10,7 +10,6 @@ import type { RequestQueueFileSystemEntry } from '../fs/request-queue/fs.js';
 import type { RequestQueueMemoryEntry } from '../fs/request-queue/memory.js';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
-import { findRequestQueueByPossibleId } from '../cache-helpers.js';
 import { StorageTypes } from '../consts.js';
 import { createRequestQueueStorageImplementation } from '../fs/request-queue/index.js';
 import type { MemoryStorage } from '../index.js';
@@ -74,26 +73,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         this.client = options.client;
     }
 
-    private async getQueue(): Promise<RequestQueueClient> {
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
-        existingQueueById.updateTimestamps(false);
-
-        return existingQueueById;
-    }
-
     async getMetadata(): Promise<storage.RequestQueueInfo> {
-        const found = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (found) {
-            found.updateTimestamps(false);
-            return found.toRequestQueueInfo();
-        }
-
+        this.updateTimestamps(false);
         return this.toRequestQueueInfo();
     }
 
@@ -107,15 +88,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             .passthrough()
             .parse(newFields);
 
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
         // Skip if no changes
         if (!parsed.name) {
-            return existingQueueById.toRequestQueueInfo();
+            return this.toRequestQueueInfo();
         }
 
         // Check that name is not in use already
@@ -127,21 +102,18 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             this.throwOnDuplicateEntry(StorageTypes.RequestQueue, 'name', parsed.name);
         }
 
-        existingQueueById.name = parsed.name;
+        this.name = parsed.name;
 
-        const previousDir = existingQueueById.requestQueueDirectory;
+        const previousDir = this.requestQueueDirectory;
 
-        existingQueueById.requestQueueDirectory = resolve(
-            this.client.requestQueuesDirectory,
-            parsed.name ?? existingQueueById.name ?? existingQueueById.id,
-        );
+        this.requestQueueDirectory = resolve(this.client.requestQueuesDirectory, parsed.name ?? this.name ?? this.id);
 
-        await move(previousDir, existingQueueById.requestQueueDirectory, { overwrite: true });
+        await move(previousDir, this.requestQueueDirectory, { overwrite: true });
 
         // Update timestamps
-        existingQueueById.updateTimestamps(true);
+        this.updateTimestamps(true);
 
-        return existingQueueById.toRequestQueueInfo();
+        return this.toRequestQueueInfo();
     }
 
     async delete(): Promise<void> {
@@ -173,13 +145,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             })
             .parse(options);
 
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
-        existingQueueById.updateTimestamps(false);
+        this.updateTimestamps(false);
 
         const items = [];
 
@@ -188,7 +154,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         // Tracks handled request IDs from `forefrontRequestIds` to be removed.
         const handledForefrontIds = new Set<string>();
 
-        for (const requestId of this.requestKeyIterator(existingQueueById)) {
+        for (const requestId of this.requestKeyIterator(this)) {
             if (items.length === limit) {
                 break;
             }
@@ -199,7 +165,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
             seenRequestIds.add(requestId);
 
-            const storageEntry = existingQueueById.requests.get(requestId)!;
+            const storageEntry = this.requests.get(requestId)!;
 
             let { orderNo } = storageEntry;
             let loaded: InternalRequest;
@@ -224,7 +190,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return {
             limit,
             hadMultipleClients: false,
-            queueModifiedAt: existingQueueById.modifiedAt,
+            queueModifiedAt: this.modifiedAt,
             items: items.sort((a, b) => a.orderNo! - b.orderNo!).map(({ json }) => this._jsonToRequest(json)!),
         };
     }
@@ -237,7 +203,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             })
             .parse(options);
 
-        const queue = await this.getQueue();
+        this.updateTimestamps(false);
 
         const start = Date.now();
         const isLocked = (request: InternalRequest) =>
@@ -245,7 +211,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const items = [];
 
-        await queue.mutex.wait();
+        await this.mutex.wait();
 
         try {
             // Tracks processed request IDs to avoid duplicates (when a request is in both `forefrontRequestIds` and `requests`).
@@ -253,7 +219,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // Tracks handled request IDs from `forefrontRequestIds` (to be all removed at once).
             const handledForefrontIds = new Set<string>();
 
-            for (const requestId of this.requestKeyIterator(queue)) {
+            for (const requestId of this.requestKeyIterator(this)) {
                 if (items.length === limit) {
                     break;
                 }
@@ -264,7 +230,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
                 seenRequestIds.add(requestId);
 
-                const storageEntry = queue.requests.get(requestId)!;
+                const storageEntry = this.requests.get(requestId)!;
 
                 // This is set to null when the request has been handled, so we don't need to re-fetch from fs
                 if (storageEntry.orderNo === null) {
@@ -293,11 +259,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 limit,
                 lockSecs,
                 hadMultipleClients: false,
-                queueModifiedAt: queue.modifiedAt,
+                queueModifiedAt: this.modifiedAt,
                 items: items.map(({ json }) => this._jsonToRequest(json)!),
             };
         } finally {
-            queue.mutex.shift();
+            this.mutex.shift();
         }
     }
 
@@ -313,19 +279,19 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             })
             .parse(options);
 
-        const queue = await this.getQueue();
-        const request = queue.requests.get(id);
+        this.updateTimestamps(false);
 
+        const request = this.requests.get(id);
         const internalRequest = await request?.get();
 
         if (!internalRequest) {
-            throw new Error(`Request with ID ${id} not found in queue ${queue.name ?? queue.id}`);
+            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
         }
 
         const canProlong = (r: InternalRequest) => !!r.orderNo;
 
         if (!canProlong(internalRequest)) {
-            throw new Error(`Request with ID ${id} has already been handled in queue ${queue.name ?? queue.id}`);
+            throw new Error(`Request with ID ${id} has already been handled in queue ${this.name ?? this.id}`);
         }
 
         const unlockTimestamp = Math.abs(internalRequest.orderNo!) + lockSecs * 1000;
@@ -347,13 +313,13 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             })
             .parse(options);
 
-        const queue = await this.getQueue();
-        const request = queue.requests.get(id);
+        this.updateTimestamps(false);
 
+        const request = this.requests.get(id);
         const internalRequest = await request?.get();
 
         if (!internalRequest) {
-            throw new Error(`Request with ID ${id} not found in queue ${queue.name ?? queue.id}`);
+            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
         }
 
         const start = Date.now();
@@ -361,7 +327,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         // If there is no `orderNo` -> request was marked as handled
         const isLocked = (r: InternalRequest) => r.orderNo && (r.orderNo > start || r.orderNo < -start);
         if (!isLocked(internalRequest)) {
-            throw new Error(`Request with ID ${id} is not locked in queue ${queue.name ?? queue.id}`);
+            throw new Error(`Request with ID ${id} is not locked in queue ${this.name ?? this.id}`);
         }
 
         internalRequest.orderNo = forefront ? -start : start;
@@ -377,20 +343,14 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         requestShapeWithoutId.parse(request);
         requestOptionsShape.parse(options);
 
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
         const requestModel = this._createInternalRequest(request, options.forefront);
 
-        const existingRequestWithIdEntry = existingQueueById.requests.get(requestModel.id);
+        const existingRequestWithIdEntry = this.requests.get(requestModel.id);
 
         // We already have the request present, so we return information about it
         if (existingRequestWithIdEntry) {
             const existingRequestWithId = await existingRequestWithIdEntry.get();
-            existingQueueById.updateTimestamps(false);
+            this.updateTimestamps(false);
 
             return {
                 requestId: existingRequestWithId.id,
@@ -400,20 +360,20 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
 
         const newEntry = createRequestQueueStorageImplementation({
-            persistStorage: existingQueueById.client.persistStorage,
+            persistStorage: this.client.persistStorage,
             requestId: requestModel.id,
-            storeDirectory: existingQueueById.requestQueueDirectory,
+            storeDirectory: this.requestQueueDirectory,
         });
 
         await newEntry.update(requestModel);
 
-        existingQueueById.requests.set(requestModel.id, newEntry);
-        existingQueueById.updateTimestamps(true);
+        this.requests.set(requestModel.id, newEntry);
+        this.updateTimestamps(true);
 
         if (requestModel.orderNo) {
-            existingQueueById.pendingRequestCount += 1;
+            this.pendingRequestCount += 1;
         } else {
-            existingQueueById.handledRequestCount += 1;
+            this.handledRequestCount += 1;
         }
 
         if (options.forefront) {
@@ -436,12 +396,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
 
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
         const result: storage.BatchAddRequestsResult = {
             processedRequests: [],
             unprocessedRequests: [],
@@ -450,7 +404,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         for (const model of requests) {
             const requestModel = this._createInternalRequest(model, options.forefront);
 
-            const existingRequestWithIdEntry = existingQueueById.requests.get(requestModel.id);
+            const existingRequestWithIdEntry = this.requests.get(requestModel.id);
 
             if (existingRequestWithIdEntry) {
                 const existingRequestWithId = await existingRequestWithIdEntry.get();
@@ -466,19 +420,19 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             }
 
             const newEntry = createRequestQueueStorageImplementation({
-                persistStorage: existingQueueById.client.persistStorage,
+                persistStorage: this.client.persistStorage,
                 requestId: requestModel.id,
-                storeDirectory: existingQueueById.requestQueueDirectory,
+                storeDirectory: this.requestQueueDirectory,
             });
 
             await newEntry.update(requestModel);
 
-            existingQueueById.requests.set(requestModel.id, newEntry);
+            this.requests.set(requestModel.id, newEntry);
 
             if (requestModel.orderNo) {
-                existingQueueById.pendingRequestCount += 1;
+                this.pendingRequestCount += 1;
             } else {
-                existingQueueById.handledRequestCount += 1;
+                this.handledRequestCount += 1;
             }
 
             if (options.forefront) {
@@ -495,15 +449,15 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             });
         }
 
-        existingQueueById.updateTimestamps(true);
+        this.updateTimestamps(true);
 
         return result;
     }
 
     async getRequest(id: string): Promise<storage.RequestOptions | undefined> {
         s.string().parse(id);
-        const queue = await this.getQueue();
-        const json = (await queue.requests.get(id)?.get())?.json;
+        this.updateTimestamps(false);
+        const json = (await this.requests.get(id)?.get())?.json;
         return this._jsonToRequest(json);
     }
 
@@ -514,18 +468,12 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         requestShape.parse(request);
         requestOptionsShape.parse(options);
 
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
         const requestModel = this._createInternalRequest(request, options.forefront);
 
         // First we need to check the existing request to be
         // able to return information about its handled state.
 
-        const existingRequestEntry = existingQueueById.requests.get(requestModel.id);
+        const existingRequestEntry = this.requests.get(requestModel.id);
 
         // Undefined means that the request is not present in the queue.
         // We need to insert it, to behave the same as API.
@@ -536,30 +484,30 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const existingRequest = await existingRequestEntry.get();
 
         const newEntry = createRequestQueueStorageImplementation({
-            persistStorage: existingQueueById.client.persistStorage,
+            persistStorage: this.client.persistStorage,
             requestId: requestModel.id,
-            storeDirectory: existingQueueById.requestQueueDirectory,
+            storeDirectory: this.requestQueueDirectory,
         });
 
         await newEntry.update(requestModel);
 
         // When updating the request, we need to make sure that
         // the handled counts are updated correctly in all cases.
-        existingQueueById.requests.set(requestModel.id, newEntry);
+        this.requests.set(requestModel.id, newEntry);
 
         const isRequestHandledStateChanging = typeof existingRequest.orderNo !== typeof requestModel.orderNo;
         const requestWasHandledBeforeUpdate = existingRequest.orderNo === null;
         const requestIsHandledAfterUpdate = requestModel.orderNo === null;
 
         if (isRequestHandledStateChanging) {
-            existingQueueById.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
+            this.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
         }
 
         if (requestIsHandledAfterUpdate) {
-            existingQueueById.handledRequestCount += 1;
+            this.handledRequestCount += 1;
         }
 
-        existingQueueById.updateTimestamps(true);
+        this.updateTimestamps(true);
 
         if (options.forefront && !requestIsHandledAfterUpdate) {
             this.forefrontRequestIds.push(requestModel.id);
@@ -573,24 +521,18 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async deleteRequest(id: string): Promise<void> {
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
-        const entry = existingQueueById.requests.get(id);
+        const entry = this.requests.get(id);
 
         if (entry) {
             const request = await entry.get();
 
-            existingQueueById.requests.delete(id);
-            existingQueueById.updateTimestamps(true);
+            this.requests.delete(id);
+            this.updateTimestamps(true);
 
             if (request.orderNo) {
-                existingQueueById.pendingRequestCount -= 1;
+                this.pendingRequestCount -= 1;
             } else {
-                existingQueueById.handledRequestCount -= 1;
+                this.handledRequestCount -= 1;
             }
 
             await entry.delete();

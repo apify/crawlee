@@ -941,7 +941,7 @@ describe('RequestQueue v2', () => {
         vitest.useRealTimers();
     });
 
-    test('prolongRequestLock works as expected ', async () => {
+    test('prolongRequestLock works as expected', async () => {
         vitest.useFakeTimers();
         const queue = await getEmptyQueue('prolong-request-lock');
         await queue.addRequests(getUniqueRequests(1));
