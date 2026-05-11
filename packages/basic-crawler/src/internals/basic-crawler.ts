@@ -1,32 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-import type {
-    AddRequestsBatchedOptions,
-    AddRequestsBatchedResult,
-    AutoscaledPoolOptions,
-    Configuration,
-    CrawleeLogger,
-    CrawlingContext,
-    DatasetExportOptions,
-    EnqueueLinksOptions,
-    EventManager,
-    FinalStatistics,
-    GetUserDataFromRequest,
-    IRequestList,
-    IRequestManager,
-    ProxyConfiguration,
-    Request,
-    RequestsLike,
-    RequestTransform,
-    RouterHandler,
-    RouterRoutes,
-    SkippedRequestCallback,
-    Source,
-    StatisticsOptions,
-    StatisticState,
-    StorageIdentifier,
-} from '@crawlee/core';
 import {
     AutoscaledPool,
     bindMethodsToServiceLocator,
@@ -63,6 +37,31 @@ import {
     SessionPool,
     Statistics,
     validators,
+    type AddRequestsBatchedOptions,
+    type AddRequestsBatchedResult,
+    type AutoscaledPoolOptions,
+    type Configuration,
+    type CrawleeLogger,
+    type CrawlingContext,
+    type DatasetExportOptions,
+    type EnqueueLinksOptions,
+    type EventManager,
+    type FinalStatistics,
+    type GetUserDataFromRequest,
+    type IRequestList,
+    type IRequestManager,
+    type ISessionPool,
+    type ProxyConfiguration,
+    type Request,
+    type RequestsLike,
+    type RequestTransform,
+    type RouterHandler,
+    type RouterRoutes,
+    type SkippedRequestCallback,
+    type Source,
+    type StatisticsOptions,
+    type StatisticState,
+    type StorageIdentifier,
 } from '@crawlee/core';
 import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 import type {
@@ -302,11 +301,14 @@ export interface BasicCrawlerOptions<
     keepAlive?: boolean;
 
     /**
-     * An existing {@apilink SessionPool} instance to use. When provided, the crawler will use this
-     * pool directly instead of creating a new one, enabling session sharing across multiple crawlers.
-     * The crawler will not tear down a shared pool — the caller is responsible for its lifecycle.
+     * An existing session pool instance to use. When provided, the crawler will use this pool directly instead of
+     * creating a new one, enabling session sharing across multiple crawlers. The crawler will not tear down a shared
+     * pool — the caller is responsible for its lifecycle.
+     *
+     * Accepts the built-in {@apilink SessionPool} or any object implementing the {@apilink ISessionPool} interface,
+     * so custom session-management strategies can be plugged in.
      */
-    sessionPool?: SessionPool;
+    sessionPool?: ISessionPool;
 
     /**
      * Defines the length of the interval for calling the `setStatusMessage` in seconds.
@@ -556,9 +558,10 @@ export class BasicCrawler<
     protected requestManager?: IRequestManager;
 
     /**
-     * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
+     * A reference to the underlying session pool that manages the crawler's {@apilink Session|sessions}. Typed as
+     * {@apilink ISessionPool} so custom implementations can be plugged in via the `sessionPool` constructor option.
      */
-    sessionPool: SessionPool;
+    sessionPool: ISessionPool;
 
     /**
      * Indicates whether the crawler owns the session pool (it was not passed from the outside using the `sessionPool` constructor option).
@@ -675,7 +678,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
-        sessionPool: ow.optional.object.instanceOf(SessionPool),
+        sessionPool: ow.optional.object.validate(validators.sessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
@@ -1297,7 +1300,7 @@ export class BasicCrawler<
             this.stats.reset();
             await this.stats.resetStore();
             if (this.ownsSessionPool) {
-                await this.sessionPool.resetStore();
+                await this.sessionPool.resetStore?.();
             }
         }
 
@@ -2242,7 +2245,7 @@ export class BasicCrawler<
         }
 
         if (this.ownsSessionPool) {
-            await this.sessionPool.teardown();
+            await this.sessionPool.teardown?.();
         }
 
         await this.autoscaledPool?.abort();
