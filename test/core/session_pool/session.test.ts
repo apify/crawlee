@@ -89,6 +89,15 @@ describe('Session - testing session behaviour', () => {
         session.retire();
         expect(discarded).toBe(true);
         expect(session.usageCount).toBe(1);
+        expect(session.isUsable()).toBe(false);
+    });
+
+    test('retired session stays unusable even after markGood', () => {
+        session.retire();
+        expect(session.isUsable()).toBe(false);
+
+        session.markGood();
+        expect(session.isUsable()).toBe(false);
     });
 
     test('should retire session after marking bad', () => {

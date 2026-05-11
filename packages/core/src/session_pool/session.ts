@@ -93,6 +93,7 @@ export class Session implements ISession {
     private _maxUsageCount: number;
     private sessionPool: import('./session_pool.js').SessionPool;
     private _errorScore: number;
+    private _retired = false;
     private _proxyInfo?: ProxyInfo;
     private _cookieJar: CookieJar;
     private log: CrawleeLogger;
@@ -221,10 +222,10 @@ export class Session implements ISession {
 
     /**
      * Indicates whether the session can be used for next requests.
-     * Session is usable when it is not expired, not blocked and the maximum usage count has not be reached.
+     * Session is usable when it is not retired, not expired, not blocked and the maximum usage count has not be reached.
      */
     isUsable(): boolean {
-        return !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
+        return !this._retired && !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
     }
 
     /**
@@ -269,9 +270,9 @@ export class Session implements ISession {
      * If the session does not work due to some external factors as server error such as 5XX you probably want to use `markBad` method.
      */
     retire() {
-        // mark it as an invalid by increasing the error score count.
         this._errorScore += this._maxErrorScore;
         this._usageCount += 1;
+        this._retired = true;
 
         // emit event so we can retire browser in puppeteer pool
         this.sessionPool.emit(EVENT_SESSION_RETIRED, this);
