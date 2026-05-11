@@ -617,7 +617,7 @@ describe('BrowserCrawler', () => {
 
         try {
             const urls = [new URL('/special/cloudflareBlocking', serverAddress).href];
-            const maxSessionRotations = 1;
+            const maxRequestRetries = 1;
 
             let processed = false;
             const errorMessages: string[] = [];
@@ -627,7 +627,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 retryOnBlocked: true,
-                maxSessionRotations,
+                maxRequestRetries,
                 requestHandler: async ({ page, response }) => {
                     processed = true;
                 },
@@ -638,8 +638,8 @@ describe('BrowserCrawler', () => {
 
             await crawler.run(urls);
 
-            expect(errorMessages).toHaveLength(urls.length * (maxSessionRotations + 1));
-            expect(errorMessages.every((x) => x.includes('Detected a session error, rotating session...'))).toBe(true);
+            expect(errorMessages).toHaveLength(urls.length * (maxRequestRetries + 1));
+            expect(errorMessages.every((x) => x.includes('Detected a session error, retiring session...'))).toBe(true);
             expect(processed).toBe(false);
         } finally {
             await localStorageEmulator.destroy();
@@ -660,7 +660,7 @@ describe('BrowserCrawler', () => {
                 };
             });
             const requestList = await RequestList.open(null, sources);
-            const maxSessionRotations = 1;
+            const maxRequestRetries = 1;
             const errorMessages: string[] = [];
 
             let processed = false;
@@ -670,7 +670,7 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
                 retryOnBlocked: true,
-                maxSessionRotations,
+                maxRequestRetries,
                 requestHandler: async () => {
                     processed = true;
                 },
@@ -686,8 +686,8 @@ describe('BrowserCrawler', () => {
 
             await crawler.run();
 
-            expect(errorMessages.length).toBe(sources.length * (maxSessionRotations + 1));
-            expect(errorMessages.every((x) => x.includes('Detected a session error, rotating session...'))).toBe(true);
+            expect(errorMessages.length).toBe(sources.length * (maxRequestRetries + 1));
+            expect(errorMessages.every((x) => x.includes('Detected a session error, retiring session...'))).toBe(true);
             expect(processed).toBe(false);
         } finally {
             await localStorageEmulator.destroy();
@@ -930,9 +930,8 @@ describe('BrowserCrawler', () => {
                 });
 
                 const goodProxyUrl = 'http://good.proxy';
-                const proxyConfiguration = new ProxyConfiguration({
-                    proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl],
-                });
+                const proxyUrls = ['http://localhost', 'http://localhost:1234', goodProxyUrl];
+                const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
                 const requestHandler = vitest.fn();
 
                 const browserCrawler = new (class extends BrowserCrawlerTest {
@@ -952,7 +951,7 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxRequestRetries: 0,
+                    maxRequestRetries: proxyUrls.length - 1,
                     maxConcurrency: 1,
 
                     proxyConfiguration,
@@ -966,7 +965,7 @@ describe('BrowserCrawler', () => {
             }
         });
 
-        test.concurrent('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
+        test.concurrent('proxy rotation on error respects maxRequestRetries, calls failedRequestHandler', async () => {
             const localStorageEmulator = new MemoryStorageEmulator();
             await localStorageEmulator.init();
             const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
@@ -1009,7 +1008,7 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxSessionRotations: 5,
+                    maxRequestRetries: 5,
                     maxConcurrency: 1,
                     proxyConfiguration,
                     requestHandler: async () => {},
@@ -1061,7 +1060,7 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxSessionRotations: 1,
+                    maxRequestRetries: 1,
                     maxConcurrency: 1,
                     proxyConfiguration,
                     requestHandler: async () => {},

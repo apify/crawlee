@@ -28,13 +28,13 @@ export class RetryRequestError extends Error {
 }
 
 /**
- * Errors of `SessionError` type will trigger a session rotation.
+ * Errors of `SessionError` type retire the session associated with the request and trigger a regular retry.
  *
- * This error doesn't respect the `maxRequestRetries` option and has a separate limit of `maxSessionRotations`.
+ * The retry counts towards the `maxRequestRetries` limit, just like any other error.
  */
-export class SessionError extends RetryRequestError {
+export class SessionError extends Error {
     constructor(message?: string) {
-        super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
+        super(`Detected a session error, retiring session... ${message ? `\n${message}` : ''}`);
     }
 }
 
