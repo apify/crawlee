@@ -35,3 +35,16 @@ export class SessionError extends RetryRequestError {
         super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
     }
 }
+
+/**
+ * Errors of `RateLimitError` type will trigger a delay before retrying the request.
+ */
+export class RateLimitError extends RetryRequestError {
+    readonly delayMillis?: number;
+
+    constructor(message?: string, delayMillis?: number) {
+        super(message ?? 'Request is being retried due to rate limit');
+        this.delayMillis = delayMillis;
+        Object.setPrototypeOf(this, RateLimitError.prototype);
+    }
+}

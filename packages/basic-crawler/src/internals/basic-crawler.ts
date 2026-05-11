@@ -47,6 +47,7 @@ import {
     RequestQueue,
     RequestQueueV1,
     RequestState,
+    RateLimitError,
     RetryRequestError,
     Router,
     SessionError,
@@ -55,7 +56,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS, sleep } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
@@ -262,6 +263,13 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * @default 0
      */
     sameDomainDelaySecs?: number;
+
+    /**
+     * How long to wait before retrying a request that failed with a rate limit error (HTTP 429).
+     * This value will only be used if the server does not return a `Retry-After` header.
+     * @default 60
+     */
+    rateLimitCooldownSecs?: number;
 
     /**
      * Maximum number of session rotations per request.
@@ -547,6 +555,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected maxRequestRetries: number;
     protected maxCrawlDepth?: number;
     protected sameDomainDelayMillis: number;
+    protected rateLimitCooldownMillis: number;
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
     protected maxRequestsPerCrawl?: number;
@@ -598,6 +607,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         handleFailedRequestFunction: ow.optional.function,
         maxRequestRetries: ow.optional.number,
         sameDomainDelaySecs: ow.optional.number,
+        rateLimitCooldownSecs: ow.optional.number,
         maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
@@ -641,6 +651,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             requestManager,
             maxRequestRetries = 3,
             sameDomainDelaySecs = 0,
+            rateLimitCooldownSecs = 60,
             maxSessionRotations = 10,
             maxRequestsPerCrawl,
             maxCrawlDepth,
@@ -768,6 +779,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.maxRequestRetries = maxRequestRetries;
         this.maxCrawlDepth = maxCrawlDepth;
         this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
+        this.rateLimitCooldownMillis = rateLimitCooldownSecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
         this.stats = new Statistics({
             logMessage: `${log.getOptions().prefix} request statistics:`,
@@ -1674,7 +1686,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 throw secondaryError;
             }
             // decrease the session score if the request fails (but the error handler did not throw)
-            crawlingContext.session?.markBad();
+            if (!(err instanceof RateLimitError)) {
+                crawlingContext.session?.markBad();
+            }
         } finally {
             await this._cleanupContext(crawlingContext);
 
@@ -1849,6 +1863,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     url,
                     retryCount,
                 });
+
+                if (error instanceof RateLimitError) {
+                    const delayMillis = error.delayMillis || this.rateLimitCooldownMillis;
+                    await sleep(delayMillis);
+                    await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+                    return;
+                }
 
                 await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
                 return;

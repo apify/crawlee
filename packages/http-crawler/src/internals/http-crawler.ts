@@ -29,6 +29,7 @@ import {
     SessionError,
     validators,
 } from '@crawlee/basic';
+import { RateLimitError } from '@crawlee/core';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
@@ -540,6 +541,25 @@ export class HttpCrawler<
                 return $;
             };
 
+            if (response.statusCode === 429) {
+                const retryAfterHeader = response.headers['retry-after'];
+                let delayMillis = this.rateLimitCooldownMillis;
+
+                if (retryAfterHeader) {
+                    const parsedSeconds = parseInt(retryAfterHeader, 10);
+                    if (!Number.isNaN(parsedSeconds)) {
+                        delayMillis = parsedSeconds * 1000;
+                    } else {
+                        const parsedDate = Date.parse(retryAfterHeader);
+                        if (!Number.isNaN(parsedDate)) {
+                            delayMillis = Math.max(0, parsedDate - Date.now());
+                        }
+                    }
+                }
+
+                throw new RateLimitError(undefined, delayMillis);
+            }
+
             if (this.useSessionPool) {
                 this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
             }
@@ -915,7 +935,8 @@ export class HttpCrawler<
         // eslint-disable-next-line dot-notation -- accessing private property
         const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
         // if we retry the request, can the Content-Type change?
-        const isTransientContentType = statusCode! >= 500 || blockedStatusCodes.includes(statusCode!);
+        const isTransientContentType =
+            statusCode! >= 500 || statusCode === 429 || blockedStatusCodes.includes(statusCode!);
 
         if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;

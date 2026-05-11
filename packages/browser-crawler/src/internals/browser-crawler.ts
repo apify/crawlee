@@ -29,6 +29,7 @@ import {
     tryAbsoluteURL,
     validators,
 } from '@crawlee/basic';
+import { RateLimitError } from '@crawlee/core';
 import type {
     BrowserController,
     BrowserPlugin,
@@ -726,7 +727,28 @@ export abstract class BrowserCrawler<
 
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
-                this._throwOnBlockedRequest(session, response.status());
+                const status = response.status();
+                if (status === 429) {
+                    let delayMillis = this.rateLimitCooldownMillis;
+                    const retryAfterHeader =
+                        typeof response.headers === 'function' ? response.headers()['retry-after'] : undefined;
+
+                    if (retryAfterHeader) {
+                        const parsedSeconds = parseInt(retryAfterHeader, 10);
+                        if (!Number.isNaN(parsedSeconds)) {
+                            delayMillis = parsedSeconds * 1000;
+                        } else {
+                            const parsedDate = Date.parse(retryAfterHeader);
+                            if (!Number.isNaN(parsedDate)) {
+                                delayMillis = Math.max(0, parsedDate - Date.now());
+                            }
+                        }
+                    }
+
+                    throw new RateLimitError(undefined, delayMillis);
+                }
+
+                this._throwOnBlockedRequest(session, status);
             } else {
                 this.log.debug('Got a malformed Browser response.', { request, response });
             }
