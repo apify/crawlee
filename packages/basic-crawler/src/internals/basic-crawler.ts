@@ -267,7 +267,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     /**
      * How long to wait before retrying a request that failed with a rate limit error (HTTP 429).
      * This value will only be used if the server does not return a `Retry-After` header.
-     * @default 60
+     * @default 0
      */
     rateLimitCooldownSecs?: number;
 
@@ -651,7 +651,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             requestManager,
             maxRequestRetries = 3,
             sameDomainDelaySecs = 0,
-            rateLimitCooldownSecs = 60,
+            rateLimitCooldownSecs = 0,
             maxSessionRotations = 10,
             maxRequestsPerCrawl,
             maxCrawlDepth,
@@ -886,7 +886,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             log,
         };
 
-        this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+        this.autoscaledPoolOptions = {
+            ...autoscaledPoolOptions,
+            ...basicCrawlerAutoscaledPoolConfiguration,
+        };
     }
 
     /**
@@ -933,7 +936,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private getPeriodicLogger() {
         let previousState = { ...this.stats.state };
 
-        const getOperationMode = (): { mode: 'ERROR' | 'REGULAR'; failedDelta: number } => {
+        const getOperationMode = (): {
+            mode: 'ERROR' | 'REGULAR';
+            failedDelta: number;
+        } => {
             const { requestsFailed } = this.stats.state;
             const { requestsFailed: previousRequestsFailed } = previousState;
 
@@ -1265,15 +1271,24 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await Promise.all(
                 [...skippedBecauseOfRobots]
                     .map((url) => {
-                        return this.handleSkippedRequest({ url, reason: 'robotsTxt' });
+                        return this.handleSkippedRequest({
+                            url,
+                            reason: 'robotsTxt',
+                        });
                     })
                     .concat(
                         skippedBecauseOfLimit.map((request) => {
                             const url = typeof request === 'string' ? request : request.url!;
-                            return this.handleSkippedRequest({ url, reason: 'limit' });
+                            return this.handleSkippedRequest({
+                                url,
+                                reason: 'limit',
+                            });
                         }),
                         [...skippedBecauseOfMaxCrawlDepth].map((url) => {
-                            return this.handleSkippedRequest({ url, reason: 'depth' });
+                            return this.handleSkippedRequest({
+                                url,
+                                reason: 'depth',
+                            });
                         }),
                     ),
             );
@@ -1545,7 +1560,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 source['inProgress'].add(request.id!);
             }
 
-            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+            await source.reclaimRequest(request, {
+                forefront: request.userData?.__crawlee?.forefront,
+            });
         }, delay);
 
         return true;
@@ -1685,9 +1702,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 request.state = RequestState.ERROR;
                 throw secondaryError;
             }
-            // decrease the session score if the request fails (but the error handler did not throw)
+
             if (!(err instanceof RateLimitError)) {
                 crawlingContext.session?.markBad();
+            }
+
+            if (err instanceof RateLimitError) {
+                const delayMillis = (err as RateLimitError).delayMillis ?? this.rateLimitCooldownMillis;
+                if (delayMillis > 0) {
+                    this.log.debug(`Waiting ${delayMillis}ms before next attempt due to rate limiting (Retry-After).`);
+                    await sleep(delayMillis);
+                }
             }
         } finally {
             await this._cleanupContext(crawlingContext);
@@ -1865,13 +1890,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 });
 
                 if (error instanceof RateLimitError) {
-                    const delayMillis = error.delayMillis || this.rateLimitCooldownMillis;
-                    await sleep(delayMillis);
-                    await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+                    // Reclaim immediately; the rate-limit sleep is applied in _runTaskFunction
+                    // *outside* the internalTimeoutMillis wrapper to avoid timeout conflicts.
+                    await source.reclaimRequest(request, {
+                        forefront: request.userData?.__crawlee?.forefront,
+                    });
                     return;
                 }
 
-                await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+                await source.reclaimRequest(request, {
+                    forefront: request.userData?.__crawlee?.forefront,
+                });
                 return;
             }
         }
@@ -1899,7 +1928,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             return (await cb()) as T;
         } catch (e: any) {
-            Object.defineProperty(e, 'triggeredFromUserHandler', { value: true });
+            Object.defineProperty(e, 'triggeredFromUserHandler', {
+                value: true,
+            });
             throw e;
         }
     }
@@ -2095,7 +2126,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return baseUrl.hostname === loadedBaseUrl.hostname;
             }
             case EnqueueStrategy.SameDomain: {
-                const baseUrlHostname = getDomain(baseUrl.hostname, { mixedInputs: false });
+                const baseUrlHostname = getDomain(baseUrl.hostname, {
+                    mixedInputs: false,
+                });
 
                 if (baseUrlHostname) {
                     const loadedBaseUrlHostname = getDomain(loadedBaseUrl.hostname, { mixedInputs: false });
