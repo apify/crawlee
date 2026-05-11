@@ -65,6 +65,46 @@ export interface ProxyInfo {
 }
 
 /**
+ * Identifies the browser and HTTP client characteristics tied to a {@apilink Session}, so
+ * repeated requests with the same session look consistent to the target server.
+ *
+ * Top-level fields are the cross-cutting bits every backend can consume (HTTP clients pick
+ * `userAgent`, `headers`, `browser`, `locales`, `httpVersion`; browser crawlers additionally
+ * use `platform` and `device` hints). `browserFingerprint` is an opaque slot for the
+ * full browser fingerprint payload populated by `@crawlee/browser-pool` — it stays untyped
+ * here so `@crawlee/core` does not depend on `fingerprint-generator`.
+ */
+export interface SessionFingerprint {
+    /** User-agent string used for requests with this session. */
+    userAgent: string;
+
+    /** Ordered map of headers to send. */
+    headers?: Record<string, string>;
+
+    /** Browser family — consumed by HTTP clients that impersonate (e.g. `impit`). */
+    browser?: 'chrome' | 'firefox' | 'safari' | 'edge';
+
+    /** Platform hint — used by header generators and as a virtual session key. */
+    platform?: 'windows' | 'macos' | 'linux' | 'android' | 'ios';
+
+    /** Device class — drives header generation and viewport defaults. */
+    device?: 'desktop' | 'mobile';
+
+    /** Preferred HTTP version. */
+    httpVersion?: '1' | '2';
+
+    /** Locales (Accept-Language). */
+    locales?: string[];
+
+    /**
+     * Opaque slot for the rich browser-fingerprint payload (typically
+     * `BrowserFingerprintWithHeaders` from `fingerprint-generator`).
+     * Populated by `@crawlee/browser-pool`; HTTP-only stacks can ignore it.
+     */
+    browserFingerprint?: unknown;
+}
+
+/**
  * Persistable {@apilink Session} state.
  */
 export interface SessionState {
@@ -72,6 +112,7 @@ export interface SessionState {
     cookieJar: SerializedCookieJar;
     proxyInfo?: ProxyInfo;
     userData: object;
+    fingerprint?: SessionFingerprint;
     errorScore: number;
     maxErrorScore: number;
     errorScoreDecrement: number;
@@ -99,6 +140,7 @@ export interface ISession {
     maxUsageCount: number;
     cookieJar: CookieJar;
     proxyInfo?: ProxyInfo;
+    fingerprint?: SessionFingerprint;
 
     /**
      * Indicates whether the session is blocked.
