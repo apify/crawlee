@@ -794,7 +794,7 @@ describe('CheerioCrawler', () => {
                     throw new Error('Proxy responded with 400 - Bad request');
                 }
             })({
-                maxSessionRotations: 2,
+                maxRequestRetries: 2,
                 maxConcurrency: 1,
 
                 proxyConfiguration,
@@ -805,7 +805,7 @@ describe('CheerioCrawler', () => {
             expect(check).toBeCalledWith(expect.objectContaining({ proxyUrl: goodProxyUrl }));
         });
 
-        test('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
+        test('proxy rotation on error respects maxRequestRetries, calls failedRequestHandler', async () => {
             const proxyConfiguration = new ProxyConfiguration({
                 proxyUrls: ['http://localhost', 'http://localhost:1234'],
             });
@@ -818,7 +818,7 @@ describe('CheerioCrawler', () => {
             const impit = new ImpitHttpClient();
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
-                maxSessionRotations: 5,
+                maxRequestRetries: 5,
                 requestHandler: async () => {},
                 failedRequestHandler,
                 httpClient: {
@@ -848,7 +848,7 @@ describe('CheerioCrawler', () => {
 
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
-                maxSessionRotations: 1,
+                maxRequestRetries: 1,
                 requestHandler: async () => {},
                 httpClient: {
                     sendRequest: async (request, opts) => {
@@ -948,7 +948,7 @@ describe('CheerioCrawler', () => {
             for (const code of [401, 403, 429]) {
                 const failed: Request[] = [];
                 const sessions: Session[] = [];
-                const maxSessionRotations = 5;
+                const maxRequestRetries = 5;
                 const crawler = new CheerioCrawler({
                     requestList: await getRequestListForMock({
                         statusCode: code,
@@ -957,8 +957,7 @@ describe('CheerioCrawler', () => {
                     }),
 
                     saveResponseCookies: false,
-                    maxRequestRetries: 10,
-                    maxSessionRotations,
+                    maxRequestRetries,
                     requestHandler: ({ session }) => {
                         sessions.push(session!);
                     },
@@ -970,9 +969,9 @@ describe('CheerioCrawler', () => {
 
                 // @ts-expect-error private symbol
                 const poolSessions: Session[] = crawler.sessionPool.sessions;
-                // each request is retried with session rotation (maxSessionRotations times), so we get
-                // (maxSessionRotations + 1) sessions per request (rotated ones + the final one)
-                expect(poolSessions.length).toBe(4 * (maxSessionRotations + 1));
+                // each request retires its session on every retry, so we get
+                // (maxRequestRetries + 1) sessions per request (retired ones + the final one)
+                expect(poolSessions.length).toBe(4 * (maxRequestRetries + 1));
 
                 poolSessions.forEach((session) => {
                     expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
