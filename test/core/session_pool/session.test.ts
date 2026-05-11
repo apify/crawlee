@@ -3,7 +3,7 @@ import { ResponseWithUrl } from '@crawlee/http-client';
 import { entries, sleep } from '@crawlee/utils';
 import { CookieJar } from 'tough-cookie';
 
-describe('Session - testing session behaviour ', () => {
+describe('Session - testing session behaviour', () => {
     let sessionPool: SessionPool;
     let session: Session;
 
