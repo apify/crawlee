@@ -36,7 +36,7 @@ function createMockBrowser() {
     return {
         newPage: vi.fn().mockResolvedValue(createMockPage()),
         close: vi.fn().mockResolvedValue(undefined),
-        contexts: vi.fn(() => []),
+        contexts: vi.fn(() => [mockContext]),
         on: vi.fn(),
         off: vi.fn(),
         once: vi.fn(),
@@ -326,16 +326,16 @@ describe('Remote browser — PlaywrightPlugin', () => {
     // --- useIncognitoPages default --------------------------------------------
 
     describe('useIncognitoPages default', () => {
-        test('defaults to true for remote (connectOverCDP)', () => {
+        test('defaults to false for remote (connectOverCDP)', () => {
             const lib = createMockPlaywrightLibrary();
             const plugin = new PlaywrightPlugin(lib as any, {
                 connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
             });
 
-            expect(plugin.useIncognitoPages).toBe(true);
+            expect(plugin.useIncognitoPages).toBe(false);
         });
 
-        test('defaults to true for remote (connect)', () => {
+        test('defaults to true for remote (connect / WebSocket)', () => {
             const lib = createMockPlaywrightLibrary();
             const plugin = new PlaywrightPlugin(lib as any, {
                 connectOptions: { wsEndpoint: 'ws://remote:3000' },
@@ -372,9 +372,9 @@ describe('Remote browser — PlaywrightPlugin', () => {
         });
     });
 
-    // --- Warnings -------------------------------------------------------------
+    // --- Info/Warnings --------------------------------------------------------
 
-    describe('warnings', () => {
+    describe('info and warnings', () => {
         test('proxyUrl + remote → warning logged', async () => {
             const lib = createMockPlaywrightLibrary();
             const plugin = new PlaywrightPlugin(lib as any, {
@@ -390,27 +390,25 @@ describe('Remote browser — PlaywrightPlugin', () => {
             );
         });
 
-        test('useIncognitoPages: false + remote CDP → warning about shared state', () => {
+        test('remote CDP default → info about shared cookies', () => {
             const lib = createMockPlaywrightLibrary();
             new PlaywrightPlugin(lib as any, {
                 connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                useIncognitoPages: false,
             });
 
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining('Pages will share cookies and storage'),
+            expect(mockLogger.info).toHaveBeenCalledWith(
+                expect.stringContaining('pages will share cookies and storage'),
             );
         });
 
-        test('useIncognitoPages: false + remote WebSocket → warning about no default context', () => {
+        test('remote WebSocket default → info about incognito true', () => {
             const lib = createMockPlaywrightLibrary();
             new PlaywrightPlugin(lib as any, {
                 connectOptions: { wsEndpoint: 'ws://remote:3000' },
-                useIncognitoPages: false,
             });
 
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining('browserType.connect() returns a browser with no default context'),
+            expect(mockLogger.info).toHaveBeenCalledWith(
+                expect.stringContaining('defaulting useIncognitoPages to true'),
             );
         });
 
@@ -541,12 +539,13 @@ describe('Remote browser — PuppeteerPlugin', () => {
             const plugin = new PuppeteerPlugin(lib as any, {
                 connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
                 proxyUrl: 'http://user:pass@proxy:8080',
+                useIncognitoPages: true,
             });
 
             const ctx = plugin.createLaunchContext();
             const wrappedBrowser = await plugin.launch(ctx);
 
-            // Call newPage on the wrapped browser — useIncognitoPages defaults to true for remote
+            // Call newPage on the wrapped browser — useIncognitoPages: true creates new context
             await (wrappedBrowser as any).newPage();
 
             // createBrowserContext should be called with empty options (no proxyServer)
@@ -586,13 +585,13 @@ describe('Remote browser — PuppeteerPlugin', () => {
     // --- useIncognitoPages default --------------------------------------------
 
     describe('useIncognitoPages default', () => {
-        test('defaults to true for remote', () => {
+        test('defaults to false for remote', () => {
             const lib = createMockPuppeteerLibrary();
             const plugin = new PuppeteerPlugin(lib as any, {
                 connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
             });
 
-            expect(plugin.useIncognitoPages).toBe(true);
+            expect(plugin.useIncognitoPages).toBe(false);
         });
 
         test('explicit false preserved for remote', () => {
@@ -623,9 +622,9 @@ describe('Remote browser — PuppeteerPlugin', () => {
         });
     });
 
-    // --- Warnings -------------------------------------------------------------
+    // --- Info/Warnings --------------------------------------------------------
 
-    describe('warnings', () => {
+    describe('info and warnings', () => {
         test('proxyUrl + remote → warning logged', async () => {
             const lib = createMockPuppeteerLibrary();
             const plugin = new PuppeteerPlugin(lib as any, {
@@ -641,15 +640,14 @@ describe('Remote browser — PuppeteerPlugin', () => {
             );
         });
 
-        test('useIncognitoPages: false + remote → warning logged', () => {
+        test('remote default → info about shared cookies', () => {
             const lib = createMockPuppeteerLibrary();
             new PuppeteerPlugin(lib as any, {
                 connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-                useIncognitoPages: false,
             });
 
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining('useIncognitoPages is set to false'),
+            expect(mockLogger.info).toHaveBeenCalledWith(
+                expect.stringContaining('pages will share cookies and storage'),
             );
         });
 
@@ -743,10 +741,19 @@ describe('remoteBrowser config — PlaywrightPlugin', () => {
         expect(ctx.isRemote).toBe(true);
     });
 
-    test('useIncognitoPages defaults to true when remoteBrowser is set', () => {
+    test('useIncognitoPages defaults to false when remoteBrowser is set (CDP)', () => {
         const lib = createMockPlaywrightLibrary();
         const plugin = new PlaywrightPlugin(lib as any, {
             remoteBrowser: { endpoint: 'wss://test.io' },
+        });
+
+        expect(plugin.useIncognitoPages).toBe(false);
+    });
+
+    test('useIncognitoPages defaults to true when remoteBrowser is set (WebSocket)', () => {
+        const lib = createMockPlaywrightLibrary();
+        const plugin = new PlaywrightPlugin(lib as any, {
+            remoteBrowser: { endpoint: 'wss://test.io', type: 'websocket' },
         });
 
         expect(plugin.useIncognitoPages).toBe(true);
@@ -1035,7 +1042,7 @@ describe('RemoteBrowserProvider — PlaywrightPlugin', () => {
         expect(ctx.isRemote).toBe(true);
     });
 
-    test('provider sets useIncognitoPages default to true', () => {
+    test('provider sets useIncognitoPages default to false (CDP)', () => {
         const lib = createMockPlaywrightLibrary();
 
         class P extends RemoteBrowserProvider {
@@ -1045,7 +1052,7 @@ describe('RemoteBrowserProvider — PlaywrightPlugin', () => {
         }
 
         const plugin = new PlaywrightPlugin(lib as any, { remoteBrowser: new P() });
-        expect(plugin.useIncognitoPages).toBe(true);
+        expect(plugin.useIncognitoPages).toBe(false);
     });
 });
 

@@ -62,19 +62,12 @@ export class PuppeteerPlugin extends BrowserPlugin<
             );
         }
 
-        // We check options.useIncognitoPages (not this.useIncognitoPages) because super() collapses undefined to false.
-        // This preserves the distinction between "not set" (undefined → default to true) and "explicitly false".
         const isRemoteConnection = this.remoteBrowser || this.connectOverCDPOptions;
-        if (isRemoteConnection) {
-            if (options.useIncognitoPages === undefined) {
-                this.useIncognitoPages = true;
-                this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
-            } else if (!options.useIncognitoPages) {
-                this.log.warning(
-                    'useIncognitoPages is set to false with a remote browser connection. ' +
-                        'Pages will share cookies and storage on the remote browser instance.',
-                );
-            }
+        if (isRemoteConnection && options.useIncognitoPages === undefined) {
+            this.log.info(
+                'Remote browser detected — pages will share cookies and storage ' +
+                    'on the remote browser instance (useIncognitoPages defaults to false).',
+            );
         }
     }
 

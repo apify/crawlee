@@ -81,21 +81,19 @@ export class PlaywrightPlugin extends BrowserPlugin<
             );
         }
 
-        // We check options.useIncognitoPages (not this.useIncognitoPages) because super() collapses undefined to false.
-        // This preserves the distinction between "not set" (undefined → default to true) and "explicitly false".
         const isRemoteConnection = this.remoteBrowser || this.connectOptions || this.connectOverCDPOptions;
-        if (isRemoteConnection) {
-            if (options.useIncognitoPages === undefined) {
+        if (isRemoteConnection && options.useIncognitoPages === undefined) {
+            const isWebSocket = this.connectOptions || this.remoteBrowser?.type === 'websocket';
+            if (isWebSocket) {
                 this.useIncognitoPages = true;
-                this.log.info('Remote browser detected — defaulting useIncognitoPages to true for session isolation.');
-            } else if (!options.useIncognitoPages) {
-                const isWebSocket = this.connectOptions || this.remoteBrowser?.type === 'websocket';
-                const message = isWebSocket
-                    ? 'useIncognitoPages is set to false with a remote WebSocket connection. ' +
-                      'This may cause errors because browserType.connect() returns a browser with no default context.'
-                    : 'useIncognitoPages is set to false with a remote browser connection. ' +
-                      'Pages will share cookies and storage on the remote browser instance.';
-                this.log.warning(message);
+                this.log.info(
+                    'Remote Playwright WebSocket connection detected — defaulting useIncognitoPages to true.',
+                );
+            } else {
+                this.log.info(
+                    'Remote Playwright CDP connection detected — pages will share cookies and storage ' +
+                        'via the default browser context (useIncognitoPages defaults to false).',
+                );
             }
         }
     }
@@ -131,7 +129,8 @@ export class PlaywrightPlugin extends BrowserPlugin<
                     return await this.library.connect(url, {});
                 }
                 this.log.info('Connecting to remote browser via connectOverCDP.');
-                return await this.library.connectOverCDP(url, {});
+                const browser = await this.library.connectOverCDP(url, {});
+                return this._maybeWrapWithSharedContext(browser, launchContext);
             } catch (cause) {
                 await this._callRelease(url, context);
                 throw new BrowserLaunchError(
@@ -147,7 +146,8 @@ export class PlaywrightPlugin extends BrowserPlugin<
             const { endpointURL, ...options } = this.connectOverCDPOptions;
             this.log.info('Connecting to remote browser via connectOverCDP.');
             try {
-                return await this.library.connectOverCDP(endpointURL, options);
+                const browser = await this.library.connectOverCDP(endpointURL, options);
+                return this._maybeWrapWithSharedContext(browser, launchContext);
             } catch (cause) {
                 throw new BrowserLaunchError(
                     `Failed to connect to remote browser via CDP at "${this._sanitizeEndpointForLog(endpointURL)}". ` +
@@ -251,6 +251,42 @@ export class PlaywrightPlugin extends BrowserPlugin<
         }
 
         return browser;
+    }
+
+    /**
+     * When useIncognitoPages is false and we have a CDP-connected browser,
+     * wrap its default context in PlaywrightBrowser so that all pages share
+     * a single context (matching local persistent-context behavior).
+     *
+     * Playwright's browser.newPage() always creates a new context, so without
+     * this wrapper, pages would never share cookies even with useIncognitoPages: false.
+     */
+    private _maybeWrapWithSharedContext(
+        browser: PlaywrightBrowser,
+        launchContext: LaunchContext<BrowserType>,
+    ): PlaywrightBrowser {
+        if (launchContext.useIncognitoPages) {
+            return browser;
+        }
+
+        const contexts = browser.contexts();
+        const defaultContext = contexts[0];
+
+        if (!defaultContext) {
+            this.log.warning(
+                'Remote CDP browser has no default context — cannot share cookies between pages. ' +
+                    'Falling back to standard behavior (new context per page).',
+            );
+            return browser;
+        }
+
+        this.log.info('Wrapping remote CDP browser default context for cookie sharing between pages.');
+
+        return new PlaywrightBrowserWithPersistentContext({
+            browserContext: defaultContext,
+            version: browser.version(),
+            parentBrowser: browser,
+        }) as unknown as PlaywrightBrowser;
     }
 
     private _throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown): never {
