@@ -206,6 +206,21 @@ export class Configuration {
     }
 
     /**
+     * Resets the global configuration (and the rest of the global service locator) so that the
+     * next `Configuration.getGlobalConfig()` call constructs a fresh instance from the current
+     * environment. Intended mainly for tests that mutate `process.env` at runtime — values are
+     * resolved eagerly at construction, so changing env vars after the singleton has been
+     * cached has no effect until the singleton is dropped.
+     *
+     * Delegates to {@link ServiceLocator.reset} since the global configuration is owned by the
+     * service locator; resetting only the configuration would leave a stale `EventManager` /
+     * `StorageClient` / logger holding the old config.
+     */
+    static reset(): void {
+        serviceLocator.reset();
+    }
+
+    /**
      * Resolves all field values once using the priority chain:
      * constructor options > env vars > crawlee.json > schema defaults.
      */
