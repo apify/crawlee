@@ -111,7 +111,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
             let url: string;
             let context: Record<string, unknown> | undefined;
             try {
-                const result = await this._resolveRemoteEndpoint();
+                const result = await this._resolveRemoteEndpoint({ proxyUrl: launchContext.proxyUrl });
                 url = result.url;
                 context = result.context;
             } catch (cause) {

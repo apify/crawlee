@@ -85,7 +85,11 @@ export interface RemoteBrowserConfig {
      * Can return a plain string or an object with `url` and optional `context`
      * that will be forwarded to `release()`.
      */
-    endpoint: string | (() => string | RemoteBrowserEndpointResult | Promise<string | RemoteBrowserEndpointResult>);
+    endpoint:
+        | string
+        | ((options?: {
+              proxyUrl?: string;
+          }) => string | RemoteBrowserEndpointResult | Promise<string | RemoteBrowserEndpointResult>);
     /**
      * Optional cleanup function called when the browser closes, crashes, or the pool is destroyed.
      * Receives the resolved endpoint URL and the `context` object returned by `endpoint()`.
@@ -214,7 +218,7 @@ export abstract class BrowserPlugin<
         if (remoteBrowser instanceof RemoteBrowserProvider) {
             const provider = remoteBrowser;
             this.remoteBrowser = {
-                endpoint: () => provider.connect(),
+                endpoint: (options) => provider.connect(options),
                 release: ({ context }) => provider.release(context as any),
                 type: provider.type,
                 maxOpenBrowsers: provider.maxOpenBrowsers,
@@ -225,9 +229,9 @@ export abstract class BrowserPlugin<
     }
 
     /** Resolves the remote browser endpoint from a string or function. Returns { url, context }. */
-    protected async _resolveRemoteEndpoint(): Promise<RemoteBrowserEndpointResult> {
+    protected async _resolveRemoteEndpoint(options?: { proxyUrl?: string }): Promise<RemoteBrowserEndpointResult> {
         const { endpoint } = this.remoteBrowser!;
-        const result = typeof endpoint === 'function' ? await endpoint() : endpoint;
+        const result = typeof endpoint === 'function' ? await endpoint(options) : endpoint;
         if (typeof result === 'string') {
             return { url: result };
         }
@@ -316,9 +320,10 @@ export abstract class BrowserPlugin<
         const { proxyUrl, launchOptions } = launchContext;
 
         if (proxyUrl && launchContext.isRemote) {
-            this.log.warning(
-                'proxyUrl is set but will be ignored for remote browser connections. ' +
-                    'Configure proxy settings on the remote browser service instead.',
+            this.log.info(
+                'proxyUrl is set for a remote browser connection. ' +
+                    "It will be forwarded to the remote browser provider's connect() method. " +
+                    "Make sure your provider handles it (e.g. passes it to the service's proxy API).",
             );
         }
 

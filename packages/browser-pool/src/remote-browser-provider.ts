@@ -33,8 +33,10 @@
  * class BrowserbaseProvider extends RemoteBrowserProvider<{ id: string }> {
  *     maxOpenBrowsers = 2; // respect the service's concurrent session limit
  *
- *     async connect() {
- *         const session = await createSession(apiKey, projectId);
+ *     async connect({ proxyUrl } = {}) {
+ *         const session = await createSession(apiKey, projectId, {
+ *             proxies: proxyUrl ? [{ type: 'external', server: proxyUrl }] : undefined,
+ *         });
  *         return { url: session.connectUrl, context: { id: session.id } };
  *     }
  *
@@ -63,8 +65,13 @@ export abstract class RemoteBrowserProvider<TContext extends Record<string, unkn
     /**
      * Called once per browser launch. Return the WebSocket/CDP endpoint URL
      * and an optional `context` object that will be passed back to {@link release}.
+     *
+     * @param options.proxyUrl - The proxy URL resolved by Crawlee's proxy configuration
+     * for this browser session. Pass it to your remote service's proxy API if supported.
      */
-    abstract connect(): Promise<{ url: string; context?: TContext }> | { url: string; context?: TContext };
+    abstract connect(options?: {
+        proxyUrl?: string;
+    }): Promise<{ url: string; context?: TContext }> | { url: string; context?: TContext };
 
     /**
      * Called when the browser closes, crashes, the pool is destroyed, or the
