@@ -260,6 +260,7 @@ export class Session implements ISession {
      * If the session does not work due to some external factors as server error such as 5XX you probably want to use `markBad` method.
      */
     retire() {
+        if (this._retired) return;
         this._errorScore += this._maxErrorScore;
         this._usageCount += 1;
         this._retired = true;

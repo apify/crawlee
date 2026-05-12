@@ -86,6 +86,18 @@ describe('Session - testing session behaviour', () => {
         expect(session.isUsable()).toBe(false);
     });
 
+    test('retire() is idempotent', () => {
+        session.retire();
+        const errorScore = session.errorScore;
+        const usageCount = session.usageCount;
+
+        session.retire();
+        session.retire();
+
+        expect(session.errorScore).toBe(errorScore);
+        expect(session.usageCount).toBe(usageCount);
+    });
+
     test('should retire session after marking bad', () => {
         // @ts-expect-error Private property
         vitest.spyOn(session, '_maybeSelfRetire');
