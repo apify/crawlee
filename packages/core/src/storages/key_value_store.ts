@@ -15,7 +15,7 @@ import { checkStorageAccess } from './access_checking.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
-import { purgeDefaultStorages } from './utils.js';
+import { dualAsyncIterable, purgeDefaultStorages } from './utils.js';
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -496,15 +496,21 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    async *values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<T, void, undefined> {
+    values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
         checkStorageAccess();
 
-        for await (const item of this.client.iterateKeys(options)) {
-            const record = await this.client.getValue(item.key);
-            if (record) {
-                yield record.value as T;
+        const client = this.client;
+
+        async function* iterate(): AsyncGenerator<T> {
+            for await (const item of client.iterateKeys(options)) {
+                const record = await client.getValue(item.key);
+                if (record) {
+                    yield record.value as T;
+                }
             }
         }
+
+        return dualAsyncIterable(iterate());
     }
 
     /**
@@ -521,17 +527,23 @@ export class KeyValueStore {
      *
      * @param options Options for the iteration.
      */
-    async *entries<T = unknown>(
+    entries<T = unknown>(
         options: KeyValueStoreIteratorOptions = {},
-    ): AsyncGenerator<[string, T], void, undefined> {
+    ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
         checkStorageAccess();
 
-        for await (const item of this.client.iterateKeys(options)) {
-            const record = await this.client.getValue(item.key);
-            if (record) {
-                yield [item.key, record.value as T];
+        const client = this.client;
+
+        async function* iterate(): AsyncGenerator<[string, T]> {
+            for await (const item of client.iterateKeys(options)) {
+                const record = await client.getValue(item.key);
+                if (record) {
+                    yield [item.key, record.value as T];
+                }
             }
         }
+
+        return dualAsyncIterable(iterate());
     }
 
     /**

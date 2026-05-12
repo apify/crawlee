@@ -11,7 +11,7 @@ import { KeyValueStore } from './key_value_store.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
-import { purgeDefaultStorages } from './utils.js';
+import { dualAsyncIterable, purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -24,7 +24,7 @@ export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
  * @param index Optional index for error messages when validating inside an array.
  * @ignore
  */
-export function isJsonSerializable<T>(item: T, index?: number): void {
+export function assertJsonSerializable<T>(item: T, index?: number): void {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
     const isItemObject = item && typeof item === 'object' && !Array.isArray(item);
 
@@ -261,7 +261,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         // Normalize to array and validate each item
         const items = Array.isArray(data) ? data : [data];
         for (let i = 0; i < items.length; i++) {
-            isJsonSerializable(items[i], i);
+            assertJsonSerializable(items[i], i);
         }
 
         await this.client.pushData(items);
@@ -583,10 +583,10 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * @param options Options for the iteration.
      */
-    async *values(options: DatasetIteratorOptions = {}): AsyncGenerator<Data> {
+    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<Data[]> {
         checkStorageAccess();
 
-        yield* this.client.iterateItems(options);
+        return dualAsyncIterable(this.client.iterateItems(options));
     }
 
     /**
@@ -603,14 +603,19 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * @param options Options for the iteration.
      */
-    async *entries(options: DatasetIteratorOptions = {}): AsyncGenerator<[number, Data]> {
+    entries(options: DatasetIteratorOptions = {}): AsyncIterable<[number, Data]> & Promise<[number, Data][]> {
         checkStorageAccess();
 
+        const iterable = this.client.iterateItems(options);
         let index = options.offset ?? 0;
 
-        for await (const item of this.client.iterateItems(options)) {
-            yield [index++, item];
+        async function* enumerate(): AsyncGenerator<[number, Data]> {
+            for await (const item of iterable) {
+                yield [index++, item];
+            }
         }
+
+        return dualAsyncIterable(enumerate());
     }
 
     /**

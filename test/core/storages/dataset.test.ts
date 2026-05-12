@@ -1,4 +1,4 @@
-import { isJsonSerializable, chunkBySize, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { assertJsonSerializable, chunkBySize, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
@@ -378,21 +378,21 @@ describe('dataset', () => {
     });
 
     describe('utils', () => {
-        test('isJsonSerializable() works', () => {
+        test('assertJsonSerializable() works', () => {
             // Valid objects
-            expect(() => isJsonSerializable({})).not.toThrow();
-            expect(() => isJsonSerializable({ foo: 'bar' })).not.toThrow();
-            expect(() => isJsonSerializable({ foo: 'bar' }, 1)).not.toThrow();
+            expect(() => assertJsonSerializable({})).not.toThrow();
+            expect(() => assertJsonSerializable({ foo: 'bar' })).not.toThrow();
+            expect(() => assertJsonSerializable({ foo: 'bar' }, 1)).not.toThrow();
             // Circular reference
             const bad = {} as Dictionary;
             bad.bad = bad;
-            expect(() => isJsonSerializable(bad)).toThrow('not serializable to JSON');
+            expect(() => assertJsonSerializable(bad)).toThrow('not serializable to JSON');
             // Non-objects
-            expect(() => isJsonSerializable('hello')).toThrow('not an object');
-            expect(() => isJsonSerializable([])).toThrow('not an object');
-            expect(() => isJsonSerializable(['a', 'b'])).toThrow('not an object');
+            expect(() => assertJsonSerializable('hello')).toThrow('not an object');
+            expect(() => assertJsonSerializable([])).toThrow('not an object');
+            expect(() => assertJsonSerializable(['a', 'b'])).toThrow('not an object');
             // With index in error message
-            expect(() => isJsonSerializable('hello', 3)).toThrow('at index 3');
+            expect(() => assertJsonSerializable('hello', 3)).toThrow('at index 3');
         });
         test('chunkBySize', () => {
             const obj = { foo: 'bar' };
