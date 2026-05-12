@@ -307,6 +307,26 @@ describe('Session - testing session behaviour', () => {
         });
     });
 
+    test('retired state survives a getState() / new Session() round-trip', () => {
+        session.retire();
+
+        const old = session.getState();
+        expect(old.retired).toBe(true);
+
+        // @ts-expect-error Overriding string -> Date
+        old.createdAt = new Date(old.createdAt);
+        // @ts-expect-error Overriding string -> Date
+        old.expiresAt = new Date(old.expiresAt);
+
+        // @ts-expect-error string -> Date for createdAt has been overridden
+        const reinitialized = new Session({ ...old });
+        expect(reinitialized.retired).toBe(true);
+        expect(reinitialized.isUsable()).toBe(false);
+
+        reinitialized.markGood();
+        expect(reinitialized.isUsable()).toBe(false);
+    });
+
     test('should correctly persist and init cookieJar', () => {
         const headers = new Headers();
 

@@ -63,6 +63,13 @@ export interface SessionOptions {
      */
     maxUsageCount?: number;
 
+    /**
+     * Marks the session as already retired. Used when restoring a previously persisted session
+     * so that `isUsable()` reflects the terminal state regardless of error score or usage count.
+     * @default false
+     */
+    retired?: boolean;
+
     log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
@@ -128,6 +135,14 @@ export class Session implements ISession {
     }
 
     /**
+     * `true` once {@apilink Session.retire|`retire()`} has been called. Retirement is terminal:
+     * a retired session is never picked by the pool and cannot be revived via `markGood()`.
+     */
+    get retired() {
+        return this._retired;
+    }
+
+    /**
      * Session configuration.
      */
     constructor(options: SessionOptions = {}) {
@@ -146,6 +161,7 @@ export class Session implements ISession {
                 usageCount: ow.optional.number,
                 errorScore: ow.optional.number,
                 maxUsageCount: ow.optional.number,
+                retired: ow.optional.boolean,
                 log: ow.optional.object,
             }),
         );
@@ -162,6 +178,7 @@ export class Session implements ISession {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
+            retired = false,
             log = serviceLocator.getLogger(),
         } = options;
 
@@ -183,6 +200,7 @@ export class Session implements ISession {
         this._usageCount = usageCount; // indicates how many times the session has been used
         this._errorScore = errorScore; // indicates number of markBaded request with the session
         this._maxUsageCount = maxUsageCount;
+        this._retired = retired;
     }
 
     /**
@@ -249,6 +267,7 @@ export class Session implements ISession {
             usageCount: this.usageCount,
             maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
+            retired: this._retired,
         };
     }
 
