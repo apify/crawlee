@@ -253,11 +253,11 @@ export class Session implements ISession {
     }
 
     /**
-     * Marks session as blocked and emits event on the `SessionPool`
-     * This method should be used if the session usage was unsuccessful
-     * and you are sure that it is because of the session configuration and not any external matters.
-     * For example when server returns 403 status code.
-     * If the session does not work due to some external factors as server error such as 5XX you probably want to use `markBad` method.
+     * Permanently retires the session — `isUsable()` will return `false` from here on,
+     * and no `markGood()` / `markBad()` can revive it. Calling `retire()` again is a no-op.
+     *
+     * Use this when you're confident the session itself is the problem (e.g. a `403` response).
+     * For transient external failures (such as `5XX` responses), use `markBad()` instead.
      */
     retire() {
         if (this._retired) return;
