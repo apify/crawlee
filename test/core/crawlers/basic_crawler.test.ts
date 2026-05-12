@@ -4,14 +4,15 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
+import type { Session } from '@crawlee/basic';
 import {
     BasicCrawler,
-    Configuration,
     CriticalError,
     EventType,
     KeyValueStore,
     MissingRouteError,
     NonRetryableError,
+    ProxyConfiguration,
     Request,
     RequestList,
     RequestQueue,
@@ -19,6 +20,8 @@ import {
     SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
+import { MemoryStorage } from '@crawlee/memory-storage';
+import type { ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -656,7 +659,7 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
-    test('should not retry requests with noRetry set to true ', async () => {
+    test('should not retry requests with noRetry set to true', async () => {
         const noRetryRequest = new Request({ url: 'http://example.com/3' });
         noRetryRequest.noRetry = true;
 
@@ -1602,6 +1605,68 @@ describe('BasicCrawler', () => {
         });
     });
 
+    describe('proxyConfiguration', () => {
+        it('assigns a proxyInfo from the proxyConfiguration to each Session and exposes it on the context', async () => {
+            const proxyUrls = [0, 1, 2].map((n) => `http://proxy.example.com:${1000 + n}`);
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
+
+            const sessions: Session[] = [];
+            const proxyInfos: (ProxyInfo | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                proxyConfiguration,
+                requestHandler: async ({ session, proxyInfo }) => {
+                    sessions.push(session);
+                    proxyInfos.push(proxyInfo);
+                },
+            });
+
+            await crawler.run([
+                { url: 'https://example.com/a' },
+                { url: 'https://example.com/b' },
+                { url: 'https://example.com/c' },
+            ]);
+
+            expect(sessions).toHaveLength(3);
+            for (let i = 0; i < sessions.length; i++) {
+                const proxyInfo = proxyInfos[i];
+                expect(proxyInfo).toBeDefined();
+                expect(proxyUrls).toContain(proxyInfo!.url);
+                expect(sessions[i].proxyInfo).toBe(proxyInfo);
+            }
+        });
+
+        it('reuses the same Session across multiple requests when the pool is restricted', async () => {
+            const sessions: Session[] = [];
+            const proxyInfos: (ProxyInfo | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                sessionPool: new SessionPool({ maxPoolSize: 1 }),
+                requestHandler: async ({ session, proxyInfo }) => {
+                    sessions.push(session);
+                    proxyInfos.push(proxyInfo);
+                },
+            });
+
+            await crawler.run([
+                { url: 'https://example.com/a' },
+                { url: 'https://example.com/b' },
+                { url: 'https://example.com/c' },
+            ]);
+
+            expect(sessions).toHaveLength(3);
+            const firstId = sessions[0].id;
+            for (const session of sessions) {
+                expect(session.id).toBe(firstId);
+                expect(session.proxyInfo).toBe(sessions[0].proxyInfo);
+            }
+            for (const proxyInfo of proxyInfos) {
+                expect(proxyInfo).toBe(sessions[0].proxyInfo);
+            }
+            expect(sessions[0].usageCount).toBe(3);
+        });
+    });
+
     test('extendContext', async () => {
         const url = 'https://example.com';
         const requestHandlerImplementation = vi.fn();
@@ -2133,9 +2198,14 @@ describe('BasicCrawler', () => {
             await rm(`${tmpDir}/result.csv`);
         });
 
-        test("Crawlers with different Configurations don't share Datasets", async () => {
-            const crawlerA = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
-            const crawlerB = new BasicCrawler({ configuration: new Configuration({ persistStorage: false }) });
+        test("Crawlers with different storage clients don't share Datasets", async () => {
+            // Each crawler gets its own MemoryStorage with a different localDataDirectory,
+            // producing different clientCacheKeys and thus separate cache partitions.
+            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
+            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+
+            const crawlerA = new BasicCrawler({ storageClient: storageA });
+            const crawlerB = new BasicCrawler({ storageClient: storageB });
 
             await crawlerA.pushData(getPayload('A'));
             await crawlerB.pushData(getPayload('B'));
@@ -2145,14 +2215,17 @@ describe('BasicCrawler', () => {
             expect((await crawlerB.getData()).items).toEqual(getPayload('B'));
         });
 
-        test('Crawlers with different Configurations run separately', async () => {
+        test('Crawlers with different storage clients run separately', async () => {
+            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
+            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},
-                configuration: new Configuration({ persistStorage: false }),
+                storageClient: storageA,
             });
             const crawlerB = new BasicCrawler({
                 requestHandler: () => {},
-                configuration: new Configuration({ persistStorage: false }),
+                storageClient: storageB,
             });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
@@ -2160,24 +2233,6 @@ describe('BasicCrawler', () => {
 
             expect(crawlerA.stats.state.requestsFinished).toBe(1);
             expect(crawlerB.stats.state.requestsFinished).toBe(1);
-        });
-
-        test('Crawlers with different Configurations does not use global Configuration', async () => {
-            const getGlobalConfigSpy = vitest.spyOn(Configuration, 'getGlobalConfig');
-
-            const configA = new Configuration({ persistStorage: false });
-            const crawlerA = new BasicCrawler({ requestHandler: () => {}, configuration: configA });
-            const configB = new Configuration({ persistStorage: false });
-            const crawlerB = new BasicCrawler({ requestHandler: () => {}, configuration: configB });
-
-            await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
-            await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
-
-            expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
-            // @ts-expect-error Accessing protected property for testing
-            expect(crawlerA.requestQueue?.config).toBe(configA);
-            // @ts-expect-error Accessing protected property for testing
-            expect(crawlerB.requestQueue?.config).toBe(configB);
         });
     });
 });

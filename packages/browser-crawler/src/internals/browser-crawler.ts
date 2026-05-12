@@ -222,7 +222,7 @@ export interface BrowserCrawlerOptions<
     /**
      * Defines whether the cookies should be persisted for sessions. Enabled by default.
      */
-    persistCookiesPerSession?: boolean;
+    saveResponseCookies?: boolean;
 
     /**
      * Whether to run browser in headless mode. Defaults to `true`.
@@ -311,7 +311,7 @@ export abstract class BrowserCrawler<
     protected navigationTimeoutMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
-    protected persistCookiesPerSession: boolean;
+    protected saveResponseCookies: boolean;
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
@@ -323,7 +323,7 @@ export abstract class BrowserCrawler<
         launchContext: ow.optional.object,
         headless: ow.optional.any(ow.boolean, ow.string),
         browserPoolOptions: ow.object,
-        persistCookiesPerSession: ow.optional.boolean,
+        saveResponseCookies: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
     };
 
@@ -345,7 +345,7 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
-            persistCookiesPerSession = true,
+            saveResponseCookies = true,
             launchContext = {},
             browserPoolOptions,
             preNavigationHooks = [],
@@ -355,7 +355,6 @@ export abstract class BrowserCrawler<
             ignoreShadowRoots = false,
             contextPipelineBuilder,
             extendContext,
-            proxyConfiguration,
             ...basicCrawlerOptions
         } = options;
 
@@ -371,7 +370,6 @@ export abstract class BrowserCrawler<
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
         this.ignoreIframes = ignoreIframes;
@@ -382,7 +380,7 @@ export abstract class BrowserCrawler<
             (this.launchContext.launchOptions as Dictionary).headless = headless;
         }
 
-        this.persistCookiesPerSession = persistCookiesPerSession;
+        this.saveResponseCookies = saveResponseCookies;
 
         if (launchContext?.userAgent) {
             if (browserPoolOptions.useFingerprints)
@@ -467,7 +465,6 @@ export abstract class BrowserCrawler<
             const proxyInfo = crawlingContext.session.proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
-            newPageOptions.proxyTier = proxyInfo?.proxyTier;
             newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
         }
 
@@ -563,7 +560,7 @@ export abstract class BrowserCrawler<
 
         // save cookies
         // TODO: Should we save the cookies also after/only the handle page?
-        if (this.persistCookiesPerSession) {
+        if (this.saveResponseCookies) {
             const cookies = await crawlingContext.browserController.getCookies(crawlingContext.page);
             tryCancel();
             crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);

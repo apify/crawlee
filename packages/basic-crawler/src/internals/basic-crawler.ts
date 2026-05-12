@@ -21,7 +21,6 @@ import type {
     RequestTransform,
     RouterHandler,
     RouterRoutes,
-    Session,
     SkippedRequestCallback,
     Source,
     StatisticsOptions,
@@ -59,6 +58,7 @@ import {
     Router,
     ServiceLocator,
     serviceLocator,
+    Session,
     SessionError,
     SessionPool,
     Statistics,
@@ -238,11 +238,8 @@ export interface BasicCrawlerOptions<
 
     /**
      * Specifies the maximum number of retries allowed for a request if its processing fails.
-     * This includes retries due to navigation errors or errors thrown from user-supplied functions
-     * (`requestHandler`, `preNavigationHooks`, `postNavigationHooks`).
-     *
-     * This limit does not apply to retries triggered by session rotation
-     * (see {@apilink BasicCrawlerOptions.maxSessionRotations|`maxSessionRotations`}).
+     * This includes retries due to navigation errors, session/proxy errors, or errors thrown from user-supplied
+     * functions (`requestHandler`, `preNavigationHooks`, `postNavigationHooks`).
      * @default 3
      */
     maxRequestRetries?: number;
@@ -252,15 +249,6 @@ export interface BasicCrawlerOptions<
      * @default 0
      */
     sameDomainDelaySecs?: number;
-
-    /**
-     * Maximum number of session rotations per request.
-     * The crawler will automatically rotate the session in case of a proxy error or if it gets blocked by the website.
-     *
-     * The session rotations are not counted towards the {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} limit.
-     * @default 10
-     */
-    maxSessionRotations?: number;
 
     /**
      * Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
@@ -645,7 +633,6 @@ export class BasicCrawler<
     protected maxCrawlDepth?: number;
     protected sameDomainDelayMillis: number;
     protected domainAccessedTime: Map<string, number>;
-    protected maxSessionRotations: number;
     protected maxRequestsPerCrawl?: number;
     protected handledRequestsCount = 0;
     protected statusMessageLoggingInterval: number;
@@ -685,7 +672,6 @@ export class BasicCrawler<
         failedRequestHandler: ow.optional.function,
         maxRequestRetries: ow.optional.number,
         sameDomainDelaySecs: ow.optional.number,
-        maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
@@ -738,7 +724,6 @@ export class BasicCrawler<
             requestManager,
             maxRequestRetries = 3,
             sameDomainDelaySecs = 0,
-            maxSessionRotations = 10,
             maxRequestsPerCrawl,
             maxCrawlDepth,
             autoscaledPoolOptions = {},
@@ -865,7 +850,6 @@ export class BasicCrawler<
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
-            this.maxSessionRotations = maxSessionRotations;
             this.stats = new Statistics({
                 logMessage: `${this.constructor.name} request statistics:`,
                 log: this.log,
@@ -873,7 +857,26 @@ export class BasicCrawler<
                 ...statisticsOptions,
             });
 
-            this.sessionPool = sessionPool ?? new SessionPool();
+            if (sessionPool && proxyConfiguration) {
+                this.log.warning(
+                    'Both `sessionPool` and `proxyConfiguration` were provided to the crawler. ' +
+                        'The `proxyConfiguration` is ignored - sessions from the supplied pool keep whatever ' +
+                        '`proxyInfo` they were created with. Configure proxies on the pool instead, ' +
+                        'e.g. via `addSession({ proxyInfo })` or a custom `createSessionFunction`.',
+                );
+            }
+
+            this.sessionPool =
+                sessionPool ??
+                new SessionPool({
+                    createSessionFunction: async (pool, opts) =>
+                        new Session({
+                            ...opts?.sessionOptions,
+                            proxyInfo:
+                                opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
+                            sessionPool: pool,
+                        }),
+                });
             this.sessionPool.setMaxListeners(20);
 
             this.ownsSessionPool = !sessionPool;
@@ -950,7 +953,11 @@ export class BasicCrawler<
                                 request,
                                 this.requestManager!,
                             );
-                            crawlingContext.session?.markBad();
+                            // SessionError already retired the session in `_requestFunctionErrorHandler`;
+                            // skip `markBad` to avoid double-counting usage/error score.
+                            if (!(unwrappedError instanceof SessionError)) {
+                                crawlingContext.session?.markBad();
+                            }
                             return;
                         }
                         throw this.unwrapError(error);
@@ -1116,12 +1123,7 @@ export class BasicCrawler<
                     return existingSession;
                 }
 
-                return await this.sessionPool!.newSession({
-                    proxyInfo: await this.proxyConfiguration?.newProxyInfo({
-                        request: request ?? undefined,
-                    }),
-                    maxUsageCount: 1,
-                });
+                return await this.sessionPool!.getSession();
             },
             this.internalTimeoutMillis,
             `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
@@ -1285,7 +1287,8 @@ export class BasicCrawler<
             // we need to purge the default RQ to allow processing the same requests again - this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored - as a failed requests is still handled.
-            if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
+            const isDefaultQueue = this.requestQueue?.name === 'default';
+            if (isDefaultQueue && purgeRequestQueue && this.requestQueue) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();
                 this.requestManager = undefined;
@@ -1925,8 +1928,11 @@ export class BasicCrawler<
                 request.state = RequestState.ERROR;
                 throw unwrappedSecondaryError;
             }
-            // decrease the session score if the request fails (but the error handler did not throw)
-            crawlingContext.session.markBad();
+            // decrease the session score if the request fails (but the error handler did not throw);
+            // skip when the error is a SessionError, which already retired the session
+            if (!(err instanceof SessionError)) {
+                crawlingContext.session.markBad();
+            }
         } finally {
             // Safety net - release the lock if nobody managed to do it before
             if (isRequestLocked && requestSource instanceof RequestProvider) {
@@ -2051,14 +2057,6 @@ export class BasicCrawler<
         return !this.requestManager || (await this.requestManager.isFinished());
     }
 
-    private async _rotateSession(crawlingContext: CrawlingContext) {
-        const { request } = crawlingContext;
-
-        request.sessionRotationCount ??= 0;
-        request.sessionRotationCount++;
-        crawlingContext.session.retire();
-    }
-
     /**
      * Unwraps errors thrown by the context pipeline to get the actual user error.
      * RequestHandlerError and ContextPipelineInitializationError wrap the actual error.
@@ -2101,13 +2099,11 @@ export class BasicCrawler<
             );
 
             if (error instanceof SessionError) {
-                await this._rotateSession(crawlingContext);
+                crawlingContext.session?.retire();
             }
 
             if (!request.noRetry) {
-                if (!(error instanceof SessionError)) {
-                    request.retryCount++;
-                }
+                request.retryCount++;
 
                 const { url, retryCount, id } = request;
 
@@ -2198,12 +2194,8 @@ export class BasicCrawler<
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
-        // Request should never be retried, or the error encountered makes it not able to be retried, or the session rotation limit has been reached
-        if (
-            request.noRetry ||
-            error instanceof NonRetryableError ||
-            (error instanceof SessionError && this.maxSessionRotations <= (request.sessionRotationCount ?? 0))
-        ) {
+        // Request should never be retried, or the error encountered makes it not able to be retried.
+        if (request.noRetry || error instanceof NonRetryableError) {
             return false;
         }
 

@@ -15,6 +15,6 @@ export abstract class StorageEmulator {
         });
 
         await Promise.all(promises);
-        serviceLocator.clearStorageManagerCache();
+        serviceLocator.getStorageInstanceManager().clearCache();
     }
 }

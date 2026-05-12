@@ -11,8 +11,7 @@ import type { EventManager } from './events/event_manager.js';
 import { LocalEventManager } from './events/local_event_manager.js';
 import type { CrawleeLogger } from './log.js';
 import { ApifyLogAdapter } from './log.js';
-import type { IStorage, StorageManager } from './storages/storage_manager.js';
-import type { Constructor } from './typedefs.js';
+import { StorageInstanceManager } from './storages/storage_instance_manager.js';
 
 interface ServiceLocatorInterface {
     /**
@@ -77,15 +76,10 @@ interface ServiceLocatorInterface {
      */
     getChildLog(prefix: string): CrawleeLogger;
 
-    getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined;
-
-    setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void;
-
     /**
-     * Clears all storage manager caches.
-     * @internal
+     * Get the storage instance manager (shared across all storage types).
      */
-    clearStorageManagerCache(): void;
+    getStorageInstanceManager(): StorageInstanceManager;
 
     /**
      * Resets the service locator to its initial state.
@@ -134,10 +128,11 @@ export class ServiceLocator implements ServiceLocatorInterface {
     private logger?: CrawleeLogger;
 
     /**
-     * Storage managers for Dataset, KeyValueStore, and RequestQueue.
-     * Manages caching and lifecycle of storage instances.
+     * Unified storage instance manager for Dataset, KeyValueStore, and RequestQueue.
+     * Shared across all ServiceLocator instances (global singleton), matching crawlee-python.
+     * Per-crawler isolation is achieved via `clientCacheKey`, not separate manager instances.
      */
-    private storageManagers = new Map<Constructor<IStorage>, StorageManager>();
+    private static storageInstanceManager?: StorageInstanceManager;
 
     /**
      * Creates a new ServiceLocator instance.
@@ -220,7 +215,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
             }
             const config = this.getConfiguration();
             this.storageClient = new MemoryStorage({
-                persistStorage: config.get('persistStorage'),
+                persistStorage: config.persistStorage,
                 logger: this.getLogger().child({ prefix: 'MemoryStorage' }),
             });
         }
@@ -264,34 +259,11 @@ export class ServiceLocator implements ServiceLocatorInterface {
         return this.getLogger().child({ prefix });
     }
 
-    getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
-        return this.storageManagers.get(constructor);
-    }
-
-    setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void {
-        if (this.storageManagers.has(constructor)) {
-            throw new ServiceConflictError(
-                `StorageManager(${constructor.name})`,
-                storageManager,
-                this.storageManagers.get(constructor),
-            );
+    getStorageInstanceManager(): StorageInstanceManager {
+        if (!ServiceLocator.storageInstanceManager) {
+            ServiceLocator.storageInstanceManager = new StorageInstanceManager();
         }
-
-        this.storageManagers.set(constructor, storageManager);
-    }
-
-    clearStorageManagerCache(): void {
-        this.storageManagers.forEach((manager) => {
-            // KeyValueStore has a clearCache method on its instances
-            // TODO this uses fragile string matching and `any` casts into private fields - remove as part of
-            //  https://github.com/apify/crawlee/issues/3075 (Storage instance management will be reworked significantly)
-            if ((manager as any).name === 'KeyValueStore') {
-                (manager as any).cache?.forEach((item: any) => {
-                    item.clearCache?.();
-                });
-            }
-        });
-        this.storageManagers.clear();
+        return ServiceLocator.storageInstanceManager;
     }
 
     reset(): void {
@@ -299,7 +271,8 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.eventManager = undefined;
         this.storageClient = undefined;
         this.logger = undefined;
-        this.clearStorageManagerCache();
+        ServiceLocator.storageInstanceManager?.clearCache();
+        ServiceLocator.storageInstanceManager = undefined;
     }
 }
 

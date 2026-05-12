@@ -1,4 +1,4 @@
-import { type CrawleeLogger, serviceLocator, type TieredProxy } from '@crawlee/core';
+import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -443,7 +443,6 @@ export class BrowserPool<
             pageOptions,
             browserPlugin = this._pickBrowserPlugin(),
             proxyUrl,
-            proxyTier,
             ignoreTlsErrors,
         } = options;
 
@@ -457,12 +456,11 @@ export class BrowserPool<
 
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(async () => {
-            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
+            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
 
             if (!browserController)
                 browserController = await this._launchBrowser(id, {
                     browserPlugin,
-                    proxyTier,
                     proxyUrl,
                     ignoreTlsErrors,
                 });
@@ -706,7 +704,7 @@ export class BrowserPool<
     }
 
     private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyTier, proxyUrl, ignoreTlsErrors } = options;
+        const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.startingBrowserControllers.add(browserController);
@@ -714,7 +712,6 @@ export class BrowserPool<
         const launchContext = browserPlugin.createLaunchContext({
             id: pageId,
             launchOptions,
-            proxyTier,
             proxyUrl,
         });
 
@@ -742,7 +739,6 @@ export class BrowserPool<
         }
 
         this.log.debug('Launched new browser.', { id: browserController.id });
-        browserController.proxyTier = proxyTier;
         browserController.proxyUrl = proxyUrl;
 
         try {
@@ -779,20 +775,18 @@ export class BrowserPool<
         return this.browserPlugins[pluginIndex];
     }
 
-    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: Partial<TieredProxy>) {
+    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: { proxyUrl?: string }) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
             const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
-            const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
             return (
                 isCorrectPlugin &&
                 hasCapacity &&
-                ((!controller.launchContext.browserPerProxy && !options?.proxyTier) ||
-                    (options?.proxyTier && isCorrectProxyTier) ||
+                (!controller.launchContext.browserPerProxy ||
                     (options?.proxyUrl && isSameProxyUrl) ||
-                    (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier))
+                    (!options?.proxyUrl && !controller.proxyUrl))
             );
         });
     }
@@ -933,10 +927,6 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      */
     proxyUrl?: string;
     /**
-     * Proxy tier.
-     */
-    proxyTier?: number;
-    /**
      * Disable TLS certificate verification for MITM proxies.
      * Applied both when launching a new browser and when creating a page in an existing one.
      */
@@ -976,7 +966,6 @@ export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends B
 interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     browserPlugin: BP;
     launchOptions?: BP['launchOptions'];
-    proxyTier?: number;
     proxyUrl?: string;
     ignoreTlsErrors?: boolean;
 }

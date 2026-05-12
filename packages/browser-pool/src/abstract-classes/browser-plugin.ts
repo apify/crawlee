@@ -274,7 +274,6 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
-            proxyTier,
             isRemote,
         } = options;
 
@@ -287,7 +286,6 @@ export abstract class BrowserPlugin<
             userDataDir,
             browserPerProxy,
             ignoreProxyCertificate,
-            proxyTier,
             isRemote,
         });
     }

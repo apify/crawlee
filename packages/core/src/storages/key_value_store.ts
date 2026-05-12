@@ -12,8 +12,9 @@ import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { StorageIdentifier, StorageManagerOptions } from './storage_manager.js';
-import { StorageManager } from './storage_manager.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
+import type { StorageOpenOptions } from './utils.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /**
@@ -273,7 +274,7 @@ export class KeyValueStore {
         }
 
         // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
+        const persistStateIntervalMillis = this.config.persistStateIntervalMillis;
         const timeoutSecs = persistStateIntervalMillis / 2_000;
 
         serviceLocator.getEventManager().on('persistState', async () => {
@@ -417,8 +418,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         await this.client.delete();
-        const manager = StorageManager.getManager(KeyValueStore);
-        manager.closeStorage(this);
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
     /** @internal */
@@ -599,7 +599,7 @@ export class KeyValueStore {
      */
     static async open(
         identifier?: string | StorageIdentifier | null,
-        options: StorageManagerOptions = {},
+        options: StorageOpenOptions = {},
     ): Promise<KeyValueStore> {
         checkStorageAccess();
 
@@ -612,13 +612,17 @@ export class KeyValueStore {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= serviceLocator.getStorageClient();
+        const client = options.storageClient ?? serviceLocator.getStorageClient();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
-        const manager = StorageManager.getManager(this);
+        const resolved = await resolveStorageIdentifier(identifier, client, 'KeyValueStore');
 
-        return manager.openStorage(identifier, options.storageClient);
+        return serviceLocator.getStorageInstanceManager().openStorage<KeyValueStore>(this, {
+            ...resolved,
+            clientOpener: () => client.createKeyValueStoreClient(resolved),
+            clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+        });
     }
 
     /**
@@ -785,7 +789,7 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        const inputKey = store.config.get('inputKey')!;
+        const inputKey = store.config.inputKey;
 
         const cwd = process.cwd();
         const possibleExtensions = ['', '.json', '.txt'];

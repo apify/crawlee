@@ -329,7 +329,7 @@ describe('PuppeteerCrawler', () => {
         const puppeteerCrawler = new PuppeteerCrawler({
             requestList,
 
-            persistCookiesPerSession: true,
+            saveResponseCookies: true,
             sessionPool: new SessionPool({
                 createSessionFunction: (sessionPool) => {
                     const session = new Session({ sessionPool });
@@ -363,11 +363,6 @@ describe('PuppeteerCrawler', () => {
                 },
             },
             maxConcurrency: 1,
-            sessionPool: new SessionPool({
-                sessionOptions: {
-                    maxUsageCount: 1,
-                },
-            }),
             proxyConfiguration,
             requestHandler: async ({ proxyInfo, session }) => {
                 proxies.add(proxyInfo!.url);

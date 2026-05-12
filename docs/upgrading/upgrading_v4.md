@@ -55,6 +55,7 @@ The crawler following options are removed:
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
 - `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
+- `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
 
 ### The protected `BasicCrawler.crawlingContexts` map is removed
 
@@ -105,6 +106,37 @@ const count = await sessionPool.usableSessionsCount();
 const state = await sessionPool.getState();
 ```
 
+## Custom `createSessionFunction` receives merged session options
+
+`SessionPool` now merges its pool-wide `sessionOptions` (including the pool-scoped logger) with per-call overrides before invoking `createSessionFunction`. Custom implementations no longer need to spread `pool.sessionOptions` themselves to inherit pool defaults.
+
+**Before:**
+```typescript
+new SessionPool({
+    sessionOptions: { maxUsageCount: 5 },
+    createSessionFunction: async (pool, opts) =>
+        new Session({
+            ...pool.sessionOptions, // had to be spread manually for the logger / pool defaults to apply
+            ...opts?.sessionOptions,
+            sessionPool: pool,
+        }),
+});
+```
+
+**After:**
+```typescript
+new SessionPool({
+    sessionOptions: { maxUsageCount: 5 },
+    createSessionFunction: async (pool, opts) =>
+        new Session({
+            ...opts?.sessionOptions, // already merged with pool-wide defaults
+            sessionPool: pool,
+        }),
+});
+```
+
+If you were already spreading `pool.sessionOptions`, the change is harmless - pool defaults now appear twice in the spread chain, with the later (per-call) one winning, exactly as before.
+
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
 `Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).
@@ -125,6 +157,50 @@ const crawler = new BasicCrawler({
     }),
 });
 ```
+
+## `tieredProxyUrls` is removed from `ProxyConfiguration`
+
+The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
+
+If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions - one per proxy tier - and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler - the session already carries its own proxy.
+
+```typescript
+import { BasicCrawler, SessionPool } from '@crawlee/core';
+
+const proxyInfoFromUrl = (proxyUrl: string) => {
+    const { username, password, hostname, port } = new URL(proxyUrl);
+    return {
+        url: proxyUrl,
+        username: decodeURIComponent(username),
+        password: decodeURIComponent(password),
+        hostname,
+        port,
+    };
+};
+
+const sessionPool = new SessionPool();
+await sessionPool.addSession({ id: 'basic', proxyInfo: proxyInfoFromUrl('http://cheap-proxy.com') });
+await sessionPool.addSession({ id: 'premium', proxyInfo: proxyInfoFromUrl('http://expensive-proxy.com') });
+
+const crawler = new BasicCrawler({
+    sessionPool,
+    retryOnBlocked: true,
+    requestHandler: async ({ request, sendRequest }) => {
+        await sendRequest({ url: request.url });
+    },
+    errorHandler: async ({ request }) => {
+        request.sessionId = 'premium';
+    },
+});
+
+await crawler.run([{ url: 'https://example.com', sessionId: 'basic' }]);
+```
+
+More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) can be expressed with additional named sessions and custom `errorHandler` logic.
+
+## `maxSessionRotations` and `request.sessionRotationCount` are removed
+
+Session errors no longer have their own retry budget. The `maxSessionRotations` crawler option, the `Request.sessionRotationCount` property, and the special-case retry logic for `SessionError` are all gone. A `SessionError` now retires the session and counts toward `maxRequestRetries` like any other failure, so configure a single retry limit via `maxRequestRetries` (default `3`). `SessionError` also no longer extends `RetryRequestError` - if you were catching `RetryRequestError` to detect a session-triggered retry, branch on `SessionError` directly instead.
 
 ## Remove `experimentalContainers` option
 
@@ -154,6 +230,40 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+## Configuration class redesign
+
+The `Configuration` class has been redesigned for v4. The main changes are:
+
+### Direct property access replaces `get()` and `set()`
+
+**Before:**
+```ts
+const config = Configuration.getGlobalConfig();
+config.set('persistStateIntervalMillis', 10_000);
+const headless = config.get('headless');
+```
+
+**After:**
+```ts
+// Configuration is now immutable — set options via the constructor
+const config = new Configuration({ persistStateIntervalMillis: 10_000 });
+const headless = config.headless;
+```
+
+The `get()` and `set()` methods are removed. Access config values directly as properties.
+Configuration instances are immutable — attempting to assign a property throws a `TypeError`.
+
+### Constructor options now take precedence over environment variables
+
+**New priority order (highest to lowest):**
+1. Constructor options
+2. Environment variables
+3. `crawlee.json`
+4. Schema defaults
+
+Previously, environment variables always won. Now `new Configuration({ headless: false })`
+works even when `CRAWLEE_HEADLESS=true` is set.
+
 ## Service management moved from `Configuration` to `ServiceLocator`
 
 The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class, following the pattern established in Crawlee for Python.
@@ -166,6 +276,7 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
 - `Configuration.useStorageClient()` - use `ServiceLocator.setStorageClient()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
+- `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
 
 The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfig()` factory method to create an instance with intervals derived from a `Configuration` object.
@@ -268,6 +379,10 @@ const response = await sendRequest({ url: '...' }, { cookieJar: jar });
 ```
 
 The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
+
+## `persistCookiesPerSession` renamed to `saveResponseCookies`
+
+The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. The behavior is unchanged - when enabled (the default), response `Set-Cookie` headers are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
 
 ## `StorageClient` interface simplified
 

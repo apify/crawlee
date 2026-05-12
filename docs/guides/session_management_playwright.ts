@@ -11,7 +11,7 @@ const crawler = new PlaywrightCrawler({
     sessionPool: new SessionPool({ maxPoolSize: 100 }),
     // Set to true if you want the crawler to save cookies per session,
     // and set the cookies to page before navigation automatically (default is true).
-    persistCookiesPerSession: true,
+    saveResponseCookies: true,
     async requestHandler({ page, session }) {
         const title = await page.title();
 

@@ -171,21 +171,19 @@ export class Snapshotter {
      * Starts capturing snapshots at configured intervals.
      */
     async start(): Promise<void> {
-        const memoryMbytes = serviceLocator.getConfiguration().get('memoryMbytes', 0);
+        const memoryMbytes = serviceLocator.getConfiguration().memoryMbytes ?? 0;
 
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            const containerized = serviceLocator.getConfiguration().get('containerized', await isContainerized());
+            const containerized = serviceLocator.getConfiguration().containerized ?? (await isContainerized());
             const memInfo = await getMemoryInfo({
                 containerized,
                 logger: serviceLocator.getLogger(),
             });
             const totalBytes = memInfo.totalBytes;
 
-            this.maxMemoryBytes = Math.ceil(
-                totalBytes * serviceLocator.getConfiguration().get('availableMemoryRatio')!,
-            );
+            this.maxMemoryBytes = Math.ceil(totalBytes * serviceLocator.getConfiguration().availableMemoryRatio);
             this.log.debug(
                 `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
                     'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',

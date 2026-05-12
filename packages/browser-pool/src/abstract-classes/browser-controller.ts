@@ -58,13 +58,7 @@ export abstract class BrowserController<
     launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> = undefined!;
 
     /**
-     * The proxy tier tied to this browser controller.
-     * `undefined` if no tiered proxy is used.
-     */
-    proxyTier?: number;
-
-    /**
-     * The proxy URL used by the browser controller. This is set every time the browser controller uses proxy (even the tiered one).
+     * The proxy URL used by the browser controller.
      * `undefined` if no proxy is used
      */
     proxyUrl?: string;

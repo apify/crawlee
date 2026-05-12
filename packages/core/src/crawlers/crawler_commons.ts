@@ -9,7 +9,7 @@ import type { Session } from '../session_pool/session.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_provider.js';
-import type { StorageIdentifier } from '../storages/storage_manager.js';
+import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -280,7 +280,7 @@ export class RequestHandlerResult {
         const storeId = store.id;
 
         return {
-            id: storeId ?? this.config.get('defaultKeyValueStoreId'),
+            id: storeId ?? this.config.defaultKeyValueStoreId,
             name: store.name,
             getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
@@ -292,7 +292,7 @@ export class RequestHandlerResult {
     };
 
     private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
-        const id = storeKey ?? this.config.get('defaultKeyValueStoreId') ?? 'default';
+        const id = storeKey ?? this.config.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
@@ -303,7 +303,7 @@ export class RequestHandlerResult {
         changedValue: unknown,
         options?: RecordOptions,
     ) => {
-        const id = storeKey ?? this.config.get('defaultKeyValueStoreId') ?? 'default';
+        const id = storeKey ?? this.config.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         this._keyValueStoreChanges[id][key] = { changedValue, options };
     };

@@ -51,7 +51,6 @@ export interface LaunchContextOptions<
      */
     userDataDir?: string;
     proxyUrl?: string;
-    proxyTier?: number;
     /**
      * If set to `true`, TLS certificate errors from the upstream proxy will be ignored.
      * This is useful when using HTTPS proxies with self-signed certificates.
@@ -78,7 +77,6 @@ export class LaunchContext<
     useIncognitoPages: boolean;
     browserPerProxy?: boolean;
     userDataDir: string;
-    proxyTier?: number;
     readonly isRemote: boolean;
     ignoreProxyCertificate?: boolean;
 
@@ -97,7 +95,6 @@ export class LaunchContext<
             useIncognitoPages,
             browserPerProxy,
             userDataDir = '',
-            proxyTier,
             ignoreProxyCertificate,
             isRemote,
         } = options;
@@ -108,7 +105,6 @@ export class LaunchContext<
         this.browserPerProxy = browserPerProxy ?? false;
         this.useIncognitoPages = useIncognitoPages ?? false;
         this.userDataDir = userDataDir;
-        this.proxyTier = proxyTier;
         this.ignoreProxyCertificate = ignoreProxyCertificate ?? false;
         this.isRemote = isRemote ?? false;
 

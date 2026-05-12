@@ -360,7 +360,7 @@ describe('SessionPool - testing session pool', () => {
         expect(session.id).toBe('test-session');
     });
 
-    test('should be able to add session instance and create new session with provided sessionOptions with addSession() ', async () => {
+    test('should be able to add session instance and create new session with provided sessionOptions with addSession()', async () => {
         const session = new Session({ sessionPool, id: 'test-session-instance' });
         await sessionPool.addSession(session);
 
