@@ -158,9 +158,6 @@ describe('SessionPool - testing session pool', () => {
                 } else if (key === 'cookieJar') {
                     // @ts-expect-error private symbol
                     expect(value).toEqual(sessionPool.sessions[index][key].toJSON());
-                } else if (key === 'retired') {
-                    // @ts-expect-error private symbol
-                    expect(sessionPool.sessions[index].isRetired()).toEqual(value);
                 } else {
                     // @ts-expect-error private symbol
                     expect(sessionPool.sessions[index][key]).toEqual(value);
