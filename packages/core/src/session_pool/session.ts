@@ -135,10 +135,11 @@ export class Session implements ISession {
     }
 
     /**
-     * `true` once {@apilink Session.retire|`retire()`} has been called. Retirement is terminal:
-     * a retired session is never picked by the pool and cannot be revived via `markGood()`.
+     * Indicates whether {@apilink Session.retire|`retire()`} has already been called on the session.
+     * Retirement is terminal: a retired session is never picked by the pool and cannot be revived via
+     * `markGood()`.
      */
-    get retired() {
+    isRetired(): boolean {
         return this._retired;
     }
 

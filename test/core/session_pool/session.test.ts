@@ -151,6 +151,8 @@ describe('Session - testing session behaviour', () => {
                 expect((session[key] as Date).toISOString()).toEqual(value);
             } else if (key === 'cookieJar') {
                 expect(value).toEqual(session[key].toJSON());
+            } else if (key === 'retired') {
+                expect(session.isRetired()).toEqual(value);
             } else {
                 expect(session[key]).toEqual(value);
             }
@@ -320,7 +322,7 @@ describe('Session - testing session behaviour', () => {
 
         // @ts-expect-error string -> Date for createdAt has been overridden
         const reinitialized = new Session({ ...old });
-        expect(reinitialized.retired).toBe(true);
+        expect(reinitialized.isRetired()).toBe(true);
         expect(reinitialized.isUsable()).toBe(false);
 
         reinitialized.markGood();
