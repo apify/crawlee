@@ -322,6 +322,13 @@ export abstract class BrowserPlugin<
             );
         }
 
+        if (launchContext.userDataDir && launchContext.isRemote) {
+            this.log.warning(
+                'userDataDir is set but will be ignored for remote browser connections. ' +
+                    "Use your remote browser service's persistence API instead (e.g. Browserbase Contexts, Steel Profiles).",
+            );
+        }
+
         if (proxyUrl && !launchContext.isRemote) {
             await this._addProxyToLaunchOptions(launchContext);
         }
