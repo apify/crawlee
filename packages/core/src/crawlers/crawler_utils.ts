@@ -1,12 +1,12 @@
-import { TimeoutError } from '@apify/timeout';
+import type { ISession } from '@crawlee/types';
 
-import type { Session } from '../session_pool/session.js';
+import { TimeoutError } from '@apify/timeout';
 
 /**
  * Handles timeout request
  * @internal
  */
-export function handleRequestTimeout({ session, errorMessage }: { session?: Session; errorMessage: string }) {
+export function handleRequestTimeout({ session, errorMessage }: { session?: ISession; errorMessage: string }) {
     session?.markBad();
     const timeoutMillis = /(\d+)\s?ms/.exec(errorMessage)?.[1]; // first capturing group
     const timeoutSecs = Number(timeoutMillis) / 1000;

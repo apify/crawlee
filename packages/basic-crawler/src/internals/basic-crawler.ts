@@ -50,7 +50,6 @@ import {
     type GetUserDataFromRequest,
     type IRequestList,
     type IRequestManager,
-    type ISessionPool,
     type ProxyConfiguration,
     type Request,
     type RequestsLike,
@@ -69,6 +68,8 @@ import type {
     BaseHttpClient,
     BatchAddRequestsResult,
     Dictionary,
+    ISession,
+    ISessionPool,
     ProxyInfo,
     SetStatusMessageOptions,
     StorageClient,
@@ -1137,7 +1138,7 @@ export class BasicCrawler<
         return { session, proxyInfo: session.proxyInfo };
     }
 
-    private async createContextHelpers({ request, session }: { request: Request; session: Session }) {
+    private async createContextHelpers({ request, session }: { request: Request; session: ISession }) {
         const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
             const requestQueue = await this.getRequestQueue();
 
@@ -2340,7 +2341,7 @@ export class BasicCrawler<
 
 export interface CreateContextOptions {
     request: Request;
-    session: Session;
+    session: ISession;
     proxyInfo?: ProxyInfo;
 }
 
