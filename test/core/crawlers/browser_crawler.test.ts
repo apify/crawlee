@@ -291,6 +291,43 @@ describe('BrowserCrawler', () => {
         }
     });
 
+    test.concurrent('errorHandler has open page after non-timeout navigation error', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        try {
+            const requestList = await RequestList.open({
+                sources: [{ url: `${serverAddress}/?q=1` }],
+            });
+
+            const pageClosedStates: boolean[] = [];
+
+            const browserCrawler = new (class extends BrowserCrawlerTest {
+                protected override async _navigationHandler(): Promise<HTTPResponse | null | undefined> {
+                    throw new Error('net::ERR_NAME_NOT_RESOLVED');
+                }
+            })({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                requestList,
+                requestHandler: async () => {},
+                maxRequestRetries: 1,
+                errorHandler: async (ctx) => {
+                    pageClosedStates.push(ctx.page.isClosed());
+                },
+            });
+
+            await browserCrawler.run();
+
+            expect(pageClosedStates).toHaveLength(1);
+            expect(pageClosedStates[0]).toBe(false);
+        } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
     test.concurrent('should correctly track request.state', async () => {
         const localStorageEmulator = new MemoryStorageEmulator();
         await localStorageEmulator.init();

@@ -693,9 +693,8 @@ export abstract class BrowserCrawler<
 
         if (error && error.constructor.name === 'TimeoutError') {
             handleRequestTimeout({ session, errorMessage: error.message });
+            await crawlingContext.page.close();
         }
-
-        await crawlingContext.page.close();
     }
 
     /**
