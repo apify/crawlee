@@ -330,15 +330,17 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should createSessionFunction work', async () => {
-        let isCalled;
-        const createSessionFunction = (sessionPool2: SessionPool) => {
+        let isCalled = false;
+        let receivedOptions: { sessionOptions?: object } | undefined;
+        const createSessionFunction = (opts?: { sessionOptions?: object }) => {
             isCalled = true;
-            expect(sessionPool2 instanceof SessionPool).toBe(true);
+            receivedOptions = opts;
             return new Session();
         };
         const newSessionPool = new SessionPool({ createSessionFunction });
         const session = await newSessionPool.getSession();
         expect(isCalled).toBe(true);
+        expect(receivedOptions?.sessionOptions).toBeDefined();
         expect(session.constructor.name).toBe('Session');
     });
 

@@ -20,10 +20,9 @@ export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
  */
 export interface CreateSession {
     /**
-     * @param sessionPool Pool requesting the new session.
-     * @param options
+     * @param options.sessionOptions Per-call session options already merged with the pool-wide defaults.
      */
-    (sessionPool: SessionPool, options?: { sessionOptions?: SessionOptions }): Session | Promise<Session>;
+    (options?: { sessionOptions?: SessionOptions }): Session | Promise<Session>;
 }
 
 export interface SessionPoolOptions {
@@ -443,15 +442,11 @@ export class SessionPool {
 
     /**
      * Creates new session without any extra behavior.
-     * @param sessionPool
      * @param [options]
      * @param [options.sessionOptions] The configuration options for the session being created.
      * @returns New session.
      */
-    protected async _defaultCreateSessionFunction(
-        _sessionPool: SessionPool,
-        options: { sessionOptions?: SessionOptions } = {},
-    ): Promise<Session> {
+    protected async _defaultCreateSessionFunction(options: { sessionOptions?: SessionOptions } = {}): Promise<Session> {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
         const { sessionOptions = {} } = options;
 
@@ -464,7 +459,7 @@ export class SessionPool {
      */
     private async _invokeCreateSessionFunction(perCallOptions?: SessionOptions): Promise<Session> {
         const sessionOptions = { ...this.sessionOptions, ...perCallOptions };
-        return this.createSessionFunction(this, { sessionOptions });
+        return this.createSessionFunction({ sessionOptions });
     }
 
     /**
