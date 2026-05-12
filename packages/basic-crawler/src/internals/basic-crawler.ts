@@ -564,9 +564,12 @@ export class BasicCrawler<
     sessionPool: ISessionPool;
 
     /**
-     * Indicates whether the crawler owns the session pool (it was not passed from the outside using the `sessionPool` constructor option).
+     * Set when the crawler constructed its own {@apilink SessionPool} (no `sessionPool` option was provided).
+     * Holds the same instance as `sessionPool`, but typed as the concrete class so the crawler can call
+     * lifecycle methods (`resetStore`, `teardown`) that aren't part of {@apilink ISessionPool}. A user-supplied
+     * pool is never owned and never torn down by the crawler.
      */
-    private ownsSessionPool: boolean;
+    private ownedSessionPool?: SessionPool;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
@@ -869,9 +872,10 @@ export class BasicCrawler<
                 );
             }
 
-            this.sessionPool =
-                sessionPool ??
-                new SessionPool({
+            if (sessionPool) {
+                this.sessionPool = sessionPool;
+            } else {
+                this.ownedSessionPool = new SessionPool({
                     createSessionFunction: async (_pool, opts) =>
                         new Session({
                             ...opts?.sessionOptions,
@@ -879,8 +883,8 @@ export class BasicCrawler<
                                 opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
                         }),
                 });
-
-            this.ownsSessionPool = !sessionPool;
+                this.sessionPool = this.ownedSessionPool;
+            }
 
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
@@ -1299,9 +1303,7 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            if (this.ownsSessionPool) {
-                await this.sessionPool.resetStore?.();
-            }
+            await this.ownedSessionPool?.resetStore();
         }
 
         this.unexpectedStop = false;
@@ -2244,9 +2246,7 @@ export class BasicCrawler<
             await serviceLocator.getEventManager().close();
         }
 
-        if (this.ownsSessionPool) {
-            await this.sessionPool.teardown?.();
-        }
+        await this.ownedSessionPool?.teardown();
 
         await this.autoscaledPool?.abort();
     }

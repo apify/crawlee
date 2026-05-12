@@ -160,7 +160,7 @@ If you previously subscribed to `sessionRetired` on the pool to clean up resourc
 
 ## Custom `SessionPool` implementations via the `ISessionPool` interface
 
-Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny: `getSession()` / `getSession(id)` to hand out a `Session`, plus the optional `resetStore()` and `teardown()` lifecycle hooks (only invoked when the crawler owns the pool). This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
+Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession()` / `getSession(id)`, that hands out a `Session` for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
 
 ```typescript
 import { BasicCrawler, Session, type ISessionPool } from '@crawlee/core';
