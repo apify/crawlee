@@ -44,6 +44,17 @@ allowBuilds:
 
 strictDepBuilds: false
 
+# pnpm 11 wraps every `pnpm run X` with an automatic `pnpm install` (the
+# `runDepsStatusCheck` feature) so scripts always see fresh deps. The
+# publish workflow runs `pnpm turbo copy --force -- --canary=major` which
+# fans `pnpm run copy` out across all 23 workspace packages in parallel —
+# each invocation kicks off its own `pnpm install`, they contend on the
+# store and lockfile, and one of them gets killed with SIGINT, failing the
+# turbo task with "command exited (1)". Disabling the auto-install keeps
+# the parallel scripts deterministic; we run `pnpm install --frozen-lockfile`
+# explicitly in CI before any `pnpm run` step anyway.
+verifyDepsBeforeRun: false
+
 nodeLinker: hoisted
 linkWorkspacePackages: true
 preferWorkspacePackages: true
