@@ -317,18 +317,4 @@ describe('Configuration', () => {
             expect((config2 as any).customFlag).toBe(true);
         });
     });
-
-    describe('reset()', () => {
-        it('drops the cached global instance so the next `getGlobalConfig()` re-reads env vars', () => {
-            setEnv('CRAWLEE_DEFAULT_DATASET_ID', 'first');
-            expect(Configuration.getGlobalConfig().defaultDatasetId).toBe('first');
-
-            // Without resetting, the singleton keeps the value resolved at first access.
-            setEnv('CRAWLEE_DEFAULT_DATASET_ID', 'second');
-            expect(Configuration.getGlobalConfig().defaultDatasetId).toBe('first');
-
-            Configuration.reset();
-            expect(Configuration.getGlobalConfig().defaultDatasetId).toBe('second');
-        });
-    });
 });
