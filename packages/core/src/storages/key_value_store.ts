@@ -496,7 +496,9 @@ export class KeyValueStore {
         checkStorageAccess();
 
         const client = this.client;
-        const firstPage = client.listKeys(options).then((items) => items.map((item) => item.key));
+        const firstPage = client
+            .listKeys({ ...options, limit: KVS_KEYS_DEFAULT_LIMIT })
+            .then((items) => items.map((item) => item.key));
 
         async function* iterateAll(): AsyncGenerator<string> {
             let exclusiveStartKey: string | undefined;
@@ -541,7 +543,7 @@ export class KeyValueStore {
 
         const client = this.client;
 
-        const firstPage = client.listKeys(options).then(async (items) => {
+        const firstPage = client.listKeys({ ...options, limit: KVS_KEYS_DEFAULT_LIMIT }).then(async (items) => {
             const results: T[] = [];
             for (const item of items) {
                 const record = await client.getValue(item.key);
@@ -596,7 +598,7 @@ export class KeyValueStore {
 
         const client = this.client;
 
-        const firstPage = client.listKeys(options).then(async (items) => {
+        const firstPage = client.listKeys({ ...options, limit: KVS_KEYS_DEFAULT_LIMIT }).then(async (items) => {
             const results: [string, T][] = [];
             for (const item of items) {
                 const record = await client.getValue(item.key);
