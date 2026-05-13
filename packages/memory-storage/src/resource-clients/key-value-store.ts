@@ -103,9 +103,13 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         if (exclusiveStartKey) {
             const keyPos = filteredItems.findIndex((item) => item.key === exclusiveStartKey);
-            if (keyPos !== -1) {
-                filteredItems = filteredItems.slice(keyPos + 1);
+            if (keyPos === -1) {
+                throw new Error(
+                    `exclusiveStartKey "${exclusiveStartKey}" was not found in the key-value store. ` +
+                        `This is likely a bug — the key may have been deleted between paginated listKeys calls.`,
+                );
             }
+            filteredItems = filteredItems.slice(keyPos + 1);
         }
 
         if (limit !== undefined) {
