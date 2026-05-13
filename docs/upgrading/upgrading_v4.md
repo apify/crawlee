@@ -127,15 +127,36 @@ new SessionPool({
 ```typescript
 new SessionPool({
     sessionOptions: { maxUsageCount: 5 },
-    createSessionFunction: async (pool, opts) =>
+    createSessionFunction: async (_pool, opts) =>
         new Session({
             ...opts?.sessionOptions, // already merged with pool-wide defaults
-            sessionPool: pool,
         }),
 });
 ```
 
 If you were already spreading `pool.sessionOptions`, the change is harmless - pool defaults now appear twice in the spread chain, with the later (per-call) one winning, exactly as before.
+
+## `Session` no longer requires a `sessionPool` reference
+
+`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported. Custom `createSessionFunction` implementations that constructed `Session` instances manually should drop the `sessionPool` argument.
+
+**Before:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (pool, opts) =>
+        new Session({ ...opts?.sessionOptions, sessionPool: pool }),
+});
+```
+
+**After:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (_pool, opts) =>
+        new Session({ ...opts?.sessionOptions }),
+});
+```
+
+If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
 
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 

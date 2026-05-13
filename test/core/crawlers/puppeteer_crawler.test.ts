@@ -331,8 +331,8 @@ describe('PuppeteerCrawler', () => {
 
             saveResponseCookies: true,
             sessionPool: new SessionPool({
-                createSessionFunction: (sessionPool) => {
-                    const session = new Session({ sessionPool });
+                createSessionFunction: () => {
+                    const session = new Session();
                     session.setCookies(cookies, serverUrl);
                     return session;
                 },

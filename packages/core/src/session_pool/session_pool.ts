@@ -1,5 +1,3 @@
-import { EventEmitter } from 'node:events';
-
 import type { Dictionary } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
@@ -132,7 +130,7 @@ export interface SessionPoolOptions {
  *
  * @category Scaling
  */
-export class SessionPool extends EventEmitter {
+export class SessionPool {
     private static nextId = 0;
 
     readonly id: string;
@@ -155,8 +153,6 @@ export class SessionPool extends EventEmitter {
     private roundRobinIndex = 0;
 
     constructor(options: SessionPoolOptions = {}) {
-        super();
-
         ow(
             options,
             ow.object.exactShape({
@@ -453,16 +449,13 @@ export class SessionPool extends EventEmitter {
      * @returns New session.
      */
     protected async _defaultCreateSessionFunction(
-        sessionPool: SessionPool,
+        _sessionPool: SessionPool,
         options: { sessionOptions?: SessionOptions } = {},
     ): Promise<Session> {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
         const { sessionOptions = {} } = options;
 
-        return new Session({
-            ...sessionOptions,
-            sessionPool,
-        });
+        return new Session(sessionOptions);
     }
 
     /**
@@ -532,7 +525,6 @@ export class SessionPool extends EventEmitter {
         });
 
         for (const sessionObject of loadedSessionPool.sessions) {
-            sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
             const recreatedSession = await this._invokeCreateSessionFunction(sessionObject);

@@ -1,3 +1,4 @@
+import type { ISession, SessionFingerprint } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { FingerprintInjector } from 'fingerprint-injector';
 
@@ -7,6 +8,36 @@ import type { LaunchContext } from '../launch-context.js';
 import { PlaywrightPlugin } from '../playwright/playwright-plugin.js';
 import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin.js';
 import { getGeneratorDefaultOptions } from './utils.js';
+
+function deriveSessionFingerprint(payload: BrowserFingerprintWithHeaders): SessionFingerprint {
+    const { navigator } = payload.fingerprint;
+    const userAgent = navigator.userAgent;
+    const ua = userAgent.toLowerCase();
+
+    let browser: SessionFingerprint['browser'];
+    if (ua.includes('edg/')) browser = 'edge';
+    else if (ua.includes('firefox')) browser = 'firefox';
+    else if (ua.includes('chrome')) browser = 'chrome';
+    else if (ua.includes('safari')) browser = 'safari';
+
+    let platform: SessionFingerprint['platform'];
+    const platformHint = navigator.platform?.toLowerCase() ?? '';
+    if (platformHint.includes('win')) platform = 'windows';
+    else if (platformHint.includes('mac')) platform = 'macos';
+    else if (platformHint.includes('linux')) platform = 'linux';
+    else if (platformHint.includes('android')) platform = 'android';
+    else if (platformHint.includes('iphone') || platformHint.includes('ipad')) platform = 'ios';
+
+    return {
+        userAgent,
+        headers: payload.headers,
+        browser,
+        platform,
+        device: navigator.userAgentData?.mobile ? 'mobile' : 'desktop',
+        locales: navigator.languages,
+        browserFingerprint: payload,
+    };
+}
 
 /**
  * @internal
@@ -20,7 +51,8 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
 
     return (_pageId: string, launchContext: LaunchContext) => {
         const { useIncognitoPages } = launchContext;
-        const cacheKey = (launchContext.session as { id: string } | undefined)?.id ?? launchContext.proxyUrl;
+        const session = launchContext.session as ISession | undefined;
+        const cacheKey = session?.id ?? launchContext.proxyUrl;
         const { launchOptions }: { launchOptions: any } = launchContext;
 
         // If no options are passed we try to pass best default options as possible to match browser and OS.
@@ -28,13 +60,24 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
             fingerprintGeneratorOptions || getGeneratorDefaultOptions(launchContext);
         let fingerprint: BrowserFingerprintWithHeaders;
 
-        if (cacheKey && fingerprintCache?.has(cacheKey)) {
+        const sessionFingerprint = session?.fingerprint?.browserFingerprint as
+            | BrowserFingerprintWithHeaders
+            | undefined;
+
+        if (sessionFingerprint) {
+            fingerprint = sessionFingerprint;
+            if (cacheKey) fingerprintCache?.set(cacheKey, fingerprint);
+        } else if (cacheKey && fingerprintCache?.has(cacheKey)) {
             fingerprint = fingerprintCache.get(cacheKey)!;
         } else if (cacheKey) {
             fingerprint = fingerprintGenerator!.getFingerprint(fingerprintGeneratorFinalOptions);
             fingerprintCache?.set(cacheKey, fingerprint);
         } else {
             fingerprint = fingerprintGenerator!.getFingerprint(fingerprintGeneratorFinalOptions);
+        }
+
+        if (session && !session.fingerprint?.browserFingerprint) {
+            session.fingerprint = deriveSessionFingerprint(fingerprint);
         }
 
         launchContext.extend({ fingerprint });
