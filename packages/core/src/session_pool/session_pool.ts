@@ -389,14 +389,8 @@ export class SessionPool extends EventEmitter {
             persistStateKey: this.persistStateKey,
         });
 
-        // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = serviceLocator.getConfiguration().persistStateIntervalMillis;
-        const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
-            ?.setValue(this.persistStateKey, await this.getState(), {
-                timeoutSecs,
-                doNotRetryTimeouts: true,
-            })
+            ?.setValue(this.persistStateKey, await this.getState())
             .catch((error) =>
                 this.log.warning(`Failed to persist the session pool stats to ${this.persistStateKey}`, { error }),
             );
