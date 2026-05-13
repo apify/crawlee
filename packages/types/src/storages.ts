@@ -74,9 +74,6 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
 
     /** Fetch a page of items from the dataset. */
     getData(options?: DatasetClientListOptions): Promise<PaginatedList<Data>>;
-
-    /** Iterate over all items in the dataset. */
-    iterateItems(options?: DatasetClientListOptions): AsyncIterable<Data>;
 }
 
 export interface KeyValueStoreStats {
@@ -105,9 +102,13 @@ export interface KeyValueStoreRecord {
     contentType?: string;
 }
 
-export interface KeyValueStoreIterateKeysOptions {
+export interface KeyValueStoreListKeysOptions {
     /** If set, only keys that start with this prefix are returned. */
     prefix?: string;
+    /** All keys up to this one are skipped from the result. */
+    exclusiveStartKey?: string;
+    /** Maximum number of keys to return. */
+    limit?: number;
 }
 
 export interface KeyValueStoreItemData {
@@ -143,8 +144,8 @@ export interface KeyValueStoreClient {
     /** Delete a record by key. */
     deleteValue(key: string): Promise<void>;
 
-    /** Iterate over all keys in the store. */
-    iterateKeys(options?: KeyValueStoreIterateKeysOptions): AsyncIterable<KeyValueStoreItemData>;
+    /** List keys in the store. Returns at most `limit` keys starting after `exclusiveStartKey`. */
+    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreItemData[]>;
 
     /** Get the public URL for a record, or `undefined` if unavailable. */
     getPublicUrl(key: string): Promise<string | undefined>;

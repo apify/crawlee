@@ -75,12 +75,12 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         this.updateTimestamps(true);
     }
 
-    async *iterateKeys(
-        options: storage.KeyValueStoreIterateKeysOptions = {},
-    ): AsyncIterable<storage.KeyValueStoreItemData> {
-        const { prefix } = s
+    async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreItemData[]> {
+        const { prefix, exclusiveStartKey, limit } = s
             .object({
                 prefix: s.string().optional(),
+                exclusiveStartKey: s.string().optional(),
+                limit: s.number().int().greaterThan(0).optional(),
             })
             .parse(options);
 
@@ -99,13 +99,22 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         // Lexically sort to emulate API.
         items.sort((a, b) => a.key.localeCompare(b.key));
 
-        const filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
+        let filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
+
+        if (exclusiveStartKey) {
+            const keyPos = filteredItems.findIndex((item) => item.key === exclusiveStartKey);
+            if (keyPos !== -1) {
+                filteredItems = filteredItems.slice(keyPos + 1);
+            }
+        }
+
+        if (limit !== undefined) {
+            filteredItems = filteredItems.slice(0, limit);
+        }
 
         this.updateTimestamps(false);
 
-        for (const item of filteredItems) {
-            yield item;
-        }
+        return filteredItems;
     }
 
     /**

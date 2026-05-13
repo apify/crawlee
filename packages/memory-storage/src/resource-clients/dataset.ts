@@ -104,42 +104,6 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         });
     }
 
-    async *iterateItems(options: storage.DatasetClientListOptions = {}): AsyncIterable<Data> {
-        const {
-            desc,
-            limit,
-            offset: startOffset,
-        } = s
-            .object({
-                desc: s.boolean().optional(),
-                limit: s.number().int().optional(),
-                offset: s.number().int().optional(),
-            })
-            .parse(options);
-
-        let offset = startOffset ?? 0;
-        let yielded = 0;
-        const pageSize = 1000;
-
-        while (true) {
-            const pageLimit = limit !== undefined ? Math.min(pageSize, limit - yielded) : pageSize;
-            if (pageLimit <= 0) break;
-
-            const page = await this.getDataPage({ desc, offset, limit: pageLimit });
-
-            for (const item of page.items) {
-                yield item;
-                yielded++;
-            }
-
-            if (page.items.length < pageLimit || (limit !== undefined && yielded >= limit)) {
-                break;
-            }
-
-            offset += page.items.length;
-        }
-    }
-
     private async getDataPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 

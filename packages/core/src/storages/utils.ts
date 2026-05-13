@@ -142,46 +142,38 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10_000;
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
 /**
- * Wraps an `AsyncIterable<T>` so that it can be used both as an async iterable
- * (`for await...of`) **and** as a `Promise<T[]>` (`await`).
+ * Creates an object that is both an `AsyncIterable<TItem>` (for `for await...of`)
+ * and a `Promise<TPage>` (for `await`).
  *
- * This is a convenience for callers: they can choose between streaming one-by-one
- * or collecting everything into an array.
+ * - `await result` resolves to `firstPage` (a single page / bounded fetch).
+ * - `for await (const item of result)` streams items from `allItems`.
  *
  * @internal
  */
-export function dualAsyncIterable<T>(source: AsyncIterable<T>): AsyncIterable<T> & Promise<T[]> {
-    // Lazily collect all items when the result is awaited as a Promise.
-    const collectAll = async (): Promise<T[]> => {
-        const items: T[] = [];
-        for await (const item of source) {
-            items.push(item);
-        }
-        return items;
-    };
-
-    // We attach `then` / `catch` so that `await result` works,
-    // and `Symbol.asyncIterator` so that `for await (const x of result)` works.
+export function createDualIterable<TItem, TPage>(
+    firstPage: Promise<TPage>,
+    allItems: AsyncIterable<TItem>,
+): AsyncIterable<TItem> & Promise<TPage> {
     const result = {
         [Symbol.asyncIterator]() {
-            return source[Symbol.asyncIterator]();
+            return allItems[Symbol.asyncIterator]();
         },
-        then<TResult1 = T[], TResult2 = never>(
-            onfulfilled?: ((value: T[]) => TResult1 | PromiseLike<TResult1>) | null,
+        then<TResult1 = TPage, TResult2 = never>(
+            onfulfilled?: ((value: TPage) => TResult1 | PromiseLike<TResult1>) | null,
             onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
         ): Promise<TResult1 | TResult2> {
-            return collectAll().then(onfulfilled, onrejected);
+            return firstPage.then(onfulfilled, onrejected);
         },
         catch<TResult = never>(
             onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
-        ): Promise<T[] | TResult> {
-            return collectAll().catch(onrejected);
+        ): Promise<TPage | TResult> {
+            return firstPage.catch(onrejected);
         },
-        finally(onfinally?: (() => void) | null): Promise<T[]> {
-            return collectAll().finally(onfinally);
+        finally(onfinally?: (() => void) | null): Promise<TPage> {
+            return firstPage.finally(onfinally);
         },
-        [Symbol.toStringTag]: 'DualAsyncIterable',
-    } as AsyncIterable<T> & Promise<T[]>;
+        [Symbol.toStringTag]: 'DualIterable',
+    } as AsyncIterable<TItem> & Promise<TPage>;
 
     return result;
 }

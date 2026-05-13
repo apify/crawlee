@@ -15,7 +15,7 @@ describe('Async iteration support', () => {
         await rm(localDataDirectory, { force: true, recursive: true });
     });
 
-    describe('Dataset.getData / iterateItems', () => {
+    describe('Dataset.getData', () => {
         const elements = Array.from({ length: 25 }, (_, i) => ({ index: i }));
         let dataset: DatasetClient<{ index: number }>;
 
@@ -35,63 +35,36 @@ describe('Async iteration support', () => {
             expect(result.items).toStrictEqual(elements.slice(0, 10));
         });
 
-        test('can be used with for await...of to iterate all items', async () => {
-            const items: { index: number }[] = [];
+        test('respects limit option', async () => {
+            const result = await dataset.getData({ limit: 10 });
 
-            for await (const item of dataset.iterateItems()) {
-                items.push(item);
-            }
-
-            expect(items).toHaveLength(25);
-            expect(items).toStrictEqual(elements);
+            expect(result.items).toHaveLength(10);
+            expect(result.items).toStrictEqual(elements.slice(0, 10));
         });
 
-        test('respects limit option when iterating', async () => {
-            const items: { index: number }[] = [];
+        test('respects offset option', async () => {
+            const result = await dataset.getData({ offset: 5 });
 
-            for await (const item of dataset.iterateItems({ limit: 10 })) {
-                items.push(item);
-            }
-
-            expect(items).toHaveLength(10);
-            expect(items).toStrictEqual(elements.slice(0, 10));
+            expect(result.items).toHaveLength(20);
+            expect(result.items).toStrictEqual(elements.slice(5));
         });
 
-        test('respects offset option when iterating', async () => {
-            const items: { index: number }[] = [];
+        test('respects both offset and limit options', async () => {
+            const result = await dataset.getData({ offset: 5, limit: 10 });
 
-            for await (const item of dataset.iterateItems({ offset: 5 })) {
-                items.push(item);
-            }
-
-            expect(items).toHaveLength(20);
-            expect(items).toStrictEqual(elements.slice(5));
+            expect(result.items).toHaveLength(10);
+            expect(result.items).toStrictEqual(elements.slice(5, 15));
         });
 
-        test('respects both offset and limit options when iterating', async () => {
-            const items: { index: number }[] = [];
+        test('respects desc option', async () => {
+            const result = await dataset.getData({ desc: true, limit: 5 });
 
-            for await (const item of dataset.iterateItems({ offset: 5, limit: 10 })) {
-                items.push(item);
-            }
-
-            expect(items).toHaveLength(10);
-            expect(items).toStrictEqual(elements.slice(5, 15));
-        });
-
-        test('respects desc option when iterating', async () => {
-            const items: { index: number }[] = [];
-
-            for await (const item of dataset.iterateItems({ desc: true, limit: 5 })) {
-                items.push(item);
-            }
-
-            expect(items).toHaveLength(5);
-            expect(items).toStrictEqual(elements.slice().reverse().slice(0, 5));
+            expect(result.items).toHaveLength(5);
+            expect(result.items).toStrictEqual(elements.slice().reverse().slice(0, 5));
         });
     });
 
-    describe('KeyValueStore.iterateKeys', () => {
+    describe('KeyValueStore.listKeys', () => {
         const keys = Array.from({ length: 25 }, (_, i) => `key-${String(i).padStart(2, '0')}`);
         let kvStore: KeyValueStoreClient;
 
@@ -103,27 +76,40 @@ describe('Async iteration support', () => {
             }
         });
 
-        test('can be used with for await...of to iterate all keys', async () => {
-            const items: string[] = [];
-
-            for await (const item of kvStore.iterateKeys()) {
-                items.push(item.key);
-            }
+        test('returns all keys', async () => {
+            const items = await kvStore.listKeys();
 
             expect(items).toHaveLength(25);
-            expect(items).toStrictEqual(keys);
+            expect(items.map((i) => i.key)).toStrictEqual(keys);
         });
 
-        test('respects prefix option when iterating', async () => {
-            const items: string[] = [];
-
+        test('respects prefix option', async () => {
             // Only keys starting with 'key-0' (key-00 to key-09)
-            for await (const item of kvStore.iterateKeys({ prefix: 'key-0' })) {
-                items.push(item.key);
-            }
+            const items = await kvStore.listKeys({ prefix: 'key-0' });
 
             expect(items).toHaveLength(10);
-            expect(items).toStrictEqual(keys.slice(0, 10));
+            expect(items.map((i) => i.key)).toStrictEqual(keys.slice(0, 10));
+        });
+
+        test('respects exclusiveStartKey option', async () => {
+            const items = await kvStore.listKeys({ exclusiveStartKey: 'key-09' });
+
+            expect(items).toHaveLength(15);
+            expect(items.map((i) => i.key)).toStrictEqual(keys.slice(10));
+        });
+
+        test('respects limit option', async () => {
+            const items = await kvStore.listKeys({ limit: 5 });
+
+            expect(items).toHaveLength(5);
+            expect(items.map((i) => i.key)).toStrictEqual(keys.slice(0, 5));
+        });
+
+        test('respects exclusiveStartKey and limit together', async () => {
+            const items = await kvStore.listKeys({ exclusiveStartKey: 'key-04', limit: 5 });
+
+            expect(items).toHaveLength(5);
+            expect(items.map((i) => i.key)).toStrictEqual(keys.slice(5, 10));
         });
     });
 });

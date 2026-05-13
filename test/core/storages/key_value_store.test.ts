@@ -474,16 +474,14 @@ describe('KeyValueStore', () => {
             const store = await createKeyValueStore('my-store-id-1');
 
             // @ts-expect-error Accessing private property
-            const mockIterateKeys = vitest.spyOn(store.client, 'iterateKeys');
-            mockIterateKeys.mockReturnValueOnce(
-                (async function* () {
-                    yield { key: 'key1', size: 1 };
-                    yield { key: 'key2', size: 2 };
-                    yield { key: 'key3', size: 3 };
-                    yield { key: 'key4', size: 4 };
-                    yield { key: 'key5', size: 5 };
-                })(),
-            );
+            const mockListKeys = vitest.spyOn(store.client, 'listKeys');
+            mockListKeys.mockResolvedValueOnce([
+                { key: 'key1', size: 1 },
+                { key: 'key2', size: 2 },
+                { key: 'key3', size: 3 },
+                { key: 'key4', size: 4 },
+                { key: 'key5', size: 5 },
+            ]);
 
             const results: [string, number, { size: number }][] = [];
             await store.forEachKey(
@@ -493,8 +491,7 @@ describe('KeyValueStore', () => {
                 { prefix: 'img/' },
             );
 
-            expect(mockIterateKeys).toHaveBeenCalledTimes(1);
-            expect(mockIterateKeys).toHaveBeenCalledWith({ prefix: 'img/' });
+            expect(mockListKeys).toHaveBeenCalledTimes(1);
 
             expect(results).toHaveLength(5);
             results.forEach((r, i) => {

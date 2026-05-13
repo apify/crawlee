@@ -1,4 +1,4 @@
-import type { DatasetClient, DatasetInfo, Dictionary } from '@crawlee/types';
+import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
@@ -11,7 +11,7 @@ import { KeyValueStore } from './key_value_store.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
-import { dualAsyncIterable, purgeDefaultStorages } from './utils.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -570,28 +570,61 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
-     * Iterates over dataset items using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns dataset items.
+     *
+     * When awaited (`await dataset.values()`), returns the first page as a {@apilink PaginatedList}.
+     * When used as an async iterable (`for await...of`), streams all items across pages.
      *
      * **Example usage:**
      * ```javascript
      * const dataset = await Dataset.open('my-results');
+     *
+     * // Stream all items
      * for await (const item of dataset.values()) {
      *   console.log(item);
      * }
+     *
+     * // Or fetch a single page
+     * const page = await dataset.values();
+     * console.log(page.items, page.total);
      * ```
      *
      * @param options Options for the iteration.
      */
-    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<Data[]> {
+    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
         checkStorageAccess();
 
-        return dualAsyncIterable(this.client.iterateItems(options));
+        const client = this.client;
+        const firstPage = client.getData(options);
+
+        async function* iterateAll(): AsyncGenerator<Data> {
+            let offset = options.offset ?? 0;
+            const totalLimit = options.limit;
+            const pageSize = DATASET_ITERATORS_DEFAULT_LIMIT;
+            let yielded = 0;
+
+            while (true) {
+                const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
+                if (fetchLimit <= 0) break;
+
+                const page = await client.getData({ ...options, offset, limit: fetchLimit });
+                for (const item of page.items) {
+                    yield item;
+                    yielded++;
+                }
+                if (page.items.length < fetchLimit || offset + page.items.length >= page.total) break;
+                offset += page.items.length;
+            }
+        }
+
+        return createDualIterable(firstPage, iterateAll());
     }
 
     /**
-     * Iterates over dataset entries (index-value pairs) using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns dataset entries (index-value pairs).
+     *
+     * When awaited, returns the first page as a {@apilink PaginatedList} of `[index, item]` tuples.
+     * When used as an async iterable (`for await...of`), streams all entries across pages.
      *
      * **Example usage:**
      * ```javascript
@@ -603,19 +636,39 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * @param options Options for the iteration.
      */
-    entries(options: DatasetIteratorOptions = {}): AsyncIterable<[number, Data]> & Promise<[number, Data][]> {
+    entries(
+        options: DatasetIteratorOptions = {},
+    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>> {
         checkStorageAccess();
 
-        const iterable = this.client.iterateItems(options);
-        let index = options.offset ?? 0;
+        const client = this.client;
+        const startOffset = options.offset ?? 0;
 
-        async function* enumerate(): AsyncGenerator<[number, Data]> {
-            for await (const item of iterable) {
-                yield [index++, item];
+        const firstPage = client.getData(options).then((page) => ({
+            ...page,
+            items: page.items.map((item, i) => [startOffset + i, item] as [number, Data]),
+        }));
+
+        async function* iterateAll(): AsyncGenerator<[number, Data]> {
+            let offset = startOffset;
+            const totalLimit = options.limit;
+            const pageSize = DATASET_ITERATORS_DEFAULT_LIMIT;
+            let yielded = 0;
+
+            while (true) {
+                const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
+                if (fetchLimit <= 0) break;
+
+                const page = await client.getData({ ...options, offset, limit: fetchLimit });
+                for (const item of page.items) {
+                    yield [offset++, item];
+                    yielded++;
+                }
+                if (page.items.length < fetchLimit || offset >= page.total) break;
             }
         }
 
-        return dualAsyncIterable(enumerate());
+        return createDualIterable(firstPage, iterateAll());
     }
 
     /**

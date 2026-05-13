@@ -15,7 +15,10 @@ import { checkStorageAccess } from './access_checking.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
-import { dualAsyncIterable, purgeDefaultStorages } from './utils.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
+
+/** @internal */
+const KVS_KEYS_DEFAULT_LIMIT = 1000;
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -455,43 +458,80 @@ export class KeyValueStore {
         );
 
         let index = 0;
-        for await (const item of this.client.iterateKeys(options)) {
-            await iteratee(item.key, index++, { size: item.size });
+        let exclusiveStartKey: string | undefined;
+        const limit = KVS_KEYS_DEFAULT_LIMIT;
+
+        while (true) {
+            const items = await this.client.listKeys({ ...options, exclusiveStartKey, limit });
+            for (const item of items) {
+                await iteratee(item.key, index++, { size: item.size });
+            }
+            if (items.length < limit) break;
+            exclusiveStartKey = items[items.length - 1].key;
         }
     }
 
     /**
-     * Iterates over key-value store keys using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns key-value store keys.
+     *
+     * When awaited (`await store.keys()`), returns the first page of keys as `string[]`.
+     * When used as an async iterable (`for await...of`), streams all keys across pages.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Stream all keys
      * for await (const key of keyValueStore.keys()) {
      *   console.log(key);
      * }
+     *
+     * // Or fetch first page
+     * const firstPageKeys = await keyValueStore.keys();
      * ```
      *
      * @param options Options for the iteration.
      */
-    async *keys(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<string, void, undefined> {
+    keys(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<string> & Promise<string[]> {
         checkStorageAccess();
 
-        for await (const item of this.client.iterateKeys(options)) {
-            yield item.key;
+        const client = this.client;
+        const firstPage = client.listKeys(options).then((items) => items.map((item) => item.key));
+
+        async function* iterateAll(): AsyncGenerator<string> {
+            let exclusiveStartKey: string | undefined;
+            const limit = KVS_KEYS_DEFAULT_LIMIT;
+
+            while (true) {
+                const items = await client.listKeys({ ...options, exclusiveStartKey, limit });
+                for (const item of items) {
+                    yield item.key;
+                }
+                if (items.length < limit) break;
+                exclusiveStartKey = items[items.length - 1].key;
+            }
         }
+
+        return createDualIterable(firstPage, iterateAll());
     }
 
     /**
-     * Iterates over key-value store values using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns key-value store values.
+     *
+     * When awaited (`await store.values()`), returns the first page of values as `T[]`.
+     * When used as an async iterable (`for await...of`), streams all values across pages.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Stream all values
      * for await (const value of keyValueStore.values()) {
      *   console.log(value);
      * }
+     *
+     * // Or fetch first page
+     * const firstPageValues = await keyValueStore.values();
      * ```
      *
      * @param options Options for the iteration.
@@ -501,28 +541,50 @@ export class KeyValueStore {
 
         const client = this.client;
 
-        async function* iterate(): AsyncGenerator<T> {
-            for await (const item of client.iterateKeys(options)) {
+        const firstPage = client.listKeys(options).then(async (items) => {
+            const results: T[] = [];
+            for (const item of items) {
                 const record = await client.getValue(item.key);
-                if (record) {
-                    yield record.value as T;
+                if (record) results.push(record.value as T);
+            }
+            return results;
+        });
+
+        async function* iterateAll(): AsyncGenerator<T> {
+            let exclusiveStartKey: string | undefined;
+            const limit = KVS_KEYS_DEFAULT_LIMIT;
+
+            while (true) {
+                const items = await client.listKeys({ ...options, exclusiveStartKey, limit });
+                for (const item of items) {
+                    const record = await client.getValue(item.key);
+                    if (record) yield record.value as T;
                 }
+                if (items.length < limit) break;
+                exclusiveStartKey = items[items.length - 1].key;
             }
         }
 
-        return dualAsyncIterable(iterate());
+        return createDualIterable(firstPage, iterateAll());
     }
 
     /**
-     * Iterates over key-value store entries (key-value pairs) using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns key-value store entries (key-value pairs).
+     *
+     * When awaited (`await store.entries()`), returns the first page of entries as `[key, value][]`.
+     * When used as an async iterable (`for await...of`), streams all entries across pages.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Stream all entries
      * for await (const [key, value] of keyValueStore.entries()) {
      *   console.log(`${key}: ${value}`);
      * }
+     *
+     * // Or fetch first page
+     * const firstPageEntries = await keyValueStore.entries();
      * ```
      *
      * @param options Options for the iteration.
@@ -534,16 +596,31 @@ export class KeyValueStore {
 
         const client = this.client;
 
-        async function* iterate(): AsyncGenerator<[string, T]> {
-            for await (const item of client.iterateKeys(options)) {
+        const firstPage = client.listKeys(options).then(async (items) => {
+            const results: [string, T][] = [];
+            for (const item of items) {
                 const record = await client.getValue(item.key);
-                if (record) {
-                    yield [item.key, record.value as T];
+                if (record) results.push([item.key, record.value as T]);
+            }
+            return results;
+        });
+
+        async function* iterateAll(): AsyncGenerator<[string, T]> {
+            let exclusiveStartKey: string | undefined;
+            const limit = KVS_KEYS_DEFAULT_LIMIT;
+
+            while (true) {
+                const items = await client.listKeys({ ...options, exclusiveStartKey, limit });
+                for (const item of items) {
+                    const record = await client.getValue(item.key);
+                    if (record) yield [item.key, record.value as T];
                 }
+                if (items.length < limit) break;
+                exclusiveStartKey = items[items.length - 1].key;
             }
         }
 
-        return dualAsyncIterable(iterate());
+        return createDualIterable(firstPage, iterateAll());
     }
 
     /**
