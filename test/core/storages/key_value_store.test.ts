@@ -294,30 +294,6 @@ describe('KeyValueStore', () => {
             });
         });
 
-        test('correctly passes timeout options', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
-
-            const record = { foo: 'bar' };
-            const recordStr = JSON.stringify(record, null, 2);
-
-            const mockSetValue = vitest
-                // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
-                .mockResolvedValueOnce(undefined);
-
-            await store.setValue('key-1', record, {
-                timeoutSecs: 1,
-                doNotRetryTimeouts: true,
-            });
-
-            expect(mockSetValue).toHaveBeenCalledTimes(1);
-            expect(mockSetValue).toHaveBeenCalledWith({
-                key: 'key-1',
-                value: recordStr,
-                contentType: 'application/json; charset=utf-8',
-            });
-        });
-
         test('correctly passes raw string values', async () => {
             const store = await createKeyValueStore('my-store-id-1');
 

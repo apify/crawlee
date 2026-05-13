@@ -276,19 +276,12 @@ export class KeyValueStore {
             return;
         }
 
-        // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.persistStateIntervalMillis;
-        const timeoutSecs = persistStateIntervalMillis / 2_000;
-
         serviceLocator.getEventManager().on('persistState', async () => {
             const promises: Promise<void>[] = [];
 
             for (const [key, value] of this.cache) {
                 promises.push(
-                    this.setValue(key, value, {
-                        timeoutSecs,
-                        doNotRetryTimeouts: true,
-                    }).catch((error) =>
+                    this.setValue(key, value).catch((error) =>
                         serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
                     ),
                 );
@@ -370,8 +363,6 @@ export class KeyValueStore {
             options,
             ow.object.exactShape({
                 contentType: ow.optional.string.nonEmpty,
-                timeoutSecs: ow.optional.number,
-                doNotRetryTimeouts: ow.optional.boolean,
             }),
         );
 
@@ -912,16 +903,6 @@ export interface RecordOptions {
      * Specifies a custom MIME content type of the record.
      */
     contentType?: string;
-
-    /**
-     * Specifies a custom timeout for the `set-record` API call, in seconds.
-     */
-    timeoutSecs?: number;
-
-    /**
-     * If set to `true`, the `set-record` API call will not be retried if it times out.
-     */
-    doNotRetryTimeouts?: boolean;
 }
 
 export interface KeyValueStoreIteratorOptions {
