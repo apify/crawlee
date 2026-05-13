@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Dictionary, KeyValueStoreClient } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreClient, KeyValueStoreItemData } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
@@ -293,6 +293,34 @@ export class KeyValueStore {
         this.persistStateEventStarted = true;
     }
 
+    private async *fetchKeyValuePages<T>(
+        options: KeyValueStoreIteratorOptions,
+        mapRecord: (key: string, value: unknown) => T,
+    ): AsyncGenerator<T[]> {
+        for await (const page of this.fetchKeyPages(options)) {
+            const results: T[] = [];
+            for (const item of page) {
+                const record = await this.client.getValue(item.key);
+                if (record) results.push(mapRecord(item.key, record.value));
+            }
+            yield results;
+        }
+    }
+
+    private async *fetchKeyPages(
+        options: KeyValueStoreIteratorOptions,
+        limit = KVS_KEYS_DEFAULT_LIMIT,
+    ): AsyncGenerator<KeyValueStoreItemData[]> {
+        let exclusiveStartKey: string | undefined;
+
+        while (true) {
+            const items = await this.client.listKeys({ ...options, exclusiveStartKey, limit });
+            yield items;
+            if (items.length < limit) break;
+            exclusiveStartKey = items[items.length - 1].key;
+        }
+    }
+
     /**
      * Saves or deletes a record in the key-value store.
      * The function returns a promise that resolves once the record has been saved or deleted.
@@ -449,16 +477,11 @@ export class KeyValueStore {
         );
 
         let index = 0;
-        let exclusiveStartKey: string | undefined;
-        const limit = KVS_KEYS_DEFAULT_LIMIT;
 
-        while (true) {
-            const items = await this.client.listKeys({ ...options, exclusiveStartKey, limit });
-            for (const item of items) {
+        for await (const page of this.fetchKeyPages(options)) {
+            for (const item of page) {
                 await iteratee(item.key, index++, { size: item.size });
             }
-            if (items.length < limit) break;
-            exclusiveStartKey = items[items.length - 1].key;
         }
     }
 
@@ -486,26 +509,10 @@ export class KeyValueStore {
     keys(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<string> & Promise<string[]> {
         checkStorageAccess();
 
-        const client = this.client;
-        const firstPage = client
-            .listKeys({ ...options, limit: KVS_KEYS_DEFAULT_LIMIT })
-            .then((items) => items.map((item) => item.key));
-
-        async function* iterateAll(): AsyncGenerator<string> {
-            let exclusiveStartKey: string | undefined;
-            const limit = KVS_KEYS_DEFAULT_LIMIT;
-
-            while (true) {
-                const items = await client.listKeys({ ...options, exclusiveStartKey, limit });
-                for (const item of items) {
-                    yield item.key;
-                }
-                if (items.length < limit) break;
-                exclusiveStartKey = items[items.length - 1].key;
-            }
-        }
-
-        return createDualIterable(firstPage, iterateAll());
+        return createDualIterable({
+            createPages: () => this.fetchKeyPages(options),
+            extractItems: (page) => page.map((item) => item.key),
+        });
     }
 
     /**
@@ -532,33 +539,10 @@ export class KeyValueStore {
     values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
         checkStorageAccess();
 
-        const client = this.client;
-
-        const firstPage = client.listKeys({ ...options, limit: KVS_KEYS_DEFAULT_LIMIT }).then(async (items) => {
-            const results: T[] = [];
-            for (const item of items) {
-                const record = await client.getValue(item.key);
-                if (record) results.push(record.value as T);
-            }
-            return results;
+        return createDualIterable({
+            createPages: () => this.fetchKeyValuePages<T>(options, (_key, value) => value as T),
+            extractItems: (page) => page,
         });
-
-        async function* iterateAll(): AsyncGenerator<T> {
-            let exclusiveStartKey: string | undefined;
-            const limit = KVS_KEYS_DEFAULT_LIMIT;
-
-            while (true) {
-                const items = await client.listKeys({ ...options, exclusiveStartKey, limit });
-                for (const item of items) {
-                    const record = await client.getValue(item.key);
-                    if (record) yield record.value as T;
-                }
-                if (items.length < limit) break;
-                exclusiveStartKey = items[items.length - 1].key;
-            }
-        }
-
-        return createDualIterable(firstPage, iterateAll());
     }
 
     /**
@@ -587,33 +571,10 @@ export class KeyValueStore {
     ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
         checkStorageAccess();
 
-        const client = this.client;
-
-        const firstPage = client.listKeys({ ...options, limit: KVS_KEYS_DEFAULT_LIMIT }).then(async (items) => {
-            const results: [string, T][] = [];
-            for (const item of items) {
-                const record = await client.getValue(item.key);
-                if (record) results.push([item.key, record.value as T]);
-            }
-            return results;
+        return createDualIterable({
+            createPages: () => this.fetchKeyValuePages<[string, T]>(options, (key, value) => [key, value as T]),
+            extractItems: (page) => page,
         });
-
-        async function* iterateAll(): AsyncGenerator<[string, T]> {
-            let exclusiveStartKey: string | undefined;
-            const limit = KVS_KEYS_DEFAULT_LIMIT;
-
-            while (true) {
-                const items = await client.listKeys({ ...options, exclusiveStartKey, limit });
-                for (const item of items) {
-                    const record = await client.getValue(item.key);
-                    if (record) yield [item.key, record.value as T];
-                }
-                if (items.length < limit) break;
-                exclusiveStartKey = items[items.length - 1].key;
-            }
-        }
-
-        return createDualIterable(firstPage, iterateAll());
     }
 
     /**

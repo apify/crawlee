@@ -295,22 +295,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         const items: Data[] = [];
 
-        const fetchNextChunk = async (offset = 0): Promise<void> => {
-            const limit = 1000;
-            const value = await this.client.getData({ offset, limit, ...options });
-
-            if (value.count === 0) {
-                return;
-            }
-
-            items.push(...value.items);
-
-            if (value.total > offset + value.count) {
-                await fetchNextChunk(offset + value.count);
-            }
-        };
-
-        await fetchNextChunk();
+        for await (const page of this.fetchPages(options)) {
+            items.push(...page.items);
+        }
 
         return items;
     }
@@ -569,6 +556,37 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         return currentMemo;
     }
 
+    private async *fetchEntryPages(options: DatasetIteratorOptions): AsyncGenerator<PaginatedList<[number, Data]>> {
+        let index = options.offset ?? 0;
+        for await (const page of this.fetchPages(options)) {
+            yield {
+                ...page,
+                items: page.items.map((item) => [index++, item] as [number, Data]),
+            };
+        }
+    }
+
+    private async *fetchPages(
+        options: DatasetIteratorOptions,
+        pageSize = DATASET_ITERATORS_DEFAULT_LIMIT,
+    ): AsyncGenerator<PaginatedList<Data>> {
+        let offset = options.offset ?? 0;
+        const totalLimit = options.limit;
+        let yielded = 0;
+
+        while (true) {
+            const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
+            if (fetchLimit <= 0) break;
+
+            const page = await this.client.getData({ ...options, offset, limit: fetchLimit });
+            yield page;
+
+            yielded += page.items.length;
+            if (page.items.length < fetchLimit || offset + page.items.length >= page.total) break;
+            offset += page.items.length;
+        }
+    }
+
     /**
      * Returns dataset items.
      *
@@ -594,30 +612,11 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
         checkStorageAccess();
 
-        const client = this.client;
-        const firstPage = client.getData(options);
-
-        async function* iterateAll(): AsyncGenerator<Data> {
-            let offset = options.offset ?? 0;
-            const totalLimit = options.limit;
-            const pageSize = DATASET_ITERATORS_DEFAULT_LIMIT;
-            let yielded = 0;
-
-            while (true) {
-                const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
-                if (fetchLimit <= 0) break;
-
-                const page = await client.getData({ ...options, offset, limit: fetchLimit });
-                for (const item of page.items) {
-                    yield item;
-                    yielded++;
-                }
-                if (page.items.length < fetchLimit || offset + page.items.length >= page.total) break;
-                offset += page.items.length;
-            }
-        }
-
-        return createDualIterable(firstPage, iterateAll());
+        return createDualIterable({
+            createPages: () => this.fetchPages(options),
+            extractItems: (page) => page.items,
+            mapFirstPage: (page) => page,
+        });
     }
 
     /**
@@ -641,34 +640,11 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>> {
         checkStorageAccess();
 
-        const client = this.client;
-        const startOffset = options.offset ?? 0;
-
-        const firstPage = client.getData(options).then((page) => ({
-            ...page,
-            items: page.items.map((item, i) => [startOffset + i, item] as [number, Data]),
-        }));
-
-        async function* iterateAll(): AsyncGenerator<[number, Data]> {
-            let offset = startOffset;
-            const totalLimit = options.limit;
-            const pageSize = DATASET_ITERATORS_DEFAULT_LIMIT;
-            let yielded = 0;
-
-            while (true) {
-                const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
-                if (fetchLimit <= 0) break;
-
-                const page = await client.getData({ ...options, offset, limit: fetchLimit });
-                for (const item of page.items) {
-                    yield [offset++, item];
-                    yielded++;
-                }
-                if (page.items.length < fetchLimit || offset >= page.total) break;
-            }
-        }
-
-        return createDualIterable(firstPage, iterateAll());
+        return createDualIterable({
+            createPages: () => this.fetchEntryPages(options),
+            extractItems: (page) => page.items,
+            mapFirstPage: (page) => page,
+        });
     }
 
     /**
