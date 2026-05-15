@@ -69,8 +69,6 @@ describe('SessionPool - testing session pool', () => {
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             // @ts-expect-error Accessing private property
             expect(session.maxUsageCount).toEqual(sessionPool.sessionOptions.maxUsageCount);
-            // @ts-expect-error Accessing private property
-            expect(session.sessionPool).toEqual(sessionPool);
         });
 
         test('should pick session when pool is full', async () => {
@@ -332,15 +330,17 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should createSessionFunction work', async () => {
-        let isCalled;
-        const createSessionFunction = (sessionPool2: SessionPool) => {
+        let isCalled = false;
+        let receivedOptions: { sessionOptions?: object } | undefined;
+        const createSessionFunction = (opts?: { sessionOptions?: object }) => {
             isCalled = true;
-            expect(sessionPool2 instanceof SessionPool).toBe(true);
-            return new Session({ sessionPool: sessionPool2 });
+            receivedOptions = opts;
+            return new Session();
         };
         const newSessionPool = new SessionPool({ createSessionFunction });
         const session = await newSessionPool.getSession();
         expect(isCalled).toBe(true);
+        expect(receivedOptions?.sessionOptions).toBeDefined();
         expect(session.constructor.name).toBe('Session');
     });
 
@@ -361,7 +361,7 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should be able to add session instance and create new session with provided sessionOptions with addSession()', async () => {
-        const session = new Session({ sessionPool, id: 'test-session-instance' });
+        const session = new Session({ id: 'test-session-instance' });
         await sessionPool.addSession(session);
 
         await sessionPool.addSession({ id: 'test-session' });

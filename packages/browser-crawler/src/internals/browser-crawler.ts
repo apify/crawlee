@@ -18,7 +18,6 @@ import {
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
-    EVENT_SESSION_RETIRED,
     handleRequestTimeout,
     NavigationSkippedError,
     RequestState,
@@ -36,7 +35,7 @@ import type {
     InferBrowserPluginArray,
     LaunchContext,
 } from '@crawlee/browser-pool';
-import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
+import { BrowserPool } from '@crawlee/browser-pool';
 import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
@@ -401,9 +400,21 @@ export abstract class BrowserCrawler<
             action: this.preparePage.bind(this),
             cleanup: async (context: {
                 page: Page;
+                session: Session;
+                browserController: ProvidedController;
                 registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
             }) => {
                 context.registerDeferredCleanup(async () => {
+                    // In non-incognito mode the browser controller carries the session's cookies
+                    // and storage across pages. If the session is no longer usable, retire the
+                    // controller so its state can't leak into whichever session lands on it next.
+                    if (!context.session.isUsable()) {
+                        this.browserPool.retireBrowserController(
+                            context.browserController as Parameters<
+                                BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
+                            >[0],
+                        );
+                    }
                     await context.page
                         .close()
                         .catch((error: Error) => this.log.debug('Error while closing page', { error }));
@@ -468,8 +479,6 @@ export abstract class BrowserCrawler<
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(
             page as any,
         ) as ProvidedController;
-
-        this.addSessionRetiredListener(crawlingContext.session, browserControllerInstance);
 
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
 
@@ -661,39 +670,6 @@ export abstract class BrowserCrawler<
         }
 
         request.loadedUrl = await page.url();
-    }
-
-    private browserSessionIds = new WeakMap<Context['browserController'], Set<string>>();
-
-    private addSessionRetiredListener(session: Session, browserController: Context['browserController']): void {
-        if (!this.sessionPool) {
-            return;
-        }
-
-        let sessionIds = this.browserSessionIds.get(browserController);
-
-        if (sessionIds) {
-            sessionIds.add(session.id);
-            return;
-        }
-
-        sessionIds = new Set([session.id]);
-        this.browserSessionIds.set(browserController, sessionIds);
-
-        const listener = (retired: Session) => {
-            if (this.browserSessionIds.get(browserController)?.has(retired.id)) {
-                this.browserPool.retireBrowserController(
-                    browserController as Parameters<
-                        BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
-                    >[0],
-                );
-            }
-        };
-
-        this.sessionPool.on(EVENT_SESSION_RETIRED, listener);
-        browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
-            return this.sessionPool!.removeListener(EVENT_SESSION_RETIRED, listener);
-        });
     }
 
     /**

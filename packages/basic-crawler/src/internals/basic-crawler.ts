@@ -869,15 +869,13 @@ export class BasicCrawler<
             this.sessionPool =
                 sessionPool ??
                 new SessionPool({
-                    createSessionFunction: async (pool, opts) =>
+                    createSessionFunction: async (opts) =>
                         new Session({
                             ...opts?.sessionOptions,
                             proxyInfo:
                                 opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
-                            sessionPool: pool,
                         }),
                 });
-            this.sessionPool.setMaxListeners(20);
 
             this.ownsSessionPool = !sessionPool;
 
