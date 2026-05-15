@@ -1,20 +1,16 @@
 import { URL } from 'node:url';
 
 import type {
-    GlobInput,
-    PseudoUrlInput,
-    RegExpInput,
     RequestOptions,
     RequestProvider,
     RequestTransform,
     SkippedRequestCallback,
+    UrlPatternInput,
     UrlPatternObject,
 } from '@crawlee/browser';
 import {
     applyRequestTransform,
-    constructGlobObjectsFromGlobs,
-    constructRegExpObjectsFromPseudoUrls,
-    constructRegExpObjectsFromRegExps,
+    constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
     Request,
@@ -58,68 +54,31 @@ export interface EnqueueLinksByClickingElementsOptions {
     clickOptions?: ClickOptions;
 
     /**
-     * An array of glob pattern strings or plain objects
-     * containing glob pattern strings matching the URLs to be enqueued.
+     * An array of URL patterns that URLs must match to be enqueued.
      *
-     * The plain objects must include at least the `glob` property, which holds the glob pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * The matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
-     *
-     * If `globs` is an empty array or `undefined`, then the function
-     * enqueues all the intercepted navigation requests produced by the page
-     * after clicking on elements matching the provided CSS selector.
-     */
-    globs?: GlobInput[];
-
-    /**
-     * An array of glob pattern strings, regexp patterns or plain objects
-     * containing patterns matching URLs that will **never** be enqueued.
-     *
-     * The plain objects must include either the `glob` property or the `regexp` property.
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
      *
      * Glob matching is always case-insensitive.
-     * If you need case-sensitive matching, provide a regexp.
-     */
-    exclude?: readonly (GlobInput | RegExpInput)[];
-
-    /**
-     * An array of regular expressions or plain objects
-     * containing regular expressions matching the URLs to be enqueued.
+     * If you need case-sensitive matching, use a `RegExp`.
      *
-     * The plain objects must include at least the `regexp` property, which holds the regular expression.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * If `regexps` is an empty array or `undefined`, then the function
+     * If `include` is an empty array or `undefined`, then the function
      * enqueues all the intercepted navigation requests produced by the page
      * after clicking on elements matching the provided CSS selector.
      */
-    regexps?: RegExpInput[];
+    include?: UrlPatternInput[];
 
     /**
-     * *NOTE:* In future versions of SDK the options will be removed.
-     * Please use `globs` or `regexps` instead.
+     * An array of URL patterns. Matching URLs will **not** be enqueued.
      *
-     * An array of {@apilink PseudoUrl} strings or plain objects
-     * containing {@apilink PseudoUrl} strings matching the URLs to be enqueued.
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
      *
-     * The plain objects must include at least the `purl` property, which holds the pseudo-URL pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * With a pseudo-URL string, the matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
-     *
-     * If `pseudoUrls` is an empty array or `undefined`, then the function
-     * enqueues all the intercepted navigation requests produced by the page
-     * after clicking on elements matching the provided CSS selector.
-     *
-     * @deprecated prefer using `globs` or `regexps` instead
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, use a `RegExp`.
      */
-    pseudoUrls?: PseudoUrlInput[];
+    exclude?: readonly UrlPatternInput[];
 
     /**
-     * After {@apilink Request} objects are constructed and filtered by URL patterns (`globs`, `regexps`, `pseudoUrls`),
+     * After request options are filtered by `include`/`exclude` patterns,
      * this function can be used to remove them or modify their contents such as `userData`, `payload` or, most importantly
      * `uniqueKey`. This is useful when you need to enqueue multiple `Requests` to the queue that share the same URL,
      * but differ in methods or payloads, or to dynamically update or create `userData`.
@@ -134,8 +93,8 @@ export interface EnqueueLinksByClickingElementsOptions {
      * }
      * ```
      *
-     * Note that `transformRequestFunction` has the highest priority and can overwrite request options
-     * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
+     * Note that `transformRequestFunction` has the highest priority and can overwrite
+     * the global `label` option.
      *
      * The function receives a {@apilink RequestOptions} object and can return either:
      * - The modified {@apilink RequestOptions} object
@@ -202,8 +161,7 @@ export interface EnqueueLinksByClickingElementsOptions {
  * in `href` elements, but rather navigations are triggered in click handlers.
  * If you're looking to find URLs in `href` attributes of the page, see {@apilink enqueueLinks}.
  *
- * Optionally, the function allows you to filter the target links' URLs using an array of {@apilink PseudoUrl} objects
- * and override settings of the enqueued {@apilink Request} objects.
+ * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
  *
  * **IMPORTANT**: To be able to do this, this function uses various mutations on the page,
  * such as changing the Z-index of elements being clicked and their visibility. Therefore,
@@ -225,9 +183,9 @@ export interface EnqueueLinksByClickingElementsOptions {
  *   page,
  *   requestQueue,
  *   selector: 'a.product-detail',
- *   pseudoUrls: [
- *       'https://www.example.com/handbags/[.*]'
- *       'https://www.example.com/purses/[.*]'
+ *   include: [
+ *       'https://www.example.com/handbags/*',
+ *       'https://www.example.com/purses/*',
  *   ],
  * });
  * ```
@@ -237,6 +195,8 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
+    const urlPatternValidator = ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp'));
+
     ow(
         options,
         ow.object.exactShape({
@@ -245,12 +205,8 @@ export async function enqueueLinksByClickingElements(
             selector: ow.string,
             userData: ow.optional.object,
             clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
-            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
-            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
-            exclude: ow.optional.array.ofType(
-                ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-            ),
+            include: ow.optional.array.ofType(urlPatternValidator),
+            exclude: ow.optional.array.ofType(urlPatternValidator),
             transformRequestFunction: ow.optional.function,
             waitForPageIdleSecs: ow.optional.number,
             maxWaitForPageIdleSecs: ow.optional.number,
@@ -266,46 +222,20 @@ export async function enqueueLinksByClickingElements(
         requestQueue,
         selector,
         clickOptions,
-        // oxlint-disable-next-line typescript/no-deprecated -- still accepted for backwards compat
-        pseudoUrls,
-        globs,
-        regexps,
+        include,
+        exclude,
         transformRequestFunction,
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
         forefront,
-        exclude,
         onSkippedRequest,
     } = options;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
 
-    const urlExcludePatternObjects: UrlPatternObject[] = [];
-    const urlPatternObjects: UrlPatternObject[] = [];
-
-    if (exclude?.length) {
-        for (const excl of exclude) {
-            if (typeof excl === 'string' || 'glob' in excl) {
-                urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
-            } else if (excl instanceof RegExp || 'regexp' in excl) {
-                urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
-            }
-        }
-    }
-
-    if (pseudoUrls?.length) {
-        getLog().deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
-        urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
-    }
-
-    if (globs?.length) {
-        urlPatternObjects.push(...constructGlobObjectsFromGlobs(globs));
-    }
-
-    if (regexps?.length) {
-        urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
-    }
+    const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
+    const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
 
     const interceptedRequests = await clickElementsAndInterceptNavigationRequests({
         page,

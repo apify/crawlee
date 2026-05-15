@@ -278,10 +278,10 @@ describe('SitemapRequestList', () => {
         await expect(list.fetchNextRequest()).resolves.toBe(null);
     });
 
-    test('globs filtering works', async () => {
+    test('include with globs filtering works', async () => {
         const list = await SitemapRequestList.open({
             sitemapUrls: [`${url}/sitemap.xml`],
-            globs: ['http://not-exists.com/catalog**'],
+            include: ['http://not-exists.com/catalog**'],
         });
 
         for await (const request of list) {
@@ -291,10 +291,10 @@ describe('SitemapRequestList', () => {
         expect(list.handledCount()).toBe(4);
     });
 
-    test('regexps filtering works', async () => {
+    test('include with regexps filtering works', async () => {
         const list = await SitemapRequestList.open({
             sitemapUrls: [`${url}/sitemap.xml`],
-            regexps: [/desc=vacation_new.+/],
+            include: [/desc=vacation_new.+/],
         });
 
         for await (const request of list) {

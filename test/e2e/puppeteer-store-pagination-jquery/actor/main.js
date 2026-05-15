@@ -37,7 +37,7 @@ await Actor.main(async () => {
                     await enqueueLinks({
                         selector: 'a.product-item__image-wrapper',
                         label: 'DETAIL',
-                        globs: ['https://warehouse-theme-metal.myshopify.com/*/*'],
+                        include: ['https://warehouse-theme-metal.myshopify.com/*/*'],
                     });
                     log.info(`Enqueued actors for page ${pageNo}`);
                     log.info('Loading the next page');
