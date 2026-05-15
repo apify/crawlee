@@ -1,15 +1,13 @@
-import { EVENT_SESSION_RETIRED, log, Session, SessionPool } from '@crawlee/core';
+import { log, Session } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import { entries, sleep } from '@crawlee/utils';
 import { CookieJar } from 'tough-cookie';
 
 describe('Session - testing session behaviour', () => {
-    let sessionPool: SessionPool;
     let session: Session;
 
     beforeEach(() => {
-        sessionPool = new SessionPool();
-        session = new Session({ sessionPool });
+        session = new Session();
     });
 
     test('should markGood session and lower the errorScore', () => {
@@ -24,12 +22,6 @@ describe('Session - testing session behaviour', () => {
         expect(session.errorScore).toBe(0.5);
     });
 
-    test('should throw error when param sessionPool is not EventEmitter instance', () => {
-        const err = 'Expected property object `sessionPool` `{}` to be of type `EventEmitter` in object';
-        // @ts-expect-error JS-side validation
-        expect(() => new Session({ sessionPool: {} })).toThrow(err);
-    });
-
     test('should mark session markBad', () => {
         session.markBad();
         expect(session.errorScore).toBe(1);
@@ -37,7 +29,7 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should expire session', async () => {
-        session = new Session({ maxAgeSecs: 1 / 100, sessionPool });
+        session = new Session({ maxAgeSecs: 1 / 100 });
         await sleep(101);
         expect(session.isExpired()).toBe(true);
         expect(session.isUsable()).toBe(false);
@@ -81,14 +73,29 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should retire session', () => {
-        let discarded = false;
-        sessionPool.on(EVENT_SESSION_RETIRED, (ses) => {
-            expect(ses instanceof Session).toBe(true);
-            discarded = true;
-        });
         session.retire();
-        expect(discarded).toBe(true);
         expect(session.usageCount).toBe(1);
+        expect(session.isUsable()).toBe(false);
+    });
+
+    test('retired session stays unusable even after markGood', () => {
+        session.retire();
+        expect(session.isUsable()).toBe(false);
+
+        session.markGood();
+        expect(session.isUsable()).toBe(false);
+    });
+
+    test('retire() is idempotent', () => {
+        session.retire();
+        const errorScore = session.errorScore;
+        const usageCount = session.usageCount;
+
+        session.retire();
+        session.retire();
+
+        expect(session.errorScore).toBe(errorScore);
+        expect(session.usageCount).toBe(usageCount);
     });
 
     test('should retire session after marking bad', () => {
@@ -151,7 +158,7 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should use cookieJar', () => {
-        session = new Session({ sessionPool });
+        session = new Session();
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 
@@ -162,7 +169,7 @@ describe('Session - testing session behaviour', () => {
             { name: 'cookie2', value: 'your-cookie' },
         ];
 
-        session = new Session({ sessionPool });
+        session = new Session();
         session.setCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('cookie1=my-cookie; cookie2=your-cookie');
     });
@@ -171,7 +178,7 @@ describe('Session - testing session behaviour', () => {
         const url = 'https://example.com';
         const cookies = [{ name: 'session_cookie', value: 'session-cookie-value', expires: -1 }];
 
-        session = new Session({ sessionPool });
+        session = new Session();
         session.setCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('session_cookie=session-cookie-value');
     });
@@ -183,7 +190,7 @@ describe('Session - testing session behaviour', () => {
             { name: 'cookie2', value: 'your-cookie', domain: '.example.com' },
         ];
 
-        session = new Session({ sessionPool });
+        session = new Session();
         session.setCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('cookie2=your-cookie');
     });
@@ -197,14 +204,14 @@ describe('Session - testing session behaviour', () => {
             spy: true,
         });
 
-        session = new Session({ sessionPool, log: mockedLog } as any);
+        session = new Session({ log: mockedLog } as any);
         session.setCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('');
         expect(mockedLog.warning).toHaveBeenCalledOnce();
     });
 
     test('setCookie does not throw on malformed raw cookie string', () => {
-        session = new Session({ sessionPool });
+        session = new Session();
         expect(() => session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).not.toThrow();
     });
 
@@ -215,7 +222,7 @@ describe('Session - testing session behaviour', () => {
             { name: 'cookie2', value: 'your-cookie', domain: 'example.com' },
         ];
 
-        session = new Session({ sessionPool });
+        session = new Session();
         session.setCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('');
         expect(session.getCookieString('https://example.com')).toBe('cookie2=your-cookie');
@@ -225,7 +232,6 @@ describe('Session - testing session behaviour', () => {
         const url = 'https://www.example.com';
 
         session = new Session({
-            sessionPool,
             cookieJar: CookieJar.fromJSON(
                 JSON.stringify({
                     cookies: [
@@ -255,7 +261,6 @@ describe('Session - testing session behaviour', () => {
         const url = 'https://www.example.com';
 
         session = new Session({
-            sessionPool,
             cookieJar: CookieJar.fromJSON(
                 JSON.stringify({
                     cookies: [
@@ -288,7 +293,7 @@ describe('Session - testing session behaviour', () => {
             headers.append('set-cookie', 'CSRF=e8b667; Domain=example.com; Secure ');
             headers.append('set-cookie', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT');
 
-            const newSession = new Session({ sessionPool: new SessionPool() });
+            const newSession = new Session();
             const url = 'https://example.com';
             newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers, url }));
             let cookies = newSession.getCookieString(url);
@@ -302,13 +307,33 @@ describe('Session - testing session behaviour', () => {
         });
     });
 
+    test('retired state survives a getState() / new Session() round-trip', () => {
+        session.retire();
+
+        const old = session.getState();
+        expect(old.retired).toBe(true);
+
+        // @ts-expect-error Overriding string -> Date
+        old.createdAt = new Date(old.createdAt);
+        // @ts-expect-error Overriding string -> Date
+        old.expiresAt = new Date(old.expiresAt);
+
+        // @ts-expect-error string -> Date for createdAt has been overridden
+        const reinitialized = new Session({ ...old });
+        expect(reinitialized.retired).toBe(true);
+        expect(reinitialized.isUsable()).toBe(false);
+
+        reinitialized.markGood();
+        expect(reinitialized.isUsable()).toBe(false);
+    });
+
     test('should correctly persist and init cookieJar', () => {
         const headers = new Headers();
 
         headers.append('set-cookie', 'CSRF=e8b667; Domain=example.com; Secure ');
         headers.append('set-cookie', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT');
 
-        const newSession = new Session({ sessionPool: new SessionPool() });
+        const newSession = new Session();
         const url = 'https://example.com';
         newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers, url }));
 
@@ -320,7 +345,7 @@ describe('Session - testing session behaviour', () => {
         old.expiresAt = new Date(old.expiresAt);
 
         // @ts-expect-error string -> Date for createdAt has been overridden
-        const reinitializedSession = new Session({ sessionPool, ...old });
+        const reinitializedSession = new Session({ ...old });
         expect(reinitializedSession.getCookieString(url)).toEqual('CSRF=e8b667; id=a3fWa');
     });
 });
