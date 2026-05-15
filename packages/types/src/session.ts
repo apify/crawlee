@@ -79,6 +79,7 @@ export interface SessionState {
     maxUsageCount: number;
     expiresAt: string;
     createdAt: string;
+    retired: boolean;
 }
 
 /**
