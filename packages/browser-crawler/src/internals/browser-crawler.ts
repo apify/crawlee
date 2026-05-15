@@ -10,7 +10,6 @@ import type {
     Request,
     RequestHandler,
     RequestProvider,
-    Session,
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
@@ -36,7 +35,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject, ISession } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -400,7 +399,7 @@ export abstract class BrowserCrawler<
             action: this.preparePage.bind(this),
             cleanup: async (context: {
                 page: Page;
-                session: Session;
+                session: ISession;
                 browserController: ProvidedController;
                 registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
             }) => {

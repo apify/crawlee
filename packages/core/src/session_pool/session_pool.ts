@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, ISessionPool } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
@@ -129,7 +129,7 @@ export interface SessionPoolOptions {
  *
  * @category Scaling
  */
-export class SessionPool {
+export class SessionPool implements ISessionPool {
     private static nextId = 0;
 
     readonly id: string;

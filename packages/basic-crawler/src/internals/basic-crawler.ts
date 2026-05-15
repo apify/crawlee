@@ -70,6 +70,8 @@ import type {
     BaseHttpClient,
     BatchAddRequestsResult,
     Dictionary,
+    ISession,
+    ISessionPool,
     ProxyInfo,
     SetStatusMessageOptions,
     StorageClient,
@@ -302,11 +304,14 @@ export interface BasicCrawlerOptions<
     keepAlive?: boolean;
 
     /**
-     * An existing {@apilink SessionPool} instance to use. When provided, the crawler will use this
-     * pool directly instead of creating a new one, enabling session sharing across multiple crawlers.
-     * The crawler will not tear down a shared pool — the caller is responsible for its lifecycle.
+     * An existing session pool instance to use. When provided, the crawler will use this pool directly instead of
+     * creating a new one, enabling session sharing across multiple crawlers. The crawler will not tear down a shared
+     * pool — the caller is responsible for its lifecycle.
+     *
+     * Accepts the built-in {@apilink SessionPool} or any object implementing the {@apilink ISessionPool} interface,
+     * so custom session-management strategies can be plugged in.
      */
-    sessionPool?: SessionPool;
+    sessionPool?: ISessionPool;
 
     /**
      * Defines the length of the interval for calling the `setStatusMessage` in seconds.
@@ -556,14 +561,18 @@ export class BasicCrawler<
     protected requestManager?: IRequestManager;
 
     /**
-     * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
+     * A reference to the underlying session pool that manages the crawler's {@apilink Session|sessions}. Typed as
+     * {@apilink ISessionPool} so custom implementations can be plugged in via the `sessionPool` constructor option.
      */
-    sessionPool: SessionPool;
+    sessionPool: ISessionPool;
 
     /**
-     * Indicates whether the crawler owns the session pool (it was not passed from the outside using the `sessionPool` constructor option).
+     * Set when the crawler constructed its own {@apilink SessionPool} (no `sessionPool` option was provided).
+     * Holds the same instance as `sessionPool`, but typed as the concrete class so the crawler can call
+     * lifecycle methods (`resetStore`, `teardown`) that aren't part of {@apilink ISessionPool}. A user-supplied
+     * pool is never owned and never torn down by the crawler.
      */
-    private ownsSessionPool: boolean;
+    private ownedSessionPool?: SessionPool;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
@@ -675,7 +684,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
-        sessionPool: ow.optional.object.instanceOf(SessionPool),
+        sessionPool: ow.optional.object.validate(validators.sessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
@@ -866,9 +875,10 @@ export class BasicCrawler<
                 );
             }
 
-            this.sessionPool =
-                sessionPool ??
-                new SessionPool({
+            if (sessionPool) {
+                this.sessionPool = sessionPool;
+            } else {
+                this.ownedSessionPool = new SessionPool({
                     createSessionFunction: async (opts) =>
                         new Session({
                             ...opts?.sessionOptions,
@@ -876,8 +886,8 @@ export class BasicCrawler<
                                 opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
                         }),
                 });
-
-            this.ownsSessionPool = !sessionPool;
+                this.sessionPool = this.ownedSessionPool;
+            }
 
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
@@ -1130,7 +1140,7 @@ export class BasicCrawler<
         return { session, proxyInfo: session.proxyInfo };
     }
 
-    private async createContextHelpers({ request, session }: { request: Request; session: Session }) {
+    private async createContextHelpers({ request, session }: { request: Request; session: ISession }) {
         const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
             const requestQueue = await this.getRequestQueue();
 
@@ -1296,9 +1306,7 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            if (this.ownsSessionPool) {
-                await this.sessionPool.resetStore();
-            }
+            await this.ownedSessionPool?.resetStore();
         }
 
         this.unexpectedStop = false;
@@ -2241,9 +2249,7 @@ export class BasicCrawler<
             await serviceLocator.getEventManager().close();
         }
 
-        if (this.ownsSessionPool) {
-            await this.sessionPool.teardown();
-        }
+        await this.ownedSessionPool?.teardown();
 
         await this.autoscaledPool?.abort();
     }
@@ -2337,7 +2343,7 @@ export class BasicCrawler<
 
 export interface CreateContextOptions {
     request: Request;
-    session: Session;
+    session: ISession;
     proxyInfo?: ProxyInfo;
 }
 

@@ -140,6 +140,65 @@ new SessionPool({
 
 If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
 
+## `Session` no longer requires a `sessionPool` reference
+
+`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported. Custom `createSessionFunction` implementations that constructed `Session` instances manually should drop the `sessionPool` argument.
+
+**Before:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (pool, opts) =>
+        new Session({ ...opts?.sessionOptions, sessionPool: pool }),
+});
+```
+
+**After:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (_pool, opts) =>
+        new Session({ ...opts?.sessionOptions }),
+});
+```
+
+If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
+
+## Custom `SessionPool` implementations via the `ISessionPool` interface
+
+Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession()` / `getSession(id)`, that hands out a `Session` for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
+
+```typescript
+import { BasicCrawler, Session, type ISessionPool } from '@crawlee/core';
+
+class MySessionPool implements ISessionPool {
+    private readonly sessions = new Map<string, Session>();
+
+    async getSession(): Promise<Session>;
+    async getSession(sessionId: string): Promise<Session | undefined>;
+    async getSession(sessionId?: string): Promise<Session | undefined> {
+        if (sessionId) {
+            const existing = this.sessions.get(sessionId);
+            return existing?.isUsable() ? existing : undefined;
+        }
+
+        const usable = [...this.sessions.values()].find((s) => s.isUsable());
+        if (usable) return usable;
+
+        const fresh = new Session();
+        this.sessions.set(fresh.id, fresh);
+        return fresh;
+    }
+}
+
+const crawler = new BasicCrawler({
+    sessionPool: new MySessionPool(),
+    requestHandler: async ({ session }) => {
+        // session is a Session instance, use it as usual
+    },
+});
+```
+
+The returned objects must be `Session` instances — the rest of the crawler relies on `session.markGood()`, `session.cookieJar`, `session.proxyInfo`, and the rest of the concrete `Session` API.
+
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
 `Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).

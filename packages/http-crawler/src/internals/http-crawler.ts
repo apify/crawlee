@@ -11,7 +11,6 @@ import type {
     RequestHandler,
     RequireContextPipeline,
     RouterRoutes,
-    Session,
 } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -23,7 +22,7 @@ import {
 } from '@crawlee/basic';
 import type { LoadedRequest } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
-import type { Awaitable, Dictionary } from '@crawlee/types';
+import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
@@ -610,7 +609,7 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: CrawleeRequest, session: Session, proxyUrl?: string) {
+    protected _getRequestOptions(request: CrawleeRequest, session: ISession, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
@@ -711,7 +710,7 @@ export class HttpCrawler<
     /**
      * Handles timeout request
      */
-    protected _handleRequestTimeout(session: Session) {
+    protected _handleRequestTimeout(session: ISession) {
         session.markBad();
         throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
@@ -734,7 +733,7 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = async (options: Dictionary<any>, session: Session) => {
+    private _requestAsBrowser = async (options: Dictionary<any>, session: ISession) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
             responseType: 'text',
@@ -766,7 +765,7 @@ export class HttpCrawler<
 
 interface RequestFunctionOptions {
     request: CrawleeRequest;
-    session: Session;
+    session: ISession;
     proxyUrl?: string;
 }
 

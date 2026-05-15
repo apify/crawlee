@@ -20,4 +20,9 @@ export const validators = {
         validator: ow.isValid(value, ow.object.hasKeys('fetchNextRequest', 'addRequest')),
         message: (label: string) => `Expected argument '${label}' to be a RequestQueue, got something else.`,
     }),
+    sessionPool: (value: Dictionary) => ({
+        validator: ow.isValid(value, ow.object.hasKeys('getSession')),
+        message: (label: string) =>
+            `Expected argument '${label}' to implement the ISessionPool interface (missing 'getSession'), got something else.`,
+    }),
 };
