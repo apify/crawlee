@@ -23,7 +23,7 @@ import {
     RequestList,
     RequestQueue,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
+import { RequestState, RequestQueueV1 } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -2210,6 +2210,54 @@ describe('BasicCrawler', () => {
             expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
             expect(crawlerA.requestQueue?.config).toBe(configA);
             expect(crawlerB.requestQueue?.config).toBe(configB);
+        });
+    });
+
+    describe('sameDomainDelaySecs race condition', () => {
+        test('delayRequest should keep request in inProgress during delay', async () => {
+            const requestQueue = await RequestQueueV1.open();
+            await requestQueue.addRequest({ url: 'http://example.com/a', uniqueKey: 'a' });
+
+            const request = await requestQueue.fetchNextRequest();
+            expect(request).not.toBeNull();
+            expect(requestQueue.inProgressCount()).toBe(1);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                sameDomainDelaySecs: 10,
+                requestHandler: async () => {},
+            });
+
+            // Set domain access time to force delay trigger
+            (crawler as any).domainAccessedTime.set('example.com', Date.now());
+
+            const delayed = (crawler as any).delayRequest(request, requestQueue);
+            expect(delayed).toBe(true);
+
+            // Request must remain in inProgress to prevent duplicate fetching
+            expect(requestQueue.inProgressCount()).toBe(1);
+        });
+
+        test('second fetchNextRequest should not return the same request after delayRequest', async () => {
+            const requestQueue = await RequestQueueV1.open();
+            await requestQueue.addRequest({ url: 'http://example.com/a', uniqueKey: 'a' });
+
+            const r1 = await requestQueue.fetchNextRequest();
+            expect(r1).not.toBeNull();
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                sameDomainDelaySecs: 10,
+                requestHandler: async () => {},
+            });
+            (crawler as any).domainAccessedTime.set('example.com', Date.now());
+
+            const delayed = (crawler as any).delayRequest(r1, requestQueue);
+            expect(delayed).toBe(true);
+
+            // Another worker must not get the same request during the delay window
+            const r1Again = await requestQueue.fetchNextRequest();
+            expect(r1Again).toBeNull();
         });
     });
 });
