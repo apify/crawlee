@@ -189,10 +189,6 @@ describe('Statistics', () => {
                 // @ts-expect-error Accessing private prop
                 stats.persistStateKey,
                 { ...state, ...rest },
-                {
-                    doNotRetryTimeouts: true,
-                    timeoutSecs: 30,
-                },
             );
         }, 2000);
     });

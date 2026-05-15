@@ -141,6 +141,77 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10_000;
  */
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
+/** @internal */
+export interface DualIterableOptions<TItem, TRawPage, TAwaitResult = TItem[]> {
+    /** Factory that returns an async generator yielding pages. */
+    createPages: () => AsyncGenerator<TRawPage>;
+    /** Extracts individual items from a page (for iteration). */
+    extractItems: (page: TRawPage) => TItem[];
+    /** Transforms the first page into the await result. Defaults to `extractItems`. */
+    mapFirstPage?: (page: TRawPage) => TAwaitResult;
+}
+
+/**
+ * Creates an object that is both an `AsyncIterable<TItem>` (for `for await...of`)
+ * and a `Promise<TAwaitResult>` (for `await`) from a single async page generator.
+ *
+ * - `await result` consumes only the first page from a fresh generator and
+ *   transforms it via `mapFirstPage`.
+ * - `for await (const item of result)` streams all items across all pages,
+ *   extracting items from each page via `getItems`.
+ *
+ * Each usage path creates its own generator instance, so `await` and
+ * `for await...of` never interfere with each other.
+ *
+ * @internal
+ */
+export function createDualIterable<TItem, TRawPage, TAwaitResult = TItem[]>(
+    options: DualIterableOptions<TItem, TRawPage, TAwaitResult>,
+): AsyncIterable<TItem> & Promise<TAwaitResult> {
+    const { createPages, extractItems } = options;
+    const resolveFirstPage =
+        options.mapFirstPage ?? ((page: TRawPage) => extractItems(page) as unknown as TAwaitResult);
+    let cached: Promise<TAwaitResult> | null = null;
+
+    function getOrCreate(): Promise<TAwaitResult> {
+        if (!cached) {
+            cached = createPages()
+                .next()
+                .then((result) => resolveFirstPage(result.value));
+        }
+        return cached;
+    }
+
+    async function* iterateAll(): AsyncGenerator<TItem> {
+        for await (const page of createPages()) {
+            yield* extractItems(page);
+        }
+    }
+
+    const result = {
+        [Symbol.asyncIterator]() {
+            return iterateAll();
+        },
+        then<TResult1 = TAwaitResult, TResult2 = never>(
+            onfulfilled?: ((value: TAwaitResult) => TResult1 | PromiseLike<TResult1>) | null,
+            onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+        ): Promise<TResult1 | TResult2> {
+            return getOrCreate().then(onfulfilled, onrejected);
+        },
+        catch<TResult = never>(
+            onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+        ): Promise<TAwaitResult | TResult> {
+            return getOrCreate().catch(onrejected);
+        },
+        finally(onfinally?: (() => void) | null): Promise<TAwaitResult> {
+            return getOrCreate().finally(onfinally);
+        },
+        [Symbol.toStringTag]: 'DualIterable',
+    } as AsyncIterable<TItem> & Promise<TAwaitResult>;
+
+    return result;
+}
+
 /**
  * Options for the static `open()` method on storage classes ({@apilink Dataset}, {@apilink KeyValueStore}, {@apilink RequestQueue}).
  */

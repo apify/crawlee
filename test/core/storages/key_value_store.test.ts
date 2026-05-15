@@ -1,6 +1,6 @@
 import { PassThrough } from 'node:stream';
 
-import { Configuration, KeyValueStore, maybeStringify, serviceLocator } from '@crawlee/core';
+import { KeyValueStore, maybeStringify, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
@@ -32,30 +32,24 @@ describe('KeyValueStore', () => {
         const recordStr = JSON.stringify(record, null, 2);
 
         // Set record
-        const mockSetRecord = vitest
+        const mockSetValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'setRecord')
+            .spyOn(store.client, 'setValue')
             .mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', record);
 
-        expect(mockSetRecord).toBeCalledTimes(1);
-        expect(mockSetRecord).toBeCalledWith(
-            {
-                key: 'key-1',
-                value: recordStr,
-                contentType: 'application/json; charset=utf-8',
-            },
-            {
-                doNotRetryTimeouts: undefined,
-                timeoutSecs: undefined,
-            },
-        );
+        expect(mockSetValue).toHaveBeenCalledTimes(1);
+        expect(mockSetValue).toHaveBeenCalledWith({
+            key: 'key-1',
+            value: recordStr,
+            contentType: 'application/json; charset=utf-8',
+        });
 
         // Get Record
-        const mockGetRecord = vitest
+        const mockGetValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'getRecord')
+            .spyOn(store.client, 'getValue')
             .mockResolvedValueOnce({
                 key: 'key-1',
                 value: record,
@@ -64,8 +58,8 @@ describe('KeyValueStore', () => {
 
         const response = await store.getValue('key-1');
 
-        expect(mockGetRecord).toBeCalledTimes(1);
-        expect(mockGetRecord).toBeCalledWith('key-1');
+        expect(mockGetValue).toHaveBeenCalledTimes(1);
+        expect(mockGetValue).toHaveBeenCalledWith('key-1');
         expect(response).toEqual(record);
 
         // Record Exists
@@ -76,31 +70,31 @@ describe('KeyValueStore', () => {
 
         const exists = await store.recordExists('key-1');
 
-        expect(mockRecordExists).toBeCalledTimes(1);
-        expect(mockRecordExists).toBeCalledWith('key-1');
+        expect(mockRecordExists).toHaveBeenCalledTimes(1);
+        expect(mockRecordExists).toHaveBeenCalledWith('key-1');
         expect(exists).toBe(true);
 
         // Delete Record
-        const mockDeleteRecord = vitest
+        const mockDeleteValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'deleteRecord')
+            .spyOn(store.client, 'deleteValue')
             .mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', null);
 
-        expect(mockDeleteRecord).toBeCalledTimes(1);
-        expect(mockDeleteRecord).toBeCalledWith('key-1');
+        expect(mockDeleteValue).toHaveBeenCalledTimes(1);
+        expect(mockDeleteValue).toHaveBeenCalledWith('key-1');
 
         // Drop store
-        const mockDelete = vitest
+        const mockDrop = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'delete')
+            .spyOn(store.client, 'drop')
             .mockResolvedValueOnce(undefined);
 
         await store.drop();
 
-        expect(mockDelete).toBeCalledTimes(1);
-        expect(mockDelete).toHaveBeenLastCalledWith();
+        expect(mockDrop).toHaveBeenCalledTimes(1);
+        expect(mockDrop).toHaveBeenLastCalledWith();
     });
 
     describe('getValue', () => {
@@ -127,13 +121,13 @@ describe('KeyValueStore', () => {
             getValueSpy.mockImplementationOnce(async () => 123);
 
             const val = await KeyValueStore.getValue('key-1');
-            expect(getValueSpy).toBeCalledTimes(1);
-            expect(getValueSpy).toBeCalledWith('key-1', undefined);
+            expect(getValueSpy).toHaveBeenCalledTimes(1);
+            expect(getValueSpy).toHaveBeenCalledWith('key-1', undefined);
             expect(val).toBe(123);
 
             const val2 = await KeyValueStore.getValue('key-2', 321);
-            expect(getValueSpy).toBeCalledTimes(2);
-            expect(getValueSpy).toBeCalledWith('key-2', 321);
+            expect(getValueSpy).toHaveBeenCalledTimes(2);
+            expect(getValueSpy).toHaveBeenCalledWith('key-2', 321);
             expect(val2).toBe(321);
         });
     });
@@ -162,8 +156,8 @@ describe('KeyValueStore', () => {
             recordExistsSpy.mockImplementationOnce(async () => false);
 
             const val = await KeyValueStore.recordExists('key-1');
-            expect(recordExistsSpy).toBeCalledTimes(1);
-            expect(recordExistsSpy).toBeCalledWith('key-1');
+            expect(recordExistsSpy).toHaveBeenCalledTimes(1);
+            expect(recordExistsSpy).toHaveBeenCalledWith('key-1');
             expect(val).toBe(false);
         });
     });
@@ -264,25 +258,19 @@ describe('KeyValueStore', () => {
         test('correctly adds charset to content type', async () => {
             const store = await createKeyValueStore('my-store-id-1');
 
-            const mockSetRecord = vitest
+            const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setRecord')
+                .spyOn(store.client, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
-            expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith(
-                {
-                    key: 'key-1',
-                    value: 'xxxx',
-                    contentType: 'text/plain; charset=utf-8',
-                },
-                {
-                    doNotRetryTimeouts: undefined,
-                    timeoutSecs: undefined,
-                },
-            );
+            expect(mockSetValue).toHaveBeenCalledTimes(1);
+            expect(mockSetValue).toHaveBeenCalledWith({
+                key: 'key-1',
+                value: 'xxxx',
+                contentType: 'text/plain; charset=utf-8',
+            });
         });
 
         test('correctly passes object values as JSON', async () => {
@@ -291,112 +279,64 @@ describe('KeyValueStore', () => {
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
 
-            const mockSetRecord = vitest
+            const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setRecord')
+                .spyOn(store.client, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', record);
 
-            expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith(
-                {
-                    key: 'key-1',
-                    value: recordStr,
-                    contentType: 'application/json; charset=utf-8',
-                },
-                {
-                    doNotRetryTimeouts: undefined,
-                    timeoutSecs: undefined,
-                },
-            );
-        });
-
-        test('correctly passes timeout options', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
-
-            const record = { foo: 'bar' };
-            const recordStr = JSON.stringify(record, null, 2);
-
-            const mockSetRecord = vitest
-                // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setRecord')
-                .mockResolvedValueOnce(undefined);
-
-            await store.setValue('key-1', record, {
-                timeoutSecs: 1,
-                doNotRetryTimeouts: true,
+            expect(mockSetValue).toHaveBeenCalledTimes(1);
+            expect(mockSetValue).toHaveBeenCalledWith({
+                key: 'key-1',
+                value: recordStr,
+                contentType: 'application/json; charset=utf-8',
             });
-
-            expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith(
-                {
-                    key: 'key-1',
-                    value: recordStr,
-                    contentType: 'application/json; charset=utf-8',
-                },
-                {
-                    doNotRetryTimeouts: true,
-                    timeoutSecs: 1,
-                },
-            );
         });
 
         test('correctly passes raw string values', async () => {
             const store = await createKeyValueStore('my-store-id-1');
 
-            const mockSetRecord = vitest
+            const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setRecord')
+                .spyOn(store.client, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
-            expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith(
-                {
-                    key: 'key-1',
-                    value: 'xxxx',
-                    contentType: 'text/plain; charset=utf-8',
-                },
-                {
-                    doNotRetryTimeouts: undefined,
-                    timeoutSecs: undefined,
-                },
-            );
+            expect(mockSetValue).toHaveBeenCalledTimes(1);
+            expect(mockSetValue).toHaveBeenCalledWith({
+                key: 'key-1',
+                value: 'xxxx',
+                contentType: 'text/plain; charset=utf-8',
+            });
         });
 
         test('correctly passes raw Buffer values', async () => {
             const store = await createKeyValueStore('my-store-id-1');
 
-            const mockSetRecord = vitest
+            const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setRecord')
+                .spyOn(store.client, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             const value = Buffer.from('some text value');
             await store.setValue('key-1', value, { contentType: 'image/jpeg; charset=something' });
 
-            expect(mockSetRecord).toBeCalledTimes(1);
-            expect(mockSetRecord).toBeCalledWith(
-                {
-                    key: 'key-1',
-                    value,
-                    contentType: 'image/jpeg; charset=something',
-                },
-                {
-                    doNotRetryTimeouts: undefined,
-                    timeoutSecs: undefined,
-                },
-            );
+            expect(mockSetValue).toHaveBeenCalledTimes(1);
+            expect(mockSetValue).toHaveBeenCalledWith({
+                key: 'key-1',
+                value,
+                contentType: 'image/jpeg; charset=something',
+            });
         });
 
         test('correctly passes a stream', async () => {
             const store = await createKeyValueStore('my-store-id-1');
 
-            const mockSetRecord = vitest
+            const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setRecord')
+                .spyOn(store.client, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             const value = new PassThrough();
@@ -405,18 +345,12 @@ describe('KeyValueStore', () => {
             value.end();
             value.destroy();
 
-            expect(mockSetRecord).toHaveBeenCalledTimes(1);
-            expect(mockSetRecord).toHaveBeenCalledWith(
-                {
-                    key: 'key-1',
-                    value,
-                    contentType: 'plain/text',
-                },
-                {
-                    doNotRetryTimeouts: undefined,
-                    timeoutSecs: undefined,
-                },
-            );
+            expect(mockSetValue).toHaveBeenCalledTimes(1);
+            expect(mockSetValue).toHaveBeenCalledWith({
+                key: 'key-1',
+                value,
+                contentType: 'plain/text',
+            });
         });
     });
 
@@ -447,7 +381,7 @@ describe('KeyValueStore', () => {
 
             const obj = {} as Dictionary;
             obj.self = obj;
-            expect(() => maybeStringify(obj, { contentType: null as any })).toThrowError(
+            expect(() => maybeStringify(obj, { contentType: null as any })).toThrow(
                 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON',
             );
         });
@@ -517,51 +451,23 @@ describe('KeyValueStore', () => {
 
             // @ts-expect-error Accessing private property
             const mockListKeys = vitest.spyOn(store.client, 'listKeys');
-            mockListKeys.mockResolvedValueOnce({
-                isTruncated: true,
-                exclusiveStartKey: 'key0',
-                nextExclusiveStartKey: 'key2',
-                items: [
-                    { key: 'key1', size: 1 },
-                    { key: 'key2', size: 2 },
-                ],
-                count: 2,
-                limit: 2,
-            });
-
-            mockListKeys.mockResolvedValueOnce({
-                isTruncated: true,
-                exclusiveStartKey: 'key0',
-                nextExclusiveStartKey: 'key4',
-                items: [
-                    { key: 'key3', size: 3 },
-                    { key: 'key4', size: 4 },
-                ],
-                count: 1,
-                limit: 2,
-            });
-
-            mockListKeys.mockResolvedValueOnce({
-                isTruncated: false,
-                exclusiveStartKey: 'key0',
-                nextExclusiveStartKey: undefined,
-                items: [{ key: 'key5', size: 5 }],
-                count: 1,
-                limit: 1,
-            });
+            mockListKeys.mockResolvedValueOnce([
+                { key: 'key1', size: 1 },
+                { key: 'key2', size: 2 },
+                { key: 'key3', size: 3 },
+                { key: 'key4', size: 4 },
+                { key: 'key5', size: 5 },
+            ]);
 
             const results: [string, number, { size: number }][] = [];
             await store.forEachKey(
                 async (key, index, info) => {
                     results.push([key, index, info]);
                 },
-                { exclusiveStartKey: 'key0', prefix: 'img/' },
+                { prefix: 'img/' },
             );
 
-            expect(mockListKeys).toBeCalledTimes(3);
-            expect(mockListKeys).toHaveBeenNthCalledWith(1, { exclusiveStartKey: 'key0', prefix: 'img/' });
-            expect(mockListKeys).toHaveBeenNthCalledWith(2, { exclusiveStartKey: 'key2', prefix: 'img/' });
-            expect(mockListKeys).toHaveBeenNthCalledWith(3, { exclusiveStartKey: 'key4', prefix: 'img/' });
+            expect(mockListKeys).toHaveBeenCalledTimes(1);
 
             expect(results).toHaveLength(5);
             results.forEach((r, i) => {

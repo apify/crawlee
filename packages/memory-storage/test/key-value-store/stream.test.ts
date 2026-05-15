@@ -12,11 +12,11 @@ describe('KeyValueStore should drain streams when setting records', () => {
     test('should drain stream', async () => {
         const defaultStore = await storage.createKeyValueStoreClient({ name: 'default' });
 
-        await defaultStore.setRecord({ key: 'streamz', value: fsStream, contentType: 'text/plain' });
+        await defaultStore.setValue({ key: 'streamz', value: fsStream, contentType: 'text/plain' });
 
         expect(fsStream.destroyed).toBeTruthy();
 
-        const record = await defaultStore.getRecord('streamz');
+        const record = await defaultStore.getValue('streamz');
         expect(record!.value.toString('utf8')).toEqual('helloworld');
     });
 });
