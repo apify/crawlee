@@ -1,7 +1,15 @@
 import type { IncomingMessage } from 'node:http';
 
 import type { AllowedHttpMethods, Dictionary } from '@crawlee/types';
-import ow from 'ow';
+import type owType from 'ow';
+
+import { lazyImport } from './lazy-import';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 interface BrowserResponseLike {
     status(): number;

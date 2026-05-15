@@ -1,8 +1,12 @@
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI, load } from 'cheerio';
-import * as cheerio from 'cheerio';
+import type * as cheerioType from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls';
+import { lazyImport } from './lazy-import';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const cheerio = lazyImport<typeof cheerioType>(() => require('cheerio'));
 
 /** @deprecated use CheerioAPI instead */
 export type CheerioRoot = ReturnType<typeof load>;

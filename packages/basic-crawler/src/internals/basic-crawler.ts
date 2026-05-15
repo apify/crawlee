@@ -55,12 +55,33 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import {
+    getObjectType,
+    isAsyncIterable,
+    isIterable,
+    lazyImport,
+    RobotsTxtFile,
+    ROTATE_PROXY_ERRORS,
+} from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
-import ow, { ArgumentError } from 'ow';
-import { getDomain } from 'tldts';
+import type owType from 'ow';
+import type * as tldtsType from 'tldts';
 import type { SetRequired } from 'type-fest';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
+const ArgumentError = lazyImport<typeof import('ow').ArgumentError>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('ow').ArgumentError,
+);
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const tldts = lazyImport<typeof tldtsType>(() => require('tldts'));
+const getDomain: typeof tldtsType.getDomain = ((...args: Parameters<typeof tldtsType.getDomain>) =>
+    tldts.getDomain(...args)) as typeof tldtsType.getDomain;
 
 import { LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';

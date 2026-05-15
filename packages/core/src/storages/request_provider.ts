@@ -15,10 +15,17 @@ import {
     getObjectType,
     isAsyncIterable,
     isIterable,
+    lazyImport,
     peekableAsyncIterable,
     sleep,
 } from '@crawlee/utils';
-import ow from 'ow';
+import type owType from 'ow';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';

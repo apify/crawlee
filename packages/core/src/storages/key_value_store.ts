@@ -2,8 +2,24 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
-import JSON5 from 'json5';
-import ow, { ArgumentError } from 'ow';
+import { lazyImport } from '@crawlee/utils';
+import type JSON5Type from 'json5';
+import type owType from 'ow';
+
+const JSON5 = lazyImport<typeof JSON5Type>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('json5');
+    return m.default ?? m;
+});
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
+const ArgumentError = lazyImport<typeof import('ow').ArgumentError>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('ow').ArgumentError,
+);
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import log from '@apify/log';

@@ -6,13 +6,22 @@ import { createGunzip } from 'node:zlib';
 
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types
 import type { Delays } from 'got-scraping';
-import sax from 'sax';
-import MIMEType from 'whatwg-mimetype';
+import type saxType from 'sax';
+import type MIMETypeClass from 'whatwg-mimetype';
 
 import log from '@apify/log';
 
 import { mergeAsyncIterables } from './iterables';
+import { lazyImport } from './lazy-import';
 import { RobotsFile } from './robots';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const sax = lazyImport<typeof saxType>(() => require('sax'));
+const MIMEType = lazyImport<typeof import('whatwg-mimetype').default>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('whatwg-mimetype');
+    return m.default ?? m;
+});
 
 interface SitemapUrlData {
     loc: string;
@@ -112,7 +121,7 @@ class SitemapXmlParser extends Transform {
         this.parser.onerror = this.destroy.bind(this);
     }
 
-    private onOpenTag(node: sax.Tag | sax.QualifiedTag) {
+    private onOpenTag(node: saxType.Tag | saxType.QualifiedTag) {
         if (this.rootTagName !== undefined) {
             if (
                 node.name === 'loc' ||
@@ -223,7 +232,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     const visitedSitemapUrls = new Set<string>();
 
     const createParser = (contentType = '', url?: URL): Duplex => {
-        let mimeType: MIMEType | null;
+        let mimeType: MIMETypeClass | null;
 
         try {
             mimeType = new MIMEType(contentType);

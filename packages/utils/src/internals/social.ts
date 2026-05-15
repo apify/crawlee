@@ -1,6 +1,10 @@
-import * as cheerio from 'cheerio';
+import type * as cheerioType from 'cheerio';
 
 import { htmlToText } from './cheerio';
+import { lazyImport } from './lazy-import';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const cheerio = lazyImport<typeof cheerioType>(() => require('cheerio'));
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 const EMAIL_REGEX_STRING =

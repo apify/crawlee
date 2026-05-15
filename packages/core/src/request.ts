@@ -3,10 +3,17 @@ import crypto from 'node:crypto';
 import util from 'node:util';
 
 import type { Dictionary } from '@crawlee/types';
+import { lazyImport } from '@crawlee/utils';
 import type { BasePredicate } from 'ow';
-import ow from 'ow';
+import type owType from 'ow';
 
 import { normalizeUrl } from '@apify/utilities';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
 import type { SkippedRequestReason } from './enqueue_links/shared';

@@ -6,10 +6,12 @@ import util from 'node:util';
 import type { Dictionary } from '@crawlee/types';
 
 import log from '@apify/log';
-// @ts-expect-error We need to add typings for @apify/ps-tree
-import psTree from '@apify/ps-tree';
 
 import { isDocker } from './general';
+import { lazyImport } from './lazy-import';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const psTree = lazyImport<(...args: any[]) => any>(() => require('@apify/ps-tree'));
 
 const MEMORY_FILE_PATHS = {
     TOTAL: {

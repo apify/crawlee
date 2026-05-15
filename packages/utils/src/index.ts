@@ -10,6 +10,7 @@ export * from './internals/typedefs';
 export * from './internals/open_graph_parser';
 export * from './internals/gotScraping';
 export * from './internals/iterables';
+export * from './internals/lazy-import';
 export * from './internals/robots';
 export * from './internals/sitemap';
 export * from './internals/url';

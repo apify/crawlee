@@ -1,8 +1,18 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type RobotsTxtFile } from '@crawlee/utils';
-import ow from 'ow';
-import { getDomain } from 'tldts';
+import { lazyImport, type RobotsTxtFile } from '@crawlee/utils';
+import type owType from 'ow';
+import type * as tldtsType from 'tldts';
 import type { SetRequired } from 'type-fest';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const tldts = lazyImport<typeof tldtsType>(() => require('tldts'));
+const getDomain: typeof tldtsType.getDomain = ((...args: Parameters<typeof tldtsType.getDomain>) =>
+    tldts.getDomain(...args)) as typeof tldtsType.getDomain;
 
 import log from '@apify/log';
 

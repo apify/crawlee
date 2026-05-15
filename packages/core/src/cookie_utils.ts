@@ -1,8 +1,26 @@
 import type { Cookie as CookieObject } from '@crawlee/types';
-import { Cookie, CookieJar } from 'tough-cookie';
+import { lazyImport } from '@crawlee/utils';
+import type { Cookie as CookieClass, CookieJar as CookieJarClass } from 'tough-cookie';
 
 import { log } from './log';
 import { CookieParseError } from './session_pool/errors';
+
+type Cookie = CookieClass;
+const Cookie = lazyImport<{
+    new (options?: any): CookieClass;
+    parse(s: string): CookieClass | undefined;
+}>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('tough-cookie').Cookie,
+);
+type CookieJar = CookieJarClass;
+const CookieJar = lazyImport<{
+    new (options?: any): CookieJarClass;
+    fromJSON(s: string): CookieJarClass;
+}>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('tough-cookie').CookieJar,
+);
 
 export interface ResponseLike {
     url?: string | (() => string);

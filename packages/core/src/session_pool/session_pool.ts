@@ -1,10 +1,17 @@
 import { EventEmitter } from 'node:events';
 
 import type { Dictionary } from '@crawlee/types';
+import { lazyImport } from '@crawlee/utils';
 import { AsyncQueue } from '@sapphire/async-queue';
-import ow from 'ow';
+import type owType from 'ow';
 
 import type { Log } from '@apify/log';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 import { Configuration } from '../configuration';
 import type { PersistenceOptions } from '../crawlers/statistics';

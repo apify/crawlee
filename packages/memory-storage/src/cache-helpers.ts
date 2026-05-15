@@ -2,13 +2,22 @@ import { access, opendir, readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
-import json5 from 'json5';
-import mimeTypes from 'mime-types';
+import type json5Type from 'json5';
+import type mimeTypesType from 'mime-types';
 
 import { DatasetFileSystemEntry } from './fs/dataset/fs';
 import { KeyValueFileSystemEntry } from './fs/key-value-store/fs';
 import { RequestQueueFileSystemEntry } from './fs/request-queue/fs';
+import { lazyImport } from './lazy-import';
 import { type MemoryStorage } from './memory-storage';
+
+const json5 = lazyImport<typeof json5Type>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('json5');
+    return m.default ?? m;
+});
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const mimeTypes = lazyImport<typeof mimeTypesType>(() => require('mime-types'));
 
 const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 

@@ -1,11 +1,25 @@
 import { EventEmitter } from 'node:events';
 
 import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
-import ow from 'ow';
-import type { Cookie, SerializedCookieJar } from 'tough-cookie';
-import { CookieJar } from 'tough-cookie';
+import { lazyImport } from '@crawlee/utils';
+import type owType from 'ow';
+import type { Cookie, CookieJar as CookieJarClass, SerializedCookieJar } from 'tough-cookie';
 
 import type { Log } from '@apify/log';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
+type CookieJar = CookieJarClass;
+const CookieJar = lazyImport<{
+    new (options?: any): CookieJarClass;
+    fromJSON(s: string): CookieJarClass;
+}>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('tough-cookie').CookieJar,
+);
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import type { ResponseLike } from '../cookie_utils';

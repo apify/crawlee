@@ -4,11 +4,15 @@ import { basename } from 'node:path/win32';
 
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
-import mime from 'mime-types';
+import type mimeType from 'mime-types';
 
 import { lockAndWrite } from '../../background-handler/fs-utils';
+import { lazyImport } from '../../lazy-import';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
 import { memoryStorageLog } from '../../utils';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const mime = lazyImport<typeof mimeType>(() => require('mime-types'));
 import type { StorageImplementation } from '../common';
 import type { CreateStorageImplementationOptions } from '.';
 

@@ -1,6 +1,13 @@
 import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
+import { lazyImport } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
-import ow from 'ow';
+import type owType from 'ow';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 

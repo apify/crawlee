@@ -8,6 +8,7 @@
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
+    "sideEffects": false,
     "exports": {
         ".": {
             "import": "./dist/index.mjs",

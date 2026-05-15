@@ -1,6 +1,13 @@
-import ow from 'ow';
+import { lazyImport } from '@crawlee/utils';
+import type owType from 'ow';
 
 import type { Log } from '@apify/log';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';

@@ -1,6 +1,16 @@
 import type { Dictionary } from '@crawlee/types';
-import { downloadListOfUrls } from '@crawlee/utils';
-import ow, { ArgumentError } from 'ow';
+import { downloadListOfUrls, lazyImport } from '@crawlee/utils';
+import type owType from 'ow';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
+const ArgumentError = lazyImport<typeof import('ow').ArgumentError>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('ow').ArgumentError,
+);
 
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events';

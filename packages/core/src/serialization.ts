@@ -2,8 +2,15 @@ import { pipeline as streamPipeline, Readable, Writable } from 'node:stream';
 import util from 'node:util';
 import zlib from 'node:zlib';
 
-import ow from 'ow';
+import { lazyImport } from '@crawlee/utils';
+import type owType from 'ow';
 import StreamArray from 'stream-json/streamers/StreamArray';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 const pipeline = util.promisify(streamPipeline);
 

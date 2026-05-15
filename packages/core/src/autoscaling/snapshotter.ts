@@ -1,7 +1,14 @@
 import type { StorageClient } from '@crawlee/types';
-import ow from 'ow';
+import { lazyImport } from '@crawlee/utils';
+import type owType from 'ow';
 
 import type { Log } from '@apify/log';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';

@@ -6,13 +6,17 @@ import { Readable } from 'node:stream';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
-import mime from 'mime-types';
+import type mimeType from 'mime-types';
 import pLimit from 'p-limit';
 
 import { scheduleBackgroundTask } from '../background-handler';
 import { maybeParseBody } from '../body-parser';
 import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
 import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
+import { lazyImport } from '../lazy-import';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const mime = lazyImport<typeof mimeType>(() => require('mime-types'));
 import type { StorageImplementation } from '../fs/common';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 import type { MemoryStorage } from '../index';

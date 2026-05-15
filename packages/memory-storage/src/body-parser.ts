@@ -1,5 +1,15 @@
-import contentTypeParser from 'content-type';
-import JSON5 from 'json5';
+import type contentTypeParserType from 'content-type';
+import type JSON5Type from 'json5';
+
+import { lazyImport } from './lazy-import';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const contentTypeParser = lazyImport<typeof contentTypeParserType>(() => require('content-type'));
+const JSON5 = lazyImport<typeof JSON5Type>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('json5');
+    return m.default ?? m;
+});
 
 const CONTENT_TYPE_JSON = 'application/json';
 const STRINGIFIABLE_CONTENT_TYPE_RXS = [new RegExp(`^${CONTENT_TYPE_JSON}$`, 'i'), /^application\/.*xml$/i, /^text\//i];

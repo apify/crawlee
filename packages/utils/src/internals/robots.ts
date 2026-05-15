@@ -1,10 +1,17 @@
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { HTTPError as HTTPErrorClass } from 'got-scraping';
 import type { Robot } from 'robots-parser';
-import robotsParser from 'robots-parser';
+import type robotsParserType from 'robots-parser';
 
 import { gotScraping } from './gotScraping';
+import { lazyImport } from './lazy-import';
 import { Sitemap } from './sitemap';
+
+const robotsParser = lazyImport<typeof robotsParserType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('robots-parser');
+    return m.default ?? m;
+});
 
 let HTTPError: typeof HTTPErrorClass;
 

@@ -1,7 +1,14 @@
-import ow from 'ow';
+import type owType from 'ow';
 
 import { URL_NO_COMMAS_REGEX } from './general';
 import { gotScraping } from './gotScraping';
+import { lazyImport } from './lazy-import';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 export interface DownloadListOfUrlsOptions {
     /**

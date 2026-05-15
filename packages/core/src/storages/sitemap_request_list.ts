@@ -1,9 +1,15 @@
 import { Transform } from 'node:stream';
 
-import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
+import { lazyImport, parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
-import ow from 'ow';
+import type owType from 'ow';
 import type { RequiredDeep } from 'type-fest';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 import defaultLog from '@apify/log';
 

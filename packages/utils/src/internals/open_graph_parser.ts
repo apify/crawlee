@@ -1,6 +1,12 @@
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI } from 'cheerio';
-import { load } from 'cheerio';
+import type { CheerioAPI, load as loadType } from 'cheerio';
+
+import { lazyImport } from './lazy-import';
+
+const load = lazyImport<typeof loadType>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('cheerio').load,
+);
 
 export interface OpenGraphProperty {
     name: string;

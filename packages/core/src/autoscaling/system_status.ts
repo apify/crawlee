@@ -1,6 +1,13 @@
-import ow from 'ow';
+import { lazyImport } from '@crawlee/utils';
+import type owType from 'ow';
 
 import type { Configuration } from '../configuration';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 import type { LoadSignal } from './load_signal';
 import { evaluateLoadSignalSample } from './load_signal';
 import { Snapshotter } from './snapshotter';

@@ -31,16 +31,34 @@ import {
 } from '@crawlee/basic';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
+import { type CheerioRoot, lazyImport, RETRY_CSS_SELECTORS } from '@crawlee/utils';
+import type * as cheerioType from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
-import contentTypeParser from 'content-type';
+import type contentTypeParserType from 'content-type';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { Method, OptionsInit, TimeoutError as TimeoutErrorClass } from 'got-scraping';
-import iconv from 'iconv-lite';
-import mime from 'mime-types';
-import ow, { ObjectPredicate } from 'ow';
+import type iconvType from 'iconv-lite';
+import type mimeType from 'mime-types';
+import type owType from 'ow';
 import type { JsonValue } from 'type-fest';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const cheerio = lazyImport<typeof cheerioType>(() => require('cheerio'));
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const contentTypeParser = lazyImport<typeof contentTypeParserType>(() => require('content-type'));
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const iconv = lazyImport<typeof iconvType>(() => require('iconv-lite'));
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+const mime = lazyImport<typeof mimeType>(() => require('mime-types'));
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
+const ObjectPredicate = lazyImport<typeof import('ow').ObjectPredicate>(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    () => require('ow').ObjectPredicate,
+);
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';

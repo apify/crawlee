@@ -1,5 +1,12 @@
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
+import { lazyImport } from '@crawlee/utils';
+import type owType from 'ow';
+
+const ow = lazyImport<typeof owType>(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+    const m = require('ow');
+    return m.default ?? m;
+});
 
 /** @internal */
 export const validators = {
