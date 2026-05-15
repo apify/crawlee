@@ -11,9 +11,7 @@ overrides:
   lerna>minimatch: ^3.1.4
 
 patchedDependencies:
-  '@docusaurus/core@3.9.2':
-    hash: 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
-    path: patches/@docusaurus__core@3.9.2.patch
+  '@docusaurus/core@3.9.2': 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
 
 importers:
 

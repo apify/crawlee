@@ -106,9 +106,9 @@ const count = await sessionPool.usableSessionsCount();
 const state = await sessionPool.getState();
 ```
 
-## Custom `createSessionFunction` receives merged session options
+## `createSessionFunction` signature has changed
 
-`SessionPool` now merges its pool-wide `sessionOptions` (including the pool-scoped logger) with per-call overrides before invoking `createSessionFunction`. Custom implementations no longer need to spread `pool.sessionOptions` themselves to inherit pool defaults.
+The pool-wide `sessionOptions` are now merged with per-call overrides before `createSessionFunction` is invoked, and the leading `sessionPool` argument is gone — it was only useful to pass to `new Session({ sessionPool })`, and `Session` no longer keeps a back-reference to the pool. The new signature is `(options?: { sessionOptions?: SessionOptions }) => Session | Promise<Session>`.
 
 **Before:**
 ```typescript
@@ -116,7 +116,7 @@ new SessionPool({
     sessionOptions: { maxUsageCount: 5 },
     createSessionFunction: async (pool, opts) =>
         new Session({
-            ...pool.sessionOptions, // had to be spread manually for the logger / pool defaults to apply
+            ...pool.sessionOptions, // had to be spread manually for pool defaults to apply
             ...opts?.sessionOptions,
             sessionPool: pool,
         }),
@@ -127,14 +127,18 @@ new SessionPool({
 ```typescript
 new SessionPool({
     sessionOptions: { maxUsageCount: 5 },
-    createSessionFunction: async (_pool, opts) =>
+    createSessionFunction: async (opts) =>
         new Session({
             ...opts?.sessionOptions, // already merged with pool-wide defaults
         }),
 });
 ```
 
-If you were already spreading `pool.sessionOptions`, the change is harmless - pool defaults now appear twice in the spread chain, with the later (per-call) one winning, exactly as before.
+## `Session` no longer requires a `sessionPool` reference
+
+`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported.
+
+If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
 
 ## `Session` no longer requires a `sessionPool` reference
 

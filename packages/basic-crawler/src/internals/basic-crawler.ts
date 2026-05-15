@@ -879,7 +879,7 @@ export class BasicCrawler<
                 this.sessionPool = sessionPool;
             } else {
                 this.ownedSessionPool = new SessionPool({
-                    createSessionFunction: async (_pool, opts) =>
+                    createSessionFunction: async (opts) =>
                         new Session({
                             ...opts?.sessionOptions,
                             proxyInfo:

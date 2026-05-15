@@ -404,6 +404,9 @@ export abstract class BrowserCrawler<
                 registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
             }) => {
                 context.registerDeferredCleanup(async () => {
+                    // In non-incognito mode the browser controller carries the session's cookies
+                    // and storage across pages. If the session is no longer usable, retire the
+                    // controller so its state can't leak into whichever session lands on it next.
                     if (!context.session.isUsable()) {
                         this.browserPool.retireBrowserController(
                             context.browserController as Parameters<

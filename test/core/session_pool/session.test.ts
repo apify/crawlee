@@ -86,6 +86,18 @@ describe('Session - testing session behaviour', () => {
         expect(session.isUsable()).toBe(false);
     });
 
+    test('retire() is idempotent', () => {
+        session.retire();
+        const errorScore = session.errorScore;
+        const usageCount = session.usageCount;
+
+        session.retire();
+        session.retire();
+
+        expect(session.errorScore).toBe(errorScore);
+        expect(session.usageCount).toBe(usageCount);
+    });
+
     test('should retire session after marking bad', () => {
         // @ts-expect-error Private property
         vitest.spyOn(session, '_maybeSelfRetire');
@@ -293,6 +305,26 @@ describe('Session - testing session behaviour', () => {
             cookies = newSession.getCookieString(url);
             expect(cookies).toEqual('CSRF=e8b667; id=a3fWa; ABCD=1231231213');
         });
+    });
+
+    test('retired state survives a getState() / new Session() round-trip', () => {
+        session.retire();
+
+        const old = session.getState();
+        expect(old.retired).toBe(true);
+
+        // @ts-expect-error Overriding string -> Date
+        old.createdAt = new Date(old.createdAt);
+        // @ts-expect-error Overriding string -> Date
+        old.expiresAt = new Date(old.expiresAt);
+
+        // @ts-expect-error string -> Date for createdAt has been overridden
+        const reinitialized = new Session({ ...old });
+        expect(reinitialized.retired).toBe(true);
+        expect(reinitialized.isUsable()).toBe(false);
+
+        reinitialized.markGood();
+        expect(reinitialized.isUsable()).toBe(false);
     });
 
     test('should correctly persist and init cookieJar', () => {
