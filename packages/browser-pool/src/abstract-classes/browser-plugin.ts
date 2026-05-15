@@ -4,6 +4,7 @@ import merge from 'lodash.merge';
 
 import type { LaunchContextOptions } from '../launch-context.js';
 import { LaunchContext } from '../launch-context.js';
+import { RemoteBrowserProvider } from '../remote-browser-provider.js';
 import type { UnwrapPromise } from '../utils.js';
 import type { BrowserController } from './browser-controller.js';
 
@@ -44,6 +45,71 @@ export interface CommonPage {
     url(): string | Promise<string>;
 }
 
+/**
+ * Return type for dynamic endpoint functions that need to pass session
+ * metadata to the `release()` callback.
+ */
+export interface RemoteBrowserEndpointResult {
+    /** The browser endpoint URL to connect to. */
+    url: string;
+    /** Opaque metadata passed back to `release()` — e.g. session IDs, API tokens. */
+    context?: Record<string, unknown>;
+}
+
+/**
+ * Configuration for connecting to a remote browser service.
+ *
+ * **Static endpoint (e.g. Browserless):**
+ * ```typescript
+ * { endpoint: 'wss://browserless.io?token=xxx' }
+ * ```
+ *
+ * **Dynamic endpoint with lifecycle (e.g. Browserbase):**
+ * ```typescript
+ * {
+ *     endpoint: async () => {
+ *         const session = await createSession();
+ *         return { url: session.connectUrl, context: { id: session.id } };
+ *     },
+ *     release: async ({ context }) => {
+ *         await releaseSession(context.id);
+ *     },
+ * }
+ * ```
+ */
+export interface RemoteBrowserConfig {
+    /**
+     * The browser endpoint URL, or an async function that returns one.
+     * When a function is provided, it is called once per browser launch (not per page).
+     *
+     * Can return a plain string or an object with `url` and optional `context`
+     * that will be forwarded to `release()`.
+     */
+    endpoint:
+        | string
+        | ((options?: {
+              proxyUrl?: string;
+          }) => string | RemoteBrowserEndpointResult | Promise<string | RemoteBrowserEndpointResult>);
+    /**
+     * Optional cleanup function called when the browser closes, crashes, or the pool is destroyed.
+     * Receives the resolved endpoint URL and the `context` object returned by `endpoint()`.
+     * Errors are caught and logged as warnings — they never crash the crawler.
+     */
+    release?: (info: { endpoint: string; context?: Record<string, unknown> }) => void | Promise<void>;
+    /**
+     * Connection type. Subclass interfaces narrow this further
+     * (e.g. Puppeteer only allows `'cdp'`).
+     * @default 'cdp'
+     */
+    type?: 'cdp' | 'websocket';
+    /**
+     * Maximum number of browsers that can be open at the same time.
+     * When the limit is reached, the crawler waits for a browser to close before launching a new one.
+     * Set this to your remote service's concurrent session limit to avoid 429 errors.
+     */
+    maxOpenBrowsers?: number;
+}
+
 export interface BrowserPluginOptions<LibraryOptions> {
     /**
      * Options that will be passed down to the automation library. E.g.
@@ -81,6 +147,15 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * This is useful when using HTTPS proxies with self-signed certificates.
      */
     ignoreProxyCertificate?: boolean;
+    /**
+     * Configuration for connecting to a remote browser service.
+     * When set, the plugin connects to a remote browser instead of launching a local one.
+     *
+     * Accepts either a {@link RemoteBrowserConfig} object or a {@link RemoteBrowserProvider} instance.
+     *
+     * Takes precedence over `connectOverCDPOptions` / `connectOptions` if both are set.
+     */
+    remoteBrowser?: RemoteBrowserConfig | RemoteBrowserProvider<any>;
 }
 
 export interface CreateLaunchContextOptions<
@@ -116,6 +191,7 @@ export abstract class BrowserPlugin<
     browserPerProxy?: boolean;
 
     ignoreProxyCertificate?: boolean;
+    remoteBrowser?: RemoteBrowserConfig;
 
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
         const {
@@ -125,6 +201,7 @@ export abstract class BrowserPlugin<
             useIncognitoPages = false,
             browserPerProxy = false,
             ignoreProxyCertificate = false,
+            remoteBrowser,
         } = options;
 
         this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
@@ -135,6 +212,53 @@ export abstract class BrowserPlugin<
         this.useIncognitoPages = useIncognitoPages;
         this.browserPerProxy = browserPerProxy;
         this.ignoreProxyCertificate = ignoreProxyCertificate;
+
+        // Normalize RemoteBrowserProvider instances into a plain RemoteBrowserConfig
+        // so all downstream code only deals with the config shape.
+        if (remoteBrowser instanceof RemoteBrowserProvider) {
+            const provider = remoteBrowser;
+            this.remoteBrowser = {
+                endpoint: (options) => provider.connect(options),
+                release: ({ context }) => provider.release(context as any),
+                type: provider.type,
+                maxOpenBrowsers: provider.maxOpenBrowsers,
+            };
+        } else {
+            this.remoteBrowser = remoteBrowser;
+        }
+    }
+
+    /** Resolves the remote browser endpoint from a string or function. Returns { url, context }. */
+    protected async _resolveRemoteEndpoint(options?: { proxyUrl?: string }): Promise<RemoteBrowserEndpointResult> {
+        const { endpoint } = this.remoteBrowser!;
+        const result = typeof endpoint === 'function' ? await endpoint(options) : endpoint;
+        if (typeof result === 'string') {
+            return { url: result };
+        }
+        return result;
+    }
+
+    /** @internal Called by BrowserController on browser close/kill. */
+    async _callRelease(endpoint: string, context?: Record<string, unknown>): Promise<void> {
+        try {
+            await this.remoteBrowser?.release?.({ endpoint, context });
+        } catch (err) {
+            this.log.warning('remoteBrowser.release() failed.', { error: (err as Error)?.message });
+        }
+    }
+
+    /** Strips credentials from a URL for safe logging. */
+    protected _sanitizeEndpointForLog(endpoint: string): string {
+        try {
+            const url = new URL(endpoint);
+            if (url.username || url.password) {
+                url.username = '***';
+                url.password = '***';
+            }
+            return url.toString();
+        } catch {
+            return '<invalid URL>';
+        }
     }
 
     /**
@@ -154,6 +278,7 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
+            isRemote,
         } = options;
 
         return new LaunchContext({
@@ -165,6 +290,7 @@ export abstract class BrowserPlugin<
             userDataDir,
             browserPerProxy,
             ignoreProxyCertificate,
+            isRemote,
         });
     }
 
@@ -188,15 +314,31 @@ export abstract class BrowserPlugin<
             NewPageResult
         > = this.createLaunchContext(),
     ): Promise<LaunchResult> {
+        // launchOptions is only used by the local launch path below — remote connections ignore it.
         launchContext.launchOptions ??= {} as LibraryOptions;
 
         const { proxyUrl, launchOptions } = launchContext;
 
-        if (proxyUrl) {
+        if (proxyUrl && launchContext.isRemote) {
+            this.log.info(
+                'proxyUrl is set for a remote browser connection. ' +
+                    "It will be forwarded to the remote browser provider's connect() method. " +
+                    "Make sure your provider handles it (e.g. passes it to the service's proxy API).",
+            );
+        }
+
+        if (launchContext.userDataDir && launchContext.isRemote) {
+            this.log.warning(
+                'userDataDir is set but will be ignored for remote browser connections. ' +
+                    "Use your remote browser service's persistence API instead (e.g. Browserbase Contexts, Steel Profiles).",
+            );
+        }
+
+        if (proxyUrl && !launchContext.isRemote) {
             await this._addProxyToLaunchOptions(launchContext);
         }
 
-        if (this._isChromiumBasedBrowser(launchContext)) {
+        if (!launchContext.isRemote && this._isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
             (launchOptions as Dictionary).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
@@ -206,6 +348,10 @@ export abstract class BrowserPlugin<
             if (launchOptions!.headless && !launchContext.fingerprint && !userAgent) {
                 launchOptions!.args.push(`--user-agent=${DEFAULT_USER_AGENT}`);
             }
+        }
+
+        if (launchContext.isRemote) {
+            this.log.info('Connecting to remote browser (skipping local proxy and webdriver stealth configuration).');
         }
 
         return this._launch(launchContext);

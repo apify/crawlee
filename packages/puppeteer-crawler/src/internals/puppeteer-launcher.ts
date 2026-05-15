@@ -1,6 +1,8 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { PuppeteerConnectOverCDPOptions, RemoteBrowserConfig, RemoteBrowserProvider } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import ow from 'ow';
 import type { Browser } from 'puppeteer';
 
@@ -65,6 +67,39 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
      * @default false
      */
     useIncognitoPages?: boolean;
+
+    /**
+     * Options for connecting to a remote browser via CDP.
+     * When provided, the browser will be connected to using `puppeteer.connect()` instead of launched.
+     */
+    connectOverCDPOptions?: PuppeteerConnectOverCDPOptions;
+
+    /**
+     * Configuration for connecting to a remote browser service.
+     * Supports both static endpoint URLs and dynamic session creation functions.
+     *
+     * Takes precedence over `connectOverCDPOptions` if both are set.
+     *
+     * @example
+     * ```typescript
+     * {
+     *     endpoint: 'wss://browserless.io?token=xxx',
+     * }
+     * ```
+     */
+    remoteBrowser?: PuppeteerRemoteBrowserConfig | RemoteBrowserProvider<any>;
+}
+
+/**
+ * Remote browser configuration for Puppeteer crawlers.
+ * Only CDP connections are supported (Puppeteer does not have a WebSocket connection mode).
+ */
+export interface PuppeteerRemoteBrowserConfig extends RemoteBrowserConfig {
+    /**
+     * Connection type. Only `'cdp'` is supported for Puppeteer.
+     * @default 'cdp'
+     */
+    type?: 'cdp';
 }
 
 /**
@@ -75,6 +110,8 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
+        connectOverCDPOptions: ow.optional.object,
+        remoteBrowser: ow.optional.object,
     };
 
     /**
@@ -100,6 +137,27 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         );
 
         this.Plugin = PuppeteerPlugin;
+
+        if (
+            launchContext.connectOverCDPOptions &&
+            (launchContext.useChrome || (launchContext.launchOptions as Record<string, unknown>)?.executablePath)
+        ) {
+            const log = serviceLocator.getLogger().child({ prefix: 'PuppeteerLauncher' });
+
+            if (launchContext.useChrome) {
+                log.warning(
+                    'useChrome is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+
+            if ((launchContext.launchOptions as Record<string, unknown>)?.executablePath) {
+                log.warning(
+                    'executablePath is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+        }
     }
 
     protected override _getDefaultHeadlessOption(): boolean {

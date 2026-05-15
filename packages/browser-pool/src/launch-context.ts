@@ -56,6 +56,12 @@ export interface LaunchContextOptions<
      * This is useful when using HTTPS proxies with self-signed certificates.
      */
     ignoreProxyCertificate?: boolean;
+    /**
+     * Whether this launch context represents a connection to a remote browser
+     * rather than a locally launched one.
+     * @default false
+     */
+    isRemote?: boolean;
 }
 
 export class LaunchContext<
@@ -71,6 +77,7 @@ export class LaunchContext<
     useIncognitoPages: boolean;
     browserPerProxy?: boolean;
     userDataDir: string;
+    readonly isRemote: boolean;
     ignoreProxyCertificate?: boolean;
 
     private _proxyUrl?: string;
@@ -89,6 +96,7 @@ export class LaunchContext<
             browserPerProxy,
             userDataDir = '',
             ignoreProxyCertificate,
+            isRemote,
         } = options;
 
         this.id = id;
@@ -98,6 +106,7 @@ export class LaunchContext<
         this.useIncognitoPages = useIncognitoPages ?? false;
         this.userDataDir = userDataDir;
         this.ignoreProxyCertificate = ignoreProxyCertificate ?? false;
+        this.isRemote = isRemote ?? false;
 
         this._proxyUrl = proxyUrl;
     }

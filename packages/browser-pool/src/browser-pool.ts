@@ -303,6 +303,7 @@ export class BrowserPool<
 > extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>> {
     browserPlugins: BrowserPlugins;
     maxOpenPagesPerBrowser: number;
+    maxOpenBrowsers: number;
     retireBrowserAfterPageCount: number;
     operationTimeoutMillis: number;
     closeInactiveBrowserAfterMillis: number;
@@ -395,6 +396,7 @@ export class BrowserPool<
 
         this.browserPlugins = browserPlugins as unknown as BrowserPlugins;
         this.maxOpenPagesPerBrowser = maxOpenPagesPerBrowser;
+        this.maxOpenBrowsers = Infinity;
         this.retireBrowserAfterPageCount = retireBrowserAfterPageCount;
         this.operationTimeoutMillis = operationTimeoutSecs * 1000;
         this.closeInactiveBrowserAfterMillis = closeInactiveBrowserAfterSecs * 1000;
@@ -852,6 +854,28 @@ export class BrowserPool<
                 });
             }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
         }
+    }
+
+    /**
+     * Returns `true` if the pool can accept a new browser launch without exceeding
+     * {@link BrowserPoolOptions.maxOpenBrowsers}. Counts starting, active, and retired browsers.
+     */
+    hasFreeBrowserSlot(): boolean {
+        const total =
+            this.startingBrowserControllers.size +
+            this.activeBrowserControllers.size +
+            this.retiredBrowserControllers.size;
+        return total < this.maxOpenBrowsers;
+    }
+
+    /**
+     * Returns `true` if any active browser has room for another page.
+     */
+    hasActiveBrowserWithFreeCapacity(): boolean {
+        for (const controller of this.activeBrowserControllers) {
+            if (controller.activePages < this.maxOpenPagesPerBrowser) return true;
+        }
+        return false;
     }
 
     private _initializeFingerprinting(): void {

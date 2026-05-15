@@ -1,6 +1,13 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
+import type {
+    PlaywrightConnectOptions,
+    PlaywrightConnectOverCDPOptions,
+    RemoteBrowserConfig,
+    RemoteBrowserProvider,
+} from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import ow from 'ow';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
 
@@ -70,6 +77,47 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
      * If you want to use a different browser you can pass it by this property as e.g. `require("playwright").firefox`
      */
     launcher?: BrowserType;
+
+    /**
+     * Options for connecting to a remote browser via WebSocket.
+     * When provided, the browser will be connected to using `browserType.connect()` instead of launched.
+     */
+    connectOptions?: PlaywrightConnectOptions;
+
+    /**
+     * Options for connecting to a remote browser via CDP.
+     * When provided, the browser will be connected to using `browserType.connectOverCDP()` instead of launched.
+     */
+    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
+
+    /**
+     * Configuration for connecting to a remote browser service.
+     * Supports both static endpoint URLs and dynamic session creation functions.
+     *
+     * Takes precedence over `connectOverCDPOptions` / `connectOptions` if both are set.
+     *
+     * @example
+     * ```typescript
+     * {
+     *     endpoint: 'wss://browserless.io?token=xxx',
+     *     type: 'cdp', // or 'websocket'
+     * }
+     * ```
+     */
+    remoteBrowser?: PlaywrightRemoteBrowserConfig | RemoteBrowserProvider<any>;
+}
+
+/**
+ * Remote browser configuration for Playwright crawlers.
+ * Supports both CDP and WebSocket connection types.
+ */
+export interface PlaywrightRemoteBrowserConfig extends RemoteBrowserConfig {
+    /**
+     * Connection type to use. `'cdp'` uses `browserType.connectOverCDP()`,
+     * `'websocket'` uses `browserType.connect()`.
+     * @default 'cdp'
+     */
+    type?: 'cdp' | 'websocket';
 }
 
 /**
@@ -81,6 +129,9 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
         launchContextOptions: ow.optional.object,
+        connectOptions: ow.optional.object,
+        connectOverCDPOptions: ow.optional.object,
+        remoteBrowser: ow.optional.object,
     };
 
     /**
@@ -114,6 +165,26 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         );
 
         this.Plugin = PlaywrightPlugin;
+
+        const connectOptionsPresent = !!(launchContext.connectOptions || launchContext.connectOverCDPOptions);
+
+        if (connectOptionsPresent && (launchContext.useChrome || launchContext.launchOptions?.executablePath)) {
+            const log = serviceLocator.getLogger().child({ prefix: 'PlaywrightLauncher' });
+
+            if (launchContext.useChrome) {
+                log.warning(
+                    'useChrome is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+
+            if (launchContext.launchOptions?.executablePath) {
+                log.warning(
+                    'executablePath is set but will be ignored for remote browser connections. ' +
+                        'The remote service controls which browser binary is used.',
+                );
+            }
+        }
     }
 }
 

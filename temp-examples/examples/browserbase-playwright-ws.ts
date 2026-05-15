@@ -1,0 +1,54 @@
+import 'dotenv/config';
+
+import { RemoteBrowserProvider } from '@crawlee/browser-pool';
+import { PlaywrightCrawler } from 'crawlee';
+
+const apiKey = process.env.BROWSERBASE_API_KEY;
+const projectId = process.env.BROWSERBASE_PROJECT_ID;
+
+if (!apiKey) throw new Error('BROWSERBASE_API_KEY env variable is required');
+if (!projectId) throw new Error('BROWSERBASE_PROJECT_ID env variable is required');
+
+class BrowserbaseWsProvider extends RemoteBrowserProvider<{ id: string }> {
+    override type = 'websocket' as const;
+
+    async connect() {
+        const response = await fetch('https://api.browserbase.com/v1/sessions', {
+            method: 'POST',
+            headers: { 'x-bb-api-key': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to create Browserbase session: ${response.status} ${response.statusText}`);
+        }
+
+        const session = await response.json();
+        console.log(`>>> Session created: ${session.id}`);
+
+        const url = `wss://connect.browserbase.com?apiKey=${apiKey}&sessionId=${session.id}`;
+        return { url, context: { id: session.id } };
+    }
+
+    async release({ id }: { id: string }) {
+        await fetch(`https://api.browserbase.com/v1/sessions/${id}`, {
+            method: 'POST',
+            headers: { 'x-bb-api-key': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'REQUEST_RELEASE' }),
+        }).catch(() => {});
+        console.log(`<<< Session released: ${id}`);
+    }
+}
+
+const crawler = new PlaywrightCrawler({
+    launchContext: {
+        remoteBrowser: new BrowserbaseWsProvider(),
+    },
+    maxRequestsPerCrawl: 1,
+    async requestHandler({ page, request }) {
+        const title = await page.title();
+        console.log(`[Page] ${request.loadedUrl} — "${title}"`);
+    },
+});
+
+await crawler.run(['https://example.com']);

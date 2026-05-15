@@ -135,6 +135,7 @@ export abstract class BrowserController<
             this.log.debug(`Could not close browser.\nCause: ${(error as Error).message}`, { id: this.id });
         }
 
+        await this._releaseRemoteBrowser();
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
 
         setTimeout(() => {
@@ -152,7 +153,24 @@ export abstract class BrowserController<
     async kill(): Promise<void> {
         await this.hasBrowserPromise;
         await this._kill();
+        await this._releaseRemoteBrowser();
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
+    }
+
+    /**
+     * Calls `remoteBrowser.release()` if configured. Safe to call multiple times —
+     * clears the endpoint after the first call so release only fires once.
+     */
+    private async _releaseRemoteBrowser(): Promise<void> {
+        const endpoint = this.launchContext?._resolvedRemoteEndpoint as string | undefined;
+        if (!endpoint) return;
+
+        const context = this.launchContext._remoteContext as Record<string, unknown> | undefined;
+
+        // Clear so release only fires once (close() schedules kill() after timeout)
+        this.launchContext.extend({ _resolvedRemoteEndpoint: undefined, _remoteContext: undefined });
+
+        await this.browserPlugin._callRelease(endpoint, context);
     }
 
     /**
