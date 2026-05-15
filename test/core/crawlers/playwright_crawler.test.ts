@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
-import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
+import { PlaywrightCrawler, RequestList, SKIP_BLOCKED_STATUS_CODE_CHECK } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
@@ -32,6 +32,9 @@ describe('PlaywrightCrawler', () => {
         app.get('/', (_req, res) => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
             res.status(200);
+        });
+        app.get('/blocked-403', (_req, res) => {
+            res.status(403).send(`<html><head><title>Blocked</title></head><body>nope</body></html>`);
         });
     });
 
@@ -193,6 +196,54 @@ describe('PlaywrightCrawler', () => {
             expect(reducedMotion).toBe(launchOptions.reducedMotion);
         },
     );
+
+    describe('SKIP_BLOCKED_STATUS_CODE_CHECK', () => {
+        test('reaches the request handler on a 403 when set in a postNavigationHook', async () => {
+            const requestHandler = vi.fn(async (_ctx: PlaywrightCrawlingContext) => {});
+            const failedRequestHandler = vi.fn(async () => {});
+
+            const crawler = new PlaywrightCrawler({
+                requestList: await RequestList.open(`skip-flag-set-${Math.random()}`, [
+                    `http://${HOSTNAME}:${port}/blocked-403`,
+                ]),
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                postNavigationHooks: [
+                    async (ctx) => {
+                        ctx[SKIP_BLOCKED_STATUS_CODE_CHECK] = true;
+                    },
+                ],
+                requestHandler,
+                failedRequestHandler,
+            });
+
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalledOnce();
+            expect(requestHandler.mock.calls[0][0].response!.status()).toBe(403);
+            expect(failedRequestHandler).not.toHaveBeenCalled();
+        });
+
+        test('skips the request handler on a 403 when not set', async () => {
+            const requestHandler = vi.fn(async (_ctx: PlaywrightCrawlingContext) => {});
+            const failedRequestHandler = vi.fn(async () => {});
+
+            const crawler = new PlaywrightCrawler({
+                requestList: await RequestList.open(`skip-flag-unset-${Math.random()}`, [
+                    `http://${HOSTNAME}:${port}/blocked-403`,
+                ]),
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                requestHandler,
+                failedRequestHandler,
+            });
+
+            await crawler.run();
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(failedRequestHandler).toHaveBeenCalledOnce();
+        });
+    });
 
     test('should have correct types in crawling context', async () => {
         const requestHandler = async (crawlingContext: PlaywrightCrawlingContext) => {

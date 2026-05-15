@@ -6,7 +6,7 @@ import type {
     RequestHandler,
     RouterRoutes,
 } from '@crawlee/browser';
-import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserCrawler, RequestState, Router, serviceLocator, SKIP_BLOCKED_STATUS_CODE_CHECK } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
@@ -292,12 +292,17 @@ export class PlaywrightCrawler<
             compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
             closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
-                return playwrightUtils.handleCloudflareChallenge(
+                const handled = await playwrightUtils.handleCloudflareChallenge(
                     context.page,
                     context.request.url,
                     options,
-                    this.blockedStatusCodes,
                 );
+                if (handled) {
+                    // A challenge was detected and solved; the original (403) navigation response
+                    // should not be treated as blocked by `BrowserCrawler.processResponse`.
+                    context[SKIP_BLOCKED_STATUS_CODE_CHECK] = true;
+                }
+                return handled;
             },
         };
     }

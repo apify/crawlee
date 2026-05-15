@@ -52,6 +52,13 @@ interface BaseResponse {
 
 type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 
+/**
+ * Marker set on a {@link BrowserCrawlingContext} by a post-navigation hook to opt out of the
+ * blocked-status-code check in {@link BrowserCrawler.processResponse}. Used by helpers like
+ * `handleCloudflareChallenge` that recover from a "blocked" initial response.
+ */
+export const SKIP_BLOCKED_STATUS_CODE_CHECK = Symbol('SKIP_BLOCKED_STATUS_CODE_CHECK');
+
 export interface BrowserCrawlingContext<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
@@ -82,6 +89,12 @@ export interface BrowserCrawlingContext<
      * Helper function for extracting URLs from the current page and adding them to the request queue.
      */
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+
+    /**
+     * Marker that, when set by a post-navigation hook, makes {@link BrowserCrawler.processResponse} skip
+     * the blocked-status-code check for this request. See {@link SKIP_BLOCKED_STATUS_CODE_CHECK}.
+     */
+    [SKIP_BLOCKED_STATUS_CODE_CHECK]?: boolean;
 }
 
 export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Dictionary | undefined = Dictionary> = (
@@ -663,7 +676,9 @@ export abstract class BrowserCrawler<
 
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
-                this._throwOnBlockedRequest(response.status());
+                if (!crawlingContext[SKIP_BLOCKED_STATUS_CODE_CHECK]) {
+                    this._throwOnBlockedRequest(response.status());
+                }
             } else {
                 this.log.debug('Got a malformed Browser response.', { request, response });
             }
