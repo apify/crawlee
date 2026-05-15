@@ -456,6 +456,8 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         }
 
         const { batchSize = 1000, waitBetweenBatchesMillis = 1000, maxNewRequests } = options;
+        const shouldCollectExactRequestsOverLimit =
+            maxNewRequests !== undefined && (!isAsyncIterable(requests) || options.waitForAllRequestsToBeAdded);
 
         let remainingBudget = maxNewRequests ?? Infinity;
         const requestsOverLimit: Source[] = [];
@@ -507,8 +509,9 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         };
 
         /**
-         * Build the final result. When maxNewRequests is set, drains any remaining items
-         * from the underlying request iterator into requestsOverLimit.
+         * Build the final result. When maxNewRequests is set for a materialized source (or when the caller
+         * explicitly asked to wait for all requests), drains any remaining items from the underlying request
+         * iterator into requestsOverLimit.
          *
          * We accept the iterator explicitly (rather than closing over it) to make it obvious
          * that this is the *same* iterator that `chunkedAsyncIterable` has been consuming —
@@ -521,7 +524,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>,
             unconsumedIterator: AsyncGenerator<RequestOptions>,
         ): Promise<AddRequestsBatchedResult> => {
-            if (maxNewRequests !== undefined) {
+            if (shouldCollectExactRequestsOverLimit) {
                 for await (const request of unconsumedIterator) {
                     requestsOverLimit.push(request);
                 }
@@ -561,8 +564,8 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             this.inProgressRequestBatchCount -= 1;
         });
 
-        // When maxNewRequests is set, we must wait for all batches so we can accurately report skipped requests.
-        if (options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined) {
+        // When exact requestsOverLimit reporting is requested, we need to await the background work.
+        if (options.waitForAllRequestsToBeAdded || shouldCollectExactRequestsOverLimit) {
             addedRequests.push(...(await promise));
         }
 
@@ -1031,8 +1034,10 @@ export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions 
      *
      * This is useful in combination with `maxRequestsPerCrawl` to avoid duplicate URLs consuming the budget.
      *
-     * **Note:** Setting this option implicitly enables {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`},
-     * since all batches must complete before leftover requests can be accurately reported.
+     * **Note:** For async iterables, exact `requestsOverLimit` reporting is only available when
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`}
+     * is set to `true`. Otherwise, Crawlee returns as soon as the budget is exhausted without draining
+     * the producer beyond that point.
      */
     maxNewRequests?: number;
 }
@@ -1061,6 +1066,10 @@ export interface AddRequestsBatchedResult {
      * Requests from the input that were not added to the queue because the
      * {@apilink AddRequestsBatchedOptions.maxNewRequests|`maxNewRequests`} budget was reached.
      * Empty when `maxNewRequests` is not set.
+     *
+     * For async iterables, exact leftovers are only reported when
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`}
+     * is enabled.
      */
     requestsOverLimit?: Source[];
 }
