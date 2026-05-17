@@ -1,16 +1,18 @@
 {
     "name": "crawlee-puppeteer-ts",
     "version": "0.0.1",
+    "private": true,
     "type": "module",
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
+        "@crawlee/impit-client": "^3.0.0",
         "crawlee": "^3.0.0",
         "puppeteer": "*"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
         "tsx": "^4.4.0",
-        "typescript": "~5.9.0",
+        "typescript": "~6.0.0",
         "@types/node": "^24.0.0"
     },
     "scripts": {

@@ -23,7 +23,7 @@ export function applySearchParams(url: URL, searchParams: SearchParams | undefin
         newSearchParams = searchParams;
     } else {
         newSearchParams = new URLSearchParams();
-        for (const [key, value] of Object.entries(newSearchParams)) {
+        for (const [key, value] of Object.entries(searchParams)) {
             if (value === undefined) {
                 newSearchParams.delete(key);
             } else if (value === null) {

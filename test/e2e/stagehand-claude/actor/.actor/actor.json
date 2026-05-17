@@ -1,0 +1,9 @@
+{
+	"actorSpecification": 1,
+	"name": "test-stagehand-claude",
+	"version": "0.0",
+	"buildTag": "latest",
+	"environmentVariables": {
+		"ANTHROPIC_API_KEY": "@anthropicApiKey"
+	}
+}

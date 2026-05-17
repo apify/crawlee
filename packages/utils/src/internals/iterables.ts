@@ -85,24 +85,34 @@ export async function* asyncifyIterable<T>(iterable: Iterable<T> | AsyncIterable
  */
 export async function* chunkedAsyncIterable<T>(
     iterable: AsyncIterable<T> | Iterable<T>,
-    chunkSize: number,
+    chunkSize: number | (() => number),
 ): AsyncIterable<T[]> {
-    if (typeof chunkSize !== 'number' || chunkSize < 1) {
+    const getChunkSize = typeof chunkSize === 'function' ? chunkSize : () => chunkSize;
+
+    if (typeof chunkSize === 'number' && chunkSize < 1) {
         throw new Error(`Chunk size must be a positive number (${inspect(chunkSize)}) received`);
     }
 
-    let chunk: T[] = [];
+    const iterator =
+        Symbol.asyncIterator in iterable
+            ? (iterable as AsyncIterable<T>)[Symbol.asyncIterator]()
+            : (iterable as Iterable<T>)[Symbol.iterator]();
 
-    for await (const item of iterable) {
-        chunk.push(item);
+    while (true) {
+        const currentSize = getChunkSize();
+        if (currentSize < 1) break;
 
-        if (chunk.length >= chunkSize) {
-            yield chunk;
-            chunk = [];
+        const chunk: T[] = [];
+
+        for (let i = 0; i < currentSize; i++) {
+            const next = await iterator.next();
+            if (next.done) {
+                break;
+            }
+            chunk.push(next.value);
         }
-    }
 
-    if (chunk.length) {
+        if (chunk.length === 0) break;
         yield chunk;
     }
 }
@@ -215,4 +225,57 @@ export function peekableAsyncIterable<T>(iterable: AsyncIterable<T> | Iterable<T
             return peekableIterator;
         },
     };
+}
+
+// Source - https://stackoverflow.com/a/71288323
+/**
+ * Merges multiple async iterables into a single async iterable, yielding values concurrently.
+ *
+ * **Example usage:**
+ * ```ts
+ * const asyncIterable1 = async function* () {
+ *   yield 1; yield 3; yield 5;
+ * };
+ *
+ * const asyncIterable2 = async function* () {
+ *   yield 2; yield 4; yield 6;
+ * };
+ *
+ * for await (const value of mergeAsyncIterables(asyncIterable1(), asyncIterable2())) {
+ *   console.log(value);
+ * }
+ * ```
+ */
+export async function* mergeAsyncIterables<T>(...iterables: AsyncIterable<T>[]): AsyncIterable<T> {
+    const asyncIterators = iterables.map((iterable) => iterable[Symbol.asyncIterator]());
+    const results = [];
+    let count = asyncIterators.length;
+    const never: Promise<never> = new Promise(() => {});
+    async function getNext(asyncIterator: AsyncIterator<T>, index: number) {
+        const result = await asyncIterator.next();
+        return {
+            index,
+            result,
+        };
+    }
+    const nextPromises = asyncIterators.map(getNext);
+    try {
+        while (count) {
+            const { index, result } = await Promise.race(nextPromises);
+            if (result.done) {
+                nextPromises[index] = never;
+                results[index] = result.value;
+                count--;
+            } else {
+                nextPromises[index] = getNext(asyncIterators[index], index);
+                yield result.value;
+            }
+        }
+    } finally {
+        for (const [index, iterator] of asyncIterators.entries()) {
+            // no await here - see https://github.com/tc39/proposal-async-iteration/issues/126
+            if (nextPromises[index] !== never && iterator.return != null) void iterator.return();
+        }
+    }
+    return results;
 }

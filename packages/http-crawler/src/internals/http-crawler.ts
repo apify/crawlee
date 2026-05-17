@@ -137,7 +137,8 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
-     * you want the crawler to load and process. By default, only `text/html` and `application/xhtml+xml` MIME types are supported.
+     * you want the crawler to load and process. By default, only `text/html`, `application/xhtml+xml`, `text/xml`, `application/xml`,
+     * and `application/json` MIME types are supported.
      */
     additionalMimeTypes?: string[];
 
@@ -291,8 +292,8 @@ export type HttpRequestHandler<
  * ]
  * ```
  *
- * By default, this crawler only processes web pages with the `text/html`
- * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
+ * By default, this crawler only processes web pages with the `text/html`, `application/xhtml+xml`, `text/xml`, `application/xml`,
+ * and `application/json` MIME content types (as reported by the `Content-Type` HTTP header),
  * and skips pages with other content types. If you want the crawler to process other content types,
  * use the {@apilink HttpCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.

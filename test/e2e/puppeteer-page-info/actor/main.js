@@ -33,8 +33,8 @@ await Actor.main(async () => {
 
                 const uniqueIdentifier = url.split('/').slice(-2).join('/');
 
-                const titleP = page.$eval('header h1', (el) => el.textContent);
-                const firstParagraphP = page.$eval('header + p', (el) => el.textContent);
+                const titleP = page.$eval('.markdown h1', (el) => el.textContent);
+                const firstParagraphP = page.$eval('.markdown > p', (el) => el.textContent);
                 const modifiedDateP = page.$eval('.theme-last-updated time', (el) => el.getAttribute('datetime'));
                 const [title, description, modifiedDate] = await Promise.all([titleP, firstParagraphP, modifiedDateP]);
 

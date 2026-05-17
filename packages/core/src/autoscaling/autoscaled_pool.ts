@@ -8,6 +8,7 @@ import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 import { Configuration } from '../configuration';
 import { CriticalError } from '../errors';
 import { log as defaultLog } from '../log';
+import type { LoadSignal } from './load_signal';
 import type { SnapshotterOptions } from './snapshotter';
 import { Snapshotter } from './snapshotter';
 import type { SystemInfo, SystemStatusOptions } from './system_status';
@@ -203,6 +204,10 @@ export class AutoscaledPool {
     private resolve: ((val?: unknown) => void) | null = null;
     private reject: ((reason?: unknown) => void) | null = null;
     private snapshotter: Snapshotter;
+
+    /** Additional SystemStatus loadSignals - tracked here for initialization and cleanup */
+    private loadSignals: LoadSignal[];
+
     private systemStatus: SystemStatus;
     private autoscaleInterval!: BetterIntervalID;
     private maybeRunInterval!: BetterIntervalID;
@@ -295,6 +300,7 @@ export class AutoscaledPool {
         });
         ssoCopy.config ??= this.config;
         this.snapshotter = ssoCopy.snapshotter;
+        this.loadSignals = ssoCopy.loadSignals ?? [];
         this.systemStatus = new SystemStatus(ssoCopy);
     }
 
@@ -366,6 +372,7 @@ export class AutoscaledPool {
         });
 
         await this.snapshotter.start();
+        await Promise.all(this.loadSignals.map((s) => s.start()));
 
         // This interval checks the system status and updates the desired concurrency accordingly.
         this.autoscaleInterval = betterSetInterval(this._autoscale, this.autoscaleIntervalMillis);
@@ -699,6 +706,7 @@ export class AutoscaledPool {
         betterClearInterval(this.maybeRunInterval);
         if (this.tasksDonePerSecondInterval) betterClearInterval(this.tasksDonePerSecondInterval);
         if (this.snapshotter) await this.snapshotter.stop();
+        await Promise.all(this.loadSignals.map((s) => s.stop()));
     }
 
     protected _incrementTasksDonePerSecond(intervalCallback: () => void) {

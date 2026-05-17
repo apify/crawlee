@@ -139,8 +139,8 @@ export type JSDOMRequestHandler<
  * ]
  * ```
  *
- * By default, `JSDOMCrawler` only processes web pages with the `text/html`
- * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
+ * By default, `JSDOMCrawler` only processes web pages with the `text/html`, `application/xhtml+xml`, `text/xml`, `application/xml`,
+ * and `application/json` MIME content types (as reported by the `Content-Type` HTTP header),
  * and skips pages with other content types. If you want the crawler to process other content types,
  * use the {@apilink JSDOMCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.

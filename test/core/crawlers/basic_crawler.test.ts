@@ -27,7 +27,6 @@ import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
@@ -35,6 +34,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 describe('BasicCrawler', () => {
     let logLevel: number;
@@ -250,7 +250,11 @@ describe('BasicCrawler', () => {
         const crawler = new TestCrawler({ maxCrawlDepth: 3 });
 
         beforeEach(() => {
-            addRequestsBatchedMock = vi.fn().mockImplementation(async () => ({}));
+            addRequestsBatchedMock = vi.fn().mockImplementation(async () => ({
+                addedRequests: [],
+                waitForAllRequestsToBeAdded: Promise.resolve([]),
+                requestsOverLimit: [],
+            }));
             onSkippedRequestMock = vi.fn();
 
             options = {
@@ -414,61 +418,61 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
-    test.each([EventType.MIGRATING, EventType.ABORTING])(
-        'should pause on %s event and persist RequestList state',
-        async (event) => {
-            const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
+    test.each([
+        EventType.MIGRATING,
+        EventType.ABORTING,
+    ])('should pause on %s event and persist RequestList state', async (event) => {
+        const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
 
-            let persistResolve!: (value?: unknown) => void;
-            const persistPromise = new Promise((res) => {
-                persistResolve = res;
-            });
+        let persistResolve!: (value?: unknown) => void;
+        const persistPromise = new Promise((res) => {
+            persistResolve = res;
+        });
 
-            // Mock the calls to persist sources.
-            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
-            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-            getValueSpy.mockResolvedValue(null);
+        // Mock the calls to persist sources.
+        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
+        getValueSpy.mockResolvedValue(null);
 
-            const processed: { url: string }[] = [];
-            const requestList = await RequestList.open('reqList', sources);
-            const requestHandler: RequestHandler = async ({ request }) => {
-                if (request.url.endsWith('200')) events.emit(event);
-                processed.push({ url: request.url });
-            };
+        const processed: { url: string }[] = [];
+        const requestList = await RequestList.open('reqList', sources);
+        const requestHandler: RequestHandler = async ({ request }) => {
+            if (request.url.endsWith('200')) events.emit(event);
+            processed.push({ url: request.url });
+        };
 
-            const basicCrawler = new BasicCrawler({
-                requestList,
-                minConcurrency: 25,
-                maxConcurrency: 25,
-                requestHandler,
-            });
+        const basicCrawler = new BasicCrawler({
+            requestList,
+            minConcurrency: 25,
+            maxConcurrency: 25,
+            requestHandler,
+        });
 
-            let finished = false;
-            // Mock the call to persist state.
-            setValueSpy.mockImplementationOnce(persistResolve as any);
-            // The crawler will pause after 200 requests
-            const runPromise = basicCrawler.run();
-            void runPromise.then(() => {
-                finished = true;
-            });
+        let finished = false;
+        // Mock the call to persist state.
+        setValueSpy.mockImplementationOnce(persistResolve as any);
+        // The crawler will pause after 200 requests
+        const runPromise = basicCrawler.run();
+        void runPromise.then(() => {
+            finished = true;
+        });
 
-            // need to monkeypatch the stats class, otherwise it will never finish
-            basicCrawler.stats.persistState = async () => Promise.resolve();
-            await persistPromise;
+        // need to monkeypatch the stats class, otherwise it will never finish
+        basicCrawler.stats.persistState = async () => Promise.resolve();
+        await persistPromise;
 
-            expect(finished).toBe(false);
-            expect(await requestList.isFinished()).toBe(false);
-            expect(await requestList.isEmpty()).toBe(false);
-            expect(processed.length).toBe(200);
+        expect(finished).toBe(false);
+        expect(await requestList.isFinished()).toBe(false);
+        expect(await requestList.isEmpty()).toBe(false);
+        expect(processed.length).toBe(200);
 
-            expect(getValueSpy).toBeCalled();
-            expect(setValueSpy).toBeCalled();
+        expect(getValueSpy).toBeCalled();
+        expect(setValueSpy).toBeCalled();
 
-            // clean up
-            // @ts-expect-error Accessing private method
-            await basicCrawler.autoscaledPool!._destroy();
-        },
-    );
+        // clean up
+        // @ts-expect-error Accessing private method
+        await basicCrawler.autoscaledPool!._destroy();
+    });
 
     test('should retry failed requests', async () => {
         const sources = [
@@ -956,20 +960,29 @@ describe('BasicCrawler', () => {
         const request1 = new Request({ url: 'http://example.com/1' });
 
         vitest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
-        const markRequestHandled = vitest
-            .spyOn(requestQueue, 'markRequestHandled')
-            .mockReturnValue(Promise.resolve() as any);
+
+        let handledCount = 0;
+        const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled').mockImplementation(async () => {
+            handledCount++;
+            // Only set isFinished after both requests have been handled
+            if (handledCount >= 2) {
+                // Small delay to ensure the test can verify everything
+                setTimeout(() => {
+                    isFinished = true;
+                }, 50);
+            }
+            return Promise.resolve() as any;
+        });
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
         requestQueue.fetchNextRequest = async () => queue.pop()!;
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 10);
-        setTimeout(() => queue.push(request1), 100);
-        setTimeout(() => {
-            isFinished = true;
-        }, 150);
+        // Add requests with buffer time for crawler startup.
+        // Use longer delays to avoid flakiness under CPU load from parallel tests.
+        setTimeout(() => queue.push(request0), 500);
+        setTimeout(() => queue.push(request1), 1000);
 
         await basicCrawler.run();
 
@@ -1016,11 +1029,12 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
         requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 10);
-        setTimeout(() => queue.push(request1), 100);
+        // Use longer delays to avoid flakiness under CPU load from parallel tests.
+        setTimeout(() => queue.push(request0), 500);
+        setTimeout(() => queue.push(request1), 1000);
         setTimeout(() => {
             void basicCrawler.teardown();
-        }, 300);
+        }, 3000);
 
         await basicCrawler.run();
 
@@ -1085,7 +1099,7 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(false);
     });
 
-    test('should load handledRequestCount from storages', async () => {
+    test('should derive handledRequestCount from Statistics', async () => {
         const requestQueue = new RequestQueue({ id: 'id', client: Configuration.getStorageClient() });
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
@@ -1094,10 +1108,12 @@ describe('BasicCrawler', () => {
         // @ts-expect-error Overriding the method for testing purposes
         requestQueue.markRequestHandled = async () => {};
 
-        const requestQueueStub = vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
+        // Even though the request queue reports 33 handled requests (e.g. from a previous crawler run),
+        // the crawler should use its own Statistics to track the count and process all 40 requests.
+        vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
 
         let count = 0;
-        let crawler = new BasicCrawler({
+        const crawler = new BasicCrawler({
             requestQueue,
             maxConcurrency: 1,
             requestHandler: async () => {
@@ -1108,55 +1124,8 @@ describe('BasicCrawler', () => {
         });
 
         await crawler.run();
-        expect(requestQueueStub).toBeCalled();
-        expect(count).toBe(7);
-        vitest.restoreAllMocks();
-
-        const sources = Array.from(Array(10).keys(), (x) => x + 1).map((i) => ({ url: `http://example.com/${i}` }));
-        const sourcesCopy = JSON.parse(JSON.stringify(sources));
-        let requestList = await RequestList.open({ sources });
-        const requestListStub = vitest.spyOn(requestList, 'handledCount').mockReturnValue(33);
-
-        count = 0;
-        crawler = new BasicCrawler({
-            requestList,
-            maxConcurrency: 1,
-            requestHandler: async () => {
-                await sleep(1);
-                count++;
-            },
-            maxRequestsPerCrawl: 40,
-        });
-
-        await crawler.run();
-        expect(requestListStub).toBeCalled();
-        expect(count).toBe(7);
-        vitest.restoreAllMocks();
-
-        requestList = await RequestList.open({ sources: sourcesCopy });
-        const listStub = vitest.spyOn(requestList, 'handledCount').mockReturnValue(20);
-        const queueStub = vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
-        const addRequestStub = vitest.spyOn(requestQueue, 'addRequest').mockReturnValue(Promise.resolve() as any);
-
-        count = 0;
-        crawler = new BasicCrawler({
-            requestList,
-            requestQueue,
-            maxConcurrency: 1,
-            requestHandler: async () => {
-                await sleep(1);
-                count++;
-            },
-            maxRequestsPerCrawl: 40,
-        });
-
-        await crawler.run();
-
-        expect(queueStub).toBeCalled();
-        expect(listStub).not.toBeCalled();
-        expect(addRequestStub).toBeCalledTimes(7);
-        expect(count).toBe(7);
-
+        // The crawler should have processed 40 requests (its own limit), not 7 (40 - 33).
+        expect(count).toBe(40);
         vitest.restoreAllMocks();
     });
 
@@ -1431,12 +1400,6 @@ describe('BasicCrawler', () => {
                 failedRequestHandler: async () => {},
             });
 
-            // @ts-expect-error Accessing private prop
-            crawler._loadHandledRequestCount = () => {
-                expect(crawler.sessionPool).toBeDefined();
-                expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
-            };
-
             await crawler.run();
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             // @ts-expect-error private symbol
@@ -1595,7 +1558,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler['handledRequestsCount'] = 2; // eslint-disable-line dot-notation
+            crawler.stats.state.requestsFinished = 2;
 
             // Try to add 6 requests - should only add 3 due to limit
             const requestsToAdd = [
@@ -1628,7 +1591,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler['handledRequestsCount'] = 1; // eslint-disable-line dot-notation
+            crawler.stats.state.requestsFinished = 1;
 
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
@@ -1677,7 +1640,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler['handledRequestsCount'] = 0; // eslint-disable-line dot-notation
+            crawler.stats.state.requestsFinished = 0;
 
             // Mock robots.txt checking to disallow some URLs
             vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
@@ -1759,6 +1722,79 @@ describe('BasicCrawler', () => {
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
         });
 
+        test('enqueueLinks should respect custom user-agent robots.txt rules', async () => {
+            const requestQueue = await RequestQueue.open();
+            const visitedUrls: string[] = [];
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from(
+                        'http://example.com/robots.txt',
+                        `User-agent: *
+                         Disallow: /
+                         Allow: /yes
+
+                         User-agent: MyCrawler
+                         Disallow: /no
+                         Allow: /my-crawler
+                        `,
+                    );
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+                requestHandler: async (context) => {
+                    visitedUrls.push(context.request.url);
+
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: [
+                            'http://example.com/yes',
+                            'http://example.com/no',
+                            'http://example.com/no-globally',
+                            'http://example.com/my-crawler/anything',
+                        ],
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(visitedUrls).toEqual([
+                'http://example.com/start',
+                'http://example.com/yes',
+                'http://example.com/my-crawler/anything',
+            ]);
+        });
+
+        test('enqueueLinks forwards respectRobotsTxtFile.userAgent to the robots.txt check', async () => {
+            const requestQueue = await RequestQueue.open();
+            const isAllowedSpy = vitest.fn(() => true);
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+                requestHandler: async (context) => {
+                    if (context.request.label) return;
+                    await context.enqueueLinks({ urls: ['http://example.com/child'], label: 'child' });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(isAllowedSpy).toHaveBeenCalledWith('http://example.com/child', 'MyCrawler');
+        });
+
         test('enqueueLinks should respect maxRequestsPerCrawl', async () => {
             const requestQueue = await RequestQueue.open();
             const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
@@ -1784,7 +1820,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler['handledRequestsCount'] = 2; // eslint-disable-line dot-notation
+                    crawler.stats.state.requestsFinished = 2;
 
                     await context.enqueueLinks({ urls: requestsToAdd, label: 'not-undefined' });
                 },
@@ -1800,6 +1836,227 @@ describe('BasicCrawler', () => {
 
             // Should only have added the first 2 requests (since 2 were already processed and 1 is in progress, limit allows 2 more)
             expect(addRequestsBatchedSpy).toHaveBeenCalledTimes(2);
+        });
+
+        test('enqueueLinks limit log message should only be logged once', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            // Will try to add 10 requests with a limit of 2
+            const requestsToAdd = Array.from({ length: 10 }, (_, i) => `http://example.com/${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 2, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            await crawler.run(['http://example.com']);
+
+            // The enqueueLinks limit message should only appear once, not 8 times (for each skipped request)
+            const enqueueLimitMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('enqueueLinks limit'),
+            );
+            expect(enqueueLimitMessages).toHaveLength(1);
+        });
+
+        test('enqueueLinks limit log message should be logged again on subsequent runs', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const requestsToAdd = Array.from({ length: 5 }, (_, i) => `http://example.com/${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 1, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            // First run
+            await crawler.run(['http://example.com/first']);
+
+            // Second run with a new start URL
+            await crawler.run(['http://example.com/second']);
+
+            // The enqueueLinks limit message should appear twice (once per run)
+            const enqueueLimitMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('enqueueLinks limit'),
+            );
+            expect(enqueueLimitMessages).toHaveLength(2);
+        });
+
+        test('enqueueLinks limit log message should be logged once per request handler, not once per run', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            // Each handler will try to add 5 URLs with a limit of 1
+            const requestsToAdd = Array.from({ length: 5 }, (_, i) => `http://example.com/child${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label === 'child') {
+                        return;
+                    }
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 1, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            // Single run with two initial requests - both will trigger the limit
+            await crawler.run(['http://example.com/first', 'http://example.com/second']);
+
+            // The enqueueLinks limit message should appear twice (once per request handler that triggered the limit)
+            const enqueueLimitMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('enqueueLinks limit'),
+            );
+            expect(enqueueLimitMessages).toHaveLength(2);
+        });
+
+        test('maxCrawlDepth limit log message should only be logged once per run', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            // Each handler will try to add URLs that exceed maxCrawlDepth
+            const requestsToAdd = Array.from({ length: 5 }, (_, i) => `http://example.com/child${i}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxCrawlDepth: 1, // Only allow depth 0 (initial) and depth 1 (first level children)
+                requestHandler: async (context) => {
+                    // Stop processing at depth 2 to avoid infinite loops
+                    if (context.request.crawlDepth >= 2) {
+                        return;
+                    }
+
+                    // This will add requests at depth+1, so initial requests add at depth 1 (allowed)
+                    // and depth 1 requests add at depth 2 (blocked by maxCrawlDepth)
+                    await context.enqueueLinks({
+                        urls: requestsToAdd,
+                        label: `depth-${context.request.crawlDepth + 1}`,
+                    });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            // Run with two initial requests
+            // Each will enqueue children at depth 1, then those children will try to enqueue at depth 2 (blocked)
+            await crawler.run(['http://example.com/first', 'http://example.com/second']);
+
+            // The maxCrawlDepth limit message should only appear once per run, even though multiple requests triggered it
+            const maxCrawlDepthMessages = infoSpy.mock.calls.filter(
+                (call) => typeof call[0] === 'string' && call[0].includes('maxCrawlDepth'),
+            );
+            expect(maxCrawlDepthMessages).toHaveLength(1);
+        });
+
+        test('should not count duplicate URLs toward maxRequestsPerCrawl limit (addRequests)', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async () => {},
+            });
+
+            // 10 duplicate links to the same URL + 1 unique link at the end
+            const requestsToAdd = [
+                ...Array.from({ length: 10 }, () => 'http://example.com/same'),
+                'http://example.com/new',
+            ];
+
+            await crawler.addRequests(requestsToAdd);
+
+            // Both unique URLs should have been enqueued — duplicates should not consume the budget
+            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+                { url: 'http://example.com/same' },
+                { url: 'http://example.com/new' },
+            ]);
+        });
+
+        test('addRequestsBatched with maxNewRequests should correctly report requestsOverLimit for array input', async () => {
+            const queue = await RequestQueue.open();
+
+            const result = await queue.addRequestsBatched(
+                [
+                    { url: 'http://example.com/a' },
+                    { url: 'http://example.com/b' },
+                    { url: 'http://example.com/c' },
+                    { url: 'http://example.com/d' },
+                    { url: 'http://example.com/e' },
+                ],
+                { maxNewRequests: 2 },
+            );
+
+            const addedUrls = result.addedRequests.filter((r) => !r.wasAlreadyPresent).map((r) => r.uniqueKey);
+
+            const overLimitUrls = (result.requestsOverLimit ?? []).map((r) => (typeof r === 'string' ? r : r.url));
+
+            expect(addedUrls).toHaveLength(2);
+            expect(overLimitUrls).toHaveLength(3);
+        });
+
+        test('addRequestsBatched with maxNewRequests should correctly report requestsOverLimit for generator input', async () => {
+            const queue = await RequestQueue.open();
+
+            async function* urls() {
+                yield { url: 'http://example.com/a' };
+                yield { url: 'http://example.com/b' };
+                yield { url: 'http://example.com/c' };
+                yield { url: 'http://example.com/d' };
+                yield { url: 'http://example.com/e' };
+            }
+
+            const result = await queue.addRequestsBatched(urls(), { maxNewRequests: 2 });
+
+            const addedUrls = result.addedRequests.filter((r) => !r.wasAlreadyPresent).map((r) => r.uniqueKey);
+
+            const overLimitUrls = (result.requestsOverLimit ?? []).map((r) => (typeof r === 'string' ? r : r.url));
+
+            expect(addedUrls).toHaveLength(2);
+            expect(overLimitUrls).toHaveLength(3);
+        });
+
+        test('should not count duplicate URLs toward maxRequestsPerCrawl limit (enqueueLinks)', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const visitedUrls: string[] = [];
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async (context) => {
+                    visitedUrls.push(context.request.url);
+
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    // Enqueue 10 duplicate links + 1 new unique link
+                    const urls = [...Array.from({ length: 10 }, () => 'http://example.com/'), 'http://example.com/new'];
+
+                    await context.enqueueLinks({ urls, label: 'child' });
+                },
+            });
+
+            await crawler.run(['http://example.com/']);
+
+            // Both the start URL and the new URL should have been visited
+            expect(visitedUrls).toContain('http://example.com/');
+            expect(visitedUrls).toContain('http://example.com/new');
         });
     });
 

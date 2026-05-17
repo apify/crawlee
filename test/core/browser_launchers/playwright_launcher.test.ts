@@ -13,7 +13,8 @@ import type { Browser, BrowserType } from 'playwright';
 import portastic from 'portastic';
 // @ts-expect-error no types
 import proxy from 'proxy';
-import { runExampleComServer } from 'test/shared/_helper';
+
+import { runExampleComServer } from '../../shared/_helper';
 
 let prevEnvHeadless: boolean;
 let proxyServer: Server;

@@ -4,10 +4,11 @@ import path from 'node:path';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
+
+import { runExampleComServer } from '../shared/_helper';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 const launchContext = { launchOptions: { headless: true } };
 
@@ -242,7 +243,7 @@ describe('puppeteerUtils', () => {
                     urlPatterns: ['.css'],
                 });
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
 
                 expect(loadedUrls).toEqual(
                     expect.arrayContaining([

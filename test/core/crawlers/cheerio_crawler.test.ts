@@ -28,10 +28,11 @@ import { sleep } from '@crawlee/utils';
 // @ts-expect-error type import of ESM only package
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
-import { responseSamples, runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log, { Log } from '@apify/log';
+
+import { responseSamples, runExampleComServer } from '../../shared/_helper';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 let server: Server;
 let port: number;

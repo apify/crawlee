@@ -1,0 +1,7 @@
+.idea
+.DS_Store
+node_modules
+package-lock.json
+apify_storage
+crawlee_storage
+storage

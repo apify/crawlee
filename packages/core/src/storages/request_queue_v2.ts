@@ -540,7 +540,6 @@ export class RequestQueue extends RequestProvider {
         this.queuePausedForMigration = true;
         let requestId: string | null;
 
-        // eslint-disable-next-line no-cond-assign
         while ((requestId = this.queueHeadIds.removeFirst()) !== null) {
             try {
                 await this.client.deleteRequestLock(requestId);

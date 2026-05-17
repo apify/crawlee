@@ -34,8 +34,8 @@ await Actor.main(async () => {
                 }
             } else if (label === 'DETAIL') {
                 const uniqueIdentifier = url.split('/').slice(-2).join('/');
-                const title = $('header h1').text();
-                const firstParagraph = $('header + p').text();
+                const title = $('.markdown h1').text();
+                const firstParagraph = $('.markdown > p').text();
                 const modifiedDate = $('.theme-last-updated time').attr('datetime');
 
                 await Dataset.pushData({

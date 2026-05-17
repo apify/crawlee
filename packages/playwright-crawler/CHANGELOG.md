@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Bug Fixes
+
+* **adaptive-crawler:** Fix persistence of rendering type detection results ([#3368](https://github.com/apify/crawlee/issues/3368)) ([4abca8b](https://github.com/apify/crawlee/commit/4abca8bacf0636961251b05359f92129f72b7a5c))
+
+
+### Features
+
+* Add a counter of in-flight rendering type detections ([#3355](https://github.com/apify/crawlee/issues/3355)) ([565fc34](https://github.com/apify/crawlee/commit/565fc346378b632df690d328ff45b755530cf368))
+* make `handleCloudflareChallenge` more configurable ([#3247](https://github.com/apify/crawlee/issues/3247)) ([629daf8](https://github.com/apify/crawlee/commit/629daf84aa29aecb5b0326150b0e3fadece9e87a)), closes [#3127](https://github.com/apify/crawlee/issues/3127)
+
+
+### Performance Improvements
+
+* drop `tsbuildinfo` from published packages ([#3243](https://github.com/apify/crawlee/issues/3243)) ([3450f27](https://github.com/apify/crawlee/commit/3450f27880afb9e9d857a54d9212b54c397aed91)), closes [#3239](https://github.com/apify/crawlee/issues/3239)
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 

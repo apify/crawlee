@@ -11,8 +11,9 @@ import type {
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+import { startExpressAppPromise } from '../../shared/_helper';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -234,34 +235,94 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(resultChecker).toHaveBeenCalledTimes(1);
     });
 
-    test.each([['static'], ['clientOnly']] as const)(
-        'crawlingContext.addRequests() should add requests correctly (%s)',
-        async (renderingType) => {
-            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
-                detectionProbabilityRecommendation: 0,
-                renderingType,
-            });
-            const url = new URL(`http://${HOSTNAME}:${port}`).toString();
+    describe('shouldPropagateError', () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+        const failedRequestHandler = vi.fn();
+        const testError = new Error('HTTP handler failed');
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async () => {
+            throw testError;
+        });
 
-            let requestContext: LoadedContext<AdaptivePlaywrightCrawlerContext> | undefined;
-            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
-                const isStartUrl = context.request.url === url;
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
 
-                if (isStartUrl) await context.addRequests([`${url}/1`]);
-                else requestContext = context;
-            };
+        test('should fall back to browser when shouldPropagateError returns false', async () => {
+            const shouldPropagateError = vi.fn(() => false);
+            const url = new URL(`http://${HOSTNAME}:${port}/static`);
 
             const crawler = await makeOneshotCrawler(
-                { requestHandler, renderingTypePredictor, maxRequestsPerCrawl: 10 },
-                [],
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    shouldPropagateError,
+                    failedRequestHandler,
+                },
+                [url.toString()],
             );
 
-            await crawler.run([{ url, crawlDepth: 2 }]);
+            await crawler.run();
 
-            assert(requestContext);
-            expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
-        },
-    );
+            expect(shouldPropagateError).toHaveBeenCalledOnce();
+            expect(shouldPropagateError).toHaveBeenCalledWith(testError, expect.anything());
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+        });
+
+        test('should propagate error when shouldPropagateError returns true', async () => {
+            const shouldPropagateError = vi.fn(() => true);
+            const url = new URL(`http://${HOSTNAME}:${port}/static`);
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    shouldPropagateError,
+                    failedRequestHandler,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(shouldPropagateError).toHaveBeenCalledOnce();
+            expect(shouldPropagateError).toHaveBeenCalledWith(testError, expect.anything());
+            expect(requestHandler).toHaveBeenCalledTimes(1);
+            expect(failedRequestHandler).toHaveBeenCalledOnce();
+            expect(failedRequestHandler.mock.calls[0][1]).toBe(testError);
+        });
+    });
+
+    test.each([
+        ['static'],
+        ['clientOnly'],
+    ] as const)('crawlingContext.addRequests() should add requests correctly (%s)', async (renderingType) => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType,
+        });
+        const url = new URL(`http://${HOSTNAME}:${port}`).toString();
+
+        let requestContext: LoadedContext<AdaptivePlaywrightCrawlerContext> | undefined;
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+            const isStartUrl = context.request.url === url;
+
+            if (isStartUrl) await context.addRequests([`${url}/1`]);
+            else requestContext = context;
+        };
+
+        const crawler = await makeOneshotCrawler(
+            { requestHandler, renderingTypePredictor, maxRequestsPerCrawl: 10 },
+            [],
+        );
+
+        await crawler.run([{ url, crawlDepth: 2 }]);
+
+        assert(requestContext);
+        expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
+    });
 
     describe('should enqueue links correctly', () => {
         test.each([
@@ -315,49 +376,49 @@ describe('AdaptivePlaywrightCrawler', () => {
         });
     });
 
-    test.each([['static'], ['clientOnly']] as const)(
-        'should respect the strategy option for enqueueLinks (%s)',
-        async (renderingType) => {
-            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
-                detectionProbabilityRecommendation: 0,
-                renderingType,
-            });
-            const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
-            const enqueuedUrls = new Set<string>();
-            const visitedUrls = new Set<string>();
+    test.each([
+        ['static'],
+        ['clientOnly'],
+    ] as const)('should respect the strategy option for enqueueLinks (%s)', async (renderingType) => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType,
+        });
+        const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
+        const enqueuedUrls = new Set<string>();
+        const visitedUrls = new Set<string>();
 
-            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-                async ({ enqueueLinks, request }) => {
-                    visitedUrls.add(request.loadedUrl);
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ enqueueLinks, request }) => {
+                visitedUrls.add(request.loadedUrl);
 
-                    if (!request.label) {
-                        const result = await enqueueLinks({
-                            label: 'enqueued-url',
-                            strategy: 'same-hostname',
-                        });
+                if (!request.label) {
+                    const result = await enqueueLinks({
+                        label: 'enqueued-url',
+                        strategy: 'same-hostname',
+                    });
 
-                        for (const processedRequest of result.processedRequests) {
-                            enqueuedUrls.add(processedRequest.uniqueKey);
-                        }
+                    for (const processedRequest of result.processedRequests) {
+                        enqueuedUrls.add(processedRequest.uniqueKey);
                     }
-                },
-            );
+                }
+            },
+        );
 
-            const crawler = await makeOneshotCrawler(
-                {
-                    requestHandler,
-                    renderingTypePredictor,
-                    maxRequestsPerCrawl: 10,
-                },
-                [url.toString()],
-            );
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 10,
+            },
+            [url.toString()],
+        );
 
-            await crawler.run();
+        await crawler.run();
 
-            expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
-            expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
-        },
-    );
+        expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
+        expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
+    });
 
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({

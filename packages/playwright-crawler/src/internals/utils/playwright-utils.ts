@@ -34,7 +34,7 @@ import type { BatchAddRequestsResult } from '@crawlee/types';
 import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import ow from 'ow';
-import type { Page, Response, Route } from 'playwright';
+import type { Download, Page, Response, Route } from 'playwright';
 
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
@@ -613,15 +613,28 @@ export async function parseWithCheerio(
 ): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
+    const html = ignoreShadowRoots
+        ? null
+        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
+    const pageContent = html || (await page.content());
+    const $ = cheerio.load(pageContent);
+
     if (page.frames().length > 1 && !ignoreIframes) {
         const frames = await page.$$('iframe');
+        const cheerioIframes = $('iframe').toArray();
+
+        if (frames.length !== cheerioIframes.length) {
+            log.warning(
+                `parseWithCheerio: iframe count mismatch between live DOM (${frames.length}) and page snapshot (${cheerioIframes.length}). Some iframes may not be expanded.`,
+            );
+        }
 
         await Promise.all(
-            frames.map(async (frame) => {
+            frames.map(async (frame, index) => {
                 try {
                     const iframe = await frame.contentFrame();
 
-                    if (iframe) {
+                    if (iframe && cheerioIframes[index]) {
                         const getIframeHTML = async (): Promise<string> => {
                             try {
                                 return iframe.locator('body').first().innerHTML();
@@ -631,14 +644,9 @@ export async function parseWithCheerio(
                         };
 
                         const contents = await getIframeHTML();
-
-                        await frame.evaluate((f, c) => {
-                            const replacementNode = document.createElement('div');
-                            replacementNode.innerHTML = c;
-                            replacementNode.className = 'crawlee-iframe-replacement';
-
-                            f.replaceWith(replacementNode);
-                        }, contents);
+                        $(cheerioIframes[index]).replaceWith(
+                            `<div class="crawlee-iframe-replacement">${contents}</div>`,
+                        );
                     }
                 } catch (error) {
                     log.warning(`Failed to extract iframe content: ${error}`);
@@ -647,12 +655,7 @@ export async function parseWithCheerio(
         );
     }
 
-    const html = ignoreShadowRoots
-        ? null
-        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
-    const pageContent = html || (await page.content());
-
-    return cheerio.load(pageContent);
+    return $;
 }
 
 let idcacPlaywright: null | { getInjectableScript: () => string } = null;
@@ -1062,6 +1065,30 @@ export interface PlaywrightContextUtils {
      * @param [options]
      */
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+
+    /**
+     * Returns the list of {@link https://playwright.dev/docs/api/class-download | Download} objects
+     * collected during the current page navigation and request handler.
+     *
+     * Useful for accessing files that the page downloads automatically.
+     * For most use cases, prefer re-enqueueing the URL to {@apilink FileDownload}.
+     * Use this only when direct access to the Playwright `Download` object is required.
+     *
+     * **Example usage**
+     * ```ts
+     * requestHandler: async ({ listDownloads }) => {
+     *     for (const download of await listDownloads()) {
+     *         try {
+     *             const stream = await download.createReadStream();
+     *             // stream to storage...
+     *         } catch {
+     *             // download failed or was cancelled
+     *         }
+     *     }
+     * },
+     * ```
+     */
+    listDownloads(): Promise<Download[]>;
 }
 
 export function registerUtilsToContext(

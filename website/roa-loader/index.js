@@ -3,11 +3,13 @@ const { inspect } = require('node:util');
 
 const { urlToRequest } = require('loader-utils');
 
+const SIGNING_TOKEN = process.env.APIFY_SIGNING_TOKEN;
 const signingUrl = new URL('https://api.apify.com/v2/tools/encode-and-sign');
-signingUrl.searchParams.set('token', process.env.APIFY_SIGNING_TOKEN);
+signingUrl.searchParams.set('token', SIGNING_TOKEN || '');
 const queue = [];
 const cache = {};
 let working = false;
+let warnedAboutMissingToken = false;
 
 function hash(source) {
     return createHash('sha1').update(source).digest('hex');
@@ -87,6 +89,15 @@ async function encodeAndSign(source) {
 module.exports = async function (code) {
     if (process.env.CRAWLEE_DOCS_FAST) {
         return { code, hash: 'fast' };
+    }
+
+    // Skip signing if token is not configured
+    if (!SIGNING_TOKEN) {
+        if (!warnedAboutMissingToken) {
+            console.warn('APIFY_SIGNING_TOKEN is not set, skipping code signing for runnable examples.');
+            warnedAboutMissingToken = true;
+        }
+        return { code, hash: 'unsigned' };
     }
 
     console.log(`Signing ${urlToRequest(this.resourcePath)}...`, { working, queue: queue.length });

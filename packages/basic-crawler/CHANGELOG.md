@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Bug Fixes
+
+* **core:** ensure `maxCrawlDepth` warning is logged only once ([#3337](https://github.com/apify/crawlee/issues/3337)) ([9d01334](https://github.com/apify/crawlee/commit/9d013342c539dd76783bea3cf807041445d3f8f5)), closes [#3336](https://github.com/apify/crawlee/issues/3336)
+* handle multiple `BasicCrawler.stop()` calls correctly ([#3324](https://github.com/apify/crawlee/issues/3324)) ([9c0580b](https://github.com/apify/crawlee/commit/9c0580b0c6fefe6f62ce28adacab27c02e7599f1)), closes [#3257](https://github.com/apify/crawlee/issues/3257)
+* suppress info message for undefined maxRequestsPerCrawl ([#3237](https://github.com/apify/crawlee/issues/3237)) ([f3d9a79](https://github.com/apify/crawlee/commit/f3d9a7967da19fc55837b2433b5dfae312e4b8a7))
+
+
+### Performance Improvements
+
+* drop `tsbuildinfo` from published packages ([#3243](https://github.com/apify/crawlee/issues/3243)) ([3450f27](https://github.com/apify/crawlee/commit/3450f27880afb9e9d857a54d9212b54c397aed91)), closes [#3239](https://github.com/apify/crawlee/issues/3239)
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 

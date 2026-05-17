@@ -21,11 +21,12 @@ export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 export type LoadedRequest<R extends Request> = WithRequired<R, 'id' | 'loadedUrl'>;
 
 /** @internal */
-export type LoadedContext<Context extends RestrictedCrawlingContext> = IsAny<Context> extends true
-    ? Context
-    : {
-          request: LoadedRequest<Context['request']>;
-      } & Omit<Context, 'request'>;
+export type LoadedContext<Context extends RestrictedCrawlingContext> =
+    IsAny<Context> extends true
+        ? Context
+        : {
+              request: LoadedRequest<Context['request']>;
+          } & Omit<Context, 'request'>;
 
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
     // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly

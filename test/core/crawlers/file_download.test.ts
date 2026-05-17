@@ -7,7 +7,8 @@ import { setTimeout } from 'node:timers/promises';
 
 import { Configuration, FileDownload } from '@crawlee/http';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper';
+
+import { startExpressAppPromise } from '../../shared/_helper';
 
 class ReadableStreamGenerator {
     private static async generateRandomData(size: number, seed: number) {
@@ -162,6 +163,17 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
     // waits for a second after every kilobyte sent.
     const fileUrl = new URL(`/file?size=${5 * 1024}&seed=789&throttle=1000`, url).toString();
     await crawler.run([fileUrl]);
+
+    // Wait for the stream to finish (pipeline is async)
+    await new Promise<void>((resolve) => {
+        if (bufferingStream.writableFinished) {
+            resolve(undefined);
+        } else {
+            bufferingStream.once('finish', resolve);
+            // Timeout fallback
+            void setTimeout(1000).then(resolve);
+        }
+    });
 
     // the stream should be finished once the crawler finishes.
     expect(bufferingStream.writableFinished).toBe(true);

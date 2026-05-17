@@ -11,6 +11,9 @@ import MIMEType from 'whatwg-mimetype';
 
 import log from '@apify/log';
 
+import { mergeAsyncIterables } from './iterables';
+import { RobotsFile } from './robots';
+
 interface SitemapUrlData {
     loc: string;
     lastmod?: Date;
@@ -191,6 +194,13 @@ export interface ParseSitemapOptions {
      * @default true
      */
     reportNetworkErrors?: boolean;
+    /**
+     * Optional filter for nested sitemap URLs discovered in sitemap index files.
+     * Called with the URL of each child sitemap before it is fetched.
+     * Return `true` to include the sitemap, `false` to skip it.
+     * If not provided, all nested sitemaps are followed.
+     */
+    nestedSitemapFilter?: (sitemapUrl: string) => boolean;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -206,6 +216,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         sitemapRetries = 3,
         networkTimeouts,
         reportNetworkErrors = true,
+        nestedSitemapFilter,
     } = options ?? {};
 
     const sources = [...initialSources];
@@ -258,7 +269,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                                 method: 'GET',
                                 timeout: networkTimeouts,
                                 headers: {
-                                    accept: 'text/plain, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
+                                    accept: '*/*',
                                 },
                             });
                             request.on('response', () => resolve(request));
@@ -337,6 +348,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
+                if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
+                    log.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
+                    continue;
+                }
+
                 sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
                 if (emitNestedSitemaps) {
                     yield { loc: item.url, originSitemapUrl: null } as any;
@@ -429,10 +445,162 @@ export class Sitemap {
             for await (const item of parseSitemap(sources, proxyUrl, parseSitemapOptions)) {
                 urls.push(item.loc);
             }
-        } catch {
+        } catch (e) {
+            log.warning(`Sitemap.load: Failed to load sitemap, returning empty result. (${e})`);
             return new Sitemap([]);
         }
 
         return new Sitemap(urls);
+    }
+}
+
+/**
+ * Given a list of URLs, discover related sitemap files for these domains by checking the `robots.txt` file,
+ * the default `sitemap.xml` & `sitemap.txt` files and the URLs themselves.
+ * @param `urls` The list of URLs to discover sitemaps for.
+ * @param `options` Options for sitemap discovery
+ * @returns An async iterable with the discovered sitemap URLs.
+ */
+export async function* discoverValidSitemaps(
+    urls: string[],
+    options: {
+        /**
+         * Proxy URL to be used for network requests.
+         */
+        proxyUrl?: string;
+        /**
+         * Timeout in milliseconds for the entire `discoverValidSitemaps` call.
+         * An `AbortController` is created internally and its signal is passed to every HTTP request,
+         * so the whole discovery operation is cancelled once the timeout elapses.
+         * Defaults to `60_000` ms (60 seconds) to prevent indefinite hangs.
+         */
+        timeoutMillis?: number;
+        /**
+         * An external `AbortSignal` to cancel the entire discovery operation.
+         * If both `signal` and `timeout` are provided, the operation is cancelled
+         * when either the signal is aborted or the timeout elapses (whichever comes first).
+         */
+        signal?: AbortSignal;
+        /**
+         * Timeout in milliseconds for each individual HTTP request during discovery.
+         * Defaults to `20000` ms (20 seconds).
+         */
+        requestTimeoutMillis?: number;
+    } = {},
+): AsyncIterable<string> {
+    const { proxyUrl, timeoutMillis = 60_000, signal: externalSignal, requestTimeoutMillis = 20_000 } = options;
+    const controller = new AbortController();
+
+    const timeoutHandle = setTimeout(() => controller.abort(), timeoutMillis);
+    const onExternalAbort = () => controller.abort();
+    if (externalSignal) {
+        if (externalSignal.aborted) {
+            controller.abort();
+        } else {
+            externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+        }
+    }
+
+    const signal = controller.signal;
+    const { gotScraping } = await import('got-scraping');
+    const sitemapUrls = new Set<string>();
+
+    const addSitemapUrl = (url: string): string | undefined => {
+        const sizeBefore = sitemapUrls.size;
+
+        sitemapUrls.add(url);
+
+        if (sitemapUrls.size > sizeBefore) {
+            return url;
+        }
+
+        return undefined;
+    };
+
+    const urlExists = async (url: string) => {
+        const response = await gotScraping({
+            url,
+            method: 'HEAD',
+            proxyUrl,
+            timeout: {
+                request: requestTimeoutMillis,
+            },
+            signal,
+        });
+
+        return response.statusCode >= 200 && response.statusCode < 400;
+    };
+
+    const discoverSitemapsForDomainUrls = async function* (hostname: string, domainUrls: string[]) {
+        if (!hostname) {
+            return;
+        }
+
+        try {
+            const robotsFile = await RobotsFile.find(domainUrls[0], proxyUrl, {
+                timeoutMillis: requestTimeoutMillis,
+                signal,
+            });
+            for (const sitemapUrl of robotsFile.getSitemaps()) {
+                if (addSitemapUrl(sitemapUrl)) {
+                    yield sitemapUrl;
+                }
+            }
+        } catch (err) {
+            log.warning(`Failed to fetch robots.txt file for ${hostname}`, { error: err });
+        }
+
+        const sitemapUrl = domainUrls.find((url) => /sitemap\.(?:xml|txt)(?:\.gz)?$/i.test(url));
+
+        if (sitemapUrl !== undefined) {
+            if (addSitemapUrl(sitemapUrl)) {
+                yield sitemapUrl;
+            }
+        } else {
+            const firstUrl = new URL(domainUrls[0]);
+            const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
+            const candidateSitemapUrls = possibleSitemapPathnames.map((pathname) => {
+                firstUrl.pathname = pathname;
+                return firstUrl.toString();
+            });
+            const candidateResults = await Promise.allSettled(candidateSitemapUrls.map(urlExists));
+
+            for (const [index, result] of candidateResults.entries()) {
+                const candidateSitemapUrl = candidateSitemapUrls[index];
+
+                if (result.status === 'fulfilled') {
+                    if (result.value && addSitemapUrl(candidateSitemapUrl)) {
+                        yield candidateSitemapUrl;
+                    }
+                } else {
+                    log.debug(`Failed to check sitemap candidate ${candidateSitemapUrl} for ${hostname}`, {
+                        error: result.reason,
+                    });
+                }
+            }
+        }
+    };
+
+    const groupedUrls = urls.reduce(
+        (acc, url) => {
+            const hostname = new URL(url)?.hostname ?? '';
+            acc[hostname] ??= [];
+            acc[hostname].push(url);
+            return acc;
+        },
+        {} as Record<string, string[]>,
+    );
+
+    const iterables = Object.entries(groupedUrls).map(([hostname, domainUrls]) =>
+        discoverSitemapsForDomainUrls(hostname, domainUrls),
+    );
+
+    try {
+        for await (const url of mergeAsyncIterables(...iterables)) {
+            yield url;
+        }
+    } finally {
+        clearTimeout(timeoutHandle);
+        externalSignal?.removeEventListener('abort', onExternalAbort);
     }
 }

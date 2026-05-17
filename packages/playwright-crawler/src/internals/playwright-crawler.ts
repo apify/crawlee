@@ -8,10 +8,10 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
-import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions, CommonPage, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
-import type { LaunchOptions, Page, Response } from 'playwright';
+import type { Download, LaunchOptions, Page, Response } from 'playwright';
 
 import type { PlaywrightLaunchContext } from './playwright-launcher';
 import { PlaywrightLauncher } from './playwright-launcher';
@@ -236,6 +236,17 @@ export class PlaywrightCrawler extends BrowserCrawler<
         browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 
         super({ ...browserCrawlerOptions, launchContext, browserPoolOptions }, config);
+    }
+
+    protected override _enhanceCrawlingContextWithPageInfo(
+        crawlingContext: PlaywrightCrawlingContext,
+        page: CommonPage,
+        createNewSession?: boolean,
+    ): void {
+        super._enhanceCrawlingContextWithPageInfo(crawlingContext, page, createNewSession);
+        const downloads: Download[] = [];
+        (page as Page).on('download', (download) => downloads.push(download));
+        crawlingContext.listDownloads = async () => downloads;
     }
 
     protected override async _runRequestHandler(context: PlaywrightCrawlingContext) {

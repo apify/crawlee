@@ -4,10 +4,11 @@ import path from 'node:path';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
+
+import { runExampleComServer } from '../shared/_helper';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator';
 
 let serverAddress = 'http://localhost:';
 let port: number;
@@ -178,6 +179,25 @@ describe('playwrightUtils', () => {
                 .get();
 
             expect(titles).toEqual(['Outside iframe title']);
+            expect(headings).toEqual(['Outside iframe', 'In iframe']);
+        } finally {
+            await browser.close();
+        }
+    });
+
+    test('parseWithCheerio() iframe expansion works with Trusted Types CSP', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe-csp', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            const headings = $('h1')
+                .map((_, el) => $(el).text())
+                .get();
+
             expect(headings).toEqual(['Outside iframe', 'In iframe']);
         } finally {
             await browser.close();

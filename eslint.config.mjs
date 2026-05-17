@@ -1,7 +1,7 @@
-import tsEslint from 'typescript-eslint';
-import tsStylistic from '@stylistic/eslint-plugin-ts';
 import apify from '@apify/eslint-config/ts';
+import stylistic from '@stylistic/eslint-plugin';
 import prettier from 'eslint-config-prettier';
+import tsEslint from 'typescript-eslint';
 
 export default [
     {
@@ -20,7 +20,7 @@ export default [
     {
         plugins: {
             '@typescript-eslint': tsEslint.plugin,
-            '@stylistic': tsStylistic,
+            '@stylistic': stylistic,
         },
         rules: {
             '@typescript-eslint/no-empty-object-type': 'off',

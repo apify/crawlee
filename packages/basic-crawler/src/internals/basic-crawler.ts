@@ -536,6 +536,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     running = false;
     hasFinishedBefore = false;
+    protected unexpectedStop = false;
 
     readonly log: Log;
     protected requestHandler!: RequestHandler<Context>;
@@ -549,7 +550,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
     protected maxRequestsPerCrawl?: number;
-    protected handledRequestsCount = 0;
+
+    protected get handledRequestsCount(): number {
+        return this.stats.state.requestsFinished + this.stats.state.requestsFailed;
+    }
+
+    /** @deprecated Setting `handledRequestsCount` directly is no longer supported. The count is now derived from `this.stats`. */
+    protected set handledRequestsCount(_value: number) {
+        throw new Error(
+            'Setting `handledRequestsCount` directly is no longer supported. ' +
+                'The count is now derived from `this.stats.state.requestsFinished` and `this.stats.state.requestsFailed`.',
+        );
+    }
+
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
@@ -562,8 +575,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
-    private shouldLogMaxProcessedRequestsExceeded = true;
-    private shouldLogMaxEnqueuedRequestsExceeded = true;
+    private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
@@ -810,13 +822,20 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    if (this.shouldLogMaxProcessedRequestsExceeded) {
-                        log.info(
-                            'Crawler reached the maxRequestsPerCrawl limit of ' +
-                                `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
-                        );
-                        this.shouldLogMaxProcessedRequestsExceeded = false;
-                    }
+                    this.logOncePerRun(
+                        'shuttingDown',
+                        'Crawler reached the maxRequestsPerCrawl limit of ' +
+                            `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
+                    );
+                    return false;
+                }
+
+                if (this.unexpectedStop) {
+                    this.logOncePerRun(
+                        'shuttingDown',
+                        'No new requests are allowed because the `stop()` method has been called. ' +
+                            'Ongoing requests will be allowed to complete.',
+                    );
                     return false;
                 }
 
@@ -828,6 +847,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.maxRequestsPerCrawl} requests ` +
                             'and all requests that were in progress at that time have now finished. ' +
                             `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
+                    );
+                    return true;
+                }
+
+                if (this.unexpectedStop) {
+                    this.log.info(
+                        'The crawler has finished all the remaining ongoing requests and will shut down now.',
                     );
                     return true;
                 }
@@ -895,27 +921,27 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private getPeriodicLogger() {
         let previousState = { ...this.stats.state };
 
-        const getOperationMode = () => {
+        const getOperationMode = (): { mode: 'ERROR' | 'REGULAR'; failedDelta: number } => {
             const { requestsFailed } = this.stats.state;
             const { requestsFailed: previousRequestsFailed } = previousState;
 
             previousState = { ...this.stats.state };
 
-            if (requestsFailed - previousRequestsFailed > 0) {
-                return 'ERROR';
+            const failedDelta = requestsFailed - previousRequestsFailed;
+
+            if (failedDelta > 0) {
+                return { mode: 'ERROR', failedDelta };
             }
 
-            return 'REGULAR';
+            return { mode: 'REGULAR', failedDelta: 0 };
         };
 
         const log = async () => {
-            const operationMode = getOperationMode();
+            const { mode: operationMode, failedDelta } = getOperationMode();
             let message: string;
 
             if (operationMode === 'ERROR') {
-                message = `Experiencing problems, ${
-                    this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
-                } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
+                message = `Experiencing problems, ${failedDelta} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = this.requestManager?.getTotalCount();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
@@ -969,7 +995,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 this.requestQueue = await this._getRequestQueue();
                 this.requestManager = undefined;
                 await this.initializeRequestManager();
-                this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
             }
 
             this.stats.reset();
@@ -977,9 +1002,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this.sessionPool?.resetStore();
         }
 
+        this.unexpectedStop = false;
         this.running = true;
-        this.shouldLogMaxProcessedRequestsExceeded = true;
-        this.shouldLogMaxEnqueuedRequestsExceeded = true;
+        this.loggedPerRun.clear();
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
@@ -1079,16 +1104,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      *
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
-    stop(message = 'The crawler has been gracefully stopped.'): void {
-        // Gracefully starve the this.autoscaledPool, so it doesn't start new tasks. Resolves once the pool is cleared.
-        this.autoscaledPool
-            ?.pause()
-            // Resolves the `autoscaledPool.run()` promise in the `BasicCrawler.run()` method. Since the pool is already paused, it resolves immediately and doesn't kill any tasks.
-            .then(async () => this.autoscaledPool?.abort())
-            .then(() => this.log.info(message))
-            .catch((err) => {
-                this.log.error('An error occurred when stopping the crawler:', err);
-            });
+    stop(reason = 'The crawler has been gracefully stopped.'): void {
+        if (this.unexpectedStop) {
+            return;
+        }
+        this.log.info(reason);
+        this.unexpectedStop = true;
     }
 
     async getRequestQueue(): Promise<RequestProvider> {
@@ -1136,22 +1157,29 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
-        if (options.reason === 'limit' && this.shouldLogMaxEnqueuedRequestsExceeded) {
-            this.log.info(
+        if (options.reason === 'limit') {
+            this.logOncePerRun(
+                'maxRequestsPerCrawl',
                 'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
                     `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
             );
-            this.shouldLogMaxEnqueuedRequestsExceeded = false;
         }
 
-        if (options.reason === 'enqueueLimit') {
-            const enqueuedRequestLimit = this.calculateEnqueuedRequestLimit();
-            if (enqueuedRequestLimit === undefined || enqueuedRequestLimit !== 0) {
-                this.log.info('The number of requests enqueued by the crawler reached the enqueueLinks limit.');
-            }
+        if (options.reason === 'depth') {
+            this.logOncePerRun(
+                'maxCrawlDepth',
+                `The crawler reached the maxCrawlDepth limit of ${this.maxCrawlDepth} and no further requests will be enqueued.`,
+            );
         }
 
         await this.onSkippedRequest?.(options);
+    }
+
+    private logOncePerRun(key: string, message: string): void {
+        if (!this.loggedPerRun.has(key)) {
+            this.log.info(message);
+            this.loggedPerRun.add(key);
+        }
     }
 
     /**
@@ -1174,7 +1202,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const requestLimit = this.calculateEnqueuedRequestLimit();
 
         const skippedBecauseOfRobots = new Set<string>();
-        const skippedBecauseOfLimit = new Set<string>();
         const skippedBecauseOfMaxCrawlDepth = new Set<string>();
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
@@ -1188,15 +1215,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         );
 
         async function* filteredRequests() {
-            let yieldedRequestCount = 0;
-
             for await (const request of requests) {
                 const url = typeof request === 'string' ? request : request.url!;
-
-                if (requestLimit !== undefined && yieldedRequestCount >= requestLimit) {
-                    skippedBecauseOfLimit.add(url);
-                    continue;
-                }
 
                 if (maxCrawlDepth !== undefined && (request as any).crawlDepth > maxCrawlDepth) {
                     skippedBecauseOfMaxCrawlDepth.add(url);
@@ -1205,14 +1225,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
                 if (await isAllowedBasedOnRobotsTxtFile(url)) {
                     yield request;
-                    yieldedRequestCount += 1;
                 } else {
                     skippedBecauseOfRobots.add(url);
                 }
             }
         }
 
-        const result = await this.requestManager!.addRequestsBatched(filteredRequests(), options);
+        const result = await this.requestManager!.addRequestsBatched(filteredRequests(), {
+            ...options,
+            maxNewRequests: requestLimit,
+        });
+
+        // Report requests skipped due to the maxNewRequests budget (i.e. maxRequestsPerCrawl limit)
+        const skippedBecauseOfLimit = result.requestsOverLimit ?? [];
 
         if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
@@ -1222,7 +1247,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (
             skippedBecauseOfRobots.size > 0 ||
-            skippedBecauseOfLimit.size > 0 ||
+            skippedBecauseOfLimit.length > 0 ||
             skippedBecauseOfMaxCrawlDepth.size > 0
         ) {
             await Promise.all(
@@ -1231,7 +1256,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         return this.handleSkippedRequest({ url, reason: 'robotsTxt' });
                     })
                     .concat(
-                        [...skippedBecauseOfLimit].map((url) => {
+                        skippedBecauseOfLimit.map((request) => {
+                            const url = typeof request === 'string' ? request : request.url!;
                             return this.handleSkippedRequest({ url, reason: 'limit' });
                         }),
                         [...skippedBecauseOfMaxCrawlDepth].map((url) => {
@@ -1331,9 +1357,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this._closeEvents = true;
         }
 
-        // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
-        // so that the caller can get a reference to it before awaiting the promise returned from run()
-        // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
 
         if (this.useSessionPool) {
@@ -1343,7 +1366,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         await this.initializeRequestManager();
-        await this._loadHandledRequestCount();
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
@@ -1615,7 +1637,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             isRequestLocked = false; // markRequestHandled succeeded and unlocked the request
 
             this.stats.finishJob(statisticsId, request.retryCount);
-            this.handledRequestsCount++;
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
@@ -1694,10 +1715,27 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return options.transformRequestFunction?.(newRequest) ?? newRequest;
         };
 
+        // Create a request-scoped callback that logs enqueueLimit once per request handler call
+        // Only log if an explicit limit was passed to enqueueLinks (not the internal maxRequestsPerCrawl-derived limit)
+        let loggedEnqueueLimitForThisRequest = false;
+        const onSkippedRequest: SkippedRequestCallback = async (skippedOptions) => {
+            if (skippedOptions.reason === 'enqueueLimit') {
+                if (!loggedEnqueueLimitForThisRequest && options.limit !== undefined) {
+                    this.log.info(
+                        `Skipping URLs in the handler for ${request.url} due to the enqueueLinks limit of ${options.limit}.`,
+                    );
+                    loggedEnqueueLimitForThisRequest = true;
+                }
+            }
+
+            await this.handleSkippedRequest(skippedOptions);
+        };
+
         return enqueueLinks({
             requestQueue,
             robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-            onSkippedRequest: this.handleSkippedRequest,
+            respectRobotsTxtFile: this.respectRobotsTxtFile,
+            onSkippedRequest,
             limit: this.calculateEnqueuedRequestLimit(options.limit),
 
             // Allow user options to override defaults set above ⤴
@@ -1830,7 +1868,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // If we get here, the request is either not retryable
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
-        this.handledRequestsCount++;
         await source.markRequestHandled(request);
         this.stats.failJob(request.id || request.uniqueKey, request.retryCount);
 
@@ -1917,15 +1954,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         });
 
         return context as LoadedContext<Context>;
-    }
-
-    /**
-     * Updates handledRequestsCount from possibly stored counts, usually after worker migration.
-     */
-    protected async _loadHandledRequestCount(): Promise<void> {
-        if (this.requestManager) {
-            this.handledRequestsCount = await this.requestManager.handledCount();
-        }
     }
 
     protected async _executeHooks<HookLike extends (...args: any[]) => Awaitable<void>>(

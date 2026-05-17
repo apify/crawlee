@@ -1,7 +1,8 @@
-import { weightedAvg } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { Configuration } from '../configuration';
+import type { LoadSignal } from './load_signal';
+import { evaluateLoadSignalSample } from './load_signal';
 import { Snapshotter } from './snapshotter';
 
 /**
@@ -14,6 +15,7 @@ export interface SystemInfo {
     eventLoopInfo: ClientInfo;
     cpuInfo: ClientInfo;
     clientInfo: ClientInfo;
+    memTotalBytes?: number;
     memCurrentBytes?: number;
     /**
      * Platform only property
@@ -30,6 +32,12 @@ export interface SystemInfo {
      * @internal
      */
     createdAt?: Date;
+
+    /**
+     * Status of additional load signals beyond the built-in four.
+     * Keys are `LoadSignal.name` values, values are overload info.
+     */
+    loadSignalInfo?: Record<string, ClientInfo>;
 }
 
 export interface SystemStatusOptions {
@@ -72,6 +80,14 @@ export interface SystemStatusOptions {
      */
     snapshotter?: Snapshotter;
 
+    /**
+     * Additional load signals to include in the system status evaluation.
+     * These are evaluated alongside the built-in memory, CPU, event loop,
+     * and client signals. If any signal reports overload, the system is
+     * considered overloaded.
+     */
+    loadSignals?: LoadSignal[];
+
     /** @internal */
     config?: Configuration;
 }
@@ -94,6 +110,9 @@ export interface FinalStatistics {
     requestsTotal: number;
     crawlerRuntimeMillis: number;
 }
+
+/** The four built-in signal names that map to typed `SystemInfo` fields. */
+const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'clientInfo']);
 
 /**
  * Provides a simple interface to reading system status from a {@apilink Snapshotter} instance.
@@ -119,11 +138,15 @@ export interface FinalStatistics {
  */
 export class SystemStatus {
     private readonly currentHistoryMillis: number;
-    private readonly maxMemoryOverloadedRatio: number;
-    private readonly maxEventLoopOverloadedRatio: number;
-    private readonly maxCpuOverloadedRatio: number;
-    private readonly maxClientOverloadedRatio: number;
     private readonly snapshotter: Snapshotter;
+    private readonly signals: LoadSignal[];
+
+    /**
+     * Per-signal ratio overrides. The built-in four get their overrides from
+     * the legacy `max*OverloadedRatio` options; custom signals use their own
+     * `overloadedRatio`.
+     */
+    private ratioOverrides: Record<string, number>;
 
     constructor(options: SystemStatusOptions = {}) {
         ow(
@@ -135,6 +158,7 @@ export class SystemStatus {
                 maxCpuOverloadedRatio: ow.optional.number,
                 maxClientOverloadedRatio: ow.optional.number,
                 snapshotter: ow.optional.object,
+                loadSignals: ow.optional.array,
                 config: ow.optional.object,
             }),
         );
@@ -146,15 +170,23 @@ export class SystemStatus {
             maxCpuOverloadedRatio = 0.4,
             maxClientOverloadedRatio = 0.3,
             snapshotter,
+            loadSignals = [],
             config,
         } = options;
 
         this.currentHistoryMillis = currentHistorySecs * 1000;
-        this.maxMemoryOverloadedRatio = maxMemoryOverloadedRatio;
-        this.maxEventLoopOverloadedRatio = maxEventLoopOverloadedRatio;
-        this.maxCpuOverloadedRatio = maxCpuOverloadedRatio;
-        this.maxClientOverloadedRatio = maxClientOverloadedRatio;
         this.snapshotter = snapshotter || new Snapshotter({ config });
+
+        // Built-in signals from the snapshotter + any custom signals
+        this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];
+
+        // Allow legacy options to override the built-in signal ratios
+        this.ratioOverrides = {
+            memInfo: maxMemoryOverloadedRatio,
+            eventLoopInfo: maxEventLoopOverloadedRatio,
+            cpuInfo: maxCpuOverloadedRatio,
+            clientInfo: maxClientOverloadedRatio,
+        };
     }
 
     /**
@@ -201,92 +233,37 @@ export class SystemStatus {
      * Returns a system status object.
      */
     protected _isSystemIdle(sampleDurationMillis?: number): SystemInfo {
-        const memInfo = this._isMemoryOverloaded(sampleDurationMillis);
-        const eventLoopInfo = this._isEventLoopOverloaded(sampleDurationMillis);
-        const cpuInfo = this._isCpuOverloaded(sampleDurationMillis);
-        const clientInfo = this._isClientOverloaded(sampleDurationMillis);
-        return {
-            isSystemIdle:
-                !memInfo.isOverloaded &&
-                !eventLoopInfo.isOverloaded &&
-                !cpuInfo.isOverloaded &&
-                !clientInfo.isOverloaded,
-            memInfo,
-            eventLoopInfo,
-            cpuInfo,
-            clientInfo,
+        const result: SystemInfo = {
+            isSystemIdle: true,
+            memInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
+            eventLoopInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
+            cpuInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
+            clientInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
         };
-    }
 
-    /**
-     * Returns an object with an isOverloaded property set to true
-     * if the memory has been overloaded in the last sampleDurationMillis.
-     */
-    protected _isMemoryOverloaded(sampleDurationMillis?: number) {
-        const sample = this.snapshotter.getMemorySample(sampleDurationMillis);
-        return this._isSampleOverloaded(sample, this.maxMemoryOverloadedRatio);
-    }
+        let loadSignalInfo: Record<string, ClientInfo> | undefined;
 
-    /**
-     * Returns an object with an isOverloaded property set to true
-     * if the event loop has been overloaded in the last sampleDurationMillis.
-     */
-    protected _isEventLoopOverloaded(sampleDurationMillis?: number) {
-        const sample = this.snapshotter.getEventLoopSample(sampleDurationMillis);
-        return this._isSampleOverloaded(sample, this.maxEventLoopOverloadedRatio);
-    }
+        for (const signal of this.signals) {
+            const ratio = this.ratioOverrides[signal.name] ?? signal.overloadedRatio;
+            const sample = signal.getSample(sampleDurationMillis);
+            const info = evaluateLoadSignalSample(sample, ratio);
 
-    /**
-     * Returns an object with an isOverloaded property set to true
-     * if the CPU has been overloaded in the last sampleDurationMillis.
-     */
-    protected _isCpuOverloaded(sampleDurationMillis?: number) {
-        const sample = this.snapshotter.getCpuSample(sampleDurationMillis);
-        return this._isSampleOverloaded(sample, this.maxCpuOverloadedRatio);
-    }
+            if (info.isOverloaded) {
+                result.isSystemIdle = false;
+            }
 
-    /**
-     * Returns an object with an isOverloaded property set to true
-     * if the client has been overloaded in the last sampleDurationMillis.
-     */
-    protected _isClientOverloaded(sampleDurationMillis?: number): ClientInfo {
-        const sample = this.snapshotter.getClientSample(sampleDurationMillis);
-        return this._isSampleOverloaded(sample, this.maxClientOverloadedRatio);
-    }
-
-    /**
-     * Returns an object with sample information and an isOverloaded property
-     * set to true if at least the ratio of snapshots in the sample are overloaded.
-     */
-    protected _isSampleOverloaded<T extends { createdAt: Date; isOverloaded: boolean }>(
-        sample: T[],
-        ratio: number,
-    ): ClientInfo {
-        if (sample.length === 0) {
-            return {
-                isOverloaded: false,
-                limitRatio: ratio,
-                actualRatio: 0,
-            };
+            if (BUILTIN_SIGNAL_NAMES.has(signal.name)) {
+                (result as any)[signal.name] = info;
+            } else {
+                loadSignalInfo ??= {};
+                loadSignalInfo[signal.name] = info;
+            }
         }
 
-        const weights: number[] = [];
-        const values: number[] = [];
-
-        for (let i = 1; i < sample.length; i++) {
-            const previous = sample[i - 1];
-            const current = sample[i];
-            const weight = +current.createdAt - +previous.createdAt;
-            weights.push(weight || 1); // Prevent errors from 0ms long intervals (sync) between snapshots.
-            values.push(+current.isOverloaded);
+        if (loadSignalInfo) {
+            result.loadSignalInfo = loadSignalInfo;
         }
 
-        const wAvg = sample.length === 1 ? +sample[0].isOverloaded : weightedAvg(values, weights);
-
-        return {
-            isOverloaded: wAvg > ratio,
-            limitRatio: ratio,
-            actualRatio: Math.round(wAvg * 1000) / 1000,
-        };
+        return result;
     }
 }

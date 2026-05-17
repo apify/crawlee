@@ -81,7 +81,7 @@ jobs:
 
             - name: Commit changes
               if: inputs.dist-tag == 'next'
-              uses: EndBug/add-and-commit@v9
+              uses: EndBug/add-and-commit@v10
               id: commit
               with:
                 author_name: Apify Release Bot
@@ -91,7 +91,7 @@ jobs:
 
             - name: Publish to NPM (@latest)
               if: inputs.dist-tag == 'prod'
-              uses: nick-fields/retry@v3
+              uses: nick-fields/retry@v4
               with:
                   timeout_minutes: 10
                   max_attempts: 5
@@ -102,7 +102,7 @@ jobs:
 
             - name: Publish to NPM (@next)
               if: inputs.dist-tag == 'next'
-              uses: nick-fields/retry@v3
+              uses: nick-fields/retry@v4
               with:
                   timeout_minutes: 10
                   max_attempts: 5

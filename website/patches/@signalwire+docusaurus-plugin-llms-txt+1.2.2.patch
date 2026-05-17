@@ -1,0 +1,13 @@
+diff --git a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/transformation/plugins/plugin-registry.js b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/transformation/plugins/plugin-registry.js
+index f35c2df..4d8b9bd 100644
+--- a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/transformation/plugins/plugin-registry.js
++++ b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/transformation/plugins/plugin-registry.js
+@@ -73,7 +73,7 @@ export class PluginRegistry {
+         }
+         // Always last - converts HTML AST to Markdown AST
+         processor.use(rehypeRemark, {
+-            handlers: { br: () => ({ type: 'html', value: '<br />' }) },
++            handlers: { br: () => ({ type: 'break' }) },
+         });
+     }
+     /**
