@@ -65,10 +65,12 @@ describe('SessionPool - testing session pool', () => {
             // @ts-expect-error private symbol
             expect(sessionPool.sessions.length).toBe(1);
             expect(session?.id).toBeDefined();
-            // @ts-expect-error Accessing private property
-            expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
-            // @ts-expect-error Accessing private property
-            expect(session.maxUsageCount).toEqual(sessionPool.sessionOptions.maxUsageCount);
+            expect(session!.expiresAt.getTime() - session!.createdAt.getTime()).toEqual(
+                // @ts-expect-error Accessing protected property
+                (sessionPool.sessionOptions.maxAgeSecs as number) * 1000,
+            );
+            // @ts-expect-error Accessing protected property
+            expect(session?.maxUsageCount).toEqual(sessionPool.sessionOptions.maxUsageCount);
         });
 
         test('should pick session when pool is full', async () => {
@@ -114,13 +116,9 @@ describe('SessionPool - testing session pool', () => {
 
     test('get state should work', async () => {
         const url = 'https://example.com';
-        const cookies = [
-            { name: 'cookie1', value: 'my-cookie' },
-            { name: 'cookie2', value: 'your-cookie' },
-        ];
-
         const newSession = await sessionPool.getSession();
-        newSession?.setCookies(cookies, url);
+        newSession?.cookieJar.setCookieSync('cookie1=my-cookie', url);
+        newSession?.cookieJar.setCookieSync('cookie2=your-cookie', url);
 
         const state = await sessionPool.getState();
         expect(state).toBeInstanceOf(Object);

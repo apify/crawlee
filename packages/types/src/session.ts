@@ -1,7 +1,5 @@
 import type { CookieJar, SerializedCookieJar } from 'tough-cookie';
 
-import type { Cookie } from './browser.js';
-
 /**
  * The main purpose of the ProxyInfo object is to provide information
  * about the current proxy connection used by the crawler for the request.
@@ -117,36 +115,6 @@ export interface ISession {
      * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
     markBad(): void;
-
-    /**
-     * Saves cookies from an HTTP response to be used with the session.
-     * It expects an object with a `headers` property that's either an `Object`
-     * (typical Node.js responses) or a `Function` (Puppeteer Response).
-     *
-     * It then parses and saves the cookies from the `set-cookie` header, if available.
-     */
-    setCookiesFromResponse(response: Response): void;
-
-    /**
-     * Saves an array with cookie objects to be used with the session.
-     * The objects should be in the format that
-     * [Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls),
-     * but you can also use this function to set cookies manually:
-     *
-     * ```
-     * [
-     *   { name: 'cookie1', value: 'my-cookie' },
-     *   { name: 'cookie2', value: 'your-cookie' }
-     * ]
-     * ```
-     */
-    setCookies(cookies: Cookie[], url: string): void;
-
-    /**
-     * Returns cookies in a format compatible with puppeteer/playwright and ready to be used with `page.setCookie`.
-     * @param url website url. Only cookies stored for this url will be returned
-     */
-    getCookies(url: string): Cookie[];
 }
 
 /**

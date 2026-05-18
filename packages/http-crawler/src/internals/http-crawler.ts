@@ -20,7 +20,7 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import type { LoadedRequest } from '@crawlee/core';
+import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
@@ -497,7 +497,18 @@ export class HttpCrawler<
         this._throwOnBlockedRequest(response.status);
 
         if (this.saveResponseCookies) {
-            crawlingContext.session.setCookiesFromResponse(response);
+            try {
+                for (const cookie of getCookiesFromResponse(response)) {
+                    if (!cookie) continue;
+                    try {
+                        crawlingContext.session.cookieJar.setCookieSync(cookie, response.url, { ignoreError: false });
+                    } catch (e) {
+                        this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+                    }
+                }
+            } catch (e) {
+                this.log.exception(e as Error, 'Could not get cookies from response');
+            }
         }
 
         return {
