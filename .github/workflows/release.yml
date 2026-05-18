@@ -160,7 +160,7 @@ jobs:
                   pull: '--rebase --autostash'
 
             -   name: Publish packages
-                uses: apify/actions/execute-workflow@v1.1.1
+                uses: apify/actions/execute-workflow@v1.1.2
                 with:
                     workflow: publish-to-npm.yml
                     inputs: >
