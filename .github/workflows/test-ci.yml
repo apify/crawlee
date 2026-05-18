@@ -327,7 +327,7 @@ jobs:
 
             -   name: Publish packages
                 if: steps.changed-packages.outputs.changed_packages != '0'
-                uses: apify/workflows/execute-workflow@main
+                uses: apify/actions/execute-workflow@v1.0.0
                 with:
                     workflow: publish-to-npm.yml
                     inputs: >
