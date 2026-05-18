@@ -339,7 +339,7 @@ describe('PuppeteerCrawler', () => {
             }),
             requestHandler: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
-                sessionCookies = session!.getCookieString(serverUrl);
+                sessionCookies = session!.cookieJar.getCookieStringSync(serverUrl);
             },
         });
 

@@ -13,7 +13,7 @@ import {
 } from '@crawlee/cheerio';
 import { BaseCrawleeLogger, SessionPool } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import type { ProxyInfo } from '@crawlee/types';
+import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
@@ -751,7 +751,7 @@ describe('CheerioCrawler', () => {
             });
 
             const proxies: ProxyInfo[] = [];
-            const sessions: Session[] = [];
+            const sessions: ISession[] = [];
             const requestHandler = ({ session, proxyInfo }: CheerioCrawlingContext) => {
                 proxies.push(proxyInfo!);
                 sessions.push(session!);
@@ -927,7 +927,7 @@ describe('CheerioCrawler', () => {
             await cheerioCrawler.run();
 
             // @ts-expect-error private symbol
-            const sessions = cheerioCrawler.sessionPool!.sessions;
+            const sessions: ISession[] = cheerioCrawler.sessionPool!.sessions;
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
@@ -947,7 +947,7 @@ describe('CheerioCrawler', () => {
         test('should retire session on "blocked" status codes', async () => {
             for (const code of [401, 403, 429]) {
                 const failed: Request[] = [];
-                const sessions: Session[] = [];
+                const sessions: ISession[] = [];
                 const maxRequestRetries = 5;
                 const crawler = new CheerioCrawler({
                     requestList: await getRequestListForMock({
@@ -959,7 +959,7 @@ describe('CheerioCrawler', () => {
                     saveResponseCookies: false,
                     maxRequestRetries,
                     requestHandler: ({ session }) => {
-                        sessions.push(session!);
+                        sessions.push(session);
                     },
                     failedRequestHandler: ({ request }) => {
                         failed.push(request);
@@ -1036,8 +1036,8 @@ describe('CheerioCrawler', () => {
                 preNavigationHooks: [
                     ({ session, request }) => {
                         // this should get overriden by the server
-                        session.setCookie('foo=bar1', request.url);
-                        session.setCookie('other=cookie1', request.url);
+                        session.cookieJar.setCookieSync('foo=bar1', request.url);
+                        session.cookieJar.setCookieSync('other=cookie1', request.url);
 
                         request.headers ??= {};
                         request.headers.cookie += '; coo=kie';
@@ -1278,7 +1278,7 @@ describe('CheerioCrawler', () => {
                     },
                 ]),
                 requestHandler: async ({ session, request }) => {
-                    sessionCookies.push(session.getCookieString(request.url));
+                    sessionCookies.push(session.cookieJar.getCookieStringSync(request.url));
                 },
             });
 
@@ -1296,7 +1296,7 @@ describe('CheerioCrawler', () => {
                 requestList: await RequestList.open(null, [`${serverAddress}/special/get-cookies`]),
                 preNavigationHooks: [
                     ({ session, request }) => {
-                        session.setCookie('manual=fromHook', request.url);
+                        session.cookieJar.setCookieSync('manual=fromHook', request.url);
                     },
                 ],
                 requestHandler: ({ json }) => {
