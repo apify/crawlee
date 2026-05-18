@@ -1,7 +1,6 @@
 import type { CookieJar, SerializedCookieJar } from 'tough-cookie';
 
 import type { Cookie } from './browser.js';
-import type { Dictionary } from './utility-types.js';
 
 /**
  * The main purpose of the ProxyInfo object is to provide information
@@ -90,56 +89,22 @@ export interface SessionState {
  */
 export interface ISession {
     readonly id: string;
-    userData: Dictionary;
-    errorScore: number;
-    usageCount: number;
-    maxErrorScore: number;
-    errorScoreDecrement: number;
-    expiresAt: Date;
-    createdAt: Date;
-    maxUsageCount: number;
     cookieJar: CookieJar;
     proxyInfo?: ProxyInfo;
 
     /**
-     * Indicates whether the session is blocked.
-     * Session is blocked once it reaches the `maxErrorScore`.
-     */
-    isBlocked(): boolean;
-
-    /**
-     * Indicates whether the session is expired.
-     * Session expiration is determined by the `maxAgeSecs`.
-     * Once the session is older than `createdAt + maxAgeSecs` the session is considered expired.
-     */
-    isExpired(): boolean;
-
-    /**
-     * Indicates whether the session is used maximum number of times.
-     * Session maximum usage count can be changed by `maxUsageCount` parameter.
-     */
-    isMaxUsageCountReached(): boolean;
-
-    /**
      * Indicates whether the session can be used for next requests.
-     * Session is usable when it is not expired, not blocked and the maximum usage count has not be reached.
+     * Session is usable when it is not expired, not blocked and the maximum usage count has not been reached.
      */
     isUsable(): boolean;
 
     /**
      * This method should be called after a successful session usage.
-     * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
     markGood(): void;
 
     /**
-     * Gets session state for persistence in KeyValueStore.
-     * @returns Represents session internal state.
-     */
-    getState(): SessionState;
-
-    /**
-     * Marks session as blocked and emits event on the `SessionPool`
+     * Marks session as blocked.
      * This method should be used if the session usage was unsuccessful
      * and you are sure that it is because of the session configuration and not any external matters.
      * For example when server returns 403 status code.

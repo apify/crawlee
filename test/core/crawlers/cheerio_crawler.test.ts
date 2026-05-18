@@ -927,7 +927,7 @@ describe('CheerioCrawler', () => {
             await cheerioCrawler.run();
 
             // @ts-expect-error private symbol
-            const sessions: ISession[] = cheerioCrawler.sessionPool!.sessions;
+            const sessions: Session[] = cheerioCrawler.sessionPool!.sessions;
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.

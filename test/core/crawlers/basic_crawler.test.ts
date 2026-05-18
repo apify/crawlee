@@ -1637,13 +1637,13 @@ describe('BasicCrawler', () => {
         });
 
         it('reuses the same Session across multiple requests when the pool is restricted', async () => {
-            const sessions: ISession[] = [];
+            const sessions: Session[] = [];
             const proxyInfos: (ProxyInfo | undefined)[] = [];
 
             const crawler = new BasicCrawler({
                 sessionPool: new SessionPool({ maxPoolSize: 1 }),
                 requestHandler: async ({ session, proxyInfo }) => {
-                    sessions.push(session);
+                    sessions.push(session as Session);
                     proxyInfos.push(proxyInfo);
                 },
             });

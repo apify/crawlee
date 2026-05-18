@@ -795,7 +795,7 @@ describe('BrowserCrawler', () => {
                     maxPoolSize: 1,
                 }),
                 requestHandler: async ({ session }) => {
-                    sessionUsageHistory.push(session!.usageCount);
+                    sessionUsageHistory.push((session as Session).usageCount);
                 },
             });
 
