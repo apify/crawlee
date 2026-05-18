@@ -136,12 +136,6 @@ new SessionPool({
 
 ## `Session` no longer requires a `sessionPool` reference
 
-`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported.
-
-If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
-
-## `Session` no longer requires a `sessionPool` reference
-
 `Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported. Custom `createSessionFunction` implementations that constructed `Session` instances manually should drop the `sessionPool` argument.
 
 **Before:**
@@ -155,7 +149,7 @@ new SessionPool({
 **After:**
 ```typescript
 new SessionPool({
-    createSessionFunction: async (_pool, opts) =>
+    createSessionFunction: async (opts) =>
         new Session({ ...opts?.sessionOptions }),
 });
 ```
