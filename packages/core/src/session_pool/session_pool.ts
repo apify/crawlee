@@ -302,19 +302,6 @@ export class SessionPool implements ISessionPool {
      * If there is space for new session, it creates and returns new session.
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
-     */
-    async getSession(): Promise<Session>;
-
-    /**
-     * Gets session based on the provided session id or `undefined.
-     */
-    async getSession(sessionId: string): Promise<Session>;
-
-    /**
-     * Gets session.
-     * If there is space for new session, it creates and returns new session.
-     * If the session pool is full, it picks a session from the pool,
-     * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
     async getSession(sessionId?: string): Promise<Session | undefined> {

@@ -202,8 +202,10 @@ export interface ISessionPool {
     /**
      * Returns a usable {@apilink ISession}. Without an id, the pool decides which session to return
      * (creating a new one when appropriate). With an id, the pool returns the matching session if
-     * it is still usable, otherwise `undefined`.
+     * it is still usable.
+     *
+     * In case the `SessionPool` cannot provide a usable session given the configuration,
+     * this method may return `undefined`.
      */
-    getSession(): Promise<ISession>;
-    getSession(sessionId: string): Promise<ISession | undefined>;
+    getSession(sessionId?: string): Promise<ISession | undefined>;
 }
