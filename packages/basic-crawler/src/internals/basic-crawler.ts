@@ -1121,23 +1121,19 @@ export class BasicCrawler<
     private async resolveSession({ request }: { request: Request }) {
         const session = await this._timeoutAndRetry(
             async () => {
-                if (request.sessionId) {
-                    const existingSession = await this.sessionPool!.getSession(request.sessionId);
+                const existingSession = await this.sessionPool.getSession(request.sessionId);
 
-                    if (!existingSession) {
-                        throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
-                    }
-
-                    return existingSession;
+                if (!existingSession) {
+                    throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
                 }
 
-                return await this.sessionPool!.getSession();
+                return existingSession;
             },
             this.internalTimeoutMillis,
             `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
 
-        return { session, proxyInfo: session.proxyInfo };
+        return { session, proxyInfo: session?.proxyInfo };
     }
 
     private async createContextHelpers({ request, session }: { request: Request; session: ISession }) {
