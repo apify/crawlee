@@ -142,42 +142,42 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10_000;
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
 /** @internal */
-export interface DualIterableOptions<TItem, TRawPage, TAwaitResult = TItem[]> {
+export interface DualIterableOptions<TItem, TRawPage> {
     /** Factory that returns an async generator yielding pages. */
     createPages: () => AsyncGenerator<TRawPage>;
     /** Extracts individual items from a page (for iteration). */
     extractItems: (page: TRawPage) => TItem[];
-    /** Transforms the first page into the await result. Defaults to `extractItems`. */
-    mapFirstPage?: (page: TRawPage) => TAwaitResult;
 }
 
 /**
  * Creates an object that is both an `AsyncIterable<TItem>` (for `for await...of`)
- * and a `Promise<TAwaitResult>` (for `await`) from a single async page generator.
+ * and a `Promise<TItem[]>` (for `await`) from a single async page generator.
  *
- * - `await result` consumes only the first page from a fresh generator and
- *   transforms it via `mapFirstPage`.
+ * - `await result` drains all pages from a fresh generator and returns every
+ *   item as a flat array.
  * - `for await (const item of result)` streams all items across all pages,
- *   extracting items from each page via `getItems`.
+ *   yielding them one by one without buffering everything in memory.
  *
  * Each usage path creates its own generator instance, so `await` and
  * `for await...of` never interfere with each other.
  *
  * @internal
  */
-export function createDualIterable<TItem, TRawPage, TAwaitResult = TItem[]>(
-    options: DualIterableOptions<TItem, TRawPage, TAwaitResult>,
-): AsyncIterable<TItem> & Promise<TAwaitResult> {
+export function createDualIterable<TItem, TRawPage>(
+    options: DualIterableOptions<TItem, TRawPage>,
+): AsyncIterable<TItem> & Promise<TItem[]> {
     const { createPages, extractItems } = options;
-    const resolveFirstPage =
-        options.mapFirstPage ?? ((page: TRawPage) => extractItems(page) as unknown as TAwaitResult);
-    let cached: Promise<TAwaitResult> | null = null;
+    let cached: Promise<TItem[]> | null = null;
 
-    function getOrCreate(): Promise<TAwaitResult> {
+    function getOrCreate(): Promise<TItem[]> {
         if (!cached) {
-            cached = createPages()
-                .next()
-                .then((result) => resolveFirstPage(result.value));
+            cached = (async () => {
+                const items: TItem[] = [];
+                for await (const page of createPages()) {
+                    items.push(...extractItems(page));
+                }
+                return items;
+            })();
         }
         return cached;
     }
@@ -192,22 +192,22 @@ export function createDualIterable<TItem, TRawPage, TAwaitResult = TItem[]>(
         [Symbol.asyncIterator]() {
             return iterateAll();
         },
-        then<TResult1 = TAwaitResult, TResult2 = never>(
-            onfulfilled?: ((value: TAwaitResult) => TResult1 | PromiseLike<TResult1>) | null,
+        then<TResult1 = TItem[], TResult2 = never>(
+            onfulfilled?: ((value: TItem[]) => TResult1 | PromiseLike<TResult1>) | null,
             onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
         ): Promise<TResult1 | TResult2> {
             return getOrCreate().then(onfulfilled, onrejected);
         },
         catch<TResult = never>(
             onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
-        ): Promise<TAwaitResult | TResult> {
+        ): Promise<TItem[] | TResult> {
             return getOrCreate().catch(onrejected);
         },
-        finally(onfinally?: (() => void) | null): Promise<TAwaitResult> {
+        finally(onfinally?: (() => void) | null): Promise<TItem[]> {
             return getOrCreate().finally(onfinally);
         },
         [Symbol.toStringTag]: 'DualIterable',
-    } as AsyncIterable<TItem> & Promise<TAwaitResult>;
+    } as AsyncIterable<TItem> & Promise<TItem[]>;
 
     return result;
 }

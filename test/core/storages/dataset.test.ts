@@ -646,6 +646,68 @@ describe('dataset', () => {
 
                 expect(items).toEqual([]);
             });
+
+            test('await values() should return all items as a flat array', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items = await dataset.values();
+
+                expect(items).toEqual(testData);
+            });
+
+            test('await values() should respect limit', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items = await dataset.values({ limit: 2 });
+
+                expect(items).toHaveLength(2);
+                expect(items).toEqual(testData.slice(0, 2));
+            });
+
+            test('await values() should respect offset', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items = await dataset.values({ offset: 1 });
+
+                expect(items).toHaveLength(2);
+                expect(items).toEqual(testData.slice(1));
+            });
+
+            test('await entries() should return all entries as a flat array', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const entries = await dataset.entries();
+
+                expect(entries).toEqual([
+                    [0, { id: 1, name: 'Alice' }],
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+            });
+
+            test('await entries() should respect offset', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const entries = await dataset.entries({ offset: 1 });
+
+                expect(entries).toEqual([
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+            });
+
+            test('await on empty dataset should return empty array', async () => {
+                const dataset = await Dataset.open();
+
+                const items = await dataset.values();
+
+                expect(items).toEqual([]);
+            });
         });
     });
 });

@@ -590,60 +590,64 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Returns dataset items.
      *
-     * When awaited (`await dataset.values()`), returns the first page as a {@apilink PaginatedList}.
-     * When used as an async iterable (`for await...of`), streams all items across pages.
+     * When awaited (`await dataset.values()`), returns all items as a flat `Data[]` array.
+     * When used as an async iterable (`for await...of`), streams all items across pages
+     * without buffering everything in memory.
      *
      * **Example usage:**
      * ```javascript
      * const dataset = await Dataset.open('my-results');
      *
-     * // Stream all items
+     * // Stream all items (memory-efficient for large datasets)
      * for await (const item of dataset.values()) {
      *   console.log(item);
      * }
      *
-     * // Or fetch a single page
-     * const page = await dataset.values();
-     * console.log(page.items, page.total);
+     * // Or fetch all items at once
+     * const items = await dataset.values();
+     * console.log(items);
      * ```
      *
      * @param options Options for the iteration.
      */
-    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
+    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<Data[]> {
         checkStorageAccess();
 
         return createDualIterable({
             createPages: () => this.fetchPages(options),
             extractItems: (page) => page.items,
-            mapFirstPage: (page) => page,
         });
     }
 
     /**
      * Returns dataset entries (index-value pairs).
      *
-     * When awaited, returns the first page as a {@apilink PaginatedList} of `[index, item]` tuples.
-     * When used as an async iterable (`for await...of`), streams all entries across pages.
+     * When awaited (`await dataset.entries()`), returns all entries as a flat `[index, item][]` array.
+     * When used as an async iterable (`for await...of`), streams all entries across pages
+     * without buffering everything in memory.
      *
      * **Example usage:**
      * ```javascript
      * const dataset = await Dataset.open('my-results');
+     *
+     * // Stream all entries
      * for await (const [index, item] of dataset.entries()) {
      *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
      * }
+     *
+     * // Or fetch all at once
+     * const entries = await dataset.entries();
+     * console.log(entries);
      * ```
      *
      * @param options Options for the iteration.
      */
-    entries(
-        options: DatasetIteratorOptions = {},
-    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>> {
+    entries(options: DatasetIteratorOptions = {}): AsyncIterable<[number, Data]> & Promise<[number, Data][]> {
         checkStorageAccess();
 
         return createDualIterable({
             createPages: () => this.fetchEntryPages(options),
             extractItems: (page) => page.items,
-            mapFirstPage: (page) => page,
         });
     }
 

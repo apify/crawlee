@@ -587,5 +587,63 @@ describe('KeyValueStore', () => {
                 ['key2', { value: 2 }],
             ]);
         });
+
+        test('await keys() should return all keys as a flat array', async () => {
+            const store = await KeyValueStore.open();
+
+            const testData = {
+                key1: { value: 1 },
+                key2: { value: 2 },
+                key3: { value: 3 },
+            };
+
+            for (const [key, value] of Object.entries(testData)) {
+                await store.setValue(key, value);
+            }
+
+            const keys = await store.keys();
+
+            expect(keys).toEqual(['key1', 'key2', 'key3']);
+        });
+
+        test('await values() should return all values as a flat array', async () => {
+            const store = await KeyValueStore.open();
+
+            const testData = {
+                key1: { value: 1 },
+                key2: { value: 2 },
+                key3: { value: 3 },
+            };
+
+            for (const [key, value] of Object.entries(testData)) {
+                await store.setValue(key, value);
+            }
+
+            const values = await store.values<{ value: number }>();
+
+            expect(values).toEqual([{ value: 1 }, { value: 2 }, { value: 3 }]);
+        });
+
+        test('await entries() should return all entries as a flat array', async () => {
+            const store = await KeyValueStore.open();
+
+            const testData = {
+                key1: { value: 1 },
+                key2: { value: 2 },
+                key3: { value: 3 },
+            };
+
+            for (const [key, value] of Object.entries(testData)) {
+                await store.setValue(key, value);
+            }
+
+            const entries = await store.entries<{ value: number }>();
+
+            expect(entries).toEqual([
+                ['key1', { value: 1 }],
+                ['key2', { value: 2 }],
+                ['key3', { value: 3 }],
+            ]);
+        });
     });
 });

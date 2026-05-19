@@ -488,20 +488,22 @@ export class KeyValueStore {
     /**
      * Returns key-value store keys.
      *
-     * When awaited (`await store.keys()`), returns the first page of keys as `string[]`.
-     * When used as an async iterable (`for await...of`), streams all keys across pages.
+     * When awaited (`await store.keys()`), returns all keys as a flat `string[]` array.
+     * When used as an async iterable (`for await...of`), streams all keys across pages
+     * without buffering everything in memory.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
      *
-     * // Stream all keys
+     * // Stream all keys (memory-efficient for large stores)
      * for await (const key of keyValueStore.keys()) {
      *   console.log(key);
      * }
      *
-     * // Or fetch first page
-     * const firstPageKeys = await keyValueStore.keys();
+     * // Or fetch all keys at once
+     * const allKeys = await keyValueStore.keys();
+     * console.log(allKeys);
      * ```
      *
      * @param options Options for the iteration.
@@ -518,20 +520,22 @@ export class KeyValueStore {
     /**
      * Returns key-value store values.
      *
-     * When awaited (`await store.values()`), returns the first page of values as `T[]`.
-     * When used as an async iterable (`for await...of`), streams all values across pages.
+     * When awaited (`await store.values()`), returns all values as a flat `T[]` array.
+     * When used as an async iterable (`for await...of`), streams all values across pages
+     * without buffering everything in memory.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
      *
-     * // Stream all values
+     * // Stream all values (memory-efficient for large stores)
      * for await (const value of keyValueStore.values()) {
      *   console.log(value);
      * }
      *
-     * // Or fetch first page
-     * const firstPageValues = await keyValueStore.values();
+     * // Or fetch all values at once
+     * const allValues = await keyValueStore.values();
+     * console.log(allValues);
      * ```
      *
      * @param options Options for the iteration.
@@ -548,20 +552,22 @@ export class KeyValueStore {
     /**
      * Returns key-value store entries (key-value pairs).
      *
-     * When awaited (`await store.entries()`), returns the first page of entries as `[key, value][]`.
-     * When used as an async iterable (`for await...of`), streams all entries across pages.
+     * When awaited (`await store.entries()`), returns all entries as a flat `[key, value][]` array.
+     * When used as an async iterable (`for await...of`), streams all entries across pages
+     * without buffering everything in memory.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
      *
-     * // Stream all entries
+     * // Stream all entries (memory-efficient for large stores)
      * for await (const [key, value] of keyValueStore.entries()) {
      *   console.log(`${key}: ${value}`);
      * }
      *
-     * // Or fetch first page
-     * const firstPageEntries = await keyValueStore.entries();
+     * // Or fetch all entries at once
+     * const allEntries = await keyValueStore.entries();
+     * console.log(allEntries);
      * ```
      *
      * @param options Options for the iteration.
