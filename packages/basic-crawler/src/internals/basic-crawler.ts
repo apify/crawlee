@@ -990,6 +990,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             // we need to purge the default RQ to allow processing the same requests again - this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored - as a failed requests is still handled.
+            await this.getRequestQueue();
             if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
                 await this.requestQueue.drop();
                 this.requestQueue = await this._getRequestQueue();
