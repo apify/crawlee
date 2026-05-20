@@ -161,6 +161,9 @@ export class SessionPool extends EventEmitter {
     ) {
         super();
 
+        // Increase max listeners for this instance to avoid warnings when many sessions are active
+        this.setMaxListeners(50);
+
         ow(
             options,
             ow.object.exactShape({

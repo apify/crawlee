@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
 
 import type { MemoryStorageOptions } from '@crawlee/memory-storage';
@@ -317,9 +316,6 @@ export class Configuration {
      */
     constructor(options: ConfigurationOptions = {}) {
         this.buildOptions(options);
-
-        // Increase the global limit for event emitter memory leak warnings.
-        EventEmitter.defaultMaxListeners = 50;
 
         // set the log level to support CRAWLEE_ prefixed env var too
         const logLevel = this.get('logLevel');
