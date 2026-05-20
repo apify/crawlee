@@ -105,9 +105,11 @@ You can also provide a list of proxy tiers to the `ProxyConfiguration` class. Th
 
 :::warning
 
-Note that the `tieredProxyUrls` option requires `ProxyConfiguration` to be used from a crawler instance ([see below](#crawler-integration)). 
+The `tieredProxyUrls` option requires `ProxyConfiguration` to be used from a crawler instance ([see below](#crawler-integration)).
 
-Using this configuration through the `newUrl` calls will not yield the expected results.
+Calling `newUrl()` or `newProxyInfo()` directly on the `ProxyConfiguration` object will not activate tier logic — it will simply rotate through all provided URLs in round-robin fashion, ignoring tier associations and blocking detection. This is because tiered proxy behavior relies on session state and per-domain error tracking that only exist within a running crawler.
+
+For standalone usage, use `proxyUrls` (simple rotation) instead, or use `newUrlFunction` to implement custom logic.
 
 :::
 
