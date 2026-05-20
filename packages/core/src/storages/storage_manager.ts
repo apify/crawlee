@@ -70,32 +70,34 @@ export class StorageManager<T extends IStorage = IStorage> {
     async openStorage(idOrName?: string | null, client?: StorageClient): Promise<T> {
         await this.storageOpenQueue.wait();
 
-        if (!idOrName) {
-            const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
-            idOrName = this.config.get(defaultIdConfigKey) as string;
+        try {
+            if (!idOrName) {
+                const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
+                idOrName = this.config.get(defaultIdConfigKey) as string;
+            }
+
+            const cacheKey = idOrName;
+            let storage = this.cache.get(cacheKey);
+
+            if (!storage) {
+                client ??= this.config.getStorageClient();
+                const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
+                storage = new this.StorageConstructor(
+                    {
+                        id: storageObject.id,
+                        name: storageObject.name,
+                        storageObject,
+                        client,
+                    },
+                    this.config,
+                );
+                this._addStorageToCache(storage);
+            }
+
+            return storage;
+        } finally {
+            this.storageOpenQueue.shift();
         }
-
-        const cacheKey = idOrName;
-        let storage = this.cache.get(cacheKey);
-
-        if (!storage) {
-            client ??= this.config.getStorageClient();
-            const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
-            storage = new this.StorageConstructor(
-                {
-                    id: storageObject.id,
-                    name: storageObject.name,
-                    storageObject,
-                    client,
-                },
-                this.config,
-            );
-            this._addStorageToCache(storage);
-        }
-
-        this.storageOpenQueue.shift();
-
-        return storage;
     }
 
     closeStorage(storage: { id: string; name?: string }): void {
