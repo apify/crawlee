@@ -24,7 +24,9 @@
 		"example:cookie-sharing-playwright-test": "node --experimental-strip-types examples/cookie-sharing-playwright-test.ts",
 		"example:cookie-sharing-playwright-local-vs-remote": "node --experimental-strip-types examples/cookie-sharing-playwright-local-vs-remote.ts",
 		"example:cookie-sharing-session-across-browsers": "node --experimental-strip-types examples/cookie-sharing-session-across-browsers.ts",
-		"example:remote-proxy-test": "node --experimental-strip-types examples/remote-proxy-test.ts"
+		"example:remote-proxy-test": "node --experimental-strip-types examples/remote-proxy-test.ts",
+		"example:cookie-sharing-session-across-local-browsers": "node --experimental-strip-types examples/cookie-sharing-session-across-local-browsers.ts",
+		"example:remote-proxy-via-chrome-args": "node --experimental-strip-types examples/remote-proxy-via-chrome-args.ts"
 	},
 	"dependencies": {
 		"@crawlee/basic": "file:../packages/basic-crawler/dist",
