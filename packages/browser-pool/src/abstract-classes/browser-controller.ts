@@ -1,5 +1,5 @@
 import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
-import type { Cookie, Dictionary } from '@crawlee/types';
+import type { Cookie, Dictionary, IBrowserController } from '@crawlee/types';
 import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
@@ -38,7 +38,10 @@ export abstract class BrowserController<
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
-> extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>> {
+>
+    extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>>
+    implements IBrowserController<NewPageResult>
+{
     id = nanoid();
     protected log!: CrawleeLogger;
 

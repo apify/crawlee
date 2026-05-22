@@ -161,6 +161,39 @@ const crawler = new BasicCrawler({
 });
 ```
 
+## Custom `BrowserPool` implementations via the `IBrowserPool` interface
+
+Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The contract is intentionally tiny — three methods (`newPage`, `getBrowserControllerByPage`, `retireBrowserController`). Lifecycle (`destroy`) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote browser farm, a session-aware pool, or another custom browser-management strategy without subclassing `BrowserPool`.
+
+```typescript
+import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { BrowserPool, PuppeteerPlugin, type IBrowserPool } from '@crawlee/browser-pool';
+import puppeteer from 'puppeteer';
+
+const sharedPool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+const crawler = new PuppeteerCrawler({
+    browserPool: sharedPool,
+    requestHandler: async ({ page }) => {
+        // …
+    },
+});
+
+// You own `sharedPool` — destroy it yourself when you're done.
+await crawler.run();
+await sharedPool.destroy();
+```
+
+The objects returned by `newPage` / `getBrowserControllerByPage` must satisfy the corresponding `IBrowserController` interface (`id`, `launchContext`, `browser`, `getCookies`, `setCookies`, `close`).
+
+## `BrowserCrawlingContext.browserController` is now typed against `IBrowserController`
+
+The minimum public contract of `browserController` exposed on the crawling context has been narrowed to the new `IBrowserController` interface — a small structural type covering only what's actually documented as user-callable: `id`, `launchContext`, `browser`, `getCookies`, `setCookies`, `close`.
+
+Concrete crawlers (`PuppeteerCrawler`, `PlaywrightCrawler`, custom ones built on `BrowserCrawler`) keep tightening this generic to their concrete controller types, so request handlers continue to see `PuppeteerController` / `PlaywrightController` / etc. with all library-specific methods intact. Only the floor of the generic changed.
+
+Code that previously called pool-coordination methods on `browserController` (`activate()`, `kill()`, `assignBrowser()`, the `browserClosed` event, the internal page counters) will need to cast to the concrete controller class — these were never part of the user-facing API anyway.
+
 ## `tieredProxyUrls` is removed from `ProxyConfiguration`
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.

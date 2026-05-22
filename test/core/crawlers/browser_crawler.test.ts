@@ -1,6 +1,12 @@
 import type { Server } from 'node:http';
 
-import { BROWSER_POOL_EVENTS, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { BrowserPool, PuppeteerController } from '@crawlee/browser-pool';
+import {
+    BROWSER_POOL_EVENTS,
+    BrowserPool as BrowserPoolClass,
+    OperatingSystemsName,
+    PuppeteerPlugin,
+} from '@crawlee/browser-pool';
 import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator, SessionPool } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
@@ -121,8 +127,9 @@ describe('BrowserCrawler', () => {
 
             // Spy on destroy and track if it was called
             let destroyCalled = false;
-            const originalDestroy = browserCrawler.browserPool.destroy.bind(browserCrawler.browserPool);
-            browserCrawler.browserPool.destroy = async () => {
+            const ownedPool = browserCrawler.browserPool as BrowserPool;
+            const originalDestroy = ownedPool.destroy.bind(ownedPool);
+            ownedPool.destroy = async () => {
                 destroyCalled = true;
                 return originalDestroy();
             };
@@ -130,6 +137,40 @@ describe('BrowserCrawler', () => {
             await browserCrawler.run();
             expect(destroyCalled).toBe(true);
         } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('should not tear down a user-supplied browser pool', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+        const externalPool = new BrowserPoolClass({ browserPlugins: [puppeteerPlugin] });
+
+        try {
+            const requestList = await RequestList.open({
+                sources: [{ url: 'http://example.com/?q=1' }],
+            });
+            const browserCrawler = new BrowserCrawlerTest({
+                browserPool: externalPool,
+                requestList,
+                requestHandler: async () => {},
+                maxRequestRetries: 1,
+            });
+
+            expect(browserCrawler.browserPool).toBe(externalPool);
+
+            let destroyCalled = false;
+            const originalDestroy = externalPool.destroy.bind(externalPool);
+            externalPool.destroy = async () => {
+                destroyCalled = true;
+                return originalDestroy();
+            };
+
+            await browserCrawler.run();
+            expect(destroyCalled).toBe(false);
+        } finally {
+            await externalPool.destroy();
             await localStorageEmulator.destroy();
         }
     });
@@ -766,7 +807,7 @@ describe('BrowserCrawler', () => {
                 },
                 maxRequestRetries: 1,
             });
-            browserCrawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
+            (browserCrawler.browserPool as BrowserPool).on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
                 retiredBrowserCount += 1;
             });
 
@@ -883,8 +924,8 @@ describe('BrowserCrawler', () => {
                     maxConcurrency: 1,
                 });
 
-                browserCrawler.browserPool.postLaunchHooks.push((_pageId, browserController) => {
-                    browserProxies.push(browserController.launchContext.proxyUrl!);
+                (browserCrawler.browserPool as BrowserPool).postLaunchHooks.push((_pageId, browserController) => {
+                    browserProxies.push((browserController as PuppeteerController).launchContext.proxyUrl!);
                 });
 
                 await browserCrawler.run();

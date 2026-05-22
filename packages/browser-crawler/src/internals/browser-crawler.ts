@@ -36,7 +36,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserController, IBrowserPool } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -55,7 +55,7 @@ type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 export interface BrowserCrawlingContext<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    ProvidedController = BrowserController,
+    ProvidedController extends IBrowserController = IBrowserController,
     UserData extends Dictionary = Dictionary,
 > extends CrawlingContext<UserData> {
     /**
@@ -92,7 +92,7 @@ export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Di
 export interface BrowserCrawlerOptions<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    ProvidedController extends BrowserController = BrowserController,
+    ProvidedController extends IBrowserController = IBrowserController,
     Context extends BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary> = BrowserCrawlingContext<
         Page,
         Response,
@@ -111,6 +111,13 @@ export interface BrowserCrawlerOptions<
     'requestHandler' | 'failedRequestHandler' | 'errorHandler'
 > {
     launchContext?: BrowserLaunchContext<any, any>;
+
+    /**
+     * An existing browser pool instance to use. When provided, the crawler will use this pool directly instead of
+     * constructing a new one from `browserPoolOptions`, enabling browser sharing across multiple crawlers. The crawler
+     * will not tear down a shared pool — the caller is responsible for its lifecycle.
+     */
+    browserPool?: IBrowserPool<ProvidedController, Page>;
 
     /**
      * Function that is called to process each request.
@@ -284,7 +291,7 @@ export interface BrowserCrawlerOptions<
 export abstract class BrowserCrawler<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    ProvidedController extends BrowserController = BrowserController,
+    ProvidedController extends IBrowserController = IBrowserController,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     LaunchOptions extends Dictionary | undefined = Dictionary,
     Context extends BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary> = BrowserCrawlingContext<
@@ -298,9 +305,18 @@ export abstract class BrowserCrawler<
     GoToOptions extends Dictionary = Dictionary,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     /**
-     * A reference to the underlying {@apilink BrowserPool} class that manages the crawler's browsers.
+     * A reference to the underlying browser pool that manages the crawler's browsers. Typed as
+     * {@apilink IBrowserPool} so custom implementations can be plugged in via the `browserPool` constructor option.
      */
-    browserPool: BrowserPool<InternalBrowserPoolOptions>;
+    browserPool: IBrowserPool<ProvidedController, Page>;
+
+    /**
+     * Set when the crawler constructed its own {@apilink BrowserPool} (no `browserPool` option was provided).
+     * Holds the same instance as `browserPool`, but typed as the concrete class so the crawler can call
+     * lifecycle methods (`destroy`) that aren't part of {@apilink IBrowserPool}. A user-supplied pool is
+     * never owned and never torn down by the crawler.
+     */
+    private ownedBrowserPool?: BrowserPool<InternalBrowserPoolOptions>;
 
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
 
@@ -321,7 +337,8 @@ export abstract class BrowserCrawler<
 
         launchContext: ow.optional.object,
         headless: ow.optional.any(ow.boolean, ow.string),
-        browserPoolOptions: ow.object,
+        browserPool: ow.optional.object.validate(validators.browserPool),
+        browserPoolOptions: ow.optional.object,
         saveResponseCookies: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
     };
@@ -346,6 +363,7 @@ export abstract class BrowserCrawler<
             navigationTimeoutSecs = 60,
             saveResponseCookies = true,
             launchContext = {},
+            browserPool,
             browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
@@ -381,15 +399,22 @@ export abstract class BrowserCrawler<
 
         this.saveResponseCookies = saveResponseCookies;
 
-        if (launchContext?.userAgent) {
-            if (browserPoolOptions.useFingerprints)
-                this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
-            browserPoolOptions.useFingerprints = false;
-        }
+        if (browserPool) {
+            this.browserPool = browserPool;
+        } else {
+            const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
 
-        this.browserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(browserPoolOptions as any),
-        });
+            if (launchContext?.userAgent) {
+                if (resolvedBrowserPoolOptions.useFingerprints)
+                    this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
+                resolvedBrowserPoolOptions.useFingerprints = false;
+            }
+
+            this.ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
+                ...(resolvedBrowserPoolOptions as any),
+            });
+            this.browserPool = this.ownedBrowserPool as unknown as IBrowserPool<ProvidedController, Page>;
+        }
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -409,11 +434,7 @@ export abstract class BrowserCrawler<
                     // and storage across pages. If the session is no longer usable, retire the
                     // controller so its state can't leak into whichever session lands on it next.
                     if (!context.session.isUsable()) {
-                        this.browserPool.retireBrowserController(
-                            context.browserController as Parameters<
-                                BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
-                            >[0],
-                        );
+                        this.browserPool.retireBrowserController(context.browserController);
                     }
                     await context.page
                         .close()
@@ -473,12 +494,10 @@ export abstract class BrowserCrawler<
             newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
         }
 
-        const page = (await this.browserPool.newPage(newPageOptions)) as Page;
+        const page = await this.browserPool.newPage(newPageOptions);
         tryCancel();
 
-        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(
-            page as any,
-        ) as ProvidedController;
+        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page) as ProvidedController;
 
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
 
@@ -677,7 +696,7 @@ export abstract class BrowserCrawler<
      * @ignore
      */
     override async teardown(): Promise<void> {
-        await this.browserPool.destroy();
+        await this.ownedBrowserPool?.destroy();
         await super.teardown();
     }
 }

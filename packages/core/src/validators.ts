@@ -20,4 +20,12 @@ export const validators = {
         validator: ow.isValid(value, ow.object.hasKeys('fetchNextRequest', 'addRequest')),
         message: (label: string) => `Expected argument '${label}' to be a RequestQueue, got something else.`,
     }),
+    browserPool: (value: Dictionary) => ({
+        validator: ow.isValid(
+            value,
+            ow.object.hasKeys('newPage', 'getBrowserControllerByPage', 'retireBrowserController'),
+        ),
+        message: (label: string) =>
+            `Expected argument '${label}' to implement the IBrowserPool interface (missing 'newPage', 'getBrowserControllerByPage', or 'retireBrowserController'), got something else.`,
+    }),
 };

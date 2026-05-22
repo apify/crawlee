@@ -1,4 +1,5 @@
 import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
+import type { IBrowserPool } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -300,7 +301,10 @@ export class BrowserPool<
     PageReturn extends UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>> = UnwrapPromise<
         ReturnType<BrowserControllerReturn['newPage']>
     >,
-> extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>> {
+>
+    extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>>
+    implements IBrowserPool<BrowserControllerReturn, PageReturn>
+{
     browserPlugins: BrowserPlugins;
     maxOpenPagesPerBrowser: number;
     retireBrowserAfterPageCount: number;

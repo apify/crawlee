@@ -49,3 +49,4 @@ export type { LaunchContextOptions } from './launch-context.js';
 export { LaunchContext } from './launch-context.js';
 export type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy.js';
+export type { IBrowserController, IBrowserLaunchContext, IBrowserPool, NewPageOptions } from '@crawlee/types';
