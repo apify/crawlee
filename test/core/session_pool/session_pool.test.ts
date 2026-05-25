@@ -64,11 +64,13 @@ describe('SessionPool - testing session pool', () => {
             const session = await sessionPool.getSession();
             // @ts-expect-error private symbol
             expect(sessionPool.sessions.length).toBe(1);
-            expect(session.id).toBeDefined();
-            // @ts-expect-error Accessing private property
-            expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
-            // @ts-expect-error Accessing private property
-            expect(session.maxUsageCount).toEqual(sessionPool.sessionOptions.maxUsageCount);
+            expect(session?.id).toBeDefined();
+            expect(session!.expiresAt.getTime() - session!.createdAt.getTime()).toEqual(
+                // @ts-expect-error Accessing protected property
+                (sessionPool.sessionOptions.maxAgeSecs as number) * 1000,
+            );
+            // @ts-expect-error Accessing protected property
+            expect(session?.maxUsageCount).toEqual(sessionPool.sessionOptions.maxUsageCount);
         });
 
         test('should pick session when pool is full', async () => {
@@ -114,13 +116,9 @@ describe('SessionPool - testing session pool', () => {
 
     test('get state should work', async () => {
         const url = 'https://example.com';
-        const cookies = [
-            { name: 'cookie1', value: 'my-cookie' },
-            { name: 'cookie2', value: 'your-cookie' },
-        ];
-
         const newSession = await sessionPool.getSession();
-        newSession.setCookies(cookies, url);
+        newSession?.cookieJar.setCookieSync('cookie1=my-cookie', url);
+        newSession?.cookieJar.setCookieSync('cookie2=your-cookie', url);
 
         const state = await sessionPool.getState();
         expect(state).toBeInstanceOf(Object);
@@ -296,7 +294,7 @@ describe('SessionPool - testing session pool', () => {
 
         const recreatedSession = await loadedSessionPool.getSession();
 
-        expect(recreatedSession.maxUsageCount).toEqual(66);
+        expect(recreatedSession?.maxUsageCount).toEqual(66);
     });
 
     test('should persist state on teardown', async () => {
@@ -341,7 +339,7 @@ describe('SessionPool - testing session pool', () => {
         const session = await newSessionPool.getSession();
         expect(isCalled).toBe(true);
         expect(receivedOptions?.sessionOptions).toBeDefined();
-        expect(session.constructor.name).toBe('Session');
+        expect(session?.constructor.name).toBe('Session');
     });
 
     it('should remove persist state event listener', async () => {
@@ -388,7 +386,7 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.addSession({ id: 'another-test-session' });
 
         const session = await sessionPool.getSession('test-session');
-        expect(session.id).toBe('test-session');
+        expect(session?.id).toBe('test-session');
     });
 
     test('should correctly populate session array and session map', async () => {
@@ -434,10 +432,10 @@ describe('SessionPool - testing session pool', () => {
             const s2 = await sessionPool.getSession();
             const s3 = await sessionPool.getSession();
 
-            expect(new Set([s1.id, s2.id, s3.id]).size).toBe(3);
+            expect(new Set([s1?.id, s2?.id, s3?.id]).size).toBe(3);
 
             const s4 = await sessionPool.getSession();
-            expect([s1.id, s2.id, s3.id]).toContain(s4.id);
+            expect([s1?.id, s2?.id, s3?.id]).toContain(s4?.id);
         });
 
         test('round-robin should fill pool before cycling', async () => {
@@ -447,24 +445,24 @@ describe('SessionPool - testing session pool', () => {
             const s2 = await sessionPool.getSession();
             const s3 = await sessionPool.getSession();
 
-            expect(new Set([s1.id, s2.id, s3.id]).size).toBe(3);
+            expect(new Set([s1?.id, s2?.id, s3?.id]).size).toBe(3);
 
             const ids: string[] = [];
             for (let i = 0; i < 6; i++) {
-                ids.push((await sessionPool.getSession()).id);
+                ids.push((await sessionPool.getSession())?.id!);
             }
 
-            expect(ids).toEqual([s1.id, s2.id, s3.id, s1.id, s2.id, s3.id]);
+            expect(ids).toEqual([s1?.id, s2?.id, s3?.id, s1?.id, s2?.id, s3?.id]);
         });
 
         test('round-robin should create a new session when all existing ones are retired', async () => {
             sessionPool = new SessionPool({ sessionReuseStrategy: 'round-robin', maxPoolSize: 1 });
 
             const s1 = await sessionPool.getSession();
-            s1.retire();
+            s1?.retire();
 
             const s2 = await sessionPool.getSession();
-            expect(s2.id).not.toBe(s1.id);
+            expect(s2?.id).not.toBe(s1?.id);
         });
 
         test.each(['random', 'round-robin'] as const)(
@@ -476,7 +474,7 @@ describe('SessionPool - testing session pool', () => {
                 await sessionPool.getSession();
                 await sessionPool.getSession();
 
-                s1.retire();
+                s1?.retire();
 
                 // @ts-expect-error private symbol
                 expect(sessionPool.sessions).toHaveLength(3);
@@ -497,18 +495,18 @@ describe('SessionPool - testing session pool', () => {
             const s2 = await sessionPool.getSession();
             const s3 = await sessionPool.getSession();
 
-            expect(s1.id).toBe(s2.id);
-            expect(s2.id).toBe(s3.id);
+            expect(s1?.id).toBe(s2?.id);
+            expect(s2?.id).toBe(s3?.id);
         });
 
         test('use-until-failure should switch to a new session after the current one is retired', async () => {
             sessionPool = new SessionPool({ sessionReuseStrategy: 'use-until-failure' });
 
             const s1 = await sessionPool.getSession();
-            s1.retire();
+            s1?.retire();
 
             const s2 = await sessionPool.getSession();
-            expect(s2.id).not.toBe(s1.id);
+            expect(s2?.id).not.toBe(s1?.id);
         });
     });
 
@@ -566,7 +564,7 @@ describe('SessionPool - testing session pool', () => {
             const session1 = await pool1.getSession();
             await pool2.getSession();
 
-            session1.retire();
+            session1?.retire();
 
             expect(await pool1.retiredSessionsCount()).toBe(1);
             expect(await pool2.retiredSessionsCount()).toBe(0);
