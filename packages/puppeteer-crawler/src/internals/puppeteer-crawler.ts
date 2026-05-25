@@ -51,7 +51,9 @@ export interface PuppeteerCrawlerOptions<
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
-     * which are passed to the `page.goto()` function the crawler calls to navigate.
+     * which are passed to the `page.goto()` function the crawler calls to navigate. A hook may optionally
+     * return a partial object whose properties are merged into the crawling context (e.g. to override context
+     * members for subsequent hooks and pipeline stages).
      * Example:
      * ```
      * preNavigationHooks: [
@@ -62,7 +64,7 @@ export interface PuppeteerCrawlerOptions<
      * ]
      * ```
      *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
+     * Modifying `pageOptions` is supported only in Playwright incognito.
      * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: PuppeteerHook[];

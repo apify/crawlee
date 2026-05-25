@@ -192,7 +192,7 @@ export interface BrowserCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
      *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
+     * Modifying `pageOptions` is supported only in Playwright incognito.
      * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: BrowserHook<Context>[];
@@ -578,7 +578,13 @@ export abstract class BrowserCrawler<
         crawlingContext.request.state = RequestState.AFTER_NAV;
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
 
-        response = response !== undefined ? (crawlingContext.response as Response) : response;
+        // Read response back from the context only when it has been replaced with a data descriptor
+        // (either by the navigation result above or by a hook override). The default getter installed
+        // by `preparePage` throws, so we must not invoke it when no real response is available.
+        const responseDescriptor = Object.getOwnPropertyDescriptor(crawlingContext, 'response');
+        if (responseDescriptor && 'value' in responseDescriptor) {
+            response = responseDescriptor.value as Response | undefined;
+        }
 
         await this.processResponse(response, crawlingContext);
         tryCancel();

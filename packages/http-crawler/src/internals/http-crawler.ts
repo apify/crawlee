@@ -76,6 +76,9 @@ export interface HttpCrawlerOptions<
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts one parameter `crawlingContext`,
      * which is passed to the `requestAsBrowser()` function the crawler calls to navigate.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * allowing the hook to override context members for subsequent hooks and pipeline stages.
      * Example:
      * ```
      * preNavigationHooks: [
@@ -84,9 +87,6 @@ export interface HttpCrawlerOptions<
      *     },
      * ]
      * ```
-     *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: InternalHttpHook<CrawlingContext>[];
 

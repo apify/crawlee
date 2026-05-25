@@ -172,6 +172,9 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies.
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
      * an exception will be thrown. If it's not caught, the request will be transparently retried in a browser.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
     preNavigationHooks?: AdaptiveHook[];
 
