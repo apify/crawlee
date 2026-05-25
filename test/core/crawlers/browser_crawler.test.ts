@@ -17,6 +17,7 @@ import log from '@apify/log';
 
 import type { TestCrawlingContext } from './basic_browser_crawler.js';
 import { BrowserCrawlerTest } from './basic_browser_crawler.js';
+import { ISession } from '@crawlee/types';
 
 describe('BrowserCrawler', () => {
     let prevEnvHeadless: string;
@@ -147,7 +148,7 @@ describe('BrowserCrawler', () => {
             });
             class TimeoutError extends Error {}
             let markBadCalled = false;
-            let sessionGoto!: Session;
+            let sessionGoto!: ISession;
             const browserCrawler = new (class extends BrowserCrawlerTest {
                 protected override async _navigationHandler(
                     ctx: TestCrawlingContext,
@@ -565,7 +566,7 @@ describe('BrowserCrawler', () => {
             requestList,
             saveResponseCookies: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session.getCookieString(request.url));
+                loadedCookies.push(session.cookieJar.getCookieStringSync(request.url));
                 return Promise.resolve();
             },
             preNavigationHooks: [
@@ -833,7 +834,7 @@ describe('BrowserCrawler', () => {
                     maxPoolSize: 1,
                 }),
                 requestHandler: async ({ session }) => {
-                    sessionUsageHistory.push(session!.usageCount);
+                    sessionUsageHistory.push((session as Session).usageCount);
                 },
             });
 

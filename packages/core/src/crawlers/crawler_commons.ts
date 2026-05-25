@@ -1,11 +1,10 @@
-import type { Dictionary, HttpRequestOptions, ProxyInfo, SendRequestOptions } from '@crawlee/types';
+import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
-import type { Session } from '../session_pool/session.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_provider.js';
@@ -29,7 +28,7 @@ export type LoadedContext<Context extends RestrictedCrawlingContext> =
 
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     id: string;
-    session: Session;
+    session: ISession;
 
     /**
      * An object with information about currently used proxy by the crawler

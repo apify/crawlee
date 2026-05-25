@@ -1,8 +1,5 @@
 import type { CookieJar, SerializedCookieJar } from 'tough-cookie';
 
-import type { Cookie } from './browser.js';
-import type { Dictionary } from './utility-types.js';
-
 /**
  * The main purpose of the ProxyInfo object is to provide information
  * about the current proxy connection used by the crawler for the request.
@@ -90,56 +87,22 @@ export interface SessionState {
  */
 export interface ISession {
     readonly id: string;
-    userData: Dictionary;
-    errorScore: number;
-    usageCount: number;
-    maxErrorScore: number;
-    errorScoreDecrement: number;
-    expiresAt: Date;
-    createdAt: Date;
-    maxUsageCount: number;
     cookieJar: CookieJar;
     proxyInfo?: ProxyInfo;
 
     /**
-     * Indicates whether the session is blocked.
-     * Session is blocked once it reaches the `maxErrorScore`.
-     */
-    isBlocked(): boolean;
-
-    /**
-     * Indicates whether the session is expired.
-     * Session expiration is determined by the `maxAgeSecs`.
-     * Once the session is older than `createdAt + maxAgeSecs` the session is considered expired.
-     */
-    isExpired(): boolean;
-
-    /**
-     * Indicates whether the session is used maximum number of times.
-     * Session maximum usage count can be changed by `maxUsageCount` parameter.
-     */
-    isMaxUsageCountReached(): boolean;
-
-    /**
      * Indicates whether the session can be used for next requests.
-     * Session is usable when it is not expired, not blocked and the maximum usage count has not be reached.
+     * Session is usable when it is not expired, not blocked and the maximum usage count has not been reached.
      */
     isUsable(): boolean;
 
     /**
      * This method should be called after a successful session usage.
-     * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
     markGood(): void;
 
     /**
-     * Gets session state for persistence in KeyValueStore.
-     * @returns Represents session internal state.
-     */
-    getState(): SessionState;
-
-    /**
-     * Marks session as blocked and emits event on the `SessionPool`
+     * Marks session as blocked.
      * This method should be used if the session usage was unsuccessful
      * and you are sure that it is because of the session configuration and not any external matters.
      * For example when server returns 403 status code.
@@ -152,34 +115,30 @@ export interface ISession {
      * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
     markBad(): void;
+}
 
+/**
+ * Minimal contract that any object passed to a crawler as its `sessionPool` option must satisfy.
+ *
+ * Crawlers only depend on a single method of the built-in `SessionPool`: `getSession()` /
+ * `getSession(id)` to hand out an {@apilink ISession} for a request. Lifecycle (reset, teardown)
+ * is the responsibility of whoever owns the pool — since a user-supplied pool is never owned by
+ * the crawler, the crawler never tears it down.
+ *
+ * Implement this interface to plug a custom session-management strategy into any Crawlee crawler —
+ * for example a remote, multi-process pool, a database-backed pool, or a thin wrapper around the
+ * built-in `SessionPool` with different rotation rules.
+ *
+ * @category Scaling
+ */
+export interface ISessionPool {
     /**
-     * Saves cookies from an HTTP response to be used with the session.
-     * It expects an object with a `headers` property that's either an `Object`
-     * (typical Node.js responses) or a `Function` (Puppeteer Response).
+     * Returns a usable {@apilink ISession}. Without an id, the pool decides which session to return
+     * (creating a new one when appropriate). With an id, the pool returns the matching session if
+     * it is still usable.
      *
-     * It then parses and saves the cookies from the `set-cookie` header, if available.
+     * In case the `SessionPool` cannot provide a usable session given the configuration,
+     * this method may return `undefined`.
      */
-    setCookiesFromResponse(response: Response): void;
-
-    /**
-     * Saves an array with cookie objects to be used with the session.
-     * The objects should be in the format that
-     * [Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls),
-     * but you can also use this function to set cookies manually:
-     *
-     * ```
-     * [
-     *   { name: 'cookie1', value: 'my-cookie' },
-     *   { name: 'cookie2', value: 'your-cookie' }
-     * ]
-     * ```
-     */
-    setCookies(cookies: Cookie[], url: string): void;
-
-    /**
-     * Returns cookies in a format compatible with puppeteer/playwright and ready to be used with `page.setCookie`.
-     * @param url website url. Only cookies stored for this url will be returned
-     */
-    getCookies(url: string): Cookie[];
+    getSession(sessionId?: string): Promise<ISession | undefined>;
 }
