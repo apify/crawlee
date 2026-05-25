@@ -1,16 +1,10 @@
-import type { Cookie as CookieObject, Dictionary, ISession, ProxyInfo, SessionState } from '@crawlee/types';
+import type { Dictionary, ISession, ProxyInfo, SessionState } from '@crawlee/types';
 import ow from 'ow';
-import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import {
-    browserPoolCookieToToughCookie,
-    getCookiesFromResponse,
-    getDefaultCookieExpirationDate,
-    toughCookieToBrowserPoolCookie,
-} from '../cookie_utils.js';
+import { getDefaultCookieExpirationDate } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 
@@ -84,7 +78,6 @@ export interface SessionOptions {
  */
 export class Session implements ISession {
     readonly id: string;
-    private maxAgeSecs: number;
     userData: Dictionary;
     private _maxErrorScore: number;
     private _errorScoreDecrement: number;
@@ -189,7 +182,6 @@ export class Session implements ISession {
         this._cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this._proxyInfo = proxyInfo;
         this.id = id;
-        this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
         this._maxErrorScore = maxErrorScore;
         this._errorScoreDecrement = errorScoreDecrement;
@@ -297,51 +289,6 @@ export class Session implements ISession {
     }
 
     /**
-     * Saves cookies from an HTTP response to be used with the session.
-     * It expects an object with a `headers` property that's either an `Object`
-     * (typical Node.js responses) or a `Function` (Puppeteer Response).
-     *
-     * It then parses and saves the cookies from the `set-cookie` header, if available.
-     */
-    setCookiesFromResponse(response: Response) {
-        try {
-            const cookies = getCookiesFromResponse(response).filter((c) => c);
-            this._setCookies(cookies, response.url);
-        } catch (e) {
-            const err = e as Error;
-            // if invalid Cookie header is provided just log the exception.
-            this.log.exception(err, 'Could not get cookies from response');
-        }
-    }
-
-    /**
-     * Saves an array with cookie objects to be used with the session.
-     * The objects should be in the format that
-     * [Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls),
-     * but you can also use this function to set cookies manually:
-     *
-     * ```
-     * [
-     *   { name: 'cookie1', value: 'my-cookie' },
-     *   { name: 'cookie2', value: 'your-cookie' }
-     * ]
-     * ```
-     */
-    setCookies(cookies: CookieObject[], url: string) {
-        const normalizedCookies = cookies.map((c) => browserPoolCookieToToughCookie(c, this.maxAgeSecs));
-        this._setCookies(normalizedCookies, url);
-    }
-
-    /**
-     * Returns cookies in a format compatible with puppeteer/playwright and ready to be used with `page.setCookie`.
-     * @param url website url. Only cookies stored for this url will be returned
-     */
-    getCookies(url: string): CookieObject[] {
-        const cookies = this.cookieJar.getCookiesSync(url);
-        return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
-    }
-
-    /**
      * Returns cookies saved with the session in the typical
      * key1=value1; key2=value2 format, ready to be used in
      * a cookie header or elsewhere.
@@ -359,27 +306,6 @@ export class Session implements ISession {
             this.cookieJar.setCookieSync(rawCookie, url);
         } catch (e) {
             this.log.warning('Could not set cookie.', { url, error: (e as Error).message });
-        }
-    }
-
-    /**
-     * Sets cookies.
-     */
-    protected _setCookies(cookies: Cookie[], url: string): void {
-        const errorMessages: string[] = [];
-
-        for (const cookie of cookies) {
-            try {
-                this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
-            } catch (e) {
-                const err = e as Error;
-                errorMessages.push(err.message);
-            }
-        }
-
-        // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-        if (errorMessages.length) {
-            this.log.warning('Could not set cookies.', { errorMessages });
         }
     }
 

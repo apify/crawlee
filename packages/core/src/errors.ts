@@ -68,8 +68,10 @@ export class SessionError extends Error {
  * Thrown when a requested session is not found in the referenced SessionPool.
  */
 export class MissingSessionError extends Error {
-    constructor(sessionId: string) {
-        super(`The current SessionPool instance doesn't contain the requested sessionId: ${sessionId}`);
+    constructor(sessionId?: string) {
+        super(
+            `The current SessionPool instance couldn't find a valid session${sessionId ? ` for the following id: ${sessionId}.` : '.'}`,
+        );
     }
 }
 

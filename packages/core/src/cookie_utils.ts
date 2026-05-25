@@ -59,19 +59,24 @@ export function toughCookieToBrowserPoolCookie(toughCookie: Cookie): CookieObjec
 /**
  * Transforms browser-pool cookie to tough-cookie.
  * @param cookieObject Cookie object (for instance from the `page.cookies` method).
+ * @param maxAgeSecs Fallback expiration in seconds when the cookie itself has no `expires`.
+ * When omitted, such a cookie is stored as a session cookie (no automatic expiration).
  * @internal
  */
-export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAgeSecs: number) {
+export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAgeSecs?: number) {
     const isExpiresValid = cookieObject.expires && typeof cookieObject.expires === 'number' && cookieObject.expires > 0;
-    const expires = isExpiresValid
-        ? new Date(cookieObject.expires! * 1000)
-        : getDefaultCookieExpirationDate(maxAgeSecs);
+    let expires: Date | 'Infinity' | undefined;
+    if (isExpiresValid) {
+        expires = new Date(cookieObject.expires! * 1000);
+    } else if (maxAgeSecs != null) {
+        expires = getDefaultCookieExpirationDate(maxAgeSecs);
+    }
     const domainHasLeadingDot = cookieObject.domain?.startsWith?.('.');
     const domain = domainHasLeadingDot ? cookieObject.domain?.slice?.(1) : cookieObject.domain;
     return new Cookie({
         key: cookieObject.name,
         value: cookieObject.value,
-        expires,
+        ...(expires !== undefined && { expires }),
         domain,
         path: cookieObject.path,
         secure: cookieObject.secure,

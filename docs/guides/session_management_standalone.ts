@@ -11,10 +11,10 @@ const sessionPool = new SessionPool(sessionPoolOptions);
 const session = await sessionPool.getSession();
 
 // Increase the errorScore.
-session.markBad();
+session?.markBad();
 
 // Throw away the session.
-session.retire();
+session?.retire();
 
 // Lower the errorScore and mark the session good.
-session.markGood();
+session?.markGood();
