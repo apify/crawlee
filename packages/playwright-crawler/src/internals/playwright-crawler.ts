@@ -305,6 +305,29 @@ export class PlaywrightCrawler<
 }
 
 /**
+ * Returns a `postNavigationHooks`-ready hook that runs {@apilink PlaywrightContextUtils.handleCloudflareChallenge}
+ * and propagates the post-challenge {@apilink Response} back into the crawling context via its return value.
+ *
+ * **Example usage**
+ * ```ts
+ * import { PlaywrightCrawler, handleCloudflareChallengeHook } from 'crawlee';
+ *
+ * const crawler = new PlaywrightCrawler({
+ *     postNavigationHooks: [handleCloudflareChallengeHook()],
+ * });
+ * ```
+ */
+export function handleCloudflareChallengeHook(options?: HandleCloudflareChallengeOptions): PlaywrightHook {
+    return async (context) => {
+        const response = await context.handleCloudflareChallenge(options);
+        if (response !== undefined) {
+            return { response };
+        }
+        return undefined;
+    };
+}
+
+/**
  * Creates new {@apilink Router} instance that works based on request labels.
  * This instance can then serve as a `requestHandler` of your {@apilink PlaywrightCrawler}.
  * Defaults to the {@apilink PlaywrightCrawlingContext}.

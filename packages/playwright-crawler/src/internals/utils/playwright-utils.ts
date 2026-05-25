@@ -702,14 +702,16 @@ export interface HandleCloudflareChallengeOptions {
  * result in a SessionError which will be automatically retried, so only successful requests will get
  * into the `requestHandler`.
  *
+ * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned, so
+ * it can be propagated back to the crawling context via a hook return value (see
+ * {@apilink handleCloudflareChallengeHook}).
+ *
  * Works best with camoufox.
  *
  * **Example usage**
  * ```ts
  * postNavigationHooks: [
- *     async ({ handleCloudflareChallenge }) => {
- *         await handleCloudflareChallenge();
- *     },
+ *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
  * ],
  * ```
  *
@@ -722,7 +724,7 @@ async function handleCloudflareChallenge(
     url: string,
     options: HandleCloudflareChallengeOptions = {},
     blockedStatusCodes?: Set<number>,
-): Promise<void> {
+): Promise<Response | undefined> {
     // Cloudflare pages return 403, which is blocked by default — temporarily allow it during challenge handling
     const had403 = blockedStatusCodes?.has(403);
     blockedStatusCodes?.delete(403);
@@ -756,7 +758,7 @@ async function handleCloudflareChallenge(
     try {
         if (!(await isChallenge())) {
             await retryBlocked();
-            return;
+            return undefined;
         }
 
         const logLevel = options.verbose ? 'info' : 'debug';
@@ -772,7 +774,7 @@ async function handleCloudflareChallenge(
             .catch(() => undefined);
 
         if (!bb) {
-            return;
+            return undefined;
         }
 
         const randomOffset = (range: number) => {
@@ -825,6 +827,10 @@ async function handleCloudflareChallenge(
         }
 
         await retryBlocked();
+
+        // Reload to obtain a fresh Response without the challenge interstitial,
+        // which can be propagated back into the crawling context by the caller.
+        return (await page.reload()) ?? undefined;
     } finally {
         if (had403) {
             blockedStatusCodes?.add(403);
@@ -1043,20 +1049,20 @@ export interface PlaywrightContextUtils {
      * result in a SessionError which will be automatically retried, so only successful requests will get
      * into the `requestHandler`.
      *
-     * Works best with camoufox.
+     * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned,
+     * which can be returned from the hook to update the crawling context's `response`. For the common case,
+     * prefer the pre-wrapped {@apilink handleCloudflareChallengeHook} hook.
      *
      * **Example usage**
      * ```ts
      * postNavigationHooks: [
-     *     async ({ handleCloudflareChallenge }) => {
-     *         await handleCloudflareChallenge();
-     *     },
+     *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
      * ],
      * ```
      *
      * @param [options]
      */
-    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response | undefined>;
 }
 
 export { enqueueLinksByClickingElements };

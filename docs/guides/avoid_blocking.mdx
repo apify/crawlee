@@ -59,15 +59,13 @@ On the contrary, sometimes we want to entirely disable the usage of browser fing
 
 ## Camoufox
 
-For some protections, using our integrated solutions is not enough, one example could be the Cloudflare challenge. For such pages, you can try [Camoufox](https://camoufox.com/), a custom stealthy build of Firefox for web scraping. It might not get you through the challenge automatically, but with our `handleCloudflareChallenge` helper, it should be able to successfully mimic the required user action and get you through it.
+For some protections, using our integrated solutions is not enough, one example could be the Cloudflare challenge. For such pages, you can try [Camoufox](https://camoufox.com/), a custom stealthy build of Firefox for web scraping. It might not get you through the challenge automatically, but with our `handleCloudflareChallengeHook` post-navigation hook, it should be able to successfully mimic the required user action and get you through it. The hook also reloads the page after the challenge clears and propagates the fresh response back into the crawling context.
 
 <CodeBlock language="ts">
     {PlaywrightCamoufox}
 </CodeBlock>
 
-## Overriding the crawling context from navigation hooks
-
-Both `preNavigationHooks` and `postNavigationHooks` may optionally return a partial object whose properties are merged into the crawling context. This is useful when a hook produces a fresh `response` (e.g. by reloading the page after solving a challenge) and wants the new value to be observed by status-code validation, subsequent hooks and the request handler.
+If you need finer control, both `preNavigationHooks` and `postNavigationHooks` may return a partial object whose properties are merged into the crawling context. This lets a hook produce a fresh `response` (e.g. by reloading the page after solving a challenge) that's observed by status-code validation, subsequent hooks and the request handler.
 
 <CodeBlock language="ts">
     {NavigationHooksOverrides}
