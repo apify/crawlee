@@ -2216,13 +2216,24 @@ export class BasicCrawler<
         }
     }
 
-    protected async _executeHooks<HookLike extends (...args: any[]) => Awaitable<void>>(
-        hooks: HookLike[],
-        ...args: Parameters<HookLike>
-    ) {
+    protected async _executeHooks<
+        Context,
+        Rest extends any[],
+        HookLike extends (context: Context, ...rest: Rest) => Awaitable<void | Partial<Context>>,
+    >(hooks: HookLike[], context: Context, ...rest: Rest) {
         if (Array.isArray(hooks) && hooks.length) {
             for (const hook of hooks) {
-                await hook(...args);
+                const override = await hook(context, ...rest);
+                if (override) {
+                    for (const key of [
+                        ...Object.getOwnPropertyNames(override),
+                        ...Object.getOwnPropertySymbols(override),
+                    ]) {
+                        if (Object.getOwnPropertyDescriptor(context, key)?.configurable !== false) {
+                            Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(override, key)!);
+                        }
+                    }
+                }
             }
         }
     }

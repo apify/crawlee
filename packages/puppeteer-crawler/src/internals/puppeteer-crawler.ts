@@ -69,7 +69,8 @@ export interface PuppeteerCrawlerOptions<
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
-     * The function accepts `crawlingContext` as the only parameter.
+     * The function accepts `crawlingContext` as the only parameter. A hook may optionally return a partial object
+     * whose properties are merged into the crawling context (e.g. to override `response` after solving a challenge).
      * Example:
      * ```
      * postNavigationHooks: [

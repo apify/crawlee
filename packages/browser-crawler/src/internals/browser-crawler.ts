@@ -87,7 +87,7 @@ export interface BrowserCrawlingContext<
 export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Dictionary | undefined = Dictionary> = (
     crawlingContext: Context,
     gotoOptions: GoToOptions,
-) => Awaitable<void>;
+) => Awaitable<void | Partial<Context>>;
 
 export interface BrowserCrawlerOptions<
     Page extends CommonPage = CommonPage,
@@ -189,6 +189,9 @@ export interface BrowserCrawlerOptions<
      * ]
      * ```
      *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * allowing the hook to override context members for subsequent hooks and pipeline stages.
+     *
      * Modyfing `pageOptions` is supported only in Playwright incognito.
      * See {@apilink PrePageCreateHook}
      */
@@ -198,6 +201,9 @@ export interface BrowserCrawlerOptions<
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
      * The function accepts `crawlingContext` as the only parameter.
      *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context.
+     * This is useful for overriding context members (e.g. `response`) after solving a challenge.
+     *
      * **Example:**
      *
      * ```js
@@ -206,6 +212,11 @@ export interface BrowserCrawlerOptions<
      *         const { page } = crawlingContext;
      *         if (hasCaptcha(page)) {
      *             await solveCaptcha(page);
+     *         }
+     *     },
+     *     async (crawlingContext) => {
+     *         if (await needsRevalidation(crawlingContext)) {
+     *             return { response: await crawlingContext.page.reload() };
      *         }
      *     },
      * ]
@@ -555,8 +566,19 @@ export abstract class BrowserCrawler<
         }
         tryCancel();
 
+        if (response !== undefined) {
+            Object.defineProperty(crawlingContext, 'response', {
+                value: response,
+                configurable: true,
+                writable: true,
+                enumerable: true,
+            });
+        }
+
         crawlingContext.request.state = RequestState.AFTER_NAV;
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+
+        response = response !== undefined ? (crawlingContext.response as Response) : response;
 
         await this.processResponse(response, crawlingContext);
         tryCancel();

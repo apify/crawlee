@@ -179,6 +179,9 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
      * an exception will be thrown. If it's not caught, the request will be transparently retried in a browser.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context
+     * (e.g. to override `response` after solving a challenge).
      */
     postNavigationHooks?: AdaptiveHook[]; // TODO should contain a LoadedRequest - reflect that
 
@@ -219,6 +222,15 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * Defaults to `true`
      */
     preventDirectStorageAccess?: boolean;
+}
+
+function applyHookOverride(context: object, override: void | object) {
+    if (!override) return;
+    for (const key of [...Object.getOwnPropertyNames(override), ...Object.getOwnPropertySymbols(override)]) {
+        if (Object.getOwnPropertyDescriptor(context, key)?.configurable !== false) {
+            Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(override, key)!);
+        }
+    }
 }
 
 const proxyLogMethods = [
@@ -334,14 +346,14 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks: [
                 async (context) => {
                     for (const hook of preNavigationHooks ?? []) {
-                        await hook(context, undefined);
+                        applyHookOverride(context, await hook(context, undefined));
                     }
                 },
             ],
             postNavigationHooks: [
                 async (context) => {
                     for (const hook of postNavigationHooks ?? []) {
-                        await hook(context, undefined);
+                        applyHookOverride(context, await hook(context, undefined));
                     }
                 },
             ],
@@ -355,14 +367,14 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks: [
                 async (context, gotoOptions) => {
                     for (const hook of preNavigationHooks ?? []) {
-                        await hook(context, gotoOptions);
+                        applyHookOverride(context, await hook(context, gotoOptions));
                     }
                 },
             ],
             postNavigationHooks: [
                 async (context, gotoOptions) => {
                     for (const hook of postNavigationHooks ?? []) {
-                        await hook(context, gotoOptions);
+                        applyHookOverride(context, await hook(context, gotoOptions));
                     }
                 },
             ],

@@ -93,16 +93,23 @@ export interface HttpCrawlerOptions<
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
      * The function accepts `crawlingContext` as the only parameter.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * which is useful for overriding the `response` after solving a challenge or re-fetching the resource.
      * Example:
      * ```
      * postNavigationHooks: [
      *     async (crawlingContext) => {
-     *         // ...
+     *         if (await needsRevalidation(crawlingContext)) {
+     *             return { response: await refetch(crawlingContext.request) };
+     *         }
      *     },
      * ]
      * ```
      */
-    postNavigationHooks?: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
+    postNavigationHooks?: ((
+        crawlingContext: CrawlingContextWithReponse,
+    ) => Awaitable<void | Partial<CrawlingContextWithReponse>>)[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -147,7 +154,7 @@ export interface HttpCrawlerOptions<
 /**
  * @internal
  */
-export type InternalHttpHook<Context> = (crawlingContext: Context) => Awaitable<void>;
+export type InternalHttpHook<Context> = (crawlingContext: Context) => Awaitable<void | Partial<Context>>;
 
 export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -305,7 +312,9 @@ export class HttpCrawler<
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
-    protected postNavigationHooks: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
+    protected postNavigationHooks: ((
+        crawlingContext: CrawlingContextWithReponse,
+    ) => Awaitable<void | Partial<CrawlingContextWithReponse>>)[];
     protected saveResponseCookies: boolean;
     protected navigationTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
