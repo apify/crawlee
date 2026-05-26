@@ -54,9 +54,11 @@ async function run() {
         });
         let seenFirst = false;
         const prefix = colors.yellow(`[${dir.name}] `);
-        // Platform build/run links from tools.mjs — only useful for investigating
-        // a failure, so defer them and re-emit in the exit handler iff the test
-        // failed.
+        // Surface only lines that start with a structured `[…]` marker (init,
+        // assertion, build, run, kv, test skipped, etc.). Everything else
+        // (crawler INFO logs, per-URL request handler logs, npm warnings, …)
+        // is noise on a green run; buffer it and re-emit from the exit
+        // handler iff the test failed.
         const deferredOnSuccess = [];
 
         // Line-buffered streaming so prefixed lines stay intact across chunk boundaries.
@@ -69,10 +71,8 @@ async function run() {
                 for (const line of lines) {
                     if (line === '') continue;
 
-                    if (!seenFirst) {
-                        if (line.startsWith('[init]')) {
-                            seenFirst = true;
-                        } else if (!line.startsWith('[test skipped]')) {
+                    if (!line.startsWith('[')) {
+                        if (!seenFirst) {
                             console.log(
                                 `${colors.red('[fatal]')} test ${colors.yellow(
                                     `[${dir.name}]`,
@@ -81,13 +81,11 @@ async function run() {
                             worker.terminate();
                             return;
                         }
-                    }
-
-                    if (line.startsWith('[build]') || line.startsWith('[run]')) {
                         deferredOnSuccess.push(line);
                         continue;
                     }
 
+                    seenFirst = true;
                     sink(`${prefix}${line}`);
                 }
             });
@@ -107,7 +105,7 @@ async function run() {
 
         const exitHandler = async (code) => {
             if (code === SKIPPED_TEST_CLOSE_CODE) {
-                console.log(`Test ${colors.yellow(`[${dir.name}]`)} was skipped`);
+                console.log(`${prefix}${colors.grey('Test skipped')}`);
                 return;
             }
 
