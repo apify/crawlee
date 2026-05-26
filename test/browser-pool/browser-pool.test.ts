@@ -123,6 +123,38 @@ describe.each([
             expect(page.close).toBeDefined();
         });
 
+        // https://github.com/apify/crawlee/issues/3670
+        test('should not leak aborted cancelTask between concurrent newPage calls', async () => {
+            const previousTimeout = browserPool.operationTimeoutMillis;
+            browserPool.operationTimeoutMillis = 1;
+
+            // Each newPage call is wrapped in its own outer addTimeoutToPromise,
+            // matching how BasicCrawler wraps _runRequestHandler. Without the fix,
+            // queued limiter callbacks inherit the previous task's aborted
+            // cancelTask via AsyncLocalStorage propagation through p-limit, causing
+            // their first tryCancel() to throw InternalTimeoutError pre-emptively;
+            // that error then gets silently swallowed by the outer wrap.
+            const results = await Promise.allSettled(
+                Array.from({ length: 5 }, () =>
+                    addTimeoutToPromise(async () => browserPool.newPage(), 60_000, 'outer timed out'),
+                ),
+            );
+
+            browserPool.operationTimeoutMillis = previousTimeout;
+            browserPool.retireAllBrowsers();
+
+            // All calls must reject — none should silently resolve with undefined.
+            expect(results.every((r) => r.status === 'rejected')).toBe(true);
+
+            // Each rejection should reflect this call's own newPage timeout, not
+            // a leaked "canceled due to a timeout" from a sibling's aborted context.
+            for (const r of results) {
+                expect(r.status === 'rejected' && (r.reason as Error).message).toMatch(
+                    /browserController\.newPage\(\) (failed|timed out)/,
+                );
+            }
+        });
+
         // TODO: this test is very flaky in the CI
         test.skip('should allow early aborting in case of outer timeout', async () => {
             const timeout = browserPool.operationTimeoutMillis;
