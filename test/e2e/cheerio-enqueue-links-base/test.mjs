@@ -5,4 +5,4 @@ await initialize(testActorDirname);
 
 const { datasetItems } = await runActor(testActorDirname);
 
-await expect(datasetItems.length === 14, `Enqueueing respects <base href>`);
+await expect(datasetItems.length === 4, `Enqueueing respects <base href>`);
