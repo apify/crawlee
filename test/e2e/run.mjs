@@ -46,6 +46,7 @@ async function run() {
         }
 
         const now = Date.now();
+        console.log(`${colors.yellow(`[${dir.name}] `)}${colors.grey('Test starting...')}`);
         const worker = new Worker(fileURLToPath(import.meta.url), {
             workerData: dir.name,
             stdout: true,
