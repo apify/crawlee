@@ -1,3 +1,5 @@
+import { AsyncResource } from 'node:async_hooks';
+
 import type { TieredProxy } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
@@ -8,7 +10,7 @@ import pLimit from 'p-limit';
 import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
-import { addTimeoutToPromise, storage as timeoutAbortStorage, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserController } from './abstract-classes/browser-controller';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin';
@@ -445,15 +447,15 @@ export class BrowserPool<
             throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
         }
 
-        // Capture caller's AbortContext before entering p-limit: queued limiter
-        // callbacks otherwise inherit the previous task's AsyncLocalStorage context
-        // via p-limit's internal promise chain, leaking aborted cancelTasks across
-        // unrelated requests (https://github.com/apify/crawlee/issues/3670).
-        const callerContext = timeoutAbortStorage.getStore();
-
+        // Bind the limiter callback to the current async-hooks context. p-limit
+        // otherwise resumes queued callbacks in the previous task's
+        // AsyncLocalStorage context, leaking aborted cancelTasks across unrelated
+        // requests (https://github.com/apify/crawlee/issues/3670). Mirrors the
+        // fix p-limit landed upstream in v5 (sindresorhus/p-limit#71); we can't
+        // bump to v5 directly because it's a breaking release.
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
-        return this.limiter(async () => {
-            const work = async () => {
+        return this.limiter(
+            AsyncResource.bind(async () => {
                 let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
 
                 if (!browserController)
@@ -461,10 +463,8 @@ export class BrowserPool<
                 tryCancel();
 
                 return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
-            };
-
-            return callerContext ? timeoutAbortStorage.run(callerContext, work) : timeoutAbortStorage.exit(work);
-        });
+            }),
+        );
     }
 
     /**
