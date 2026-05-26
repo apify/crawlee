@@ -54,6 +54,10 @@ async function run() {
         });
         let seenFirst = false;
         const prefix = colors.yellow(`[${dir.name}] `);
+        // Platform build/run links from tools.mjs — only useful for investigating
+        // a failure, so defer them and re-emit in the exit handler iff the test
+        // failed.
+        const deferredOnSuccess = [];
 
         // Line-buffered streaming so prefixed lines stay intact across chunk boundaries.
         const streamLines = (stream, sink) => {
@@ -79,6 +83,11 @@ async function run() {
                         }
                     }
 
+                    if (line.startsWith('[build]') || line.startsWith('[run]')) {
+                        deferredOnSuccess.push(line);
+                        continue;
+                    }
+
                     sink(`${prefix}${line}`);
                 }
             });
@@ -100,6 +109,10 @@ async function run() {
             if (code === SKIPPED_TEST_CLOSE_CODE) {
                 console.log(`Test ${colors.yellow(`[${dir.name}]`)} was skipped`);
                 return;
+            }
+
+            if (code !== 0) {
+                for (const line of deferredOnSuccess) console.log(`${prefix}${line}`);
             }
 
             const took = (Date.now() - now) / 1000;
