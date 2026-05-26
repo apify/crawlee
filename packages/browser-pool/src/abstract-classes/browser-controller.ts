@@ -141,11 +141,13 @@ export abstract class BrowserController<
 
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
 
-        setTimeout(() => {
+        const killTimer = setTimeout(() => {
             this._kill().catch((err) => {
                 log.debug(`Could not kill browser.\nCause: ${err.message}`, { id: this.id });
             });
         }, PROCESS_KILL_TIMEOUT_MILLIS);
+
+        killTimer!.unref();
     }
 
     /**
