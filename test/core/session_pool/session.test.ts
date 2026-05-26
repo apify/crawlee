@@ -1,7 +1,5 @@
-import { log, Session } from '@crawlee/core';
-import { ResponseWithUrl } from '@crawlee/http-client';
+import { Session } from '@crawlee/core';
 import { entries, sleep } from '@crawlee/utils';
-import { CookieJar } from 'tough-cookie';
 
 describe('Session - testing session behaviour', () => {
     let session: Session;
@@ -49,23 +47,6 @@ describe('Session - testing session behaviour', () => {
         expect(session.isBlocked()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });
-    test('should not throw on invalid Cookie header', () => {
-        let error;
-
-        try {
-            session.setCookiesFromResponse(
-                new ResponseWithUrl('', {
-                    headers: { Cookie: 'invaldi*{*{*{*-----***@s' },
-                    url: 'http://localhost:1337',
-                }),
-            );
-        } catch (e) {
-            error = e;
-        }
-
-        expect(error).toBeUndefined();
-    });
-
     test('should markGood session', () => {
         session.markGood();
         expect(session.usageCount).toBe(1);
@@ -84,6 +65,18 @@ describe('Session - testing session behaviour', () => {
 
         session.markGood();
         expect(session.isUsable()).toBe(false);
+    });
+
+    test('retire() is idempotent', () => {
+        session.retire();
+        const errorScore = session.errorScore;
+        const usageCount = session.usageCount;
+
+        session.retire();
+        session.retire();
+
+        expect(session.errorScore).toBe(errorScore);
+        expect(session.usageCount).toBe(usageCount);
     });
 
     test('should retire session after marking bad', () => {
@@ -150,160 +143,36 @@ describe('Session - testing session behaviour', () => {
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 
-    test('setCookies should work', () => {
-        const url = 'https://example.com';
-        const cookies = [
-            { name: 'cookie1', value: 'my-cookie' },
-            { name: 'cookie2', value: 'your-cookie' },
-        ];
-
-        session = new Session();
-        session.setCookies(cookies, url);
-        expect(session.getCookieString(url)).toBe('cookie1=my-cookie; cookie2=your-cookie');
-    });
-
-    test('setCookies should work for session (with expiration date: -1) cookies', () => {
-        const url = 'https://example.com';
-        const cookies = [{ name: 'session_cookie', value: 'session-cookie-value', expires: -1 }];
-
-        session = new Session();
-        session.setCookies(cookies, url);
-        expect(session.getCookieString(url)).toBe('session_cookie=session-cookie-value');
-    });
-
-    test('setCookies works with leading dots in domains', () => {
-        const url = 'https://www.example.com';
-        const cookies = [
-            { name: 'cookie1', value: 'my-cookie', domain: 'abc.example.com' },
-            { name: 'cookie2', value: 'your-cookie', domain: '.example.com' },
-        ];
-
-        session = new Session();
-        session.setCookies(cookies, url);
-        expect(session.getCookieString(url)).toBe('cookie2=your-cookie');
-    });
-
-    test('setCookies will log warning (not throw) on invalid cookies', () => {
-        const url = 'https://www.example.com';
-        // domain 'abc.different.domain' does not match the request URL, so tough-cookie rejects it
-        const cookies = [{ name: 'cookie1', value: 'my-cookie', domain: 'abc.different.domain' }];
-
-        const mockedLog = vitest.mockObject(log, {
-            spy: true,
-        });
-
-        session = new Session({ log: mockedLog } as any);
-        session.setCookies(cookies, url);
-        expect(session.getCookieString(url)).toBe('');
-        expect(mockedLog.warning).toHaveBeenCalledOnce();
-    });
-
     test('setCookie does not throw on malformed raw cookie string', () => {
         session = new Session();
         expect(() => session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).not.toThrow();
     });
 
-    test('setCookies works with hostOnly cookies', () => {
-        const url = 'https://www.example.com';
-        const cookies = [
-            { name: 'cookie1', value: 'my-cookie', domain: 'abc.example.com' },
-            { name: 'cookie2', value: 'your-cookie', domain: 'example.com' },
-        ];
+    test('retired state survives a getState() / new Session() round-trip', () => {
+        session.retire();
 
-        session = new Session();
-        session.setCookies(cookies, url);
-        expect(session.getCookieString(url)).toBe('');
-        expect(session.getCookieString('https://example.com')).toBe('cookie2=your-cookie');
-    });
+        const old = session.getState();
+        expect(old.retired).toBe(true);
 
-    test('getCookies should work', () => {
-        const url = 'https://www.example.com';
+        // @ts-expect-error Overriding string -> Date
+        old.createdAt = new Date(old.createdAt);
+        // @ts-expect-error Overriding string -> Date
+        old.expiresAt = new Date(old.expiresAt);
 
-        session = new Session({
-            cookieJar: CookieJar.fromJSON(
-                JSON.stringify({
-                    cookies: [
-                        {
-                            'key': 'foo',
-                            'value': 'bar',
-                            'domain': 'example.com',
-                            'path': '/',
-                            'hostOnly': false,
-                        },
-                    ],
-                }),
-            ),
-        });
+        // @ts-expect-error string -> Date for createdAt has been overridden
+        const reinitialized = new Session({ ...old });
+        expect(reinitialized.retired).toBe(true);
+        expect(reinitialized.isUsable()).toBe(false);
 
-        expect(session.getCookies(url)).to.containSubset([
-            {
-                name: 'foo',
-                value: 'bar',
-                domain: '.example.com',
-            },
-        ]);
-        expect(session.getCookies(url)).to.deep.equal(session.getCookies('https://example.com'));
-    });
-
-    test('getCookies should work with hostOnly cookies', () => {
-        const url = 'https://www.example.com';
-
-        session = new Session({
-            cookieJar: CookieJar.fromJSON(
-                JSON.stringify({
-                    cookies: [
-                        {
-                            'key': 'foo',
-                            'value': 'bar',
-                            'domain': 'example.com',
-                            'path': '/',
-                            'hostOnly': true,
-                        },
-                    ],
-                }),
-            ),
-        });
-
-        expect(session.getCookies(url)).toHaveLength(0);
-        expect(session.getCookies('https://example.com')).to.containSubset([
-            {
-                name: 'foo',
-                value: 'bar',
-                domain: 'example.com',
-            },
-        ]);
-    });
-
-    describe('.putResponse & .getCookieString', () => {
-        test('should set and update cookies from "set-cookie" header', () => {
-            const headers = new Headers();
-
-            headers.append('set-cookie', 'CSRF=e8b667; Domain=example.com; Secure ');
-            headers.append('set-cookie', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT');
-
-            const newSession = new Session();
-            const url = 'https://example.com';
-            newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers, url }));
-            let cookies = newSession.getCookieString(url);
-            expect(cookies).toEqual('CSRF=e8b667; id=a3fWa');
-
-            const newCookie = 'ABCD=1231231213; Domain=example.com; Secure';
-
-            newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers: { 'set-cookie': newCookie }, url }));
-            cookies = newSession.getCookieString(url);
-            expect(cookies).toEqual('CSRF=e8b667; id=a3fWa; ABCD=1231231213');
-        });
+        reinitialized.markGood();
+        expect(reinitialized.isUsable()).toBe(false);
     });
 
     test('should correctly persist and init cookieJar', () => {
-        const headers = new Headers();
-
-        headers.append('set-cookie', 'CSRF=e8b667; Domain=example.com; Secure ');
-        headers.append('set-cookie', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT');
-
         const newSession = new Session();
         const url = 'https://example.com';
-        newSession.setCookiesFromResponse(new ResponseWithUrl('', { headers, url }));
+        newSession.cookieJar.setCookieSync('CSRF=e8b667; Domain=example.com; Secure', url);
+        newSession.cookieJar.setCookieSync('id=a3fWa; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Domain=example.com', url);
 
         const old = newSession.getState();
 

@@ -1,23 +1,10 @@
-import type {
-    Cookie as CookieObject,
-    Dictionary,
-    ISession,
-    ProxyInfo,
-    SessionFingerprint,
-    SessionState,
-} from '@crawlee/types';
+import type { Dictionary, ISession, ProxyInfo, SessionFingerprint, SessionState } from '@crawlee/types';
 import ow from 'ow';
-import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import {
-    browserPoolCookieToToughCookie,
-    getCookiesFromResponse,
-    getDefaultCookieExpirationDate,
-    toughCookieToBrowserPoolCookie,
-} from '../cookie_utils.js';
+import { getDefaultCookieExpirationDate } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 
@@ -70,6 +57,13 @@ export interface SessionOptions {
      */
     maxUsageCount?: number;
 
+    /**
+     * Marks the session as already retired. Used when restoring a previously persisted session
+     * so that `isUsable()` reflects the terminal state regardless of error score or usage count.
+     * @default false
+     */
+    retired?: boolean;
+
     log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
@@ -91,7 +85,6 @@ export interface SessionOptions {
  */
 export class Session implements ISession {
     readonly id: string;
-    private maxAgeSecs: number;
     userData: Dictionary;
     private _maxErrorScore: number;
     private _errorScoreDecrement: number;
@@ -151,6 +144,14 @@ export class Session implements ISession {
     }
 
     /**
+     * `true` once {@apilink Session.retire|`retire()`} has been called. Retirement is terminal:
+     * a retired session is never picked by the pool and cannot be revived via `markGood()`.
+     */
+    get retired() {
+        return this._retired;
+    }
+
+    /**
      * Session configuration.
      */
     constructor(options: SessionOptions = {}) {
@@ -169,6 +170,7 @@ export class Session implements ISession {
                 usageCount: ow.optional.number,
                 errorScore: ow.optional.number,
                 maxUsageCount: ow.optional.number,
+                retired: ow.optional.boolean,
                 log: ow.optional.object,
                 fingerprint: ow.optional.object,
             }),
@@ -186,6 +188,7 @@ export class Session implements ISession {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
+            retired = false,
             log = serviceLocator.getLogger(),
             fingerprint,
         } = options;
@@ -198,7 +201,6 @@ export class Session implements ISession {
         this._proxyInfo = proxyInfo;
         this._fingerprint = fingerprint;
         this.id = id;
-        this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
         this._maxErrorScore = maxErrorScore;
         this._errorScoreDecrement = errorScoreDecrement;
@@ -209,6 +211,7 @@ export class Session implements ISession {
         this._usageCount = usageCount; // indicates how many times the session has been used
         this._errorScore = errorScore; // indicates number of markBaded request with the session
         this._maxUsageCount = maxUsageCount;
+        this._retired = retired;
     }
 
     /**
@@ -276,17 +279,19 @@ export class Session implements ISession {
             usageCount: this.usageCount,
             maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
+            retired: this._retired,
         };
     }
 
     /**
-     * Marks session as blocked and emits event on the `SessionPool`
-     * This method should be used if the session usage was unsuccessful
-     * and you are sure that it is because of the session configuration and not any external matters.
-     * For example when server returns 403 status code.
-     * If the session does not work due to some external factors as server error such as 5XX you probably want to use `markBad` method.
+     * Permanently retires the session — `isUsable()` will return `false` from here on,
+     * and no `markGood()` / `markBad()` can revive it. Calling `retire()` again is a no-op.
+     *
+     * Use this when you're confident the session itself is the problem (e.g. a `403` response).
+     * For transient external failures (such as `5XX` responses), use `markBad()` instead.
      */
     retire() {
+        if (this._retired) return;
         this._errorScore += this._maxErrorScore;
         this._usageCount += 1;
         this._retired = true;
@@ -301,51 +306,6 @@ export class Session implements ISession {
         this._usageCount += 1;
 
         this._maybeSelfRetire();
-    }
-
-    /**
-     * Saves cookies from an HTTP response to be used with the session.
-     * It expects an object with a `headers` property that's either an `Object`
-     * (typical Node.js responses) or a `Function` (Puppeteer Response).
-     *
-     * It then parses and saves the cookies from the `set-cookie` header, if available.
-     */
-    setCookiesFromResponse(response: Response) {
-        try {
-            const cookies = getCookiesFromResponse(response).filter((c) => c);
-            this._setCookies(cookies, response.url);
-        } catch (e) {
-            const err = e as Error;
-            // if invalid Cookie header is provided just log the exception.
-            this.log.exception(err, 'Could not get cookies from response');
-        }
-    }
-
-    /**
-     * Saves an array with cookie objects to be used with the session.
-     * The objects should be in the format that
-     * [Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls),
-     * but you can also use this function to set cookies manually:
-     *
-     * ```
-     * [
-     *   { name: 'cookie1', value: 'my-cookie' },
-     *   { name: 'cookie2', value: 'your-cookie' }
-     * ]
-     * ```
-     */
-    setCookies(cookies: CookieObject[], url: string) {
-        const normalizedCookies = cookies.map((c) => browserPoolCookieToToughCookie(c, this.maxAgeSecs));
-        this._setCookies(normalizedCookies, url);
-    }
-
-    /**
-     * Returns cookies in a format compatible with puppeteer/playwright and ready to be used with `page.setCookie`.
-     * @param url website url. Only cookies stored for this url will be returned
-     */
-    getCookies(url: string): CookieObject[] {
-        const cookies = this.cookieJar.getCookiesSync(url);
-        return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
     }
 
     /**
@@ -366,27 +326,6 @@ export class Session implements ISession {
             this.cookieJar.setCookieSync(rawCookie, url);
         } catch (e) {
             this.log.warning('Could not set cookie.', { url, error: (e as Error).message });
-        }
-    }
-
-    /**
-     * Sets cookies.
-     */
-    protected _setCookies(cookies: Cookie[], url: string): void {
-        const errorMessages: string[] = [];
-
-        for (const cookie of cookies) {
-            try {
-                this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
-            } catch (e) {
-                const err = e as Error;
-                errorMessages.push(err.message);
-            }
-        }
-
-        // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-        if (errorMessages.length) {
-            this.log.warning('Could not set cookies.', { errorMessages });
         }
     }
 

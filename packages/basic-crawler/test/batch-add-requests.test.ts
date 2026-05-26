@@ -1,6 +1,7 @@
 import { BasicCrawler } from '@crawlee/basic';
 
 import { MemoryStorageEmulator } from '../../../test/shared/MemoryStorageEmulator.js';
+import { SessionPool } from '@crawlee/core';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
     const localStorageEmulator = new MemoryStorageEmulator();
@@ -74,17 +75,20 @@ describe('BasicCrawler - request.sessionId', () => {
     });
 
     test('uses the session matching request.sessionId from the session pool', async () => {
+        const REQUESTED_SESSION_ID = 'my-session';
         let resolvedSessionId: string | undefined;
+
+        const sessionPool = new SessionPool();
+        sessionPool.addSession({ id: REQUESTED_SESSION_ID });
 
         const crawler = new BasicCrawler({
             requestHandler({ session }) {
                 resolvedSessionId = session.id;
             },
+            sessionPool,
         });
 
-        const session = await crawler.sessionPool.newSession({ id: 'my-session' });
-
-        await crawler.run([{ url: 'http://localhost', sessionId: session.id }]);
+        await crawler.run([{ url: 'http://localhost', sessionId: REQUESTED_SESSION_ID }]);
 
         expect(resolvedSessionId).toBe('my-session');
     });
@@ -104,7 +108,7 @@ describe('BasicCrawler - request.sessionId', () => {
 
         expect(errors).toHaveLength(1);
         expect(errors[0].message).toContain(
-            "The current SessionPool instance doesn't contain the requested sessionId: nonexistent",
+            "The current SessionPool instance couldn't find a valid session for the following id: nonexistent",
         );
     });
 });

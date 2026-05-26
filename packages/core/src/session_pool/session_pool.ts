@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, ISessionPool } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
@@ -20,10 +20,9 @@ export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
  */
 export interface CreateSession {
     /**
-     * @param sessionPool Pool requesting the new session.
-     * @param options
+     * @param options.sessionOptions Per-call session options already merged with the pool-wide defaults.
      */
-    (sessionPool: SessionPool, options?: { sessionOptions?: SessionOptions }): Session | Promise<Session>;
+    (options?: { sessionOptions?: SessionOptions }): Session | Promise<Session>;
 }
 
 export interface SessionPoolOptions {
@@ -54,8 +53,8 @@ export interface SessionPoolOptions {
 
     /**
      * Custom function that should return a `Session` instance, or a promise resolving to such instance.
-     * Any error thrown from this function will terminate the process.
-     * Function receives `SessionPool` instance as a parameter
+     * Any error thrown from this function will terminate the process. Receives `{ sessionOptions }`
+     * already merged from the pool-wide defaults and the per-call overrides.
      */
     createSessionFunction?: CreateSession;
 
@@ -130,7 +129,7 @@ export interface SessionPoolOptions {
  *
  * @category Scaling
  */
-export class SessionPool {
+export class SessionPool implements ISessionPool {
     private static nextId = 0;
 
     readonly id: string;
@@ -303,19 +302,6 @@ export class SessionPool {
      * If there is space for new session, it creates and returns new session.
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
-     */
-    async getSession(): Promise<Session>;
-
-    /**
-     * Gets session based on the provided session id or `undefined.
-     */
-    async getSession(sessionId: string): Promise<Session>;
-
-    /**
-     * Gets session.
-     * If there is space for new session, it creates and returns new session.
-     * If the session pool is full, it picks a session from the pool,
-     * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
     async getSession(sessionId?: string): Promise<Session | undefined> {
@@ -443,15 +429,11 @@ export class SessionPool {
 
     /**
      * Creates new session without any extra behavior.
-     * @param sessionPool
      * @param [options]
      * @param [options.sessionOptions] The configuration options for the session being created.
      * @returns New session.
      */
-    protected async _defaultCreateSessionFunction(
-        _sessionPool: SessionPool,
-        options: { sessionOptions?: SessionOptions } = {},
-    ): Promise<Session> {
+    protected async _defaultCreateSessionFunction(options: { sessionOptions?: SessionOptions } = {}): Promise<Session> {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
         const { sessionOptions = {} } = options;
 
@@ -464,7 +446,7 @@ export class SessionPool {
      */
     private async _invokeCreateSessionFunction(perCallOptions?: SessionOptions): Promise<Session> {
         const sessionOptions = { ...this.sessionOptions, ...perCallOptions };
-        return this.createSessionFunction(this, { sessionOptions });
+        return this.createSessionFunction({ sessionOptions });
     }
 
     /**
