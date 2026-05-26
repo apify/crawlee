@@ -53,56 +53,42 @@ async function run() {
             stderr: true,
         });
         let seenFirst = false;
-        /** @type Map<string, string[]> */
-        const allLogs = new Map();
-        worker.stderr.on('data', (data) => {
-            const str = data.toString();
-            const taskLogs = allLogs.get(dir.name) ?? [];
-            allLogs.set(dir.name, taskLogs);
-            taskLogs.push(str);
-        });
-        worker.stdout.on('data', (data) => {
-            const str = data.toString();
-            const taskLogs = allLogs.get(dir.name) ?? [];
-            allLogs.set(dir.name, taskLogs);
-            taskLogs.push(str);
+        const prefix = colors.yellow(`[${dir.name}] `);
 
-            if (str.startsWith('[test skipped]')) {
-                return;
-            }
+        // Line-buffered streaming so prefixed lines stay intact across chunk boundaries.
+        const streamLines = (stream, sink) => {
+            let buffer = '';
+            stream.on('data', (chunk) => {
+                buffer += chunk.toString();
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (line === '') continue;
 
-            if (str.startsWith('[init]')) {
-                seenFirst = true;
-                return;
-            }
+                    if (!seenFirst) {
+                        if (line.startsWith('[init]')) {
+                            seenFirst = true;
+                        } else if (!line.startsWith('[test skipped]')) {
+                            console.log(
+                                `${colors.red('[fatal]')} test ${colors.yellow(
+                                    `[${dir.name}]`,
+                                )} did not call "initialize(import.meta.url)"!`,
+                            );
+                            worker.terminate();
+                            return;
+                        }
+                    }
 
-            if (!seenFirst) {
-                console.log(
-                    `${colors.red('[fatal]')} test ${colors.yellow(
-                        `[${dir.name}]`,
-                    )} did not call "initialize(import.meta.url)"!`,
-                );
-                worker.terminate();
-                return;
-            }
-
-            if (
-                process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' &&
-                (str.startsWith('[build]') || str.startsWith('[run]') || str.startsWith('[kv]'))
-            ) {
-                const platformStatsMessage = str.match(/\[(?:run|build|kv)] (.*)/);
-                if (platformStatsMessage) {
-                    console.log(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
+                    sink(`${prefix}${line}`);
                 }
-            }
+            });
+            stream.on('end', () => {
+                if (buffer !== '') sink(`${prefix}${buffer}`);
+            });
+        };
 
-            const match = str.match(/\[assertion] (passed|failed): (.*)/);
-
-            if (match) {
-                const c = match[1] === 'passed' ? colors.green : colors.red;
-                console.log(`${colors.yellow(`[${dir.name}] `)}${match[2]}: ${c(match[1])}`);
-            }
-        });
+        streamLines(worker.stdout, (line) => console.log(line));
+        streamLines(worker.stderr, (line) => console.error(line));
 
         worker.on('error', (err) => {
             // If the worker emits any error, we want to exit with a non-zero code
@@ -131,12 +117,6 @@ async function run() {
 
             if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
                 await clearPackages(`${basePath}/${dir.name}`);
-            }
-
-            const taskLogs = allLogs.get(dir.name);
-
-            if (code !== 0 && taskLogs?.length > 0) {
-                console.log(taskLogs.join('\n'));
             }
 
             if (status === 'failure') failure = true;
