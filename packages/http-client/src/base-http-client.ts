@@ -1,8 +1,19 @@
-import type { BaseHttpClient as BaseHttpClientInterface, CrawleeLogger, SendRequestOptions } from '@crawlee/types';
+import type {
+    BaseHttpClient as BaseHttpClientInterface,
+    CrawleeLogger,
+    SendRequestOptions,
+    SessionFingerprint,
+} from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 
 export interface CustomFetchOptions {
     proxyUrl?: string;
+    /**
+     * Session-declared fingerprint to apply on a best-effort basis.
+     * Concrete clients use what they can (e.g. `userAgent`, `headers`,
+     * `browser`) and ignore the rest.
+     */
+    fingerprint?: SessionFingerprint;
 }
 
 /**
@@ -74,11 +85,13 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         proxyUrl?: string;
         cookieJar: CookieJar;
         signal?: AbortSignal;
+        fingerprint?: SessionFingerprint;
     } {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
         const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
-        return { proxyUrl, cookieJar: cookieJar as CookieJar, signal };
+        const fingerprint = options?.session?.fingerprint;
+        return { proxyUrl, cookieJar: cookieJar as CookieJar, signal, fingerprint };
     }
 
     private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
@@ -135,7 +148,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal } = this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint } = this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
@@ -144,6 +157,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             const response = await this.fetch(currentRequest, {
                 signal,
                 proxyUrl,
+                fingerprint,
                 redirect: 'manual',
             });
 
