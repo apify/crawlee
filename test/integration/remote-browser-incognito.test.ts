@@ -18,7 +18,7 @@ import { expect, test } from 'vitest';
 import { BROWSERLESS_URL, httpbin } from './helpers.js';
 
 class BrowserlessCDPProvider extends RemoteBrowserProvider {
-    maxOpenBrowsers = 1;
+    override maxOpenBrowsers = 1;
     async connect() {
         return { url: BROWSERLESS_URL };
     }
