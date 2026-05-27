@@ -31,7 +31,7 @@ function deriveSessionFingerprint(payload: BrowserFingerprintWithHeaders): Sessi
         browser,
         platform,
         device: navigator.userAgentData?.mobile ? 'mobile' : 'desktop',
-        browserFingerprint: payload,
+        details: payload,
     };
 }
 
@@ -56,9 +56,7 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
             fingerprintGeneratorOptions || getGeneratorDefaultOptions(launchContext);
         let fingerprint: BrowserFingerprintWithHeaders;
 
-        const sessionFingerprint = session?.fingerprint?.browserFingerprint as
-            | BrowserFingerprintWithHeaders
-            | undefined;
+        const sessionFingerprint = session?.fingerprint?.details as BrowserFingerprintWithHeaders | undefined;
 
         if (sessionFingerprint) {
             fingerprint = sessionFingerprint;
@@ -72,7 +70,7 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
             fingerprint = fingerprintGenerator!.getFingerprint(fingerprintGeneratorFinalOptions);
         }
 
-        if (session && !session.fingerprint?.browserFingerprint) {
+        if (session && !session.fingerprint?.details) {
             session.fingerprint = deriveSessionFingerprint(fingerprint);
         }
 

@@ -70,9 +70,10 @@ export interface ProxyInfo {
  * the request headers) are not duplicated here: they already travel with the
  * `Request` itself, are overridable per-request via the various crawler options, and
  * any HTTP-client backend that impersonates a browser will derive them from
- * `browser` anyway. `browserFingerprint` is an opaque slot for the full browser
- * fingerprint payload populated by `@crawlee/browser-pool` — it stays untyped here
- * so `@crawlee/core` does not depend on `fingerprint-generator`.
+ * `browser` anyway. `details` is an opaque slot for the rich, consumer-specific
+ * payload that corresponds to these hints (e.g. the full browser fingerprint stored
+ * by `@crawlee/browser-pool`) — it stays untyped here so `@crawlee/core` does not
+ * depend on `fingerprint-generator`.
  */
 export interface SessionFingerprint {
     /** Browser family — consumed by HTTP clients that impersonate (e.g. `impit`). */
@@ -85,11 +86,12 @@ export interface SessionFingerprint {
     device?: 'desktop' | 'mobile';
 
     /**
-     * Opaque slot for the rich browser-fingerprint payload (typically
-     * `BrowserFingerprintWithHeaders` from `fingerprint-generator`).
-     * Populated by `@crawlee/browser-pool`; HTTP-only stacks can ignore it.
+     * Opaque slot for the rich, consumer-specific payload backing the lean hints
+     * above (typically `BrowserFingerprintWithHeaders` from `fingerprint-generator`
+     * when populated by `@crawlee/browser-pool`). Consumers that don't recognize
+     * the shape can ignore it.
      */
-    browserFingerprint?: unknown;
+    details?: unknown;
 }
 
 /**
