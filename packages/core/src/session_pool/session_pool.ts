@@ -9,6 +9,7 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
+import { createDefaultSessionFingerprint } from './fingerprint.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
 
@@ -443,9 +444,19 @@ export class SessionPool implements ISessionPool {
     /**
      * Invokes `createSessionFunction` with `sessionOptions` already merged from pool-wide defaults and
      * the supplied per-call overrides, so custom implementations don't need to spread `pool.sessionOptions` themselves.
+     *
+     * A default {@apilink SessionFingerprint} is generated up front (host OS as
+     * `platform`, a random valid `browser`/`device` for that platform). Pool-wide
+     * and per-call options override it, and a persisted fingerprint coming
+     * through `_maybeLoadSessionPool` naturally wins because it arrives in
+     * `perCallOptions`.
      */
     private async _invokeCreateSessionFunction(perCallOptions?: SessionOptions): Promise<Session> {
-        const sessionOptions = { ...this.sessionOptions, ...perCallOptions };
+        const sessionOptions: SessionOptions = {
+            fingerprint: createDefaultSessionFingerprint(),
+            ...this.sessionOptions,
+            ...perCallOptions,
+        };
         return this.createSessionFunction({ sessionOptions });
     }
 
