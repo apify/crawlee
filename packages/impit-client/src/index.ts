@@ -6,9 +6,25 @@ import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
 
-const IMPIT_BROWSER_BY_FINGERPRINT: Partial<Record<NonNullable<SessionFingerprint['browser']>, ImpitBrowser>> = {
-    chrome: 'chrome',
-    firefox: 'firefox',
+// Concrete impit impersonation profiles per browser family. The plain `chrome` /
+// `firefox` aliases fall back to the oldest available version, which is a
+// fingerprint giveaway — we pick one of these explicitly instead. Keep in sync
+// with impit's `Browser` type when bumping the dependency.
+const IMPIT_VERSIONS_BY_BROWSER: Partial<Record<NonNullable<SessionFingerprint['browser']>, ImpitBrowser[]>> = {
+    chrome: [
+        'chrome100',
+        'chrome101',
+        'chrome104',
+        'chrome107',
+        'chrome110',
+        'chrome116',
+        'chrome124',
+        'chrome125',
+        'chrome131',
+        'chrome136',
+        'chrome142',
+    ],
+    firefox: ['firefox128', 'firefox133', 'firefox135', 'firefox144'],
 };
 
 export const Browser = {
@@ -29,6 +45,13 @@ export class ImpitHttpClient extends BaseHttpClient {
      * (and other resources) reuse.
      */
     private clientCache: LruCache<{ client: Impit; cookieJar: ToughCookieJar }> = new LruCache({ maxLength: 10 });
+
+    /**
+     * Stable impit impersonation version per fingerprint object, so the same
+     * session keeps impersonating the same browser version across requests
+     * instead of rerolling on every call.
+     */
+    private impitBrowserByFingerprint = new WeakMap<SessionFingerprint, ImpitBrowser>();
 
     private getClient(options: ImpitOptions) {
         const { cookieJar, ...rest } = options;
@@ -57,7 +80,7 @@ export class ImpitHttpClient extends BaseHttpClient {
     async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         const { proxyUrl, redirect, signal, fingerprint } = options ?? {};
 
-        const impitBrowser = fingerprint?.browser && IMPIT_BROWSER_BY_FINGERPRINT[fingerprint.browser];
+        const impitBrowser = this.resolveImpitBrowser(fingerprint);
 
         const impit = this.getClient({
             ...this.impitOptions,
@@ -70,5 +93,18 @@ export class ImpitHttpClient extends BaseHttpClient {
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
         return new ResponseWithUrl(response.body, response);
+    }
+
+    private resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
+        if (!fingerprint?.browser) return undefined;
+        const versions = IMPIT_VERSIONS_BY_BROWSER[fingerprint.browser];
+        if (!versions?.length) return undefined;
+
+        const cached = this.impitBrowserByFingerprint.get(fingerprint);
+        if (cached) return cached;
+
+        const picked = versions[Math.floor(Math.random() * versions.length)];
+        this.impitBrowserByFingerprint.set(fingerprint, picked);
+        return picked;
     }
 }

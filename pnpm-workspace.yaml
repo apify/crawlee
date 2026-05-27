@@ -37,6 +37,7 @@ allowBuilds:
     bufferutil: true
     core-js: true
     esbuild: true
+    impit: true
     nx: true
     protobufjs: true
     puppeteer: true
