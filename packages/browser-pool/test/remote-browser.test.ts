@@ -378,7 +378,7 @@ describe('Remote browser — PlaywrightPlugin', () => {
     // --- Info/Warnings --------------------------------------------------------
 
     describe('info and warnings', () => {
-        test('proxyUrl + remote → warning logged', async () => {
+        test('proxyUrl + remote → info about forwarding to provider', async () => {
             const lib = createMockPlaywrightLibrary();
             const plugin = new PlaywrightPlugin(lib as any, {
                 connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
@@ -388,8 +388,8 @@ describe('Remote browser — PlaywrightPlugin', () => {
             const ctx = plugin.createLaunchContext();
             await plugin.launch(ctx);
 
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining('proxyUrl is set but will be ignored'),
+            expect(mockLogger.info).toHaveBeenCalledWith(
+                expect.stringContaining("forwarded to the remote browser provider's connect()"),
             );
         });
 
@@ -615,7 +615,7 @@ describe('Remote browser — PuppeteerPlugin', () => {
     // --- Info/Warnings --------------------------------------------------------
 
     describe('info and warnings', () => {
-        test('proxyUrl + remote → warning logged', async () => {
+        test('proxyUrl + remote → info about forwarding to provider', async () => {
             const lib = createMockPuppeteerLibrary();
             const plugin = new PuppeteerPlugin(lib as any, {
                 connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
@@ -625,8 +625,8 @@ describe('Remote browser — PuppeteerPlugin', () => {
             const ctx = plugin.createLaunchContext();
             await plugin.launch(ctx);
 
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining('proxyUrl is set but will be ignored'),
+            expect(mockLogger.info).toHaveBeenCalledWith(
+                expect.stringContaining("forwarded to the remote browser provider's connect()"),
             );
         });
 
