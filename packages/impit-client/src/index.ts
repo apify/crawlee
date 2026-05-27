@@ -55,7 +55,8 @@ export class ImpitHttpClient extends BaseHttpClient {
      * @inheritDoc
      */
     async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        const { proxyUrl, redirect, signal, fingerprint } = options ?? {};
+        const { proxyUrl, redirect, signal, session } = options ?? {};
+        const fingerprint = session?.fingerprint;
 
         const impitBrowser = fingerprint?.browser && IMPIT_BROWSER_BY_FINGERPRINT[fingerprint.browser];
 
