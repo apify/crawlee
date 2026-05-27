@@ -22,7 +22,6 @@ import {
     Session,
     SessionPool,
 } from '@crawlee/puppeteer';
-import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
@@ -314,15 +313,6 @@ describe('PuppeteerCrawler', () => {
     });
 
     test('should set cookies assigned to session to page', async () => {
-        const cookies: Cookie[] = [
-            {
-                name: 'example_cookie_name',
-                domain: '127.0.0.1',
-                value: 'example_cookie_value',
-                expires: -1,
-            } as never,
-        ];
-
         let pageCookies;
         let sessionCookies;
 
@@ -331,15 +321,15 @@ describe('PuppeteerCrawler', () => {
 
             saveResponseCookies: true,
             sessionPool: new SessionPool({
-                createSessionFunction: (sessionPool) => {
-                    const session = new Session({ sessionPool });
-                    session.setCookies(cookies, serverUrl);
+                createSessionFunction: () => {
+                    const session = new Session();
+                    session.cookieJar.setCookieSync('example_cookie_name=example_cookie_value', serverUrl);
                     return session;
                 },
             }),
             requestHandler: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
-                sessionCookies = session!.getCookieString(serverUrl);
+                sessionCookies = session!.cookieJar.getCookieStringSync(serverUrl);
             },
         });
 

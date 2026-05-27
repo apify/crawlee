@@ -15,6 +15,7 @@ import log from '@apify/log';
 
 import type { TestCrawlingContext } from './basic_browser_crawler.js';
 import { BrowserCrawlerTest } from './basic_browser_crawler.js';
+import { ISession } from '@crawlee/types';
 
 describe('BrowserCrawler', () => {
     let prevEnvHeadless: string;
@@ -145,7 +146,7 @@ describe('BrowserCrawler', () => {
             });
             class TimeoutError extends Error {}
             let markBadCalled = false;
-            let sessionGoto!: Session;
+            let sessionGoto!: ISession;
             const browserCrawler = new (class extends BrowserCrawlerTest {
                 protected override async _navigationHandler(
                     ctx: TestCrawlingContext,
@@ -526,7 +527,7 @@ describe('BrowserCrawler', () => {
             requestList,
             saveResponseCookies: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session.getCookieString(request.url));
+                loadedCookies.push(session.cookieJar.getCookieStringSync(request.url));
                 return Promise.resolve();
             },
             preNavigationHooks: [
@@ -754,38 +755,25 @@ describe('BrowserCrawler', () => {
             const requestList = await RequestList.open({
                 sources: [{ url: 'http://example.com/?q=1' }],
             });
-            let resolve: (value?: unknown) => void;
 
-            const retirementPromise = new Promise((r) => {
-                resolve = r;
-            });
-            let called = false;
-            const browserCrawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
-                    ctx: TestCrawlingContext,
-                ): Promise<HTTPResponse | null | undefined> {
-                    browserCrawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
-                        resolve();
-                        called = true;
-                    });
-                    ctx.session!.retire();
-                    return ctx.page.goto(ctx.request.url);
-                }
-            })({
+            let retiredBrowserCount = 0;
+            const browserCrawler = new BrowserCrawlerTest({
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-
-                requestHandler: async () => {
-                    await retirementPromise;
+                requestHandler: async ({ session }) => {
+                    session!.retire();
                 },
                 maxRequestRetries: 1,
+            });
+            browserCrawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
+                retiredBrowserCount += 1;
             });
 
             await browserCrawler.run();
 
-            expect(called).toBeTruthy();
+            expect(retiredBrowserCount).toBeGreaterThan(0);
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -807,7 +795,7 @@ describe('BrowserCrawler', () => {
                     maxPoolSize: 1,
                 }),
                 requestHandler: async ({ session }) => {
-                    sessionUsageHistory.push(session!.usageCount);
+                    sessionUsageHistory.push((session as Session).usageCount);
                 },
             });
 
