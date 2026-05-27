@@ -11,8 +11,7 @@ import { getGeneratorDefaultOptions } from './utils.js';
 
 function deriveSessionFingerprint(payload: BrowserFingerprintWithHeaders): SessionFingerprint {
     const { navigator } = payload.fingerprint;
-    const userAgent = navigator.userAgent;
-    const ua = userAgent.toLowerCase();
+    const ua = navigator.userAgent.toLowerCase();
 
     let browser: SessionFingerprint['browser'];
     if (ua.includes('edg/')) browser = 'edge';
@@ -29,12 +28,9 @@ function deriveSessionFingerprint(payload: BrowserFingerprintWithHeaders): Sessi
     else if (platformHint.includes('iphone') || platformHint.includes('ipad')) platform = 'ios';
 
     return {
-        userAgent,
-        headers: payload.headers,
         browser,
         platform,
         device: navigator.userAgentData?.mobile ? 'mobile' : 'desktop',
-        locales: navigator.languages,
         browserFingerprint: payload,
     };
 }

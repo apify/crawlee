@@ -62,22 +62,19 @@ export interface ProxyInfo {
 }
 
 /**
- * Identifies the browser and HTTP client characteristics tied to a {@apilink Session}, so
+ * Identifies the browser-like profile a {@apilink Session} is impersonating, so
  * repeated requests with the same session look consistent to the target server.
  *
- * Top-level fields are the cross-cutting bits every backend can consume (HTTP clients pick
- * `userAgent`, `headers`, `browser`, `locales`, `httpVersion`; browser crawlers additionally
- * use `platform` and `device` hints). `browserFingerprint` is an opaque slot for the
- * full browser fingerprint payload populated by `@crawlee/browser-pool` — it stays untyped
- * here so `@crawlee/core` does not depend on `fingerprint-generator`.
+ * The fields are intentionally narrow request-shape *hints* — `browser`, `platform`,
+ * and `device`. Header-level details (`User-Agent`, `Accept-Language`, the rest of
+ * the request headers) are not duplicated here: they already travel with the
+ * `Request` itself, are overridable per-request via the various crawler options, and
+ * any HTTP-client backend that impersonates a browser will derive them from
+ * `browser` anyway. `browserFingerprint` is an opaque slot for the full browser
+ * fingerprint payload populated by `@crawlee/browser-pool` — it stays untyped here
+ * so `@crawlee/core` does not depend on `fingerprint-generator`.
  */
 export interface SessionFingerprint {
-    /** User-agent string used for requests with this session. */
-    userAgent: string;
-
-    /** Ordered map of headers to send. */
-    headers?: Record<string, string>;
-
     /** Browser family — consumed by HTTP clients that impersonate (e.g. `impit`). */
     browser?: 'chrome' | 'firefox' | 'safari' | 'edge';
 
@@ -86,12 +83,6 @@ export interface SessionFingerprint {
 
     /** Device class — drives header generation and viewport defaults. */
     device?: 'desktop' | 'mobile';
-
-    /** Preferred HTTP version. */
-    httpVersion?: '1' | '2';
-
-    /** Locales (Accept-Language). */
-    locales?: string[];
 
     /**
      * Opaque slot for the rich browser-fingerprint payload (typically
