@@ -1,8 +1,8 @@
 import type {
     BaseHttpClient as BaseHttpClientInterface,
     CrawleeLogger,
-    ISession,
     SendRequestOptions,
+    SessionFingerprint,
 } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 
@@ -10,11 +10,9 @@ import { CookieJar } from 'tough-cookie';
  * Per-request options handed to a concrete client's `fetch` implementation.
  *
  * `proxyUrl` and `cookieJar` are the *effective* values for this request after
- * {@apilink BaseHttpClient.sendRequest} resolves per-request overrides on top of
- * the session — clients should always use these and not re-read them from the
- * session. `session` is forwarded untouched so clients can consume anything else
- * declared on it (most notably {@apilink ISession.fingerprint}, but also custom
- * `userData`) without us having to grow this interface for every new field.
+ * {@apilink BaseHttpClient.sendRequest} resolves per-request overrides on top
+ * of the session — clients should always use these and not re-read them from
+ * the session.
  */
 export interface CustomFetchOptions {
     /**
@@ -32,13 +30,14 @@ export interface CustomFetchOptions {
     cookieJar?: CookieJar;
 
     /**
-     * The session this request is being made on behalf of, forwarded untouched.
-     * Clients should read session-derived state (e.g. {@apilink ISession.fingerprint})
-     * directly from here rather than expecting dedicated `CustomFetchOptions` fields
-     * for it. The `proxyUrl` and `cookieJar` fields above already incorporate any
-     * per-request overrides, so prefer them over `session.proxyInfo`/`session.cookieJar`.
+     * Hints about which browser-like setup this request should be impersonating —
+     * `browser`, `platform`, `device`, and an opaque `details` slot for richer
+     * payloads (e.g. a full browser fingerprint from `fingerprint-generator`).
+     * These are *suggestions*, not requirements: each client applies what it can
+     * (e.g. impit maps `browser` to its impersonation profile) and ignores the
+     * rest on a best-effort basis. Sourced from `SendRequestOptions.session.fingerprint`.
      */
-    session?: ISession;
+    fingerprint?: SessionFingerprint;
 }
 
 /**
@@ -110,12 +109,17 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         proxyUrl?: string;
         cookieJar: CookieJar;
         signal?: AbortSignal;
-        session?: ISession;
+        fingerprint?: SessionFingerprint;
     } {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
         const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
-        return { proxyUrl, cookieJar: cookieJar as CookieJar, signal, session: options?.session };
+        return {
+            proxyUrl,
+            cookieJar: cookieJar as CookieJar,
+            signal,
+            fingerprint: options?.session?.fingerprint,
+        };
     }
 
     private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
@@ -172,7 +176,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal, session } = this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint } = this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
@@ -182,7 +186,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 signal,
                 proxyUrl,
                 cookieJar,
-                session,
+                fingerprint,
                 redirect: 'manual',
             });
 
