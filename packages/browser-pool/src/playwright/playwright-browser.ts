@@ -1,12 +1,10 @@
 import { EventEmitter } from 'node:events';
 
-import type { Browser, BrowserContext, BrowserType } from 'playwright';
+import type { BrowserContext, BrowserType } from 'playwright';
 
 export interface BrowserOptions {
     browserContext: BrowserContext;
     version: string;
-    /** When wrapping a remote CDP browser's default context, pass the real Browser so it can be closed properly. */
-    parentBrowser?: Browser;
 }
 
 /**
@@ -17,28 +15,18 @@ export class PlaywrightBrowser extends EventEmitter {
     private _version: string;
     private _isConnected = true;
     private _browserType?: BrowserType;
-    private _parentBrowser?: Browser;
 
     constructor(options: BrowserOptions) {
         super();
 
-        const { browserContext, version, parentBrowser } = options;
+        const { browserContext, version } = options;
         this._browserContext = browserContext;
         this._version = version;
-        this._parentBrowser = parentBrowser;
 
         this._browserContext.once('close', () => {
             this._isConnected = false;
             this.emit('disconnected');
         });
-
-        // Forward real browser disconnection so the pool detects remote crashes.
-        if (parentBrowser) {
-            parentBrowser.once('disconnected', () => {
-                this._isConnected = false;
-                this.emit('disconnected');
-            });
-        }
     }
 
     async [Symbol.asyncDispose](): Promise<void> {
@@ -47,9 +35,6 @@ export class PlaywrightBrowser extends EventEmitter {
 
     async close(): Promise<void> {
         await this._browserContext.close();
-        if (this._parentBrowser) {
-            await this._parentBrowser.close().catch(() => {});
-        }
     }
 
     contexts(): BrowserContext[] {
