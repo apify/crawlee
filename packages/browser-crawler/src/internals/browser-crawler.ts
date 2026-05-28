@@ -686,15 +686,18 @@ export abstract class BrowserCrawler<
     }
 
     /**
-     * Marks session bad in case of navigation timeout.
+     * Marks session bad on navigation timeout, and stops in-flight page loading on any navigation error.
      */
     protected async _handleNavigationTimeout(crawlingContext: Context, error: Error): Promise<void> {
-        const { session } = crawlingContext;
+        const { session, page } = crawlingContext;
 
         if (error && error.constructor.name === 'TimeoutError') {
             handleRequestTimeout({ session, errorMessage: error.message });
-            await crawlingContext.page.close();
         }
+
+        // Fire-and-forget: no user code will run on this page after a failed navigation.
+        // Swallow rejections: the page may already be detached.
+        void (page as any).evaluate(() => window.stop()).catch(() => {});
     }
 
     /**
