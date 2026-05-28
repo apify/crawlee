@@ -3,7 +3,7 @@
     "version": "3.16.0",
     "description": "AI-powered web crawling with Stagehand integration for Crawlee - enables natural language browser automation with act(), extract(), and observe() methods.",
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=22.0.0"
     },
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
