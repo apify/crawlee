@@ -60,9 +60,9 @@
         "@apify/tsconfig": "^0.1.0",
         "@biomejs/biome": "^2.3.11",
         "@commitlint/config-conventional": "^20.0.0",
-        "@playwright/browser-chromium": "1.58.2",
-        "@playwright/browser-firefox": "1.58.2",
-        "@playwright/browser-webkit": "1.58.2",
+        "@playwright/browser-chromium": "1.60.0",
+        "@playwright/browser-firefox": "1.60.0",
+        "@playwright/browser-webkit": "1.60.0",
         "@stylistic/eslint-plugin": "^5.0.0",
         "@types/content-type": "^1.1.5",
         "@types/deep-equal": "^1.0.1",
@@ -101,10 +101,10 @@
         "got": "^13.0.0",
         "husky": "^9.0.11",
         "is-ci": "^4.0.0",
-        "lerna": "^9.0.0",
+        "lerna": "^9.0.7",
         "lint-staged": "^16.0.0",
         "nock": "^13.4.0",
-        "playwright": "1.58.2",
+        "playwright": "1.60.0",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
         "puppeteer": "24.36.1",
@@ -117,6 +117,9 @@
     },
     "lint-staged": {
         "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"
+    },
+    "resolutions": {
+        "tmp": "^0.2.6"
     },
     "packageManager": "yarn@4.10.3",
     "volta": {
