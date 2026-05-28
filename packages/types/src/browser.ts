@@ -137,8 +137,7 @@ export interface IBrowserController<Page = unknown> {
 }
 
 /**
- * Options accepted by {@apilink IBrowserPool.newPage}. Mirrors the subset of the
- * built-in `BrowserPool`'s new-page options that the crawler actually uses.
+ * Options accepted by {@apilink IBrowserPool.newPage}.
  */
 export interface NewPageOptions {
     /**

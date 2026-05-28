@@ -401,20 +401,21 @@ export abstract class BrowserCrawler<
 
         if (browserPool) {
             this.browserPool = browserPool;
-        } else {
-            const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
-
-            if (launchContext?.userAgent) {
-                if (resolvedBrowserPoolOptions.useFingerprints)
-                    this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
-                resolvedBrowserPoolOptions.useFingerprints = false;
-            }
-
-            this.ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
-                ...(resolvedBrowserPoolOptions as any),
-            });
-            this.browserPool = this.ownedBrowserPool as unknown as IBrowserPool<ProvidedController, Page>;
+            return;
         }
+
+        const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
+
+        if (launchContext?.userAgent) {
+            if (resolvedBrowserPoolOptions.useFingerprints)
+                this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
+            resolvedBrowserPoolOptions.useFingerprints = false;
+        }
+
+        this.ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
+            ...(resolvedBrowserPoolOptions as any),
+        });
+        this.browserPool = this.ownedBrowserPool as unknown as IBrowserPool<ProvidedController, Page>;
     }
 
     protected override buildContextPipeline(): ContextPipeline<

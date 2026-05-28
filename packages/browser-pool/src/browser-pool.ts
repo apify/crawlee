@@ -1,5 +1,5 @@
 import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
-import type { IBrowserPool } from '@crawlee/types';
+import type { IBrowserPool, NewPageOptions } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -882,12 +882,7 @@ export class BrowserPool<
     }
 }
 
-export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin> {
-    /**
-     * Assign a custom ID to the page. If you don't a random string ID
-     * will be generated.
-     */
-    id?: string;
+export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin> extends NewPageOptions {
     /**
      * Some libraries (Playwright) allow you to open new pages with specific
      * options. Use this property to set those options.
@@ -902,15 +897,6 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      * see the `newPageInNewBrowser` function.
      */
     browserPlugin?: BP;
-    /**
-     * Proxy URL.
-     */
-    proxyUrl?: string;
-    /**
-     * Disable TLS certificate verification for MITM proxies.
-     * Applied both when launching a new browser and when creating a page in an existing one.
-     */
-    ignoreTlsErrors?: boolean;
 }
 
 export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends BrowserPlugin> {
