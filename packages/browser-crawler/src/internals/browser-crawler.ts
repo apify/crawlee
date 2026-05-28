@@ -32,11 +32,12 @@ import type {
     BrowserPoolHooks,
     BrowserPoolOptions,
     CommonPage,
+    IBrowserController,
     InferBrowserPluginArray,
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserController, IBrowserPool } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -58,10 +59,8 @@ export interface BrowserCrawlingContext<
     ProvidedController extends IBrowserController = IBrowserController,
     UserData extends Dictionary = Dictionary,
 > extends CrawlingContext<UserData> {
-    /**
-     * An instance of the {@apilink BrowserController} that manages the browser instance and provides access to its API.
-     */
-    browserController: ProvidedController;
+    /** @internal Anchors the `ProvidedController` type parameter for subclass use. */
+    readonly __controllerType?: ProvidedController;
 
     /**
      * The browser page object where the web page is loaded and rendered.
@@ -117,7 +116,7 @@ export interface BrowserCrawlerOptions<
      * constructing a new one from `browserPoolOptions`, enabling browser sharing across multiple crawlers. The crawler
      * will not tear down a shared pool — the caller is responsible for its lifecycle.
      */
-    browserPool?: IBrowserPool<ProvidedController, Page>;
+    browserPool?: IBrowserPool<Page>;
 
     /**
      * Function that is called to process each request.
@@ -129,7 +128,6 @@ export interface BrowserCrawlerOptions<
      * - {@apilink BrowserCrawlingContext.page|`page`} is an instance of the
      * Puppeteer [Page](https://pptr.dev/api/puppeteer.page) or
      * Playwright [Page](https://playwright.dev/docs/api/class-page);
-     * - {@apilink BrowserCrawlingContext.browserController|`browserController`} is an instance of the {@apilink BrowserController};
      * - {@apilink BrowserCrawlingContext.response|`response`} is an instance of the
      * Puppeteer [Response](https://pptr.dev/api/puppeteer.httpresponse) or
      * Playwright [Response](https://playwright.dev/docs/api/class-response),
@@ -308,7 +306,7 @@ export abstract class BrowserCrawler<
      * A reference to the underlying browser pool that manages the crawler's browsers. Typed as
      * {@apilink IBrowserPool} so custom implementations can be plugged in via the `browserPool` constructor option.
      */
-    browserPool: IBrowserPool<ProvidedController, Page>;
+    browserPool: IBrowserPool<Page>;
 
     /**
      * Set when the crawler constructed its own {@apilink BrowserPool} (no `browserPool` option was provided).
@@ -415,7 +413,7 @@ export abstract class BrowserCrawler<
         this.ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
             ...(resolvedBrowserPoolOptions as any),
         });
-        this.browserPool = this.ownedBrowserPool as unknown as IBrowserPool<ProvidedController, Page>;
+        this.browserPool = this.ownedBrowserPool as IBrowserPool<Page>;
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -427,19 +425,18 @@ export abstract class BrowserCrawler<
             cleanup: async (context: {
                 page: Page;
                 session: Session;
-                browserController: ProvidedController;
                 registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
             }) => {
                 context.registerDeferredCleanup(async () => {
-                    // In non-incognito mode the browser controller carries the session's cookies
-                    // and storage across pages. If the session is no longer usable, retire the
-                    // controller so its state can't leak into whichever session lands on it next.
-                    if (!context.session.isUsable()) {
-                        this.browserPool.retireBrowserController(context.browserController);
-                    }
-                    await context.page
-                        .close()
-                        .catch((error: Error) => this.log.debug('Error while closing page', { error }));
+                    const error = !context.session.isUsable()
+                        ? new SessionError('Session is no longer usable')
+                        : undefined;
+
+                    await this.browserPool
+                        .closePage(context.page, { error })
+                        .catch((closeError: Error) =>
+                            this.log.debug('Error while closing page', { error: closeError }),
+                        );
                 });
             },
         });
@@ -479,26 +476,37 @@ export abstract class BrowserCrawler<
         return false;
     }
 
+    /**
+     * Resolves the {@apilink IBrowserController} that owns the given page, or
+     * `undefined` when the pool does not expose controllers (custom
+     * {@apilink IBrowserPool} implementations).
+     *
+     * This is intentionally **not** part of the public crawling context — it is
+     * an implementation detail used internally for cookie injection and by
+     * subclasses that need direct controller access (e.g. StagehandCrawler).
+     */
+    protected _getBrowserControllerByPage(page: Page): ProvidedController | undefined {
+        if ('getBrowserControllerByPage' in this.browserPool) {
+            return (
+                this.browserPool as unknown as {
+                    getBrowserControllerByPage(page: Page): ProvidedController | undefined;
+                }
+            ).getBrowserControllerByPage(page);
+        }
+
+        return undefined;
+    }
+
     private async preparePage(
         crawlingContext: CrawlingContext,
     ): Promise<
         ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>>
     > {
-        const newPageOptions: Dictionary = {
+        const page = await this.browserPool.newPage({
             id: crawlingContext.id,
-        };
-
-        if (crawlingContext.session?.proxyInfo) {
-            const proxyInfo = crawlingContext.session.proxyInfo;
-
-            newPageOptions.proxyUrl = proxyInfo?.url;
-            newPageOptions.ignoreTlsErrors = proxyInfo?.ignoreTlsErrors;
-        }
-
-        const page = await this.browserPool.newPage(newPageOptions);
+            session: crawlingContext.session,
+        });
         tryCancel();
-
-        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page) as ProvidedController;
 
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
 
@@ -509,7 +517,6 @@ export abstract class BrowserCrawler<
                     "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (this should only happen with `about:` URLs)",
                 );
             },
-            browserController: browserControllerInstance,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
@@ -584,9 +591,13 @@ export abstract class BrowserCrawler<
         // save cookies
         // TODO: Should we save the cookies also after/only the handle page?
         if (this.saveResponseCookies) {
-            const cookies = await crawlingContext.browserController.getCookies(crawlingContext.page);
-            tryCancel();
-            crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
+            const controller = this._getBrowserControllerByPage(crawlingContext.page);
+
+            if (controller) {
+                const cookies = await controller.getCookies(crawlingContext.page);
+                tryCancel();
+                crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
+            }
         }
 
         if (response !== undefined) {
@@ -618,15 +629,18 @@ export abstract class BrowserCrawler<
     }
 
     protected async _applyCookies(
-        { session, request, page, browserController }: BrowserCrawlingContext,
+        { session, request, page }: BrowserCrawlingContext,
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
+        const controller = this._getBrowserControllerByPage(page as Page);
+        if (!controller) return;
+
         const sessionCookie = session?.getCookies(request.url) ?? [];
         const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
         const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 
-        await browserController.setCookies(
+        await controller.setCookies(
             page,
             [...sessionCookie, ...parsedPreHooksCookies, ...parsedPostHooksCookies]
                 .filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null)

@@ -1,4 +1,4 @@
-import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
+import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
 import type { IBrowserPool, NewPageOptions } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
@@ -303,7 +303,7 @@ export class BrowserPool<
     >,
 >
     extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>>
-    implements IBrowserPool<BrowserControllerReturn, PageReturn>
+    implements IBrowserPool<PageReturn>
 {
     browserPlugins: BrowserPlugins;
     maxOpenPagesPerBrowser: number;
@@ -438,14 +438,27 @@ export class BrowserPool<
      * Opens a new page in one of the running browsers or launches
      * a new browser and opens a page there, if no browsers are active,
      * or their page limits have been exceeded.
+     *
+     * **Session injection (best-effort):** When a {@apilink NewPageOptions.session|session} is
+     * provided, this implementation uses it as a cache key for browser fingerprints (when
+     * fingerprinting is enabled) and reads
+     * {@apilink ProxyInfo.url|session.proxyInfo.url} /
+     * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} as defaults
+     * for `proxyUrl` and `ignoreTlsErrors` respectively. Explicit `proxyUrl` /
+     * `ignoreTlsErrors` values in the options take precedence.
+     *
+     * Beyond fingerprint caching and proxy configuration, no other session
+     * properties are consumed — cookie and header injection remain the
+     * crawler's responsibility.
      */
     async newPage(options: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
         const {
             id = nanoid(),
             pageOptions,
             browserPlugin = this._pickBrowserPlugin(),
-            proxyUrl,
-            ignoreTlsErrors,
+            session,
+            proxyUrl = session?.proxyInfo?.url,
+            ignoreTlsErrors = session?.proxyInfo?.ignoreTlsErrors,
         } = options;
 
         if (this.pages.has(id)) {
@@ -650,6 +663,25 @@ export class BrowserPool<
     retireBrowserByPage(page: PageReturn): void {
         const browserController = this.getBrowserControllerByPage(page);
         if (browserController) this.retireBrowserController(browserController);
+    }
+
+    /**
+     * Releases a page back to the pool. The page is closed and, if the
+     * optional `error` is a {@apilink SessionError}, the browser controller
+     * that served the page is retired so that its tainted state (cookies,
+     * storage, etc.) cannot leak into future sessions.
+     *
+     * This is the primary way the crawler should return pages to the pool.
+     *
+     * @param page The page to release.
+     * @param options.error The error that caused the page to be released, if any.
+     */
+    async closePage(page: PageReturn, options?: { error?: Error }): Promise<void> {
+        if (options?.error instanceof SessionError) {
+            this.retireBrowserByPage(page);
+        }
+
+        await page.close();
     }
 
     /**

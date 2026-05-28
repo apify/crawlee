@@ -55,8 +55,6 @@ export interface PlaywrightCrawlerOptions<
      * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
      * - `page` is an instance of the `Playwright`
      * [`Page`](https://playwright.dev/docs/api/class-page)
-     * - `browserController` is an instance of the
-     * [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
      * - `response` is an instance of the `Playwright`
      * [`Response`](https://playwright.dev/docs/api/class-response),
      * which is the main resource response as returned by `page.goto(request.url)`.

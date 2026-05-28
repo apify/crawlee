@@ -859,30 +859,34 @@ describe('BrowserCrawler', () => {
         await localStorageEmulator.init();
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
+        const pool = new BrowserPoolClass({
+            browserPlugins: [puppeteerPlugin],
+            useFingerprints: true,
+            fingerprintOptions: {
+                fingerprintGeneratorOptions: {
+                    operatingSystems: [OperatingSystemsName.windows],
+                },
+            },
+        });
+
         try {
             const requestList = await RequestList.open({
                 sources: [{ url: `${serverAddress}/?q=1` }],
             });
             const browserCrawler = new BrowserCrawlerTest({
-                browserPoolOptions: {
-                    browserPlugins: [puppeteerPlugin],
-                    useFingerprints: true,
-                    fingerprintOptions: {
-                        fingerprintGeneratorOptions: {
-                            operatingSystems: [OperatingSystemsName.windows],
-                        },
-                    },
-                },
+                browserPool: pool,
                 requestList,
 
-                requestHandler: async ({ browserController }) => {
-                    expect(browserController.launchContext.fingerprint).toBeDefined();
+                requestHandler: async ({ page }) => {
+                    const controller = pool.getBrowserControllerByPage(page);
+                    expect(controller?.launchContext.fingerprint).toBeDefined();
                 },
             });
 
             await browserCrawler.run();
             expect.hasAssertions();
         } finally {
+            await pool.destroy();
             await localStorageEmulator.destroy();
         }
     });
