@@ -697,7 +697,7 @@ export abstract class BrowserCrawler<
 
         // Fire-and-forget: no user code will run on this page after a failed navigation.
         // Swallow rejections: the page may already be detached.
-        void (page as any).evaluate(() => window.stop()).catch(() => {});
+        void page.evaluate(() => window.stop()).catch(() => {});
     }
 
     /**
