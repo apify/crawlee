@@ -489,14 +489,14 @@ export class KeyValueStore {
      * Returns key-value store keys.
      *
      * When awaited (`await store.keys()`), returns all keys as a flat `string[]` array.
-     * When used as an async iterable (`for await...of`), streams all keys across pages
-     * without buffering everything in memory.
+     * When used as an async iterable (`for await...of`), iterates over all keys across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
      *
-     * // Stream all keys (memory-efficient for large stores)
+     * // Iterate over all keys (memory-efficient for large stores)
      * for await (const key of keyValueStore.keys()) {
      *   console.log(key);
      * }
@@ -521,14 +521,14 @@ export class KeyValueStore {
      * Returns key-value store values.
      *
      * When awaited (`await store.values()`), returns all values as a flat `T[]` array.
-     * When used as an async iterable (`for await...of`), streams all values across pages
-     * without buffering everything in memory.
+     * When used as an async iterable (`for await...of`), iterates over all values across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
      *
-     * // Stream all values (memory-efficient for large stores)
+     * // Iterate over all values (memory-efficient for large stores)
      * for await (const value of keyValueStore.values()) {
      *   console.log(value);
      * }
@@ -553,14 +553,14 @@ export class KeyValueStore {
      * Returns key-value store entries (key-value pairs).
      *
      * When awaited (`await store.entries()`), returns all entries as a flat `[key, value][]` array.
-     * When used as an async iterable (`for await...of`), streams all entries across pages
-     * without buffering everything in memory.
+     * When used as an async iterable (`for await...of`), iterates over all entries across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
      *
-     * // Stream all entries (memory-efficient for large stores)
+     * // Iterate over all entries (memory-efficient for large stores)
      * for await (const [key, value] of keyValueStore.entries()) {
      *   console.log(`${key}: ${value}`);
      * }

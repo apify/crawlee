@@ -40,47 +40,6 @@ export function assertJsonSerializable<T>(item: T, index?: number): void {
     }
 }
 
-/**
- * Takes an array of JSONs (payloads) as input and produces an array of JSON strings
- * where each string is a JSON array of payloads with a maximum size of limitBytes per one
- * JSON array. Fits as many payloads as possible into a single JSON array and then moves
- * on to the next, preserving item order.
- *
- * The function assumes that none of the items is larger than limitBytes and does not validate.
- * @ignore
- */
-export function chunkBySize(items: string[], limitBytes: number): string[] {
-    if (!items.length) return [];
-    if (items.length === 1) return items;
-
-    // Split payloads into buckets of valid size.
-    let lastChunkBytes = 2; // Add 2 bytes for [] wrapper.
-    const chunks: (string | string[])[] = [];
-
-    for (const payload of items) {
-        const bytes = Buffer.byteLength(payload);
-
-        if (bytes <= limitBytes && bytes + 2 > limitBytes) {
-            // Handle cases where wrapping with [] would fail, but solo object is fine.
-            chunks.push(payload);
-            lastChunkBytes = bytes;
-        } else if (lastChunkBytes + bytes <= limitBytes) {
-            // ensure array
-            if (!Array.isArray(chunks[chunks.length - 1])) {
-                chunks.push([]);
-            }
-            (chunks[chunks.length - 1] as string[]).push(payload);
-            lastChunkBytes += bytes + 1; // Add 1 byte for ',' separator.
-        } else {
-            chunks.push([payload]);
-            lastChunkBytes = bytes + 2; // Add 2 bytes for [] wrapper.
-        }
-    }
-
-    // Stringify array chunks.
-    return chunks.map((chunk) => (typeof chunk === 'string' ? chunk : `[${chunk.join(',')}]`));
-}
-
 export interface DatasetDataOptions {
     /**
      * Number of array elements that should be skipped at the start.
@@ -591,14 +550,14 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * Returns dataset items.
      *
      * When awaited (`await dataset.values()`), returns all items as a flat `Data[]` array.
-     * When used as an async iterable (`for await...of`), streams all items across pages
-     * without buffering everything in memory.
+     * When used as an async iterable (`for await...of`), iterates over all items across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const dataset = await Dataset.open('my-results');
      *
-     * // Stream all items (memory-efficient for large datasets)
+     * // Iterate over all items (memory-efficient for large datasets)
      * for await (const item of dataset.values()) {
      *   console.log(item);
      * }
@@ -623,14 +582,14 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * Returns dataset entries (index-value pairs).
      *
      * When awaited (`await dataset.entries()`), returns all entries as a flat `[index, item][]` array.
-     * When used as an async iterable (`for await...of`), streams all entries across pages
-     * without buffering everything in memory.
+     * When used as an async iterable (`for await...of`), iterates over all entries across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const dataset = await Dataset.open('my-results');
      *
-     * // Stream all entries
+     * // Iterate over all entries
      * for await (const [index, item] of dataset.entries()) {
      *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
      * }

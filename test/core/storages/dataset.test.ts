@@ -1,4 +1,4 @@
-import { assertJsonSerializable, chunkBySize, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { assertJsonSerializable, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
@@ -394,38 +394,6 @@ describe('dataset', () => {
             // With index in error message
             expect(() => assertJsonSerializable('hello', 3)).toThrow('at index 3');
         });
-        test('chunkBySize', () => {
-            const obj = { foo: 'bar' };
-            const json = JSON.stringify(obj);
-            const size = Buffer.byteLength(json);
-            const triple = [json, json, json];
-            const originalTriple = [obj, obj, obj];
-            const chunk = `[${json}]`;
-            const tripleChunk = `[${json},${json},${json}]`;
-            const tripleSize = Buffer.byteLength(tripleChunk);
-            // Empty array
-            expect(chunkBySize([], 10)).toEqual([]);
-            // Fits easily
-            expect(chunkBySize([json], size + 10)).toEqual([json]);
-            expect(chunkBySize(triple, tripleSize + 10)).toEqual([tripleChunk]);
-            // Parses back to original objects
-            expect(originalTriple).toEqual(JSON.parse(tripleChunk));
-            // Fits exactly
-            expect(chunkBySize([json], size)).toEqual([json]);
-            expect(chunkBySize(triple, tripleSize)).toEqual([tripleChunk]);
-            // Chunks large items individually
-            expect(chunkBySize(triple, size)).toEqual(triple);
-            expect(chunkBySize(triple, size + 1)).toEqual(triple);
-            expect(chunkBySize(triple, size + 2)).toEqual([chunk, chunk, chunk]);
-            // Chunks smaller items together
-            expect(chunkBySize(triple, 2 * size + 3)).toEqual([`[${json},${json}]`, chunk]);
-            expect(chunkBySize([...triple, ...triple], 2 * size + 3)).toEqual([
-                `[${json},${json}]`,
-                `[${json},${json}]`,
-                `[${json},${json}]`,
-            ]);
-        });
-
         describe('exportToJSON', () => {
             const dataToPush = [
                 {
