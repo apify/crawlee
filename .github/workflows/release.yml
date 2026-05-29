@@ -71,9 +71,19 @@ jobs:
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
-                run: |
-                    yarn
-                    yarn playwright install --with-deps
+                run: yarn
+
+            -   name: Cache Playwright browsers
+                uses: actions/cache@v5
+                with:
+                    path: ~/.cache/ms-playwright
+                    key: playwright-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+                    restore-keys: |
+                        playwright-${{ runner.os }}-
+
+            -   name: Install Playwright browsers
+                timeout-minutes: 10
+                run: yarn playwright install --with-deps
 
             -   name: Build
                 run: yarn ci:build
