@@ -398,14 +398,12 @@ export class HttpCrawler<
         ): ContextMiddleware<CrawlingContext, Partial<CrawlingContext>> => ({
             action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
         });
-        const wrapHook = (hook: (ctx: CrawlingContext) => Awaitable<void | Partial<CrawlingContext>>) =>
-            skipGuard((ctx) => hook(ctx));
 
         const middlewares: ContextMiddleware<any, any>[] = [
             { action: this.prepareHttpRequest.bind(this) },
-            ...this.preNavigationHooks.map((h) => wrapHook(h as any)),
+            ...this.preNavigationHooks.map((h) => skipGuard(h as any)),
             skipGuard(this.makeHttpRequest.bind(this) as any),
-            ...this.postNavigationHooks.map((h) => wrapHook(h as any)),
+            ...this.postNavigationHooks.map((h) => skipGuard(h as any)),
             { action: this.processHttpResponse.bind(this) },
             { action: this.handleBlockedRequestByContent.bind(this) },
         ];
