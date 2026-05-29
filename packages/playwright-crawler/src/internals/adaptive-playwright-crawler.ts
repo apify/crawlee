@@ -297,8 +297,8 @@ export class AdaptivePlaywrightCrawler<
             requestHandlerTimeoutSecs = 60,
             errorHandler,
             failedRequestHandler,
-            preNavigationHooks,
-            postNavigationHooks,
+            preNavigationHooks = [],
+            postNavigationHooks = [],
             extendContext,
             contextPipelineBuilder,
             ...rest
@@ -341,8 +341,8 @@ export class AdaptivePlaywrightCrawler<
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: (preNavigationHooks ?? []) as any,
-            postNavigationHooks: (postNavigationHooks ?? []) as any,
+            preNavigationHooks: preNavigationHooks as any,
+            postNavigationHooks: postNavigationHooks as any,
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -350,8 +350,8 @@ export class AdaptivePlaywrightCrawler<
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: (preNavigationHooks ?? []) as unknown as PlaywrightHook[],
-            postNavigationHooks: (postNavigationHooks ?? []) as unknown as PlaywrightHook[],
+            preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
+            postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
         });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
