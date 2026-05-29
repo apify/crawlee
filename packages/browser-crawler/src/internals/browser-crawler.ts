@@ -596,13 +596,13 @@ export abstract class BrowserCrawler<
     private async finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
-        // The `response` getter installed by `preparePage` throws when no navigation produced one and
-        // no hook overrode it. Read defensively from the own-property descriptor to avoid that throw.
-        const responseDescriptor = Object.getOwnPropertyDescriptor(crawlingContext, 'response');
-        const response =
-            responseDescriptor && 'value' in responseDescriptor
-                ? (responseDescriptor.value as Response | undefined)
-                : undefined;
+        let response: Response | undefined;
+        try {
+            response = crawlingContext.response;
+        } catch {
+            // `preparePage` installs a throwing getter for `response`; reaching this branch means
+            // navigation produced no response and no hook overrode it. Treat as undefined.
+        }
 
         await this.processResponse(response, crawlingContext);
         tryCancel();
