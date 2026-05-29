@@ -956,7 +956,7 @@ __metadata:
     json5: "npm:^2.2.3"
     minimatch: "npm:^9.0.0"
     ow: "npm:^0.28.1"
-    stream-json: "npm:^1.8.0"
+    stream-json: "npm:^3.0.0"
     tldts: "npm:^7.0.0"
     tough-cookie: "npm:^6.0.0"
     tslib: "npm:^2.4.0"
@@ -13333,10 +13333,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stream-chain@npm:^2.2.5":
-  version: 2.2.5
-  resolution: "stream-chain@npm:2.2.5"
-  checksum: 10c0/c512f50190d7c92d688fa64e7af540c51b661f9c2b775fc72bca38ea9bca515c64c22c2197b1be463741daacbaaa2dde8a8ea24ebda46f08391224f15249121a
+"stream-chain@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "stream-chain@npm:4.1.1"
+  checksum: 10c0/cadb38075ea856e33696250ce68acb215633e8ba71a0a350d62e539b1fa123c58e8015bccb5d6616c07c0d29523a1a857a777fab9a5eb41fde1d6dc7dc3db7d0
   languageName: node
   linkType: hard
 
@@ -13349,12 +13349,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stream-json@npm:^1.8.0":
-  version: 1.9.1
-  resolution: "stream-json@npm:1.9.1"
+"stream-json@npm:^3.0.0":
+  version: 3.2.0
+  resolution: "stream-json@npm:3.2.0"
   dependencies:
-    stream-chain: "npm:^2.2.5"
-  checksum: 10c0/0521e5cb3fb6b0e2561d715975e891bd81fa77d0239c8d0b1756846392bc3c7cdd7f1ddb0fe7ed77e6fdef58daab9e665d3b39f7d677bd0859e65a2bff59b92c
+    stream-chain: "npm:^4.1.1"
+  checksum: 10c0/b14bf35a0fad2f3dcc4ab141a91ddb94d9f734c3d7356281898f57daaa4cfe9e5678d88b92c1c6a9c5a460bfc6ac1c9b88e6df752b1a659fecd90c45e31c344c
   languageName: node
   linkType: hard
 
