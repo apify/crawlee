@@ -8,7 +8,7 @@
         "@crawlee/impit-client": "^3.0.0",
         "camoufox-js": "^0.9.0",
         "crawlee": "^3.0.0",
-        "playwright": "1.58.2"
+        "playwright": "1.60.0"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
