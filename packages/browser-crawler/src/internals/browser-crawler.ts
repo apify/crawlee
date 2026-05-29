@@ -93,7 +93,7 @@ export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Di
 const GOTO_OPTIONS = Symbol('gotoOptions');
 const COOKIES_BEFORE_HOOKS = Symbol('cookiesBeforeHooks');
 
-const slot = <T>(ctx: object, key: symbol): T => (ctx as Record<symbol, unknown>)[key] as T;
+const readContextField = <T>(ctx: object, key: symbol): T => (ctx as Record<symbol, unknown>)[key] as T;
 
 export interface BrowserCrawlerOptions<
     Page extends CommonPage = CommonPage,
@@ -380,7 +380,7 @@ export abstract class BrowserCrawler<
             action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
         });
         const wrapHook = (hook: BrowserHook<Context, GoToOptions>) =>
-            skipGuard<Context>((ctx) => hook(ctx, slot<GoToOptions>(ctx, GOTO_OPTIONS)));
+            skipGuard<Context>((ctx) => hook(ctx, readContextField<GoToOptions>(ctx, GOTO_OPTIONS)));
 
         super({
             ...basicCrawlerOptions,
@@ -569,8 +569,8 @@ export abstract class BrowserCrawler<
     private async navigate(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
-        const gotoOptions = slot<GoToOptions>(crawlingContext, GOTO_OPTIONS);
-        const cookiesBeforeHooks = slot<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
+        const gotoOptions = readContextField<GoToOptions>(crawlingContext, GOTO_OPTIONS);
+        const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 
         await this._applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
