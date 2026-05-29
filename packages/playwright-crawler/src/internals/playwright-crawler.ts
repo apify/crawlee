@@ -92,9 +92,6 @@ export interface PlaywrightCrawlerOptions<
      *     },
      * ]
      * ```
-     *
-     * Modifying `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: PlaywrightHook[];
 

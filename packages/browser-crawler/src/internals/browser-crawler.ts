@@ -201,9 +201,6 @@ export interface BrowserCrawlerOptions<
      *
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
-     *
-     * Modifying `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: BrowserHook<Context>[];
 
