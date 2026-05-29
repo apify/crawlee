@@ -867,7 +867,7 @@ __metadata:
     lodash.merge: "npm:^4.6.2"
     nanoid: "npm:^3.3.4"
     ow: "npm:^0.28.1"
-    p-limit: "npm:^3.1.0"
+    p-limit: "npm:^7.0.0"
     proxy-chain: "npm:^2.0.1"
     quick-lru: "npm:^5.1.1"
     tiny-typed-emitter: "npm:^2.1.0"
@@ -1041,7 +1041,7 @@ __metadata:
     fs-extra: "npm:^11.0.0"
     json5: "npm:^2.2.3"
     mime-types: "npm:^2.1.35"
-    p-limit: "npm:^3.1.0"
+    p-limit: "npm:^7.0.0"
     proper-lockfile: "npm:^4.1.2"
     tslib: "npm:^2.4.0"
   languageName: unknown
@@ -11319,12 +11319,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"p-limit@npm:^3.0.2, p-limit@npm:^3.1.0":
+"p-limit@npm:^3.0.2":
   version: 3.1.0
   resolution: "p-limit@npm:3.1.0"
   dependencies:
     yocto-queue: "npm:^0.1.0"
   checksum: 10c0/9db675949dbdc9c3763c89e748d0ef8bdad0afbb24d49ceaf4c46c02c77d30db4e0652ed36d0a0a7a95154335fab810d95c86153105bb73b3a90448e2bb14e1a
+  languageName: node
+  linkType: hard
+
+"p-limit@npm:^7.0.0":
+  version: 7.3.0
+  resolution: "p-limit@npm:7.3.0"
+  dependencies:
+    yocto-queue: "npm:^1.2.1"
+  checksum: 10c0/8030f0ccc67d80d9c12f2b4ed277c5ede151f80a09cb1b143ab0ee597940784f2cf6e07e92d54c023fe9836784329750c25c6cd4488a7a326c0ae0ec2efca982
   languageName: node
   linkType: hard
 
@@ -14973,6 +14982,13 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: 10c0/dceb44c28578b31641e13695d200d34ec4ab3966a5729814d5445b194933c096b7ced71494ce53a0e8820685d1d010df8b2422e5bf2cdea7e469d97ffbea306f
+  languageName: node
+  linkType: hard
+
+"yocto-queue@npm:^1.2.1":
+  version: 1.2.2
+  resolution: "yocto-queue@npm:1.2.2"
+  checksum: 10c0/36d4793e9cf7060f9da543baf67c55e354f4862c8d3d34de1a1b1d7c382d44171315cc54abf84d8900b8113d742b830108a1434f4898fb244f9b7e8426d4b8f5
   languageName: node
   linkType: hard
 

@@ -45,7 +45,7 @@
         "lodash.merge": "^4.6.2",
         "nanoid": "^3.3.4",
         "ow": "^0.28.1",
-        "p-limit": "^3.1.0",
+        "p-limit": "^7.0.0",
         "proxy-chain": "^2.0.1",
         "quick-lru": "^5.1.1",
         "tiny-typed-emitter": "^2.1.0",
