@@ -336,15 +336,13 @@ export class AdaptivePlaywrightCrawler<
         // `ContextPipeline` handles override merging between hooks for free. The hook signatures
         // are structurally compatible with the underlying crawlers' contexts (subset of fields);
         // the casts just relax the nominal type difference.
-        const pre = (preNavigationHooks ?? []) as unknown as PlaywrightHook[];
-        const post = (postNavigationHooks ?? []) as unknown as PlaywrightHook[];
         const staticCrawler = new CheerioCrawler({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: pre as any,
-            postNavigationHooks: post as any,
+            preNavigationHooks: (preNavigationHooks ?? []) as any,
+            postNavigationHooks: (postNavigationHooks ?? []) as any,
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -352,8 +350,8 @@ export class AdaptivePlaywrightCrawler<
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: pre,
-            postNavigationHooks: post,
+            preNavigationHooks: (preNavigationHooks ?? []) as unknown as PlaywrightHook[],
+            postNavigationHooks: (postNavigationHooks ?? []) as unknown as PlaywrightHook[],
         });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
