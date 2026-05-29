@@ -1141,7 +1141,7 @@ __metadata:
     apify-node-curl-impersonate: "npm:^1.0.15"
     basic-auth-parser: "npm:^0.0.2"
     body-parser: "npm:^2.0.0"
-    camoufox-js: "npm:^0.9.3"
+    camoufox-js: "npm:^0.10.0"
     commitlint: "npm:^21.0.0"
     cross-env: "npm:^10.0.0"
     deep-equal: "npm:^2.0.5"
@@ -4921,9 +4921,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"camoufox-js@npm:^0.9.3":
-  version: 0.9.3
-  resolution: "camoufox-js@npm:0.9.3"
+"camoufox-js@npm:^0.10.0":
+  version: 0.10.2
+  resolution: "camoufox-js@npm:0.10.2"
   dependencies:
     adm-zip: "npm:^0.5.16"
     better-sqlite3: "npm:^12.2.0"
@@ -4931,7 +4931,7 @@ __metadata:
     commander: "npm:^14.0.0"
     fingerprint-generator: "npm:^2.1.66"
     glob: "npm:^13.0.0"
-    impit: "npm:^0.11.0"
+    impit: "npm:^0.13.0"
     language-tags: "npm:^2.0.1"
     maxmind: "npm:^5.0.0"
     pretty-bytes: "npm:^7.1.0"
@@ -4941,7 +4941,7 @@ __metadata:
     playwright-core: "*"
   bin:
     camoufox-js: dist/__main__.js
-  checksum: 10c0/3ddb0176cee0e7f6b8eda61fb1290a549fb683b5e5ee7e07d3f3123751899b2a3ce821acffa3a34d5300124e1b5da02c6e3769c50a8e7e8aafe10538d3ec38c6
+  checksum: 10c0/f04cd3b46f507649d7d2c882ad5f9e1a3a4420480d5a196b40d26ca635d2d2193764625fa6518baa17a2283445a689194aa2139c67825f1326604870859f7890
   languageName: node
   linkType: hard
 
@@ -8380,9 +8380,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-arm64@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-darwin-arm64@npm:0.11.0"
+"impit-darwin-arm64@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-darwin-arm64@npm:0.13.1"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
@@ -8394,9 +8394,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-darwin-x64@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-darwin-x64@npm:0.11.0"
+"impit-darwin-x64@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-darwin-x64@npm:0.13.1"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -8408,9 +8408,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-arm64-gnu@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-linux-arm64-gnu@npm:0.11.0"
+"impit-linux-arm64-gnu@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-linux-arm64-gnu@npm:0.13.1"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
@@ -8422,9 +8422,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-arm64-musl@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-linux-arm64-musl@npm:0.11.0"
+"impit-linux-arm64-musl@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-linux-arm64-musl@npm:0.13.1"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -8436,9 +8436,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-x64-gnu@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-linux-x64-gnu@npm:0.11.0"
+"impit-linux-x64-gnu@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-linux-x64-gnu@npm:0.13.1"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
@@ -8450,9 +8450,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-linux-x64-musl@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-linux-x64-musl@npm:0.11.0"
+"impit-linux-x64-musl@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-linux-x64-musl@npm:0.13.1"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -8464,9 +8464,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-win32-arm64-msvc@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-win32-arm64-msvc@npm:0.11.0"
+"impit-win32-arm64-msvc@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-win32-arm64-msvc@npm:0.13.1"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
@@ -8478,9 +8478,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit-win32-x64-msvc@npm:0.11.0":
-  version: 0.11.0
-  resolution: "impit-win32-x64-msvc@npm:0.11.0"
+"impit-win32-x64-msvc@npm:0.13.1":
+  version: 0.13.1
+  resolution: "impit-win32-x64-msvc@npm:0.13.1"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -8492,18 +8492,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"impit@npm:^0.11.0":
-  version: 0.11.0
-  resolution: "impit@npm:0.11.0"
+"impit@npm:^0.13.0":
+  version: 0.13.1
+  resolution: "impit@npm:0.13.1"
   dependencies:
-    impit-darwin-arm64: "npm:0.11.0"
-    impit-darwin-x64: "npm:0.11.0"
-    impit-linux-arm64-gnu: "npm:0.11.0"
-    impit-linux-arm64-musl: "npm:0.11.0"
-    impit-linux-x64-gnu: "npm:0.11.0"
-    impit-linux-x64-musl: "npm:0.11.0"
-    impit-win32-arm64-msvc: "npm:0.11.0"
-    impit-win32-x64-msvc: "npm:0.11.0"
+    impit-darwin-arm64: "npm:0.13.1"
+    impit-darwin-x64: "npm:0.13.1"
+    impit-linux-arm64-gnu: "npm:0.13.1"
+    impit-linux-arm64-musl: "npm:0.13.1"
+    impit-linux-x64-gnu: "npm:0.13.1"
+    impit-linux-x64-musl: "npm:0.13.1"
+    impit-win32-arm64-msvc: "npm:0.13.1"
+    impit-win32-x64-msvc: "npm:0.13.1"
   dependenciesMeta:
     impit-darwin-arm64:
       optional: true
@@ -8521,7 +8521,7 @@ __metadata:
       optional: true
     impit-win32-x64-msvc:
       optional: true
-  checksum: 10c0/dbe0286280b63f0772e9359c39be975b8348fab7b470404afc8fff6ca9f2069f29ddd550fc7237b34dad04f0fbfa6028f87a744c040c03db06771573610cbf19
+  checksum: 10c0/cf522b48b102d465613b4798dce31c7aa2619723dd583a7605306431886f8614d10bf6a728821ea6f534b80b6696dce6085cd99ba8d7846556a4f286f8b64d2d
   languageName: node
   linkType: hard
 
