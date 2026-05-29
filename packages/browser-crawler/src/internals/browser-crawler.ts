@@ -80,17 +80,21 @@ export interface BrowserCrawlingContext<
     response: Response;
 
     /**
+     * Options object passed to the underlying `page.goto()` call. `preNavigationHooks` can mutate this
+     * object (or return `{ gotoOptions: ... }`) to influence the navigation.
+     */
+    gotoOptions: Dictionary;
+
+    /**
      * Helper function for extracting URLs from the current page and adding them to the request queue.
      */
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
-export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Dictionary | undefined = Dictionary> = (
+export type BrowserHook<Context = BrowserCrawlingContext> = (
     crawlingContext: Context,
-    gotoOptions: GoToOptions,
 ) => Awaitable<void | Partial<Context>>;
 
-const GOTO_OPTIONS = Symbol('gotoOptions');
 const COOKIES_BEFORE_HOOKS = Symbol('cookiesBeforeHooks');
 
 const readContextField = <T>(ctx: object, key: symbol): T => (ctx as Record<symbol, unknown>)[key] as T;
@@ -179,15 +183,14 @@ export interface BrowserCrawlerOptions<
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
-     * which are passed to the `page.goto()` function the crawler calls to navigate.
+     * or browser properties before navigation. The function receives the `crawlingContext`; the options object
+     * forwarded to `page.goto()` is available as `crawlingContext.gotoOptions` and can be mutated in place.
      *
      * **Example:**
      *
      * ```js
      * preNavigationHooks: [
-     *     async (crawlingContext, gotoOptions) => {
-     *         const { page } = crawlingContext;
+     *     async ({ page, gotoOptions }) => {
      *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
      *         gotoOptions.timeout = 60_000;
      *         gotoOptions.waitUntil = 'domcontentloaded';
@@ -379,17 +382,15 @@ export abstract class BrowserCrawler<
         ): ContextMiddleware<Ctx, Partial<Ctx>> => ({
             action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
         });
-        const wrapHook = (hook: BrowserHook<Context, GoToOptions>) =>
-            skipGuard<Context>((ctx) => hook(ctx, readContextField<GoToOptions>(ctx, GOTO_OPTIONS)));
 
         super({
             ...basicCrawlerOptions,
             contextPipelineBuilder: () => {
                 const middlewares: ContextMiddleware<Context, Partial<Context>>[] = [
                     { action: this.prepareNavigation.bind(this) },
-                    ...this.preNavigationHooks.map(wrapHook),
+                    ...this.preNavigationHooks.map(skipGuard),
                     skipGuard(this.navigate.bind(this)),
-                    ...this.postNavigationHooks.map(wrapHook),
+                    ...this.postNavigationHooks.map(skipGuard),
                     skipGuard(this.finalizeNavigation.bind(this)),
                     { action: this.handleBlockedRequestByContent.bind(this) },
                     { action: this.restoreRequestState.bind(this) },
@@ -521,6 +522,8 @@ export abstract class BrowserCrawler<
                     "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (this should only happen with `about:` URLs)",
                 );
             },
+            // Placeholder; the real value is installed by `prepareNavigation` before any hook runs.
+            gotoOptions: {} as Dictionary,
             browserController: browserControllerInstance,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
@@ -561,7 +564,7 @@ export abstract class BrowserCrawler<
         crawlingContext.request.state = RequestState.BEFORE_NAV;
 
         return {
-            [GOTO_OPTIONS]: { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions,
+            gotoOptions: { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions,
             [COOKIES_BEFORE_HOOKS]: this._getCookieHeaderFromRequest(crawlingContext.request),
         } as unknown as Partial<Context>;
     }
@@ -569,7 +572,7 @@ export abstract class BrowserCrawler<
     private async navigate(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
-        const gotoOptions = readContextField<GoToOptions>(crawlingContext, GOTO_OPTIONS);
+        const gotoOptions = crawlingContext.gotoOptions as GoToOptions;
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 

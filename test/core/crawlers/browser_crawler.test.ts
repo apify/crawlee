@@ -400,8 +400,8 @@ describe('BrowserCrawler', () => {
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [
-                    async (_crawlingContext, gotoOptions) => {
-                        gotoOptions!.timeout = 60000;
+                    async ({ gotoOptions }) => {
+                        gotoOptions.timeout = 60000;
                     },
                 ],
             });

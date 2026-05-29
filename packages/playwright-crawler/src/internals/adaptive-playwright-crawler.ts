@@ -158,8 +158,8 @@ interface AdaptiveHook extends BrowserHook<
     Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> & {
         page?: Page;
         request: Request;
-    },
-    PlaywrightGotoOptions
+        gotoOptions?: PlaywrightGotoOptions;
+    }
 > {}
 
 export interface AdaptivePlaywrightCrawlerOptions<
@@ -334,17 +334,14 @@ export class AdaptivePlaywrightCrawler<
         }
         // Each adaptive hook is registered as its own static/browser hook so the underlying
         // `ContextPipeline` handles override merging between hooks for free.
+        const adaptHook = (hook: AdaptiveHook) => async (context: any) => hook(context) as any;
         const staticCrawler = new CheerioCrawler({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: (preNavigationHooks ?? []).map(
-                (hook) => async (context) => hook(context as any, undefined) as any,
-            ),
-            postNavigationHooks: (postNavigationHooks ?? []).map(
-                (hook) => async (context) => hook(context as any, undefined) as any,
-            ),
+            preNavigationHooks: (preNavigationHooks ?? []).map(adaptHook),
+            postNavigationHooks: (postNavigationHooks ?? []).map(adaptHook),
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -352,12 +349,8 @@ export class AdaptivePlaywrightCrawler<
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: (preNavigationHooks ?? []).map(
-                (hook) => async (context, gotoOptions) => hook(context as any, gotoOptions) as any,
-            ),
-            postNavigationHooks: (postNavigationHooks ?? []).map(
-                (hook) => async (context, gotoOptions) => hook(context as any, gotoOptions) as any,
-            ),
+            preNavigationHooks: (preNavigationHooks ?? []).map(adaptHook),
+            postNavigationHooks: (postNavigationHooks ?? []).map(adaptHook),
         });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));

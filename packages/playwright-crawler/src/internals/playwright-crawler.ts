@@ -26,10 +26,13 @@ import type {
 } from './utils/playwright-utils.js';
 import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 
-export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {}
-export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
+
+export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
+    extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {
+    gotoOptions: PlaywrightGotoOptions & {};
+}
+export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {}
 
 export interface PlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
@@ -76,16 +79,16 @@ export interface PlaywrightCrawlerOptions<
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
-     * which are passed to the `page.goto()` function the crawler calls to navigate. A hook may optionally
-     * return a partial object whose properties are merged into the crawling context (e.g. to override context
-     * members for subsequent hooks and pipeline stages).
+     * or browser properties before navigation. The function receives the `crawlingContext`; the options object
+     * forwarded to `page.goto()` is available as `crawlingContext.gotoOptions` and can be mutated in place.
+     * A hook may optionally return a partial object whose properties are merged into the crawling context
+     * (e.g. to override context members for subsequent hooks and pipeline stages).
      * Example:
      * ```
      * preNavigationHooks: [
-     *     async (crawlingContext, gotoOptions) => {
-     *         const { page } = crawlingContext;
+     *     async ({ page, gotoOptions }) => {
      *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
+     *         gotoOptions.timeout = 60_000;
      *     },
      * ]
      * ```

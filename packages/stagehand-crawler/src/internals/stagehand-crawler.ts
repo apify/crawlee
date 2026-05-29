@@ -224,12 +224,14 @@ export interface StagehandCrawlingContext<UserData extends Dictionary = Dictiona
      * Usually you don't need to access this directly - use the enhanced page methods instead.
      */
     stagehand: Stagehand;
+
+    gotoOptions: StagehandGotoOptions & {};
 }
 
 /**
  * Hook function for StagehandCrawler.
  */
-export interface StagehandHook extends BrowserHook<StagehandCrawlingContext, StagehandGotoOptions> {}
+export interface StagehandHook extends BrowserHook<StagehandCrawlingContext> {}
 
 /**
  * Request handler for StagehandCrawler.
