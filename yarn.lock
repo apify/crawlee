@@ -868,7 +868,7 @@ __metadata:
     nanoid: "npm:^3.3.4"
     ow: "npm:^0.28.1"
     p-limit: "npm:^3.1.0"
-    proxy-chain: "npm:^2.0.1"
+    proxy-chain: "npm:^3.0.0"
     quick-lru: "npm:^5.1.1"
     tiny-typed-emitter: "npm:^2.1.0"
     tslib: "npm:^2.4.0"
@@ -12073,14 +12073,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"proxy-chain@npm:^2.0.1":
-  version: 2.5.9
-  resolution: "proxy-chain@npm:2.5.9"
+"proxy-chain@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "proxy-chain@npm:3.0.0"
   dependencies:
     socks: "npm:^2.8.3"
     socks-proxy-agent: "npm:^8.0.3"
     tslib: "npm:^2.3.1"
-  checksum: 10c0/a55ebab793ec4a48b888536bb5ca4840768cb1550b966c82187580deb4c27fe7723a2609fb21f990006fd7a45a3d4c54eb38be4e9fe451027d1d9ce51628e73d
+  checksum: 10c0/6c5bab1b90285c1adb210b504b05784f39833380d332af2ecdc6ac6c865db7d899de83f8324a21449886a4c4588510eacc64318c7ac1b2b294643e9666754ab1
   languageName: node
   linkType: hard
 

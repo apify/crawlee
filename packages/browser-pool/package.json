@@ -46,7 +46,7 @@
         "nanoid": "^3.3.4",
         "ow": "^0.28.1",
         "p-limit": "^3.1.0",
-        "proxy-chain": "^2.0.1",
+        "proxy-chain": "^3.0.0",
         "quick-lru": "^5.1.1",
         "tiny-typed-emitter": "^2.1.0",
         "tslib": "^2.4.0"
