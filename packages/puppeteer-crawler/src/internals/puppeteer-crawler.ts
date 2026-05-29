@@ -26,12 +26,12 @@ import type {
 } from './utils/puppeteer_utils.js';
 import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
 
-export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
+export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {
-    gotoOptions: PuppeteerGoToOptions & {};
-}
+    extends
+        BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData, PuppeteerGoToOptions>,
+        PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {}
 
 export interface PuppeteerCrawlerOptions<

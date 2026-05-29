@@ -58,6 +58,7 @@ export interface BrowserCrawlingContext<
     Response extends BaseResponse = BaseResponse,
     ProvidedController = BrowserController,
     UserData extends Dictionary = Dictionary,
+    GoToOptions extends Dictionary = Dictionary,
 > extends CrawlingContext<UserData> {
     /**
      * An instance of the {@apilink BrowserController} that manages the browser instance and provides access to its API.
@@ -83,7 +84,7 @@ export interface BrowserCrawlingContext<
      * Options object passed to the underlying `page.goto()` call. `preNavigationHooks` can mutate this
      * object (or return `{ gotoOptions: ... }`) to influence the navigation.
      */
-    gotoOptions: Dictionary;
+    gotoOptions: GoToOptions;
 
     /**
      * Helper function for extracting URLs from the current page and adding them to the request queue.
@@ -522,8 +523,9 @@ export abstract class BrowserCrawler<
                     "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (this should only happen with `about:` URLs)",
                 );
             },
-            // Placeholder; the real value is installed by `prepareNavigation` before any hook runs.
-            gotoOptions: {} as Dictionary,
+            get gotoOptions(): Dictionary {
+                throw new Error('The `gotoOptions` property is not available until `prepareNavigation` runs.');
+            },
             browserController: browserControllerInstance,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({

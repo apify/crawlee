@@ -26,12 +26,12 @@ import type {
 } from './utils/playwright-utils.js';
 import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 
-export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
+export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {
-    gotoOptions: PlaywrightGotoOptions & {};
-}
+    extends
+        BrowserCrawlingContext<Page, Response, PlaywrightController, UserData, PlaywrightGotoOptions>,
+        PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {}
 
 export interface PlaywrightCrawlerOptions<
