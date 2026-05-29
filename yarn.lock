@@ -961,9 +961,9 @@ __metadata:
     "@crawlee/basic": "npm:3.16.0"
     "@crawlee/types": "npm:3.16.0"
     "@crawlee/utils": "npm:3.16.0"
-    "@types/content-type": "npm:^1.1.5"
+    "@types/content-type": "npm:^2.0.0"
     cheerio: "npm:1.0.0-rc.12"
-    content-type: "npm:^1.0.4"
+    content-type: "npm:^2.0.0"
     got-scraping: "npm:^4.2.1"
     iconv-lite: "npm:^0.7.0"
     mime-types: "npm:^2.1.35"
@@ -1025,7 +1025,7 @@ __metadata:
     "@crawlee/types": "npm:3.16.0"
     "@sapphire/async-queue": "npm:^1.5.0"
     "@sapphire/shapeshift": "npm:^3.0.0"
-    content-type: "npm:^1.0.4"
+    content-type: "npm:^2.0.0"
     fs-extra: "npm:^11.0.0"
     json5: "npm:^2.2.3"
     mime-types: "npm:^2.1.35"
@@ -1106,7 +1106,7 @@ __metadata:
     "@playwright/browser-firefox": "npm:1.60.0"
     "@playwright/browser-webkit": "npm:1.60.0"
     "@stylistic/eslint-plugin": "npm:^5.0.0"
-    "@types/content-type": "npm:^1.1.5"
+    "@types/content-type": "npm:^2.0.0"
     "@types/deep-equal": "npm:^1.0.1"
     "@types/domhandler": "npm:^2.4.2"
     "@types/express": "npm:^5.0.0"
@@ -3331,10 +3331,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/content-type@npm:^1.1.5":
-  version: 1.1.9
-  resolution: "@types/content-type@npm:1.1.9"
-  checksum: 10c0/d8b198257862991880d38985ad9871241db18b21ec728bddc78e4c61e0f987cc037dae6c5f9bd2bcc08f41de74ad371180af2fcdefeafe25d0ccae0c3fceb7fd
+"@types/content-type@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@types/content-type@npm:2.0.0"
+  dependencies:
+    content-type: "npm:*"
+  checksum: 10c0/c1f0eeb005d30ef8d42208ec7faaac29cee55027a7dd98645e9944f6b251ca1449603d4d38c0fda1d584eff32f8f29741a9e525910bce9eb87c2630bb4c74f27
   languageName: node
   linkType: hard
 
@@ -5511,7 +5513,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"content-type@npm:^1.0.4, content-type@npm:^1.0.5, content-type@npm:~1.0.4, content-type@npm:~1.0.5":
+"content-type@npm:*, content-type@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "content-type@npm:2.0.0"
+  checksum: 10c0/491539fff707d7594b0ca4fabcc084bef2a31ffa754ff0a4f80c4377e3963cff0394317f9271c24087596c97fa675bc123d61fa34ffe65b4904e7d3d3098de72
+  languageName: node
+  linkType: hard
+
+"content-type@npm:^1.0.5, content-type@npm:~1.0.4, content-type@npm:~1.0.5":
   version: 1.0.5
   resolution: "content-type@npm:1.0.5"
   checksum: 10c0/b76ebed15c000aee4678c3707e0860cb6abd4e680a598c0a26e17f0bfae723ec9cc2802f0ff1bc6e4d80603719010431d2231018373d4dde10f9ccff9dadf5af

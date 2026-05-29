@@ -52,7 +52,7 @@
         "@crawlee/types": "3.16.0",
         "@sapphire/async-queue": "^1.5.0",
         "@sapphire/shapeshift": "^3.0.0",
-        "content-type": "^1.0.4",
+        "content-type": "^2.0.0",
         "fs-extra": "^11.0.0",
         "json5": "^2.2.3",
         "mime-types": "^2.1.35",
