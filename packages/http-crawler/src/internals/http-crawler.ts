@@ -4,6 +4,7 @@ import util from 'node:util';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
+    ContextMiddleware,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -392,18 +393,31 @@ export class HttpCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>()
-            .compose({
-                action: this.makeHttpRequest.bind(this),
-            })
-            .compose({ action: this.processHttpResponse.bind(this) })
-            .compose({ action: this.handleBlockedRequestByContent.bind(this) });
+        const skipGuard = (
+            action: (ctx: CrawlingContext) => Awaitable<void | Partial<CrawlingContext>>,
+        ): ContextMiddleware<CrawlingContext, Partial<CrawlingContext>> => ({
+            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
+        });
+        const wrapHook = (hook: (ctx: CrawlingContext) => Awaitable<void | Partial<CrawlingContext>>) =>
+            skipGuard((ctx) => hook(ctx));
+
+        const middlewares: ContextMiddleware<any, any>[] = [
+            { action: this.prepareHttpRequest.bind(this) },
+            ...this.preNavigationHooks.map((h) => wrapHook(h as any)),
+            skipGuard(this.makeHttpRequest.bind(this) as any),
+            ...this.postNavigationHooks.map((h) => wrapHook(h as any)),
+            { action: this.processHttpResponse.bind(this) },
+            { action: this.handleBlockedRequestByContent.bind(this) },
+        ];
+
+        return middlewares.reduce<ContextPipeline<CrawlingContext, any>>(
+            (p, mw) => p.compose(mw),
+            ContextPipeline.create<CrawlingContext>(),
+        );
     }
 
-    private async makeHttpRequest(
-        crawlingContext: CrawlingContext,
-    ): Promise<Omit<CrawlingContextWithReponse, keyof CrawlingContext> & Partial<CrawlingContextWithReponse>> {
-        const { request, session } = crawlingContext;
+    private async prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithReponse>> {
+        const { request } = crawlingContext;
 
         if (request.skipNavigation) {
             return {
@@ -422,13 +436,19 @@ export class HttpCrawler<
                         'The `response` property is not available - `skipNavigation` was used',
                     );
                 },
-            };
+            } as Partial<CrawlingContextWithReponse>;
         }
 
         request.state = RequestState.BEFORE_NAV;
-        await this._executeHooks(this.preNavigationHooks, crawlingContext);
+        return {};
+    }
+
+    private async makeHttpRequest(
+        crawlingContext: CrawlingContext,
+    ): Promise<Omit<CrawlingContextWithReponse, keyof CrawlingContext> & Partial<CrawlingContextWithReponse>> {
         tryCancel();
 
+        const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         const httpResponse = await addTimeoutToPromise(
@@ -479,7 +499,6 @@ export class HttpCrawler<
             };
         }
 
-        await this._executeHooks(this.postNavigationHooks, crawlingContext);
         tryCancel();
 
         const parsed = await this._parseResponse(crawlingContext.request, crawlingContext.response);

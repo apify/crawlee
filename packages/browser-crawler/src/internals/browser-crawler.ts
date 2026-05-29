@@ -2,6 +2,7 @@ import type {
     Awaitable,
     BasicCrawlerOptions,
     BasicCrawlingContext,
+    ContextMiddleware,
     CrawlingContext,
     Dictionary,
     EnqueueLinksOptions,
@@ -88,6 +89,11 @@ export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Di
     crawlingContext: Context,
     gotoOptions: GoToOptions,
 ) => Awaitable<void | Partial<Context>>;
+
+const GOTO_OPTIONS = Symbol('gotoOptions');
+const COOKIES_BEFORE_HOOKS = Symbol('cookiesBeforeHooks');
+
+const slot = <T>(ctx: object, key: symbol): T => (ctx as Record<symbol, unknown>)[key] as T;
 
 export interface BrowserCrawlerOptions<
     Page extends CommonPage = CommonPage,
@@ -368,13 +374,28 @@ export abstract class BrowserCrawler<
             ...basicCrawlerOptions
         } = options;
 
+        const skipGuard = <Ctx extends Context>(
+            action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+        ): ContextMiddleware<Ctx, Partial<Ctx>> => ({
+            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
+        });
+        const wrapHook = (hook: BrowserHook<Context, GoToOptions>) =>
+            skipGuard<Context>((ctx) => hook(ctx, slot<GoToOptions>(ctx, GOTO_OPTIONS)));
+
         super({
             ...basicCrawlerOptions,
-            contextPipelineBuilder: () =>
-                contextPipelineBuilder()
-                    .compose({ action: this.performNavigation.bind(this) })
-                    .compose({ action: this.handleBlockedRequestByContent.bind(this) })
-                    .compose({ action: this.restoreRequestState.bind(this) }),
+            contextPipelineBuilder: () => {
+                const middlewares: ContextMiddleware<Context, Partial<Context>>[] = [
+                    { action: this.prepareNavigation.bind(this) },
+                    ...this.preNavigationHooks.map(wrapHook),
+                    skipGuard(this.navigate.bind(this)),
+                    ...this.postNavigationHooks.map(wrapHook),
+                    skipGuard(this.finalizeNavigation.bind(this)),
+                    { action: this.handleBlockedRequestByContent.bind(this) },
+                    { action: this.restoreRequestState.bind(this) },
+                ];
+                return middlewares.reduce((p, mw) => p.compose(mw), contextPipelineBuilder());
+            },
             extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
         });
 
@@ -516,10 +537,7 @@ export abstract class BrowserCrawler<
         };
     }
 
-    private async performNavigation(crawlingContext: Context): Promise<{
-        request: LoadedRequest<Request>;
-        response?: Response;
-    }> {
+    private async prepareNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         if (crawlingContext.request.skipNavigation) {
             return {
                 request: new Proxy(crawlingContext.request, {
@@ -537,59 +555,56 @@ export abstract class BrowserCrawler<
                         'The `response` property is not available - `skipNavigation` was used',
                     );
                 },
-            };
+            } as Partial<Context>;
         }
 
-        const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
-
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
-
         crawlingContext.request.state = RequestState.BEFORE_NAV;
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+
+        return {
+            [GOTO_OPTIONS]: { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions,
+            [COOKIES_BEFORE_HOOKS]: this._getCookieHeaderFromRequest(crawlingContext.request),
+        } as unknown as Partial<Context>;
+    }
+
+    private async navigate(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+        const gotoOptions = slot<GoToOptions>(crawlingContext, GOTO_OPTIONS);
+        const cookiesBeforeHooks = slot<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
+        const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+        await this._applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
 
         let response: Response | undefined;
-
         try {
             response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
             await this._handleNavigationTimeout(crawlingContext, error as Error);
-
             crawlingContext.request.state = RequestState.ERROR;
-
             this._throwIfProxyError(error as Error);
             throw error;
         }
         tryCancel();
 
-        if (response !== undefined) {
-            Object.defineProperty(crawlingContext, 'response', {
-                value: response,
-                configurable: true,
-                writable: true,
-                enumerable: true,
-            });
-        }
-
         crawlingContext.request.state = RequestState.AFTER_NAV;
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
 
-        // Read response back from the context only when it has been replaced with a data descriptor
-        // (either by the navigation result above or by a hook override). The default getter installed
-        // by `preparePage` throws, so we must not invoke it when no real response is available.
+        return (response !== undefined ? { response } : {}) as Partial<Context>;
+    }
+
+    private async finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
+        tryCancel();
+
+        // The `response` getter installed by `preparePage` throws when no navigation produced one and
+        // no hook overrode it. Read defensively from the own-property descriptor to avoid that throw.
         const responseDescriptor = Object.getOwnPropertyDescriptor(crawlingContext, 'response');
-        if (responseDescriptor && 'value' in responseDescriptor) {
-            response = responseDescriptor.value as Response | undefined;
-        }
+        const response =
+            responseDescriptor && 'value' in responseDescriptor
+                ? (responseDescriptor.value as Response | undefined)
+                : undefined;
 
         await this.processResponse(response, crawlingContext);
         tryCancel();
 
-        // save cookies
         // TODO: Should we save the cookies also after/only the handle page?
         if (this.saveResponseCookies) {
             const cookies = await crawlingContext.browserController.getCookies(crawlingContext.page);
@@ -597,16 +612,7 @@ export abstract class BrowserCrawler<
             crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
         }
 
-        if (response !== undefined) {
-            return {
-                request: crawlingContext.request as LoadedRequest<Request>,
-                response,
-            };
-        }
-
-        return {
-            request: crawlingContext.request as LoadedRequest<Request>,
-        };
+        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
     }
 
     private async handleBlockedRequestByContent(

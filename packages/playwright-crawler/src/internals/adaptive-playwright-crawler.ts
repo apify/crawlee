@@ -227,15 +227,6 @@ export interface AdaptivePlaywrightCrawlerOptions<
     preventDirectStorageAccess?: boolean;
 }
 
-function applyHookOverride(context: object, override: void | object) {
-    if (!override) return;
-    for (const key of [...Object.getOwnPropertyNames(override), ...Object.getOwnPropertySymbols(override)]) {
-        if (Object.getOwnPropertyDescriptor(context, key)?.configurable !== false) {
-            Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(override, key)!);
-        }
-    }
-}
-
 const proxyLogMethods = [
     'error',
     'exception',
@@ -341,25 +332,19 @@ export class AdaptivePlaywrightCrawler<
                 );
             };
         }
+        // Each adaptive hook is registered as its own static/browser hook so the underlying
+        // `ContextPipeline` handles override merging between hooks for free.
         const staticCrawler = new CheerioCrawler({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: [
-                async (context) => {
-                    for (const hook of preNavigationHooks ?? []) {
-                        applyHookOverride(context, await hook(context, undefined));
-                    }
-                },
-            ],
-            postNavigationHooks: [
-                async (context) => {
-                    for (const hook of postNavigationHooks ?? []) {
-                        applyHookOverride(context, await hook(context, undefined));
-                    }
-                },
-            ],
+            preNavigationHooks: (preNavigationHooks ?? []).map(
+                (hook) => async (context) => hook(context as any, undefined) as any,
+            ),
+            postNavigationHooks: (postNavigationHooks ?? []).map(
+                (hook) => async (context) => hook(context as any, undefined) as any,
+            ),
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -367,20 +352,12 @@ export class AdaptivePlaywrightCrawler<
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: [
-                async (context, gotoOptions) => {
-                    for (const hook of preNavigationHooks ?? []) {
-                        applyHookOverride(context, await hook(context, gotoOptions));
-                    }
-                },
-            ],
-            postNavigationHooks: [
-                async (context, gotoOptions) => {
-                    for (const hook of postNavigationHooks ?? []) {
-                        applyHookOverride(context, await hook(context, gotoOptions));
-                    }
-                },
-            ],
+            preNavigationHooks: (preNavigationHooks ?? []).map(
+                (hook) => async (context, gotoOptions) => hook(context as any, gotoOptions) as any,
+            ),
+            postNavigationHooks: (postNavigationHooks ?? []).map(
+                (hook) => async (context, gotoOptions) => hook(context as any, gotoOptions) as any,
+            ),
         });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
