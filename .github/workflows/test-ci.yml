@@ -46,23 +46,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-
 
-            # DEBUG: inline install, no pnpm store cache, no --loglevel error.
-            # Remove once #3545 install hang is understood.
-            -   name: Install pnpm
-                uses: pnpm/action-setup@v6.0.8
-                with:
-                    run_install: false
-
-            -   name: Install dependencies (debug)
-                run: |
-                    set -x
-                    node --version
-                    pnpm --version
-                    df -h /
-                    free -h
-                    pnpm install --frozen-lockfile --reporter=default
-                env:
-                    HUSKY: "0"
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Install Playwright browsers
                 run: pnpm exec playwright install --with-deps
