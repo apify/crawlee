@@ -123,6 +123,14 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
     ) {
         ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
 
+        const hasRemote = !!(launchContext.connectOverCDPOptions || launchContext.remoteBrowser);
+        if (hasRemote && launchContext.launchOptions !== undefined) {
+            throw new Error(
+                "'launchOptions' is ignored when using a remote browser. Set at most one of " +
+                    "'launchOptions', 'connectOverCDPOptions', 'remoteBrowser'.",
+            );
+        }
+
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'),
             ...browserLauncherOptions
@@ -138,25 +146,12 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
 
         this.Plugin = PuppeteerPlugin;
 
-        if (
-            launchContext.connectOverCDPOptions &&
-            (launchContext.useChrome || (launchContext.launchOptions as Record<string, unknown>)?.executablePath)
-        ) {
+        if (hasRemote && launchContext.useChrome) {
             const log = serviceLocator.getLogger().child({ prefix: 'PuppeteerLauncher' });
-
-            if (launchContext.useChrome) {
-                log.warning(
-                    'useChrome is set but will be ignored for remote browser connections. ' +
-                        'The remote service controls which browser binary is used.',
-                );
-            }
-
-            if ((launchContext.launchOptions as Record<string, unknown>)?.executablePath) {
-                log.warning(
-                    'executablePath is set but will be ignored for remote browser connections. ' +
-                        'The remote service controls which browser binary is used.',
-                );
-            }
+            log.warning(
+                'useChrome is set but will be ignored for remote browser connections. ' +
+                    'The remote service controls which browser binary is used.',
+            );
         }
     }
 

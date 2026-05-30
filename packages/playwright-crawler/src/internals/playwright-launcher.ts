@@ -143,6 +143,18 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
     ) {
         ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
 
+        const hasRemote = !!(
+            launchContext.connectOptions ||
+            launchContext.connectOverCDPOptions ||
+            launchContext.remoteBrowser
+        );
+        if (hasRemote && launchContext.launchOptions !== undefined) {
+            throw new Error(
+                "'launchOptions' is ignored when using a remote browser. Set at most one of " +
+                    "'launchOptions', 'connectOptions', 'connectOverCDPOptions', 'remoteBrowser'.",
+            );
+        }
+
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(
                 'playwright',
@@ -166,24 +178,12 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
 
         this.Plugin = PlaywrightPlugin;
 
-        const connectOptionsPresent = !!(launchContext.connectOptions || launchContext.connectOverCDPOptions);
-
-        if (connectOptionsPresent && (launchContext.useChrome || launchContext.launchOptions?.executablePath)) {
+        if (hasRemote && launchContext.useChrome) {
             const log = serviceLocator.getLogger().child({ prefix: 'PlaywrightLauncher' });
-
-            if (launchContext.useChrome) {
-                log.warning(
-                    'useChrome is set but will be ignored for remote browser connections. ' +
-                        'The remote service controls which browser binary is used.',
-                );
-            }
-
-            if (launchContext.launchOptions?.executablePath) {
-                log.warning(
-                    'executablePath is set but will be ignored for remote browser connections. ' +
-                        'The remote service controls which browser binary is used.',
-                );
-            }
+            log.warning(
+                'useChrome is set but will be ignored for remote browser connections. ' +
+                    'The remote service controls which browser binary is used.',
+            );
         }
     }
 }
