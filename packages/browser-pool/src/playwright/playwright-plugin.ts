@@ -110,7 +110,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
                 context = result.context;
             } catch (cause) {
                 throw new BrowserLaunchError(
-                    'Failed to resolve remote browser endpoint from remoteBrowser.endpoint() function.\n\u200b',
+                    'Failed to resolve remote browser endpoint from remoteBrowser.endpoint() function.\u200b',
                     { cause },
                 );
             }
@@ -124,7 +124,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
                 await this._callRelease(url, context);
                 throw new BrowserLaunchError(
                     `Failed to connect to remote browser at "${this._sanitizeEndpointForLog(url)}" via CDP. ` +
-                        'Check that the endpoint is reachable.\n\u200b',
+                        'Check that the endpoint is reachable.\u200b',
                     { cause },
                 );
             }
@@ -139,7 +139,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
             } catch (cause) {
                 throw new BrowserLaunchError(
                     `Failed to connect to remote browser via CDP at "${this._sanitizeEndpointForLog(endpointURL)}". ` +
-                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\n\u200b',
+                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\u200b',
                     { cause },
                 );
             }
@@ -154,7 +154,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
             } catch (cause) {
                 throw new BrowserLaunchError(
                     `Failed to connect to remote browser via WebSocket at "${this._sanitizeEndpointForLog(wsEndpoint)}". ` +
-                        'Check that the endpoint is reachable and the Playwright server is running.\n\u200b',
+                        'Check that the endpoint is reachable and the Playwright server is running.\u200b',
                     { cause },
                 );
             }

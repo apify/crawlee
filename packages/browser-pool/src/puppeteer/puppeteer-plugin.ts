@@ -108,7 +108,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 context = result.context;
             } catch (cause) {
                 throw new BrowserLaunchError(
-                    'Failed to resolve remote browser endpoint from remoteBrowser.endpoint() function.\n\u200b',
+                    'Failed to resolve remote browser endpoint from remoteBrowser.endpoint() function.\u200b',
                     { cause },
                 );
             }
@@ -122,7 +122,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 await this._callRelease(url, context);
                 throw new BrowserLaunchError(
                     `Failed to connect to remote browser at "${this._sanitizeEndpointForLog(url)}". ` +
-                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\n\u200b',
+                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\u200b',
                     { cause },
                 );
             }
@@ -136,7 +136,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 const safeEndpoint = this._sanitizeEndpointForLog(endpoint);
                 throw new BrowserLaunchError(
                     `Failed to connect to remote browser via CDP at "${safeEndpoint}". ` +
-                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\n\u200b',
+                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\u200b',
                     { cause },
                 );
             }
