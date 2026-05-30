@@ -102,7 +102,6 @@ export class PlaywrightPlugin extends BrowserPlugin<
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
         if (this.remoteBrowser) {
-            const type = this.remoteBrowser.type ?? 'cdp';
             let url: string;
             let context: Record<string, unknown> | undefined;
             try {
@@ -119,17 +118,13 @@ export class PlaywrightPlugin extends BrowserPlugin<
             launchContext.extend({ _resolvedRemoteEndpoint: url, _remoteContext: context });
 
             try {
-                if (type === 'playwright') {
-                    this.log.info('Connecting to remote browser via connect (Playwright protocol).');
-                    return await this.library.connect(url, {});
-                }
                 this.log.info('Connecting to remote browser via connectOverCDP.');
                 return await this.library.connectOverCDP(url, {});
             } catch (cause) {
                 await this._callRelease(url, context);
                 throw new BrowserLaunchError(
-                    `Failed to connect to remote browser at "${this._sanitizeEndpointForLog(url)}". ` +
-                        `Connection type: ${type}. Check that the endpoint is reachable.\n\u200b`,
+                    `Failed to connect to remote browser at "${this._sanitizeEndpointForLog(url)}" via CDP. ` +
+                        'Check that the endpoint is reachable.\n\u200b',
                     { cause },
                 );
             }

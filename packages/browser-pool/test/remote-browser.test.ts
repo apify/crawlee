@@ -679,19 +679,6 @@ describe('remoteBrowser config — PlaywrightPlugin', () => {
         expect(lib.connect).not.toHaveBeenCalled();
     });
 
-    test('static string endpoint with type playwright → calls connect', async () => {
-        const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://browserless.io/ws', type: 'playwright' },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(lib.connect).toHaveBeenCalledWith('wss://browserless.io/ws', {});
-        expect(lib.connectOverCDP).not.toHaveBeenCalled();
-    });
-
     test('function endpoint → called per launch', async () => {
         const lib = createMockPlaywrightLibrary();
         const endpointFn = vi.fn().mockResolvedValue('wss://dynamic-endpoint.io');
@@ -731,19 +718,10 @@ describe('remoteBrowser config — PlaywrightPlugin', () => {
         expect(ctx.isRemote).toBe(true);
     });
 
-    test('useIncognitoPages forced to true when remoteBrowser is set (CDP)', () => {
+    test('useIncognitoPages forced to true when remoteBrowser is set', () => {
         const lib = createMockPlaywrightLibrary();
         const plugin = new PlaywrightPlugin(lib as any, {
             remoteBrowser: { endpoint: 'wss://test.io' },
-        });
-
-        expect(plugin.useIncognitoPages).toBe(true);
-    });
-
-    test('useIncognitoPages forced to true when remoteBrowser is set (Playwright)', () => {
-        const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://test.io', type: 'playwright' },
         });
 
         expect(plugin.useIncognitoPages).toBe(true);
@@ -871,15 +849,6 @@ describe('remoteBrowser config — PuppeteerPlugin', () => {
         expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'wss://dynamic.io' });
     });
 
-    test('type playwright throws in Puppeteer constructor', () => {
-        const lib = createMockPuppeteerLibrary();
-        expect(() => {
-            new PuppeteerPlugin(lib as any, {
-                remoteBrowser: { endpoint: 'wss://test.io', type: 'playwright' } as any,
-            });
-        }).toThrow("does not support 'playwright'");
-    });
-
     test('isRemote is true when remoteBrowser is set', () => {
         const lib = createMockPuppeteerLibrary();
         const plugin = new PuppeteerPlugin(lib as any, {
@@ -951,27 +920,6 @@ describe('RemoteBrowserProvider — PlaywrightPlugin', () => {
         expect(lib.connectOverCDP).toHaveBeenCalledWith('wss://provider.io/cdp', {});
         expect(lib.connect).not.toHaveBeenCalled();
         expect(lib.launch).not.toHaveBeenCalled();
-    });
-
-    test('provider with type=playwright → calls connect', async () => {
-        const lib = createMockPlaywrightLibrary();
-
-        class PwProvider extends RemoteBrowserProvider {
-            override type = 'playwright' as const;
-            async connect() {
-                return { url: 'wss://provider.io/ws' };
-            }
-        }
-
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: new PwProvider(),
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(lib.connect).toHaveBeenCalledWith('wss://provider.io/ws', {});
-        expect(lib.connectOverCDP).not.toHaveBeenCalled();
     });
 
     test('provider context flows to release', async () => {
@@ -1074,21 +1022,6 @@ describe('RemoteBrowserProvider — PuppeteerPlugin', () => {
 
         expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'wss://provider.io/cdp' });
         expect(lib.launch).not.toHaveBeenCalled();
-    });
-
-    test('provider with type=playwright throws in Puppeteer', () => {
-        const lib = createMockPuppeteerLibrary();
-
-        class PwProvider extends RemoteBrowserProvider {
-            override type = 'playwright' as const;
-            async connect() {
-                return { url: 'wss://test.io' };
-            }
-        }
-
-        expect(() => {
-            new PuppeteerPlugin(lib as any, { remoteBrowser: new PwProvider() });
-        }).toThrow("does not support 'playwright'");
     });
 
     test('provider release called on connection failure', async () => {

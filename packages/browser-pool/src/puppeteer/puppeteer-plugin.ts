@@ -50,10 +50,6 @@ export class PuppeteerPlugin extends BrowserPlugin<
             throw new Error("connectOverCDPOptions must include either 'browserWSEndpoint' or 'browserURL'.");
         }
 
-        if (baseOptions.remoteBrowser?.type === 'playwright') {
-            throw new Error("Puppeteer does not support 'playwright' connection type. Use 'cdp' (default) instead.");
-        }
-
         super(library, baseOptions);
         this.connectOverCDPOptions = connectOverCDPOptions;
 

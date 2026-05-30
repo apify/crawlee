@@ -100,26 +100,10 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
      * ```typescript
      * {
      *     endpoint: 'wss://browserless.io?token=xxx',
-     *     type: 'cdp', // or 'playwright'
      * }
      * ```
      */
-    remoteBrowser?: PlaywrightRemoteBrowserConfig | RemoteBrowserProvider<any>;
-}
-
-/**
- * Remote browser configuration for Playwright crawlers.
- * Supports both CDP and Playwright's own client-server protocol.
- */
-export interface PlaywrightRemoteBrowserConfig extends RemoteBrowserConfig {
-    /**
-     * Connection type to use.
-     * - `'cdp'` uses `browserType.connectOverCDP()` (Chrome DevTools Protocol).
-     * - `'playwright'` uses `browserType.connect()` (Playwright's client-server protocol).
-     *
-     * @default 'cdp'
-     */
-    type?: 'cdp' | 'playwright';
+    remoteBrowser?: RemoteBrowserConfig | RemoteBrowserProvider<any>;
 }
 
 /**

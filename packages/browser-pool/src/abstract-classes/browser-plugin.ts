@@ -97,16 +97,6 @@ export interface RemoteBrowserConfig {
      */
     release?: (info: { endpoint: string; context?: Record<string, unknown> }) => void | Promise<void>;
     /**
-     * Connection type. Subclass interfaces narrow this further
-     * (e.g. Puppeteer only allows `'cdp'`).
-     *
-     * - `'cdp'` — Chrome DevTools Protocol (Puppeteer + Playwright).
-     * - `'playwright'` — Playwright's own client-server protocol (Playwright only).
-     *
-     * @default 'cdp'
-     */
-    type?: 'cdp' | 'playwright';
-    /**
      * Maximum number of browsers that can be open at the same time.
      * When the limit is reached, the crawler waits for a browser to close before launching a new one.
      * Set this to your remote service's concurrent session limit to avoid 429 errors.
@@ -224,7 +214,6 @@ export abstract class BrowserPlugin<
             this.remoteBrowser = {
                 endpoint: (options) => provider.connect(options),
                 release: ({ context }) => provider.release(context as any),
-                type: provider.type,
                 maxOpenBrowsers: provider.maxOpenBrowsers,
             };
         } else {

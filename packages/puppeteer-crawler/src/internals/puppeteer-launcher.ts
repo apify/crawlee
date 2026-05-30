@@ -87,19 +87,7 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
      * }
      * ```
      */
-    remoteBrowser?: PuppeteerRemoteBrowserConfig | RemoteBrowserProvider<any>;
-}
-
-/**
- * Remote browser configuration for Puppeteer crawlers.
- * Only CDP connections are supported (Puppeteer does not have a WebSocket connection mode).
- */
-export interface PuppeteerRemoteBrowserConfig extends RemoteBrowserConfig {
-    /**
-     * Connection type. Only `'cdp'` is supported for Puppeteer.
-     * @default 'cdp'
-     */
-    type?: 'cdp';
+    remoteBrowser?: RemoteBrowserConfig | RemoteBrowserProvider<any>;
 }
 
 /**
