@@ -679,10 +679,10 @@ describe('remoteBrowser config — PlaywrightPlugin', () => {
         expect(lib.connect).not.toHaveBeenCalled();
     });
 
-    test('static string endpoint with type websocket → calls connect', async () => {
+    test('static string endpoint with type playwright → calls connect', async () => {
         const lib = createMockPlaywrightLibrary();
         const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://browserless.io/ws', type: 'websocket' },
+            remoteBrowser: { endpoint: 'wss://browserless.io/ws', type: 'playwright' },
         });
 
         const ctx = plugin.createLaunchContext();
@@ -740,10 +740,10 @@ describe('remoteBrowser config — PlaywrightPlugin', () => {
         expect(plugin.useIncognitoPages).toBe(true);
     });
 
-    test('useIncognitoPages forced to true when remoteBrowser is set (WebSocket)', () => {
+    test('useIncognitoPages forced to true when remoteBrowser is set (Playwright)', () => {
         const lib = createMockPlaywrightLibrary();
         const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://test.io', type: 'websocket' },
+            remoteBrowser: { endpoint: 'wss://test.io', type: 'playwright' },
         });
 
         expect(plugin.useIncognitoPages).toBe(true);
@@ -871,13 +871,13 @@ describe('remoteBrowser config — PuppeteerPlugin', () => {
         expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'wss://dynamic.io' });
     });
 
-    test('type websocket throws in constructor', () => {
+    test('type playwright throws in Puppeteer constructor', () => {
         const lib = createMockPuppeteerLibrary();
         expect(() => {
             new PuppeteerPlugin(lib as any, {
-                remoteBrowser: { endpoint: 'wss://test.io', type: 'websocket' } as any,
+                remoteBrowser: { endpoint: 'wss://test.io', type: 'playwright' } as any,
             });
-        }).toThrow("does not support 'websocket'");
+        }).toThrow("does not support 'playwright'");
     });
 
     test('isRemote is true when remoteBrowser is set', () => {
@@ -953,18 +953,18 @@ describe('RemoteBrowserProvider — PlaywrightPlugin', () => {
         expect(lib.launch).not.toHaveBeenCalled();
     });
 
-    test('provider with type=websocket → calls connect', async () => {
+    test('provider with type=playwright → calls connect', async () => {
         const lib = createMockPlaywrightLibrary();
 
-        class WsProvider extends RemoteBrowserProvider {
-            override type = 'websocket' as const;
+        class PwProvider extends RemoteBrowserProvider {
+            override type = 'playwright' as const;
             async connect() {
                 return { url: 'wss://provider.io/ws' };
             }
         }
 
         const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: new WsProvider(),
+            remoteBrowser: new PwProvider(),
         });
 
         const ctx = plugin.createLaunchContext();
@@ -1076,19 +1076,19 @@ describe('RemoteBrowserProvider — PuppeteerPlugin', () => {
         expect(lib.launch).not.toHaveBeenCalled();
     });
 
-    test('provider with type=websocket throws in Puppeteer', () => {
+    test('provider with type=playwright throws in Puppeteer', () => {
         const lib = createMockPuppeteerLibrary();
 
-        class WsProvider extends RemoteBrowserProvider {
-            override type = 'websocket' as const;
+        class PwProvider extends RemoteBrowserProvider {
+            override type = 'playwright' as const;
             async connect() {
                 return { url: 'wss://test.io' };
             }
         }
 
         expect(() => {
-            new PuppeteerPlugin(lib as any, { remoteBrowser: new WsProvider() });
-        }).toThrow("does not support 'websocket'");
+            new PuppeteerPlugin(lib as any, { remoteBrowser: new PwProvider() });
+        }).toThrow("does not support 'playwright'");
     });
 
     test('provider release called on connection failure', async () => {

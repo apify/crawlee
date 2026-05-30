@@ -119,8 +119,8 @@ export class PlaywrightPlugin extends BrowserPlugin<
             launchContext.extend({ _resolvedRemoteEndpoint: url, _remoteContext: context });
 
             try {
-                if (type === 'websocket') {
-                    this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
+                if (type === 'playwright') {
+                    this.log.info('Connecting to remote browser via connect (Playwright protocol).');
                     return await this.library.connect(url, {});
                 }
                 this.log.info('Connecting to remote browser via connectOverCDP.');

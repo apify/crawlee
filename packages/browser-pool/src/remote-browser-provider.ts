@@ -49,12 +49,12 @@
 export abstract class RemoteBrowserProvider<TContext extends Record<string, unknown> = Record<string, unknown>> {
     /**
      * Connection type.
-     * - `'cdp'` — Chrome DevTools Protocol, works with Puppeteer and Playwright.
-     * - `'websocket'` — Playwright-specific WebSocket protocol (not supported by Puppeteer).
+     * - `'cdp'` — Chrome DevTools Protocol (Puppeteer + Playwright).
+     * - `'playwright'` — Playwright's own client-server protocol (Playwright only).
      *
      * @default 'cdp'
      */
-    type: 'cdp' | 'websocket' = 'cdp';
+    type: 'cdp' | 'playwright' = 'cdp';
 
     /**
      * Maximum number of browsers that can be open at the same time.

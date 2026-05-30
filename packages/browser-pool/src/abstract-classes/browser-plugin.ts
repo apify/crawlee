@@ -99,9 +99,13 @@ export interface RemoteBrowserConfig {
     /**
      * Connection type. Subclass interfaces narrow this further
      * (e.g. Puppeteer only allows `'cdp'`).
+     *
+     * - `'cdp'` — Chrome DevTools Protocol (Puppeteer + Playwright).
+     * - `'playwright'` — Playwright's own client-server protocol (Playwright only).
+     *
      * @default 'cdp'
      */
-    type?: 'cdp' | 'websocket';
+    type?: 'cdp' | 'playwright';
     /**
      * Maximum number of browsers that can be open at the same time.
      * When the limit is reached, the crawler waits for a browser to close before launching a new one.
