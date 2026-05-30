@@ -94,7 +94,7 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
      * Configuration for connecting to a remote browser service.
      * Supports both static endpoint URLs and dynamic session creation functions.
      *
-     * Takes precedence over `connectOverCDPOptions` / `connectOptions` if both are set.
+     * Mutually exclusive with `connectOverCDPOptions` / `connectOptions` — setting more than one throws.
      *
      * @example
      * ```typescript

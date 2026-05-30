@@ -202,7 +202,7 @@ describe('Remote browser — PlaywrightPlugin', () => {
                         connectOptions: { wsEndpoint: 'ws://remote:3000' },
                         connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
                     }),
-            ).toThrow("Cannot set both 'connectOptions' and 'connectOverCDPOptions'");
+            ).toThrow('mutually exclusive');
         });
 
         test('throws when connectOverCDPOptions has no endpointURL', () => {
@@ -813,18 +813,26 @@ describe('remoteBrowser config — PlaywrightPlugin', () => {
         await expect(plugin.launch(ctx)).rejects.toThrow('Failed to resolve remote browser endpoint');
     });
 
-    test('remoteBrowser ignored when connectOverCDPOptions also set', async () => {
+    test('throws when both remoteBrowser and connectOverCDPOptions are set', () => {
         const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://ignored.io' },
-            connectOverCDPOptions: { endpointURL: 'wss://explicit.io' },
-        });
+        expect(
+            () =>
+                new PlaywrightPlugin(lib as any, {
+                    remoteBrowser: { endpoint: 'wss://a.io' },
+                    connectOverCDPOptions: { endpointURL: 'wss://b.io' },
+                }),
+        ).toThrow('mutually exclusive');
+    });
 
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(lib.connectOverCDP).toHaveBeenCalledWith('wss://explicit.io', {});
-        expect(mockLogger.warning).toHaveBeenCalledWith(expect.stringContaining('remoteBrowser is ignored'));
+    test('throws when both remoteBrowser and connectOptions are set', () => {
+        const lib = createMockPlaywrightLibrary();
+        expect(
+            () =>
+                new PlaywrightPlugin(lib as any, {
+                    remoteBrowser: { endpoint: 'wss://a.io' },
+                    connectOptions: { wsEndpoint: 'wss://b.io' },
+                }),
+        ).toThrow('mutually exclusive');
     });
 });
 
@@ -900,18 +908,15 @@ describe('remoteBrowser config — PuppeteerPlugin', () => {
         expect(releaseFn).toHaveBeenCalledWith({ endpoint: 'wss://fail.io', context: { id: 'sess-456' } });
     });
 
-    test('remoteBrowser ignored when connectOverCDPOptions also set', async () => {
+    test('throws when both remoteBrowser and connectOverCDPOptions are set', () => {
         const lib = createMockPuppeteerLibrary();
-        const plugin = new PuppeteerPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://ignored.io' },
-            connectOverCDPOptions: { browserWSEndpoint: 'wss://explicit.io' },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'wss://explicit.io' });
-        expect(mockLogger.warning).toHaveBeenCalledWith(expect.stringContaining('remoteBrowser is ignored'));
+        expect(
+            () =>
+                new PuppeteerPlugin(lib as any, {
+                    remoteBrowser: { endpoint: 'wss://a.io' },
+                    connectOverCDPOptions: { browserWSEndpoint: 'wss://b.io' },
+                }),
+        ).toThrow('mutually exclusive');
     });
 });
 

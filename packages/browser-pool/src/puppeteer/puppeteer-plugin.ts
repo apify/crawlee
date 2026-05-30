@@ -39,6 +39,13 @@ export class PuppeteerPlugin extends BrowserPlugin<
     constructor(library: typeof Puppeteer, options: PuppeteerPluginOptions = {}) {
         const { connectOverCDPOptions, ...baseOptions } = options;
 
+        if (baseOptions.remoteBrowser && connectOverCDPOptions) {
+            throw new Error(
+                "Set at most one of 'remoteBrowser', 'connectOverCDPOptions' — these options are mutually exclusive. " +
+                    'Pick a single remote connection source.',
+            );
+        }
+
         if (connectOverCDPOptions && !connectOverCDPOptions.browserWSEndpoint && !connectOverCDPOptions.browserURL) {
             throw new Error("connectOverCDPOptions must include either 'browserWSEndpoint' or 'browserURL'.");
         }
@@ -47,20 +54,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
             throw new Error("Puppeteer does not support 'websocket' connection type. Use 'cdp' (default) instead.");
         }
 
-        const remoteBrowserIgnored = !!(baseOptions.remoteBrowser && connectOverCDPOptions);
-        if (remoteBrowserIgnored) {
-            baseOptions.remoteBrowser = undefined;
-        }
-
         super(library, baseOptions);
         this.connectOverCDPOptions = connectOverCDPOptions;
-
-        if (remoteBrowserIgnored) {
-            this.log.warning(
-                'Both remoteBrowser and connectOverCDPOptions are set. ' +
-                    'remoteBrowser is ignored when explicit connect options are provided.',
-            );
-        }
 
         const isRemoteConnection = this.remoteBrowser || this.connectOverCDPOptions;
         if (isRemoteConnection && options.useIncognitoPages === undefined) {

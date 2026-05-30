@@ -153,7 +153,7 @@ export interface BrowserPluginOptions<LibraryOptions> {
      *
      * Accepts either a {@link RemoteBrowserConfig} object or a {@link RemoteBrowserProvider} instance.
      *
-     * Takes precedence over `connectOverCDPOptions` / `connectOptions` if both are set.
+     * Mutually exclusive with `connectOverCDPOptions` / `connectOptions` — setting more than one throws.
      */
     remoteBrowser?: RemoteBrowserConfig | RemoteBrowserProvider<any>;
 }

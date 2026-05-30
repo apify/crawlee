@@ -53,8 +53,14 @@ export class PlaywrightPlugin extends BrowserPlugin<
     constructor(library: BrowserType, options: PlaywrightPluginOptions = {}) {
         const { connectOptions, connectOverCDPOptions, ...baseOptions } = options;
 
-        if (connectOptions && connectOverCDPOptions) {
-            throw new Error("Cannot set both 'connectOptions' and 'connectOverCDPOptions' — pick one protocol.");
+        const remoteSourceCount = [baseOptions.remoteBrowser, connectOptions, connectOverCDPOptions].filter(
+            (v) => v != null,
+        ).length;
+        if (remoteSourceCount > 1) {
+            throw new Error(
+                "Set at most one of 'remoteBrowser', 'connectOptions', 'connectOverCDPOptions' — " +
+                    'these options are mutually exclusive.',
+            );
         }
 
         if (connectOverCDPOptions && !connectOverCDPOptions.endpointURL) {
@@ -65,21 +71,9 @@ export class PlaywrightPlugin extends BrowserPlugin<
             throw new Error("'connectOptions.wsEndpoint' must be a non-empty string.");
         }
 
-        const remoteBrowserIgnored = !!(baseOptions.remoteBrowser && (connectOverCDPOptions || connectOptions));
-        if (remoteBrowserIgnored) {
-            baseOptions.remoteBrowser = undefined;
-        }
-
         super(library, baseOptions);
         this.connectOptions = connectOptions;
         this.connectOverCDPOptions = connectOverCDPOptions;
-
-        if (remoteBrowserIgnored) {
-            this.log.warning(
-                'Both remoteBrowser and connectOverCDPOptions/connectOptions are set. ' +
-                    'remoteBrowser is ignored when explicit connect options are provided.',
-            );
-        }
 
         const isRemoteConnection = this.remoteBrowser || this.connectOptions || this.connectOverCDPOptions;
         if (isRemoteConnection) {

@@ -78,7 +78,7 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
      * Configuration for connecting to a remote browser service.
      * Supports both static endpoint URLs and dynamic session creation functions.
      *
-     * Takes precedence over `connectOverCDPOptions` if both are set.
+     * Mutually exclusive with `connectOverCDPOptions` — setting both throws.
      *
      * @example
      * ```typescript
