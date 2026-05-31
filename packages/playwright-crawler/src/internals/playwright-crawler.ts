@@ -221,10 +221,10 @@ export class PlaywrightCrawler<
         }
 
         if (headless != null) {
-            if (launchContext.remoteBrowser) {
+            if (launchContext.remoteBrowser || launchContext.connectOptions || launchContext.connectOverCDPOptions) {
                 const log = serviceLocator.getLogger().child({ prefix: 'PlaywrightCrawler' });
                 log.warning(
-                    "'headless' is ignored when using a remote browser. " +
+                    "'headless' is ignored when connecting to a remote browser. " +
                         'The remote service controls headless mode.',
                 );
             } else {
