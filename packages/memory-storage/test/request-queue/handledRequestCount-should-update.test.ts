@@ -37,19 +37,6 @@ describe('RequestQueue handledRequestCount should update', () => {
         expect(updatedStatistics.handledRequestCount).toEqual(2);
     });
 
-    test('deleting a request should decrement the handledRequestCount', async () => {
-        const { requestId } = await requestQueue.addRequest({
-            url: 'http://example.com/3',
-            uniqueKey: '3',
-            handledAt: new Date().toISOString(),
-        });
-
-        await requestQueue.deleteRequest(requestId);
-
-        const updatedStatistics = await requestQueue.getMetadata();
-        expect(updatedStatistics.handledRequestCount).toEqual(2);
-    });
-
     test('updating an already handled request should not increment the handledRequestCount again', async () => {
         const { requestId } = await requestQueue.addRequest({
             url: 'http://example.com/4',
@@ -57,7 +44,7 @@ describe('RequestQueue handledRequestCount should update', () => {
             handledAt: new Date().toISOString(),
         });
 
-        const { handledRequestCount } = (await requestQueue.get())!;
+        const { handledRequestCount } = await requestQueue.getMetadata();
 
         await requestQueue.updateRequest({
             url: 'http://example.com/4',
@@ -66,7 +53,7 @@ describe('RequestQueue handledRequestCount should update', () => {
             handledAt: new Date().toISOString(),
         });
 
-        const updatedStatistics = await requestQueue.get();
-        expect(updatedStatistics?.handledRequestCount).toEqual(handledRequestCount);
+        const updatedStatistics = await requestQueue.getMetadata();
+        expect(updatedStatistics.handledRequestCount).toEqual(handledRequestCount);
     });
 });

@@ -61,7 +61,7 @@ describe('fallback to fs for reading', () => {
         expect(defaultStoreInfo.name).toEqual('default');
         expect(defaultStoreInfo.createdAt).toEqual(expectedFsDate);
 
-        const input = await defaultStore.getRecord('INPUT');
+        const input = await defaultStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
             value: { foo: 'bar but from fs' },
@@ -72,7 +72,7 @@ describe('fallback to fs for reading', () => {
     test('attempting to read "other" key value store with no "__metadata__" present should read from fs, even if accessed without generating id first', async () => {
         const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
 
-        const input = await otherStore.getRecord('INPUT');
+        const input = await otherStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
             value: { foo: 'bar but from fs' },
@@ -89,7 +89,7 @@ describe('fallback to fs for reading', () => {
     test('attempting to read "no-ext" key value store should load the missing extension file correctly', async () => {
         const noExtStore = await storage.createKeyValueStoreClient({ name: 'no-ext' });
 
-        const input = await noExtStore.getRecord('INPUT');
+        const input = await noExtStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
             value: JSON.stringify({ foo: 'bar but from fs' }),
@@ -100,7 +100,7 @@ describe('fallback to fs for reading', () => {
     test('attempting to read "invalid-json" key value store should ignore the invalid "INPUT" json file', async () => {
         const invalidJsonStore = await storage.createKeyValueStoreClient({ name: 'invalid-json' });
 
-        const input = await invalidJsonStore.getRecord('INPUT');
+        const input = await invalidJsonStore.getValue('INPUT');
         expect(input).toBeUndefined();
     });
 });
