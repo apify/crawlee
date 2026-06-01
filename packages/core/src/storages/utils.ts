@@ -141,6 +141,77 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10_000;
  */
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
+/** @internal */
+export interface DualIterableOptions<TItem, TRawPage> {
+    /** Factory that returns an async generator yielding pages. */
+    createPages: () => AsyncGenerator<TRawPage>;
+    /** Extracts individual items from a page (for iteration). */
+    extractItems: (page: TRawPage) => TItem[];
+}
+
+/**
+ * Creates an object that is both an `AsyncIterable<TItem>` (for `for await...of`)
+ * and a `Promise<TItem[]>` (for `await`) from a single async page generator.
+ *
+ * - `await result` drains all pages from a fresh generator and returns every
+ *   item as a flat array.
+ * - `for await (const item of result)` streams all items across all pages,
+ *   yielding them one by one without buffering everything in memory.
+ *
+ * Each usage path creates its own generator instance, so `await` and
+ * `for await...of` never interfere with each other.
+ *
+ * @internal
+ */
+export function createDualIterable<TItem, TRawPage>(
+    options: DualIterableOptions<TItem, TRawPage>,
+): AsyncIterable<TItem> & Promise<TItem[]> {
+    const { createPages, extractItems } = options;
+    let cached: Promise<TItem[]> | null = null;
+
+    function getOrCreate(): Promise<TItem[]> {
+        if (!cached) {
+            cached = (async () => {
+                const items: TItem[] = [];
+                for await (const page of createPages()) {
+                    items.push(...extractItems(page));
+                }
+                return items;
+            })();
+        }
+        return cached;
+    }
+
+    async function* iterateAll(): AsyncGenerator<TItem> {
+        for await (const page of createPages()) {
+            yield* extractItems(page);
+        }
+    }
+
+    const result = {
+        [Symbol.asyncIterator]() {
+            return iterateAll();
+        },
+        then<TResult1 = TItem[], TResult2 = never>(
+            onfulfilled?: ((value: TItem[]) => TResult1 | PromiseLike<TResult1>) | null,
+            onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+        ): Promise<TResult1 | TResult2> {
+            return getOrCreate().then(onfulfilled, onrejected);
+        },
+        catch<TResult = never>(
+            onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+        ): Promise<TItem[] | TResult> {
+            return getOrCreate().catch(onrejected);
+        },
+        finally(onfinally?: (() => void) | null): Promise<TItem[]> {
+            return getOrCreate().finally(onfinally);
+        },
+        [Symbol.toStringTag]: 'DualIterable',
+    } as AsyncIterable<TItem> & Promise<TItem[]>;
+
+    return result;
+}
+
 /**
  * Options for the static `open()` method on storage classes ({@apilink Dataset}, {@apilink KeyValueStore}, {@apilink RequestQueue}).
  */

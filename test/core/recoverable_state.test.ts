@@ -180,7 +180,7 @@ describe('RecoverableState', () => {
         await recoverableState.persistState();
 
         const persistedState = JSON.parse(
-            (await (await localStorageEmulator.getKeyValueStore()).getRecord('test-key'))?.value,
+            (await (await localStorageEmulator.getKeyValueStore()).getValue('test-key'))?.value,
         );
         expect(persistedState).toMatchObject({
             data: { value: 'updated' },

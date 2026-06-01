@@ -465,9 +465,60 @@ The `StorageClient` interface changed from synchronous sub-client getters to **a
 | `client.requestQueue(id, opts)` | `client.createRequestQueueClient({ id?, name?, clientKey?, timeoutSecs? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueClient`)_ |
 
-The `get()` method on `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` has been renamed to **`getMetadata()`**.
+The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueueClient`) have been aligned with their Python counterparts:
+
+| Before (v3) | After (v4) |
+|---|---|
+| `get()` | `getMetadata()` |
+| `update()` | Removed |
+| `delete()` | `drop()` |
+| _(n/a)_ | `purge()` (new — clears data, keeps storage) |
+
+**`DatasetClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `pushItems(items: Data \| Data[] \| string \| string[])` | `pushData(items: Data[])` |
+| `listItems(options?)` (dual iterable) | `getData(options?)` (returns a single `PaginatedList` page) |
+| `listEntries(options?)` | Removed (handled by `Dataset` frontend) |
+| `downloadItems()` | Removed |
+
+**`KeyValueStoreClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `getRecord(key, options?)` | `getValue(key)` |
+| `setRecord(record, options?)` | `setValue(record)` |
+| `deleteRecord(key)` | `deleteValue(key)` |
+| `getRecordPublicUrl(key)` | `getPublicUrl(key)` |
+| `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreItemData[]` |
+| `keys()`, `values()`, `entries()` | Removed (handled by `KeyValueStore` frontend) |
+
+**`RequestQueueClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `deleteRequest(id)` | Removed |
+
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
+
+### `RecordOptions` simplified
+
+`timeoutSecs` and `doNotRetryTimeouts` were removed from `RecordOptions` (used by `KeyValueStore.setValue`). Only `contentType` remains.
+
+### `KeyValueStoreIteratorOptions` simplified
+
+`exclusiveStartKey` and `collection` were removed. Only `prefix` remains.
+
+### `Dataset.listItems` replaced by `Dataset.getData` and `Dataset.values`
+
+`Dataset.listItems()` is replaced by two methods:
+- `Dataset.getData(options?)` — returns a single `PaginatedList<Data>` page.
+- `Dataset.values(options?)` — dual iterable: `for await...of` iterates all items; `await` returns all items as `Data[]`.
+
+`Dataset.entries()` works the same way as `values()` but yields `[index, Data]` tuples. `KeyValueStore.keys()`, `.values()`, `.entries()` follow the same dual-iterable pattern.
 
 ### Removed `list()` method
 
@@ -479,7 +530,7 @@ If you implemented a custom `StorageClient`, you need to:
 
 1. Remove your `*CollectionClient` classes.
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
-3. Rename `get()` to `getMetadata()` on your `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` implementations.
+3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
 
 ## Storage `.open()` now also accepts `{ id?, name? }`
 
