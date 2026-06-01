@@ -591,7 +591,7 @@ export abstract class BrowserCrawler<
 
         crawlingContext.request.state = RequestState.AFTER_NAV;
 
-        return (response !== undefined ? { response } : {}) as Partial<Context>;
+        return { response } as Partial<Context>;
     }
 
     private async finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {

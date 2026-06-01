@@ -392,17 +392,17 @@ export class HttpCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
-        const skipGuard = (
-            action: (ctx: CrawlingContext) => Awaitable<void | Partial<CrawlingContext>>,
-        ): ContextMiddleware<CrawlingContext, Partial<CrawlingContext>> => ({
+        const skipGuard = <Ctx extends CrawlingContext>(
+            action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+        ): ContextMiddleware<Ctx, Partial<Ctx>> => ({
             action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
         });
 
         const middlewares: ContextMiddleware<any, any>[] = [
             { action: this.prepareHttpRequest.bind(this) },
-            ...this.preNavigationHooks.map((h) => skipGuard(h as any)),
-            skipGuard(this.makeHttpRequest.bind(this) as any),
-            ...this.postNavigationHooks.map((h) => skipGuard(h as any)),
+            ...this.preNavigationHooks.map(skipGuard),
+            skipGuard(this.makeHttpRequest.bind(this)),
+            ...this.postNavigationHooks.map(skipGuard),
             { action: this.processHttpResponse.bind(this) },
             { action: this.handleBlockedRequestByContent.bind(this) },
         ];
