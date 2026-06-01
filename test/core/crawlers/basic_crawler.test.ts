@@ -21,7 +21,7 @@ import {
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import { MemoryStorage } from '@crawlee/memory-storage';
-import type { ProxyInfo } from '@crawlee/types';
+import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -1610,7 +1610,7 @@ describe('BasicCrawler', () => {
             const proxyUrls = [0, 1, 2].map((n) => `http://proxy.example.com:${1000 + n}`);
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
 
-            const sessions: Session[] = [];
+            const sessions: ISession[] = [];
             const proxyInfos: (ProxyInfo | undefined)[] = [];
 
             const crawler = new BasicCrawler({
@@ -1643,7 +1643,7 @@ describe('BasicCrawler', () => {
             const crawler = new BasicCrawler({
                 sessionPool: new SessionPool({ maxPoolSize: 1 }),
                 requestHandler: async ({ session, proxyInfo }) => {
-                    sessions.push(session);
+                    sessions.push(session as Session);
                     proxyInfos.push(proxyInfo);
                 },
             });

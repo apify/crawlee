@@ -2,7 +2,6 @@
 
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
-    Configuration,
     ProxyConfiguration,
     QUERY_HEAD_MIN_LENGTH,
     Request,
@@ -12,8 +11,6 @@ import {
     STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-import { gotScraping } from 'got-scraping';
-import type { MockedFunction } from 'vitest';
 
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
@@ -64,8 +61,8 @@ describe('RequestQueue remote', () => {
         });
 
         expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(mockAddRequest).toBeCalledTimes(1);
-        expect(mockAddRequest).toBeCalledWith(requestA, { forefront: false });
+        expect(mockAddRequest).toHaveBeenCalledTimes(1);
+        expect(mockAddRequest).toHaveBeenCalledWith(requestA, { forefront: false });
 
         // Try to add again a request with the same URL
         const queueOperationInfo2 = await queue.addRequest(requestOptions);
@@ -86,7 +83,7 @@ describe('RequestQueue remote', () => {
         mockAddRequest.mockResolvedValueOnce(secondResolveValue);
 
         await queue.addRequest(requestB, { forefront: true });
-        expect(mockAddRequest).toBeCalledTimes(2);
+        expect(mockAddRequest).toHaveBeenCalledTimes(2);
         expect(mockAddRequest).toHaveBeenLastCalledWith(requestB, { forefront: true });
 
         expect(queue['queueHeadIds'].length()).toBe(2);
@@ -97,7 +94,7 @@ describe('RequestQueue remote', () => {
         mockGetRequest.mockResolvedValueOnce({ ...requestB, id: 'b' });
 
         const requestBFromQueue = await queue.fetchNextRequest();
-        expect(mockGetRequest).toBeCalledTimes(1);
+        expect(mockGetRequest).toHaveBeenCalledTimes(1);
         expect(mockGetRequest).toHaveBeenLastCalledWith('b');
         expect(requestBFromQueue).toEqual({ ...requestB, id: 'b' });
 
@@ -117,7 +114,7 @@ describe('RequestQueue remote', () => {
         mockGetRequest.mockResolvedValueOnce(undefined);
 
         const requestXFromQueue = await queue.getRequest('non-existent');
-        expect(mockGetRequest).toBeCalledTimes(2);
+        expect(mockGetRequest).toHaveBeenCalledTimes(2);
         expect(mockGetRequest).toHaveBeenLastCalledWith('non-existent');
         expect(requestXFromQueue).toBe(null);
 
@@ -133,7 +130,7 @@ describe('RequestQueue remote', () => {
         });
 
         await queue.reclaimRequest(requestBFromQueue!, { forefront: true });
-        expect(mockUpdateRequest).toBeCalledTimes(1);
+        expect(mockUpdateRequest).toHaveBeenCalledTimes(1);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue, { forefront: true });
 
         expect(queue['queueHeadIds'].length()).toBe(1);
@@ -147,7 +144,7 @@ describe('RequestQueue remote', () => {
         mockGetRequest.mockResolvedValueOnce(requestBFromQueue as never);
 
         const requestBFromQueue2 = await queue.fetchNextRequest();
-        expect(mockGetRequest).toBeCalledTimes(3);
+        expect(mockGetRequest).toHaveBeenCalledTimes(3);
         expect(mockGetRequest).toHaveBeenLastCalledWith('b');
         expect(requestBFromQueue2).toEqual(requestBFromQueue);
 
@@ -165,7 +162,7 @@ describe('RequestQueue remote', () => {
         });
 
         await queue.markRequestHandled(requestBFromQueue!);
-        expect(mockUpdateRequest).toBeCalledTimes(2);
+        expect(mockUpdateRequest).toHaveBeenCalledTimes(2);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue);
 
         expect(queue['queueHeadIds'].length()).toBe(1);
@@ -186,9 +183,9 @@ describe('RequestQueue remote', () => {
         mockGetRequest.mockResolvedValueOnce({ ...requestA, id: 'a' });
 
         const requestAFromQueue = await queue.fetchNextRequest();
-        expect(mockGetRequest).toBeCalledTimes(4);
+        expect(mockGetRequest).toHaveBeenCalledTimes(4);
         expect(mockGetRequest).toHaveBeenLastCalledWith('a');
-        expect(mockListHead).toBeCalledTimes(1);
+        expect(mockListHead).toHaveBeenCalledTimes(1);
         expect(mockListHead).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
         expect(requestAFromQueue).toEqual({ ...requestA, id: 'a' });
 
@@ -196,12 +193,12 @@ describe('RequestQueue remote', () => {
         expect(queue.inProgressCount()).toBe(1);
 
         // Drop queue.
-        const mockDelete = vitest.spyOn(queue.client, 'delete');
-        mockDelete.mockResolvedValueOnce(undefined);
+        const mockDrop = vitest.spyOn(queue.client, 'drop');
+        mockDrop.mockResolvedValueOnce(undefined);
 
         await queue.drop();
-        expect(mockDelete).toBeCalledTimes(1);
-        expect(mockDelete).toHaveBeenLastCalledWith();
+        expect(mockDrop).toHaveBeenCalledTimes(1);
+        expect(mockDrop).toHaveBeenLastCalledWith();
     });
 
     test('addRequests', async () => {
@@ -233,8 +230,8 @@ describe('RequestQueue remote', () => {
         // Ensure the client method was actually called, and added
 
         expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(mockAddRequests).toBeCalledTimes(1);
-        expect(mockAddRequests).toBeCalledWith([requestA], { forefront: false });
+        expect(mockAddRequests).toHaveBeenCalledTimes(1);
+        expect(mockAddRequests).toHaveBeenCalledWith([requestA], { forefront: false });
 
         // Try to add a request with the same URL again, expecting cached
         const addRequestsResult2 = await queue.addRequests([requestOptions]);
@@ -285,7 +282,7 @@ describe('RequestQueue remote', () => {
 
         expect(queue['queueHeadIds'].length()).toBe(3);
         expect(mockAddRequests).toHaveBeenCalled();
-        expect(mockAddRequests).toBeCalledWith([requestB, requestC], { forefront: true });
+        expect(mockAddRequests).toHaveBeenCalledWith([requestB, requestC], { forefront: true });
     });
 
     test('should cache new requests locally', async () => {
@@ -303,13 +300,13 @@ describe('RequestQueue remote', () => {
         });
 
         await queue.addRequest(requestA);
-        expect(addRequestMock).toBeCalledTimes(1);
+        expect(addRequestMock).toHaveBeenCalledTimes(1);
         expect(addRequestMock).toHaveBeenLastCalledWith(requestA, { forefront: false });
 
         // Add request B that has same unique so that addRequest() is not called because it's already cached.
         // mock.expects('addRequest').never();
         const queueOperationInfo = await queue.addRequest(requestB);
-        expect(addRequestMock).toBeCalledTimes(1);
+        expect(addRequestMock).toHaveBeenCalledTimes(1);
         expect(queueOperationInfo).toEqual({
             requestId: 'a',
             uniqueKey: requestA.uniqueKey,
@@ -334,13 +331,13 @@ describe('RequestQueue remote', () => {
         });
 
         await queue.addRequest(requestX);
-        expect(addRequestMock).toBeCalledTimes(1);
+        expect(addRequestMock).toHaveBeenCalledTimes(1);
         expect(addRequestMock).toHaveBeenLastCalledWith(requestX, { forefront: false });
 
         // Add request Y that has same unique so that addRequest() is not called because it's already cached.
         // mock.expects('addRequest').never();
         const queueOperationInfo = await queue.addRequest(requestY);
-        expect(addRequestMock).toBeCalledTimes(1);
+        expect(addRequestMock).toHaveBeenCalledTimes(1);
         expect(queueOperationInfo).toEqual({
             requestId: 'x',
             uniqueKey: requestX.uniqueKey,
@@ -360,7 +357,7 @@ describe('RequestQueue remote', () => {
         } as never);
 
         expect(await queue.isEmpty()).toBe(false);
-        expect(listHeadMock).toBeCalledTimes(1);
+        expect(listHeadMock).toHaveBeenCalledTimes(1);
         expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
 
         // Add request A and addRequest is not called because was already cached.
@@ -368,7 +365,7 @@ describe('RequestQueue remote', () => {
         const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
 
         const queueOperationInfo = await queue.addRequest(requestA);
-        expect(addRequestMock).toBeCalledTimes(0);
+        expect(addRequestMock).toHaveBeenCalledTimes(0);
         expect(queueOperationInfo).toEqual({
             requestId: 'a',
             uniqueKey: 'aaa',
@@ -393,7 +390,7 @@ describe('RequestQueue remote', () => {
         });
 
         await queue.addRequest(requestA, { forefront: true });
-        expect(addRequestMock).toBeCalledTimes(1);
+        expect(addRequestMock).toHaveBeenCalledTimes(1);
         expect(addRequestMock).toHaveBeenLastCalledWith(requestA, { forefront: true });
 
         expect(queue['queueHeadIds'].length()).toBe(1);
@@ -403,13 +400,13 @@ describe('RequestQueue remote', () => {
         getRequestMock.mockResolvedValueOnce(undefined);
 
         const fetchedRequest = await queue.fetchNextRequest();
-        expect(getRequestMock).toBeCalledTimes(1);
+        expect(getRequestMock).toHaveBeenCalledTimes(1);
         expect(getRequestMock).toHaveBeenLastCalledWith('a');
         expect(fetchedRequest).toBe(null);
 
         // Give queue time to mark request 'a' as not in progress
         await sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
-        expect(listHeadMock).not.toBeCalled();
+        expect(listHeadMock).not.toHaveBeenCalled();
 
         // Should try it once again (the queue head is queried again)
         getRequestMock.mockResolvedValueOnce({
@@ -422,9 +419,9 @@ describe('RequestQueue remote', () => {
         } as never);
 
         const fetchedRequest2 = await queue.fetchNextRequest();
-        expect(getRequestMock).toBeCalledTimes(2);
+        expect(getRequestMock).toHaveBeenCalledTimes(2);
         expect(getRequestMock).toHaveBeenLastCalledWith('a');
-        expect(listHeadMock).toBeCalledTimes(1);
+        expect(listHeadMock).toHaveBeenCalledTimes(1);
         expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
         expect(fetchedRequest2).toEqual({ ...requestA, id: 'a' });
     });
@@ -449,12 +446,12 @@ describe('RequestQueue remote', () => {
         } as never);
 
         await queue.addRequest(requestA, { forefront: true });
-        expect(addRequestMock).toBeCalledTimes(1);
+        expect(addRequestMock).toHaveBeenCalledTimes(1);
         expect(addRequestMock).toHaveBeenLastCalledWith(requestA, { forefront: true });
 
         const fetchedRequest = await queue.fetchNextRequest();
-        expect(getRequestMock).not.toBeCalled();
-        expect(listHeadMock).toBeCalledTimes(1);
+        expect(getRequestMock).not.toHaveBeenCalled();
+        expect(listHeadMock).toHaveBeenCalledTimes(1);
         expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
         expect(fetchedRequest).toBe(null);
     });
@@ -470,7 +467,7 @@ describe('RequestQueue remote', () => {
 
         const requestOpts = { url: 'http://example.com/a' };
         await queue.addRequest(requestOpts);
-        expect(addRequestMock).toBeCalledTimes(1);
+        expect(addRequestMock).toHaveBeenCalledTimes(1);
         expect(addRequestMock).toHaveBeenLastCalledWith(new Request(requestOpts), { forefront: false });
     });
 
@@ -482,7 +479,7 @@ describe('RequestQueue remote', () => {
         } as never);
         const count = await queue.handledCount();
         expect(count).toBe(33);
-        expect(getMock).toBeCalledTimes(1);
+        expect(getMock).toHaveBeenCalledTimes(1);
         expect(getMock).toHaveBeenLastCalledWith();
     });
 
@@ -506,7 +503,7 @@ describe('RequestQueue remote', () => {
 
         const isFinished = await queue.isFinished();
         expect(isFinished).toBe(true);
-        expect(listHeadMock).toBeCalledTimes(2);
+        expect(listHeadMock).toHaveBeenCalledTimes(2);
         expect(listHeadMock).toHaveBeenNthCalledWith(1, { limit: QUERY_HEAD_MIN_LENGTH });
         expect(listHeadMock).toHaveBeenNthCalledWith(2, { limit: QUERY_HEAD_MIN_LENGTH });
     });
@@ -534,7 +531,7 @@ describe('RequestQueue remote', () => {
         expect(queue.inProgressCount()).toBe(0);
         expect(queue.assumedTotalCount).toBe(2);
         expect(queue.assumedHandledCount).toBe(0);
-        expect(addRequestMock).toBeCalledTimes(2);
+        expect(addRequestMock).toHaveBeenCalledTimes(2);
         expect(addRequestMock).toHaveBeenNthCalledWith(1, requestA, { forefront: true });
         expect(addRequestMock).toHaveBeenNthCalledWith(2, requestB, { forefront: true });
 
@@ -543,7 +540,7 @@ describe('RequestQueue remote', () => {
 
         const isFinished = await queue.isFinished();
         expect(isFinished).toBe(false);
-        expect(listHeadMock).not.toBeCalled();
+        expect(listHeadMock).not.toHaveBeenCalled();
 
         // Fetch them from queue.
         const getRequestMock = vitest.spyOn(queue.client, 'getRequest');
@@ -552,11 +549,11 @@ describe('RequestQueue remote', () => {
 
         const requestBFromQueue = await queue.fetchNextRequest();
         expect(requestBFromQueue).toEqual(requestBWithId);
-        expect(getRequestMock).toBeCalledTimes(1);
+        expect(getRequestMock).toHaveBeenCalledTimes(1);
         expect(getRequestMock).toHaveBeenLastCalledWith('b');
         const requestAFromQueue = await queue.fetchNextRequest();
         expect(requestAFromQueue).toEqual(requestAWithId);
-        expect(getRequestMock).toBeCalledTimes(2);
+        expect(getRequestMock).toHaveBeenCalledTimes(2);
         expect(getRequestMock).toHaveBeenLastCalledWith('a');
 
         expect(queue['queueHeadIds'].length()).toBe(0);
@@ -566,20 +563,20 @@ describe('RequestQueue remote', () => {
 
         // It won't query the head as there is something in progress or pending.
         expect(await queue.isFinished()).toBe(false);
-        expect(listHeadMock).not.toBeCalled();
+        expect(listHeadMock).not.toHaveBeenCalled();
 
         // Reclaim one and mark another one handled.
         const updateRequestMock = vitest.spyOn(queue.client, 'updateRequest');
         updateRequestMock.mockResolvedValueOnce({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: true });
 
         await queue.markRequestHandled(requestBWithId);
-        expect(updateRequestMock).toBeCalledTimes(1);
+        expect(updateRequestMock).toHaveBeenCalledTimes(1);
         expect(updateRequestMock).toHaveBeenLastCalledWith(requestBWithId);
 
         updateRequestMock.mockResolvedValueOnce({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: true });
 
         await queue.reclaimRequest(requestAWithId, { forefront: true });
-        expect(updateRequestMock).toBeCalledTimes(2);
+        expect(updateRequestMock).toHaveBeenCalledTimes(2);
         expect(updateRequestMock).toHaveBeenLastCalledWith(requestAWithId, { forefront: true });
 
         expect(queue['queueHeadIds'].length()).toBe(0);
@@ -595,7 +592,7 @@ describe('RequestQueue remote', () => {
 
         // It won't query the head as there is something in progress or pending.
         expect(await queue.isFinished()).toBe(false);
-        expect(listHeadMock).not.toBeCalled();
+        expect(listHeadMock).not.toHaveBeenCalled();
 
         // Fetch again.
         // @ts-expect-error Argument of type 'Request' is not assignable to parameter of type
@@ -604,7 +601,7 @@ describe('RequestQueue remote', () => {
 
         const requestAFromQueue2 = await queue.fetchNextRequest();
         expect(requestAFromQueue2).toEqual(requestAWithId);
-        expect(getRequestMock).toBeCalledTimes(3);
+        expect(getRequestMock).toHaveBeenCalledTimes(3);
         expect(getRequestMock).toHaveBeenLastCalledWith('a');
 
         expect(queue['queueHeadIds'].length()).toBe(0);
@@ -614,13 +611,13 @@ describe('RequestQueue remote', () => {
 
         // It won't query the head as there is something in progress or pending.
         expect(await queue.isFinished()).toBe(false);
-        expect(listHeadMock).not.toBeCalled();
+        expect(listHeadMock).not.toHaveBeenCalled();
 
         // Mark handled.
         updateRequestMock.mockResolvedValueOnce({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: true });
 
         await queue.markRequestHandled(requestAWithId);
-        expect(updateRequestMock).toBeCalledTimes(3);
+        expect(updateRequestMock).toHaveBeenCalledTimes(3);
         expect(updateRequestMock).toHaveBeenLastCalledWith(requestAWithId);
 
         expect(queue['queueHeadIds'].length()).toBe(0);
@@ -638,7 +635,7 @@ describe('RequestQueue remote', () => {
         });
 
         expect(await queue.isFinished()).toBe(true);
-        expect(listHeadMock).toBeCalledTimes(1);
+        expect(listHeadMock).toHaveBeenCalledTimes(1);
         expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
     });
 
@@ -699,17 +696,17 @@ describe('RequestQueue remote', () => {
 
         const result = await queue.getInfo();
         expect(result).toEqual(expected);
-        expect(getMock).toBeCalledTimes(1);
+        expect(getMock).toHaveBeenCalledTimes(1);
         expect(getMock).toHaveBeenLastCalledWith();
     });
 
     test('drop() works', async () => {
         const queue = await createRequestQueue('some-id', 'some-name');
-        const deleteMock = vitest.spyOn(queue.client, 'delete').mockResolvedValueOnce(undefined);
+        const dropMock = vitest.spyOn(queue.client, 'drop').mockResolvedValueOnce(undefined);
 
         await queue.drop();
-        expect(deleteMock).toBeCalledTimes(1);
-        expect(deleteMock).toHaveBeenLastCalledWith();
+        expect(dropMock).toHaveBeenCalledTimes(1);
+        expect(dropMock).toHaveBeenLastCalledWith();
     });
 
     test('Request.userData.__crawlee internal object is non-enumerable and always defined', async () => {
@@ -786,9 +783,9 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[0] });
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[1] });
 
-        expect(spy).toBeCalledTimes(2);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
+        expect(spy).toHaveBeenCalledTimes(2);
+        expect(spy).toHaveBeenCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
+        expect(spy).toHaveBeenCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
     });
 
     test('should use regex parameter to parse urls', async () => {
@@ -811,7 +808,7 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
         await queue.drop();
 
-        expect(mockHttpClient.sendRequest).toBeCalled();
+        expect(mockHttpClient.sendRequest).toHaveBeenCalled();
         expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
@@ -855,8 +852,8 @@ describe('RequestQueue with requestsFromUrl', () => {
 
         expect(await queue.fetchNextRequest()).toBe(null);
 
-        expect(spy).toBeCalledTimes(1);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
@@ -876,7 +873,7 @@ describe('RequestQueue with requestsFromUrl', () => {
             { requestsFromUrl: 'http://example.com/list-3' },
         ]);
 
-        expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
+        expect(spy).not.toHaveBeenCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
     });
 });
 

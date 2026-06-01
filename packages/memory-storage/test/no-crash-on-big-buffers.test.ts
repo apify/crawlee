@@ -36,7 +36,7 @@ describe('MemoryStorage should not crash when saving a big buffer', () => {
         }
 
         try {
-            await store.setRecord({ key: 'owo.zip', value: zip });
+            await store.setValue({ key: 'owo.zip', value: zip });
         } catch (err) {
             expect(err).not.toBeDefined();
         }

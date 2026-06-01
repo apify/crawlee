@@ -136,9 +136,62 @@ new SessionPool({
 
 ## `Session` no longer requires a `sessionPool` reference
 
-`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported.
+`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported. Custom `createSessionFunction` implementations that constructed `Session` instances manually should drop the `sessionPool` argument.
+
+**Before:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (pool, opts) =>
+        new Session({ ...opts?.sessionOptions, sessionPool: pool }),
+});
+```
+
+**After:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (opts) =>
+        new Session({ ...opts?.sessionOptions }),
+});
+```
 
 If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
+
+## Custom `SessionPool` implementations via the `ISessionPool` interface
+
+Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession()` / `getSession(id)`, that hands out a `Session` for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
+
+```typescript
+import { BasicCrawler, Session, type ISessionPool } from '@crawlee/core';
+
+class MySessionPool implements ISessionPool {
+    private readonly sessions = new Map<string, Session>();
+
+    async getSession(): Promise<Session>;
+    async getSession(sessionId: string): Promise<Session | undefined>;
+    async getSession(sessionId?: string): Promise<Session | undefined> {
+        if (sessionId) {
+            const existing = this.sessions.get(sessionId);
+            return existing?.isUsable() ? existing : undefined;
+        }
+
+        const usable = [...this.sessions.values()].find((s) => s.isUsable());
+        if (usable) return usable;
+
+        const fresh = new Session();
+        this.sessions.set(fresh.id, fresh);
+        return fresh;
+    }
+}
+
+const crawler = new BasicCrawler({
+    sessionPool: new MySessionPool(),
+    requestHandler: async ({ session }) => {
+        // session is a Session instance, use it as usual
+    },
+});
+```
+
+The returned objects must be `Session` instances — the rest of the crawler relies on `session.markGood()`, `session.cookieJar`, `session.proxyInfo`, and the rest of the concrete `Session` API.
 
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
@@ -412,9 +465,60 @@ The `StorageClient` interface changed from synchronous sub-client getters to **a
 | `client.requestQueue(id, opts)` | `client.createRequestQueueClient({ id?, name?, clientKey?, timeoutSecs? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueClient`)_ |
 
-The `get()` method on `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` has been renamed to **`getMetadata()`**.
+The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueueClient`) have been aligned with their Python counterparts:
+
+| Before (v3) | After (v4) |
+|---|---|
+| `get()` | `getMetadata()` |
+| `update()` | Removed |
+| `delete()` | `drop()` |
+| _(n/a)_ | `purge()` (new — clears data, keeps storage) |
+
+**`DatasetClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `pushItems(items: Data \| Data[] \| string \| string[])` | `pushData(items: Data[])` |
+| `listItems(options?)` (dual iterable) | `getData(options?)` (returns a single `PaginatedList` page) |
+| `listEntries(options?)` | Removed (handled by `Dataset` frontend) |
+| `downloadItems()` | Removed |
+
+**`KeyValueStoreClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `getRecord(key, options?)` | `getValue(key)` |
+| `setRecord(record, options?)` | `setValue(record)` |
+| `deleteRecord(key)` | `deleteValue(key)` |
+| `getRecordPublicUrl(key)` | `getPublicUrl(key)` |
+| `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreItemData[]` |
+| `keys()`, `values()`, `entries()` | Removed (handled by `KeyValueStore` frontend) |
+
+**`RequestQueueClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `deleteRequest(id)` | Removed |
+
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
+
+### `RecordOptions` simplified
+
+`timeoutSecs` and `doNotRetryTimeouts` were removed from `RecordOptions` (used by `KeyValueStore.setValue`). Only `contentType` remains.
+
+### `KeyValueStoreIteratorOptions` simplified
+
+`exclusiveStartKey` and `collection` were removed. Only `prefix` remains.
+
+### `Dataset.listItems` replaced by `Dataset.getData` and `Dataset.values`
+
+`Dataset.listItems()` is replaced by two methods:
+- `Dataset.getData(options?)` — returns a single `PaginatedList<Data>` page.
+- `Dataset.values(options?)` — dual iterable: `for await...of` iterates all items; `await` returns all items as `Data[]`.
+
+`Dataset.entries()` works the same way as `values()` but yields `[index, Data]` tuples. `KeyValueStore.keys()`, `.values()`, `.entries()` follow the same dual-iterable pattern.
 
 ### Removed `list()` method
 
@@ -426,7 +530,7 @@ If you implemented a custom `StorageClient`, you need to:
 
 1. Remove your `*CollectionClient` classes.
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
-3. Rename `get()` to `getMetadata()` on your `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` implementations.
+3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
 
 ## Storage `.open()` now also accepts `{ id?, name? }`
 
