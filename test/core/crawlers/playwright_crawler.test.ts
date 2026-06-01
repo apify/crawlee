@@ -141,6 +141,41 @@ describe('PlaywrightCrawler', () => {
         });
     });
 
+    // https://github.com/apify/crawlee/issues/3670
+    test('should not silently drop requests when BrowserPool.newPage() times out', async () => {
+        const success: string[] = [];
+        const failure: string[] = [];
+
+        const crawler = new PlaywrightCrawler({
+            maxRequestRetries: 0,
+            browserPoolOptions: {
+                operationTimeoutSecs: 0.001,
+            },
+            requestHandler: async ({ request }) => {
+                success.push(request.url);
+            },
+            failedRequestHandler: async ({ request }) => {
+                failure.push(request.url);
+            },
+        });
+
+        const urls = [
+            `http://${HOSTNAME}:${port}/?q=1`,
+            `http://${HOSTNAME}:${port}/?q=2`,
+            `http://${HOSTNAME}:${port}/?q=3`,
+            `http://${HOSTNAME}:${port}/?q=4`,
+            `http://${HOSTNAME}:${port}/?q=5`,
+        ];
+
+        const stats = await crawler.run(urls);
+
+        // Every request must be accounted for by either requestHandler or failedRequestHandler.
+        expect(success.length + failure.length).toBe(urls.length);
+        // With operationTimeoutSecs=0.001, no request can actually succeed, so every one must fail.
+        expect(stats.requestsFinished).toBe(0);
+        expect(stats.requestsFailed).toBe(urls.length);
+    });
+
     test('should override goto timeout with navigationTimeoutSecs', async () => {
         const timeoutSecs = 10;
         let options: PlaywrightGotoOptions;

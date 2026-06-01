@@ -71,9 +71,16 @@ export function getActorTestDir(url) {
 export async function pushActor(client, dirName) {
     await copyPackages(dirName);
     try {
+        // Capture all stdio (default would inherit stderr and flood the runner
+        // with the platform's Docker/npm build output on every test). The
+        // catch block below re-prints stdout/stderr if the push itself fails,
+        // so failure diagnostics stay intact. maxBuffer bumped because the
+        // build log can be tens of MB.
         execSync('apify push', {
             cwd: dirName,
             env: { ...process.env, GIT_CEILING_DIRECTORIES: dirname(dirName) },
+            stdio: 'pipe',
+            maxBuffer: 50 * 1024 * 1024,
         });
     } catch (err) {
         console.error(colors.red(`Failed to push actor to the Apify platform. (signal ${colors.yellow(err.signal)})`));

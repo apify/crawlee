@@ -7,7 +7,7 @@
     "dependencies": {
         "@crawlee/impit-client": "^3.0.0",
         "crawlee": "^3.0.0",
-        "playwright": "1.58.2"
+        "playwright": "1.60.0"
     },
     "scripts": {
         "start": "node src/main.js",

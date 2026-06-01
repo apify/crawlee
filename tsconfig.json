@@ -1,6 +1,7 @@
 {
 	"extends": "./tsconfig.build.json",
 	"compilerOptions": {
+		"sourceMap": true,
 		"paths": {
 			"crawlee": ["./packages/crawlee/src"],
 			"@crawlee/basic": ["./packages/basic-crawler/src"],

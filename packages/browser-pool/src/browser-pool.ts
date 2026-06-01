@@ -1,3 +1,5 @@
+import { AsyncResource } from 'node:async_hooks';
+
 import type { TieredProxy } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
@@ -445,16 +447,25 @@ export class BrowserPool<
             throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
         }
 
+        // Bind the limiter callback to the current async-hooks context. p-limit
+        // otherwise resumes queued callbacks in the previous task's
+        // AsyncLocalStorage context, leaking aborted cancelTasks across unrelated
+        // requests (https://github.com/apify/crawlee/issues/3670). Mirrors the
+        // fix p-limit landed upstream in v5 (sindresorhus/p-limit#71); v5 is an
+        // ESM-only rewrite, so we can't bump it in Crawlee v3.
+        // TODO(crawlee@v4): bump p-limit to v5 and drop this AsyncResource.bind wrapper.
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
-        return this.limiter(async () => {
-            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
+        return this.limiter(
+            AsyncResource.bind(async () => {
+                let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
 
-            if (!browserController)
-                browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
-            tryCancel();
+                if (!browserController)
+                    browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
+                tryCancel();
 
-            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
-        });
+                return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
+            }),
+        );
     }
 
     /**
