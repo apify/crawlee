@@ -15,7 +15,7 @@ describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
     });
 
     afterEach(async () => {
-        await requestQueue.delete();
+        await requestQueue.drop();
     });
 
     test('requests without `forefront` respect sequential order', async () => {
@@ -202,7 +202,7 @@ describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
     });
 
     afterEach(async () => {
-        await requestQueue.delete();
+        await requestQueue.drop();
     });
 
     test('requests without `forefront` respect sequential order', async () => {

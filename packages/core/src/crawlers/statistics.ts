@@ -330,14 +330,8 @@ export class Statistics {
 
         this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
 
-        // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = serviceLocator.getConfiguration().persistStateIntervalMillis;
-        const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
-            .setValue(this.persistStateKey, this.toJSON(), {
-                timeoutSecs,
-                doNotRetryTimeouts: true,
-            })
+            .setValue(this.persistStateKey, this.toJSON())
             .catch((error) =>
                 this.log.warning(`Failed to persist the statistics to ${this.persistStateKey}`, { error }),
             );

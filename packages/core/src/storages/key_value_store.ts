@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Dictionary, KeyValueStoreClient } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreClient, KeyValueStoreItemData } from '@crawlee/types';
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
@@ -15,7 +15,10 @@ import { checkStorageAccess } from './access_checking.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
-import { purgeDefaultStorages } from './utils.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
+
+/** @internal */
+const KVS_KEYS_DEFAULT_LIMIT = 1000;
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -227,7 +230,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
-        const record = await this.client.getRecord(key);
+        const record = await this.client.getValue(key);
 
         return (record?.value as T) ?? defaultValue ?? null;
     }
@@ -273,19 +276,12 @@ export class KeyValueStore {
             return;
         }
 
-        // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.persistStateIntervalMillis;
-        const timeoutSecs = persistStateIntervalMillis / 2_000;
-
         serviceLocator.getEventManager().on('persistState', async () => {
             const promises: Promise<void>[] = [];
 
             for (const [key, value] of this.cache) {
                 promises.push(
-                    this.setValue(key, value, {
-                        timeoutSecs,
-                        doNotRetryTimeouts: true,
-                    }).catch((error) =>
+                    this.setValue(key, value).catch((error) =>
                         serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
                     ),
                 );
@@ -295,6 +291,34 @@ export class KeyValueStore {
         });
 
         this.persistStateEventStarted = true;
+    }
+
+    private async *fetchKeyValuePages<T>(
+        options: KeyValueStoreIteratorOptions,
+        mapRecord: (key: string, value: unknown) => T,
+    ): AsyncGenerator<T[]> {
+        for await (const page of this.fetchKeyPages(options)) {
+            const results: T[] = [];
+            for (const item of page) {
+                const record = await this.client.getValue(item.key);
+                if (record) results.push(mapRecord(item.key, record.value));
+            }
+            yield results;
+        }
+    }
+
+    private async *fetchKeyPages(
+        options: KeyValueStoreIteratorOptions,
+        limit = KVS_KEYS_DEFAULT_LIMIT,
+    ): AsyncGenerator<KeyValueStoreItemData[]> {
+        let exclusiveStartKey: string | undefined;
+
+        while (true) {
+            const items = await this.client.listKeys({ ...options, exclusiveStartKey, limit });
+            yield items;
+            if (items.length < limit) break;
+            exclusiveStartKey = items[items.length - 1].key;
+        }
     }
 
     /**
@@ -367,8 +391,6 @@ export class KeyValueStore {
             options,
             ow.object.exactShape({
                 contentType: ow.optional.string.nonEmpty,
-                timeoutSecs: ow.optional.number,
-                doNotRetryTimeouts: ow.optional.boolean,
             }),
         );
 
@@ -393,21 +415,15 @@ export class KeyValueStore {
         }
 
         // In this case delete the record.
-        if (value === null) return this.client.deleteRecord(key);
+        if (value === null) return this.client.deleteValue(key);
 
         value = maybeStringify(value, optionsCopy);
 
-        return this.client.setRecord(
-            {
-                key,
-                value,
-                contentType: optionsCopy.contentType,
-            },
-            {
-                timeoutSecs: optionsCopy.timeoutSecs,
-                doNotRetryTimeouts: optionsCopy.doNotRetryTimeouts,
-            },
-        );
+        return this.client.setValue({
+            key,
+            value,
+            contentType: optionsCopy.contentType,
+        });
     }
 
     /**
@@ -417,7 +433,7 @@ export class KeyValueStore {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.delete();
+        await this.client.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
@@ -432,7 +448,7 @@ export class KeyValueStore {
      * Iterates over key-value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
      * is the record key, `index` is a zero-based index of the key in the current iteration
-     * (regardless of `options.exclusiveStartKey`) and `info` is an object that contains a single property `size`
+     * and `info` is an object that contains a single property `size`
      * indicating size of the record in bytes.
      *
      * If the `iteratee` function returns a Promise then it is awaited before the next call.
@@ -452,69 +468,74 @@ export class KeyValueStore {
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
         checkStorageAccess();
 
-        return this._forEachKey(iteratee, options);
-    }
-
-    private async _forEachKey(
-        iteratee: KeyConsumer,
-        options: KeyValueStoreIteratorOptions = {},
-        index = 0,
-    ): Promise<void> {
-        const { exclusiveStartKey, prefix, collection } = options;
         ow(iteratee, ow.function);
         ow(
             options,
             ow.object.exactShape({
-                exclusiveStartKey: ow.optional.string,
                 prefix: ow.optional.string,
-                collection: ow.optional.string,
             }),
         );
 
-        const response = await this.client.listKeys({ exclusiveStartKey, prefix, collection });
-        const { nextExclusiveStartKey, isTruncated, items } = response;
-        for (const item of items) {
-            await iteratee(item.key, index++, { size: item.size });
+        let index = 0;
+
+        for await (const page of this.fetchKeyPages(options)) {
+            for (const item of page) {
+                await iteratee(item.key, index++, { size: item.size });
+            }
         }
-        return isTruncated
-            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey, prefix, collection }, index)
-            : undefined; // [].forEach() returns undefined.
     }
 
     /**
-     * Iterates over key-value store keys using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns key-value store keys.
+     *
+     * When awaited (`await store.keys()`), returns all keys as a flat `string[]` array.
+     * When used as an async iterable (`for await...of`), iterates over all keys across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Iterate over all keys (memory-efficient for large stores)
      * for await (const key of keyValueStore.keys()) {
      *   console.log(key);
      * }
+     *
+     * // Or fetch all keys at once
+     * const allKeys = await keyValueStore.keys();
+     * console.log(allKeys);
      * ```
      *
      * @param options Options for the iteration.
      */
-    async *keys(options: KeyValueStoreIteratorOptions = {}): AsyncGenerator<string, void, undefined> {
+    keys(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<string> & Promise<string[]> {
         checkStorageAccess();
 
-        if (!this.client.keys) {
-            throw new Error('Resource client is missing the "keys" method.');
-        }
-
-        yield* this.client.keys(options);
+        return createDualIterable({
+            createPages: () => this.fetchKeyPages(options),
+            extractItems: (page) => page.map((item) => item.key),
+        });
     }
 
     /**
-     * Iterates over key-value store values using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns key-value store values.
+     *
+     * When awaited (`await store.values()`), returns all values as a flat `T[]` array.
+     * When used as an async iterable (`for await...of`), iterates over all values across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Iterate over all values (memory-efficient for large stores)
      * for await (const value of keyValueStore.values()) {
      *   console.log(value);
      * }
+     *
+     * // Or fetch all values at once
+     * const allValues = await keyValueStore.values();
+     * console.log(allValues);
      * ```
      *
      * @param options Options for the iteration.
@@ -522,23 +543,31 @@ export class KeyValueStore {
     values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
         checkStorageAccess();
 
-        if (!this.client.values) {
-            throw new Error('Resource client is missing the "values" method.');
-        }
-
-        return this.client.values(options) as AsyncIterable<T> & Promise<T[]>;
+        return createDualIterable({
+            createPages: () => this.fetchKeyValuePages<T>(options, (_key, value) => value as T),
+            extractItems: (page) => page,
+        });
     }
 
     /**
-     * Iterates over key-value store entries (key-value pairs) using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns key-value store entries (key-value pairs).
+     *
+     * When awaited (`await store.entries()`), returns all entries as a flat `[key, value][]` array.
+     * When used as an async iterable (`for await...of`), iterates over all entries across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Iterate over all entries (memory-efficient for large stores)
      * for await (const [key, value] of keyValueStore.entries()) {
      *   console.log(`${key}: ${value}`);
      * }
+     *
+     * // Or fetch all entries at once
+     * const allEntries = await keyValueStore.entries();
+     * console.log(allEntries);
      * ```
      *
      * @param options Options for the iteration.
@@ -548,11 +577,10 @@ export class KeyValueStore {
     ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
         checkStorageAccess();
 
-        if (!this.client.entries) {
-            throw new Error('Resource client is missing the "entries" method.');
-        }
-
-        return this.client.entries(options) as AsyncIterable<[string, T]> & Promise<[string, T][]>;
+        return createDualIterable({
+            createPages: () => this.fetchKeyValuePages<[string, T]>(options, (key, value) => [key, value as T]),
+            extractItems: (page) => page,
+        });
     }
 
     /**
@@ -579,7 +607,7 @@ export class KeyValueStore {
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        return this.client.getRecordPublicUrl(key);
+        return this.client.getPublicUrl(key);
     }
 
     /**
@@ -842,29 +870,11 @@ export interface RecordOptions {
      * Specifies a custom MIME content type of the record.
      */
     contentType?: string;
-
-    /**
-     * Specifies a custom timeout for the `set-record` API call, in seconds.
-     */
-    timeoutSecs?: number;
-
-    /**
-     * If set to `true`, the `set-record` API call will not be retried if it times out.
-     */
-    doNotRetryTimeouts?: boolean;
 }
 
 export interface KeyValueStoreIteratorOptions {
     /**
-     * All keys up to this one (including) are skipped from the result.
-     */
-    exclusiveStartKey?: string;
-    /**
      * If set, only keys that start with this prefix are returned.
      */
     prefix?: string;
-    /**
-     * Collection name to use for listing keys.
-     */
-    collection?: string;
 }
