@@ -46,7 +46,7 @@ jobs:
             - name: Use Node.js 24
               uses: actions/setup-node@v6
               with:
-                  node-version: 24
+                  node-version: '24.15.0'
                   package-manager-cache: false
 
             - name: Turbo cache

@@ -32,7 +32,7 @@ jobs:
             matrix:
                 # We don't test on Windows as the tests are flaky
                 os: [ ubuntu-22.04 ]
-                node-version: [ 22, 24 ]
+                node-version: [ 22, '24.15.0' ]
 
         runs-on: ${{ matrix.os }}
 
@@ -87,7 +87,7 @@ jobs:
             -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
-                    node-version: 24
+                    node-version: '24.15.0'
                     package-manager-cache: false
 
             -   name: Turbo cache
@@ -171,7 +171,7 @@ jobs:
             -   name: Use Node.js 24
                 uses: actions/setup-node@v6
                 with:
-                    node-version: 24
+                    node-version: '24.15.0'
                     package-manager-cache: false
 
             -   name: Install jq
