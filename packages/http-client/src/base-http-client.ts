@@ -8,11 +8,6 @@ import { CookieJar } from 'tough-cookie';
 
 /**
  * Per-request options handed to a concrete client's `fetch` implementation.
- *
- * `proxyUrl` and `cookieJar` are the *effective* values for this request after
- * {@apilink BaseHttpClient.sendRequest} resolves per-request overrides on top
- * of the session — clients should always use these and not re-read them from
- * the session.
  */
 export interface CustomFetchOptions {
     /**
