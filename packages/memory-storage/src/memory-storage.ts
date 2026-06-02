@@ -103,7 +103,10 @@ export class MemoryStorage implements storage.StorageClient {
         return `MemoryStorage:${resolve(this.localDataDirectory)}`;
     }
 
-    private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): { isAlias: boolean; directoryKey: string | undefined } {
+    private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
+        isAlias: boolean;
+        directoryKey: string | undefined;
+    } {
         const isAlias = 'alias' in options && !!options.alias;
         const rawKey = isAlias ? options.alias : (options.name ?? options.id);
         // Normalize the internal __default__ alias to the user-facing 'default' name.
