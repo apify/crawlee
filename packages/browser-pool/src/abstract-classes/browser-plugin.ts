@@ -42,6 +42,7 @@ export interface CommonBrowser {
 export interface CommonPage {
     close(...args: unknown[]): Promise<unknown>;
     url(): string | Promise<string>;
+    evaluate(pageFunction: ((...args: any[]) => unknown) | string, ...args: unknown[]): Promise<unknown>;
 }
 
 export interface BrowserPluginOptions<LibraryOptions> {
