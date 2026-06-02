@@ -1,0 +1,68 @@
+---
+id: remote-browser
+title: "Remote browser services"
+sidebar_label: "Remote browsers"
+description: Connect Crawlee crawlers to remote browser services like Browserbase, Browserless, or Steel.
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import RemoteBrowserConfigSource from '!!raw-loader!./remote_browser_config.ts';
+import RemoteBrowserProviderSource from '!!raw-loader!./remote_browser_provider.ts';
+import RemoteBrowserPuppeteerSource from '!!raw-loader!./remote_browser_puppeteer.ts';
+
+Instead of launching a local browser, Crawlee can connect to a remote browser service like [Browserbase](https://browserbase.com/), [Browserless](https://browserless.io/), [Steel](https://steel.dev/), or any service that exposes a WebSocket/CDP endpoint. The crawler manages the browser pool, session rotation, and proxy logic the same way it does locally — only the browser itself runs elsewhere.
+
+Use this when you need IPs in specific regions, want to offload CPU/memory from your runner, or need stealth features the service provides.
+
+## Inline config
+
+The simplest form passes a connection URL on `launchContext.remoteBrowser`. Use this when the service exposes a single endpoint and doesn't need per-session setup.
+
+<CodeBlock language="ts" title="src/main.ts">{RemoteBrowserConfigSource}</CodeBlock>
+
+`endpoint` can also be a function returning `{ url, context }`, called once per browser launch. The optional `release({ endpoint, context })` callback runs when the browser closes, crashes, or the pool is destroyed — use it to clean up sessions on the service side.
+
+### Self-hosted
+
+Some services ship a Docker image you can run locally or on your own infrastructure. For example, [Browserless](https://www.browserless.io/) has an open-source Chromium image:
+
+```bash
+docker run -p 3000:3000 -e CONCURRENT=4 ghcr.io/browserless/chromium
+```
+
+Point the crawler at the local endpoint:
+
+```ts
+remoteBrowser: { endpoint: 'ws://localhost:3000' }
+```
+
+## Custom provider
+
+For services with a session-create / session-release lifecycle, extend <ApiLink to="browser-pool/class/RemoteBrowserProvider">`RemoteBrowserProvider`</ApiLink>. `connect()` runs once per browser launch and returns the connection URL plus an optional `context` object passed back to `release()`.
+
+<CodeBlock language="ts" title="src/main.ts">{RemoteBrowserProviderSource}</CodeBlock>
+
+`maxOpenBrowsers` caps the number of concurrent browsers — set it to the service's concurrent-session limit to avoid 429 errors.
+
+## Puppeteer
+
+<ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> supports the same `remoteBrowser` option. For services that only expose a raw CDP endpoint without per-session setup, you can also use `connectOverCDPOptions` directly:
+
+<CodeBlock language="ts" title="src/main.ts">{RemoteBrowserPuppeteerSource}</CodeBlock>
+
+For Playwright, the analogous low-level options are `connectOptions` (Playwright's WebSocket protocol) and `connectOverCDPOptions` (CDP). `remoteBrowser`, `connectOptions`, and `connectOverCDPOptions` are mutually exclusive — set only one.
+
+## Limitations
+
+- **`headless` is ignored.** The remote service controls headless mode; setting `headless` on the crawler or in `launchOptions` is dropped with a warning.
+- **`launchOptions` cannot be combined with a remote browser.** Setting both throws — browser flags, executable path, viewport, and similar must be configured on the service side.
+- **`useIncognitoPages` is forced to `true`** for Playwright remote connections. Playwright's `connect()` / `connectOverCDP()` don't accept persistent contexts.
+- **`userDataDir` has no effect** — there's no local profile when the browser runs remotely.
+- **`maxOpenBrowsers` enforcement only gates new task starts.** Direct <ApiLink to="browser-pool/class/BrowserPool">`BrowserPool.newPage`</ApiLink> calls can exceed it; the limit is honored when the crawler drives the pool.
+
+## Further reading
+
+- <ApiLink to="browser-pool/class/RemoteBrowserProvider">`RemoteBrowserProvider` API reference</ApiLink>
+- <ApiLink to="browser-pool/interface/RemoteBrowserConfig">`RemoteBrowserConfig` API reference</ApiLink>
