@@ -108,8 +108,8 @@ export interface HttpCrawlerOptions<
      * ```
      */
     postNavigationHooks?: ((
-        crawlingContext: CrawlingContextWithReponse,
-    ) => Awaitable<void | Partial<CrawlingContextWithReponse>>)[];
+        crawlingContext: CrawlingContextWithResponse,
+    ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -161,7 +161,7 @@ export type HttpHook<
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
 
-interface CrawlingContextWithReponse<
+interface CrawlingContextWithResponse<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
     /**
@@ -181,7 +181,7 @@ interface CrawlingContextWithReponse<
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends CrawlingContextWithReponse<UserData> {
+> extends CrawlingContextWithResponse<UserData> {
     /**
      * The request body of the web page.
      * The type depends on the `Content-Type` header of the web page:
@@ -313,8 +313,8 @@ export class HttpCrawler<
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((
-        crawlingContext: CrawlingContextWithReponse,
-    ) => Awaitable<void | Partial<CrawlingContextWithReponse>>)[];
+        crawlingContext: CrawlingContextWithResponse,
+    ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     protected saveResponseCookies: boolean;
     protected navigationTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
@@ -413,7 +413,7 @@ export class HttpCrawler<
         );
     }
 
-    private async prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithReponse>> {
+    private async prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithResponse>> {
         const { request } = crawlingContext;
 
         if (request.skipNavigation) {
@@ -433,7 +433,7 @@ export class HttpCrawler<
                         'The `response` property is not available - `skipNavigation` was used',
                     );
                 },
-            } as Partial<CrawlingContextWithReponse>;
+            } as Partial<CrawlingContextWithResponse>;
         }
 
         request.state = RequestState.BEFORE_NAV;
@@ -442,7 +442,7 @@ export class HttpCrawler<
 
     private async makeHttpRequest(
         crawlingContext: CrawlingContext,
-    ): Promise<Omit<CrawlingContextWithReponse, keyof CrawlingContext> & Partial<CrawlingContextWithReponse>> {
+    ): Promise<Omit<CrawlingContextWithResponse, keyof CrawlingContext> & Partial<CrawlingContextWithResponse>> {
         tryCancel();
 
         const { request, session } = crawlingContext;
@@ -462,9 +462,9 @@ export class HttpCrawler<
     }
 
     private async processHttpResponse(
-        crawlingContext: CrawlingContextWithReponse,
+        crawlingContext: CrawlingContextWithResponse,
     ): Promise<
-        Omit<InternalHttpCrawlingContext, keyof CrawlingContextWithReponse> & Partial<InternalHttpCrawlingContext>
+        Omit<InternalHttpCrawlingContext, keyof CrawlingContextWithResponse> & Partial<InternalHttpCrawlingContext>
     > {
         if (crawlingContext.request.skipNavigation) {
             return {
