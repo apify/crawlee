@@ -28,7 +28,7 @@ await Actor.main(async () => {
         async requestHandler({ page, parseWithCheerio }) {
             const isBlocked = await page
                 .evaluate(async () => {
-                    return !!document.querySelector('.footer > .footer-inner > .diagnostic-wrapper > .ray-id');
+                    return !!document.querySelector('.footer .footer-inner .diagnostic-wrapper .ray-id');
                 })
                 .catch(() => false);
             const $ = await parseWithCheerio();

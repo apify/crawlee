@@ -1141,7 +1141,7 @@ __metadata:
     apify-node-curl-impersonate: "npm:^1.0.15"
     basic-auth-parser: "npm:^0.0.2"
     body-parser: "npm:^2.0.0"
-    camoufox-js: "npm:^0.10.0"
+    camoufox-js: "npm:^0.11.0"
     commitlint: "npm:^21.0.0"
     cross-env: "npm:^10.0.0"
     deep-equal: "npm:^2.0.5"
@@ -4401,14 +4401,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"better-sqlite3@npm:^12.2.0":
-  version: 12.4.1
-  resolution: "better-sqlite3@npm:12.4.1"
+"better-sqlite3@npm:^12.10.0":
+  version: 12.10.0
+  resolution: "better-sqlite3@npm:12.10.0"
   dependencies:
     bindings: "npm:^1.5.0"
     node-gyp: "npm:latest"
     prebuild-install: "npm:^7.1.1"
-  checksum: 10c0/88773a75d996b4171e5690a38459b05dc814a792701b224bd9909ee084dc0b4c64aaffbdbcf4bbbc6d4e247faf19e91b2a56cf4175d746d3bd9ff14764eb05aa
+  checksum: 10c0/b269792c1e456201b16fb9abd1e3fa9284d7710929f991899cebbb61e56dc3703673be29dadcb2f4a2d02961c49145f53d7d7b13b7b47298c033ec9de524f34f
   languageName: node
   linkType: hard
 
@@ -4764,12 +4764,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"camoufox-js@npm:^0.10.0":
-  version: 0.10.2
-  resolution: "camoufox-js@npm:0.10.2"
+"camoufox-js@npm:^0.11.0":
+  version: 0.11.0
+  resolution: "camoufox-js@npm:0.11.0"
   dependencies:
     adm-zip: "npm:^0.5.16"
-    better-sqlite3: "npm:^12.2.0"
+    better-sqlite3: "npm:^12.10.0"
     cli-progress: "npm:^3.12.0"
     commander: "npm:^14.0.0"
     fingerprint-generator: "npm:^2.1.66"
@@ -4784,7 +4784,7 @@ __metadata:
     playwright-core: "*"
   bin:
     camoufox-js: dist/__main__.js
-  checksum: 10c0/f04cd3b46f507649d7d2c882ad5f9e1a3a4420480d5a196b40d26ca635d2d2193764625fa6518baa17a2283445a689194aa2139c67825f1326604870859f7890
+  checksum: 10c0/ac17d937edd690133638568e34726fe5b60ce763d6252edf163e6326571de7263d6103facd5fb3a7ca6979d7339aad454c588eef945676e96a8083d06c884165
   languageName: node
   linkType: hard
 
