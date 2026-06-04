@@ -13,9 +13,12 @@ import { type MemoryStorage } from './memory-storage.js';
 const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
 export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entryNameOrId: string) {
-    // First check memory cache
+    // First check memory cache — match by id, name, or directoryName (which covers alias lookups)
     const found = client.datasetClientCache.find(
-        (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
+        (store) =>
+            store.id === entryNameOrId ||
+            store.name?.toLowerCase() === entryNameOrId.toLowerCase() ||
+            store.directoryName.toLowerCase() === entryNameOrId.toLowerCase(),
     );
 
     if (found) {
@@ -116,9 +119,12 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
 }
 
 export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage, entryNameOrId: string) {
-    // First check memory cache
+    // First check memory cache — match by id, name, or directoryName (which covers alias lookups)
     const found = client.keyValueStoreCache.find(
-        (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
+        (store) =>
+            store.id === entryNameOrId ||
+            store.name?.toLowerCase() === entryNameOrId.toLowerCase() ||
+            store.directoryName.toLowerCase() === entryNameOrId.toLowerCase(),
     );
 
     if (found) {
@@ -270,9 +276,12 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
 }
 
 export async function findRequestQueueByPossibleId(client: MemoryStorage, entryNameOrId: string) {
-    // First check memory cache
+    // First check memory cache — match by id, name, or directoryName (which covers alias lookups)
     const found = client.requestQueueCache.find(
-        (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
+        (store) =>
+            store.id === entryNameOrId ||
+            store.name?.toLowerCase() === entryNameOrId.toLowerCase() ||
+            store.directoryName.toLowerCase() === entryNameOrId.toLowerCase(),
     );
 
     if (found) {
