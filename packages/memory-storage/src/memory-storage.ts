@@ -103,23 +103,33 @@ export class MemoryStorage implements storage.StorageClient {
         return `MemoryStorage:${resolve(this.localDataDirectory)}`;
     }
 
-    private static resolveStorageName(options: { id?: string; name?: string; alias?: string }): string | undefined {
-        const name = 'alias' in options ? options.alias : (options.name ?? options.id);
+    private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
+        isAlias: boolean;
+        directoryKey: string | undefined;
+    } {
+        const isAlias = 'alias' in options && !!options.alias;
+        const rawKey = isAlias ? options.alias : (options.name ?? options.id);
         // Normalize the internal __default__ alias to the user-facing 'default' name.
-        return name === '__default__' ? 'default' : name;
+        const directoryKey = rawKey === '__default__' ? 'default' : rawKey;
+        return { isAlias, directoryKey };
     }
 
     async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        const name = MemoryStorage.resolveStorageName(options);
+        const { isAlias, directoryKey } = MemoryStorage.resolveStorageKey(options);
 
-        if (name) {
-            const found = await findOrCacheDatasetByPossibleId(this, name);
+        if (directoryKey) {
+            const found = await findOrCacheDatasetByPossibleId(this, directoryKey);
             if (found) {
                 return found;
             }
         }
 
-        const newStore = new DatasetClient({ name, baseStorageDirectory: this.datasetsDirectory, client: this });
+        const newStore = new DatasetClient({
+            name: isAlias ? undefined : directoryKey,
+            directoryName: directoryKey,
+            baseStorageDirectory: this.datasetsDirectory,
+            client: this,
+        });
         this.datasetClientCache.push(newStore);
 
         // Schedule the worker to write to the disk
@@ -144,17 +154,18 @@ export class MemoryStorage implements storage.StorageClient {
     async createKeyValueStoreClient(
         options: storage.CreateKeyValueStoreClientOptions = {},
     ): Promise<storage.KeyValueStoreClient> {
-        const name = MemoryStorage.resolveStorageName(options);
+        const { isAlias, directoryKey } = MemoryStorage.resolveStorageKey(options);
 
-        if (name) {
-            const found = await findOrCacheKeyValueStoreByPossibleId(this, name);
+        if (directoryKey) {
+            const found = await findOrCacheKeyValueStoreByPossibleId(this, directoryKey);
             if (found) {
                 return found;
             }
         }
 
         const newStore = new KeyValueStoreClient({
-            name,
+            name: isAlias ? undefined : directoryKey,
+            directoryName: directoryKey,
             baseStorageDirectory: this.keyValueStoresDirectory,
             client: this,
         });
@@ -182,17 +193,18 @@ export class MemoryStorage implements storage.StorageClient {
     async createRequestQueueClient(
         options: storage.CreateRequestQueueClientOptions = {},
     ): Promise<storage.RequestQueueClient> {
-        const name = MemoryStorage.resolveStorageName(options);
+        const { isAlias, directoryKey } = MemoryStorage.resolveStorageKey(options);
 
-        if (name) {
-            const found = await findRequestQueueByPossibleId(this, name);
+        if (directoryKey) {
+            const found = await findRequestQueueByPossibleId(this, directoryKey);
             if (found) {
                 return found;
             }
         }
 
         const newStore = new RequestQueueClient({
-            name,
+            name: isAlias ? undefined : directoryKey,
+            directoryName: directoryKey,
             baseStorageDirectory: this.requestQueuesDirectory,
             client: this,
         });
@@ -238,14 +250,26 @@ export class MemoryStorage implements storage.StorageClient {
                 return false;
         }
 
-        // Check in-memory cache first
+        // Check in-memory cache by actual storage ID
         if (clients.some((store) => store.id === id)) {
             return true;
         }
 
-        // Check if a directory with that ID exists on disk
+        // Check if a directory with that ID exists on disk.
+        // Only consider directories whose name matches the queried ID — this avoids
+        // false positives for alias-created directories (e.g. a directory named 'asdf'
+        // created via `{ alias: 'asdf' }` should not make `storageExists('asdf')` return true,
+        // since the actual storage ID is a UUID, not the alias string).
         try {
             await access(resolve(baseDir, id));
+
+            // If the directory exists but a cached client already owns this directory
+            // under a different ID, this is not a match.
+            const cachedClients = clients as { id: string; directoryName?: string }[];
+            if (cachedClients.some((store) => store.directoryName === id && store.id !== id)) {
+                return false;
+            }
+
             return true;
         } catch {
             return false;

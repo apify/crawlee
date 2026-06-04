@@ -532,6 +532,52 @@ If you implemented a custom `StorageClient`, you need to:
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
 3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
 
+## Multiple crawler instances use separate default request queues
+
+In v3, every `BasicCrawler` (or subclass) that didn't receive an explicit `requestQueue` option would open the same default request queue. If you created two crawlers in the same process, they would silently share a queue — leading to request collisions and hard-to-debug deduplication issues.
+
+In v4, only the **first** crawler instance uses the default request queue. Each subsequent instance automatically gets its own queue via an internal alias (e.g. `__default_1__`, `__default_2__`, etc.). This means multiple crawlers can safely coexist without interfering with each other's requests.
+
+If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, that queue is used as-is regardless of instance order.
+
+## Repeated `run()` calls use `purge()` instead of `drop()` + recreate
+
+When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
+
+The new `purge()` method is available on `RequestProvider` (the base class for `RequestQueue`) and is also defined as an optional method on the `IRequestManager` interface.
+
+By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
+
+| `purgeRequestQueue` value | Owned queue (auto-created) | User-supplied queue |
+|---|---|---|
+| omitted (default) | Purged | Not purged |
+| `true` | Purged | Purged |
+| `false` | Not purged | Not purged |
+
+```typescript
+// The purge happens automatically between run() calls:
+const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
+await crawler.run(['https://example.com/a', 'https://example.com/b']);
+// Queue is purged here, so the same URLs can be processed again:
+await crawler.run(['https://example.com/a', 'https://example.com/c']);
+```
+
+You can opt out of the automatic purge by passing `purgeRequestQueue: false`:
+
+```typescript
+await crawler.run(urls, { purgeRequestQueue: false });
+```
+
+If you supplied your own `requestQueue` and want it purged between runs, pass `purgeRequestQueue: true` explicitly:
+
+```typescript
+const queue = await RequestQueue.open('my-queue');
+const crawler = new BasicCrawler({ requestQueue: queue, requestHandler: async () => { /* ... */ } });
+await crawler.run(['https://example.com/first']);
+// Explicitly purge the user-supplied queue before the second run:
+await crawler.run(['https://example.com/second'], { purgeRequestQueue: true });
+```
+
 ## Storage `.open()` now also accepts `{ id?, name? }`
 
 `Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
