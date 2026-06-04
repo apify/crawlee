@@ -753,7 +753,9 @@ async function handleCloudflareChallenge(
 
     options.isChallengeCallback ??= async () => {
         return await page.evaluate(async () => {
-            return !!document.querySelector('.footer > .footer-inner > .diagnostic-wrapper > .ray-id');
+            // Cloudflare nests the ray ID under varying wrapper elements, so we match by descendants
+            // instead of a direct-child chain (e.g. a `.footer-wrapper` was inserted in between).
+            return !!document.querySelector('.footer .footer-inner .diagnostic-wrapper .ray-id');
         });
     };
 
@@ -782,7 +784,11 @@ async function handleCloudflareChallenge(
 
     const bb = await page
         .evaluate(() => {
-            const div = document.querySelector('.main-content div');
+            // Prefer the actual challenge widget (the box holding the Turnstile checkbox input);
+            // fall back to the first content div for older challenge layouts.
+            const div =
+                document.querySelector('.main-content div:has(input[id^="cf-chl-widget-"])') ??
+                document.querySelector('.main-content div');
             return div?.getBoundingClientRect();
         })
         .catch(() => undefined);
