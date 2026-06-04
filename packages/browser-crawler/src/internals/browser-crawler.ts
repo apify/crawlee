@@ -385,16 +385,22 @@ export abstract class BrowserCrawler<
         super({
             ...basicCrawlerOptions,
             contextPipelineBuilder: () => {
-                const middlewares: ContextMiddleware<Context, Partial<Context>>[] = [
-                    { action: this.prepareNavigation.bind(this) },
-                    ...this.preNavigationHooks.map(skipGuard),
-                    skipGuard(this.navigate.bind(this)),
-                    ...this.postNavigationHooks.map(skipGuard),
-                    skipGuard(this.finalizeNavigation.bind(this)),
-                    { action: this.handleBlockedRequestByContent.bind(this) },
-                    { action: this.restoreRequestState.bind(this) },
-                ];
-                return middlewares.reduce((p, mw) => p.compose(mw), contextPipelineBuilder());
+                let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
+
+                for (const hook of this.preNavigationHooks) {
+                    pipeline = pipeline.compose(skipGuard(hook));
+                }
+
+                pipeline = pipeline.compose(skipGuard(this.navigate.bind(this)));
+
+                for (const hook of this.postNavigationHooks) {
+                    pipeline = pipeline.compose(skipGuard(hook));
+                }
+
+                return pipeline
+                    .compose(skipGuard(this.finalizeNavigation.bind(this)))
+                    .compose({ action: this.handleBlockedRequestByContent.bind(this) })
+                    .compose({ action: this.restoreRequestState.bind(this) });
             },
             extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
         });

@@ -392,25 +392,31 @@ export class HttpCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
-        const skipGuard = <Ctx extends CrawlingContext>(
-            action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
-        ): ContextMiddleware<Ctx, Partial<Ctx>> => ({
-            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
+        // When navigation is skipped, `prepareHttpRequest` has already installed throwing getters for
+        // the response-derived members, so the guarded action is bypassed and the context left untouched.
+        const skipGuard = <Ctx extends CrawlingContext, Ext>(
+            action: (ctx: Ctx) => Awaitable<void | Ext>,
+        ): ContextMiddleware<Ctx, Ext> => ({
+            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext,
         });
 
-        const middlewares: ContextMiddleware<any, any>[] = [
-            { action: this.prepareHttpRequest.bind(this) },
-            ...this.preNavigationHooks.map(skipGuard),
-            skipGuard(this.makeHttpRequest.bind(this)),
-            ...this.postNavigationHooks.map(skipGuard),
-            { action: this.processHttpResponse.bind(this) },
-            { action: this.handleBlockedRequestByContent.bind(this) },
-        ];
+        let pipeline = ContextPipeline.create<CrawlingContext>().compose({
+            action: this.prepareHttpRequest.bind(this),
+        });
 
-        return middlewares.reduce<ContextPipeline<CrawlingContext, any>>(
-            (p, mw) => p.compose(mw),
-            ContextPipeline.create<CrawlingContext>(),
-        );
+        for (const hook of this.preNavigationHooks) {
+            pipeline = pipeline.compose(skipGuard(hook));
+        }
+
+        let pipelineWithNavigation = pipeline.compose(skipGuard(this.makeHttpRequest.bind(this)));
+
+        for (const hook of this.postNavigationHooks) {
+            pipelineWithNavigation = pipelineWithNavigation.compose(skipGuard(hook));
+        }
+
+        return pipelineWithNavigation
+            .compose({ action: this.processHttpResponse.bind(this) })
+            .compose({ action: this.handleBlockedRequestByContent.bind(this) });
     }
 
     private async prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithResponse>> {
