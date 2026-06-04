@@ -22,7 +22,7 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
         return found;
     }
 
-    const datasetDir = resolve(client.datasetsDirectory, entryNameOrId);
+    const datasetDir = resolveStorageDirectory(client.datasetsDirectory, entryNameOrId);
 
     try {
         // Check if directory exists
@@ -125,7 +125,7 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
         return found;
     }
 
-    const keyValueStoreDir = resolve(client.keyValueStoresDirectory, entryNameOrId);
+    const keyValueStoreDir = resolveStorageDirectory(client.keyValueStoresDirectory, entryNameOrId);
 
     try {
         // Check if directory exists
@@ -278,7 +278,7 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
         return found;
     }
 
-    const requestQueueDir = resolve(client.requestQueuesDirectory, entryNameOrId);
+    const requestQueueDir = resolveStorageDirectory(client.requestQueuesDirectory, entryNameOrId);
 
     try {
         // Check if directory exists
@@ -392,4 +392,4 @@ import { DatasetClient } from './resource-clients/dataset';
 import type { InternalKeyRecord } from './resource-clients/key-value-store';
 import { KeyValueStoreClient } from './resource-clients/key-value-store';
 import { RequestQueueClient } from './resource-clients/request-queue';
-import { memoryStorageLog } from './utils';
+import { memoryStorageLog, resolveStorageDirectory } from './utils';

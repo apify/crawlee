@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { resolve, sep } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
@@ -6,6 +7,25 @@ import { s } from '@sapphire/shapeshift';
 import defaultLog from '@apify/log';
 
 import { REQUEST_ID_LENGTH } from './consts';
+
+/**
+ * Resolves the on-disk directory for a storage with the given name or id, ensuring it stays
+ * within `baseStorageDirectory`. Storage names are used as filesystem path components, so a name
+ * containing `..` or an absolute path could otherwise escape the intended storage directory.
+ */
+export function resolveStorageDirectory(baseStorageDirectory: string, nameOrId: string): string {
+    const baseDirectory = resolve(baseStorageDirectory);
+    const storageDirectory = resolve(baseDirectory, nameOrId);
+
+    if (storageDirectory !== baseDirectory && !storageDirectory.startsWith(`${baseDirectory}${sep}`)) {
+        throw new Error(
+            `Storage name "${nameOrId}" is not allowed because it would resolve outside of the storage directory. ` +
+                `Storage names must not contain path traversal segments ("..") or absolute paths.`,
+        );
+    }
+
+    return storageDirectory;
+}
 
 /**
  * Removes all properties with a null value

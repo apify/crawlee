@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
@@ -14,7 +13,7 @@ import { createRequestQueueStorageImplementation } from '../fs/request-queue';
 import type { RequestQueueFileSystemEntry } from '../fs/request-queue/fs';
 import type { RequestQueueMemoryEntry } from '../fs/request-queue/memory';
 import type { MemoryStorage } from '../index';
-import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
+import { purgeNullsFromObject, resolveStorageDirectory, uniqueKeyToRequestId } from '../utils';
 import { BaseClient } from './common/base-client';
 
 const requestShape = s.object({
@@ -68,7 +67,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     constructor(options: RequestQueueClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.requestQueueDirectory = resolve(options.baseStorageDirectory, this.name ?? this.id);
+        this.requestQueueDirectory = resolveStorageDirectory(options.baseStorageDirectory, this.name ?? this.id);
         this.client = options.client;
     }
 
@@ -128,7 +127,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const previousDir = existingQueueById.requestQueueDirectory;
 
-        existingQueueById.requestQueueDirectory = resolve(
+        existingQueueById.requestQueueDirectory = resolveStorageDirectory(
             this.client.requestQueuesDirectory,
             parsed.name ?? existingQueueById.name ?? existingQueueById.id,
         );

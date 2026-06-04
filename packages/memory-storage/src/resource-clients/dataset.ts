@@ -1,7 +1,6 @@
 /* eslint-disable import/no-duplicates */
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
@@ -14,7 +13,7 @@ import { StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createDatasetStorageImplementation } from '../fs/dataset';
 import type { MemoryStorage } from '../index';
-import { createPaginatedEntryList, createPaginatedList } from '../utils';
+import { createPaginatedEntryList, createPaginatedList, resolveStorageDirectory } from '../utils';
 import { BaseClient } from './common/base-client';
 
 /**
@@ -53,7 +52,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     constructor(options: DatasetClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.datasetDirectory = resolve(options.baseStorageDirectory, this.name ?? this.id);
+        this.datasetDirectory = resolveStorageDirectory(options.baseStorageDirectory, this.name ?? this.id);
         this.client = options.client;
     }
 
@@ -100,7 +99,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
 
         const previousDir = existingStoreById.datasetDirectory;
 
-        existingStoreById.datasetDirectory = resolve(
+        existingStoreById.datasetDirectory = resolveStorageDirectory(
             this.client.datasetsDirectory,
             parsed.name ?? existingStoreById.name ?? existingStoreById.id,
         );
