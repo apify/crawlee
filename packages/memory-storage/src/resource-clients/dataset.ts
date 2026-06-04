@@ -13,7 +13,7 @@ import { StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createDatasetStorageImplementation } from '../fs/dataset';
 import type { MemoryStorage } from '../index';
-import { createPaginatedEntryList, createPaginatedList, resolveStorageDirectory } from '../utils';
+import { createPaginatedEntryList, createPaginatedList, resolveWithinDirectory } from '../utils';
 import { BaseClient } from './common/base-client';
 
 /**
@@ -52,7 +52,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     constructor(options: DatasetClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.datasetDirectory = resolveStorageDirectory(options.baseStorageDirectory, this.name ?? this.id);
+        this.datasetDirectory = resolveWithinDirectory(options.baseStorageDirectory, this.name ?? this.id);
         this.client = options.client;
     }
 
@@ -99,7 +99,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
 
         const previousDir = existingStoreById.datasetDirectory;
 
-        existingStoreById.datasetDirectory = resolveStorageDirectory(
+        existingStoreById.datasetDirectory = resolveWithinDirectory(
             this.client.datasetsDirectory,
             parsed.name ?? existingStoreById.name ?? existingStoreById.id,
         );

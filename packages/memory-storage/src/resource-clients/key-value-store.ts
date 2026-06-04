@@ -21,7 +21,7 @@ import {
     createLazyIterablePromise,
     isBuffer,
     isStream,
-    resolveStorageDirectory,
+    resolveWithinDirectory,
 } from '../utils';
 import { BaseClient } from './common/base-client';
 
@@ -55,7 +55,7 @@ export class KeyValueStoreClient extends BaseClient {
     constructor(options: KeyValueStoreClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.keyValueStoreDirectory = resolveStorageDirectory(options.baseStorageDirectory, this.name ?? this.id);
+        this.keyValueStoreDirectory = resolveWithinDirectory(options.baseStorageDirectory, this.name ?? this.id);
         this.client = options.client;
     }
 
@@ -102,7 +102,7 @@ export class KeyValueStoreClient extends BaseClient {
 
         const previousDir = existingStoreById.keyValueStoreDirectory;
 
-        existingStoreById.keyValueStoreDirectory = resolveStorageDirectory(
+        existingStoreById.keyValueStoreDirectory = resolveWithinDirectory(
             this.client.keyValueStoresDirectory,
             parsed.name ?? existingStoreById.name ?? existingStoreById.id,
         );

@@ -1,5 +1,5 @@
 import { readFile, rm } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { basename } from 'node:path/win32';
 
 import { AsyncQueue } from '@sapphire/async-queue';
@@ -8,7 +8,7 @@ import mime from 'mime-types';
 
 import { lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
-import { memoryStorageLog } from '../../utils';
+import { memoryStorageLog, resolveWithinDirectory } from '../../utils';
 import type { StorageImplementation } from '../common';
 import type { CreateStorageImplementationOptions } from '.';
 
@@ -35,7 +35,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
         } catch {
             try {
                 // Try without extension
-                file = await readFile(resolve(this.storeDirectory, this.rawRecord.key));
+                file = await readFile(resolveWithinDirectory(this.storeDirectory, this.rawRecord.key));
                 memoryStorageLog.warning(
                     [
                         `Key-value entry "${this.rawRecord.key}" for store ${basename(
@@ -68,8 +68,8 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
                 ? data.key
                 : `${data.key}.${data.extension}`;
 
-        this.filePath ??= resolve(this.storeDirectory, fileName);
-        this.fileMetadataPath ??= resolve(this.storeDirectory, `${data.key}.__metadata__.json`);
+        this.filePath ??= resolveWithinDirectory(this.storeDirectory, fileName);
+        this.fileMetadataPath ??= resolveWithinDirectory(this.storeDirectory, `${data.key}.__metadata__.json`);
 
         const { value, ...rest } = data;
         this.rawRecord = rest;

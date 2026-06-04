@@ -9,22 +9,22 @@ import defaultLog from '@apify/log';
 import { REQUEST_ID_LENGTH } from './consts';
 
 /**
- * Resolves the on-disk directory for a storage with the given name or id, ensuring it stays
- * within `baseStorageDirectory`. Storage names are used as filesystem path components, so a name
- * containing `..` or an absolute path could otherwise escape the intended storage directory.
+ * Resolves `segment` against `baseDirectory` and ensures the result stays within `baseDirectory`.
+ * Storage names and record keys are used as filesystem path components, so a value containing `..`
+ * or an absolute path could otherwise escape the intended directory.
  */
-export function resolveStorageDirectory(baseStorageDirectory: string, nameOrId: string): string {
-    const baseDirectory = resolve(baseStorageDirectory);
-    const storageDirectory = resolve(baseDirectory, nameOrId);
+export function resolveWithinDirectory(baseDirectory: string, segment: string): string {
+    const base = resolve(baseDirectory);
+    const resolved = resolve(base, segment);
 
-    if (storageDirectory !== baseDirectory && !storageDirectory.startsWith(`${baseDirectory}${sep}`)) {
+    if (resolved !== base && !resolved.startsWith(`${base}${sep}`)) {
         throw new Error(
-            `Storage name "${nameOrId}" is not allowed because it would resolve outside of the storage directory. ` +
-                `Storage names must not contain path traversal segments ("..") or absolute paths.`,
+            `"${segment}" is not allowed because it would resolve outside of the storage directory. ` +
+                `Storage names and record keys must not contain path traversal segments ("..") or absolute paths.`,
         );
     }
 
-    return storageDirectory;
+    return resolved;
 }
 
 /**
