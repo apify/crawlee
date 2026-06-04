@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* change sequential approach to parallel for Iterator first page ([#3402](https://github.com/apify/crawlee/issues/3402)) ([adf3dae](https://github.com/apify/crawlee/commit/adf3daeb0b3000124817b1b2011b2196342e8715)), closes [#3395](https://github.com/apify/crawlee/issues/3395)
+
+
+### Performance Improvements
+
+* add lazyIterablePromise to kvs iterators ([#3413](https://github.com/apify/crawlee/issues/3413)) ([2658610](https://github.com/apify/crawlee/commit/2658610a62ae8dca2702f5af222d64f88d91f4a8))
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

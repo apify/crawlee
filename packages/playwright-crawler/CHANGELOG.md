@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* Prevent accidental request dropping with `maxRequestsPerCrawl` ([#3531](https://github.com/apify/crawlee/issues/3531)) ([b23319b](https://github.com/apify/crawlee/commit/b23319bbe8c171541f17f343f718867e25bdb620))
+* prevent iframe expansion failure on pages with Trusted Types CSP ([#3590](https://github.com/apify/crawlee/issues/3590)) ([c0b9b50](https://github.com/apify/crawlee/commit/c0b9b50518bab6e62c62125aeefba6b919046d63)), closes [#3588](https://github.com/apify/crawlee/issues/3588)
+
+
+### Features
+
+* **adaptive-crawler:** add shouldPropagateError callback to prevent browser fallback ([#3635](https://github.com/apify/crawlee/issues/3635)) ([d3a29d9](https://github.com/apify/crawlee/commit/d3a29d9623bfd3b9b75c496a1c48134532c824e5))
+* expose Download objects on PlaywrightCrawlingContext ([#3596](https://github.com/apify/crawlee/issues/3596)) ([5dc1627](https://github.com/apify/crawlee/commit/5dc1627deccd3d04d12fefec99b0e119fb87cbe4)), closes [#3583](https://github.com/apify/crawlee/issues/3583)
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

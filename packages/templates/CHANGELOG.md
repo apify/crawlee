@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* **e2e:** resolve flaky Camoufox tests due to GitHub rate limits ([#3527](https://github.com/apify/crawlee/issues/3527)) ([08c98cf](https://github.com/apify/crawlee/commit/08c98cf52de5fc227afa97b2ff71c52bbe832ba3)), closes [#3524](https://github.com/apify/crawlee/issues/3524)
+
+
+### Features
+
+* **templates:** use ImpitHttpClient and install optional deps in Docker ([#3603](https://github.com/apify/crawlee/issues/3603)) ([113dca6](https://github.com/apify/crawlee/commit/113dca699960f2018341ee8342b9b6af70252153)), closes [#3601](https://github.com/apify/crawlee/issues/3601)
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

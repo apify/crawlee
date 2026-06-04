@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* correct failed requests delta count in periodic log message ([#3482](https://github.com/apify/crawlee/issues/3482)) ([a098f42](https://github.com/apify/crawlee/commit/a098f420efdcec4b1827327c012c6eb365460838))
+* Correctly track the number of requests handled by a crawler ([#3410](https://github.com/apify/crawlee/issues/3410)) ([b2296ce](https://github.com/apify/crawlee/commit/b2296cea708fa1e83bfdf20d94067bfa51a2e2ed)), closes [#3083](https://github.com/apify/crawlee/issues/3083) [#3330](https://github.com/apify/crawlee/issues/3330)
+* honor custom respectRobotsTxtFile userAgent in enqueueLinks ([#3578](https://github.com/apify/crawlee/issues/3578)) ([1d2528b](https://github.com/apify/crawlee/commit/1d2528b9a0e13841a0acf918e754d42862e84912))
+* Prevent accidental request dropping with `maxRequestsPerCrawl` ([#3531](https://github.com/apify/crawlee/issues/3531)) ([b23319b](https://github.com/apify/crawlee/commit/b23319bbe8c171541f17f343f718867e25bdb620))
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

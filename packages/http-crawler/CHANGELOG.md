@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Features
+
+* add abortDownload context helper to FileDownload ([#3528](https://github.com/apify/crawlee/issues/3528)) ([3b3d8f6](https://github.com/apify/crawlee/commit/3b3d8f685b079dea6594758a5897ba2a3181c3ac))
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

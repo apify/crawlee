@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* **core:** release storage open queue slot on failure ([#3662](https://github.com/apify/crawlee/issues/3662)) ([18ebc61](https://github.com/apify/crawlee/commit/18ebc61b27263437f6b3814fb774e65c2c4f3b88)), closes [#3661](https://github.com/apify/crawlee/issues/3661)
+* honor custom respectRobotsTxtFile userAgent in enqueueLinks ([#3578](https://github.com/apify/crawlee/issues/3578)) ([1d2528b](https://github.com/apify/crawlee/commit/1d2528b9a0e13841a0acf918e754d42862e84912))
+* Prevent accidental request dropping with `maxRequestsPerCrawl` ([#3531](https://github.com/apify/crawlee/issues/3531)) ([b23319b](https://github.com/apify/crawlee/commit/b23319bbe8c171541f17f343f718867e25bdb620))
+
+
+### Features
+
+* Dynamic memory snapshots ([#3471](https://github.com/apify/crawlee/issues/3471)) ([87c67dc](https://github.com/apify/crawlee/commit/87c67dc4084b11f04cc62926489d657041e60e2c)), closes [#3408](https://github.com/apify/crawlee/issues/3408)
+* Modularize SystemStatus to allow custom backpressure mechanisms ([#3529](https://github.com/apify/crawlee/issues/3529)) ([7159a13](https://github.com/apify/crawlee/commit/7159a13e0fb13661b9d6fa8cae1a0713bdbfb4eb))
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

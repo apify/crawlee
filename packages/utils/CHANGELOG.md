@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* add network timeouts to discoverValidSitemaps to prevent indefinite hangs ([#3429](https://github.com/apify/crawlee/issues/3429)) ([ee90835](https://github.com/apify/crawlee/commit/ee90835d2cbbea55815f6e417450b8c3d6b140ce))
+* **core:** apply object searchParams in HTTP request options ([#3622](https://github.com/apify/crawlee/issues/3622)) ([d32946e](https://github.com/apify/crawlee/commit/d32946efbdc95bf71dfcae67b4509244e1857956))
+* log warning when Sitemap.load returns empty sitemap due to loading error ([#3462](https://github.com/apify/crawlee/issues/3462)) ([2cf9c1c](https://github.com/apify/crawlee/commit/2cf9c1cd9fca21ea5113ee1404dae3a6a652fec0))
+* Prevent accidental request dropping with `maxRequestsPerCrawl` ([#3531](https://github.com/apify/crawlee/issues/3531)) ([b23319b](https://github.com/apify/crawlee/commit/b23319bbe8c171541f17f343f718867e25bdb620))
+* prevent v3 sitemap discovery init hangs in discoverValidSitemaps ([#3434](https://github.com/apify/crawlee/issues/3434)) ([6c04f92](https://github.com/apify/crawlee/commit/6c04f923ceca6963e25ad73ebd41e480b0d7c0e4)), closes [#3412](https://github.com/apify/crawlee/issues/3412)
+* using GET for candidate checks - sitemaps ([#3464](https://github.com/apify/crawlee/issues/3464)) ([f82eb04](https://github.com/apify/crawlee/commit/f82eb04673b6a9afd0e56dac374a2fa5c91b42e0)), closes [#3463](https://github.com/apify/crawlee/issues/3463)
+
+
+### Features
+
+* **utils:** add sitemapFilter option to parseSitemap ([#3557](https://github.com/apify/crawlee/issues/3557)) ([1d4f6b9](https://github.com/apify/crawlee/commit/1d4f6b9ca44b8224f14584c337bd80209eea3819))
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

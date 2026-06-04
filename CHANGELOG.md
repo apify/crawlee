@@ -3,6 +3,52 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* add network timeouts to discoverValidSitemaps to prevent indefinite hangs ([#3429](https://github.com/apify/crawlee/issues/3429)) ([ee90835](https://github.com/apify/crawlee/commit/ee90835d2cbbea55815f6e417450b8c3d6b140ce))
+* bind `Browser.pages()` correctly in `PuppeteerPlugin` ([#3439](https://github.com/apify/crawlee/issues/3439)) ([c3a4b3b](https://github.com/apify/crawlee/commit/c3a4b3b0d5be63f1f7a779ff43560ab2b426f3bb))
+* **browser-pool:** allow unsetting launch context proxy URL ([#3621](https://github.com/apify/crawlee/issues/3621)) ([d5ab219](https://github.com/apify/crawlee/commit/d5ab219ec65289a6117c9273a93e2a70dbb5793a))
+* **browser-pool:** preserve caller's AbortContext across p-limit queue ([#3673](https://github.com/apify/crawlee/issues/3673)) ([c4d58d9](https://github.com/apify/crawlee/commit/c4d58d96a53800d48c375f2e0357546a9e754417)), closes [#3670](https://github.com/apify/crawlee/issues/3670)
+* BrowserCrawler closes ctx.page before errorHandler runs on navig… ([#3655](https://github.com/apify/crawlee/issues/3655)) ([ab34886](https://github.com/apify/crawlee/commit/ab348864b31edebb45e2e11f3ded3489131dcc0f))
+* change sequential approach to parallel for Iterator first page ([#3402](https://github.com/apify/crawlee/issues/3402)) ([adf3dae](https://github.com/apify/crawlee/commit/adf3daeb0b3000124817b1b2011b2196342e8715)), closes [#3395](https://github.com/apify/crawlee/issues/3395)
+* **core:** apply object searchParams in HTTP request options ([#3622](https://github.com/apify/crawlee/issues/3622)) ([d32946e](https://github.com/apify/crawlee/commit/d32946efbdc95bf71dfcae67b4509244e1857956))
+* **core:** release storage open queue slot on failure ([#3662](https://github.com/apify/crawlee/issues/3662)) ([18ebc61](https://github.com/apify/crawlee/commit/18ebc61b27263437f6b3814fb774e65c2c4f3b88)), closes [#3661](https://github.com/apify/crawlee/issues/3661)
+* correct failed requests delta count in periodic log message ([#3482](https://github.com/apify/crawlee/issues/3482)) ([a098f42](https://github.com/apify/crawlee/commit/a098f420efdcec4b1827327c012c6eb365460838))
+* Correctly track the number of requests handled by a crawler ([#3410](https://github.com/apify/crawlee/issues/3410)) ([b2296ce](https://github.com/apify/crawlee/commit/b2296cea708fa1e83bfdf20d94067bfa51a2e2ed)), closes [#3083](https://github.com/apify/crawlee/issues/3083) [#3330](https://github.com/apify/crawlee/issues/3330)
+* **e2e:** resolve flaky Camoufox tests due to GitHub rate limits ([#3527](https://github.com/apify/crawlee/issues/3527)) ([08c98cf](https://github.com/apify/crawlee/commit/08c98cf52de5fc227afa97b2ff71c52bbe832ba3)), closes [#3524](https://github.com/apify/crawlee/issues/3524)
+* honor custom respectRobotsTxtFile userAgent in enqueueLinks ([#3578](https://github.com/apify/crawlee/issues/3578)) ([1d2528b](https://github.com/apify/crawlee/commit/1d2528b9a0e13841a0acf918e754d42862e84912))
+* log warning when Sitemap.load returns empty sitemap due to loading error ([#3462](https://github.com/apify/crawlee/issues/3462)) ([2cf9c1c](https://github.com/apify/crawlee/commit/2cf9c1cd9fca21ea5113ee1404dae3a6a652fec0))
+* parse proxy URLs correctly when using `useIncognitoPages` ([#3433](https://github.com/apify/crawlee/issues/3433)) ([db2bb68](https://github.com/apify/crawlee/commit/db2bb6817e0d193471330aeed30d1ead8ecee465))
+* Prevent accidental request dropping with `maxRequestsPerCrawl` ([#3531](https://github.com/apify/crawlee/issues/3531)) ([b23319b](https://github.com/apify/crawlee/commit/b23319bbe8c171541f17f343f718867e25bdb620))
+* prevent iframe expansion failure on pages with Trusted Types CSP ([#3590](https://github.com/apify/crawlee/issues/3590)) ([c0b9b50](https://github.com/apify/crawlee/commit/c0b9b50518bab6e62c62125aeefba6b919046d63)), closes [#3588](https://github.com/apify/crawlee/issues/3588)
+* prevent v3 sitemap discovery init hangs in discoverValidSitemaps ([#3434](https://github.com/apify/crawlee/issues/3434)) ([6c04f92](https://github.com/apify/crawlee/commit/6c04f923ceca6963e25ad73ebd41e480b0d7c0e4)), closes [#3412](https://github.com/apify/crawlee/issues/3412)
+* unref BrowserController.close() fallback timer to avoid keeping Node alive longer than needed ([#3671](https://github.com/apify/crawlee/issues/3671)) ([eef94d4](https://github.com/apify/crawlee/commit/eef94d441503c3ee879f396d86a96a5ac7d0edc8))
+* using GET for candidate checks - sitemaps ([#3464](https://github.com/apify/crawlee/issues/3464)) ([f82eb04](https://github.com/apify/crawlee/commit/f82eb04673b6a9afd0e56dac374a2fa5c91b42e0)), closes [#3463](https://github.com/apify/crawlee/issues/3463)
+
+
+### Features
+
+* **adaptive-crawler:** add shouldPropagateError callback to prevent browser fallback ([#3635](https://github.com/apify/crawlee/issues/3635)) ([d3a29d9](https://github.com/apify/crawlee/commit/d3a29d9623bfd3b9b75c496a1c48134532c824e5))
+* add `ignoreProxyCertificate` option for the internal `proxy-chain` instance ([#3418](https://github.com/apify/crawlee/issues/3418)) ([02eec66](https://github.com/apify/crawlee/commit/02eec66ecfaef94dd9903940d7969e72cf4b1fd1)), closes [#3369](https://github.com/apify/crawlee/issues/3369)
+* add abortDownload context helper to FileDownload ([#3528](https://github.com/apify/crawlee/issues/3528)) ([3b3d8f6](https://github.com/apify/crawlee/commit/3b3d8f685b079dea6594758a5897ba2a3181c3ac))
+* Dynamic memory snapshots ([#3471](https://github.com/apify/crawlee/issues/3471)) ([87c67dc](https://github.com/apify/crawlee/commit/87c67dc4084b11f04cc62926489d657041e60e2c)), closes [#3408](https://github.com/apify/crawlee/issues/3408)
+* expose Download objects on PlaywrightCrawlingContext ([#3596](https://github.com/apify/crawlee/issues/3596)) ([5dc1627](https://github.com/apify/crawlee/commit/5dc1627deccd3d04d12fefec99b0e119fb87cbe4)), closes [#3583](https://github.com/apify/crawlee/issues/3583)
+* Modularize SystemStatus to allow custom backpressure mechanisms ([#3529](https://github.com/apify/crawlee/issues/3529)) ([7159a13](https://github.com/apify/crawlee/commit/7159a13e0fb13661b9d6fa8cae1a0713bdbfb4eb))
+* **templates:** use ImpitHttpClient and install optional deps in Docker ([#3603](https://github.com/apify/crawlee/issues/3603)) ([113dca6](https://github.com/apify/crawlee/commit/113dca699960f2018341ee8342b9b6af70252153)), closes [#3601](https://github.com/apify/crawlee/issues/3601)
+* **utils:** add sitemapFilter option to parseSitemap ([#3557](https://github.com/apify/crawlee/issues/3557)) ([1d4f6b9](https://github.com/apify/crawlee/commit/1d4f6b9ca44b8224f14584c337bd80209eea3819))
+
+
+### Performance Improvements
+
+* add lazyIterablePromise to kvs iterators ([#3413](https://github.com/apify/crawlee/issues/3413)) ([2658610](https://github.com/apify/crawlee/commit/2658610a62ae8dca2702f5af222d64f88d91f4a8))
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 
