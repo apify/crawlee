@@ -154,12 +154,16 @@ export interface AdaptivePlaywrightCrawlerContext<
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
-interface AdaptiveHook extends BrowserHook<
-    Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> & {
-        page?: Page;
-        request: Request;
-        gotoOptions?: PlaywrightGotoOptions;
-    }
+interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+    page?: Page;
+    request: Request;
+    gotoOptions?: PlaywrightGotoOptions;
+}
+
+interface AdaptiveHook extends BrowserHook<AdaptiveHookContext> {}
+
+interface AdaptivePostNavigationHook extends BrowserHook<
+    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> }
 > {}
 
 export interface AdaptivePlaywrightCrawlerOptions<
@@ -186,7 +190,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context
      * (e.g. to override `response` after solving a challenge).
      */
-    postNavigationHooks?: AdaptiveHook[]; // TODO should contain a LoadedRequest - reflect that
+    postNavigationHooks?: AdaptivePostNavigationHook[];
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -341,8 +345,8 @@ export class AdaptivePlaywrightCrawler<
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: preNavigationHooks as any,
-            postNavigationHooks: postNavigationHooks as any,
+            preNavigationHooks,
+            postNavigationHooks,
         });
 
         const browserCrawler = new PlaywrightCrawler({
