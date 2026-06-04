@@ -1,0 +1,14 @@
+---
+id: export-entire-dataset
+title: Export entire dataset to one file
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import CrawlSource from '!!raw-loader!roa-loader!./export_entire_dataset.ts';
+
+This `Dataset` example uses the `exportToValue` function to export the entire default dataset to a single CSV file into the default key-value store.
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{CrawlSource}
+</RunnableCodeBlock>
