@@ -1,8 +1,38 @@
-import type { BaseHttpClient as BaseHttpClientInterface, CrawleeLogger, SendRequestOptions } from '@crawlee/types';
+import type {
+    BaseHttpClient as BaseHttpClientInterface,
+    CrawleeLogger,
+    SendRequestOptions,
+    SessionFingerprint,
+} from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 
+/**
+ * Per-request options handed to a concrete client's `fetch` implementation.
+ */
 export interface CustomFetchOptions {
+    /**
+     * Effective proxy URL for this request. `sendRequest` populates this from
+     * the explicit `SendRequestOptions.proxyUrl` override when set, falling back
+     * to `session.proxyInfo.url`.
+     */
     proxyUrl?: string;
+
+    /**
+     * Effective cookie jar for this request. `sendRequest` populates this from
+     * the explicit `SendRequestOptions.cookieJar` override when set, falling
+     * back to `session.cookieJar` (or a fresh jar when neither is provided).
+     */
+    cookieJar?: CookieJar;
+
+    /**
+     * Hints about which browser-like setup this request should be impersonating —
+     * `browser`, `platform`, `device`, and an opaque `details` slot for richer
+     * payloads (e.g. a full browser fingerprint from `fingerprint-generator`).
+     * These are *suggestions*, not requirements: each client applies what it can
+     * (e.g. impit maps `browser` to its impersonation profile) and ignores the
+     * rest on a best-effort basis. Sourced from `SendRequestOptions.session.fingerprint`.
+     */
+    fingerprint?: SessionFingerprint;
 }
 
 /**
@@ -74,11 +104,17 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         proxyUrl?: string;
         cookieJar: CookieJar;
         signal?: AbortSignal;
+        fingerprint?: SessionFingerprint;
     } {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
         const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
-        return { proxyUrl, cookieJar: cookieJar as CookieJar, signal };
+        return {
+            proxyUrl,
+            cookieJar: cookieJar as CookieJar,
+            signal,
+            fingerprint: options?.session?.fingerprint,
+        };
     }
 
     private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
@@ -135,7 +171,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal } = this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint } = this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
@@ -144,6 +180,8 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             const response = await this.fetch(currentRequest, {
                 signal,
                 proxyUrl,
+                cookieJar,
+                fingerprint,
                 redirect: 'manual',
             });
 

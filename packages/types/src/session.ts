@@ -62,6 +62,26 @@ export interface ProxyInfo {
 }
 
 /**
+ * Identifies the browser-like profile a {@apilink Session} is impersonating, so
+ * repeated requests with the same session look consistent to the target server.
+ *
+ * These fields are *hints* — `browser`, `platform`, `device`. Consumers
+ * (`@crawlee/browser-pool`, `@crawlee/impit-client`, …) derive their own rich
+ * state from them (e.g. a full browser fingerprint, a TLS impersonation profile)
+ * and cache it on their own; the session itself is read-only intent.
+ */
+export interface SessionFingerprint {
+    /** Browser family — consumed by HTTP clients that impersonate (e.g. `impit`). */
+    browser?: 'chrome' | 'firefox' | 'safari' | 'edge';
+
+    /** Platform hint — used by header generators and as a virtual session key. */
+    platform?: 'windows' | 'macos' | 'linux' | 'android' | 'ios';
+
+    /** Device class — drives header generation and viewport defaults. */
+    device?: 'desktop' | 'mobile';
+}
+
+/**
  * Persistable {@apilink Session} state.
  */
 export interface SessionState {
@@ -69,6 +89,7 @@ export interface SessionState {
     cookieJar: SerializedCookieJar;
     proxyInfo?: ProxyInfo;
     userData: object;
+    fingerprint?: SessionFingerprint;
     errorScore: number;
     maxErrorScore: number;
     errorScoreDecrement: number;
@@ -89,6 +110,7 @@ export interface ISession {
     readonly id: string;
     cookieJar: CookieJar;
     proxyInfo?: ProxyInfo;
+    fingerprint?: SessionFingerprint;
 
     /**
      * Indicates whether the session can be used for next requests.
