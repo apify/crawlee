@@ -688,6 +688,11 @@ export class BrowserPool<
      * Extracts the relevant state (currently just cookies) from a page via its
      * owning {@apilink BrowserController}. Returns empty state when the page is
      * no longer associated with a controller.
+     *
+     * As with {@apilink BrowserPool.injectPageState}, cookies are isolated per
+     * page only when the pool is configured with `useIncognitoPages: true`.
+     * With the default `useIncognitoPages: false`, the extracted cookies
+     * include those set by any sibling page sharing the same browser.
      */
     async extractPageState(page: PageReturn): Promise<PageState> {
         const controller = this.getBrowserControllerByPage(page);
@@ -697,6 +702,27 @@ export class BrowserPool<
         }
 
         return { cookies: await controller.getCookies(page) };
+    }
+
+    /**
+     * Injects state into a page via its owning {@apilink BrowserController}.
+     *
+     * No-op when the page is no longer associated with a controller.
+     *
+     * Note that cookies are isolated per page only when the pool is configured
+     * with `useIncognitoPages: true` — each page then gets its own browser
+     * context. With the default `useIncognitoPages: false`, all pages in a
+     * browser share a single context, so injected cookies are visible to every
+     * page served by that browser.
+     */
+    async injectPageState(page: PageReturn, state: PageState): Promise<void> {
+        const controller = this.getBrowserControllerByPage(page);
+
+        if (!controller) {
+            return;
+        }
+
+        await controller.setCookies(page, state.cookies);
     }
 
     /**

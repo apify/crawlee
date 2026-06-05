@@ -629,19 +629,15 @@ export abstract class BrowserCrawler<
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
-        const controller = this._getBrowserControllerByPage(page);
-        if (!controller) return;
-
         const sessionCookie = session?.getCookies(request.url) ?? [];
         const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
         const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 
-        await controller.setCookies(
-            page,
-            [...sessionCookie, ...parsedPreHooksCookies, ...parsedPostHooksCookies]
-                .filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null)
-                .map((c) => ({ ...c, url: c.domain ? undefined : request.url })),
-        );
+        const cookies = [...sessionCookie, ...parsedPreHooksCookies, ...parsedPostHooksCookies]
+            .filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null)
+            .map((c) => ({ ...c, url: c.domain ? undefined : request.url }));
+
+        await this.browserPool.injectPageState(page, { cookies });
     }
 
     /**

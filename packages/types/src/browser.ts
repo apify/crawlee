@@ -143,8 +143,8 @@ export interface IBrowserPool<Page = unknown> {
      * @param options.error If the page is being released because of an error,
      *   pass the error here. In particular, if the error is a
      *   {@apilink SessionError}, implementations should treat it as a signal
-     *   to purge all state associated with the session (e.g. retire the browser
-     *   controller that served the page).
+     *   to purge all state associated with the session (e.g. discard any
+     *   browser that served the page).
      */
     closePage(page: Page, options?: { error?: Error }): Promise<void>;
 
@@ -156,4 +156,23 @@ export interface IBrowserPool<Page = unknown> {
      * @param page The page to read state from.
      */
     extractPageState(page: Page): Promise<PageState>;
+
+    /**
+     * Injects state (currently just cookies) into a page. This is the
+     * counterpart to {@apilink IBrowserPool.extractPageState} and lets the
+     * caller set up a page — for example, seeding it with the crawling
+     * {@apilink ISession|session}'s cookies before navigation.
+     *
+     * As with {@apilink IBrowserPool.newPage}, the caller decides *what* state
+     * to inject, while the pool decides *how*.
+     *
+     * Isolation between pages is **best-effort**: depending on the pool
+     * implementation and its configuration, multiple pages may share a browsing
+     * context, so injected state (such as cookies) can bleed across pages
+     * served by the same underlying browser.
+     *
+     * @param page The page to inject state into.
+     * @param state The state to inject.
+     */
+    injectPageState(page: Page, state: PageState): Promise<void>;
 }
