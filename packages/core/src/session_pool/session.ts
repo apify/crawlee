@@ -1,4 +1,4 @@
-import type { Dictionary, ISession, ProxyInfo, SessionState } from '@crawlee/types';
+import type { Dictionary, ISession, ProxyInfo, SessionFingerprint, SessionState } from '@crawlee/types';
 import ow from 'ow';
 import { CookieJar } from 'tough-cookie';
 
@@ -68,6 +68,13 @@ export interface SessionOptions {
     errorScore?: number;
     cookieJar?: CookieJar;
     proxyInfo?: ProxyInfo;
+
+    /**
+     * Browser / HTTP client fingerprint tied to this session. Backends use this to make
+     * repeated requests with the same session look consistent (same user-agent, headers,
+     * TLS profile). See {@apilink SessionFingerprint}.
+     */
+    fingerprint?: SessionFingerprint;
 }
 
 /**
@@ -89,6 +96,7 @@ export class Session implements ISession {
     private _retired = false;
     private _proxyInfo?: ProxyInfo;
     private _cookieJar: CookieJar;
+    private _fingerprint?: SessionFingerprint;
     private log: CrawleeLogger;
 
     get errorScore() {
@@ -127,6 +135,14 @@ export class Session implements ISession {
         return this._proxyInfo;
     }
 
+    get fingerprint(): SessionFingerprint | undefined {
+        return this._fingerprint;
+    }
+
+    set fingerprint(fingerprint: SessionFingerprint | undefined) {
+        this._fingerprint = fingerprint;
+    }
+
     /**
      * `true` once {@apilink Session.retire|`retire()`} has been called. Retirement is terminal:
      * a retired session is never picked by the pool and cannot be revived via `markGood()`.
@@ -156,6 +172,7 @@ export class Session implements ISession {
                 maxUsageCount: ow.optional.number,
                 retired: ow.optional.boolean,
                 log: ow.optional.object,
+                fingerprint: ow.optional.object,
             }),
         );
 
@@ -173,6 +190,7 @@ export class Session implements ISession {
             maxUsageCount = 50,
             retired = false,
             log = serviceLocator.getLogger(),
+            fingerprint,
         } = options;
 
         const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
@@ -181,6 +199,7 @@ export class Session implements ISession {
 
         this._cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this._proxyInfo = proxyInfo;
+        this._fingerprint = fingerprint;
         this.id = id;
         this.userData = userData;
         this._maxErrorScore = maxErrorScore;
@@ -252,6 +271,7 @@ export class Session implements ISession {
             cookieJar: this.cookieJar.toJSON()!,
             proxyInfo: this._proxyInfo,
             userData: this.userData,
+            fingerprint: this._fingerprint,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,
             expiresAt: this.expiresAt.toISOString(),
