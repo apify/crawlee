@@ -6,42 +6,20 @@ import type { SessionFingerprint } from '@crawlee/types';
  * windows, `desktop` mobile platforms) is left out so a randomized default
  * never produces a fingerprint that would itself be a giveaway.
  */
-const PROFILES_BY_PLATFORM: Record<
-    NonNullable<SessionFingerprint['platform']>,
-    Required<Pick<SessionFingerprint, 'browser' | 'platform' | 'device'>>[]
-> = {
-    windows: [
-        { browser: 'chrome', platform: 'windows', device: 'desktop' },
-        { browser: 'firefox', platform: 'windows', device: 'desktop' },
-        { browser: 'edge', platform: 'windows', device: 'desktop' },
-    ],
-    macos: [
-        { browser: 'chrome', platform: 'macos', device: 'desktop' },
-        { browser: 'firefox', platform: 'macos', device: 'desktop' },
-        { browser: 'safari', platform: 'macos', device: 'desktop' },
-        { browser: 'edge', platform: 'macos', device: 'desktop' },
-    ],
-    linux: [
-        { browser: 'chrome', platform: 'linux', device: 'desktop' },
-        { browser: 'firefox', platform: 'linux', device: 'desktop' },
-    ],
-    android: [
-        { browser: 'chrome', platform: 'android', device: 'mobile' },
-        { browser: 'firefox', platform: 'android', device: 'mobile' },
-    ],
-    ios: [{ browser: 'safari', platform: 'ios', device: 'mobile' }],
-};
-
-function getHostPlatform(): NonNullable<SessionFingerprint['platform']> {
-    switch (process.platform) {
-        case 'win32':
-            return 'windows';
-        case 'darwin':
-            return 'macos';
-        default:
-            return 'linux';
-    }
-}
+const PROFILES_BY_PLATFORM = [
+    { browser: 'chrome', platform: 'windows', device: 'desktop' },
+    { browser: 'firefox', platform: 'windows', device: 'desktop' },
+    { browser: 'edge', platform: 'windows', device: 'desktop' },
+    { browser: 'chrome', platform: 'macos', device: 'desktop' },
+    { browser: 'firefox', platform: 'macos', device: 'desktop' },
+    { browser: 'safari', platform: 'macos', device: 'desktop' },
+    { browser: 'edge', platform: 'macos', device: 'desktop' },
+    { browser: 'chrome', platform: 'linux', device: 'desktop' },
+    { browser: 'firefox', platform: 'linux', device: 'desktop' },
+    { browser: 'chrome', platform: 'android', device: 'mobile' },
+    { browser: 'firefox', platform: 'android', device: 'mobile' },
+    { browser: 'safari', platform: 'ios', device: 'mobile' },
+] as const;
 
 /**
  * Build a {@apilink SessionFingerprint} whose `platform` matches the host OS
@@ -51,6 +29,5 @@ function getHostPlatform(): NonNullable<SessionFingerprint['platform']> {
  * `fingerprint` in `sessionOptions`.
  */
 export function createDefaultSessionFingerprint(): SessionFingerprint {
-    const profiles = PROFILES_BY_PLATFORM[getHostPlatform()];
-    return { ...profiles[Math.floor(Math.random() * profiles.length)] };
+    return { ...PROFILES_BY_PLATFORM[Math.floor(Math.random() * PROFILES_BY_PLATFORM.length)] };
 }
