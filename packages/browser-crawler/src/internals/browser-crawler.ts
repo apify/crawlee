@@ -476,27 +476,6 @@ export abstract class BrowserCrawler<
         return false;
     }
 
-    /**
-     * Resolves the {@apilink IBrowserController} that owns the given page, or
-     * `undefined` when the pool does not expose controllers (custom
-     * {@apilink IBrowserPool} implementations).
-     *
-     * This is intentionally **not** part of the public crawling context — it is
-     * an implementation detail used internally for cookie injection and by
-     * subclasses that need direct controller access (e.g. StagehandCrawler).
-     */
-    protected _getBrowserControllerByPage(page: Page): ProvidedController | undefined {
-        if ('getBrowserControllerByPage' in this.browserPool) {
-            return (
-                this.browserPool as unknown as {
-                    getBrowserControllerByPage(page: Page): ProvidedController | undefined;
-                }
-            ).getBrowserControllerByPage(page);
-        }
-
-        return undefined;
-    }
-
     private async preparePage(
         crawlingContext: CrawlingContext,
     ): Promise<

@@ -428,14 +428,33 @@ export class StagehandCrawler<
     }
 
     /**
+     * Resolves the {@apilink StagehandController} that owns the given page, or
+     * `undefined` when the pool does not expose controllers (e.g. a custom
+     * {@apilink IBrowserPool} implementation).
+     *
+     * Stagehand needs direct controller access to reach the `Stagehand`
+     * instance bound to the page's browser, which is why it reaches past the
+     * {@apilink IBrowserPool} abstraction here.
+     */
+    private getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
+        if ('getBrowserControllerByPage' in this.browserPool) {
+            return (
+                this.browserPool as unknown as {
+                    getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined;
+                }
+            ).getBrowserControllerByPage(page);
+        }
+
+        return undefined;
+    }
+
+    /**
      * Enhance the page with Stagehand AI methods.
      */
     private async setUpStagehand(crawlingContext: {
         page: Page;
     }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
-        const controller = this._getBrowserControllerByPage(crawlingContext.page as StagehandPage) as
-            | StagehandController
-            | undefined;
+        const controller = this.getBrowserControllerByPage(crawlingContext.page as StagehandPage);
 
         if (!controller) {
             throw new Error(
