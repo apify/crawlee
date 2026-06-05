@@ -473,15 +473,22 @@ export interface CrawlerExperiments {
  *
  * `BasicCrawler` invokes the user-provided {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}
  * for each {@apilink Request} object, which represents a single URL to crawl.
- * The {@apilink Request} objects are fed from the {@apilink RequestList} or {@apilink RequestQueue}
- * instances provided by the {@apilink BasicCrawlerOptions.requestList|`requestList`} or {@apilink BasicCrawlerOptions.requestQueue|`requestQueue`}
- * constructor options, respectively. If neither `requestList` nor `requestQueue` options are provided,
- * the crawler will open the default request queue either when the {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} function is called,
- * or if `requests` parameter (representing the initial requests) of the {@apilink BasicCrawler.run|`crawler.run()`} function is provided.
+ * The {@apilink Request} objects are fed from the {@apilink IRequestManager|request manager} provided via the
+ * {@apilink BasicCrawlerOptions.requestManager|`requestManager`} constructor option (a {@apilink RequestQueue} is
+ * itself a request manager). If no `requestManager` is provided, the crawler opens the default {@apilink RequestQueue}
+ * either when the {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} function is called, or if the `requests`
+ * parameter (representing the initial requests) of the {@apilink BasicCrawler.run|`crawler.run()`} function is provided.
  *
- * If both {@apilink BasicCrawlerOptions.requestList|`requestList`} and {@apilink BasicCrawlerOptions.requestQueue|`requestQueue`} options are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to the {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * To read requests from a read-only source such as a {@apilink RequestList} or {@apilink SitemapRequestList} while
+ * still being able to enqueue new ones, combine the loader with a queue into a {@apilink RequestManagerTandem} using
+ * {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the result as `requestManager`. The tandem
+ * first processes URLs from the loader and automatically enqueues them into the queue, ensuring a single URL is not
+ * crawled multiple times.
+ *
+ * > The legacy {@apilink BasicCrawlerOptions.requestList|`requestList`} and
+ * > {@apilink BasicCrawlerOptions.requestQueue|`requestQueue`} options are deprecated. They are still accepted and
+ * > folded into a single `requestManager` (combined into a tandem when both are given), but new code should use
+ * > `requestManager` directly.
  *
  * The crawler finishes if there are no more {@apilink Request} objects to crawl.
  *

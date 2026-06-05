@@ -255,15 +255,18 @@ export interface BrowserCrawlerOptions<
  * If the target website doesn't need JavaScript, we should consider using the {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented by the {@apilink Request} objects that are fed from the {@apilink RequestList} or {@apilink RequestQueue} instances
- * provided by the {@apilink BrowserCrawlerOptions.requestList|`requestList`} or {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`}
- * constructor options, respectively. If neither `requestList` nor `requestQueue` options are provided,
+ * The source URLs are represented by the {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink BrowserCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). If no `requestManager` is provided,
  * the crawler will open the default request queue either when the {@apilink BrowserCrawler.addRequests|`crawler.addRequests()`} function is called,
  * or if `requests` parameter (representing the initial requests) of the {@apilink BrowserCrawler.run|`crawler.run()`} function is provided.
  *
- * If both {@apilink BrowserCrawlerOptions.requestList|`requestList`} and {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`} options are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to the {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * To read from a read-only source such as a {@apilink RequestList} while still being able to enqueue new requests,
+ * combine it with a queue into a {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`}
+ * and pass the result as `requestManager`.
+ *
+ * > The {@apilink BrowserCrawlerOptions.requestList|`requestList`} and {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
