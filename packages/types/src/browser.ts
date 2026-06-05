@@ -65,6 +65,17 @@ export interface BrowserLikeResponse {
 }
 
 /**
+ * A snapshot of the relevant state of a page, as extracted by
+ * {@apilink IBrowserPool.extractPageState}.
+ */
+export interface PageState {
+    /**
+     * Cookies currently set in the page's browsing context.
+     */
+    cookies: Cookie[];
+}
+
+/**
  * Options accepted by {@apilink IBrowserPool.newPage}.
  */
 export interface NewPageOptions {
@@ -136,4 +147,13 @@ export interface IBrowserPool<Page = unknown> {
      *   controller that served the page).
      */
     closePage(page: Page, options?: { error?: Error }): Promise<void>;
+
+    /**
+     * Extracts the relevant state from a page so the caller can persist it —
+     * for example, back-propagating cookies into the crawling {@apilink
+     * ISession|session}.
+     *
+     * @param page The page to read state from.
+     */
+    extractPageState(page: Page): Promise<PageState>;
 }

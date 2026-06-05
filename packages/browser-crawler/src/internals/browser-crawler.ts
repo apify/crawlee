@@ -591,13 +591,9 @@ export abstract class BrowserCrawler<
         // save cookies
         // TODO: Should we save the cookies also after/only the handle page?
         if (this.saveResponseCookies) {
-            const controller = this._getBrowserControllerByPage(crawlingContext.page);
-
-            if (controller) {
-                const cookies = await controller.getCookies(crawlingContext.page);
-                tryCancel();
-                crawlingContext.session?.setCookies(cookies, crawlingContext.request.loadedUrl!);
-            }
+            const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
+            tryCancel();
+            crawlingContext.session.setCookies(cookies, crawlingContext.request.loadedUrl!);
         }
 
         if (response !== undefined) {
@@ -629,11 +625,11 @@ export abstract class BrowserCrawler<
     }
 
     protected async _applyCookies(
-        { session, request, page }: BrowserCrawlingContext,
+        { session, request, page }: BrowserCrawlingContext<Page, Response, ProvidedController>,
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
-        const controller = this._getBrowserControllerByPage(page as Page);
+        const controller = this._getBrowserControllerByPage(page);
         if (!controller) return;
 
         const sessionCookie = session?.getCookies(request.url) ?? [];

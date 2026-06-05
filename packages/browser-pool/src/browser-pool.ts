@@ -1,5 +1,5 @@
 import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
-import type { IBrowserPool, NewPageOptions } from '@crawlee/types';
+import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -682,6 +682,21 @@ export class BrowserPool<
         }
 
         await page.close();
+    }
+
+    /**
+     * Extracts the relevant state (currently just cookies) from a page via its
+     * owning {@apilink BrowserController}. Returns empty state when the page is
+     * no longer associated with a controller.
+     */
+    async extractPageState(page: PageReturn): Promise<PageState> {
+        const controller = this.getBrowserControllerByPage(page);
+
+        if (!controller) {
+            return { cookies: [] };
+        }
+
+        return { cookies: await controller.getCookies(page) };
     }
 
     /**
