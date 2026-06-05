@@ -14,7 +14,6 @@ import BasicOperationsSource from '!!raw-loader!./request_storage_queue_basic.ts
 import CrawlerExplicitSource from '!!raw-loader!./request_storage_queue_crawler_explicit.ts';
 import CrawlerSource from '!!raw-loader!./request_storage_queue_crawler.ts';
 
-import RequestQueueListSource from '!!raw-loader!./request_storage_queue_list.ts';
 import RequestQueueAddRequestsSource from '!!raw-loader!./request_storage_queue_only.ts';
 
 Crawlee has several request storage types that are useful for specific tasks. The requests are stored on local disk to a directory defined by the `CRAWLEE_STORAGE_DIR` environment variable. If this variable is not defined, by default Crawlee sets `CRAWLEE_STORAGE_DIR` to `./storage` in the current working directory.
@@ -67,71 +66,17 @@ The following code demonstrates the usage of the request queue:
 
 To see more detailed example of how to use the request queue with a crawler, see the [Puppeteer Crawler](/js/docs/examples/puppeteer-crawler) example.
 
-## Request list
+The request queue is not optimized for adding numerous URLs in a single batch — historically, requests were added one by one. To enqueue a large set of initial URLs efficiently, use the <ApiLink to="core/class/RequestQueue#addRequests">`addRequests()`</ApiLink> method (or simply pass the URLs to `crawler.run()`), which adds requests in batches:
 
-The request list is not a storage per se - it represents the list of URLs to crawl that is stored in a crawler run memory (or optionally in default [Key-Value Store](../guides/result-storage#key-value-store) associated with the run, if specified). The list is used for the crawling of a large number of URLs, when we know all the URLs which should be visited by the crawler and no URLs would be added during the run. The URLs can be provided either in code or parsed from a text file hosted on the web.
+<CodeBlock language="js">
+    {RequestQueueAddRequestsSource}
+</CodeBlock>
 
-Request list is created exclusively for the crawler run and only if its usage is explicitly specified in the code. Its usage is optional.
+## Reading requests from other sources
 
-In Crawlee, the request list is represented by the <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> class.
+Sometimes you don't want to start from a dynamic queue, but from a static list of URLs (for example, parsed from a file) or from a website's sitemap. Crawlee provides **request loaders** for these read-only sources — <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="core/class/SitemapRequestList">`SitemapRequestList`</ApiLink> — which can be combined with a request queue when you also need to enqueue requests discovered during the crawl.
 
-The following code demonstrates basic operations of the request list:
-
-```javascript
-import { RequestList, PuppeteerCrawler } from 'crawlee';
-
-// Prepare the sources array with URLs to visit
-const sources = [
-    { url: 'http://www.example.com/page-1' },
-    { url: 'http://www.example.com/page-2' },
-    { url: 'http://www.example.com/page-3' },
-];
-
-// Open the request list.
-// List name is used to persist the sources and the list state in the key-value store
-const requestList = await RequestList.open('my-list', sources);
-
-// The crawler will automatically process requests from the list
-// It's used the same way for Cheerio /Playwright crawlers.
-const crawler = new PuppeteerCrawler({
-    requestList,
-    async requestHandler({ page, request }) {
-        // Process the page (extract data, take page screenshot, etc).
-        // No more requests could be added to the request list here
-    },
-});
-```
-
-## Which one to choose?
-
-When using Request queue - we would normally have several start URLs (e.g. category pages on e-commerce website) and then recursively add more (e.g. individual item pages) programmatically to the queue, it supports dynamic adding and removing of requests. No more URLs can be added to Request list after its initialization as it is immutable, URLs cannot be removed from the list either.
-
-On the other hand, the Request queue is not optimized for adding or removing numerous URLs in a batch. This is technically possible, but requests are added one by one to the queue, and thus it would take significant time with a larger number of requests. Request list however can contain even millions of URLs, and it would take significantly less time to add them to the list, compared to the queue.
-
-Note that Request queue and Request list can be used together by the same crawler. In such cases, each request from the Request list is enqueued into the Request queue first (to the foremost position in the queue, even if Request queue is not empty) and then consumed from the latter. This is necessary to avoid the same URL being processed more than once (from the list first and then possibly from the queue). In practical terms, such a combination can be useful when there are numerous initial URLs, but more URLs would be added dynamically by the crawler.
-
-:::tip
-
-In Crawlee, there is not much need to combine the request queue together with the request list (although it's technically possible).
-
-Previously there was no way to add the initial requests to the queue in batches (to add an array of requests), i.e. we could have only added the requests one by one to the queue with the help of <ApiLink to="core/class/RequestQueue#addRequest">`addRequest()`</ApiLink> function.
-
-However, now we could use the <ApiLink to="core/class/RequestQueue#addRequests">`addRequests()`</ApiLink> function, which adds requests in batches. Thus, instead of combining the request queue and the request list, we can use only the request queue for such use-cases now. See the examples below.
-
-:::
-
-<Tabs groupId="queue_list">
-    <TabItem value="add_requests" label="Request Queue" default>
-        <CodeBlock language="js">
-            {RequestQueueAddRequestsSource}
-        </CodeBlock>
-    </TabItem>
-    <TabItem value="queue_list" label="Request Queue + Request List">
-        <CodeBlock language="js">
-            {RequestQueueListSource}
-        </CodeBlock>
-    </TabItem>
-</Tabs>
+See the dedicated [Request loaders](./request-loaders) guide for details on loaders, request managers, and how to combine them with a queue into a <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>.
 
 ## Cleaning up the storages
 
