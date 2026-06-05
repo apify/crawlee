@@ -70,6 +70,8 @@ import type {
     BaseHttpClient,
     BatchAddRequestsResult,
     Dictionary,
+    ISession,
+    ISessionPool,
     ProxyInfo,
     SetStatusMessageOptions,
     StorageClient,
@@ -302,11 +304,14 @@ export interface BasicCrawlerOptions<
     keepAlive?: boolean;
 
     /**
-     * An existing {@apilink SessionPool} instance to use. When provided, the crawler will use this
-     * pool directly instead of creating a new one, enabling session sharing across multiple crawlers.
-     * The crawler will not tear down a shared pool — the caller is responsible for its lifecycle.
+     * An existing session pool instance to use. When provided, the crawler will use this pool directly instead of
+     * creating a new one, enabling session sharing across multiple crawlers. The crawler will not tear down a shared
+     * pool — the caller is responsible for its lifecycle.
+     *
+     * Accepts the built-in {@apilink SessionPool} or any object implementing the {@apilink ISessionPool} interface,
+     * so custom session-management strategies can be plugged in.
      */
-    sessionPool?: SessionPool;
+    sessionPool?: ISessionPool;
 
     /**
      * Defines the length of the interval for calling the `setStatusMessage` in seconds.
@@ -533,6 +538,13 @@ export class BasicCrawler<
     private static useStateCrawlerIds = new Set<string>();
 
     /**
+     * Tracks the number of crawler instances created. The first crawler uses the default
+     * request queue; subsequent ones get their own queue via a unique alias so they don't
+     * collide.
+     */
+    private static instanceCount = 0;
+
+    /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
      */
     readonly stats: Statistics;
@@ -556,14 +568,25 @@ export class BasicCrawler<
     protected requestManager?: IRequestManager;
 
     /**
-     * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
+     * A reference to the underlying session pool that manages the crawler's {@apilink Session|sessions}. Typed as
+     * {@apilink ISessionPool} so custom implementations can be plugged in via the `sessionPool` constructor option.
      */
-    sessionPool: SessionPool;
+    sessionPool: ISessionPool;
 
     /**
-     * Indicates whether the crawler owns the session pool (it was not passed from the outside using the `sessionPool` constructor option).
+     * Set when the crawler constructed its own {@apilink SessionPool} (no `sessionPool` option was provided).
+     * Holds the same instance as `sessionPool`, but typed as the concrete class so the crawler can call
+     * lifecycle methods (`resetStore`, `teardown`) that aren't part of {@apilink ISessionPool}. A user-supplied
+     * pool is never owned and never torn down by the crawler.
      */
-    private ownsSessionPool: boolean;
+    private ownedSessionPool?: SessionPool;
+
+    /**
+     * Set when the crawler constructed its own {@apilink RequestQueue} (no `requestQueue`/`requestManager`
+     * option was provided). The owned queue is purged (not dropped) between repeated `run()` calls.
+     * A user-supplied queue is never purged by the crawler.
+     */
+    private ownedRequestQueue?: RequestProvider;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
@@ -652,6 +675,7 @@ export class BasicCrawler<
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
     private readonly crawlerId: string;
     private readonly hasExplicitId: boolean;
+    private readonly crawlerInstanceIndex: number;
     private readonly contextPipelineOptions: {
         contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
         extendContext?: (context: Context) => Awaitable<ContextExtension>;
@@ -675,7 +699,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
-        sessionPool: ow.optional.object.instanceOf(SessionPool),
+        sessionPool: ow.optional.object.validate(validators.sessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
         statusMessageLoggingInterval: ow.optional.number,
@@ -794,6 +818,7 @@ export class BasicCrawler<
             this.hasExplicitId = id !== undefined;
             // Store the user-provided ID, or generate a unique one for tracking purposes (not for state key)
             this.crawlerId = id ?? cryptoRandomObjectId();
+            this.crawlerInstanceIndex = BasicCrawler.instanceCount++;
 
             if (requestManager !== undefined) {
                 if (requestList !== undefined || requestQueue !== undefined) {
@@ -866,9 +891,10 @@ export class BasicCrawler<
                 );
             }
 
-            this.sessionPool =
-                sessionPool ??
-                new SessionPool({
+            if (sessionPool) {
+                this.sessionPool = sessionPool;
+            } else {
+                this.ownedSessionPool = new SessionPool({
                     createSessionFunction: async (opts) =>
                         new Session({
                             ...opts?.sessionOptions,
@@ -876,8 +902,8 @@ export class BasicCrawler<
                                 opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
                         }),
                 });
-
-            this.ownsSessionPool = !sessionPool;
+                this.sessionPool = this.ownedSessionPool;
+            }
 
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
@@ -1111,26 +1137,22 @@ export class BasicCrawler<
     private async resolveSession({ request }: { request: Request }) {
         const session = await this._timeoutAndRetry(
             async () => {
-                if (request.sessionId) {
-                    const existingSession = await this.sessionPool!.getSession(request.sessionId);
+                const existingSession = await this.sessionPool.getSession(request.sessionId);
 
-                    if (!existingSession) {
-                        throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
-                    }
-
-                    return existingSession;
+                if (!existingSession) {
+                    throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
                 }
 
-                return await this.sessionPool!.getSession();
+                return existingSession;
             },
             this.internalTimeoutMillis,
             `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
 
-        return { session, proxyInfo: session.proxyInfo };
+        return { session, proxyInfo: session?.proxyInfo };
     }
 
-    private async createContextHelpers({ request, session }: { request: Request; session: Session }) {
+    private async createContextHelpers({ request, session }: { request: Request; session: ISession }) {
         const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
             const requestQueue = await this.getRequestQueue();
 
@@ -1278,27 +1300,27 @@ export class BasicCrawler<
             );
         }
 
-        const { purgeRequestQueue = true, ...addRequestsOptions } = options ?? {};
+        const { purgeRequestQueue, ...addRequestsOptions } = options ?? {};
 
         if (this.hasFinishedBefore) {
             // When executing the run method for the second time explicitly,
-            // we need to purge the default RQ to allow processing the same requests again - this is important so users can
+            // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
-            // ignored - as a failed requests is still handled.
-            const isDefaultQueue = this.requestQueue?.name === 'default';
-            if (isDefaultQueue && purgeRequestQueue && this.requestQueue) {
-                await this.requestQueue.drop();
-                this.requestQueue = await this._getRequestQueue();
-                this.requestManager = undefined;
-                await this.initializeRequestManager();
+            // ignored — as a failed request is still handled.
+            // By default (purgeRequestQueue unset or true), only the queue we created ourselves (ownedRequestQueue) is purged.
+            // When `purgeRequestQueue` is explicitly `true`, we also purge a user-supplied queue.
+            // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
+            const shouldPurge = purgeRequestQueue !== false;
+            const queueToPurge = this.ownedRequestQueue ?? (purgeRequestQueue === true ? this.requestQueue : undefined);
+
+            if (queueToPurge && shouldPurge) {
+                await queueToPurge.purge();
                 this.handledRequestsCount = 0; // This would've been reset by this._init() further down below, but at that point `handledRequestsCount` could prevent `addRequests` from adding the initial requests
             }
 
             this.stats.reset();
             await this.stats.resetStore();
-            if (this.ownsSessionPool) {
-                await this.sessionPool.resetStore();
-            }
+            await this.ownedSessionPool?.resetStore();
         }
 
         this.unexpectedStop = false;
@@ -1421,6 +1443,7 @@ export class BasicCrawler<
 
         if (!this.requestQueue) {
             this.requestQueue = await this._getRequestQueue();
+            this.ownedRequestQueue = this.requestQueue;
             this.requestManager = undefined;
         }
 
@@ -2241,9 +2264,7 @@ export class BasicCrawler<
             await serviceLocator.getEventManager().close();
         }
 
-        if (this.ownsSessionPool) {
-            await this.sessionPool.teardown();
-        }
+        await this.ownedSessionPool?.teardown();
 
         await this.autoscaledPool?.abort();
     }
@@ -2260,6 +2281,11 @@ export class BasicCrawler<
     }
 
     private async _getRequestQueue() {
+        // The first crawler instance uses the default queue (null identifier);
+        // subsequent instances get their own queue via a unique alias so they don't collide.
+        const identifier =
+            this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
+
         // Check if it's explicitly disabled
         // oxlint-disable-next-line typescript/no-deprecated -- still honored for opt-out until the flag is removed
         if (this.experiments.requestLocking === false) {
@@ -2270,10 +2296,10 @@ export class BasicCrawler<
                 this._experimentWarnings.requestLocking = true;
             }
 
-            return RequestQueueV1.open(null, { config: serviceLocator.getConfiguration() });
+            return RequestQueueV1.open(identifier, { config: serviceLocator.getConfiguration() });
         }
 
-        return RequestQueue.open(null, { config: serviceLocator.getConfiguration() });
+        return RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
     }
 
     private requestMatchesEnqueueStrategy(request: Request) {
@@ -2337,7 +2363,7 @@ export class BasicCrawler<
 
 export interface CreateContextOptions {
     request: Request;
-    session: Session;
+    session: ISession;
     proxyInfo?: ProxyInfo;
 }
 
@@ -2347,9 +2373,14 @@ export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {}
 
 export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
     /**
-     * Whether to purge the RequestQueue before running the crawler again. Defaults to true, so it is possible to reprocess failed requests.
-     * When disabled, only new requests will be considered. Note that even a failed request is considered as handled.
-     * @default true
+     * Controls whether the request queue is purged between repeated `run()` calls on the same crawler instance.
+     * Purging clears all requests and resets internal counters, allowing the same URLs to be processed again.
+     *
+     * - **`undefined`** (default) — only the crawler's own (auto-created) queue is purged.
+     *   A user-supplied `requestQueue` is left untouched.
+     * - **`true`** — the queue is always purged, even if it was supplied by the user.
+     * - **`false`** — nothing is purged. Only genuinely new requests will be processed;
+     *   note that even a failed request is considered handled.
      */
     purgeRequestQueue?: boolean;
 }

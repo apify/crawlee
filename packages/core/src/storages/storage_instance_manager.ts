@@ -119,6 +119,33 @@ class StorageCache {
         }
     }
 
+    /**
+     * Ensure that the same string is not used as both a name and an alias for the same
+     * storage class + backend combination. Mirrors crawlee-python's `_check_name_alias_conflict`.
+     */
+    checkNameAliasConflict<T extends IStorage>(
+        cls: Constructor<T>,
+        { name, alias, clientCacheKey }: { name?: string; alias?: string; clientCacheKey: Hashable },
+    ): void {
+        if (alias) {
+            const existingByName = this.byName.get(cls)?.get(alias)?.get(clientCacheKey);
+            if (existingByName) {
+                throw new Error(
+                    `Cannot open storage with alias "${alias}" because a named storage with the same identifier already exists.`,
+                );
+            }
+        }
+        if (name) {
+            const existingByAlias = this.byAlias.get(cls)?.get(name)?.get(clientCacheKey);
+            if (existingByAlias) {
+                throw new Error(
+                    `Cannot open storage with name "${name}" because an alias storage with the same identifier already exists.` +
+                        ` If you meant to open the alias storage, use { alias: "${name}" } instead.`,
+                );
+            }
+        }
+    }
+
     /** Iterate all cached instances across all storage types. */
     *allValues(): IterableIterator<IStorage> {
         const seen = new Set<IStorage>();
@@ -222,6 +249,9 @@ export class StorageInstanceManager {
                 if (cached) return cached;
             }
 
+            // Prevent the same string from being used as both a name and an alias.
+            this.cache.checkNameAliasConflict(cls, { name, alias, clientCacheKey });
+
             // Cache miss — create the sub-client and storage instance.
             const subClient = await clientOpener();
             const storageInfo = await (
@@ -299,6 +329,7 @@ export interface DefaultStorageIdentifier {
  * - `string` → resolved via `storageExists` (ID-first, then name)
  * - `{ id }` → `{ id }`
  * - `{ name }` → `{ name }`
+ * - `{ alias }` → `{ alias }`
  */
 export async function resolveStorageIdentifier(
     identifier: string | StorageIdentifier | null | undefined,
@@ -322,6 +353,10 @@ export async function resolveStorageIdentifier(
 
     if (identifier.name) {
         return { name: identifier.name };
+    }
+
+    if ('alias' in identifier && identifier.alias) {
+        return { alias: identifier.alias };
     }
 
     // Empty object — treated as default storage.

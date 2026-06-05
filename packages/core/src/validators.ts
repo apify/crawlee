@@ -25,4 +25,9 @@ export const validators = {
         message: (label: string) =>
             `Expected argument '${label}' to implement the IBrowserPool interface (missing 'newPage' or 'closePage'), got something else.`,
     }),
+    sessionPool: (value: Dictionary) => ({
+        validator: ow.isValid(value, ow.object.hasKeys('getSession')),
+        message: (label: string) =>
+            `Expected argument '${label}' to implement the ISessionPool interface (missing 'getSession'), got something else.`,
+    }),
 };

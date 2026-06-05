@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, ISessionPool } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
@@ -129,7 +129,7 @@ export interface SessionPoolOptions {
  *
  * @category Scaling
  */
-export class SessionPool {
+export class SessionPool implements ISessionPool {
     private static nextId = 0;
 
     readonly id: string;
@@ -302,19 +302,6 @@ export class SessionPool {
      * If there is space for new session, it creates and returns new session.
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
-     */
-    async getSession(): Promise<Session>;
-
-    /**
-     * Gets session based on the provided session id or `undefined.
-     */
-    async getSession(sessionId: string): Promise<Session>;
-
-    /**
-     * Gets session.
-     * If there is space for new session, it creates and returns new session.
-     * If the session pool is full, it picks a session from the pool,
-     * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
     async getSession(sessionId?: string): Promise<Session | undefined> {
@@ -384,14 +371,8 @@ export class SessionPool {
             persistStateKey: this.persistStateKey,
         });
 
-        // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = serviceLocator.getConfiguration().persistStateIntervalMillis;
-        const timeoutSecs = persistStateIntervalMillis / 2_000;
         await this.keyValueStore
-            ?.setValue(this.persistStateKey, await this.getState(), {
-                timeoutSecs,
-                doNotRetryTimeouts: true,
-            })
+            ?.setValue(this.persistStateKey, await this.getState())
             .catch((error) =>
                 this.log.warning(`Failed to persist the session pool stats to ${this.persistStateKey}`, { error }),
             );

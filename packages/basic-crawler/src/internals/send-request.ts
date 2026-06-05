@@ -1,5 +1,5 @@
-import type { Request as CrawleeRequest, Session } from '@crawlee/core';
-import type { BaseHttpClient, HttpRequestOptions, SendRequestOptions } from '@crawlee/types';
+import type { Request as CrawleeRequest } from '@crawlee/core';
+import type { BaseHttpClient, HttpRequestOptions, ISession, SendRequestOptions } from '@crawlee/types';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -9,7 +9,7 @@ import type { BaseHttpClient, HttpRequestOptions, SendRequestOptions } from '@cr
  * @param originRequest The crawling request being processed.
  * @param session The user session associated with the current request.
  */
-export function createSendRequest(httpClient: BaseHttpClient, originRequest: CrawleeRequest, session: Session) {
+export function createSendRequest(httpClient: BaseHttpClient, originRequest: CrawleeRequest, session: ISession) {
     return async (
         overrideRequest: Partial<HttpRequestOptions> = {},
         overrideOptions: SendRequestOptions = {},

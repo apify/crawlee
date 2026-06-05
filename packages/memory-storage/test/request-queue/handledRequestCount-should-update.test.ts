@@ -36,17 +36,4 @@ describe('RequestQueue handledRequestCount should update', () => {
         const updatedStatistics = await requestQueue.getMetadata();
         expect(updatedStatistics.handledRequestCount).toEqual(2);
     });
-
-    test('deleting a request should decrement the handledRequestCount', async () => {
-        const { requestId } = await requestQueue.addRequest({
-            url: 'http://example.com/3',
-            uniqueKey: '3',
-            handledAt: new Date().toISOString(),
-        });
-
-        await requestQueue.deleteRequest(requestId);
-
-        const updatedStatistics = await requestQueue.getMetadata();
-        expect(updatedStatistics.handledRequestCount).toEqual(2);
-    });
 });

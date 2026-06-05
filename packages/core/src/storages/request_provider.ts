@@ -99,6 +99,14 @@ export interface IRequestManager {
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
 
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+
+    /**
+     * Remove all requests from the queue but keep the queue itself, resetting it
+     * so it can be reused (e.g. across multiple `crawler.run()` calls).
+     *
+     * Implementations that do not support purging may leave this `undefined`.
+     */
+    purge?(): Promise<void>;
 }
 
 export abstract class RequestProvider implements IStorage, IRequestManager {
@@ -722,8 +730,30 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.delete();
+        await this.client.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
+    }
+
+    /**
+     * Remove all requests from the queue but keep the queue itself, resetting it
+     * so it can be reused (e.g. across multiple `crawler.run()` calls).
+     */
+    async purge(): Promise<void> {
+        checkStorageAccess();
+
+        await this.client.purge();
+
+        // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
+        this.assumedTotalCount = 0;
+        this.assumedHandledCount = 0;
+        this.initialCount = 0;
+        this.initialHandledCount = 0;
+        this.queueHeadIds.clear();
+        this.requestCache.clear();
+        this.recentlyHandledRequestsCache.clear();
+        this.lastActivity = new Date();
+        this.isFinishedCalledWhileHeadWasNotEmpty = 0;
+        this.inProgressRequestBatchCount = 0;
     }
 
     /**

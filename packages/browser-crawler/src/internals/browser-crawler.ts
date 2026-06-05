@@ -10,11 +10,11 @@ import type {
     Request,
     RequestHandler,
     RequestProvider,
-    Session,
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
     BasicCrawler,
+    browserPoolCookieToToughCookie,
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
@@ -23,6 +23,7 @@ import {
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
+    toughCookieToBrowserPoolCookie,
     tryAbsoluteURL,
     validators,
 } from '@crawlee/basic';
@@ -37,7 +38,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool } from '@crawlee/types';
+import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool, ISession } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -424,7 +425,7 @@ export abstract class BrowserCrawler<
             action: this.preparePage.bind(this),
             cleanup: async (context: {
                 page: Page;
-                session: Session;
+                session: ISession;
                 registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
             }) => {
                 context.registerDeferredCleanup(async () => {
@@ -569,10 +570,19 @@ export abstract class BrowserCrawler<
 
         // save cookies
         // TODO: Should we save the cookies also after/only the handle page?
-        if (this.saveResponseCookies) {
+        if (this.saveResponseCookies && crawlingContext.session) {
             const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
             tryCancel();
-            crawlingContext.session.setCookies(cookies, crawlingContext.request.loadedUrl!);
+            const url = crawlingContext.request.loadedUrl!;
+            for (const cookie of cookies) {
+                try {
+                    crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
+                        ignoreError: false,
+                    });
+                } catch (e) {
+                    this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+                }
+            }
         }
 
         if (response !== undefined) {
@@ -608,7 +618,7 @@ export abstract class BrowserCrawler<
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
-        const sessionCookie = session?.getCookies(request.url) ?? [];
+        const sessionCookie = session?.cookieJar.getCookiesSync(request.url).map(toughCookieToBrowserPoolCookie) ?? [];
         const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
         const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 

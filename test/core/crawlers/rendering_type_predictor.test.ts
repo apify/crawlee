@@ -39,7 +39,7 @@ describe('RenderingTypePredictor', () => {
             await predictor['state'].persistState(); // Access private state for persistence
 
             // Verify state was persisted
-            const persistedRecord = await store.getRecord(persistStateKey);
+            const persistedRecord = await store.getValue(persistStateKey);
             expect(persistedRecord).not.toBeNull();
             expect(persistedRecord?.value).toBeDefined();
 
