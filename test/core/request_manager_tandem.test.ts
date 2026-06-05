@@ -106,7 +106,7 @@ describe('RequestManagerTandem', () => {
         const requestQueue = await RequestQueue.open();
 
         // Mock handledCount methods to return fixed values
-        vi.spyOn(requestList, 'handledCount').mockReturnValue(3);
+        vi.spyOn(requestList, 'handledCount').mockResolvedValue(3);
         vi.spyOn(requestQueue, 'handledCount').mockResolvedValue(2);
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
@@ -173,26 +173,28 @@ describe('RequestManagerTandem', () => {
         expect(await tandem.isEmpty()).toBe(true);
     });
 
-    test('handles failed batch transfer appropriately', async () => {
+    test('drops the request and marks it handled on the loader when transfer fails', async () => {
         const requestList = await RequestList.open(null, [
             { url: 'https://example.com/1' },
             { url: 'https://example.com/2' },
         ]);
         const requestQueue = await RequestQueue.open();
 
-        // Mock the queue's addRequests to simulate failure
-        vi.spyOn(requestQueue, 'addRequest').mockRejectedValue(new Error('Batch add failed'));
+        // Mock the queue's addRequest to simulate failure
+        vi.spyOn(requestQueue, 'addRequest').mockRejectedValue(new Error('Add failed'));
 
-        // Mock the reclaimRequest method to verify it's called
+        // The failed request must not be reclaimed, but marked as handled on the loader so it
+        // doesn't get stuck in the loader's in-progress state (matching crawlee-python behaviour).
         const reclaimSpy = vi.spyOn(requestList, 'reclaimRequest');
+        const markHandledSpy = vi.spyOn(requestList, 'markRequestHandled');
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
-        // Attempt to fetch which should trigger the batch transfer
+        // Attempt to fetch which should trigger the transfer
         await tandem.fetchNextRequest();
 
-        // Verify that reclaimRequest was called to reclaim the failed requests
-        expect(reclaimSpy).toHaveBeenCalled();
+        expect(reclaimSpy).not.toHaveBeenCalled();
+        expect(markHandledSpy).toHaveBeenCalled();
     });
 
     test('added requests are forwarded to the underlying RequestQueue', async () => {

@@ -237,7 +237,7 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(5);
+        expect(await list.handledCount()).toBe(5);
     });
 
     test('broken off sitemap load resurrects correctly and does not duplicate / lose requests', async () => {
@@ -250,7 +250,7 @@ describe('SitemapRequestList', () => {
             urls.add(request.url);
         }
 
-        expect(list.handledCount()).toBe(5);
+        expect(await list.handledCount()).toBe(5);
         expect(urls).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -268,12 +268,12 @@ describe('SitemapRequestList', () => {
         for await (const request of list) {
             await list.markRequestHandled(request);
 
-            if (list.handledCount() >= 2) {
+            if ((await list.handledCount()) >= 2) {
                 await list.teardown();
             }
         }
 
-        expect(list.handledCount()).toBe(2);
+        expect(await list.handledCount()).toBe(2);
         await expect(list.isFinished()).resolves.toBe(true);
         await expect(list.fetchNextRequest()).resolves.toBe(null);
     });
@@ -288,7 +288,7 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(4);
+        expect(await list.handledCount()).toBe(4);
     });
 
     test('regexps filtering works', async () => {
@@ -301,7 +301,7 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(2);
+        expect(await list.handledCount()).toBe(2);
     });
 
     test('exclude filtering works', async () => {
@@ -314,7 +314,7 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(3);
+        expect(await list.handledCount()).toBe(3);
     });
 
     test('draining the request list between sitemaps', async () => {
@@ -349,7 +349,7 @@ describe('SitemapRequestList', () => {
         expect(secondBatch).toHaveLength(5);
 
         await expect(list.isFinished()).resolves.toBe(true);
-        expect(list.handledCount()).toBe(7);
+        expect(await list.handledCount()).toBe(7);
     });
 
     test('for..await syntax works with SitemapRequestList', async () => {
@@ -360,7 +360,7 @@ describe('SitemapRequestList', () => {
         }
 
         await expect(list.isFinished()).resolves.toBe(true);
-        expect(list.handledCount()).toBe(7);
+        expect(await list.handledCount()).toBe(7);
     });
 
     test('aborting long sitemap load works', async () => {
@@ -380,7 +380,7 @@ describe('SitemapRequestList', () => {
 
         await expect(list.isFinished()).resolves.toBe(true);
         expect(list.isSitemapFullyLoaded()).toBe(false);
-        expect(list.handledCount()).toBe(2);
+        expect(await list.handledCount()).toBe(2);
     });
 
     test('timeout option works', async () => {
@@ -395,7 +395,7 @@ describe('SitemapRequestList', () => {
 
         await expect(list.isFinished()).resolves.toBe(true);
         expect(list.isSitemapFullyLoaded()).toBe(false);
-        expect(list.handledCount()).toBe(2);
+        expect(await list.handledCount()).toBe(2);
     });
 
     test('resurrection does not resume aborted loading', async () => {
@@ -419,7 +419,7 @@ describe('SitemapRequestList', () => {
             await newList.markRequestHandled(request);
         }
 
-        expect(newList.handledCount()).toBe(2);
+        expect(await newList.handledCount()).toBe(2);
     });
 
     test('processing the whole list', async () => {
@@ -444,7 +444,7 @@ describe('SitemapRequestList', () => {
             'http://not-exists.com/catalog?item=83&desc=vacation_usa',
         ]);
 
-        expect(list.handledCount()).toEqual(5);
+        expect(await list.handledCount()).toEqual(5);
     });
 
     test('processing the whole list with reclaiming', async () => {
@@ -479,7 +479,7 @@ describe('SitemapRequestList', () => {
             ]),
         );
 
-        expect(list.handledCount()).toEqual(5);
+        expect(await list.handledCount()).toEqual(5);
     });
 
     test('persists state', async () => {
@@ -500,8 +500,8 @@ describe('SitemapRequestList', () => {
             await newList.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(1);
-        expect(newList.handledCount()).toBe(2);
+        expect(await list.handledCount()).toBe(1);
+        expect(await newList.handledCount()).toBe(2);
     });
 
     test("calling `persistState` doesn't throw", async () => {
@@ -510,7 +510,7 @@ describe('SitemapRequestList', () => {
         for await (const request of list) {
             await list.markRequestHandled(request);
 
-            if (list.handledCount() >= 2) break;
+            if ((await list.handledCount()) >= 2) break;
         }
 
         await expect(list.persistState()).resolves.toBe(undefined);

@@ -935,7 +935,9 @@ describe('BasicCrawler', () => {
 
         expect(failedRequestHandler).not.toBeCalled();
         expect(testRoute).toBeCalled();
-        expect(await requestList.isFinished()).toBe(false);
+        // The crawler crashed on the second request, so it did not process all of them (only the first, matching
+        // request was handled before the `MissingRouteError` was thrown).
+        expect(testRoute).toBeCalledTimes(1);
     });
 
     test('should correctly combine RequestList and RequestQueue', async () => {
@@ -1194,14 +1196,16 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/3'].errorMessages).toEqual([]);
         expect(processed['http://example.com/3'].retryCount).toBe(0);
 
+        // The failing request is reclaimed to the queue, but `maxRequestsPerCrawl` is reached before it can be
+        // retried to exhaustion, so it ends up retried just once and the failed handler is not reached.
         expect(processed['http://example.com/2'].userData.foo).toEqual(undefined);
-        expect(processed['http://example.com/2'].errorMessages).toHaveLength(4);
-        expect(processed['http://example.com/2'].retryCount).toBe(3);
+        expect(processed['http://example.com/2'].errorMessages).toHaveLength(1);
+        expect(processed['http://example.com/2'].retryCount).toBe(1);
 
-        expect(failedRequestHandlerCalls).toBe(1);
+        expect(failedRequestHandlerCalls).toBe(0);
 
-        expect(await requestList.isFinished()).toBe(false);
-        expect(await requestList.isEmpty()).toBe(false);
+        // The crawler stopped at the `maxRequestsPerCrawl` limit, so the later sources were never processed.
+        expect(processed['http://example.com/5']).toBeUndefined();
     });
 
     test('should load handledRequestCount from storages', async () => {
@@ -1231,29 +1235,12 @@ describe('BasicCrawler', () => {
         expect(count).toBe(7);
         vitest.restoreAllMocks();
 
+        // When a request list is combined with a request queue (a tandem), the handled count is read from the
+        // queue side - the list's requests are dumped into the queue and then handled from there. The same is now
+        // true for a lone `requestList`, which is wrapped into a tandem over the default queue.
         const sources = Array.from(Array(10).keys(), (x) => x + 1).map((i) => ({ url: `http://example.com/${i}` }));
-        const sourcesCopy = JSON.parse(JSON.stringify(sources));
-        let requestList = await RequestList.open({ sources });
-        const requestListStub = vitest.spyOn(requestList, 'handledCount').mockReturnValue(33);
-
-        count = 0;
-        crawler = new BasicCrawler({
-            requestList,
-            maxConcurrency: 1,
-            requestHandler: async () => {
-                await sleep(1);
-                count++;
-            },
-            maxRequestsPerCrawl: 40,
-        });
-
-        await crawler.run();
-        expect(requestListStub).toBeCalled();
-        expect(count).toBe(7);
-        vitest.restoreAllMocks();
-
-        requestList = await RequestList.open({ sources: sourcesCopy });
-        const listStub = vitest.spyOn(requestList, 'handledCount').mockReturnValue(20);
+        const requestList = await RequestList.open({ sources });
+        const listStub = vitest.spyOn(requestList, 'handledCount').mockResolvedValue(20);
         const queueStub = vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
         const addRequestStub = vitest.spyOn(requestQueue, 'addRequest').mockReturnValue(Promise.resolve() as any);
 

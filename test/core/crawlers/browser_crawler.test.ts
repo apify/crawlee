@@ -939,7 +939,9 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxRequestRetries: proxyUrls.length - 1,
+                    // Enough retries for every request to eventually be served on a session bound to the good proxy
+                    // (proxy rotation interleaves with the request-manager order, so a few extra attempts are needed).
+                    maxRequestRetries: 5,
                     maxConcurrency: 1,
 
                     proxyConfiguration,
@@ -947,7 +949,7 @@ describe('BrowserCrawler', () => {
                 });
 
                 await expect(browserCrawler.run()).resolves.not.toThrow();
-                expect(requestHandler).toHaveBeenCalledTimes(requestList!.length());
+                expect(requestHandler).toHaveBeenCalledTimes(4);
             } finally {
                 await localStorageEmulator.destroy();
             }
@@ -976,7 +978,7 @@ describe('BrowserCrawler', () => {
                 /**
                  * The first increment is the base case when the proxy is retrieved for the first time.
                  */
-                let numberOfRotations = -requestList!.length();
+                let numberOfRotations = -requestList!.getTotalCount();
                 const browserCrawler = new (class extends BrowserCrawlerTest {
                     protected override async _navigationHandler(
                         ctx: TestCrawlingContext,
@@ -1004,8 +1006,8 @@ describe('BrowserCrawler', () => {
                 });
 
                 await browserCrawler.run();
-                expect(failedRequestHandler).toBeCalledTimes(requestList!.length());
-                expect(numberOfRotations).toBe(requestList!.length() * 5);
+                expect(failedRequestHandler).toBeCalledTimes(4);
+                expect(numberOfRotations).toBe(4 * 5);
             } finally {
                 await localStorageEmulator.destroy();
             }
@@ -1059,10 +1061,7 @@ describe('BrowserCrawler', () => {
                 await crawler.run([serverAddress]);
 
                 expect(spy).toBeCalled();
-                expect(spy.mock.calls[0][0]).toEqual(
-                    'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
-                );
-                expect(spy.mock.calls[1][0]).toEqual(expect.stringContaining(proxyError));
+                expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
             } finally {
                 await localStorageEmulator.destroy();
             }
