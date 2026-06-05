@@ -1466,14 +1466,6 @@ export class BasicCrawler<
     }
 
     /**
-     * @deprecated Use {@apilink BasicCrawler.getRequestManager|`getRequestManager()`} instead. This returns the
-     * crawler's request manager, which is no longer guaranteed to be a {@apilink RequestProvider}.
-     */
-    async getRequestQueue(): Promise<IRequestManager> {
-        return this.getRequestManager();
-    }
-
-    /**
      * Overrides the default internal timeouts of a {@apilink RequestProvider} to respect `requestHandlerTimeoutMillis`.
      */
     private applyRequestQueueTimeouts(requestQueue: RequestProvider): void {

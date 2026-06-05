@@ -693,9 +693,9 @@ A lone `requestList` now runs through a tandem over an auto-opened queue (rather
 
 The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.
 
-### `getRequestQueue()` renamed to `getRequestManager()`
+### `getRequestQueue()` replaced by `getRequestManager()`
 
-`BasicCrawler.getRequestQueue()` is deprecated in favor of `getRequestManager()`, which returns an `IRequestManager` (no longer guaranteed to be a `RequestProvider`/`RequestQueue`). The old name remains as a deprecated shim returning the same value.
+`BasicCrawler.getRequestQueue()` is removed. Use `getRequestManager()` instead, which returns an `IRequestManager` (no longer guaranteed to be a `RequestProvider`/`RequestQueue`).
 
 **Before:**
 ```typescript
