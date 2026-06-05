@@ -13,7 +13,8 @@ import type { CrawleeLogger } from '../log.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { IRequestList } from './request_list.js';
+import type { IRequestLoader } from './request_list.js';
+import type { IRequestManager } from './request_provider.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
@@ -125,7 +126,7 @@ interface SitemapRequestListState {
  *
  * The loading of the sitemap is performed in the background so that crawling can start before the sitemap is fully loaded.
  */
-export class SitemapRequestList implements IRequestList {
+export class SitemapRequestList implements IRequestLoader {
     /**
      * Set of URLs that were returned by `fetchNextRequest()` and not marked as handled yet.
      * @internal
@@ -447,8 +448,28 @@ export class SitemapRequestList implements IRequestList {
     /**
      * @inheritDoc
      */
-    length(): number {
+    getTotalCount(): number {
         return this.urlQueueStream.readableLength + this.handledUrlCount - this.inProgress.size - this.reclaimed.size;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    getPendingCount(): number {
+        return this.getTotalCount() - this.handledUrlCount;
+    }
+
+    /**
+     * Combines this list with a request manager (a {@apilink RequestQueue} by default) into a
+     * {@apilink RequestManagerTandem}, allowing requests to be added and reclaimed while still
+     * being read from this list first.
+     */
+    async toTandem(requestManager?: IRequestManager): Promise<IRequestManager> {
+        // Import here to avoid circular imports.
+        const { RequestManagerTandem } = await import('./request_manager_tandem.js');
+        const { RequestQueue } = await import('./request_queue_v2.js');
+
+        return new RequestManagerTandem(this, requestManager ?? (await RequestQueue.open()));
     }
 
     /**
@@ -470,7 +491,7 @@ export class SitemapRequestList implements IRequestList {
     /**
      * @inheritDoc
      */
-    handledCount(): number {
+    async handledCount(): Promise<number> {
         return this.handledUrlCount;
     }
 

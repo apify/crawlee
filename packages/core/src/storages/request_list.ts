@@ -10,6 +10,7 @@ import { type InternalSource, Request, type RequestOptions, type Source } from '
 import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
+import type { IRequestManager, RequestQueueOperationInfo } from './request_provider.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
@@ -21,13 +22,33 @@ export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
 /**
- * Represents a static list of URLs to crawl.
+ * An abstract interface defining a read-only stream of requests to crawl.
+ *
+ * Request loaders are used to manage and provide access to a storage of crawling requests.
+ *
+ * Key responsibilities:
+ * - Fetching the next request to be processed.
+ * - Marking requests as successfully handled after processing.
+ * - Managing state information such as the total and handled request counts.
+ *
+ * Concrete implementations such as {@apilink RequestList} or {@apilink SitemapRequestList} build on this interface.
+ * The {@apilink IRequestManager} interface extends it with the capability to enqueue and reclaim requests.
  */
-export interface IRequestList {
+export interface IRequestLoader {
     /**
-     * Returns the total number of unique requests present in the list.
+     * Returns an offline approximation of the total number of requests in the loader (i.e. pending + handled).
      */
-    length(): number;
+    getTotalCount(): number;
+
+    /**
+     * Returns an offline approximation of the number of pending requests in the loader.
+     */
+    getPendingCount(): number;
+
+    /**
+     * Returns the number of requests in the loader that have been handled.
+     */
+    handledCount(): Promise<number>;
 
     /**
      * Returns `true` if all requests were already handled and there are no more left.
@@ -35,58 +56,58 @@ export interface IRequestList {
     isFinished(): Promise<boolean>;
 
     /**
-     * Resolves to `true` if the next call to {@apilink IRequestList.fetchNextRequest} function
+     * Resolves to `true` if the next call to {@apilink IRequestLoader.fetchNextRequest} function
      * would return `null`, otherwise it resolves to `false`.
-     * Note that even if the list is empty, there might be some pending requests currently being processed.
+     * Note that even if the loader is empty, there might be some pending requests currently being processed.
      */
     isEmpty(): Promise<boolean>;
 
     /**
-     * Returns number of handled requests.
+     * Gets the next {@apilink Request} to process, or `null` if there are no more pending requests.
      */
-    handledCount(): number;
+    fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null>;
 
     /**
-     * Persists the current state of the `IRequestList` into the default {@apilink KeyValueStore}.
-     * The state is persisted automatically in regular intervals, but calling this method manually
-     * is useful in cases where you want to have the most current state available after you pause
-     * or stop fetching its requests. For example after you pause or abort a crawl. Or just before
-     * a server migration.
-     */
-    persistState(): Promise<void>;
-
-    /**
-     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
-     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
-     * Otherwise it gets the next request from sources.
-     *
-     * The function's `Promise` resolves to `null` if there are no more
-     * requests to process.
-     */
-    fetchNextRequest(): Promise<Request | null>;
-
-    /**
-     * Can be used to iterate over the `RequestList` instance in a `for await .. of` loop.
+     * Can be used to iterate over the loader instance in a `for await .. of` loop.
      * Provides an alternative for the repeated use of `fetchNextRequest`.
      */
     [Symbol.asyncIterator](): AsyncGenerator<Request>;
 
     /**
-     * Reclaims request to the list if its processing failed.
-     * The request will become available in the next `this.fetchNextRequest()`.
+     * Marks request as handled after successful processing (or after giving up retrying).
+     */
+    markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
+
+    /**
+     * Persists the current state of the loader into the default {@apilink KeyValueStore}.
+     *
+     * Not all loaders support persistence; implementations that do not should leave this `undefined`.
+     */
+    persistState?(): Promise<void>;
+
+    /**
+     * Combines the loader with a request manager to support adding and reclaiming requests.
+     *
+     * @param requestManager Request manager to combine the loader with. If not provided, the default
+     *  {@apilink RequestQueue} is used.
+     */
+    toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
+}
+
+/**
+ * A read-only {@apilink IRequestLoader} that can additionally reclaim failed requests back to itself.
+ *
+ * The {@apilink IRequestLoader} contract is intentionally read-only. However, the concrete loaders used as the
+ * read-only side of a {@apilink RequestManagerTandem} (such as {@apilink RequestList} or {@apilink SitemapRequestList})
+ * also support reclaiming requests, which the tandem relies on.
+ */
+export type ReclaimableRequestLoader = IRequestLoader & {
+    /**
+     * Reclaims a request to the loader if its processing failed.
+     * The request will become available again in a subsequent `fetchNextRequest()`.
      */
     reclaimRequest(request: Request): Promise<void>;
-
-    /**
-     * Marks request as handled after successful processing.
-     */
-    markRequestHandled(request: Request): Promise<void>;
-
-    /**
-     * @internal
-     */
-    inProgress: Set<string>;
-}
+};
 
 export interface RequestListOptions {
     /**
@@ -304,7 +325,7 @@ export interface RequestListOptions {
  * ```
  * @category Sources
  */
-export class RequestList implements IRequestList {
+export class RequestList implements IRequestLoader {
     private log: CrawleeLogger = serviceLocator.getLogger().child({ prefix: 'RequestList' });
 
     /**
@@ -868,16 +889,38 @@ export class RequestList implements IRequestList {
     /**
      * Returns the total number of unique requests present in the `RequestList`.
      */
-    length(): number {
+    getTotalCount(): number {
         this._ensureIsInitialized();
 
         return this.requests.length;
     }
 
     /**
+     * Returns an offline approximation of the number of pending requests in the `RequestList`.
+     */
+    getPendingCount(): number {
+        this._ensureIsInitialized();
+
+        return this.requests.length - (this.nextIndex - this.inProgress.size);
+    }
+
+    /**
+     * Combines this list with a request manager (a {@apilink RequestQueue} by default) into a
+     * {@apilink RequestManagerTandem}, allowing requests to be added and reclaimed while still
+     * being read from this list first.
+     */
+    async toTandem(requestManager?: IRequestManager): Promise<IRequestManager> {
+        // Import here to avoid circular imports.
+        const { RequestManagerTandem } = await import('./request_manager_tandem.js');
+        const { RequestQueue } = await import('./request_queue_v2.js');
+
+        return new RequestManagerTandem(this, requestManager ?? (await RequestQueue.open()));
+    }
+
+    /**
      * @inheritDoc
      */
-    handledCount(): number {
+    async handledCount(): Promise<number> {
         this._ensureIsInitialized();
 
         return this.nextIndex - this.inProgress.size;

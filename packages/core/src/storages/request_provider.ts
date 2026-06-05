@@ -33,6 +33,7 @@ import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
+import type { IRequestLoader } from './request_list.js';
 import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
@@ -41,55 +42,10 @@ import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './uti
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
 
 /**
- * Represents a provider of requests/URLs to crawl.
+ * Extends the read-only {@apilink IRequestLoader} interface with the capability to enqueue new requests
+ * and reclaim failed ones.
  */
-export interface IRequestManager {
-    /**
-     * Returns `true` if all requests were already handled and there are no more left.
-     */
-    isFinished(): Promise<boolean>;
-
-    /**
-     * Resolves to `true` if the next call to {@apilink IRequestManager.fetchNextRequest} function
-     * would return `null`, otherwise it resolves to `false`.
-     * Note that even if the provider is empty, there might be some pending requests currently being processed.
-     */
-    isEmpty(): Promise<boolean>;
-
-    /**
-     * Returns number of handled requests.
-     */
-    handledCount(): Promise<number>;
-
-    /**
-     * Get the total number of requests known to the request manager.
-     */
-    getTotalCount(): number;
-
-    /**
-     * Get an offline approximation of the number of pending requests.
-     */
-    getPendingCount(): number;
-
-    /**
-     * Gets the next {@apilink Request} to process.
-     *
-     * The function's `Promise` resolves to `null` if there are no more
-     * requests to process.
-     */
-    fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null>;
-
-    /**
-     * Can be used to iterate over the `RequestManager` instance in a `for await .. of` loop.
-     * Provides an alternative for the repeated use of `fetchNextRequest`.
-     */
-    [Symbol.asyncIterator](): AsyncGenerator<Request>;
-
-    /**
-     * Marks request as handled after successful processing.
-     */
-    markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
-
+export interface IRequestManager extends IRequestLoader {
     /**
      * Reclaims request to the provider if its processing failed.
      * The request will become available in the next `fetchNextRequest()`.

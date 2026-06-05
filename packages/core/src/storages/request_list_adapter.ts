@@ -1,7 +1,7 @@
 import type { Dictionary } from '@crawlee/types';
 
 import type { Request } from '../request.js';
-import type { IRequestList } from './request_list.js';
+import type { ReclaimableRequestLoader } from './request_list.js';
 import type {
     AddRequestsBatchedResult,
     IRequestManager,
@@ -10,60 +10,60 @@ import type {
 } from './request_provider.js';
 
 /**
- * Adapts the IRequestList interface to the IRequestManager interface.
+ * Adapts the {@apilink IRequestLoader} interface to the {@apilink IRequestManager} interface.
  * It simply throws an exception when inserting requests is attempted.
  * @internal
  */
 export class RequestListAdapter implements IRequestManager {
-    constructor(private requestList: IRequestList) {}
+    constructor(private requestLoader: ReclaimableRequestLoader) {}
 
     /**
      * @inheritdoc
      */
     async isFinished(): Promise<boolean> {
-        return this.requestList.isFinished();
+        return this.requestLoader.isFinished();
     }
 
     /**
      * @inheritdoc
      */
     async isEmpty(): Promise<boolean> {
-        return this.requestList.isEmpty();
+        return this.requestLoader.isEmpty();
     }
 
     /**
      * @inheritdoc
      */
     async handledCount(): Promise<number> {
-        return Promise.resolve(this.requestList.handledCount());
+        return this.requestLoader.handledCount();
     }
 
     /**
      * @inheritdoc
      */
     getTotalCount(): number {
-        return this.requestList.length();
+        return this.requestLoader.getTotalCount();
     }
 
     /**
      * @inheritdoc
      */
     getPendingCount(): number {
-        return this.requestList.length() - this.requestList.handledCount();
+        return this.requestLoader.getPendingCount();
     }
 
     /**
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
-        return await this.requestList.fetchNextRequest();
+        return await this.requestLoader.fetchNextRequest();
     }
 
     /**
      * @inheritdoc
      */
-    async markRequestHandled(request: Request): Promise<void> {
-        return this.requestList.markRequestHandled(request);
+    async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
+        return this.requestLoader.markRequestHandled(request);
     }
 
     /**
@@ -73,7 +73,7 @@ export class RequestListAdapter implements IRequestManager {
         request: Request,
         _options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        await this.requestList.reclaimRequest(request);
+        await this.requestLoader.reclaimRequest(request);
         return null;
     }
 
@@ -81,7 +81,7 @@ export class RequestListAdapter implements IRequestManager {
      * @inheritdoc
      */
     async *[Symbol.asyncIterator]() {
-        for await (const request of this.requestList) {
+        for await (const request of this.requestLoader) {
             yield request;
         }
     }
