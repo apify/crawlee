@@ -7,7 +7,7 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
-import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
@@ -27,7 +27,7 @@ import type {
 import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 
 export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {}
+    extends BrowserCrawlingContext<Page, Response, UserData>, PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 
@@ -37,7 +37,6 @@ export interface PlaywrightCrawlerOptions<
 > extends BrowserCrawlerOptions<
     Page,
     Response,
-    PlaywrightController,
     PlaywrightCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -178,7 +177,6 @@ export class PlaywrightCrawler<
 > extends BrowserCrawler<
     Page,
     Response,
-    PlaywrightController,
     { browserPlugins: [PlaywrightPlugin] },
     LaunchOptions,
     PlaywrightCrawlingContext,
@@ -246,7 +244,7 @@ export class PlaywrightCrawler<
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 
-    private async enhanceContext(context: BrowserCrawlingContext<Page, Response, PlaywrightController, Dictionary>) {
+    private async enhanceContext(context: BrowserCrawlingContext<Page, Response, Dictionary>) {
         const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             const locator = context.page.locator(selector).first();
             await locator.waitFor({ timeout: timeoutMs, state: 'attached' });

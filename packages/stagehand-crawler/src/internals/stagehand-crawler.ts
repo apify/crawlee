@@ -210,7 +210,6 @@ export interface StagehandPage extends Page {
 export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<
     StagehandPage,
     Response,
-    StagehandController,
     UserData
 > {
     /**
@@ -250,7 +249,6 @@ export interface StagehandCrawlerOptions<
 > extends BrowserCrawlerOptions<
     StagehandPage,
     Response,
-    StagehandController,
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -379,7 +377,6 @@ export class StagehandCrawler<
 > extends BrowserCrawler<
     StagehandPage,
     Response,
-    StagehandController,
     { browserPlugins: [StagehandPlugin] },
     LaunchOptions,
     StagehandCrawlingContext,

@@ -33,7 +33,6 @@ import type {
     BrowserPoolHooks,
     BrowserPoolOptions,
     CommonPage,
-    IBrowserController,
     InferBrowserPluginArray,
     LaunchContext,
 } from '@crawlee/browser-pool';
@@ -57,12 +56,8 @@ type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 export interface BrowserCrawlingContext<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    ProvidedController extends IBrowserController = IBrowserController,
     UserData extends Dictionary = Dictionary,
 > extends CrawlingContext<UserData> {
-    /** @internal Anchors the `ProvidedController` type parameter for subclass use. */
-    readonly __controllerType?: ProvidedController;
-
     /**
      * The browser page object where the web page is loaded and rendered.
      */
@@ -92,11 +87,9 @@ export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Di
 export interface BrowserCrawlerOptions<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    ProvidedController extends IBrowserController = IBrowserController,
-    Context extends BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary> = BrowserCrawlingContext<
+    Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<
         Page,
         Response,
-        ProvidedController,
         Dictionary
     >,
     ContextExtension = Dictionary<never>,
@@ -290,13 +283,11 @@ export interface BrowserCrawlerOptions<
 export abstract class BrowserCrawler<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    ProvidedController extends IBrowserController = IBrowserController,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     LaunchOptions extends Dictionary | undefined = Dictionary,
-    Context extends BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary> = BrowserCrawlingContext<
+    Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<
         Page,
         Response,
-        ProvidedController,
         Dictionary
     >,
     ContextExtension = Dictionary<never>,
@@ -346,14 +337,7 @@ export abstract class BrowserCrawler<
      * All `BrowserCrawler` parameters are passed via an options object.
      */
     protected constructor(
-        options: BrowserCrawlerOptions<
-            Page,
-            Response,
-            ProvidedController,
-            Context,
-            ContextExtension,
-            ExtendedContext
-        > & {
+        options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         },
     ) {
@@ -419,7 +403,7 @@ export abstract class BrowserCrawler<
 
     protected override buildContextPipeline(): ContextPipeline<
         CrawlingContext,
-        BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>
+        BrowserCrawlingContext<Page, Response, Dictionary>
     > {
         return ContextPipeline.create<CrawlingContext>().compose({
             action: this.preparePage.bind(this),
@@ -452,9 +436,7 @@ export abstract class BrowserCrawler<
         return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
-    protected async isRequestBlocked(
-        crawlingContext: BrowserCrawlingContext<Page, Response, ProvidedController>,
-    ): Promise<string | false> {
+    protected async isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
         const { page, response } = crawlingContext;
 
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
@@ -479,9 +461,7 @@ export abstract class BrowserCrawler<
 
     private async preparePage(
         crawlingContext: CrawlingContext,
-    ): Promise<
-        ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, ProvidedController, Dictionary>>
-    > {
+    ): Promise<ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>> {
         const page = await this.browserPool.newPage({
             id: crawlingContext.id,
             session: crawlingContext.session,
@@ -597,9 +577,7 @@ export abstract class BrowserCrawler<
         };
     }
 
-    private async handleBlockedRequestByContent(
-        crawlingContext: BrowserCrawlingContext<Page, Response, ProvidedController>,
-    ) {
+    private async handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
         if (this.retryOnBlocked) {
             const error = await this.isRequestBlocked(crawlingContext);
             if (error) throw new SessionError(error);
@@ -614,7 +592,7 @@ export abstract class BrowserCrawler<
     }
 
     protected async _applyCookies(
-        { session, request, page }: BrowserCrawlingContext<Page, Response, ProvidedController>,
+        { session, request, page }: BrowserCrawlingContext<Page, Response>,
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
@@ -652,7 +630,7 @@ export abstract class BrowserCrawler<
     }
 
     protected abstract _navigationHandler(
-        crawlingContext: BrowserCrawlingContext<Page, Response, ProvidedController>,
+        crawlingContext: BrowserCrawlingContext<Page, Response>,
         gotoOptions: GoToOptions,
     ): Promise<Context['response'] | null | undefined>;
 
