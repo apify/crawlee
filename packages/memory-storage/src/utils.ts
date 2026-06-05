@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { resolve, sep } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
@@ -6,6 +7,25 @@ import { s } from '@sapphire/shapeshift';
 import defaultLog from '@apify/log';
 
 import { REQUEST_ID_LENGTH } from './consts';
+
+/**
+ * Resolves `segment` against `baseDirectory` and ensures the result stays within `baseDirectory`.
+ * Storage names and record keys are used as filesystem path components, so a value containing `..`
+ * or an absolute path could otherwise escape the intended directory.
+ */
+export function resolveWithinDirectory(baseDirectory: string, segment: string): string {
+    const base = resolve(baseDirectory);
+    const resolved = resolve(base, segment);
+
+    if (resolved !== base && !resolved.startsWith(`${base}${sep}`)) {
+        throw new Error(
+            `"${segment}" is not allowed because it would resolve outside of the storage directory. ` +
+                `Storage names and record keys must not contain path traversal segments ("..") or absolute paths.`,
+        );
+    }
+
+    return resolved;
+}
 
 /**
  * Removes all properties with a null value

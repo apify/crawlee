@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { Readable } from 'node:stream';
 
 import type * as storage from '@crawlee/types';
@@ -16,7 +15,14 @@ import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 import type { MemoryStorage } from '../index';
-import { createKeyList, createKeyStringList, createLazyIterablePromise, isBuffer, isStream } from '../utils';
+import {
+    createKeyList,
+    createKeyStringList,
+    createLazyIterablePromise,
+    isBuffer,
+    isStream,
+    resolveWithinDirectory,
+} from '../utils';
 import { BaseClient } from './common/base-client';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
@@ -49,7 +55,7 @@ export class KeyValueStoreClient extends BaseClient {
     constructor(options: KeyValueStoreClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.keyValueStoreDirectory = resolve(options.baseStorageDirectory, this.name ?? this.id);
+        this.keyValueStoreDirectory = resolveWithinDirectory(options.baseStorageDirectory, this.name ?? this.id);
         this.client = options.client;
     }
 
@@ -96,7 +102,7 @@ export class KeyValueStoreClient extends BaseClient {
 
         const previousDir = existingStoreById.keyValueStoreDirectory;
 
-        existingStoreById.keyValueStoreDirectory = resolve(
+        existingStoreById.keyValueStoreDirectory = resolveWithinDirectory(
             this.client.keyValueStoresDirectory,
             parsed.name ?? existingStoreById.name ?? existingStoreById.id,
         );
