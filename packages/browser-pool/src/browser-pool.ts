@@ -443,9 +443,8 @@ export class BrowserPool<
      * provided, this implementation uses it as a cache key for browser fingerprints (when
      * fingerprinting is enabled) and reads
      * {@apilink ProxyInfo.url|session.proxyInfo.url} /
-     * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} as defaults
-     * for `proxyUrl` and `ignoreTlsErrors` respectively. Explicit `proxyUrl` /
-     * `ignoreTlsErrors` values in the options take precedence.
+     * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} for the
+     * proxy URL and TLS-error handling respectively.
      *
      * Beyond fingerprint caching and proxy configuration, no other session
      * properties are consumed — cookie and header injection remain the
@@ -457,9 +456,10 @@ export class BrowserPool<
             pageOptions,
             browserPlugin = this._pickBrowserPlugin(),
             session,
-            proxyUrl = session?.proxyInfo?.url,
             ignoreTlsErrors = session?.proxyInfo?.ignoreTlsErrors,
         } = options;
+
+        const proxyUrl = session?.proxyInfo?.url;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);

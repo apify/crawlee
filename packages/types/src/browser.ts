@@ -85,11 +85,6 @@ export interface NewPageOptions {
      */
     id?: string;
     /**
-     * Proxy URL to use for the page (and the launching browser, if a new one
-     * needs to be started).
-     */
-    proxyUrl?: string;
-    /**
      * Disable TLS certificate verification for MITM proxies.
      * Applied both when launching a new browser and when creating a page in an
      * existing one.
@@ -97,6 +92,10 @@ export interface NewPageOptions {
     ignoreTlsErrors?: boolean;
     /**
      * The crawling session that will use the returned page.
+     *
+     * The pool derives the proxy from the session's {@apilink ProxyInfo|proxy}
+     * — there is intentionally no standalone `proxyUrl` option; pass it through
+     * the session instead.
      *
      * Session injection is **best-effort**: the pool may use the session's
      * {@apilink ProxyInfo|proxy}, cookies, or fingerprint data to configure the
