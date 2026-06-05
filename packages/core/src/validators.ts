@@ -21,9 +21,9 @@ export const validators = {
         message: (label: string) => `Expected argument '${label}' to be a RequestQueue, got something else.`,
     }),
     browserPool: (value: Dictionary) => ({
-        validator: ow.isValid(value, ow.object.hasKeys('newPage', 'closePage')),
+        validator: ow.isValid(value, ow.object.hasKeys('newPage', 'closePage', 'extractPageState', 'injectPageState')),
         message: (label: string) =>
-            `Expected argument '${label}' to implement the IBrowserPool interface (missing 'newPage' or 'closePage'), got something else.`,
+            `Expected argument '${label}' to implement the IBrowserPool interface (missing one of 'newPage', 'closePage', 'extractPageState', 'injectPageState'), got something else.`,
     }),
     sessionPool: (value: Dictionary) => ({
         validator: ow.isValid(value, ow.object.hasKeys('getSession')),
