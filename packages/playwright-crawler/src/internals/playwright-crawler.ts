@@ -282,12 +282,12 @@ export class PlaywrightCrawler<
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
                 playwrightUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
             enqueueLinksByClickingElements: async (
-                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
             ) =>
                 playwrightUtils.enqueueLinksByClickingElements({
                     ...options,
                     page: context.page,
-                    requestQueue: this.requestQueue!,
+                    requestManager: this.requestManager!,
                 }),
             compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
             closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),

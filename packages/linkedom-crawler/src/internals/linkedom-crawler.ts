@@ -6,8 +6,8 @@ import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
+    IRequestManager,
     RequestHandler,
-    RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
 } from '@crawlee/http';
@@ -36,7 +36,7 @@ export interface LinkeDOMCrawlerOptions<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {}
 
-export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
+export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestManager'> {}
 
 export type LinkeDOMHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -237,7 +237,7 @@ export class LinkeDOMCrawler<
                 return linkedomCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     window: document.defaultView,
-                    requestQueue: await this.getRequestQueue(),
+                    requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
@@ -273,7 +273,7 @@ export class LinkeDOMCrawler<
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: Window | null;
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
     robotsTxtFile?: RobotsTxtFile;
     onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
@@ -327,7 +327,7 @@ export async function linkedomCrawlerEnqueueLinks(
     }
 
     return enqueueLinks({
-        requestQueue: options.requestQueue,
+        requestManager: options.requestManager,
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,

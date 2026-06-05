@@ -6,8 +6,8 @@ import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
+    IRequestManager,
     RequestHandler,
-    RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
 } from '@crawlee/http';
@@ -244,7 +244,7 @@ export class CheerioCrawler<
                 return (await cheerioCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     $: crawlingContext.$,
-                    requestQueue: await this.getRequestQueue(),
+                    requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
@@ -271,7 +271,7 @@ export class CheerioCrawler<
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
     robotsTxtFile?: RobotsTxtFile;
     onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
@@ -323,7 +323,7 @@ export async function cheerioCrawlerEnqueueLinks(
         });
     }
     return enqueueLinks({
-        requestQueue: options.requestQueue,
+        requestManager: options.requestManager,
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,

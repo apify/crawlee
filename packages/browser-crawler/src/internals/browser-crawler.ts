@@ -6,10 +6,10 @@ import type {
     Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
+    IRequestManager,
     LoadedRequest,
     Request,
     RequestHandler,
-    RequestProvider,
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
@@ -495,7 +495,7 @@ export abstract class BrowserCrawler<
                 return (await browserCrawlerEnqueueLinks({
                     options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
                     page,
-                    requestQueue: await this.getRequestQueue(),
+                    requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
@@ -694,9 +694,9 @@ export abstract class BrowserCrawler<
 
 /** @internal */
 interface EnqueueLinksInternalOptions {
-    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestManager'>> & Pick<EnqueueLinksOptions, 'requestManager'>;
     page: CommonPage;
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
     robotsTxtFile?: RobotsTxtFile;
     onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
@@ -706,7 +706,7 @@ interface EnqueueLinksInternalOptions {
 /** @internal */
 interface BoundEnqueueLinksInternalOptions {
     enqueueLinks: BasicCrawlingContext['enqueueLinks'];
-    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestManager'>> & Pick<EnqueueLinksOptions, 'requestManager'>;
     originalRequestUrl: string;
     finalRequestUrl?: string;
     page: CommonPage;
@@ -747,7 +747,7 @@ export async function browserCrawlerEnqueueLinks(
     }
 
     return enqueueLinks({
-        requestQueue: options.requestQueue,
+        requestManager: options.requestManager,
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,

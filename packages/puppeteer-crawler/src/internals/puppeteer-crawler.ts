@@ -253,11 +253,11 @@ export class PuppeteerCrawler<
                 return puppeteerUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
             },
             enqueueLinksByClickingElements: async (
-                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
             ) =>
                 puppeteerUtils.enqueueLinksByClickingElements({
                     page: context.page,
-                    requestQueue: this.requestQueue!,
+                    requestManager: this.requestManager!,
                     ...options,
                 }),
             blockRequests: async (options?: BlockRequestsOptions) =>
