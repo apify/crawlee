@@ -443,8 +443,9 @@ export class BrowserPool<
      * provided, this implementation uses it as a cache key for browser fingerprints (when
      * fingerprinting is enabled) and reads
      * {@apilink ProxyInfo.url|session.proxyInfo.url} /
-     * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} for the
-     * proxy URL and TLS-error handling respectively.
+     * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} as defaults
+     * for `proxyUrl` and `ignoreTlsErrors` respectively. Explicit `proxyUrl` /
+     * `ignoreTlsErrors` values in the options take precedence.
      *
      * Beyond fingerprint caching and proxy configuration, no other session
      * properties are consumed — cookie and header injection remain the
@@ -456,10 +457,9 @@ export class BrowserPool<
             pageOptions,
             browserPlugin = this._pickBrowserPlugin(),
             session,
+            proxyUrl = session?.proxyInfo?.url,
             ignoreTlsErrors = session?.proxyInfo?.ignoreTlsErrors,
         } = options;
-
-        const proxyUrl = session?.proxyInfo?.url;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
@@ -956,6 +956,19 @@ export class BrowserPool<
 }
 
 export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin> extends NewPageOptions {
+    /**
+     * The proxy URL the pool uses internally to route the page: it keys browser
+     * reuse (with `browserPerProxy`, only a browser already on this proxy is
+     * reused), configures the launched browser, and is applied to incognito
+     * pages. When omitted, it is derived from the
+     * {@apilink NewPageOptions.session|session}'s `proxyInfo`; an explicit value
+     * here takes precedence.
+     *
+     * This is an implementation detail of the built-in `BrowserPool`'s proxy
+     * handling and is intentionally not part of the {@apilink IBrowserPool}
+     * contract — through that interface the proxy is supplied via the session.
+     */
+    proxyUrl?: string;
     /**
      * Some libraries (Playwright) allow you to open new pages with specific
      * options. Use this property to set those options.
