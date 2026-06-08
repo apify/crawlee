@@ -122,9 +122,9 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * @inheritdoc
      */
-    async handledCount(): Promise<number> {
+    async getHandledCount(): Promise<number> {
         // Since one of the stores needs to have priority when both are present, we query the request manager - the request loader will first be dumped into the manager and then left empty.
-        return (await this.getRequestManager()).handledCount();
+        return (await this.getRequestManager()).getHandledCount();
     }
 
     /**

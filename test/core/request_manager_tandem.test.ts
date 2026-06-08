@@ -98,21 +98,21 @@ describe('RequestManagerTandem', () => {
         expect(reclaimSpy).toHaveBeenCalledWith(request, undefined);
     });
 
-    test('handledCount returns the queue handledCount', async () => {
+    test('getHandledCount returns the queue getHandledCount', async () => {
         const requestList = await RequestList.open(null, [
             { url: 'https://example.com/1' },
             { url: 'https://example.com/2' },
         ]);
         const requestQueue = await RequestQueue.open();
 
-        // Mock handledCount methods to return fixed values
-        vi.spyOn(requestList, 'handledCount').mockResolvedValue(3);
-        vi.spyOn(requestQueue, 'handledCount').mockResolvedValue(2);
+        // Mock getHandledCount methods to return fixed values
+        vi.spyOn(requestList, 'getHandledCount').mockResolvedValue(3);
+        vi.spyOn(requestQueue, 'getHandledCount').mockResolvedValue(2);
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Only the request queue counts
-        await expect(tandem.handledCount()).resolves.toBe(2);
+        await expect(tandem.getHandledCount()).resolves.toBe(2);
     });
 
     test('isFinished returns true only when both list and queue are finished', async () => {

@@ -970,7 +970,7 @@ describe('BasicCrawler', () => {
             requestHandler,
         });
 
-        vitest.spyOn(requestQueue, 'handledCount').mockResolvedValueOnce(0);
+        vitest.spyOn(requestQueue, 'getHandledCount').mockResolvedValueOnce(0);
 
         vitest
             .spyOn(requestQueue, 'addRequest')
@@ -1066,7 +1066,7 @@ describe('BasicCrawler', () => {
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
 
-        vitest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
+        vitest.spyOn(requestQueue, 'getHandledCount').mockReturnValue(Promise.resolve() as any);
 
         let handledCount = 0;
         const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled').mockImplementation(async () => {
@@ -1126,7 +1126,7 @@ describe('BasicCrawler', () => {
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
 
-        vitest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
+        vitest.spyOn(requestQueue, 'getHandledCount').mockReturnValue(Promise.resolve() as any);
         const markRequestHandled = vitest
             .spyOn(requestQueue, 'markRequestHandled')
             .mockReturnValue(Promise.resolve() as any);
@@ -1217,7 +1217,7 @@ describe('BasicCrawler', () => {
         // @ts-expect-error Overriding the method for testing purposes
         requestQueue.markRequestHandled = async () => {};
 
-        const requestQueueStub = vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
+        const requestQueueStub = vitest.spyOn(requestQueue, 'getHandledCount').mockResolvedValue(33);
 
         let count = 0;
         let crawler = new BasicCrawler({
@@ -1240,8 +1240,8 @@ describe('BasicCrawler', () => {
         // true for a lone `requestList`, which is wrapped into a tandem over the default queue.
         const sources = Array.from(Array(10).keys(), (x) => x + 1).map((i) => ({ url: `http://example.com/${i}` }));
         const requestList = await RequestList.open({ sources });
-        const listStub = vitest.spyOn(requestList, 'handledCount').mockResolvedValue(20);
-        const queueStub = vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
+        const listStub = vitest.spyOn(requestList, 'getHandledCount').mockResolvedValue(20);
+        const queueStub = vitest.spyOn(requestQueue, 'getHandledCount').mockResolvedValue(33);
         const addRequestStub = vitest.spyOn(requestQueue, 'addRequest').mockReturnValue(Promise.resolve() as any);
 
         count = 0;

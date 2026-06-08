@@ -48,7 +48,7 @@ export interface IRequestLoader {
     /**
      * Returns the number of requests in the loader that have been handled.
      */
-    handledCount(): Promise<number>;
+    getHandledCount(): Promise<number>;
 
     /**
      * Returns `true` if all requests were already handled and there are no more left.
@@ -889,7 +889,7 @@ export class RequestList implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async handledCount(): Promise<number> {
+    async getHandledCount(): Promise<number> {
         this._ensureIsInitialized();
 
         return this.nextIndex - this.inProgress.size;

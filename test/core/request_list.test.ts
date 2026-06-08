@@ -515,13 +515,13 @@ describe('RequestList', () => {
         await requestList.fetchNextRequest();
         const req2 = await requestList.fetchNextRequest();
         const req3 = await requestList.fetchNextRequest();
-        expect(await requestList.handledCount()).toBe(0);
+        expect(await requestList.getHandledCount()).toBe(0);
 
         await requestList.markRequestHandled(req2!);
-        expect(await requestList.handledCount()).toBe(1);
+        expect(await requestList.getHandledCount()).toBe(1);
 
         await requestList.markRequestHandled(req3!);
-        expect(await requestList.handledCount()).toBe(2);
+        expect(await requestList.getHandledCount()).toBe(2);
     });
 
     test('should correctly keep duplicate URLs while keepDuplicateUrls is set', async () => {

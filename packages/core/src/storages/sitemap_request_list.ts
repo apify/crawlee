@@ -487,7 +487,7 @@ export class SitemapRequestList implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async handledCount(): Promise<number> {
+    async getHandledCount(): Promise<number> {
         return this.handledUrlCount;
     }
 

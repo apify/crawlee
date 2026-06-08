@@ -733,8 +733,8 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      * ```
      * @inheritdoc
      */
-    async handledCount(): Promise<number> {
-        // NOTE: We keep this function for compatibility with RequestList.handledCount()
+    async getHandledCount(): Promise<number> {
+        // NOTE: We keep this function for compatibility with RequestList.getHandledCount()
         const { handledRequestCount } = await this.getInfo();
         return handledRequestCount;
     }

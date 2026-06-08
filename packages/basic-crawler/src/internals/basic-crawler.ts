@@ -2237,7 +2237,7 @@ export class BasicCrawler<
      */
     protected async _loadHandledRequestCount(): Promise<void> {
         if (this.requestManager) {
-            this.handledRequestsCount = await this.requestManager.handledCount();
+            this.handledRequestsCount = await this.requestManager.getHandledCount();
         }
     }
 

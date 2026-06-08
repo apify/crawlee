@@ -241,7 +241,7 @@ export async function enqueueLinksByClickingElements(
         options,
         ow.object.exactShape({
             page: ow.object.hasKeys('goto', 'evaluate'),
-            requestManager: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            requestManager: ow.object.hasKeys('fetchNextRequest', 'addRequestsBatched'),
             selector: ow.string,
             userData: ow.optional.object,
             clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
