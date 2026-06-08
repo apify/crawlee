@@ -188,12 +188,19 @@ describe('RequestManagerTandem', () => {
         // (matching crawlee-python behaviour).
         const markHandledSpy = vi.spyOn(requestList, 'markRequestHandled');
 
+        // The queue should never be fetched from on a failed transfer round.
+        const queueFetchSpy = vi.spyOn(requestQueue, 'fetchNextRequest');
+
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Attempt to fetch which should trigger the transfer
-        await tandem.fetchNextRequest();
+        const request = await tandem.fetchNextRequest();
 
         expect(markHandledSpy).toHaveBeenCalled();
+        // The dropped request results in `null` this round; we do not fall through to the manager
+        // (matching crawlee-python behaviour). The next call will pick up the following request.
+        expect(request).toBeNull();
+        expect(queueFetchSpy).not.toHaveBeenCalled();
     });
 
     test('added requests are forwarded to the underlying RequestQueue', async () => {

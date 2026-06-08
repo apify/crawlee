@@ -56,25 +56,30 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * Transfers a single request from the read-only loader to the writable manager.
      * If the transfer fails, the request is dropped (and logged) rather than reclaimed.
+     *
+     * @returns `true` if a request was successfully transferred (or there was nothing to transfer), and `false` if a
+     *  transfer was attempted but failed - in which case the caller should not fetch from the manager this round.
      * @private
      */
-    private async transferNextBatchToQueue(): Promise<void> {
+    private async transferNextRequestToQueue(): Promise<boolean> {
         const request = await this.requestLoader.fetchNextRequest();
 
         if (request === null) {
-            return;
+            return true;
         }
 
         const requestManager = await this.getRequestManager();
 
         try {
             await requestManager.addRequest(request, { forefront: true });
+            return true;
         } catch (error) {
             this.log.exception(
                 error as Error,
                 'Adding request from the RequestLoader to the RequestManager failed, the request has been dropped.',
                 { url: request.url, uniqueKey: request.uniqueKey },
             );
+            return false;
         } finally {
             // Mark it as handled so that the request doesn't get stuck in the `inProgress` state in the loader.
             await this.requestLoader.markRequestHandled(request);
@@ -83,7 +88,7 @@ export class RequestManagerTandem implements IRequestManager {
 
     /**
      * Fetches the next request from the request manager. If the manager is empty and the loader
-     * is not finished, it will transfer a batch of requests from the loader to the manager first.
+     * is not finished, it will transfer a request from the loader to the manager first.
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
@@ -94,10 +99,14 @@ export class RequestManagerTandem implements IRequestManager {
         ]);
 
         if (!listEmpty && !listFinished) {
-            await this.transferNextBatchToQueue();
+            // If the transfer failed, the request was dropped; don't fetch from the manager this round (matching
+            // crawlee-python behaviour). The next `fetchNextRequest()` call will pick up where we left off.
+            if (!(await this.transferNextRequestToQueue())) {
+                return null;
+            }
         }
 
-        // Try to fetch from manager after potential transfer
+        // Try to fetch from manager after the transfer
         return (await this.getRequestManager()).fetchNextRequest<T>();
     }
 
