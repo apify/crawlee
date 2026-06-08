@@ -94,21 +94,6 @@ export interface IRequestLoader {
     toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
 
-/**
- * A read-only {@apilink IRequestLoader} that can additionally reclaim failed requests back to itself.
- *
- * The {@apilink IRequestLoader} contract is intentionally read-only. However, the concrete loaders used as the
- * read-only side of a {@apilink RequestManagerTandem} (such as {@apilink RequestList} or {@apilink SitemapRequestList})
- * also support reclaiming requests, which the tandem relies on.
- */
-export type ReclaimableRequestLoader = IRequestLoader & {
-    /**
-     * Reclaims a request to the loader if its processing failed.
-     * The request will become available again in a subsequent `fetchNextRequest()`.
-     */
-    reclaimRequest(request: Request): Promise<void>;
-};
-
 export interface RequestListOptions {
     /**
      * An array of sources of URLs for the {@apilink RequestList}. It can be either an array of strings,
@@ -286,8 +271,8 @@ export interface RequestListOptions {
  * > In practical terms, such a combination can be useful when there is a large number of initial URLs,
  * > but more URLs would be added dynamically by the crawler.
  *
- * `RequestList` has an internal state where it stores information about which requests were already handled,
- * which are in progress and which were reclaimed. The state may be automatically persisted to the default
+ * `RequestList` has an internal state where it stores information about which requests were already handled
+ * and which are in progress. The state may be automatically persisted to the default
  * {@apilink KeyValueStore} by setting the `persistStateKey` option so that if the Node.js process is restarted,
  * the crawling can continue where it left off. The automated persisting is launched upon receiving the `persistState`
  * event that is periodically emitted by {@apilink EventManager}.
@@ -348,10 +333,11 @@ export class RequestList implements IRequestLoader {
     inProgress = new Set<string>();
 
     /**
-     * Set of `uniqueKey`s of requests for which reclaimRequest() was called.
+     * `uniqueKey`s of requests that were in progress when the state was last persisted and thus need to be
+     * re-crawled after a restart. They are served before advancing through the rest of the sources.
      * @internal
      */
-    reclaimed = new Set<string>();
+    private requestsToRetry: string[] = [];
 
     /**
      * Starts as true because until we handle the first request, the list is effectively persisted by doing nothing.
@@ -622,8 +608,8 @@ export class RequestList implements IRequestLoader {
             }
         }
 
-        // All in-progress requests need to be re-crawled
-        this.reclaimed = new Set(this.inProgress);
+        // All in-progress requests were interrupted and need to be re-crawled.
+        this.requestsToRetry = [...this.inProgress];
     }
 
     /**
@@ -670,7 +656,7 @@ export class RequestList implements IRequestLoader {
     async isEmpty(): Promise<boolean> {
         this._ensureIsInitialized();
 
-        return this.reclaimed.size === 0 && this.nextIndex >= this.requests.length;
+        return this.requestsToRetry.length === 0 && this.nextIndex >= this.requests.length;
     }
 
     /**
@@ -688,10 +674,9 @@ export class RequestList implements IRequestLoader {
     async fetchNextRequest(): Promise<Request | null> {
         this._ensureIsInitialized();
 
-        // First return reclaimed requests if any.
-        const uniqueKey = this.reclaimed.values().next().value;
+        // First re-serve any requests that were interrupted before the last state persist.
+        const uniqueKey = this.requestsToRetry.shift();
         if (uniqueKey) {
-            this.reclaimed.delete(uniqueKey);
             const index = this.uniqueKeyToIndex[uniqueKey];
             return this.ensureRequest(this.requests[index], index);
         }
@@ -736,24 +721,11 @@ export class RequestList implements IRequestLoader {
         const { uniqueKey } = request;
 
         this._ensureUniqueKeyValid(uniqueKey);
-        this._ensureInProgressAndNotReclaimed(uniqueKey);
+        this._ensureInProgress(uniqueKey);
         this._ensureIsInitialized();
 
         this.inProgress.delete(uniqueKey);
         this.isStatePersisted = false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    async reclaimRequest(request: Request): Promise<void> {
-        const { uniqueKey } = request;
-
-        this._ensureUniqueKeyValid(uniqueKey);
-        this._ensureInProgressAndNotReclaimed(uniqueKey);
-        this._ensureIsInitialized();
-
-        this.reclaimed.add(uniqueKey);
     }
 
     /**
@@ -864,14 +836,11 @@ export class RequestList implements IRequestLoader {
     }
 
     /**
-     * Checks that request is not reclaimed and throws an error if so.
+     * Checks that a request is currently being processed and throws an error if not.
      */
-    protected _ensureInProgressAndNotReclaimed(uniqueKey: string): void {
+    protected _ensureInProgress(uniqueKey: string): void {
         if (!this.inProgress.has(uniqueKey)) {
             throw new Error(`The request is not being processed (uniqueKey: ${uniqueKey})`);
-        }
-        if (this.reclaimed.has(uniqueKey)) {
-            throw new Error(`The request was already reclaimed (uniqueKey: ${uniqueKey})`);
         }
     }
 

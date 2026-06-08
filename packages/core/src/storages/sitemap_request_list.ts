@@ -114,7 +114,6 @@ interface SitemapParsingProgress {
 
 interface SitemapRequestListState {
     urlQueue: string[];
-    reclaimed: string[];
     sitemapParsingProgress: Record<keyof SitemapParsingProgress, any>;
     abortLoading: boolean;
     closed: boolean;
@@ -133,13 +132,10 @@ export class SitemapRequestList implements IRequestLoader {
      */
     inProgress = new Set<string>();
 
-    /** Set of URLs for which `reclaimRequest()` was called. */
-    private reclaimed = new Set<string>();
-
     /**
      * Map of returned Request objects that have not been marked as handled yet.
      *
-     * We use this to persist custom user fields on the in-progress (or reclaimed) requests.
+     * We use this to persist custom user fields on the in-progress requests.
      */
     private requestData = new Map<string, Request>();
 
@@ -449,7 +445,7 @@ export class SitemapRequestList implements IRequestLoader {
      * @inheritDoc
      */
     getTotalCount(): number {
-        return this.urlQueueStream.readableLength + this.handledUrlCount - this.inProgress.size - this.reclaimed.size;
+        return this.urlQueueStream.readableLength + this.handledUrlCount - this.inProgress.size;
     }
 
     /**
@@ -485,7 +481,7 @@ export class SitemapRequestList implements IRequestLoader {
      * @inheritDoc
      */
     async isEmpty(): Promise<boolean> {
-        return this.reclaimed.size === 0 && this.urlQueueStream.readableLength === 0;
+        return this.urlQueueStream.readableLength === 0;
     }
 
     /**
@@ -535,8 +531,8 @@ export class SitemapRequestList implements IRequestLoader {
                 inProgressSitemapUrl: this.sitemapParsingProgress.inProgressSitemapUrl,
                 inProgressEntries: Array.from(this.sitemapParsingProgress.inProgressEntries),
             },
-            urlQueue,
-            reclaimed: [...this.inProgress, ...this.reclaimed], // In-progress and reclaimed requests will be both retried if state is restored
+            // Re-queue in-progress requests to the front so they are retried if the state is restored.
+            urlQueue: [...this.inProgress, ...urlQueue],
             requestData: Array.from(this.requestData.entries()),
             abortLoading: this.abortLoading,
             closed: this.closed,
@@ -557,7 +553,6 @@ export class SitemapRequestList implements IRequestLoader {
             return;
         }
 
-        this.reclaimed = new Set(state.reclaimed);
         this.sitemapParsingProgress = {
             pendingSitemapUrls: new Set(state.sitemapParsingProgress.pendingSitemapUrls),
             inProgressSitemapUrl: state.sitemapParsingProgress.inProgressSitemapUrl,
@@ -578,16 +573,13 @@ export class SitemapRequestList implements IRequestLoader {
      * @inheritDoc
      */
     async fetchNextRequest(): Promise<Request | null> {
-        // Try to return a reclaimed request first
-        let nextUrl: string | undefined | null = this.reclaimed.values().next().value;
-        if (nextUrl) {
-            this.reclaimed.delete(nextUrl);
-        } else {
-            // Otherwise read next url from the stream
-            nextUrl = await this.readNextUrl();
-            if (!nextUrl) {
-                return null;
-            }
+        const nextUrl = await this.readNextUrl();
+        if (!nextUrl) {
+            return null;
+        }
+
+        // A restored in-progress request already has its Request data; don't overwrite it.
+        if (!this.requestData.has(nextUrl)) {
             this.requestData.set(nextUrl, new Request({ url: nextUrl }));
         }
 
@@ -605,15 +597,6 @@ export class SitemapRequestList implements IRequestLoader {
 
             yield request;
         }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    async reclaimRequest(request: Request): Promise<void> {
-        this.ensureInProgressAndNotReclaimed(request.url);
-        this.reclaimed.add(request.url);
-        this.inProgress.delete(request.url);
     }
 
     /**
@@ -635,17 +618,14 @@ export class SitemapRequestList implements IRequestLoader {
      */
     async markRequestHandled(request: Request): Promise<void> {
         this.handledUrlCount += 1;
-        this.ensureInProgressAndNotReclaimed(request.url);
+        this.ensureInProgress(request.url);
         this.inProgress.delete(request.url);
         this.requestData.delete(request.url);
     }
 
-    private ensureInProgressAndNotReclaimed(url: string): void {
+    private ensureInProgress(url: string): void {
         if (!this.inProgress.has(url)) {
             throw new Error(`The request is not being processed (url: ${url})`);
-        }
-        if (this.reclaimed.has(url)) {
-            throw new Error(`The request was already reclaimed (url: ${url})`);
         }
     }
 }

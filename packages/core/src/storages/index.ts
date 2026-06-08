@@ -1,7 +1,6 @@
 export * from './dataset.js';
 export * from './key_value_store.js';
 export * from './request_list.js';
-export * from './request_list_adapter.js';
 export * from './request_provider.js';
 export { RequestQueueV1 } from './request_queue.js';
 export { RequestQueue } from './request_queue_v2.js';

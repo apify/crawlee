@@ -633,7 +633,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | `length(): number` | `getTotalCount(): number` |
 | _(n/a)_ | `getPendingCount(): number` (new) |
 | `handledCount(): number` | `handledCount(): Promise<number>` (now async) |
-| `reclaimRequest()` on the interface | Only on the concrete loaders / `IRequestManager`, not on the read-only base |
+| `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
 | `inProgress: Set<string>` on the interface | Removed from the interface |
 | `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
 | _(n/a)_ | `toTandem?(requestManager?)` (new) |

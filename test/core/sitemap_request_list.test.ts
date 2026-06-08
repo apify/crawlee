@@ -447,41 +447,6 @@ describe('SitemapRequestList', () => {
         expect(await list.handledCount()).toEqual(5);
     });
 
-    test('processing the whole list with reclaiming', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
-        const requests: Request[] = [];
-
-        await expect(list.isFinished()).resolves.toBe(false);
-        let counter = 0;
-
-        while (!(await list.isFinished())) {
-            const request = await list.fetchNextRequest();
-            if (!request) break;
-
-            if (counter % 2 === 0) {
-                await list.markRequestHandled(request);
-                requests.push(request);
-            } else {
-                await list.reclaimRequest(request);
-            }
-
-            counter += 1;
-        }
-
-        await expect(list.isEmpty()).resolves.toBe(true);
-        expect(new Set(requests.map((it) => it.url))).toEqual(
-            new Set([
-                'http://not-exists.com/',
-                'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
-                'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
-                'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
-                'http://not-exists.com/catalog?item=83&desc=vacation_usa',
-            ]),
-        );
-
-        expect(await list.handledCount()).toEqual(5);
-    });
-
     test('persists state', async () => {
         const options = { sitemapUrls: [`${url}/sitemap-stream.xml`], persistStateKey: 'some-key' };
         const list = await SitemapRequestList.open(options);

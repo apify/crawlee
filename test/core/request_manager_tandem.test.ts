@@ -183,9 +183,9 @@ describe('RequestManagerTandem', () => {
         // Mock the queue's addRequest to simulate failure
         vi.spyOn(requestQueue, 'addRequest').mockRejectedValue(new Error('Add failed'));
 
-        // The failed request must not be reclaimed, but marked as handled on the loader so it
-        // doesn't get stuck in the loader's in-progress state (matching crawlee-python behaviour).
-        const reclaimSpy = vi.spyOn(requestList, 'reclaimRequest');
+        // The loader is read-only and can no longer reclaim. The failed request must be marked as
+        // handled on the loader so it doesn't get stuck in the loader's in-progress state
+        // (matching crawlee-python behaviour).
         const markHandledSpy = vi.spyOn(requestList, 'markRequestHandled');
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
@@ -193,7 +193,6 @@ describe('RequestManagerTandem', () => {
         // Attempt to fetch which should trigger the transfer
         await tandem.fetchNextRequest();
 
-        expect(reclaimSpy).not.toHaveBeenCalled();
         expect(markHandledSpy).toHaveBeenCalled();
     });
 
