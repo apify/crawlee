@@ -178,7 +178,7 @@ describe('PlaywrightCrawler', () => {
             maxConcurrency: 1,
             requestHandler: () => {},
             preNavigationHooks: [
-                (_context, gotoOptions) => {
+                ({ gotoOptions }) => {
                     options = gotoOptions;
                 },
             ],
