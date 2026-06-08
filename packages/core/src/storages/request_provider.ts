@@ -82,8 +82,6 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     assumedTotalCount = 0;
     assumedHandledCount = 0;
 
-    private initialCount = 0;
-    private initialHandledCount = 0; // We track this separately from `assumedHandledCount` which is used non-trivially by RequestQueueV1
     private isInitialized = false;
 
     protected queueHeadIds = new ListDictionary<string>();
@@ -126,21 +124,23 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     }
 
     /**
-     * Returns an offline approximation of the total number of requests in the queue (i.e. pending + handled).
+     * Returns the total number of requests in the queue (i.e. pending + handled).
      *
      * Survives restarts and actor migrations.
      */
     async getTotalCount() {
-        return this.assumedTotalCount + this.initialCount;
+        const { totalRequestCount } = await this.getInfo();
+        return totalRequestCount;
     }
 
     /**
-     * Returns an offline approximation of the total number of pending requests in the queue.
+     * Returns the total number of pending requests in the queue.
      *
      * Survives restarts and Actor migrations.
      */
     async getPendingCount() {
-        return (await this.getTotalCount()) - this.initialHandledCount - this.assumedHandledCount;
+        const { totalRequestCount, handledRequestCount } = await this.getInfo();
+        return totalRequestCount - handledRequestCount;
     }
 
     /**
@@ -702,8 +702,6 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;
-        this.initialCount = 0;
-        this.initialHandledCount = 0;
         this.queueHeadIds.clear();
         this.requestCache.clear();
         this.recentlyHandledRequestsCache.clear();
@@ -890,10 +888,6 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 timeoutSecs: queue.timeoutSecs,
             });
 
-            const queueInfo = await queue.client.getMetadata();
-
-            queue.initialCount = queueInfo.totalRequestCount;
-            queue.initialHandledCount = queueInfo.handledRequestCount;
             queue.isInitialized = true;
         }
 

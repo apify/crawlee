@@ -36,12 +36,12 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  */
 export interface IRequestLoader {
     /**
-     * Returns an offline approximation of the total number of requests in the loader (i.e. pending + handled).
+     * Returns an approximation of the total number of requests in the loader (i.e. pending + handled).
      */
     getTotalCount(): Promise<number>;
 
     /**
-     * Returns an offline approximation of the number of pending requests in the loader.
+     * Returns an approximation of the number of pending requests in the loader.
      */
     getPendingCount(): Promise<number>;
 
@@ -865,7 +865,7 @@ export class RequestList implements IRequestLoader {
     }
 
     /**
-     * Returns an offline approximation of the number of pending requests in the `RequestList`.
+     * Returns the number of pending requests in the `RequestList`.
      */
     async getPendingCount(): Promise<number> {
         this._ensureIsInitialized();
