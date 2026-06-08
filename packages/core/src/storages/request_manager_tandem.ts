@@ -21,12 +21,36 @@ import type {
 export class RequestManagerTandem implements IRequestManager {
     private log: CrawleeLogger;
     private requestLoader: IRequestLoader;
-    private requestQueue: IRequestManager;
+    private requestQueuePromise?: Promise<IRequestManager>;
+    private resolvedRequestQueue?: IRequestManager;
 
-    constructor(requestLoader: IRequestLoader, requestQueue: IRequestManager) {
+    private requestQueueFactory: () => IRequestManager | Promise<IRequestManager>;
+
+    /**
+     * @param requestLoader The read-only loader to read requests from first.
+     * @param requestQueue The writable manager to transfer requests into and enqueue new ones. May be passed as a
+     *  factory function so that the tandem can be constructed synchronously and the queue opened lazily on first use
+     *  (e.g. a lazily-opened default {@apilink RequestQueue}).
+     */
+    constructor(
+        requestLoader: IRequestLoader,
+        requestQueue: IRequestManager | (() => IRequestManager | Promise<IRequestManager>),
+    ) {
         this.log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
         this.requestLoader = requestLoader;
-        this.requestQueue = requestQueue;
+        this.requestQueueFactory = typeof requestQueue === 'function' ? requestQueue : () => requestQueue;
+    }
+
+    /**
+     * Resolves the writable request queue, opening it lazily (via the factory) on first use and memoizing the result.
+     * @private
+     */
+    private async getRequestQueue(): Promise<IRequestManager> {
+        if (this.resolvedRequestQueue === undefined) {
+            this.requestQueuePromise ??= Promise.resolve(this.requestQueueFactory());
+            this.resolvedRequestQueue = await this.requestQueuePromise;
+        }
+        return this.resolvedRequestQueue;
     }
 
     /**
@@ -41,8 +65,10 @@ export class RequestManagerTandem implements IRequestManager {
             return;
         }
 
+        const requestQueue = await this.getRequestQueue();
+
         try {
-            await this.requestQueue.addRequest(request, { forefront: true });
+            await requestQueue.addRequest(request, { forefront: true });
         } catch (error) {
             this.log.exception(
                 error as Error,
@@ -72,14 +98,15 @@ export class RequestManagerTandem implements IRequestManager {
         }
 
         // Try to fetch from queue after potential transfer
-        return this.requestQueue.fetchNextRequest<T>();
+        return (await this.getRequestQueue()).fetchNextRequest<T>();
     }
 
     /**
      * @inheritdoc
      */
     async isFinished(): Promise<boolean> {
-        const storagesFinished = await Promise.all([this.requestLoader.isFinished(), this.requestQueue.isFinished()]);
+        const requestQueue = await this.getRequestQueue();
+        const storagesFinished = await Promise.all([this.requestLoader.isFinished(), requestQueue.isFinished()]);
         return storagesFinished.every(Boolean);
     }
 
@@ -87,7 +114,8 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async isEmpty(): Promise<boolean> {
-        const storagesEmpty = await Promise.all([this.requestLoader.isEmpty(), this.requestQueue.isEmpty()]);
+        const requestQueue = await this.getRequestQueue();
+        const storagesEmpty = await Promise.all([this.requestLoader.isEmpty(), requestQueue.isEmpty()]);
         return storagesEmpty.every(Boolean);
     }
 
@@ -96,22 +124,23 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async handledCount(): Promise<number> {
         // Since one of the stores needs to have priority when both are present, we query the request queue - the request list will first be dumped into the queue and then left empty.
-        return await this.requestQueue.handledCount();
+        return (await this.getRequestQueue()).handledCount();
     }
 
     /**
      * @inheritdoc
      */
     async getTotalCount(): Promise<number> {
-        return this.requestQueue.getTotalCount();
+        return (await this.getRequestQueue()).getTotalCount();
     }
 
     /**
      * @inheritdoc
      */
     async getPendingCount(): Promise<number> {
+        const requestQueue = await this.getRequestQueue();
         const [queuePending, loaderPending] = await Promise.all([
-            this.requestQueue.getPendingCount(),
+            requestQueue.getPendingCount(),
             this.requestLoader.getPendingCount(),
         ]);
         return queuePending + loaderPending;
@@ -132,7 +161,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        return this.requestQueue.markRequestHandled(request);
+        return (await this.getRequestQueue()).markRequestHandled(request);
     }
 
     /**
@@ -142,14 +171,14 @@ export class RequestManagerTandem implements IRequestManager {
         request: Request,
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        return await this.requestQueue.reclaimRequest(request, options);
+        return (await this.getRequestQueue()).reclaimRequest(request, options);
     }
 
     /**
      * @inheritdoc
      */
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        return await this.requestQueue.addRequest(requestLike, options);
+        return (await this.getRequestQueue()).addRequest(requestLike, options);
     }
 
     /**
@@ -159,6 +188,14 @@ export class RequestManagerTandem implements IRequestManager {
         requests: RequestsLike,
         options?: AddRequestsBatchedOptions,
     ): Promise<AddRequestsBatchedResult> {
-        return await this.requestQueue.addRequestsBatched(requests, options);
+        return (await this.getRequestQueue()).addRequestsBatched(requests, options);
+    }
+
+    /**
+     * Persists the state of the underlying read-only loader, if it supports persistence.
+     * @inheritdoc
+     */
+    async persistState(): Promise<void> {
+        await this.requestLoader.persistState?.();
     }
 }

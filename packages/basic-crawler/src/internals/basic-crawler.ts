@@ -565,12 +565,6 @@ export class BasicCrawler<
     protected requestManager?: IRequestManager;
 
     /**
-     * The read-only request loader provided via the deprecated `requestList` option, if any. Kept only so that its
-     * state can be persisted on migrations (when it supports persistence).
-     */
-    private requestLoader?: IRequestLoader;
-
-    /**
      * A reference to the underlying session pool that manages the crawler's {@apilink Session|sessions}. Typed as
      * {@apilink ISessionPool} so custom implementations can be plugged in via the `sessionPool` constructor option.
      */
@@ -838,13 +832,12 @@ export class BasicCrawler<
             } else if (requestQueue !== undefined) {
                 // A RequestQueue is itself a request manager.
                 this.requestManager = requestQueue;
+            } else if (requestList !== undefined) {
+                // A lone read-only `requestList` (deprecated option) is combined with a lazily-opened default queue
+                // into a tandem, so that its requests are read first and new ones can still be enqueued during the
+                // crawl. The queue is opened on first use; the tandem also forwards `persistState()` to the loader.
+                this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
             }
-            // A lone `requestList` is left to be combined with a lazily-opened default queue into a tandem in
-            // `getRequestManager()`, so that requests can still be enqueued during the crawl.
-
-            // Keep a handle on the loader so its state can be persisted on migrations, if it supports it,
-            // and so it can be combined into a tandem when the default queue is opened.
-            this.requestLoader = requestList;
 
             this.httpClient = httpClient ?? new GotScrapingHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
@@ -1451,18 +1444,22 @@ export class BasicCrawler<
      */
     async getRequestManager(): Promise<IRequestManager> {
         if (!this.requestManager) {
-            const requestQueue = await this._getRequestQueue();
-            this.applyRequestQueueTimeouts(requestQueue);
-
-            // If a read-only loader was provided (via the deprecated `requestList` option), combine it with the
-            // freshly opened queue into a tandem so that its requests are read first and new ones can be enqueued.
-            this.requestManager = this.requestLoader
-                ? new RequestManagerTandem(this.requestLoader, requestQueue)
-                : requestQueue;
-            this.ownedRequestManager = requestQueue;
+            this.requestManager = await this.openOwnedRequestQueue();
         }
 
         return this.requestManager;
+    }
+
+    /**
+     * Opens the default {@apilink RequestQueue}, applies the crawler's internal timeouts and records it as the
+     * crawler-owned manager (so it gets purged between repeated `run()` calls).
+     * @private
+     */
+    private async openOwnedRequestQueue(): Promise<IRequestManager> {
+        const requestQueue = await this._getRequestQueue();
+        this.applyRequestQueueTimeouts(requestQueue);
+        this.ownedRequestManager = requestQueue;
+        return requestQueue;
     }
 
     /**
@@ -1804,10 +1801,12 @@ export class BasicCrawler<
             });
         }
 
-        const requestListPersistPromise = (async () => {
-            if (this.requestLoader?.persistState) {
-                if (await this.requestLoader.isFinished()) return;
-                await this.requestLoader.persistState().catch((err) => {
+        const requestManagerPersistPromise = (async () => {
+            // The request manager persists its read-only loader's state, if it has one that supports persistence
+            // (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
+            if (this.requestManager?.persistState) {
+                if (await this.requestManager.isFinished()) return;
+                await this.requestManager.persistState().catch((err) => {
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
                             "The crawler attempted to persist its request list's state and failed due to missing or " +
@@ -1825,7 +1824,7 @@ export class BasicCrawler<
             }
         })();
 
-        await Promise.all([requestListPersistPromise, this.stats.persistState()]);
+        await Promise.all([requestManagerPersistPromise, this.stats.persistState()]);
     }
 
     /**

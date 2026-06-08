@@ -233,4 +233,33 @@ describe('RequestManagerTandem', () => {
         // Verify we got both URLs
         expect(urls).toEqual(['https://example.com/1', 'https://example.com/2', 'https://example.com/3']);
     });
+
+    test('opens the queue lazily from a factory only on first use', async () => {
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+
+        const factory = vi.fn(async () => RequestQueue.open());
+        const tandem = new RequestManagerTandem(requestList, factory);
+
+        // Constructing the tandem must not open the queue yet.
+        expect(factory).not.toHaveBeenCalled();
+
+        await tandem.fetchNextRequest();
+        expect(factory).toHaveBeenCalledTimes(1);
+
+        // Subsequent operations reuse the same memoized queue.
+        await tandem.isFinished();
+        expect(factory).toHaveBeenCalledTimes(1);
+    });
+
+    test('persistState forwards to the read-only loader', async () => {
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+        const requestQueue = await RequestQueue.open();
+
+        const persistSpy = vi.spyOn(requestList, 'persistState').mockResolvedValue();
+
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
+        await tandem.persistState();
+
+        expect(persistSpy).toHaveBeenCalledTimes(1);
+    });
 });
