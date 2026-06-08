@@ -978,7 +978,7 @@ describe('BrowserCrawler', () => {
                 /**
                  * The first increment is the base case when the proxy is retrieved for the first time.
                  */
-                let numberOfRotations = -requestList!.getTotalCount();
+                let numberOfRotations = -(await requestList!.getTotalCount());
                 const browserCrawler = new (class extends BrowserCrawlerTest {
                     protected override async _navigationHandler(
                         ctx: TestCrawlingContext,

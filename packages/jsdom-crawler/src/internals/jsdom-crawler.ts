@@ -349,7 +349,10 @@ export class JSDOMCrawler<
         return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return domCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    options: {
+                        ...enqueueOptions,
+                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
+                    },
                     window: crawlingContext.window,
                     requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),

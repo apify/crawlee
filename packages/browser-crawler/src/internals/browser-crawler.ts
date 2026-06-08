@@ -496,7 +496,10 @@ export abstract class BrowserCrawler<
             browserController: browserControllerInstance,
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    options: {
+                        ...enqueueOptions,
+                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
+                    },
                     page,
                     requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),

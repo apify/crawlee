@@ -1270,7 +1270,7 @@ export class BasicCrawler<
                     this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
                 } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
-                const total = this.requestManager?.getTotalCount();
+                const total = await this.requestManager?.getTotalCount();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
                     this.stats.state.requestsFailed
                 } failed requests, desired concurrency ${this.autoscaledPool?.desiredConcurrency ?? 0}.`;
@@ -1499,18 +1499,18 @@ export class BasicCrawler<
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
     }
 
-    protected get pendingRequestCountApproximation(): number {
-        return this.requestManager?.getPendingCount() ?? 0;
+    protected async getPendingRequestCountApproximation(): Promise<number> {
+        return (await this.requestManager?.getPendingCount()) ?? 0;
     }
 
-    protected calculateEnqueuedRequestLimit(explicitLimit?: number): number | undefined {
+    protected async calculateEnqueuedRequestLimit(explicitLimit?: number): Promise<number | undefined> {
         if (this.maxRequestsPerCrawl === undefined) {
             return explicitLimit;
         }
 
         const limit = Math.max(
             0,
-            this.maxRequestsPerCrawl - this.handledRequestsCount - this.pendingRequestCountApproximation,
+            this.maxRequestsPerCrawl - this.handledRequestsCount - (await this.getPendingRequestCountApproximation()),
         );
 
         return Math.min(limit, explicitLimit ?? Infinity);
@@ -1559,7 +1559,7 @@ export class BasicCrawler<
     ): Promise<CrawlerAddRequestsResult> {
         await this.getRequestManager();
 
-        const requestLimit = this.calculateEnqueuedRequestLimit();
+        const requestLimit = await this.calculateEnqueuedRequestLimit();
 
         const skippedBecauseOfRobots = new Set<string>();
         const skippedBecauseOfLimit = new Set<string>();
@@ -2008,7 +2008,7 @@ export class BasicCrawler<
             requestManager,
             robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
             onSkippedRequest,
-            limit: this.calculateEnqueuedRequestLimit(options.limit),
+            limit: await this.calculateEnqueuedRequestLimit(options.limit),
 
             // Allow user options to override defaults set above ⤴
             ...options,

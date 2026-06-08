@@ -130,7 +130,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      *
      * Survives restarts and actor migrations.
      */
-    getTotalCount() {
+    async getTotalCount() {
         return this.assumedTotalCount + this.initialCount;
     }
 
@@ -139,8 +139,8 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      *
      * Survives restarts and Actor migrations.
      */
-    getPendingCount() {
-        return this.getTotalCount() - this.initialHandledCount - this.assumedHandledCount;
+    async getPendingCount() {
+        return (await this.getTotalCount()) - this.initialHandledCount - this.assumedHandledCount;
     }
 
     /**

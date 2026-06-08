@@ -496,7 +496,7 @@ describe('RequestList', () => {
             sources,
         });
 
-        expect(requestList.getTotalCount()).toBe(4);
+        await expect(requestList.getTotalCount()).resolves.toBe(4);
     });
 
     test('it gets correct handledCount()', async () => {
@@ -538,7 +538,7 @@ describe('RequestList', () => {
             keepDuplicateUrls: true,
         });
 
-        expect(requestList.getTotalCount()).toBe(4);
+        await expect(requestList.getTotalCount()).resolves.toBe(4);
 
         log.setLevel(log.LEVELS.INFO);
         const warnSpy = vitest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -553,7 +553,7 @@ describe('RequestList', () => {
             keepDuplicateUrls: true,
         });
 
-        expect(requestList.getTotalCount()).toBe(6);
+        await expect(requestList.getTotalCount()).resolves.toBe(6);
         expect(warnSpy).toBeCalled();
         expect(warnSpy.mock.calls[0][0]).toMatch(`Check your sources' unique keys.`);
 

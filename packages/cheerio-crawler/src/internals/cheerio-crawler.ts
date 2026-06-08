@@ -244,7 +244,10 @@ export class CheerioCrawler<
         return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return (await cheerioCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    options: {
+                        ...enqueueOptions,
+                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
+                    },
                     $: crawlingContext.$,
                     requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),

@@ -102,15 +102,19 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * @inheritdoc
      */
-    getTotalCount(): number {
+    async getTotalCount(): Promise<number> {
         return this.requestQueue.getTotalCount();
     }
 
     /**
      * @inheritdoc
      */
-    getPendingCount(): number {
-        return this.requestQueue.getPendingCount() + this.requestLoader.getPendingCount();
+    async getPendingCount(): Promise<number> {
+        const [queuePending, loaderPending] = await Promise.all([
+            this.requestQueue.getPendingCount(),
+            this.requestLoader.getPendingCount(),
+        ]);
+        return queuePending + loaderPending;
     }
 
     /**

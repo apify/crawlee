@@ -444,15 +444,15 @@ export class SitemapRequestList implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    getTotalCount(): number {
+    async getTotalCount(): Promise<number> {
         return this.urlQueueStream.readableLength + this.handledUrlCount - this.inProgress.size;
     }
 
     /**
      * @inheritDoc
      */
-    getPendingCount(): number {
-        return this.getTotalCount() - this.handledUrlCount;
+    async getPendingCount(): Promise<number> {
+        return (await this.getTotalCount()) - this.handledUrlCount;
     }
 
     /**

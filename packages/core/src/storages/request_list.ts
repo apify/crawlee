@@ -38,12 +38,12 @@ export interface IRequestLoader {
     /**
      * Returns an offline approximation of the total number of requests in the loader (i.e. pending + handled).
      */
-    getTotalCount(): number;
+    getTotalCount(): Promise<number>;
 
     /**
      * Returns an offline approximation of the number of pending requests in the loader.
      */
-    getPendingCount(): number;
+    getPendingCount(): Promise<number>;
 
     /**
      * Returns the number of requests in the loader that have been handled.
@@ -858,7 +858,7 @@ export class RequestList implements IRequestLoader {
     /**
      * Returns the total number of unique requests present in the `RequestList`.
      */
-    getTotalCount(): number {
+    async getTotalCount(): Promise<number> {
         this._ensureIsInitialized();
 
         return this.requests.length;
@@ -867,7 +867,7 @@ export class RequestList implements IRequestLoader {
     /**
      * Returns an offline approximation of the number of pending requests in the `RequestList`.
      */
-    getPendingCount(): number {
+    async getPendingCount(): Promise<number> {
         this._ensureIsInitialized();
 
         return this.requests.length - (this.nextIndex - this.inProgress.size);
