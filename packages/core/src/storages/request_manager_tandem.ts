@@ -203,4 +203,13 @@ export class RequestManagerTandem implements IRequestManager {
     async persistState(): Promise<void> {
         await this.requestLoader.persistState?.();
     }
+
+    /**
+     * Purges the writable request manager so the tandem can be reused (e.g. across repeated `crawler.run()` calls).
+     * The read-only loader is immutable and cannot be purged, so only the manager side is reset.
+     * @inheritdoc
+     */
+    async purge(): Promise<void> {
+        await (await this.getRequestManager()).purge?.();
+    }
 }
