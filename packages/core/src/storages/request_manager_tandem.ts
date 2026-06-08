@@ -131,7 +131,12 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async getTotalCount(): Promise<number> {
-        return (await this.getRequestManager()).getTotalCount();
+        const requestManager = await this.getRequestManager();
+        const [managerTotal, loaderTotal] = await Promise.all([
+            requestManager.getTotalCount(),
+            this.requestLoader.getTotalCount(),
+        ]);
+        return managerTotal + loaderTotal;
     }
 
     /**
