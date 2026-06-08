@@ -242,6 +242,52 @@ describe('BrowserCrawler', () => {
         }
     });
 
+    test.concurrent('postNavigationHooks can override response, observed downstream', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        try {
+            const requestList = await RequestList.open({
+                sources: [{ url: `${serverAddress}/?q=1` }],
+            });
+
+            const observed: { fromSecondHook?: number; fromHandler?: number } = {};
+            const fakeStatus = 418;
+
+            const browserCrawler = new BrowserCrawlerTest({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                requestList,
+                maxRequestRetries: 0,
+                postNavigationHooks: [
+                    async ({ response }) => ({
+                        response: new Proxy(response, {
+                            get(target, key, receiver) {
+                                if (key === 'status') return () => fakeStatus;
+                                return Reflect.get(target, key, receiver);
+                            },
+                        }),
+                    }),
+                    async ({ response }) => {
+                        observed.fromSecondHook = response.status();
+                    },
+                ],
+                requestHandler: async ({ response }) => {
+                    observed.fromHandler = response.status();
+                },
+            });
+
+            await browserCrawler.run();
+
+            expect(observed.fromSecondHook).toBe(fakeStatus);
+            expect(observed.fromHandler).toBe(fakeStatus);
+        } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
     test.concurrent('errorHandler has open page', async () => {
         const localStorageEmulator = new MemoryStorageEmulator();
         await localStorageEmulator.init();
@@ -355,8 +401,8 @@ describe('BrowserCrawler', () => {
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [
-                    async (_crawlingContext, gotoOptions) => {
-                        gotoOptions!.timeout = 60000;
+                    async ({ gotoOptions }) => {
+                        gotoOptions.timeout = 60000;
                     },
                 ],
             });

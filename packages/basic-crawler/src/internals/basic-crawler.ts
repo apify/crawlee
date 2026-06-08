@@ -2239,17 +2239,6 @@ export class BasicCrawler<
         }
     }
 
-    protected async _executeHooks<HookLike extends (...args: any[]) => Awaitable<void>>(
-        hooks: HookLike[],
-        ...args: Parameters<HookLike>
-    ) {
-        if (Array.isArray(hooks) && hooks.length) {
-            for (const hook of hooks) {
-                await hook(...args);
-            }
-        }
-    }
-
     /**
      * Stops the crawler immediately.
      *

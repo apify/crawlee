@@ -26,10 +26,13 @@ import type {
 } from './utils/playwright-utils.js';
 import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 
+export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
+
 export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {}
-export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
-export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
+    extends
+        BrowserCrawlingContext<Page, Response, PlaywrightController, UserData, PlaywrightGotoOptions>,
+        PlaywrightContextUtils {}
+export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {}
 
 export interface PlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
@@ -76,26 +79,26 @@ export interface PlaywrightCrawlerOptions<
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
-     * which are passed to the `page.goto()` function the crawler calls to navigate.
+     * or browser properties before navigation. The function receives the `crawlingContext`; the options object
+     * forwarded to `page.goto()` is available as `crawlingContext.gotoOptions` and can be mutated in place.
+     * A hook may optionally return a partial object whose properties are merged into the crawling context
+     * (e.g. to override context members for subsequent hooks and pipeline stages).
      * Example:
      * ```
      * preNavigationHooks: [
-     *     async (crawlingContext, gotoOptions) => {
-     *         const { page } = crawlingContext;
+     *     async ({ page, gotoOptions }) => {
      *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
+     *         gotoOptions.timeout = 60_000;
      *     },
      * ]
      * ```
-     *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: PlaywrightHook[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
-     * The function accepts `crawlingContext` as the only parameter.
+     * The function accepts `crawlingContext` as the only parameter. A hook may optionally return a partial object
+     * whose properties are merged into the crawling context (e.g. to override `response` after solving a challenge).
      * Example:
      * ```
      * postNavigationHooks: [
@@ -292,15 +295,33 @@ export class PlaywrightCrawler<
             compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
             closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
-                return playwrightUtils.handleCloudflareChallenge(
-                    context.page,
-                    context.request.url,
-                    options,
-                    this.blockedStatusCodes,
-                );
+                return playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options);
             },
         };
     }
+}
+
+/**
+ * Returns a `postNavigationHooks`-ready hook that runs {@apilink PlaywrightContextUtils.handleCloudflareChallenge}
+ * and propagates the post-challenge {@apilink Response} back into the crawling context via its return value.
+ *
+ * **Example usage**
+ * ```ts
+ * import { PlaywrightCrawler, handleCloudflareChallengeHook } from 'crawlee';
+ *
+ * const crawler = new PlaywrightCrawler({
+ *     postNavigationHooks: [handleCloudflareChallengeHook()],
+ * });
+ * ```
+ */
+export function handleCloudflareChallengeHook(options?: HandleCloudflareChallengeOptions): PlaywrightHook {
+    return async (context) => {
+        const response = await context.handleCloudflareChallenge(options);
+        if (response !== undefined) {
+            return { response };
+        }
+        return undefined;
+    };
 }
 
 /**
