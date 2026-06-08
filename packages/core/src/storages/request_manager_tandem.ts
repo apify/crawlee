@@ -21,36 +21,36 @@ import type {
 export class RequestManagerTandem implements IRequestManager {
     private log: CrawleeLogger;
     private requestLoader: IRequestLoader;
-    private requestQueuePromise?: Promise<IRequestManager>;
-    private resolvedRequestQueue?: IRequestManager;
+    private requestManagerPromise?: Promise<IRequestManager>;
+    private resolvedRequestManager?: IRequestManager;
 
-    private requestQueueFactory: () => IRequestManager | Promise<IRequestManager>;
+    private requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
 
     /**
      * @param requestLoader The read-only loader to read requests from first.
-     * @param requestQueue The writable manager to transfer requests into and enqueue new ones. May be passed as a
-     *  factory function so that the tandem can be constructed synchronously and the queue opened lazily on first use
+     * @param requestManager The writable manager to transfer requests into and enqueue new ones. May be passed as a
+     *  factory function so that the tandem can be constructed synchronously and the manager opened lazily on first use
      *  (e.g. a lazily-opened default {@apilink RequestQueue}).
      */
     constructor(
         requestLoader: IRequestLoader,
-        requestQueue: IRequestManager | (() => IRequestManager | Promise<IRequestManager>),
+        requestManager: IRequestManager | (() => IRequestManager | Promise<IRequestManager>),
     ) {
         this.log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
         this.requestLoader = requestLoader;
-        this.requestQueueFactory = typeof requestQueue === 'function' ? requestQueue : () => requestQueue;
+        this.requestManagerFactory = typeof requestManager === 'function' ? requestManager : () => requestManager;
     }
 
     /**
-     * Resolves the writable request queue, opening it lazily (via the factory) on first use and memoizing the result.
+     * Resolves the writable request manager, opening it lazily (via the factory) on first use and memoizing the result.
      * @private
      */
-    private async getRequestQueue(): Promise<IRequestManager> {
-        if (this.resolvedRequestQueue === undefined) {
-            this.requestQueuePromise ??= Promise.resolve(this.requestQueueFactory());
-            this.resolvedRequestQueue = await this.requestQueuePromise;
+    private async getRequestManager(): Promise<IRequestManager> {
+        if (this.resolvedRequestManager === undefined) {
+            this.requestManagerPromise ??= Promise.resolve(this.requestManagerFactory());
+            this.resolvedRequestManager = await this.requestManagerPromise;
         }
-        return this.resolvedRequestQueue;
+        return this.resolvedRequestManager;
     }
 
     /**
@@ -65,14 +65,14 @@ export class RequestManagerTandem implements IRequestManager {
             return;
         }
 
-        const requestQueue = await this.getRequestQueue();
+        const requestManager = await this.getRequestManager();
 
         try {
-            await requestQueue.addRequest(request, { forefront: true });
+            await requestManager.addRequest(request, { forefront: true });
         } catch (error) {
             this.log.exception(
                 error as Error,
-                'Adding request from the RequestLoader to the RequestQueue failed, the request has been dropped.',
+                'Adding request from the RequestLoader to the RequestManager failed, the request has been dropped.',
                 { url: request.url, uniqueKey: request.uniqueKey },
             );
         } finally {
@@ -82,8 +82,8 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
-     * Fetches the next request from the RequestQueue. If the queue is empty and the RequestList
-     * is not finished, it will transfer a batch of requests from the list to the queue first.
+     * Fetches the next request from the request manager. If the manager is empty and the loader
+     * is not finished, it will transfer a batch of requests from the loader to the manager first.
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
@@ -97,16 +97,16 @@ export class RequestManagerTandem implements IRequestManager {
             await this.transferNextBatchToQueue();
         }
 
-        // Try to fetch from queue after potential transfer
-        return (await this.getRequestQueue()).fetchNextRequest<T>();
+        // Try to fetch from manager after potential transfer
+        return (await this.getRequestManager()).fetchNextRequest<T>();
     }
 
     /**
      * @inheritdoc
      */
     async isFinished(): Promise<boolean> {
-        const requestQueue = await this.getRequestQueue();
-        const storagesFinished = await Promise.all([this.requestLoader.isFinished(), requestQueue.isFinished()]);
+        const requestManager = await this.getRequestManager();
+        const storagesFinished = await Promise.all([this.requestLoader.isFinished(), requestManager.isFinished()]);
         return storagesFinished.every(Boolean);
     }
 
@@ -114,8 +114,8 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async isEmpty(): Promise<boolean> {
-        const requestQueue = await this.getRequestQueue();
-        const storagesEmpty = await Promise.all([this.requestLoader.isEmpty(), requestQueue.isEmpty()]);
+        const requestManager = await this.getRequestManager();
+        const storagesEmpty = await Promise.all([this.requestLoader.isEmpty(), requestManager.isEmpty()]);
         return storagesEmpty.every(Boolean);
     }
 
@@ -123,27 +123,27 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async handledCount(): Promise<number> {
-        // Since one of the stores needs to have priority when both are present, we query the request queue - the request list will first be dumped into the queue and then left empty.
-        return (await this.getRequestQueue()).handledCount();
+        // Since one of the stores needs to have priority when both are present, we query the request manager - the request loader will first be dumped into the manager and then left empty.
+        return (await this.getRequestManager()).handledCount();
     }
 
     /**
      * @inheritdoc
      */
     async getTotalCount(): Promise<number> {
-        return (await this.getRequestQueue()).getTotalCount();
+        return (await this.getRequestManager()).getTotalCount();
     }
 
     /**
      * @inheritdoc
      */
     async getPendingCount(): Promise<number> {
-        const requestQueue = await this.getRequestQueue();
-        const [queuePending, loaderPending] = await Promise.all([
-            requestQueue.getPendingCount(),
+        const requestManager = await this.getRequestManager();
+        const [managerPending, loaderPending] = await Promise.all([
+            requestManager.getPendingCount(),
             this.requestLoader.getPendingCount(),
         ]);
-        return queuePending + loaderPending;
+        return managerPending + loaderPending;
     }
 
     /**
@@ -161,7 +161,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        return (await this.getRequestQueue()).markRequestHandled(request);
+        return (await this.getRequestManager()).markRequestHandled(request);
     }
 
     /**
@@ -171,14 +171,14 @@ export class RequestManagerTandem implements IRequestManager {
         request: Request,
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        return (await this.getRequestQueue()).reclaimRequest(request, options);
+        return (await this.getRequestManager()).reclaimRequest(request, options);
     }
 
     /**
      * @inheritdoc
      */
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        return (await this.getRequestQueue()).addRequest(requestLike, options);
+        return (await this.getRequestManager()).addRequest(requestLike, options);
     }
 
     /**
@@ -188,7 +188,7 @@ export class RequestManagerTandem implements IRequestManager {
         requests: RequestsLike,
         options?: AddRequestsBatchedOptions,
     ): Promise<AddRequestsBatchedResult> {
-        return (await this.getRequestQueue()).addRequestsBatched(requests, options);
+        return (await this.getRequestManager()).addRequestsBatched(requests, options);
     }
 
     /**
