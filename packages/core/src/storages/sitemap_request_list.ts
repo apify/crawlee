@@ -445,14 +445,17 @@ export class SitemapRequestList implements IRequestLoader {
      * @inheritDoc
      */
     async getTotalCount(): Promise<number> {
-        return this.urlQueueStream.readableLength + this.handledUrlCount - this.inProgress.size;
+        // Total known so far = not-yet-fetched (still buffered in the stream) + in-progress (fetched but not
+        // yet handled) + already handled.
+        return this.urlQueueStream.readableLength + this.inProgress.size + this.handledUrlCount;
     }
 
     /**
      * @inheritDoc
      */
     async getPendingCount(): Promise<number> {
-        return (await this.getTotalCount()) - this.handledUrlCount;
+        // Pending = everything not yet handled = not-yet-fetched + in-progress.
+        return this.urlQueueStream.readableLength + this.inProgress.size;
     }
 
     /**
