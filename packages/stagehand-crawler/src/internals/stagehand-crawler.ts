@@ -210,11 +210,17 @@ export interface StagehandPage extends Page {
 /**
  * Crawling context for StagehandCrawler with enhanced page object.
  */
+/**
+ * Goto options for StagehandCrawler navigation.
+ */
+export type StagehandGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
+
 export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<
     StagehandPage,
     Response,
     StagehandController,
-    UserData
+    UserData,
+    StagehandGotoOptions
 > {
     /**
      * Enhanced Playwright page with Stagehand AI methods.
@@ -232,17 +238,12 @@ export interface StagehandCrawlingContext<UserData extends Dictionary = Dictiona
 /**
  * Hook function for StagehandCrawler.
  */
-export interface StagehandHook extends BrowserHook<StagehandCrawlingContext, StagehandGotoOptions> {}
+export interface StagehandHook extends BrowserHook<StagehandCrawlingContext> {}
 
 /**
  * Request handler for StagehandCrawler.
  */
 export interface StagehandRequestHandler extends RequestHandler<LoadedContext<StagehandCrawlingContext>> {}
-
-/**
- * Goto options for StagehandCrawler navigation.
- */
-export type StagehandGotoOptions = Dictionary & Parameters<Page['goto']>[1];
 
 /**
  * Options for StagehandCrawler.

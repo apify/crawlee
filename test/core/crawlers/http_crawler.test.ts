@@ -377,6 +377,38 @@ test('should retry on 403 even with disallowed content-type', async () => {
     expect(succeeded[0].retryCount).toBe(1);
 });
 
+test('navigation hooks can override context members via return value', async () => {
+    let observedBody: string | undefined;
+    let observedStatus: number | undefined;
+    let postHookSawOverride = false;
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        postNavigationHooks: [
+            async ({ request }) => ({
+                response: new ResponseWithUrl('<html>overridden body</html>', {
+                    url: request.url,
+                    status: 201,
+                    headers: { 'content-type': 'text/html; charset=utf-8' },
+                }),
+            }),
+            async ({ response }) => {
+                postHookSawOverride = response.status === 201;
+            },
+        ],
+        requestHandler: async ({ body, response }) => {
+            observedBody = body.toString();
+            observedStatus = response.status;
+        },
+    });
+
+    await crawler.run([url]);
+
+    expect(postHookSawOverride).toBe(true);
+    expect(observedStatus).toBe(201);
+    expect(observedBody).toContain('overridden body');
+});
+
 test('works with a custom HttpClient', async () => {
     const results: string[] = [];
 

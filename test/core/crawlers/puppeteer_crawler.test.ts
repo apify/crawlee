@@ -154,7 +154,7 @@ describe('PuppeteerCrawler', () => {
             maxConcurrency: 1,
             requestHandler: () => {},
             preNavigationHooks: [
-                (_context, gotoOptions) => {
+                ({ gotoOptions }) => {
                     options = gotoOptions;
                 },
             ],
