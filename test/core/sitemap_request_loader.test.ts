@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
-import { type Request, SitemapRequestList } from '@crawlee/core';
+import { type Request, SitemapRequestLoader } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from '../shared/_helper.js';
@@ -209,9 +209,9 @@ afterAll(async () => {
     await emulator.destroy();
 });
 
-describe('SitemapRequestList', () => {
+describe('SitemapRequestLoader', () => {
     test('requests are available before the sitemap is fully loaded', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-stream.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-stream.xml`] });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -231,17 +231,17 @@ describe('SitemapRequestList', () => {
     });
 
     test('retry sitemap load on error', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(5);
+        expect(await list.getHandledCount()).toBe(5);
     });
 
     test('broken off sitemap load resurrects correctly and does not duplicate / lose requests', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`] });
 
         const urls = new Set<string>();
 
@@ -250,7 +250,7 @@ describe('SitemapRequestList', () => {
             urls.add(request.url);
         }
 
-        expect(list.handledCount()).toBe(5);
+        expect(await list.getHandledCount()).toBe(5);
         expect(urls).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -263,23 +263,23 @@ describe('SitemapRequestList', () => {
     });
 
     test('teardown works', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
 
-            if (list.handledCount() >= 2) {
+            if ((await list.getHandledCount()) >= 2) {
                 await list.teardown();
             }
         }
 
-        expect(list.handledCount()).toBe(2);
+        expect(await list.getHandledCount()).toBe(2);
         await expect(list.isFinished()).resolves.toBe(true);
         await expect(list.fetchNextRequest()).resolves.toBe(null);
     });
 
     test('globs filtering works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             globs: ['http://not-exists.com/catalog**'],
         });
@@ -288,11 +288,11 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(4);
+        expect(await list.getHandledCount()).toBe(4);
     });
 
     test('regexps filtering works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             regexps: [/desc=vacation_new.+/],
         });
@@ -301,11 +301,11 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(2);
+        expect(await list.getHandledCount()).toBe(2);
     });
 
     test('exclude filtering works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             exclude: [/desc=vacation_new/],
         });
@@ -314,11 +314,11 @@ describe('SitemapRequestList', () => {
             await list.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(3);
+        expect(await list.getHandledCount()).toBe(3);
     });
 
     test('draining the request list between sitemaps', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -349,24 +349,24 @@ describe('SitemapRequestList', () => {
         expect(secondBatch).toHaveLength(5);
 
         await expect(list.isFinished()).resolves.toBe(true);
-        expect(list.handledCount()).toBe(7);
+        expect(await list.getHandledCount()).toBe(7);
     });
 
-    test('for..await syntax works with SitemapRequestList', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+    test('for..await syntax works with SitemapRequestLoader', async () => {
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
         }
 
         await expect(list.isFinished()).resolves.toBe(true);
-        expect(list.handledCount()).toBe(7);
+        expect(await list.getHandledCount()).toBe(7);
     });
 
     test('aborting long sitemap load works', async () => {
         const controller = new AbortController();
 
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap-index.xml`],
             signal: controller.signal,
         });
@@ -380,11 +380,11 @@ describe('SitemapRequestList', () => {
 
         await expect(list.isFinished()).resolves.toBe(true);
         expect(list.isSitemapFullyLoaded()).toBe(false);
-        expect(list.handledCount()).toBe(2);
+        expect(await list.getHandledCount()).toBe(2);
     });
 
     test('timeout option works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap-index.xml`],
             timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
         });
@@ -395,7 +395,7 @@ describe('SitemapRequestList', () => {
 
         await expect(list.isFinished()).resolves.toBe(true);
         expect(list.isSitemapFullyLoaded()).toBe(false);
-        expect(list.handledCount()).toBe(2);
+        expect(await list.getHandledCount()).toBe(2);
     });
 
     test('resurrection does not resume aborted loading', async () => {
@@ -406,7 +406,7 @@ describe('SitemapRequestList', () => {
         };
 
         {
-            const list = await SitemapRequestList.open(options);
+            const list = await SitemapRequestLoader.open(options);
 
             await sleep(50);
 
@@ -414,16 +414,16 @@ describe('SitemapRequestList', () => {
             await list.persistState();
         }
 
-        const newList = await SitemapRequestList.open(options);
+        const newList = await SitemapRequestLoader.open(options);
         for await (const request of newList) {
             await newList.markRequestHandled(request);
         }
 
-        expect(newList.handledCount()).toBe(2);
+        expect(await newList.getHandledCount()).toBe(2);
     });
 
     test('processing the whole list', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap.xml`] });
         const requests: Request[] = [];
 
         await expect(list.isFinished()).resolves.toBe(false);
@@ -444,54 +444,19 @@ describe('SitemapRequestList', () => {
             'http://not-exists.com/catalog?item=83&desc=vacation_usa',
         ]);
 
-        expect(list.handledCount()).toEqual(5);
-    });
-
-    test('processing the whole list with reclaiming', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
-        const requests: Request[] = [];
-
-        await expect(list.isFinished()).resolves.toBe(false);
-        let counter = 0;
-
-        while (!(await list.isFinished())) {
-            const request = await list.fetchNextRequest();
-            if (!request) break;
-
-            if (counter % 2 === 0) {
-                await list.markRequestHandled(request);
-                requests.push(request);
-            } else {
-                await list.reclaimRequest(request);
-            }
-
-            counter += 1;
-        }
-
-        await expect(list.isEmpty()).resolves.toBe(true);
-        expect(new Set(requests.map((it) => it.url))).toEqual(
-            new Set([
-                'http://not-exists.com/',
-                'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
-                'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
-                'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
-                'http://not-exists.com/catalog?item=83&desc=vacation_usa',
-            ]),
-        );
-
-        expect(list.handledCount()).toEqual(5);
+        expect(await list.getHandledCount()).toEqual(5);
     });
 
     test('persists state', async () => {
         const options = { sitemapUrls: [`${url}/sitemap-stream.xml`], persistStateKey: 'some-key' };
-        const list = await SitemapRequestList.open(options);
+        const list = await SitemapRequestLoader.open(options);
 
         const firstRequest = await list.fetchNextRequest();
         await list.markRequestHandled(firstRequest!);
 
         await list.persistState();
 
-        const newList = await SitemapRequestList.open(options);
+        const newList = await SitemapRequestLoader.open(options);
         await expect(newList.isEmpty()).resolves.toBe(false);
 
         while (!(await newList.isFinished())) {
@@ -500,17 +465,17 @@ describe('SitemapRequestList', () => {
             await newList.markRequestHandled(request);
         }
 
-        expect(list.handledCount()).toBe(1);
-        expect(newList.handledCount()).toBe(2);
+        expect(await list.getHandledCount()).toBe(1);
+        expect(await newList.getHandledCount()).toBe(2);
     });
 
     test("calling `persistState` doesn't throw", async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
 
-            if (list.handledCount() >= 2) break;
+            if ((await list.getHandledCount()) >= 2) break;
         }
 
         await expect(list.persistState()).resolves.toBe(undefined);
@@ -526,7 +491,7 @@ describe('SitemapRequestList', () => {
         let firstLoadedUrl;
 
         {
-            const list = await SitemapRequestList.open(options);
+            const list = await SitemapRequestLoader.open(options);
 
             const firstRequest = await list.fetchNextRequest();
             firstRequest!.userData = userDataPayload;
@@ -536,7 +501,7 @@ describe('SitemapRequestList', () => {
             // simulates a migration in the middle of request processing
         }
 
-        const newList = await SitemapRequestList.open(options);
+        const newList = await SitemapRequestLoader.open(options);
         const restoredRequest = await newList.fetchNextRequest();
 
         expect(restoredRequest!.url).toEqual(firstLoadedUrl);

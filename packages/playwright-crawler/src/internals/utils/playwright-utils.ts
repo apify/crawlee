@@ -986,7 +986,7 @@ export interface PlaywrightContextUtils {
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinksByClickingElements(
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
     ): Promise<BatchAddRequestsResult>;
 
     /**

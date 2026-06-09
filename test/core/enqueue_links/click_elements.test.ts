@@ -95,7 +95,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
             await page.setContent(html);
             await utils.enqueueLinksByClickingElements({
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 selector: 'a',
                 transformRequestFunction: (request) => {
                     request.uniqueKey = 'key';
@@ -132,7 +132,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
             await page.setContent(html);
             await utils.enqueueLinksByClickingElements({
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 selector: 'a',
                 waitForPageIdleSecs: 0.025,
                 maxWaitForPageIdleSecs: 0.25,

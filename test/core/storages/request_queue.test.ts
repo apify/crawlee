@@ -477,7 +477,7 @@ describe('RequestQueue remote', () => {
         getMock.mockResolvedValueOnce({
             handledRequestCount: 33,
         } as never);
-        const count = await queue.handledCount();
+        const count = await queue.getHandledCount();
         expect(count).toBe(33);
         expect(getMock).toHaveBeenCalledTimes(1);
         expect(getMock).toHaveBeenLastCalledWith();

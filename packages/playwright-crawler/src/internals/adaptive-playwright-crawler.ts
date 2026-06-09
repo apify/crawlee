@@ -718,6 +718,15 @@ export class AdaptivePlaywrightCrawler<
             );
     }
 
+    /**
+     * Reading the pending request count queries the underlying request manager, which counts as storage access.
+     * Since this is internal crawler bookkeeping used to compute the `enqueueLinks` limit (not user-initiated storage
+     * access), it must be allowed even while a request handler runs inside the storage-access guard.
+     */
+    protected override async getPendingRequestCountApproximation(): Promise<number> {
+        return this.allowStorageAccess(() => super.getPendingRequestCountApproximation())();
+    }
+
     protected async enqueueLinks(
         options: SetRequired<EnqueueLinksOptions, 'urls'>,
         request: RestrictedCrawlingContext['request'],

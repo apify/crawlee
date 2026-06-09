@@ -99,13 +99,15 @@ export interface PuppeteerCrawlerOptions<
  * If the target website doesn't need JavaScript, consider using {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink PuppeteerCrawlerOptions.requestList}
- * or {@apilink PuppeteerCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink PuppeteerCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink PuppeteerCrawlerOptions.requestList} and {@apilink PuppeteerCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink PuppeteerCrawlerOptions.requestList|`requestList`} and {@apilink PuppeteerCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
@@ -256,11 +258,11 @@ export class PuppeteerCrawler<
                 return puppeteerUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
             },
             enqueueLinksByClickingElements: async (
-                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
             ) =>
                 puppeteerUtils.enqueueLinksByClickingElements({
                     page: context.page,
-                    requestQueue: this.requestQueue!,
+                    requestManager: this.requestManager!,
                     ...options,
                 }),
             blockRequests: async (options?: BlockRequestsOptions) =>

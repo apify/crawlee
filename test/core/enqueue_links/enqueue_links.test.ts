@@ -91,7 +91,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: { limit: 3, selector: '.click', strategy: EnqueueStrategy.All },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -129,7 +129,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -163,7 +163,7 @@ describe('enqueueLinks()', () => {
                 browserCrawlerEnqueueLinks({
                     options: { selector: '.click', globs },
                     page,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).resolves.not.toThrow();
@@ -190,7 +190,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -218,7 +218,7 @@ describe('enqueueLinks()', () => {
                     skipNavigation: true,
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -249,7 +249,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -287,7 +287,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -324,7 +324,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -353,7 +353,7 @@ describe('enqueueLinks()', () => {
                     // @ts-expect-error Type 'RegExp[]' is not assignable to type 'PseudoUrlInput[]'
                     options: { selector: '.click', pseudoUrls },
                     page,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
@@ -365,7 +365,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: { selector: '.click', strategy: EnqueueStrategy.All },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -395,7 +395,7 @@ describe('enqueueLinks()', () => {
                     // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls: null },
                     page,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
@@ -406,7 +406,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: { selector: '.click', pseudoUrls: [], strategy: EnqueueStrategy.All },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -438,7 +438,7 @@ describe('enqueueLinks()', () => {
                     // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls },
                     page,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
@@ -450,7 +450,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/' },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -470,7 +470,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.SameDomain },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -494,7 +494,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.All },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -552,7 +552,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -602,7 +602,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -634,7 +634,7 @@ describe('enqueueLinks()', () => {
                 cheerioCrawlerEnqueueLinks({
                     options: { selector: '.click', globs },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).resolves.not.toThrow();
@@ -661,7 +661,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -700,7 +700,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -728,7 +728,7 @@ describe('enqueueLinks()', () => {
                     // @ts-expect-error Type 'RegExp[]' is not assignable to type 'PseudoUrlInput[]'
                     options: { selector: '.click', pseudoUrls },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
@@ -739,7 +739,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: { selector: '.click', strategy: EnqueueStrategy.All },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -769,7 +769,7 @@ describe('enqueueLinks()', () => {
                     // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls: null },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
@@ -780,7 +780,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: { selector: '.click', pseudoUrls: [], strategy: EnqueueStrategy.All },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -812,7 +812,7 @@ describe('enqueueLinks()', () => {
                     // @ts-expect-error invalid input
                     options: { selector: '.click', pseudoUrls },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
@@ -824,7 +824,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.All },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -868,7 +868,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/' },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -888,7 +888,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.SameDomain },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -915,7 +915,7 @@ describe('enqueueLinks()', () => {
                     urls: ['/relative/url1', '/relative/url2'],
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -948,7 +948,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -985,7 +985,7 @@ describe('enqueueLinks()', () => {
                     forefront: true,
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -1014,7 +1014,7 @@ describe('enqueueLinks()', () => {
                     waitForAllRequestsToBeAdded: true,
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -1036,7 +1036,7 @@ describe('enqueueLinks()', () => {
                         globs: ['https://example.com/**/*'],
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1059,7 +1059,7 @@ describe('enqueueLinks()', () => {
                         ],
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1088,7 +1088,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1120,7 +1120,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1147,7 +1147,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1194,7 +1194,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1227,7 +1227,7 @@ describe('enqueueLinks()', () => {
                         onSkippedRequest,
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1269,7 +1269,7 @@ describe('enqueueLinks()', () => {
                         onSkippedRequest,
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
