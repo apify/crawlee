@@ -702,14 +702,16 @@ export interface HandleCloudflareChallengeOptions {
  * result in a SessionError which will be automatically retried, so only successful requests will get
  * into the `requestHandler`.
  *
+ * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned, so
+ * it can be propagated back to the crawling context via a hook return value (see
+ * {@apilink handleCloudflareChallengeHook}).
+ *
  * Works best with camoufox.
  *
  * **Example usage**
  * ```ts
  * postNavigationHooks: [
- *     async ({ handleCloudflareChallenge }) => {
- *         await handleCloudflareChallenge();
- *     },
+ *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
  * ],
  * ```
  *
@@ -721,12 +723,7 @@ async function handleCloudflareChallenge(
     page: Page,
     url: string,
     options: HandleCloudflareChallengeOptions = {},
-    blockedStatusCodes?: Set<number>,
-): Promise<void> {
-    // Cloudflare pages return 403, which is blocked by default — temporarily allow it during challenge handling
-    const had403 = blockedStatusCodes?.has(403);
-    blockedStatusCodes?.delete(403);
-
+): Promise<Response | undefined> {
     options.isBlockedCallback ??= async () => {
         const isBlocked = await page.evaluate(() => {
             return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
@@ -753,83 +750,81 @@ async function handleCloudflareChallenge(
         return options.isChallengeCallback!(page).catch(() => false);
     };
 
-    try {
-        if (!(await isChallenge())) {
-            await retryBlocked();
-            return;
-        }
-
-        const logLevel = options.verbose ? 'info' : 'debug';
-        getLog()[logLevel](
-            `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
-        );
-
-        const bb = await page
-            .evaluate(() => {
-                const div = document.querySelector('.main-content div');
-                return div?.getBoundingClientRect();
-            })
-            .catch(() => undefined);
-
-        if (!bb) {
-            return;
-        }
-
-        const randomOffset = (range: number) => {
-            return Math.round(100 * range * Math.random()) / 100;
-        };
-
-        let x = bb.x + 30;
-        let y = bb.y + 25;
-
-        // try to click the checkbox every second
-        for (let i = 0; i < 10; i++) {
-            await sleep((options.preChallengeSleepSecs ?? 1) * 1000);
-
-            // break early if we are no longer on the CF challenge page
-            if (!(await isChallenge())) {
-                break;
-            }
-
-            if (options.clickPositionCallback) {
-                const pos = await options.clickPositionCallback(page);
-                if (pos) {
-                    x = pos.x;
-                    y = pos.y;
-                }
-            }
-
-            if (options.clickCallback) {
-                await options.clickCallback(page, { x, y });
-                continue;
-            }
-
-            // we can click on the text too, so X can be a bit larger
-            const xRandomized = x + randomOffset(10);
-            const yRandomized = y + randomOffset(10);
-
-            getLog()[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, {
-                x: xRandomized,
-                y: yRandomized,
-            });
-            await page.mouse.click(xRandomized, yRandomized);
-
-            // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)
-            await page.mouse.click(xRandomized, yRandomized + 35);
-        }
-
-        await sleep((options.sleepSecs ?? 10) * 1000);
-
-        if (await isChallenge()) {
-            throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
-        }
-
+    if (!(await isChallenge())) {
         await retryBlocked();
-    } finally {
-        if (had403) {
-            blockedStatusCodes?.add(403);
-        }
+        return undefined;
     }
+
+    const logLevel = options.verbose ? 'info' : 'debug';
+    getLog()[logLevel](
+        `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
+    );
+
+    const bb = await page
+        .evaluate(() => {
+            const div = document.querySelector('.main-content div');
+            return div?.getBoundingClientRect();
+        })
+        .catch(() => undefined);
+
+    if (!bb) {
+        return undefined;
+    }
+
+    const randomOffset = (range: number) => {
+        return Math.round(100 * range * Math.random()) / 100;
+    };
+
+    let x = bb.x + 30;
+    let y = bb.y + 25;
+
+    // try to click the checkbox every second
+    for (let i = 0; i < 10; i++) {
+        await sleep((options.preChallengeSleepSecs ?? 1) * 1000);
+
+        // break early if we are no longer on the CF challenge page
+        if (!(await isChallenge())) {
+            break;
+        }
+
+        if (options.clickPositionCallback) {
+            const pos = await options.clickPositionCallback(page);
+            if (pos) {
+                x = pos.x;
+                y = pos.y;
+            }
+        }
+
+        if (options.clickCallback) {
+            await options.clickCallback(page, { x, y });
+            continue;
+        }
+
+        // we can click on the text too, so X can be a bit larger
+        const xRandomized = x + randomOffset(10);
+        const yRandomized = y + randomOffset(10);
+
+        getLog()[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, {
+            x: xRandomized,
+            y: yRandomized,
+        });
+        await page.mouse.click(xRandomized, yRandomized);
+
+        // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)
+        await page.mouse.click(xRandomized, yRandomized + 35);
+    }
+
+    await sleep((options.sleepSecs ?? 10) * 1000);
+
+    if (await isChallenge()) {
+        throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
+    }
+
+    await retryBlocked();
+
+    // Reload to obtain a fresh Response without the challenge interstitial, which the caller can
+    // propagate back into the crawling context so downstream status-code checks see the new value.
+    return (await page.reload()) ?? undefined;
 }
 
 /** @internal */
@@ -991,7 +986,7 @@ export interface PlaywrightContextUtils {
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinksByClickingElements(
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
     ): Promise<BatchAddRequestsResult>;
 
     /**
@@ -1043,20 +1038,20 @@ export interface PlaywrightContextUtils {
      * result in a SessionError which will be automatically retried, so only successful requests will get
      * into the `requestHandler`.
      *
-     * Works best with camoufox.
+     * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned,
+     * which can be returned from the hook to update the crawling context's `response`. For the common case,
+     * prefer the pre-wrapped {@apilink handleCloudflareChallengeHook} hook.
      *
      * **Example usage**
      * ```ts
      * postNavigationHooks: [
-     *     async ({ handleCloudflareChallenge }) => {
-     *         await handleCloudflareChallenge();
-     *     },
+     *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
      * ],
      * ```
      *
      * @param [options]
      */
-    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response | undefined>;
 }
 
 export { enqueueLinksByClickingElements };

@@ -4,6 +4,7 @@ import util from 'node:util';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
+    ContextMiddleware,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -75,6 +76,9 @@ export interface HttpCrawlerOptions<
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts one parameter `crawlingContext`,
      * which is passed to the `requestAsBrowser()` function the crawler calls to navigate.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * allowing the hook to override context members for subsequent hooks and pipeline stages.
      * Example:
      * ```
      * preNavigationHooks: [
@@ -83,25 +87,29 @@ export interface HttpCrawlerOptions<
      *     },
      * ]
      * ```
-     *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: InternalHttpHook<CrawlingContext>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
      * The function accepts `crawlingContext` as the only parameter.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * which is useful for overriding the `response` after solving a challenge or re-fetching the resource.
      * Example:
      * ```
      * postNavigationHooks: [
      *     async (crawlingContext) => {
-     *         // ...
+     *         if (await needsRevalidation(crawlingContext)) {
+     *             return { response: await refetch(crawlingContext.request) };
+     *         }
      *     },
      * ]
      * ```
      */
-    postNavigationHooks?: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
+    postNavigationHooks?: ((
+        crawlingContext: CrawlingContextWithResponse,
+    ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -146,14 +154,14 @@ export interface HttpCrawlerOptions<
 /**
  * @internal
  */
-export type InternalHttpHook<Context> = (crawlingContext: Context) => Awaitable<void>;
+export type InternalHttpHook<Context> = (crawlingContext: Context) => Awaitable<void | Partial<Context>>;
 
 export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
 
-interface CrawlingContextWithReponse<
+interface CrawlingContextWithResponse<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
     /**
@@ -173,7 +181,7 @@ interface CrawlingContextWithReponse<
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends CrawlingContextWithReponse<UserData> {
+> extends CrawlingContextWithResponse<UserData> {
     /**
      * The request body of the web page.
      * The type depends on the `Content-Type` header of the web page:
@@ -242,13 +250,15 @@ export type HttpRequestHandler<
  *
  * This crawler downloads each URL using a plain HTTP request and doesn't do any HTML parsing.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink HttpCrawlerOptions.requestList}
- * or {@apilink HttpCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink HttpCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink HttpCrawlerOptions.requestList} and {@apilink HttpCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink HttpCrawlerOptions.requestList|`requestList`} and {@apilink HttpCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
@@ -304,7 +314,9 @@ export class HttpCrawler<
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
-    protected postNavigationHooks: ((crawlingContext: CrawlingContextWithReponse) => Awaitable<void>)[];
+    protected postNavigationHooks: ((
+        crawlingContext: CrawlingContextWithResponse,
+    ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     protected saveResponseCookies: boolean;
     protected navigationTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
@@ -382,18 +394,35 @@ export class HttpCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>()
-            .compose({
-                action: this.makeHttpRequest.bind(this),
-            })
+        // When navigation is skipped, `prepareHttpRequest` has already installed throwing getters for
+        // the response-derived members, so the guarded action is bypassed and the context left untouched.
+        const skipGuard = <Ctx extends CrawlingContext, Ext>(
+            action: (ctx: Ctx) => Awaitable<void | Ext>,
+        ): ContextMiddleware<Ctx, Ext> => ({
+            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext,
+        });
+
+        let pipeline = ContextPipeline.create<CrawlingContext>().compose({
+            action: this.prepareHttpRequest.bind(this),
+        });
+
+        for (const hook of this.preNavigationHooks) {
+            pipeline = pipeline.compose(skipGuard(hook));
+        }
+
+        let pipelineWithNavigation = pipeline.compose(skipGuard(this.makeHttpRequest.bind(this)));
+
+        for (const hook of this.postNavigationHooks) {
+            pipelineWithNavigation = pipelineWithNavigation.compose(skipGuard(hook));
+        }
+
+        return pipelineWithNavigation
             .compose({ action: this.processHttpResponse.bind(this) })
             .compose({ action: this.handleBlockedRequestByContent.bind(this) });
     }
 
-    private async makeHttpRequest(
-        crawlingContext: CrawlingContext,
-    ): Promise<Omit<CrawlingContextWithReponse, keyof CrawlingContext> & Partial<CrawlingContextWithReponse>> {
-        const { request, session } = crawlingContext;
+    private async prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithResponse>> {
+        const { request } = crawlingContext;
 
         if (request.skipNavigation) {
             return {
@@ -412,13 +441,19 @@ export class HttpCrawler<
                         'The `response` property is not available - `skipNavigation` was used',
                     );
                 },
-            };
+            } as Partial<CrawlingContextWithResponse>;
         }
 
         request.state = RequestState.BEFORE_NAV;
-        await this._executeHooks(this.preNavigationHooks, crawlingContext);
+        return {};
+    }
+
+    private async makeHttpRequest(
+        crawlingContext: CrawlingContext,
+    ): Promise<Omit<CrawlingContextWithResponse, keyof CrawlingContext> & Partial<CrawlingContextWithResponse>> {
         tryCancel();
 
+        const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         const httpResponse = await addTimeoutToPromise(
@@ -435,9 +470,9 @@ export class HttpCrawler<
     }
 
     private async processHttpResponse(
-        crawlingContext: CrawlingContextWithReponse,
+        crawlingContext: CrawlingContextWithResponse,
     ): Promise<
-        Omit<InternalHttpCrawlingContext, keyof CrawlingContextWithReponse> & Partial<InternalHttpCrawlingContext>
+        Omit<InternalHttpCrawlingContext, keyof CrawlingContextWithResponse> & Partial<InternalHttpCrawlingContext>
     > {
         if (crawlingContext.request.skipNavigation) {
             return {
@@ -469,7 +504,6 @@ export class HttpCrawler<
             };
         }
 
-        await this._executeHooks(this.postNavigationHooks, crawlingContext);
         tryCancel();
 
         const parsed = await this._parseResponse(crawlingContext.request, crawlingContext.response);

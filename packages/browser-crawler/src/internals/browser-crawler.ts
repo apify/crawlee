@@ -2,14 +2,15 @@ import type {
     Awaitable,
     BasicCrawlerOptions,
     BasicCrawlingContext,
+    ContextMiddleware,
     CrawlingContext,
     Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
+    IRequestManager,
     LoadedRequest,
     Request,
     RequestHandler,
-    RequestProvider,
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
@@ -57,6 +58,7 @@ export interface BrowserCrawlingContext<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
     UserData extends Dictionary = Dictionary,
+    GoToOptions extends Dictionary = Dictionary,
 > extends CrawlingContext<UserData> {
     /**
      * The browser page object where the web page is loaded and rendered.
@@ -74,15 +76,24 @@ export interface BrowserCrawlingContext<
     response: Response;
 
     /**
+     * Options object passed to the underlying `page.goto()` call. `preNavigationHooks` can mutate this
+     * object (or return `{ gotoOptions: ... }`) to influence the navigation.
+     */
+    gotoOptions: GoToOptions;
+
+    /**
      * Helper function for extracting URLs from the current page and adding them to the request queue.
      */
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
-export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Dictionary | undefined = Dictionary> = (
+export type BrowserHook<Context = BrowserCrawlingContext> = (
     crawlingContext: Context,
-    gotoOptions: GoToOptions,
-) => Awaitable<void>;
+) => Awaitable<void | Partial<Context>>;
+
+const COOKIES_BEFORE_HOOKS = Symbol('cookiesBeforeHooks');
+
+const readContextField = <T>(ctx: object, key: symbol): T => (ctx as Record<symbol, unknown>)[key] as T;
 
 export interface BrowserCrawlerOptions<
     Page extends CommonPage = CommonPage,
@@ -172,15 +183,14 @@ export interface BrowserCrawlerOptions<
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
-     * which are passed to the `page.goto()` function the crawler calls to navigate.
+     * or browser properties before navigation. The function receives the `crawlingContext`; the options object
+     * forwarded to `page.goto()` is available as `crawlingContext.gotoOptions` and can be mutated in place.
      *
      * **Example:**
      *
      * ```js
      * preNavigationHooks: [
-     *     async (crawlingContext, gotoOptions) => {
-     *         const { page } = crawlingContext;
+     *     async ({ page, gotoOptions }) => {
      *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
      *         gotoOptions.timeout = 60_000;
      *         gotoOptions.waitUntil = 'domcontentloaded';
@@ -188,14 +198,17 @@ export interface BrowserCrawlerOptions<
      * ]
      * ```
      *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
     preNavigationHooks?: BrowserHook<Context>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
      * The function accepts `crawlingContext` as the only parameter.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context.
+     * This is useful for overriding context members (e.g. `response`) after solving a challenge.
      *
      * **Example:**
      *
@@ -205,6 +218,11 @@ export interface BrowserCrawlerOptions<
      *         const { page } = crawlingContext;
      *         if (hasCaptcha(page)) {
      *             await solveCaptcha(page);
+     *         }
+     *     },
+     *     async (crawlingContext) => {
+     *         if (await needsRevalidation(crawlingContext)) {
+     *             return { response: await crawlingContext.page.reload() };
      *         }
      *     },
      * ]
@@ -253,15 +271,18 @@ export interface BrowserCrawlerOptions<
  * If the target website doesn't need JavaScript, we should consider using the {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented by the {@apilink Request} objects that are fed from the {@apilink RequestList} or {@apilink RequestQueue} instances
- * provided by the {@apilink BrowserCrawlerOptions.requestList|`requestList`} or {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`}
- * constructor options, respectively. If neither `requestList` nor `requestQueue` options are provided,
+ * The source URLs are represented by the {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink BrowserCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). If no `requestManager` is provided,
  * the crawler will open the default request queue either when the {@apilink BrowserCrawler.addRequests|`crawler.addRequests()`} function is called,
  * or if `requests` parameter (representing the initial requests) of the {@apilink BrowserCrawler.run|`crawler.run()`} function is provided.
  *
- * If both {@apilink BrowserCrawlerOptions.requestList|`requestList`} and {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`} options are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to the {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * To read from a read-only source such as a {@apilink RequestList} while still being able to enqueue new requests,
+ * combine it with a queue into a {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`}
+ * and pass the result as `requestManager`.
+ *
+ * > The {@apilink BrowserCrawlerOptions.requestList|`requestList`} and {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
@@ -358,13 +379,32 @@ export abstract class BrowserCrawler<
             ...basicCrawlerOptions
         } = options;
 
+        const skipGuard = <Ctx extends Context>(
+            action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+        ): ContextMiddleware<Ctx, Partial<Ctx>> => ({
+            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
+        });
+
         super({
             ...basicCrawlerOptions,
-            contextPipelineBuilder: () =>
-                contextPipelineBuilder()
-                    .compose({ action: this.performNavigation.bind(this) })
+            contextPipelineBuilder: () => {
+                let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
+
+                for (const hook of this.preNavigationHooks) {
+                    pipeline = pipeline.compose(skipGuard(hook));
+                }
+
+                pipeline = pipeline.compose(skipGuard(this.navigate.bind(this)));
+
+                for (const hook of this.postNavigationHooks) {
+                    pipeline = pipeline.compose(skipGuard(hook));
+                }
+
+                return pipeline
+                    .compose(skipGuard(this.finalizeNavigation.bind(this)))
                     .compose({ action: this.handleBlockedRequestByContent.bind(this) })
-                    .compose({ action: this.restoreRequestState.bind(this) }),
+                    .compose({ action: this.restoreRequestState.bind(this) });
+            },
             extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
         });
 
@@ -477,11 +517,17 @@ export abstract class BrowserCrawler<
                     "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (this should only happen with `about:` URLs)",
                 );
             },
+            get gotoOptions(): Dictionary {
+                throw new Error('The `gotoOptions` property is not available until `prepareNavigation` runs.');
+            },
             enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
                 return (await browserCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    options: {
+                        ...enqueueOptions,
+                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
+                    },
                     page,
-                    requestQueue: await this.getRequestQueue(),
+                    requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
@@ -492,10 +538,7 @@ export abstract class BrowserCrawler<
         };
     }
 
-    private async performNavigation(crawlingContext: Context): Promise<{
-        request: LoadedRequest<Request>;
-        response?: Response;
-    }> {
+    private async prepareNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         if (crawlingContext.request.skipNavigation) {
             return {
                 request: new Proxy(crawlingContext.request, {
@@ -513,42 +556,56 @@ export abstract class BrowserCrawler<
                         'The `response` property is not available - `skipNavigation` was used',
                     );
                 },
-            };
+            } as Partial<Context>;
         }
 
-        const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
-
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
-
         crawlingContext.request.state = RequestState.BEFORE_NAV;
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+
+        return {
+            gotoOptions: { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions,
+            [COOKIES_BEFORE_HOOKS]: this._getCookieHeaderFromRequest(crawlingContext.request),
+        } as unknown as Partial<Context>;
+    }
+
+    private async navigate(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
+        const gotoOptions = crawlingContext.gotoOptions as GoToOptions;
+        const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
+        const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
+        await this._applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
 
         let response: Response | undefined;
-
         try {
             response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
             await this._handleNavigationTimeout(crawlingContext, error as Error);
-
             crawlingContext.request.state = RequestState.ERROR;
-
             this._throwIfProxyError(error as Error);
             throw error;
         }
         tryCancel();
 
         crawlingContext.request.state = RequestState.AFTER_NAV;
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+
+        return { response } as Partial<Context>;
+    }
+
+    private async finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
+        tryCancel();
+
+        let response: Response | undefined;
+        try {
+            response = crawlingContext.response;
+        } catch {
+            // `preparePage` installs a throwing getter for `response`; reaching this branch means
+            // navigation produced no response and no hook overrode it. Treat as undefined.
+        }
 
         await this.processResponse(response, crawlingContext);
         tryCancel();
 
-        // save cookies
         // TODO: Should we save the cookies also after/only the handle page?
         if (this.saveResponseCookies && crawlingContext.session) {
             const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
@@ -565,16 +622,7 @@ export abstract class BrowserCrawler<
             }
         }
 
-        if (response !== undefined) {
-            return {
-                request: crawlingContext.request as LoadedRequest<Request>,
-                response,
-            };
-        }
-
-        return {
-            request: crawlingContext.request as LoadedRequest<Request>,
-        };
+        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
     }
 
     private async handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
@@ -677,9 +725,9 @@ export abstract class BrowserCrawler<
 
 /** @internal */
 interface EnqueueLinksInternalOptions {
-    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestManager'>> & Pick<EnqueueLinksOptions, 'requestManager'>;
     page: CommonPage;
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
     robotsTxtFile?: RobotsTxtFile;
     onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
@@ -689,7 +737,7 @@ interface EnqueueLinksInternalOptions {
 /** @internal */
 interface BoundEnqueueLinksInternalOptions {
     enqueueLinks: BasicCrawlingContext['enqueueLinks'];
-    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestManager'>> & Pick<EnqueueLinksOptions, 'requestManager'>;
     originalRequestUrl: string;
     finalRequestUrl?: string;
     page: CommonPage;
@@ -730,7 +778,7 @@ export async function browserCrawlerEnqueueLinks(
     }
 
     return enqueueLinks({
-        requestQueue: options.requestQueue,
+        requestManager: options.requestManager,
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,

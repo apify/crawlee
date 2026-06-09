@@ -680,6 +680,127 @@ const dataset = await Dataset.open();
 
 The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
 
+## Request loaders and managers
+
+The request loader/manager interfaces have been reworked to mirror the abstractions in Crawlee for Python. See the new [Request loaders](../guides/request-loaders) guide for the full picture.
+
+### `IRequestList` renamed to `IRequestLoader`
+
+The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
+
+### Loader interface surface changes
+
+The harmonized loader interface differs from the old `IRequestList` in a few ways:
+
+| Before (v3) | After (v4) |
+|---|---|
+| `length(): number` | `getTotalCount(): Promise<number>` (renamed and now async) |
+| _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
+| `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
+| `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
+| `inProgress: Set<string>` on the interface | Removed from the interface |
+| `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
+| _(n/a)_ | `toTandem?(requestManager?)` (new) |
+
+`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
+
+**Before:**
+```typescript
+const total = requestList.length();
+const handled = requestList.handledCount();
+```
+
+**After:**
+```typescript
+const total = await requestList.getTotalCount();
+const handled = await requestList.getHandledCount();
+```
+
+### Combining a list and a queue: `toTandem()`
+
+`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
+
+```typescript
+import { CheerioCrawler, RequestList } from 'crawlee';
+
+const requestList = await RequestList.open('my-list', ['https://example.com']);
+
+const crawler = new CheerioCrawler({
+    requestManager: await requestList.toTandem(),
+    requestHandler: async ({ enqueueLinks }) => {
+        await enqueueLinks();
+    },
+});
+```
+
+### `SitemapRequestList` renamed to `SitemapRequestLoader`
+
+The `SitemapRequestList` class (and its `SitemapRequestListOptions` type) have been renamed to `SitemapRequestLoader` and `SitemapRequestLoaderOptions` to match the loader terminology. Update your imports and type references accordingly:
+
+```typescript
+// Before
+import { SitemapRequestList } from 'crawlee';
+const loader = await SitemapRequestList.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
+
+// After
+import { SitemapRequestLoader } from 'crawlee';
+const loader = await SitemapRequestLoader.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
+```
+
+The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading, so any in-flight sitemap crawl that migrates across the upgrade will restart from the beginning. If you need to preserve state, either finish the crawl before upgrading or pass an explicit `persistStateKey`.
+
+### Crawler `requestList` / `requestQueue` options deprecated in favor of `requestManager`
+
+The crawler now reads its requests from a single `requestManager` (any `IRequestManager`, including a `RequestQueue`). The `requestList` and `requestQueue` constructor options are **deprecated** but still accepted as sugar:
+
+- `requestQueue` alone → used directly as the manager.
+- `requestList` + `requestQueue` → combined into a `RequestManagerTandem` automatically.
+- `requestList` alone → combined with a lazily-opened default queue into a tandem.
+
+```typescript
+// Before
+const crawler = new CheerioCrawler({ requestList, requestQueue });
+
+// After
+const crawler = new CheerioCrawler({ requestManager: new RequestManagerTandem(requestList, requestQueue) });
+// or, equivalently
+const crawler = new CheerioCrawler({ requestManager: await requestList.toTandem(requestQueue) });
+```
+
+A lone `requestList` now runs through a tandem over an auto-opened queue (rather than a read-only adapter). This means retries and `maxRequestsPerCrawl` accounting for that path now follow queue semantics.
+
+### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
+
+The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.
+
+### `getRequestQueue()` deprecated in favor of `getRequestManager()`
+
+`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestProvider`/`RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
+
+**Before:**
+```typescript
+const queue = await crawler.getRequestQueue();
+```
+
+**After:**
+```typescript
+const manager = await crawler.getRequestManager();
+```
+
+### `enqueueLinks` `requestQueue` option renamed to `requestManager`
+
+The standalone `enqueueLinks()` function and the click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
+
+**Before:**
+```typescript
+await enqueueLinks({ urls, requestQueue });
+```
+
+**After:**
+```typescript
+await enqueueLinks({ urls, requestManager });
+```
+
 ## `transformRequestFunction` precedence in `enqueueLinks`
 
 The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`globs`, `regexps`, `pseudoUrls`) instead of before. This means it has the highest priority and can overwrite any request options set by patterns or the global `label` option.

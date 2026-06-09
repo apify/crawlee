@@ -32,6 +32,7 @@ module.exports = {
             },
             items: [
                 'guides/request-storage',
+                'guides/request-loaders',
                 'guides/result-storage',
                 'guides/http-clients',
                 'guides/configuration',
