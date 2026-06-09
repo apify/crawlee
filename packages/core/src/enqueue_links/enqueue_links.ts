@@ -7,10 +7,10 @@ import type { SetRequired } from 'type-fest';
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import type { IRequestManager } from '../storages/request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    IRequestManager,
     RequestQueueOperationOptions,
 } from '../storages/request_provider.js';
 import type {

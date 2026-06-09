@@ -11,7 +11,7 @@ import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { IRequestLoader } from './request_loader.js';
-import type { IRequestManager } from './request_provider.js';
+import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */

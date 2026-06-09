@@ -33,37 +33,11 @@ import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { IRequestLoader } from './request_loader.js';
+import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils.js';
-
-export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
-
-/**
- * Extends the read-only {@apilink IRequestLoader} interface with the capability to enqueue new requests
- * and reclaim failed ones.
- */
-export interface IRequestManager extends IRequestLoader {
-    /**
-     * Reclaims request to the provider if its processing failed.
-     * The request will become available in the next `fetchNextRequest()`.
-     */
-    reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-
-    addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
-
-    addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
-
-    /**
-     * Remove all requests from the queue but keep the queue itself, resetting it
-     * so it can be reused (e.g. across multiple `crawler.run()` calls).
-     *
-     * Implementations that do not support purging may leave this `undefined`.
-     */
-    purge?(): Promise<void>;
-}
 
 export abstract class RequestProvider implements IStorage, IRequestManager {
     id: string;

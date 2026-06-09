@@ -1,7 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
 
 import type { Request } from '../request.js';
-import type { IRequestManager, RequestQueueOperationInfo } from './request_provider.js';
+import type { IRequestManager } from './request_manager.js';
+import type { RequestQueueOperationInfo } from './request_provider.js';
 
 /**
  * An abstract interface defining a read-only stream of requests to crawl.
