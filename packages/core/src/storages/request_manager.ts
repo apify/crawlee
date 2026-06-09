@@ -16,7 +16,7 @@ export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | st
 export interface IRequestManager extends IRequestLoader {
     /**
      * Reclaims request to the provider if its processing failed.
-     * The request will become available in the next `fetchNextRequest()`.
+     * The request will be returned by some subsequent `fetchNextRequest()` call.
      */
     reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
 
