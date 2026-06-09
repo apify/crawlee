@@ -65,7 +65,7 @@ On the contrary, sometimes we want to entirely disable the usage of browser fing
 Fingerprinting is no longer browser-only. Every session carries a lightweight fingerprint hint — a `browser`, `platform`, and `device` triple — that the request's HTTP client receives and applies on a best-effort basis.
 By default each session is given a realistic, randomized fingerprint (the host operating system as `platform`, with a plausible `browser`/`device` for it), and it rotates with the session just like the IP and cookies do.
 
-How much of the hint is used depends on the client. The [`impit`](./impit-http-client/impit-http-client) HTTP client maps the session's `browser` hint to a matching TLS and HTTP impersonation profile,
+How much of the hint is used depends on the client. The [`impit`](impit-http-client) HTTP client maps the session's `browser` hint to a matching TLS and HTTP impersonation profile,
 so the connection's low-level signature lines up with the headers being sent.
 
 The *same* fingerprint also drives browser crawlers, where it seeds the generated browser fingerprint — so a session keeps a consistent identity whether it is used over HTTP or in a real browser.
