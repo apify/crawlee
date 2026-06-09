@@ -55,7 +55,7 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameHostname },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -70,7 +70,7 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameDomain },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'http://example.com',
         });
 
@@ -85,7 +85,7 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameOrigin },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
