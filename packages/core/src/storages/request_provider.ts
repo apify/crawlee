@@ -12,7 +12,9 @@ import type {
 import {
     chunkedAsyncIterable,
     downloadListOfUrls,
+    extractUrls,
     getObjectType,
+    gotScraping,
     isAsyncIterable,
     isIterable,
     peekableAsyncIterable,
@@ -828,25 +830,53 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     protected async _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
         const { requestsFromUrl, regex, ...sharedOpts } = source;
 
-        // Download remote resource and parse URLs.
-        let urlsArr;
+        let body = '';
         try {
-            urlsArr = await this._downloadListOfUrls({
-                url: requestsFromUrl,
-                urlRegExp: regex,
+            // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
+            const match = requestsFromUrl.match(/^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/);
+            let fixedUrl = requestsFromUrl;
+
+            if (match) {
+                fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
+            }
+
+            const response = await gotScraping({
+                url: fixedUrl,
+                encoding: 'utf8',
                 proxyUrl: await this.proxyConfiguration?.newUrl(),
             });
+            body = response.body as string;
         } catch (err) {
             throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
         }
 
+        let fetchedRequests: RequestOptions[] = [];
+
+        try {
+            const parsed = JSON.parse(body);
+            if (Array.isArray(parsed)) {
+                for (const item of parsed) {
+                    if (item && typeof item === 'object' && typeof item.url === 'string') {
+                        fetchedRequests.push({ ...item, ...sharedOpts });
+                    }
+                }
+            }
+        } catch {
+            // Ignore JSON parse errors, fallback to regex extraction
+        }
+
+        if (fetchedRequests.length === 0) {
+            const urlsArr = extractUrls({ string: body, urlRegExp: regex });
+            fetchedRequests = urlsArr.map((url) => ({ url, ...sharedOpts }));
+        }
+
         // Skip if resource contained no URLs.
-        if (!urlsArr.length) {
+        if (!fetchedRequests.length) {
             this.log.warning('The fetched list contains no valid URLs.', { requestsFromUrl, regex });
             return [];
         }
 
-        return urlsArr.map((url) => ({ url, ...sharedOpts }));
+        return fetchedRequests;
     }
 
     /**

@@ -54,6 +54,7 @@ describe('RequestList', () => {
     beforeEach(async () => {
         await emulator.init();
         vitest.restoreAllMocks();
+        gotScrapingSpy.mockClear();
     });
 
     afterAll(async () => {
@@ -165,11 +166,12 @@ describe('RequestList', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
-        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
-        spy.mockResolvedValueOnce(list2);
+        gotScrapingSpy.mockImplementationOnce(
+            () => new Promise((resolve) => setTimeout(() => resolve({ body: JSON.stringify(list1) } as any), 100)),
+        );
+        gotScrapingSpy.mockResolvedValueOnce({ body: JSON.stringify(list2) } as any);
 
         const requestList = await RequestList.open({
             sources: [
@@ -184,9 +186,9 @@ describe('RequestList', () => {
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[0] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[1] });
 
-        expect(spy).toBeCalledTimes(2);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
+        expect(gotScrapingSpy).toBeCalledTimes(2);
+        expect(gotScrapingSpy).toBeCalledWith(expect.objectContaining({ url: 'http://example.com/list-1' }));
+        expect(gotScrapingSpy).toBeCalledWith(expect.objectContaining({ url: 'http://example.com/list-2' }));
     });
 
     test('should use regex parameter to parse urls', async () => {
@@ -238,8 +240,7 @@ describe('RequestList', () => {
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
-        spy.mockResolvedValueOnce([]);
+        gotScrapingSpy.mockResolvedValueOnce({ body: '[]' } as any);
 
         const requestList = await RequestList.open({
             sources: [
@@ -252,15 +253,14 @@ describe('RequestList', () => {
 
         expect(await requestList.fetchNextRequest()).toBe(null);
 
-        expect(spy).toBeCalledTimes(1);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
+        expect(gotScrapingSpy).toBeCalledTimes(1);
+        expect(gotScrapingSpy).toBeCalledWith(expect.objectContaining({ url: 'http://example.com/list-1' }));
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
         const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
-        spy.mockResolvedValue([]);
+        gotScrapingSpy.mockResolvedValue({ body: '[]' } as any);
 
         const proxyConfiguration = new ProxyConfiguration({
             proxyUrls,
@@ -275,7 +275,7 @@ describe('RequestList', () => {
             proxyConfiguration,
         });
 
-        expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
+        expect(gotScrapingSpy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
     });
 
     test('should correctly handle reclaimed pages', async () => {
@@ -548,7 +548,7 @@ describe('RequestList', () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
         const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        // spy removed
         let persistedRequests: any;
 
         const opts = {
@@ -562,7 +562,7 @@ describe('RequestList', () => {
         };
 
         const urlsFromTxt = ['http://example.com/3', 'http://example.com/4'];
-        spy.mockResolvedValueOnce(urlsFromTxt);
+        gotScrapingSpy.mockResolvedValueOnce({ body: urlsFromTxt.join('\n') } as any);
 
         getValueSpy.mockResolvedValueOnce(null);
         setValueSpy.mockImplementationOnce(async (_key, value) => {
@@ -575,8 +575,8 @@ describe('RequestList', () => {
         expect(requestList.requests).toHaveLength(5);
         expect(requests).toEqual(requestList.requests);
 
-        expect(spy).toBeCalledTimes(1);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-urls.txt', urlRegExp: undefined });
+        expect(gotScrapingSpy).toBeCalledTimes(1);
+        expect(gotScrapingSpy).toBeCalledWith(expect.objectContaining({ url: 'http://example.com/list-urls.txt' }));
     });
 
     test('handles correctly inconsistent inProgress fields in state', async () => {
