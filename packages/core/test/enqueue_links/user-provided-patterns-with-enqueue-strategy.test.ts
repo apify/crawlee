@@ -73,7 +73,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
                 strategy: EnqueueStrategy.SameDomain,
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -94,7 +94,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
                 strategy: EnqueueStrategy.All,
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -113,7 +113,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
                 strategy: EnqueueStrategy.SameDomain,
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -135,7 +135,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
                 exclude,
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -154,7 +154,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
                 strategy: EnqueueStrategy.All,
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
