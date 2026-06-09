@@ -110,7 +110,7 @@ Here is a basic example of working with the <ApiLink to="core/class/RequestList"
     {RlBasicSource}
 </CodeBlock>
 
-### Sitemap request list
+### Sitemap request loader
 
 The <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> is a specialized request loader that reads URLs from sitemaps following the [Sitemaps protocol](https://www.sitemaps.org/protocol.html). It supports both XML and plain-text sitemap formats and is particularly useful when you want to crawl a website systematically by following its sitemap structure. Loading happens in the background, so crawling can start before the sitemap is fully parsed.
 
@@ -155,7 +155,7 @@ This setup is useful when you have a static list of URLs to crawl, but also need
     </TabItem>
 </Tabs>
 
-### Sitemap request list with request queue
+### Sitemap request loader with request queue
 
 Similarly, you can combine a <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> with a <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. This is particularly useful when you want to crawl URLs from a sitemap while also handling dynamic requests discovered during the crawl. URLs from the sitemap are processed first by being enqueued into the queue, which handles persistence and retries.
 
