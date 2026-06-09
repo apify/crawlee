@@ -3,7 +3,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import type { IRequestLoader } from './request_list.js';
+import type { IRequestLoader } from './request_loader.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,

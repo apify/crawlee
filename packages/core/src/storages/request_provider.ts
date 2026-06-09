@@ -33,7 +33,7 @@ import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { IRequestLoader } from './request_list.js';
+import type { IRequestLoader } from './request_loader.js';
 import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
