@@ -479,7 +479,7 @@ export interface CrawlerExperiments {
  * either when the {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} function is called, or if the `requests`
  * parameter (representing the initial requests) of the {@apilink BasicCrawler.run|`crawler.run()`} function is provided.
  *
- * To read requests from a read-only source such as a {@apilink RequestList} or {@apilink SitemapRequestList} while
+ * To read requests from a read-only source such as a {@apilink RequestList} or {@apilink SitemapRequestLoader} while
  * still being able to enqueue new ones, combine the loader with a queue into a {@apilink RequestManagerTandem} using
  * {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the result as `requestManager`. The tandem
  * first processes URLs from the loader and automatically enqueues them into the queue, ensuring a single URL is not

@@ -622,7 +622,7 @@ The request loader/manager interfaces have been reworked to mirror the abstracti
 
 ### `IRequestList` renamed to `IRequestLoader`
 
-The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestList`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
+The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
 
 ### Loader interface surface changes
 
@@ -638,7 +638,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
 | _(n/a)_ | `toTandem?(requestManager?)` (new) |
 
-`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestList` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
+`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
 
 **Before:**
 ```typescript
@@ -654,7 +654,7 @@ const handled = await requestList.getHandledCount();
 
 ### Combining a list and a queue: `toTandem()`
 
-`RequestList` and `SitemapRequestList` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
+`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
 
 ```typescript
 import { CheerioCrawler, RequestList } from 'crawlee';
@@ -668,6 +668,22 @@ const crawler = new CheerioCrawler({
     },
 });
 ```
+
+### `SitemapRequestList` renamed to `SitemapRequestLoader`
+
+The `SitemapRequestList` class (and its `SitemapRequestListOptions` type) have been renamed to `SitemapRequestLoader` and `SitemapRequestLoaderOptions` to match the loader terminology. Update your imports and type references accordingly:
+
+```typescript
+// Before
+import { SitemapRequestList } from 'crawlee';
+const loader = await SitemapRequestList.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
+
+// After
+import { SitemapRequestLoader } from 'crawlee';
+const loader = await SitemapRequestLoader.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
+```
+
+The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading, so any in-flight sitemap crawl that migrates across the upgrade will restart from the beginning. If you need to preserve state, either finish the crawl before upgrading or pass an explicit `persistStateKey`.
 
 ### Crawler `requestList` / `requestQueue` options deprecated in favor of `requestManager`
 

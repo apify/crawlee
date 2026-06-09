@@ -1,12 +1,12 @@
-import { CheerioCrawler, SitemapRequestList } from 'crawlee';
+import { CheerioCrawler, SitemapRequestLoader } from 'crawlee';
 
 // Read the initial URLs from a sitemap.
-const sitemapRequestList = await SitemapRequestList.open({
+const sitemapRequestLoader = await SitemapRequestLoader.open({
     sitemapUrls: ['https://crawlee.dev/sitemap.xml'],
 });
 
 // Pair the loader with the default `RequestQueue` via the `toTandem()` shortcut.
-const requestManager = await sitemapRequestList.toTandem();
+const requestManager = await sitemapRequestLoader.toTandem();
 
 const crawler = new CheerioCrawler({
     requestManager,

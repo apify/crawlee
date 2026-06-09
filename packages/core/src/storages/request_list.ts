@@ -31,7 +31,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  * - Marking requests as successfully handled after processing.
  * - Managing state information such as the total and handled request counts.
  *
- * Concrete implementations such as {@apilink RequestList} or {@apilink SitemapRequestList} build on this interface.
+ * Concrete implementations such as {@apilink RequestList} or {@apilink SitemapRequestLoader} build on this interface.
  * The {@apilink IRequestManager} interface extends it with the capability to enqueue and reclaim requests.
  */
 export interface IRequestLoader {

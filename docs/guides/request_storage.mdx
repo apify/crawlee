@@ -74,7 +74,7 @@ The request queue is not optimized for adding numerous URLs in a single batch �
 
 ## Reading requests from other sources
 
-Sometimes you don't want to start from a dynamic queue, but from a static list of URLs (for example, parsed from a file) or from a website's sitemap. Crawlee provides **request loaders** for these read-only sources — <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="core/class/SitemapRequestList">`SitemapRequestList`</ApiLink> — which can be combined with a request queue when you also need to enqueue requests discovered during the crawl.
+Sometimes you don't want to start from a dynamic queue, but from a static list of URLs (for example, parsed from a file) or from a website's sitemap. Crawlee provides **request loaders** for these read-only sources — <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> — which can be combined with a request queue when you also need to enqueue requests discovered during the crawl.
 
 See the dedicated [Request loaders](./request-loaders) guide for details on loaders, request managers, and how to combine them with a queue into a <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>.
 

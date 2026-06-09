@@ -18,7 +18,7 @@ import type { IRequestManager } from './request_provider.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
-const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
+const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LOADER_STATE';
 
 interface UrlConstraints {
     /**
@@ -30,7 +30,7 @@ interface UrlConstraints {
      * The matching is always case-insensitive.
      * If you need case-sensitive matching, use `regexps` property directly.
      *
-     * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the `SitemapRequestList`
+     * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the `SitemapRequestLoader`
      * includes all the URLs from the sitemap.
      */
     globs?: readonly GlobInput[];
@@ -52,13 +52,13 @@ interface UrlConstraints {
      *
      * The plain objects must include at least the `regexp` property, which holds the regular expression.
      *
-     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the `SitemapRequestList`
+     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the `SitemapRequestLoader`
      * includes all the URLs from the sitemap.
      */
     regexps?: readonly RegExpInput[];
 }
 
-export interface SitemapRequestListOptions extends UrlConstraints {
+export interface SitemapRequestLoaderOptions extends UrlConstraints {
     /**
      * List of sitemap URLs to parse.
      */
@@ -112,7 +112,7 @@ interface SitemapParsingProgress {
     pendingSitemapUrls: Set<string>;
 }
 
-interface SitemapRequestListState {
+interface SitemapRequestLoaderState {
     urlQueue: string[];
     sitemapParsingProgress: Record<keyof SitemapParsingProgress, any>;
     abortLoading: boolean;
@@ -125,7 +125,7 @@ interface SitemapRequestListState {
  *
  * The loading of the sitemap is performed in the background so that crawling can start before the sitemap is fully loaded.
  */
-export class SitemapRequestList implements IRequestLoader {
+export class SitemapRequestLoader implements IRequestLoader {
     /**
      * Set of URLs that were returned by `fetchNextRequest()` and not marked as handled yet.
      * @internal
@@ -200,10 +200,10 @@ export class SitemapRequestList implements IRequestLoader {
     /** EventManager used to handle persistence */
     private events: EventManager;
 
-    private persistenceOptions: RequiredDeep<SitemapRequestListOptions['persistenceOptions']>;
+    private persistenceOptions: RequiredDeep<SitemapRequestLoaderOptions['persistenceOptions']>;
 
     /** @internal */
-    private constructor(options: SitemapRequestListOptions) {
+    private constructor(options: SitemapRequestLoaderOptions) {
         ow(
             options,
             ow.object.exactShape({
@@ -226,7 +226,7 @@ export class SitemapRequestList implements IRequestLoader {
 
         const { globs, exclude, regexps } = options;
 
-        this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestList' });
+        this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestLoader' });
 
         if (exclude?.length) {
             for (const excl of exclude) {
@@ -369,7 +369,7 @@ export class SitemapRequestList implements IRequestLoader {
     private async load({
         parseSitemapOptions,
     }: {
-        parseSitemapOptions?: SitemapRequestListOptions['parseSitemapOptions'];
+        parseSitemapOptions?: SitemapRequestLoaderOptions['parseSitemapOptions'];
     }): Promise<void> {
         while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
@@ -408,14 +408,14 @@ export class SitemapRequestList implements IRequestLoader {
     /**
      * Open a sitemap and start processing it.
      *
-     * Resolves to a new instance of `SitemapRequestList`, which **might not be fully loaded yet** - i.e. the sitemap might still be loading in the background.
+     * Resolves to a new instance of `SitemapRequestLoader`, which **might not be fully loaded yet** - i.e. the sitemap might still be loading in the background.
      *
      * Track the loading progress using the `isSitemapFullyLoaded` property.
      */
-    static async open(options: SitemapRequestListOptions): Promise<SitemapRequestList> {
+    static async open(options: SitemapRequestLoaderOptions): Promise<SitemapRequestLoader> {
         const { httpClient, ...restOptions } = options;
 
-        const requestList = new SitemapRequestList({
+        const requestList = new SitemapRequestLoader({
             ...restOptions,
             persistStateKey: options.persistStateKey ?? STATE_PERSISTENCE_KEY,
         });
@@ -539,7 +539,7 @@ export class SitemapRequestList implements IRequestLoader {
             requestData: Array.from(this.requestData.entries()),
             abortLoading: this.abortLoading,
             closed: this.closed,
-        } satisfies SitemapRequestListState);
+        } satisfies SitemapRequestLoaderState);
     }
 
     private async restoreState(): Promise<void> {
@@ -550,7 +550,7 @@ export class SitemapRequestList implements IRequestLoader {
         }
 
         this.store ??= await KeyValueStore.open();
-        const state = await this.store.getValue<SitemapRequestListState>(this.persistStateKey);
+        const state = await this.store.getValue<SitemapRequestLoaderState>(this.persistStateKey);
 
         if (state === null) {
             return;

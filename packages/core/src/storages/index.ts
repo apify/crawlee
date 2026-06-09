@@ -8,5 +8,5 @@ export { RequestQueue as RequestQueueV2 } from './request_queue_v2.js';
 export * from './storage_instance_manager.js';
 export * from './utils.js';
 export * from './access_checking.js';
-export * from './sitemap_request_list.js';
+export * from './sitemap_request_loader.js';
 export * from './request_manager_tandem.js';

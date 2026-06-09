@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
-import { type Request, SitemapRequestList } from '@crawlee/core';
+import { type Request, SitemapRequestLoader } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from '../shared/_helper.js';
@@ -209,9 +209,9 @@ afterAll(async () => {
     await emulator.destroy();
 });
 
-describe('SitemapRequestList', () => {
+describe('SitemapRequestLoader', () => {
     test('requests are available before the sitemap is fully loaded', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-stream.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-stream.xml`] });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -231,7 +231,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('retry sitemap load on error', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -241,7 +241,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('broken off sitemap load resurrects correctly and does not duplicate / lose requests', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`] });
 
         const urls = new Set<string>();
 
@@ -263,7 +263,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('teardown works', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -279,7 +279,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('globs filtering works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             globs: ['http://not-exists.com/catalog**'],
         });
@@ -292,7 +292,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('regexps filtering works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             regexps: [/desc=vacation_new.+/],
         });
@@ -305,7 +305,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('exclude filtering works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             exclude: [/desc=vacation_new/],
         });
@@ -318,7 +318,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('draining the request list between sitemaps', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -352,8 +352,8 @@ describe('SitemapRequestList', () => {
         expect(await list.getHandledCount()).toBe(7);
     });
 
-    test('for..await syntax works with SitemapRequestList', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+    test('for..await syntax works with SitemapRequestLoader', async () => {
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -366,7 +366,7 @@ describe('SitemapRequestList', () => {
     test('aborting long sitemap load works', async () => {
         const controller = new AbortController();
 
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap-index.xml`],
             signal: controller.signal,
         });
@@ -384,7 +384,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('timeout option works', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap-index.xml`],
             timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
         });
@@ -406,7 +406,7 @@ describe('SitemapRequestList', () => {
         };
 
         {
-            const list = await SitemapRequestList.open(options);
+            const list = await SitemapRequestLoader.open(options);
 
             await sleep(50);
 
@@ -414,7 +414,7 @@ describe('SitemapRequestList', () => {
             await list.persistState();
         }
 
-        const newList = await SitemapRequestList.open(options);
+        const newList = await SitemapRequestLoader.open(options);
         for await (const request of newList) {
             await newList.markRequestHandled(request);
         }
@@ -423,7 +423,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('processing the whole list', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap.xml`] });
         const requests: Request[] = [];
 
         await expect(list.isFinished()).resolves.toBe(false);
@@ -449,14 +449,14 @@ describe('SitemapRequestList', () => {
 
     test('persists state', async () => {
         const options = { sitemapUrls: [`${url}/sitemap-stream.xml`], persistStateKey: 'some-key' };
-        const list = await SitemapRequestList.open(options);
+        const list = await SitemapRequestLoader.open(options);
 
         const firstRequest = await list.fetchNextRequest();
         await list.markRequestHandled(firstRequest!);
 
         await list.persistState();
 
-        const newList = await SitemapRequestList.open(options);
+        const newList = await SitemapRequestLoader.open(options);
         await expect(newList.isEmpty()).resolves.toBe(false);
 
         while (!(await newList.isFinished())) {
@@ -470,7 +470,7 @@ describe('SitemapRequestList', () => {
     });
 
     test("calling `persistState` doesn't throw", async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap.xml`] });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -491,7 +491,7 @@ describe('SitemapRequestList', () => {
         let firstLoadedUrl;
 
         {
-            const list = await SitemapRequestList.open(options);
+            const list = await SitemapRequestLoader.open(options);
 
             const firstRequest = await list.fetchNextRequest();
             firstRequest!.userData = userDataPayload;
@@ -501,7 +501,7 @@ describe('SitemapRequestList', () => {
             // simulates a migration in the middle of request processing
         }
 
-        const newList = await SitemapRequestList.open(options);
+        const newList = await SitemapRequestLoader.open(options);
         const restoredRequest = await newList.fetchNextRequest();
 
         expect(restoredRequest!.url).toEqual(firstLoadedUrl);
