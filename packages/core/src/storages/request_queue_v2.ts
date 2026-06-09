@@ -5,11 +5,11 @@ import { EventType } from '../events/event_manager.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
+import type { RequestsLike } from './request_manager.js';
 import type {
     RequestProviderOptions,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-    RequestsLike,
 } from './request_provider.js';
 import { RequestProvider } from './request_provider.js';
 import { getRequestId } from './utils.js';
