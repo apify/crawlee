@@ -300,11 +300,23 @@ export interface BatchAddRequestsResult {
     unprocessedRequests: UnprocessedRequest[];
 }
 
+export interface RequestQueueClientListRequestsOptions {
+    limit?: number;
+    exclusiveStartId?: string;
+}
+
+export interface RequestQueueClientListRequestsResult {
+    limit: number;
+    exclusiveStartId?: string;
+    items: RequestSchema[];
+}
+
 export interface RequestQueueClient {
     get(): Promise<RequestQueueInfo | undefined>;
     update(newFields: { name?: string }): Promise<Partial<RequestQueueInfo> | undefined>;
     delete(): Promise<void>;
     listHead(options?: ListOptions): Promise<QueueHead>;
+    listRequests(options?: RequestQueueClientListRequestsOptions): Promise<RequestQueueClientListRequestsResult>;
     addRequest(request: RequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
     batchAddRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
     getRequest(id: string): Promise<RequestOptions | undefined>;

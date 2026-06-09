@@ -225,6 +225,44 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
+    async listRequests(
+        options: storage.RequestQueueClientListRequestsOptions = {},
+    ): Promise<storage.RequestQueueClientListRequestsResult> {
+        const { limit, exclusiveStartId } = s
+            .object({
+                limit: s.number.optional.default(100),
+                exclusiveStartId: s.string.optional,
+            })
+            .parse(options);
+
+        const queue = await this.getQueue();
+        const items: storage.RequestSchema[] = [];
+
+        let isAfterExclusiveStartId = !exclusiveStartId;
+
+        for (const [requestId, storageEntry] of queue.requests.entries()) {
+            if (!isAfterExclusiveStartId) {
+                if (requestId === exclusiveStartId) {
+                    isAfterExclusiveStartId = true;
+                }
+                continue;
+            }
+
+            if (items.length >= limit) {
+                break;
+            }
+
+            const request = await storageEntry.get();
+            items.push(this._jsonToRequest<storage.RequestSchema>(request.json)!);
+        }
+
+        return {
+            limit,
+            exclusiveStartId,
+            items,
+        };
+    }
+
     async listAndLockHead(options: storage.ListAndLockOptions): Promise<storage.ListAndLockHeadResult> {
         const { limit, lockSecs } = s
             .object({
