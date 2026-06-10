@@ -183,7 +183,7 @@ describe('RequestQueue remote', () => {
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5', '/6']);
     });
 
-    test('isEmpty() reflects only pending requests', async () => {
+    test('isEmpty() accounts for both pending and in-progress requests', async () => {
         const queue = await createRequestQueue();
 
         await queue.addRequest({ url: 'http://example.com/a' });
@@ -191,10 +191,12 @@ describe('RequestQueue remote', () => {
         expect(await queue.isEmpty()).toBe(false);
 
         const fetched = await queue.fetchNextRequest();
-        // Nothing is pending anymore (the request is in progress), so the queue reports empty.
-        expect(await queue.isEmpty()).toBe(true);
+        // The request is now in progress (locked), not handled — it still counts, so the queue is not
+        // empty. This keeps a crawler from finishing while the request is still being processed.
+        expect(await queue.isEmpty()).toBe(false);
 
         await queue.markRequestHandled(fetched!);
+        // Now the request is handled and gone, so the queue is finally empty.
         expect(await queue.isEmpty()).toBe(true);
     });
 

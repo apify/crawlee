@@ -634,10 +634,14 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
-     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest}
-     * would return `null`, otherwise it resolves to `false`.
-     * Note that even if the queue is empty, there might be some pending requests currently being processed.
-     * If you need to ensure that there is no activity in the queue, use {@apilink RequestQueue.isFinished}.
+     * Resolves to `true` if there is no outstanding work left in the queue — i.e. there are no pending
+     * requests to fetch **and** no requests currently in progress (fetched but not yet handled or
+     * reclaimed, including requests locked by other clients sharing the same queue). Otherwise it
+     * resolves to `false`.
+     *
+     * Note that an empty queue does not by itself mean crawling is finished, as background tasks may
+     * still be adding more requests. To check whether all activity in the queue has finished, use
+     * {@apilink RequestQueue.isFinished}.
      */
     async isEmpty(): Promise<boolean> {
         checkStorageAccess();

@@ -129,14 +129,15 @@ describe('RequestQueue respects `forefront` when fetching requests', () => {
         expect(await requestQueue.fetchNextRequest()).toBeNull();
     });
 
-    test('a fetched request leaves nothing pending, so the queue reports empty', async () => {
+    test('a fetched (locked) request keeps the queue non-empty until it is handled', async () => {
         await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
         const request = await requestQueue.fetchNextRequest();
         expect(request).not.toBeNull();
 
-        // `isEmpty` reflects only pending requests, so an in-progress request still reports empty.
-        expect(await requestQueue.isEmpty()).toBe(true);
+        // The request is locked (in progress), not handled — so the queue is not empty yet. This is
+        // what stops a crawler from finishing while a request is still being processed by some consumer.
+        expect(await requestQueue.isEmpty()).toBe(false);
 
         await requestQueue.markRequestAsHandled({ ...request!, id: request!.id! });
         expect(await requestQueue.isEmpty()).toBe(true);
@@ -210,6 +211,29 @@ describe('RequestQueue locking is visible across clients sharing on-disk storage
         // Both requests are now locked, so neither client can fetch anything more.
         expect(await clientA.fetchNextRequest()).toBeNull();
         expect(await clientB.fetchNextRequest()).toBeNull();
+
+        await clientA.drop();
+    });
+
+    test('a client does not report the queue empty while another client holds the last request', async () => {
+        const clientA = await storageA.createRequestQueueClient({ name: 'shared-is-empty' });
+        await clientA.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
+
+        const clientB = await storageB.createRequestQueueClient({ name: 'shared-is-empty' });
+
+        // Client A fetches (and thus locks) the only request.
+        const fromA = await clientA.fetchNextRequest();
+        expect(fromA).not.toBeNull();
+
+        // Client B has nothing it can fetch right now...
+        expect(await clientB.fetchNextRequest()).toBeNull();
+        // ...but the request still exists and is merely locked by A, so B must NOT consider the queue
+        // empty — otherwise the crawler driving B could finish while A is still processing.
+        expect(await clientB.isEmpty()).toBe(false);
+
+        // Once A handles the request, it is gone for good and B sees an empty queue.
+        await clientA.markRequestAsHandled({ ...fromA!, id: fromA!.id! });
+        expect(await clientB.isEmpty()).toBe(true);
 
         await clientA.drop();
     });

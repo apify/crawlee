@@ -156,17 +156,24 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     /**
-     * Returns the head of the queue — pending requests that are neither handled nor currently locked
-     * (in progress) — ordered by `orderNo`, deduplicated.
+     * Scans the queue and returns the pending head — requests that are neither handled nor currently
+     * locked (in progress) — ordered by `orderNo`, deduplicated — together with a flag telling whether
+     * any unhandled-but-locked request was skipped along the way.
+     *
+     * `hasLockedRequests` mirrors the Apify platform shared client's `queueHasLockedRequests` signal:
+     * it lets {@link isEmpty} distinguish "no work left at all" from "work remains, but it is currently
+     * locked by some consumer (possibly another process)". Without it, a consumer would consider the
+     * queue empty and let the crawler finish while another consumer still holds the last requests.
      *
      * Lock state lives in the persisted `orderNo` (see {@link isRequestLocked}), so that processes
      * sharing the same on-disk queue observe each other's locks. We therefore re-read entries from
      * storage to obtain fresh lock state, except for entries we can cheaply rule out as permanently
      * handled via their cached `orderNo === null`.
      */
-    private async listPendingHead(limit: number): Promise<InternalRequest[]> {
+    private async listPendingHead(limit: number): Promise<{ items: InternalRequest[]; hasLockedRequests: boolean }> {
         const now = Date.now();
         const items: InternalRequest[] = [];
+        let hasLockedRequests = false;
 
         // Tracks processed request IDs to avoid duplicates (request in both `forefrontRequestIds` and `requests`).
         const seenRequestIds = new Set<string>();
@@ -174,7 +181,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const handledForefrontIds = new Set<string>();
 
         for (const requestId of this.requestKeyIterator()) {
-            if (items.length === limit) {
+            // We can stop early only once we have filled the requested page AND we already know the
+            // queue contains locked requests — otherwise we must keep scanning to detect them.
+            if (items.length >= limit && hasLockedRequests) {
                 break;
             }
 
@@ -207,17 +216,21 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 continue;
             }
 
-            // Locked (in progress) by us or another process — skip until the lock expires.
+            // Locked (in progress) by us or another process — skip until the lock expires, but remember
+            // that the queue is not truly empty.
             if (isRequestLocked(request.orderNo, now)) {
+                hasLockedRequests = true;
                 continue;
             }
 
-            items.push(request);
+            if (items.length < limit) {
+                items.push(request);
+            }
         }
 
         this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
-        return items.sort((a, b) => a.orderNo! - b.orderNo!);
+        return { items: items.sort((a, b) => a.orderNo! - b.orderNo!), hasLockedRequests };
     }
 
     async fetchNextRequest(): Promise<storage.RequestOptions | null> {
@@ -226,7 +239,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await this.mutex.wait();
 
         try {
-            const [head] = await this.listPendingHead(1);
+            const {
+                items: [head],
+            } = await this.listPendingHead(1);
 
             if (!head) {
                 return null;
@@ -415,11 +430,13 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     async isEmpty(): Promise<boolean> {
         this.updateTimestamps(false);
 
-        // "Empty" here means there are no pending requests left to fetch. Requests that are currently
-        // in progress are intentionally ignored: this matches the `IRequestLoader.isEmpty` contract
-        // ("the next `fetchNextRequest` would return null") that the crawler's task scheduling relies on.
-        const [head] = await this.listPendingHead(1);
-        return head === undefined;
+        // The queue is empty only when there is nothing left to fetch AND nothing currently locked
+        // (in progress) by any consumer. Counting locked requests is what allows a crawler to keep
+        // waiting while another consumer (possibly another process sharing this on-disk queue) still
+        // holds the last requests, instead of finishing prematurely. This mirrors the Apify platform
+        // shared client, whose `isEmpty` also accounts for `queueHasLockedRequests`.
+        const { items, hasLockedRequests } = await this.listPendingHead(1);
+        return items.length === 0 && !hasLockedRequests;
     }
 
     /**

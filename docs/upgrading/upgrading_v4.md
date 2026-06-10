@@ -573,11 +573,11 @@ The request queue client was reduced from 12 methods to 9. The distributed-locki
 | `prolongRequestLock(id, opts)` | Removed |
 | `deleteRequestLock(id, opts?)` | Removed |
 | `deleteRequest(id)` | Removed |
-| _(n/a)_ | `isEmpty()` (new — `true` when no pending requests remain) |
+| _(n/a)_ | `isEmpty()` (new — `true` when no pending or in-progress requests remain) |
 
 The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
 
-`RequestQueueClient.isEmpty()` reports whether any **pending** request remains (i.e. whether the next `fetchNextRequest()` would return `null`); requests that are in progress are not counted.
+`RequestQueueClient.isEmpty()` reports whether there is any outstanding work left in the queue — it returns `true` only when there are no pending requests **and** no requests currently in progress (fetched but not yet handled or reclaimed, including those locked by other clients sharing the queue).
 
 The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage client — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
 

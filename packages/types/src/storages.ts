@@ -288,12 +288,14 @@ export interface RequestQueueClient {
     reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
 
     /**
-     * Resolves to `true` if there are no pending requests left to fetch — i.e. the next call to
-     * {@link fetchNextRequest} would return `null`.
+     * Resolves to `true` if there is no outstanding work left in the queue at all — i.e. there are no
+     * pending requests to fetch **and** no requests currently in progress (fetched but not yet handled
+     * or reclaimed, including requests locked by other clients sharing the same queue).
      *
-     * Requests that are currently in progress (fetched but not yet handled or reclaimed) are not
-     * counted. An empty queue therefore does not mean crawling is finished: there may be in-progress
-     * requests or background tasks still adding more requests.
+     * This is stronger than "the next {@link fetchNextRequest} would return `null`": a queue whose only
+     * remaining requests are in progress is **not** empty. This method is therefore a building block for
+     * determining whether crawling is finished — though background tasks may still add more requests, so
+     * an empty queue does not by itself guarantee completion.
      */
     isEmpty(): Promise<boolean>;
 }
