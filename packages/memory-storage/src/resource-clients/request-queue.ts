@@ -89,6 +89,13 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     private readonly mutex = new AsyncQueue();
     private forefrontRequestIds: string[] = [];
 
+    /**
+     * IDs of requests this client has locked (fetched but not yet handled or reclaimed). Used by
+     * {@link releaseOwnLocks} to free our own in-progress requests on process termination, so that
+     * a crashed/migrated consumer does not block its requests for the full lock duration.
+     */
+    private readonly inProgressRequestIds = new Set<string>();
+
     private readonly requests = new Map<string, RequestQueueFileSystemEntry | RequestQueueMemoryEntry>();
     private readonly client: MemoryStorage;
 
@@ -232,6 +239,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             head.orderNo = lockExpiresAt * (head.orderNo! > 0 ? 1 : -1);
             await this.requests.get(head.id)!.update(head);
 
+            // Remember that this client owns the lock, so we can release it on process termination
+            // (see `releaseOwnLocks`) instead of leaving the request stuck until the lock expires.
+            this.inProgressRequestIds.add(head.id);
+
             return this._jsonToRequest(head.json) ?? null;
         } finally {
             this.mutex.shift();
@@ -338,6 +349,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await newEntry.update(requestModel);
         this.requests.set(id, newEntry);
 
+        // The request is no longer in progress for this client.
+        this.inProgressRequestIds.delete(id);
+
         if (!wasAlreadyHandled) {
             this.pendingRequestCount -= 1;
             this.handledRequestCount += 1;
@@ -382,6 +396,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await newEntry.update(requestModel);
         this.requests.set(id, newEntry);
 
+        // The request is no longer in progress for this client.
+        this.inProgressRequestIds.delete(id);
+
         if (options.forefront) {
             this.forefrontRequestIds.push(id);
         }
@@ -403,6 +420,49 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         // ("the next `fetchNextRequest` would return null") that the crawler's task scheduling relies on.
         const [head] = await this.listPendingHead(1);
         return head === undefined;
+    }
+
+    /**
+     * Release the locks of all requests this client currently has in progress, returning them to the
+     * queue so they can be fetched again immediately.
+     *
+     * On the Apify platform, a run's locks are released automatically when it migrates or aborts, and
+     * the file-system storage does not lock at all — so only this in-memory client, which persists
+     * fake locks via `orderNo`, needs to clean up after itself. `MemoryStorage.teardown()` calls this
+     * for every cached queue at the end of the process so that a fetched-but-unhandled request is not
+     * stuck (waiting for its lock to expire) for the next consumer of the same on-disk queue.
+     */
+    async releaseOwnLocks(): Promise<void> {
+        if (this.inProgressRequestIds.size === 0) {
+            return;
+        }
+
+        await this.mutex.wait();
+
+        try {
+            const now = Date.now();
+
+            for (const id of this.inProgressRequestIds) {
+                const entry = this.requests.get(id);
+                const request = await entry?.get(true);
+
+                // Skip requests that were handled or whose lock already expired/changed — we only undo
+                // locks we still hold.
+                if (!request || !isRequestLocked(request.orderNo, now)) {
+                    continue;
+                }
+
+                // Reset the lock to a fresh timestamp, preserving the sign so the request keeps its
+                // original (forefront / normal) ordering once unlocked.
+                request.orderNo = now * (request.orderNo! > 0 ? 1 : -1);
+                await entry!.update(request);
+            }
+
+            this.inProgressRequestIds.clear();
+            this.updateTimestamps(true);
+        } finally {
+            this.mutex.shift();
+        }
     }
 
     toRequestQueueInfo(): storage.RequestQueueInfo {

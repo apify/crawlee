@@ -213,4 +213,27 @@ describe('RequestQueue locking is visible across clients sharing on-disk storage
 
         await clientA.drop();
     });
+
+    test('teardown releases this client locks so another client can fetch immediately', async () => {
+        const clientA = await storageA.createRequestQueueClient({ name: 'shared-teardown' });
+        await clientA.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
+
+        // Client A fetches (locks) the request, then the process tears down without handling it.
+        const fromA = await clientA.fetchNextRequest();
+        expect(fromA).not.toBeNull();
+
+        const clientB = await storageB.createRequestQueueClient({ name: 'shared-teardown' });
+        // While A holds the lock, B cannot fetch the request.
+        expect(await clientB.fetchNextRequest()).toBeNull();
+
+        // Tearing down A's storage releases its locks (instead of leaving them until the 3-minute
+        // expiry), so B can pick the request up right away.
+        await storageA.teardown();
+
+        const fromB = await clientB.fetchNextRequest();
+        expect(fromB).not.toBeNull();
+        expect(fromB!.uniqueKey).toBe('1');
+
+        await clientB.drop();
+    });
 });
