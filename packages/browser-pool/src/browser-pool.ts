@@ -970,6 +970,19 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      */
     proxyUrl?: string;
     /**
+     * Disable TLS certificate verification for MITM proxies. Applied both when
+     * launching a new browser and when creating a page in an existing one. When
+     * omitted, it is derived from the
+     * {@apilink NewPageOptions.session|session}'s `proxyInfo`; an explicit value
+     * here takes precedence.
+     *
+     * This is an implementation detail of the built-in `BrowserPool` and is
+     * intentionally not part of the {@apilink IBrowserPool} contract — through
+     * that interface, configure it via the session's `proxyInfo` or through the
+     * browser's `launchOptions`.
+     */
+    ignoreTlsErrors?: boolean;
+    /**
      * Some libraries (Playwright) allow you to open new pages with specific
      * options. Use this property to set those options.
      */
