@@ -49,9 +49,7 @@ import {
     purgeDefaultStorages,
     RequestHandlerError,
     RequestManagerTandem,
-    RequestProvider,
     RequestQueue,
-    RequestQueueV1,
     RequestState,
     RetryRequestError,
     Router,
@@ -202,7 +200,7 @@ export interface BasicCrawlerOptions<
      * @deprecated Use the `requestManager` option instead. A `RequestQueue` is itself a request manager, so you can
      * pass it directly as `requestManager`.
      */
-    requestQueue?: RequestProvider;
+    requestQueue?: RequestQueue;
 
     /**
      * Manager of requests that should be processed by the crawler. Mutually exclusive with the deprecated
@@ -871,7 +869,7 @@ export class BasicCrawler<
                 tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
 
             // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
-            if (this.requestManager instanceof RequestProvider) {
+            if (this.requestManager instanceof RequestQueue) {
                 this.applyRequestQueueTimeouts(this.requestManager);
             }
 
@@ -1452,7 +1450,7 @@ export class BasicCrawler<
 
     /**
      * @deprecated Use {@apilink BasicCrawler.getRequestManager|`getRequestManager()`} instead. This returns the
-     * crawler's request manager, which is no longer guaranteed to be a {@apilink RequestProvider}.
+     * crawler's request manager, which is no longer guaranteed to be a {@apilink RequestQueue}.
      */
     async getRequestQueue(): Promise<IRequestManager> {
         return this.getRequestManager();
@@ -1471,9 +1469,9 @@ export class BasicCrawler<
     }
 
     /**
-     * Overrides the default internal timeouts of a {@apilink RequestProvider} to respect `requestHandlerTimeoutMillis`.
+     * Overrides the default internal timeouts of a {@apilink RequestQueue} to respect `requestHandlerTimeoutMillis`.
      */
-    private applyRequestQueueTimeouts(requestQueue: RequestProvider): void {
+    private applyRequestQueueTimeouts(requestQueue: RequestQueue): void {
         requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
         // for request queue v2, we want to lock requests for slightly longer than the request handler timeout so that
         // there is some padding for locking-related overhead, but never for less than a minute
@@ -1851,7 +1849,7 @@ export class BasicCrawler<
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: RequestProvider | IRequestManager) {
+    protected delayRequest(request: Request, source: IRequestManager) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1866,22 +1864,12 @@ export class BasicCrawler<
             return false;
         }
 
-        if (source instanceof RequestQueueV1) {
-            // eslint-disable-next-line dot-notation
-            source['inProgress']?.delete(request.id!);
-        }
-
         const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(
             `Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`,
         );
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
-
-            if (source instanceof RequestQueueV1) {
-                // eslint-disable-next-line dot-notation
-                source['inProgress'].add(request.id!);
-            }
 
             await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
         }, delay);
@@ -1957,12 +1945,14 @@ export class BasicCrawler<
                 crawlingContext.session.markBad();
             }
         } finally {
-            // Safety net - release the lock if nobody managed to do it before
-            if (isRequestLocked && requestSource instanceof RequestProvider) {
+            // Safety net - return the request to the queue if nobody managed to mark it as handled
+            // or reclaim it before (e.g. after a CriticalError). Reclaiming a request that is no longer
+            // in progress is a harmless no-op on the storage client.
+            if (isRequestLocked && requestSource instanceof RequestQueue) {
                 try {
-                    await requestSource.client.deleteRequestLock(request.id!);
+                    await requestSource.reclaimRequest(request);
                 } catch {
-                    // We don't have the lock, or the request was never locked. Either way it's fine
+                    // The request was never in progress, or could not be reclaimed. Either way it's fine.
                 }
             }
         }
@@ -2287,7 +2277,7 @@ export class BasicCrawler<
                 this._experimentWarnings.requestLocking = true;
             }
 
-            return RequestQueueV1.open(identifier, { config: serviceLocator.getConfiguration() });
+            return RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
         }
 
         return RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
