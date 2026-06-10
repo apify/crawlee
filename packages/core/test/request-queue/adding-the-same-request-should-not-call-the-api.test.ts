@@ -16,18 +16,17 @@ describe('RequestQueue#addRequest should not call the API if the request is alre
         const rqInfo = await rqClient.getMetadata();
         const requestQueue = new RequestQueue({ id: rqInfo.id, client: rqClient }, config);
 
-        const clientSpy = vitest.spyOn(requestQueue.client, 'addRequest');
+        const clientSpy = vitest.spyOn(requestQueue.client, 'addBatchOfRequests');
 
-        const requestData = await requestQueue.addRequest({ url: 'https://example.com' });
+        await requestQueue.addRequest({ url: 'https://example.com' });
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
 
-        await requestQueue.markRequestHandled({
-            id: requestData.requestId,
-            url: 'https://example.com',
-            uniqueKey: requestData.uniqueKey,
-        } as any);
+        // Fetch and handle the request so it leaves the pending queue.
+        const fetched = await requestQueue.fetchNextRequest();
+        await requestQueue.markRequestHandled(fetched!);
 
+        // Adding the same request again is served from the local cache and must not hit the client.
         await requestQueue.addRequest({ url: 'https://example.com' });
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
@@ -40,18 +39,17 @@ describe('RequestQueue#addRequests should not call the API if the request is alr
         const rqInfo = await rqClient.getMetadata();
         const requestQueue = new RequestQueue({ id: rqInfo.id, client: rqClient }, config);
 
-        const clientSpy = vitest.spyOn(requestQueue.client, 'batchAddRequests');
+        const clientSpy = vitest.spyOn(requestQueue.client, 'addBatchOfRequests');
 
-        const requestData = await requestQueue.addRequests([{ url: 'https://example2.com' }]);
+        await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
 
-        await requestQueue.markRequestHandled({
-            id: requestData.processedRequests[0].requestId,
-            uniqueKey: requestData.processedRequests[0].uniqueKey,
-            url: 'https://example2.com',
-        } as any);
+        // Fetch and handle the request so it leaves the pending queue.
+        const fetched = await requestQueue.fetchNextRequest();
+        await requestQueue.markRequestHandled(fetched!);
 
+        // Adding the same request again is served from the local cache and must not hit the client.
         await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 
         expect(clientSpy).toHaveBeenCalledTimes(1);

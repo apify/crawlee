@@ -58,7 +58,12 @@ describe('when falling back to fs, Request queue should ignore non-JSON files', 
 
         expect(defaultQueueInfo.name).toEqual('default');
 
-        const requests = await defaultQueue.listHead();
-        expect(requests.items).toHaveLength(1);
+        // Only the single valid JSON-backed request should be fetchable; the non-JSON files are ignored.
+        const first = await defaultQueue.fetchNextRequest();
+        expect(first).not.toBeNull();
+        expect(first!.url).toEqual('http://example.com');
+
+        const second = await defaultQueue.fetchNextRequest();
+        expect(second).toBeNull();
     });
 });
