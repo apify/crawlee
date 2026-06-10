@@ -560,11 +560,28 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 
 **`RequestQueueClient`:**
 
+The request queue client was reduced from 12 methods to 9. The distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) and the queue-head/consistency bookkeeping that used to live in the `RequestQueue` frontend have been removed from the interface; coordinating multiple clients accessing the same queue (e.g. request locking on the Apify platform) is now an internal concern of the client implementation.
+
 | Before (v3) | After (v4) |
 |---|---|
+| `addRequest(request, opts?)` | `addBatchOfRequests([request], opts?)` |
+| `batchAddRequests(requests, opts?)` | `addBatchOfRequests(requests, opts?)` |
+| `getRequest(id)` | `getRequest(uniqueKey)` |
+| `updateRequest(request, opts?)` | `markRequestAsHandled(request)` / `reclaimRequest(request, opts?)` |
+| `listHead(opts?)` | `fetchNextRequest()` (returns a single request, marks it in progress) |
+| `listAndLockHead(opts)` | Removed (locking is internal to the client) |
+| `prolongRequestLock(id, opts)` | Removed |
+| `deleteRequestLock(id, opts?)` | Removed |
 | `deleteRequest(id)` | Removed |
+| _(n/a)_ | `isEmpty()` (new — `true` when no pending requests remain) |
 
-**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
+The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
+
+`RequestQueueClient.isEmpty()` reports whether any **pending** request remains (i.e. whether the next `fetchNextRequest()` would return `null`); requests that are in progress are not counted.
+
+The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage client — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
+
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
 
@@ -608,7 +625,7 @@ If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, th
 
 When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
 
-The new `purge()` method is available on `RequestProvider` (the base class for `RequestQueue`) and is also defined as an optional method on the `IRequestManager` interface.
+The new `purge()` method is available on `RequestQueue` and is also defined as an optional method on the `IRequestManager` interface.
 
 By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
 
@@ -775,7 +792,7 @@ The public `requestList` and `requestQueue` instance fields are gone. The crawle
 
 ### `getRequestQueue()` deprecated in favor of `getRequestManager()`
 
-`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestProvider`/`RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
+`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
 
 **Before:**
 ```typescript
