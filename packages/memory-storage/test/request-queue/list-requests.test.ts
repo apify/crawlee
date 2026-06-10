@@ -18,62 +18,74 @@ describe('RequestQueue listRequests', () => {
     });
 
     test('lists requests with default options', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
+        const r1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        const r2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
 
         const result = await requestQueue.listRequests();
 
         expect(result.items).toHaveLength(2);
         expect(result.limit).toBe(100);
         expect(result.exclusiveStartId).toBeUndefined();
-        expect(result.items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
+        expect(result.cursor).toBeUndefined();
+
+        const expectedIds = [r1.requestId, r2.requestId].sort();
+        expect(result.items.map((x) => x.id)).toEqual(expectedIds);
     });
 
     test('respects limit', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+        const r1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        const r2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
+        const r3 = await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
 
         const result = await requestQueue.listRequests({ limit: 2 });
 
         expect(result.items).toHaveLength(2);
         expect(result.limit).toBe(2);
-        expect(result.items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
+
+        const expectedIds = [r1.requestId, r2.requestId, r3.requestId].sort().slice(0, 2);
+        expect(result.items.map((x) => x.id)).toEqual(expectedIds);
     });
 
     test('respects exclusiveStartId', async () => {
-        const req1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+        const r1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        const r2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
+        const r3 = await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
 
-        const result = await requestQueue.listRequests({ exclusiveStartId: req1.requestId });
+        const expectedIds = [r1.requestId, r2.requestId, r3.requestId].sort();
+        const startId = expectedIds[0];
+
+        const result = await requestQueue.listRequests({ cursor: startId });
 
         expect(result.items).toHaveLength(2);
-        expect(result.exclusiveStartId).toBe(req1.requestId);
-        expect(result.items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3']);
+        expect(result.exclusiveStartId).toBe(startId);
+        expect(result.cursor).toBe(startId);
+        expect(result.items.map((x) => x.id)).toEqual(expectedIds.slice(1));
     });
 
     test('pagination works correctly', async () => {
+        const reqs = [];
         for (let i = 1; i <= 5; i++) {
-            await requestQueue.addRequest({ url: `http://example.com/${i}`, uniqueKey: `${i}` });
+            reqs.push(await requestQueue.addRequest({ url: `http://example.com/${i}`, uniqueKey: `${i}` }));
         }
+
+        const expectedIds = reqs.map((r) => r.requestId).sort();
 
         const page1 = await requestQueue.listRequests({ limit: 2 });
         expect(page1.items).toHaveLength(2);
-        expect(page1.items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
+        expect(page1.items.map((x) => x.id)).toEqual(expectedIds.slice(0, 2));
 
         const page2 = await requestQueue.listRequests({
             limit: 2,
-            exclusiveStartId: page1.items[page1.items.length - 1].id,
+            cursor: page1.items[page1.items.length - 1].id,
         });
         expect(page2.items).toHaveLength(2);
-        expect(page2.items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/4']);
+        expect(page2.items.map((x) => x.id)).toEqual(expectedIds.slice(2, 4));
 
         const page3 = await requestQueue.listRequests({
             limit: 2,
-            exclusiveStartId: page2.items[page2.items.length - 1].id,
+            cursor: page2.items[page2.items.length - 1].id,
         });
         expect(page3.items).toHaveLength(1);
-        expect(page3.items.map((x) => new URL(x.url).pathname)).toEqual(['/5']);
+        expect(page3.items.map((x) => x.id)).toEqual(expectedIds.slice(4, 5));
     });
 });

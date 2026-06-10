@@ -302,12 +302,16 @@ export interface BatchAddRequestsResult {
 
 export interface RequestQueueClientListRequestsOptions {
     limit?: number;
+    /** @deprecated Use `cursor` instead. */
     exclusiveStartId?: string;
+    cursor?: string;
 }
 
 export interface RequestQueueClientListRequestsResult {
     limit: number;
+    /** @deprecated Use `cursor` instead. */
     exclusiveStartId?: string;
+    cursor?: string;
     items: RequestSchema[];
 }
 

@@ -228,22 +228,27 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     async listRequests(
         options: storage.RequestQueueClientListRequestsOptions = {},
     ): Promise<storage.RequestQueueClientListRequestsResult> {
-        const { limit, exclusiveStartId } = s
+        const { limit, exclusiveStartId, cursor } = s
             .object({
                 limit: s.number.optional.default(100),
                 exclusiveStartId: s.string.optional,
+                cursor: s.string.optional,
             })
             .parse(options);
 
         const queue = await this.getQueue();
         const items: storage.RequestSchema[] = [];
 
-        let isAfterExclusiveStartId = !exclusiveStartId;
+        const startId = cursor ?? exclusiveStartId;
+        let isAfterStartId = !startId;
 
-        for (const [requestId, storageEntry] of queue.requests.entries()) {
-            if (!isAfterExclusiveStartId) {
-                if (requestId === exclusiveStartId) {
-                    isAfterExclusiveStartId = true;
+        // Sort keys to ensure stable iteration order across process restarts
+        const sortedRequestIds = Array.from(queue.requests.keys()).sort();
+
+        for (const requestId of sortedRequestIds) {
+            if (!isAfterStartId) {
+                if (requestId === startId) {
+                    isAfterStartId = true;
                 }
                 continue;
             }
@@ -252,13 +257,15 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 break;
             }
 
+            const storageEntry = queue.requests.get(requestId)!;
             const request = await storageEntry.get();
             items.push(this._jsonToRequest<storage.RequestSchema>(request.json)!);
         }
 
         return {
             limit,
-            exclusiveStartId,
+            exclusiveStartId: startId,
+            cursor: startId,
             items,
         };
     }
