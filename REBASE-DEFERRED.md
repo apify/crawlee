@@ -1,0 +1,295 @@
+# Rebase deferrals — reconcile against `v4-reverse` before finishing
+
+This file tracks resolutions made during the `v4` → `master` rebase that were
+**not** brought fully to the desired end state (`v4-reverse`). Untracked on
+purpose — delete once reconciled. Do a final `git diff <final-HEAD> v4-reverse`
+per file to confirm nothing below was lost.
+
+## `packages/http-crawler/src/internals/file-download.ts`
+
+**Commit:** `cf72dda66` — `refactor!: Introduce the ContextPipeline abstraction (#3119)`
+
+**What I did:** took #3119's coherent committed version of the whole file
+(`git checkout --theirs`). The 3 conflict hunks were interdependent and 7 later
+rebase commits reshape this file, so a hunk-by-hunk merge risked dangling
+references.
+
+**Deferred (present in `v4-reverse`, NOT re-added by any rebase commit — must be
+folded back at the end):**
+- Master's typed schema-router overload: `RouteSchemas` / `RoutesFromSchemas`
+  imports from `../index.js`, and the `downloadFile`/router-factory overload that
+  returns `RouterHandler<Context, RoutesFromSchemas<Schemas>>`. Type-level only,
+  no runtime effect, compiles fine without it.
+- Confirm `abortDownload` handling matches `v4-reverse` (v4-reverse keeps it; it
+  may arrive via a later commit — verify it isn't dropped).
+
+**Reconcile with:**
+`git diff <final-HEAD>:packages/http-crawler/src/internals/file-download.ts \
+  v4-reverse:packages/http-crawler/src/internals/file-download.ts`
+
+## Master-only features that WERE folded in (not lost — listed for verification)
+
+- `playwright-crawler.ts` `enhanceContext`: `listDownloads` (downloads array +
+  `page.on('download')` + `listDownloads: async () => downloads`). Master-only,
+  no rebase commit re-adds it; folded in to match `v4-reverse`.
+- `browser-crawler.ts` `buildContextPipeline` cleanup: puppeteer-25
+  `addTimeoutToPromise` wrapper around `page.close()`.
+- `browser-crawler.ts`: kept master's `userRequestHandler` getter override.
+- `adaptive-playwright-crawler.ts`: kept master's `shouldPropagateError` check,
+  combined with #3119's `RequestHandlerError.cause` unwrap.
+
+## General
+
+Recurring mechanical conflicts (ESM `.js` imports, `test/shared/*` paths,
+`3.17.0` version bumps, `RequestValidationError`/`zod` schema-feature imports)
+are auto-applied by git rerere. Verify each rerere-resolved commit is
+marker-free; spot-checked so far and clean.
+
+## Possible duplicate import to verify — `adaptive-playwright-crawler.ts`
+
+At/after the ContextPipeline commit, the top of
+`packages/playwright-crawler/src/internals/adaptive-playwright-crawler.ts` may
+import `BrowserHook` / `LoadedRequest` / `Request` from `@crawlee/browser` on
+BOTH an early `import type {...}` block and a later
+`import type { BasicCrawlerOptions, BrowserHook, LoadedRequest, Request } from '@crawlee/browser'`.
+Duplicate type imports from the same module = TS error. Check the final tree and
+dedupe if present (a later rebase commit may already fix it).
+
+## Latent bug — `packages/core/src/storages/request_list.ts` dangling `this.events`
+
+Commit `ba3a3568a` (`refactor!: Extract service management from Configuration
+into ServiceLocator class #3325`) removes the `private events: EventManager`
+field and its `this.events = config.getEventManager()` assignment, replacing
+the one conflicting usage (`initialize()`'s `.on(EventType.PERSIST_STATE, ...)`
+call) with `serviceLocator.getEventManager().on(...)`.
+
+However, a master-only teardown method (not part of the conflict, already
+auto-merged in) still calls `this.events.off(EventType.PERSIST_STATE, ...)`
+around line 542 — `events` no longer exists on the class, so this is a
+TypeScript compile error (`Property 'events' does not exist`).
+
+**Confirmed this is not just my resolution**: `v4-reverse` has the identical
+dangling `this.events.off(...)` call at its equivalent line. No commit further
+along the rebase touches it either. This needs a manual fix — swap it to
+`serviceLocator.getEventManager().off(EventType.PERSIST_STATE, this.persistState)`
+— whenever the tree is type-checked.
+
+## ServiceLocator commit (`ba3a3568a` #3325) — architecture collision in Snapshotter/SystemStatus
+
+Master had already refactored `Snapshotter`/`SystemStatus` into a composable
+`LoadSignal` architecture (memory/cpu/event-loop/client signal objects with
+`.start()/.stop()/.handle()`) in an earlier-applied commit. `ba3a3568a` is v4's
+older, pre-LoadSignal, monolithic interval-based Snapshotter rewritten only for
+ServiceLocator. These two are fundamentally different implementations of the
+same class — verified against `v4-reverse` that the LoadSignal architecture
+survives, so for every conflicting method (imports, class fields, `start()`,
+`stop()`, `_snapshotClient`/`handle()`) I kept HEAD's LoadSignal delegation and
+discarded theirs' interval/serviceLocator-direct logic entirely.
+
+**Found and fixed a real latent bug in the process**: `Snapshotter`'s
+constructor had its `client`/`config` destructuring and `this.client =
+/this.config =` assignments silently dropped by an earlier (non-conflicting)
+auto-merge upstream in this rebase, while `this.client`/`this.config` were
+still referenced further down (passed into the `MemoryLoadSignal`/
+`createCpuLoadSignal`/`createClientLoadSignal` factories, which — at this point
+in history — still require them as explicit params; they don't yet pull from
+`serviceLocator` internally). Restored the wiring using commit `308da2263`
+(an early point in this rebase where it was still intact) as reference,
+adapted to call `serviceLocator.getConfiguration()` /
+`serviceLocator.getStorageClient()` as defaults (matching this commit's
+intent) instead of the old `Configuration.getGlobalConfig()` /
+`config.getStorageClient()`. Also switched the `Configuration` import to
+`import type` since it's now type-only in this file.
+
+`SystemStatus` needed the same reconciliation: kept master's `loadSignals`
+option (composes custom signals with the snapshotter's built-in ones) but
+dropped the `config` option/field entirely — `new Snapshotter()` with no args
+now works since the above fix wires its own `serviceLocator` defaults.
+
+`storage_manager.ts` had a similar merge artifact: an unconflicted `try/finally`
+wrapped body (from a separate already-applied commit) duplicated by this
+commit's non-try/finally version of the same logic, producing a dead
+duplicate tail after the conflict markers. Deleted the duplicate and applied
+this commit's actual semantic change (`this.config.getStorageClient()` →
+`serviceLocator.getStorageClient()`) to the surviving copy.
+
+**Please re-verify** the `Snapshotter`/`SystemStatus`/`storage_manager.ts`
+resolutions once dependencies are installed and `tsc`/tests can run — these
+were reasoned through by reading surrounding code and cross-checking
+`v4-reverse`, not verified by a compiler.
+
+## Fixed a real dead-function bug — `local_event_manager.ts` `getMemoryInfoV2`
+
+While resolving commit `7c3ba07ea` ("refactor: resolve last direct @apify/log
+calls"), found that `LocalEventManager`'s private `getMemoryInfo()` helper
+branched on `this.config.get('systemInfoV2')` to call `getMemoryInfoV2(...)` —
+but **`getMemoryInfoV2` does not exist anywhere in `@crawlee/utils`** (only
+`getMemoryInfo` and `getCurrentCpuTicksV2` exist; the CPU side got a real V2
+implementation, the memory side never did). That branch would throw
+`ReferenceError` at runtime for anyone with `systemInfoV2` config enabled.
+
+Also found the surviving (non-V2) branch's `getMemoryInfo()` call had no
+import at all in scope — a dangling reference from an earlier upstream
+auto-merge, same class of bug as the `request_list.ts` one documented above.
+
+**Fix applied**: collapsed the private `getMemoryInfo()` method to just the
+working path — dynamically imports `getMemoryInfo` from `@crawlee/utils` and
+passes `containerized`/`logger`, matching this commit's intent and the
+pattern already used by the sibling `createCpuInfo()` method (which does have
+a working V2 path via `getCurrentCpuTicksV2`). Dropped the dead
+`systemInfoV2`/`getMemoryInfoV2` branch entirely rather than inventing a
+`getMemoryInfoV2` implementation, which would be scope creep beyond a merge
+conflict fix. `LocalEventManager.prototype.getMemoryInfo` is still spied on by
+`test/core/autoscaling/snapshotter.test.ts`, so the method itself is kept —
+only its broken internals were fixed.
+
+**Please verify**: if a memory-specific V2 code path was intended (mirroring
+`getCurrentCpuTicksV2`), it needs to be implemented for real — this fix does
+not add one, it just removes a dead reference to a non-existent one.
+
+## yarn → pnpm migration (`930b2ef4f`) — needs verification with a real `pnpm install`
+
+Per your explicit choice, I took theirs (pnpm) fully for this commit: deleted
+`yarn.lock`, `docs/yarn.lock`, `website/yarn.lock`, `.yarnrc.yml`; adopted
+`pnpm@10.24.0` as `packageManager`/volta; rewrote CI workflow yarn/corepack
+steps to `apify/workflows/pnpm-install@main`; kept master's newer
+devDependency versions (`@apify/tsconfig`, `@commitlint`, `@playwright/browser-*`,
+`typescript`, `playwright`, docusaurus 3.10.2) alongside the new oxlint/oxfmt +
+pnpm tooling.
+
+**One thing I could not verify mechanically**: master's root `package.json`
+had a yarn-only `"resolutions"` block (`tmp`, `@puppeteer/browsers`,
+`playwright-core@1.61.1`, `form-data`, `tar`, `lerna/js-yaml`) that this
+commit drops in favor of pnpm's `overrides` in `pnpm-workspace.yaml` (which
+already carried v4's own `playwright-core@1.58.2`, `@browserbasehq/stagehand`,
+`minimatch` overrides). I merged master's entries into that `overrides:`
+block, bumping `playwright-core` to `1.61.1` to match the `playwright`
+devDependency version we kept (a version mismatch between the two would be
+worse than dropping the override). For the yarn-specific nested-scope
+override `lerna/js-yaml`, I translated it to pnpm's `"lerna>js-yaml"` syntax
+— **this translation is unverified**; pnpm's override key syntax has specific
+rules I can't test without actually running `pnpm install` (which requires
+installing the new package manager). Please run `pnpm install` and confirm
+the lockfile resolves cleanly, especially the `js-yaml` override under
+`lerna`.
+
+## `storage_manager.ts` `openStorage` — kept try/finally around the new StorageClient logic
+
+Commit `ffff3347e` (`refactor!: Overhaul the StorageClient interface #3570`)
+rewrites `StorageManager.openStorage` to resolve identifiers via
+`_resolveIdentifier`/`_createSubClient` (both already present unconflicted
+elsewhere in the file). Its own version of the method does NOT wrap the body
+in `try/finally` — `this.storageOpenQueue.shift()` runs as a plain trailing
+statement. The pre-this-commit version (which I'd already resolved in an
+earlier conflict) wrapped the equivalent logic in `try { ... } finally {
+this.storageOpenQueue.shift(); }` specifically so the queue lock is always
+released even if resolution/creation throws.
+
+I kept the `try/finally` safety net around theirs' new logic rather than
+taking the method verbatim, since dropping it reintroduces a real deadlock
+risk (a failed `_resolveIdentifier`/`_createSubClient`/`getMetadata` call
+would permanently wedge `storageOpenQueue` for all subsequent `openStorage`
+calls on that manager). This wasn't verifiable against `v4-reverse` (that
+file is renamed/rewritten further into `storage_instance_manager.ts` with an
+unrelated alias-based architecture by then). Worth a second look once you can
+run the test suite.
+
+## Fixed more dead API calls — `Configuration` redesign (`d1f4c98e5` #3484)
+
+This commit ("feat: redesign `Configuration` class for v4") replaces
+`Configuration`'s `.get(key, default)`/`.set()` accessor methods with plain
+property access (e.g. `config.availableMemoryRatio` instead of
+`config.get('availableMemoryRatio')`), and removes `Configuration.getEventManager()`/
+`.getStorageClient()` entirely (those now only live on `serviceLocator`).
+
+Same class of bug as the `request_list.ts`/`local_event_manager.ts` issues
+documented above: two files outside this commit's own diff — never flagged
+by any merge conflict — still called the now-deleted methods:
+
+- `packages/core/src/autoscaling/memory_load_signal.ts`: `this.config.get(...)`
+  (×3) and `this.config.getEventManager()`. Fixed to plain property access
+  (`this.config.memoryMbytes`, `.availableMemoryRatio`, `.containerized`) and
+  `serviceLocator.getEventManager()`. Also dropped the `systemInfoV2`/
+  `getMemoryInfoV2` branch in `_getTotalMemoryBytes()` — confirmed
+  `getMemoryInfoV2` doesn't exist anywhere in `@crawlee/utils` (same dead
+  function found earlier in `local_event_manager.ts`) and `systemInfoV2`
+  isn't a field on the new `Configuration` schema either. Restored the
+  `isContainerized()` auto-detect fallback (`this.config.containerized ??
+  (await isContainerized())`) to match the behavior the original code had,
+  since `getMemoryInfo()`'s own default for missing `containerized` is `false`,
+  not auto-detection.
+- `packages/core/src/autoscaling/cpu_load_signal.ts`: `options.config.getEventManager()`
+  → `serviceLocator.getEventManager()`. Left the now-unused-but-still-required
+  `config: Configuration` field on `CpuLoadSignalOptions` alone rather than
+  reworking the signal-creation API — `Snapshotter` still passes `config` when
+  constructing this signal, so removing the field would be a wider API change
+  outside the scope of this fix.
+
+Repo-wide grep after these fixes shows no remaining `.config.get(...)`,
+`.config.getEventManager()`, or `.config.getStorageClient()` calls anywhere
+under `packages/*/src`. Please re-verify once the tree can be type-checked —
+these were reasoned through by reading the new `Configuration` class and
+cross-referencing the already-fixed sibling file, not compiler-verified.
+
+## Update: `lerna>js-yaml` override syntax confirmed correct
+
+A later commit (`36022e7c7`, "pin lerna's minimatch to v3") independently adds
+`"lerna>minimatch": "^3.1.4"` to `pnpm-workspace.yaml`'s `overrides`, with a
+comment explaining lerna's bundled code needs the CJS-style v3 export. This
+confirms the `"packageA>packageB"` scoped-override syntax I used for
+`lerna>js-yaml` (flagged as unverified above) is exactly right — no longer a
+concern.
+
+## `e00aa9419` — DatasetClient/KeyValueStoreClient aligned with Python (rename support removed)
+
+This commit removes `update()` (rename-a-storage support) entirely from
+`DatasetClient`/`KeyValueStoreClient`/`RequestQueueClient` in memory-storage,
+renames `delete()` → `drop()`, and adds `purge()`. Confirmed via
+`packages/types/src/storages.ts`: the interface no longer declares `update()`
+at all, only `drop()`/`purge()` — so removing the implementations was correct,
+not a data-loss risk.
+
+For each of the three resource-client files I dropped the `update()` method
+body along with the `resolveWithinDirectory`/`move`-based rename logic it
+contained, kept the constructor's own `resolveWithinDirectory(...)` call
+(master's path-traversal hardening — confirmed via `git show
+e00aa9419:...` that v4's own version of these files uses a bare `resolve()`
+in the constructor too, so this hardening predates/is independent of this
+commit and must survive it), and adopted `drop()`. Also removed now-dead
+imports (`createKeyList`/`createKeyStringList`/`createLazyIterablePromise` in
+key-value-store.ts — `keys()`/`values()`/`entries()` no longer exist on the
+class; `Readable`, `move`, `StorageTypes` similarly unused post-removal).
+
+**`packages/memory-storage/test/async-iteration.test.ts`**: HEAD's version
+tested `kvStore.keys()`/`.values()`/`.entries()` and imported
+`createLazyIterablePromise` — none of which exist anymore (confirmed via
+grep on the resolved `key-value-store.ts`). Rather than attempt a partial
+merge of an obsolete test suite, took theirs' version of the whole file
+wholesale (`git checkout --theirs`) — it tests the new `getData()`/
+`listKeys()` API directly and is self-contained.
+
+**`packages/memory-storage/test/request-queue/handledRequestCount-should-update.test.ts`**:
+HEAD added two new tests. One ("deleting a request should decrement...")
+calls `requestQueue.deleteRequest(id)`, which doesn't exist on the current
+`RequestQueueClient` (no per-request delete method at all in this interface,
+confirmed via grep of all `async` methods) — dropped, it tests a capability
+that isn't there. The other ("updating an already handled request should not
+increment...") calls `requestQueue.get()` (renamed to `getMetadata()`) but is
+otherwise valid and valuable — it's the regression test for the exact
+`isRequestHandledStateChanging` double-count fix preserved during an earlier
+conflict in this same rebase (commit `20b320add`'s `request-queue.ts`
+conflict). Kept it, renamed `get()` → `getMetadata()`.
+
+**Commit `ebb1b2632` (Introduce IBrowserPool interface) — moved the puppeteer-25
+`page.close()` timeout guard**: master (`1430062c2`) had wrapped
+`page.close()` in `browser-crawler.ts` with a 5s `addTimeoutToPromise` guard
+(puppeteer 25 can hang `page.close()` indefinitely after an aborted
+navigation). This v4 commit replaces that direct `page.close()` call with
+`this.browserPool.closePage(context.page, { error })`, moving page-closing
+into the pool abstraction. To keep both fixes, moved the timeout guard itself
+into `browser-pool.ts`'s `closePage()` method (added `PAGE_CLOSE_TIMEOUT_MILLIS`
+there, imported `addTimeoutToPromise`) rather than doubly closing the page
+from both `browser-crawler.ts` and the pool. Removed the now-dead
+`PAGE_CLOSE_TIMEOUT_MILLIS` constant from `browser-crawler.ts` (no other use).
+Worth double-checking in review that no other caller of `closePage()` relies
+on it settling faster than 5s.
