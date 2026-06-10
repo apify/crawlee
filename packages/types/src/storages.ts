@@ -179,50 +179,6 @@ export interface RequestQueueInfo {
     stats?: RequestQueueStats;
 }
 
-export interface RequestQueueHeadItem {
-    id: string;
-    retryCount: number;
-    uniqueKey: string;
-    url: string;
-    method: AllowedHttpMethods;
-}
-
-export interface QueueHead {
-    limit: number;
-    queueModifiedAt: Date;
-    hadMultipleClients?: boolean;
-    items: RequestQueueHeadItem[];
-}
-
-export interface ListOptions {
-    /**
-     * @default 100
-     */
-    limit?: number;
-}
-
-export interface ListAndLockOptions extends ListOptions {
-    lockSecs: number;
-}
-
-export interface ListAndLockHeadResult extends QueueHead {
-    lockSecs: number;
-    queueHasLockedRequests?: boolean;
-}
-
-export interface ProlongRequestLockOptions {
-    lockSecs: number;
-    forefront?: boolean;
-}
-
-export interface ProlongRequestLockResult {
-    lockExpiresAt: Date;
-}
-
-export interface DeleteRequestLockOptions {
-    forefront?: boolean;
-}
-
 export interface RequestOptions {
     forefront?: boolean;
     [k: string]: unknown;
@@ -265,6 +221,14 @@ export interface BatchAddRequestsResult {
     unprocessedRequests: UnprocessedRequest[];
 }
 
+/**
+ * Operations on a single request queue.
+ *
+ * A backend implementation owns all request bookkeeping (pending, in-progress, handled). Any
+ * coordination required between multiple distributed clients accessing the same queue (e.g. request
+ * locking on the Apify platform) is an internal concern of the implementation and is not exposed on
+ * this interface.
+ */
 export interface RequestQueueClient {
     /**
      * Returns metadata about the request queue (id, name, timestamps, request counts, etc.).
@@ -281,14 +245,57 @@ export interface RequestQueueClient {
     /** Remove all requests from the queue but keep the queue itself. */
     purge(): Promise<void>;
 
-    listHead(options?: ListOptions): Promise<QueueHead>;
-    addRequest(request: RequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
-    batchAddRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
-    getRequest(id: string): Promise<RequestOptions | undefined>;
-    updateRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
-    listAndLockHead(options: ListAndLockOptions): Promise<ListAndLockHeadResult>;
-    prolongRequestLock(id: string, options: ProlongRequestLockOptions): Promise<ProlongRequestLockResult>;
-    deleteRequestLock(id: string, options?: DeleteRequestLockOptions): Promise<void>;
+    /**
+     * Add a batch of requests to the queue.
+     *
+     * Each request is deduplicated by its `uniqueKey`. Duplicates are reported in the result
+     * but not re-added. With `forefront`, requests are placed at the beginning of the queue so
+     * they are processed sooner.
+     */
+    addBatchOfRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
+
+    /**
+     * Retrieve a request from the queue by its `uniqueKey`, or `undefined` if it does not exist.
+     */
+    getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
+
+    /**
+     * Return the next request in the queue to be processed, or `null` if there are currently no
+     * pending requests.
+     *
+     * The returned request is marked as in-progress; it will not be returned again until it is
+     * either reclaimed via {@link reclaimRequest} or marked as handled via {@link markRequestAsHandled}.
+     *
+     * A `null` return value does not mean processing is finished — only that there are no pending
+     * requests right now. Use {@link isEmpty} (together with the frontend's knowledge of pending
+     * add operations) to determine whether the queue is truly finished.
+     */
+    fetchNextRequest(): Promise<RequestOptions | null>;
+
+    /**
+     * Mark a request previously returned by {@link fetchNextRequest} as handled.
+     *
+     * Handled requests are never returned again by {@link fetchNextRequest}. Returns information
+     * about the operation, or `null` if the request was not in progress.
+     */
+    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | null>;
+
+    /**
+     * Reclaim a failed request back to the queue so it can be processed again by a later call to
+     * {@link fetchNextRequest}. With `forefront`, the request is returned to the beginning of the
+     * queue. Returns information about the operation, or `null` if the request was not in progress.
+     */
+    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
+
+    /**
+     * Resolves to `true` if there are no pending requests left to fetch — i.e. the next call to
+     * {@link fetchNextRequest} would return `null`.
+     *
+     * Requests that are currently in progress (fetched but not yet handled or reclaimed) are not
+     * counted. An empty queue therefore does not mean crawling is finished: there may be in-progress
+     * requests or background tasks still adding more requests.
+     */
+    isEmpty(): Promise<boolean>;
 }
 
 export interface SetStatusMessageOptions {
