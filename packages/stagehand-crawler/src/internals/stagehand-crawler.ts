@@ -215,7 +215,6 @@ export type StagehandGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<
     StagehandPage,
     Response,
-    StagehandController,
     UserData,
     StagehandGotoOptions
 > {
@@ -251,7 +250,6 @@ export interface StagehandCrawlerOptions<
 > extends BrowserCrawlerOptions<
     StagehandPage,
     Response,
-    StagehandController,
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -274,7 +272,6 @@ export interface StagehandCrawlerOptions<
      * The function receives the {@apilink StagehandCrawlingContext} as an argument, where:
      * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
      * - `page` is an enhanced Playwright [`Page`](https://playwright.dev/docs/api/class-page) with AI methods
-     * - `browserController` is an instance of {@apilink StagehandController}
      * - `response` is the main resource response as returned by `page.goto(request.url)`
      * - `stagehand` is the Stagehand instance for advanced control
      *
@@ -381,7 +378,6 @@ export class StagehandCrawler<
 > extends BrowserCrawler<
     StagehandPage,
     Response,
-    StagehandController,
     { browserPlugins: [StagehandPlugin] },
     LaunchOptions,
     StagehandCrawlingContext,
@@ -430,13 +426,41 @@ export class StagehandCrawler<
     }
 
     /**
+     * Resolves the {@apilink StagehandController} that owns the given page, or
+     * `undefined` when the pool does not expose controllers (e.g. a custom
+     * {@apilink IBrowserPool} implementation).
+     *
+     * Stagehand needs direct controller access to reach the `Stagehand`
+     * instance bound to the page's browser, which is why it reaches past the
+     * {@apilink IBrowserPool} abstraction here.
+     */
+    private getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
+        if ('getBrowserControllerByPage' in this.browserPool) {
+            return (
+                this.browserPool as unknown as {
+                    getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined;
+                }
+            ).getBrowserControllerByPage(page);
+        }
+
+        return undefined;
+    }
+
+    /**
      * Enhance the page with Stagehand AI methods.
      */
     private async setUpStagehand(crawlingContext: {
-        browserController: StagehandController;
         page: Page;
     }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
-        const stagehand = crawlingContext.browserController.getStagehand();
+        const controller = this.getBrowserControllerByPage(crawlingContext.page as StagehandPage);
+
+        if (!controller) {
+            throw new Error(
+                'Could not resolve StagehandController for page — is the browser pool configured correctly?',
+            );
+        }
+
+        const stagehand = controller.getStagehand();
 
         return {
             stagehand,

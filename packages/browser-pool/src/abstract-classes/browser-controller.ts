@@ -12,6 +12,76 @@ import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plug
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
+/**
+ * The subset of the browser-pool `LaunchContext` that {@apilink IBrowserController} exposes.
+ * Other fields are only available on the concrete `LaunchContext` class.
+ */
+export interface IBrowserLaunchContext {
+    /**
+     * The proxy URL the browser was launched with, if any.
+     */
+    proxyUrl?: string;
+    /**
+     * The fingerprint applied to the browser, if fingerprinting is enabled.
+     * Typed as `unknown` here; cast to the concrete `LaunchContext` if you
+     * need the structured shape.
+     */
+    fingerprint?: unknown;
+    /**
+     * `true` if each page in this browser uses its own context.
+     */
+    useIncognitoPages?: boolean;
+    /**
+     * The actual options the browser was launched with, after pre-launch hooks.
+     */
+    launchOptions?: Dictionary | undefined;
+}
+
+/**
+ * The minimal public contract of a browser controller.
+ *
+ * Coordination with the pool (page-counting, `activate`, `assignBrowser`, lifecycle
+ * promises, …) is intentionally **not** part of this contract.
+ *
+ * @category Browser management
+ */
+export interface IBrowserController<Page = unknown> {
+    /**
+     * A stable identifier for this controller instance. Useful for tracking
+     * which browser served which request.
+     */
+    readonly id: string;
+
+    /**
+     * The configuration the underlying browser was launched with — proxy URL,
+     * fingerprint, session, launcher-specific options, etc.
+     */
+    readonly launchContext: IBrowserLaunchContext;
+
+    /**
+     * The raw browser handle from the underlying automation library
+     * (Puppeteer `Browser`, Playwright `Browser`/`BrowserContext`, …).
+     * Escape hatch for things the controller does not expose directly.
+     */
+    readonly browser: unknown;
+
+    /**
+     * Reads cookies for the given page.
+     */
+    getCookies(page: Page): Promise<Cookie[]>;
+
+    /**
+     * Writes cookies for the given page.
+     */
+    setCookies(page: Page, cookies: Cookie[]): Promise<void>;
+
+    /**
+     * Gracefully closes the browser this controller owns. After this resolves,
+     * the controller is no longer usable.
+     */
+    close(): Promise<void>;
+}
+
 export interface BrowserControllerEvents<
     Library extends CommonLibrary,
     LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
@@ -38,7 +108,10 @@ export abstract class BrowserController<
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
-> extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>> {
+>
+    extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>>
+    implements IBrowserController<NewPageResult>
+{
     id = nanoid();
     protected log!: CrawleeLogger;
 

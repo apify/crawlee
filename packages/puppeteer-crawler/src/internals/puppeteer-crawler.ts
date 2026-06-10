@@ -6,7 +6,7 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
-import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
 import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
@@ -29,9 +29,7 @@ import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends
-        BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData, PuppeteerGoToOptions>,
-        PuppeteerContextUtils {}
+    extends BrowserCrawlingContext<Page, HTTPResponse, UserData, PuppeteerGoToOptions>, PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {}
 
 export interface PuppeteerCrawlerOptions<
@@ -40,7 +38,6 @@ export interface PuppeteerCrawlerOptions<
 > extends BrowserCrawlerOptions<
     Page,
     HTTPResponse,
-    PuppeteerController,
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -159,7 +156,6 @@ export class PuppeteerCrawler<
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
-    PuppeteerController,
     { browserPlugins: [PuppeteerPlugin] },
     LaunchOptions,
     PuppeteerCrawlingContext,
@@ -215,7 +211,6 @@ export class PuppeteerCrawler<
             ...(browserCrawlerOptions as BrowserCrawlerOptions<
                 Page,
                 HTTPResponse,
-                PuppeteerController,
                 PuppeteerCrawlingContext,
                 ContextExtension,
                 ExtendedContext
@@ -231,7 +226,7 @@ export class PuppeteerCrawler<
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
-    private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController>) {
+    private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse>) {
         const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             await context.page.waitForSelector(selector, { timeout: timeoutMs });
         };

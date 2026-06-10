@@ -7,7 +7,7 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
-import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
@@ -29,9 +29,7 @@ import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends
-        BrowserCrawlingContext<Page, Response, PlaywrightController, UserData, PlaywrightGotoOptions>,
-        PlaywrightContextUtils {}
+    extends BrowserCrawlingContext<Page, Response, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {}
 
 export interface PlaywrightCrawlerOptions<
@@ -40,7 +38,6 @@ export interface PlaywrightCrawlerOptions<
 > extends BrowserCrawlerOptions<
     Page,
     Response,
-    PlaywrightController,
     PlaywrightCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -58,8 +55,6 @@ export interface PlaywrightCrawlerOptions<
      * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
      * - `page` is an instance of the `Playwright`
      * [`Page`](https://playwright.dev/docs/api/class-page)
-     * - `browserController` is an instance of the
-     * [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
      * - `response` is an instance of the `Playwright`
      * [`Response`](https://playwright.dev/docs/api/class-response),
      * which is the main resource response as returned by `page.goto(request.url)`.
@@ -185,7 +180,6 @@ export class PlaywrightCrawler<
 > extends BrowserCrawler<
     Page,
     Response,
-    PlaywrightController,
     { browserPlugins: [PlaywrightPlugin] },
     LaunchOptions,
     PlaywrightCrawlingContext,
@@ -253,7 +247,7 @@ export class PlaywrightCrawler<
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 
-    private async enhanceContext(context: BrowserCrawlingContext<Page, Response, PlaywrightController, Dictionary>) {
+    private async enhanceContext(context: BrowserCrawlingContext<Page, Response, Dictionary>) {
         const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             const locator = context.page.locator(selector).first();
             await locator.waitFor({ timeout: timeoutMs, state: 'attached' });

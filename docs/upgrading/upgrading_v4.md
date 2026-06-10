@@ -214,6 +214,70 @@ const crawler = new BasicCrawler({
 });
 ```
 
+## Custom `BrowserPool` implementations via the `IBrowserPool` interface
+
+Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The interface follows the classic acquire/release pattern, plus a pair of helpers for moving state between the crawling session and the page:
+
+- **`newPage(options?)`** — opens a new page. An optional `session` can be passed as a best-effort hint — the pool may use it for proxy configuration, fingerprinting, etc., but nothing is guaranteed.
+- **`closePage(page, options?)`** — signals the pool that the caller is done with the page. If the optional `error` is a `SessionError`, the pool should purge all state associated with the session (e.g. retire the underlying browser).
+- **`extractPageState(page)`** — reads the relevant state (currently cookies) out of a page so the crawler can persist it back into the session.
+- **`injectPageState(page, state)`** — the counterpart to `extractPageState`; seeds a page with state (currently cookies) before navigation. Isolation between pages is best-effort and depends on the pool implementation.
+
+Lifecycle (`destroy`) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote browser farm, a session-aware pool, or another custom browser-management strategy without subclassing `BrowserPool`.
+
+```typescript
+import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { BrowserPool, PuppeteerPlugin, type IBrowserPool } from '@crawlee/browser-pool';
+import puppeteer from 'puppeteer';
+
+const sharedPool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+const crawler = new PuppeteerCrawler({
+    browserPool: sharedPool,
+    requestHandler: async ({ page }) => {
+        // …
+    },
+});
+
+// You own `sharedPool` — destroy it yourself when you're done.
+await crawler.run();
+await sharedPool.destroy();
+```
+
+## `BrowserCrawlingContext.browserController` has been removed
+
+The `browserController` property is no longer part of the crawling context (`BrowserCrawlingContext`). Browser controller management is now fully internal to the pool — the crawler interacts with the pool only through the `IBrowserPool` interface (`newPage`, `closePage`, `extractPageState`, and `injectPageState`).
+
+If you previously used `browserController` in your request handlers, here is how to migrate the most common patterns:
+
+**Cookies** — Cookie injection and persistence are now handled automatically by the crawler and the pool. You no longer need to call `browserController.getCookies()` or `browserController.setCookies()` manually.
+
+**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so there is no standalone `ignoreTlsErrors` page option anymore. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
+
+**Direct browser access** — If you need the raw browser or controller instance (e.g. for Puppeteer/Playwright-specific APIs), construct a `BrowserPool` yourself, pass it to the crawler, and reference it directly in your handler — no cast needed:
+
+```typescript
+import { BrowserPool, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import puppeteer from 'puppeteer';
+
+const pool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+const crawler = new PuppeteerCrawler({
+    browserPool: pool,
+    requestHandler: async ({ page }) => {
+        const controller = pool.getBrowserControllerByPage(page);
+        // controller.browser, controller.launchContext, etc.
+    },
+});
+
+await crawler.run();
+// You own the pool — tear it down yourself.
+await pool.destroy();
+```
+
+Note that this couples your code to the built-in `BrowserPool` — custom `IBrowserPool` implementations may not expose controllers at all.
+
 ## `tieredProxyUrls` is removed from `ProxyConfiguration`
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
