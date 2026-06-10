@@ -466,7 +466,7 @@ export class SitemapRequestLoader implements IRequestLoader {
     async toTandem(requestManager?: IRequestManager): Promise<IRequestManager> {
         // Import here to avoid circular imports.
         const { RequestManagerTandem } = await import('./request_manager_tandem.js');
-        const { RequestQueue } = await import('./request_queue_v2.js');
+        const { RequestQueue } = await import('./request_queue.js');
 
         return new RequestManagerTandem(this, requestManager ?? (await RequestQueue.open()));
     }

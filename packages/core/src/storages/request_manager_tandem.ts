@@ -10,7 +10,7 @@ import type {
     AddRequestsBatchedResult,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-} from './request_provider.js';
+} from './request_queue.js';
 
 /**
  * A request manager that combines a {@apilink IRequestLoader} (such as a `RequestList`) with a writable

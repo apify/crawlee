@@ -5,7 +5,7 @@ import type {
     AddRequestsBatchedResult,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-} from './request_provider.js';
+} from './request_queue.js';
 
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
 

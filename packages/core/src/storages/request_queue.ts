@@ -1,32 +1,50 @@
-import { setTimeout as sleep } from 'node:timers/promises';
+import { inspect } from 'node:util';
 
-import type { Dictionary } from '@crawlee/types';
+import type {
+    BaseHttpClient,
+    BatchAddRequestsResult,
+    Dictionary,
+    ProcessedRequest,
+    QueueOperationInfo,
+    RequestQueueClient,
+    RequestQueueInfo,
+} from '@crawlee/types';
+import {
+    chunkedAsyncIterable,
+    downloadListOfUrls,
+    getObjectType,
+    isAsyncIterable,
+    isIterable,
+    peekableAsyncIterable,
+    sleep,
+} from '@crawlee/utils';
+import ow from 'ow';
+import type { ReadonlyDeep } from 'type-fest';
 
-import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
+import { LruCache } from '@apify/datastructures';
+import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { Configuration } from '../configuration.js';
-import type { Request } from '../request.js';
+import { Configuration } from '../configuration.js';
+import type { Constructor } from '../typedefs.js';
+import type { EventManager } from '../events/event_manager.js';
+import { EventType } from '../events/event_manager.js';
+import type { CrawleeLogger } from '../log.js';
+import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { InternalSource, RequestOptions, Source } from '../request.js';
+import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
-import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider.js';
-import { RequestProvider } from './request_provider.js';
-import {
-    API_PROCESSED_REQUESTS_DELAY_MILLIS,
-    getRequestId,
-    MAX_QUERIES_FOR_CONSISTENCY,
-    QUERY_HEAD_BUFFER,
-    QUERY_HEAD_MIN_LENGTH,
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-} from './utils.js';
-
-const MAX_CACHED_REQUESTS = 1_000_000;
+import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
+import type { StorageOpenOptions } from './utils.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import { getRequestId, purgeDefaultStorages } from './utils.js';
 
 /**
- * This number must be large enough so that processing of all these requests cannot be done in
- * a time lower than expected maximum latency of DynamoDB, but low enough not to waste too much memory.
+ * The maximum number of requests cached locally to avoid redundant calls to the storage client.
  * @internal
  */
-const RECENTLY_HANDLED_CACHE_SIZE = 1000;
+const MAX_CACHED_REQUESTS = 2_000_000;
 
 /**
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
@@ -46,18 +64,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * Unlike {@apilink RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
  * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
  *
- * `RequestQueue` stores its data either on local disk or in the Apify Cloud,
- * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
- *
- * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
- * that directory in an SQLite database file.
- *
- * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` is not, the data is stored in the
- * [Apify Request Queue](https://docs.apify.com/storage/request-queue)
- * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to {@apilink RequestQueue.open} function,
- * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
- *
  * **Example usage:**
  *
  * ```javascript
@@ -74,37 +80,432 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * ```
  * @category Sources
  */
-class RequestQueue extends RequestProvider {
-    private queryQueueHeadPromise?: Promise<{
-        wasLimitReached: boolean;
-        prevLimit: number;
-        queueModifiedAt: Date;
-        queryStartedAt: Date;
-        hadMultipleClients?: boolean;
-    }> | null = null;
+export class RequestQueue implements IStorage, IRequestManager {
+    id: string;
+    name?: string;
+    timeoutSecs = 30;
+    clientKey = cryptoRandomObjectId();
+    client: RequestQueueClient;
+    protected proxyConfiguration?: ProxyConfiguration;
 
-    private inProgress = new Set<string>();
+    log: CrawleeLogger;
+    internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
+    /**
+     * @deprecated Request locking is now an internal concern of the storage client and this value
+     * has no effect on the slim {@apilink RequestQueueClient} interface. The property is kept so that
+     * existing callers (e.g. `BasicCrawler`) continue to compile.
+     */
+    requestLockSecs = 3 * 60;
+
+    private isInitialized = false;
+
+    protected requestCache: LruCache<RequestLruItem>;
+
+    protected queuePausedForMigration = false;
+
+    protected lastActivity = new Date();
+
+    protected inProgressRequestBatchCount = 0;
+
+    protected httpClient?: BaseHttpClient;
+
+    protected readonly events: EventManager;
 
     /**
      * @internal
      */
-    constructor(options: RequestProviderOptions, config: Configuration = serviceLocator.getConfiguration()) {
-        super(
-            {
-                ...options,
-                logPrefix: 'RequestQueue',
-                recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
-                requestCacheMaxSize: MAX_CACHED_REQUESTS,
-            },
-            config,
-        );
+    constructor(
+        options: RequestQueueOptions,
+        protected readonly config: Configuration = Configuration.getGlobalConfig(),
+    ) {
+        this.id = options.id;
+        this.name = options.name;
+        this.events = serviceLocator.getEventManager();
+        this.client = options.client;
+
+        this.proxyConfiguration = options.proxyConfiguration;
+
+        this.requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+        this.log = serviceLocator
+            .getLogger()
+            .child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
+
+        this.events.on(EventType.MIGRATING, async () => {
+            this.queuePausedForMigration = true;
+        });
     }
 
     /**
-     * @internal
+     * Returns the total number of requests in the queue (i.e. pending + handled).
+     *
+     * Survives restarts and actor migrations.
      */
-    public inProgressCount(): number {
-        return this.inProgress.size;
+    async getTotalCount() {
+        const { totalRequestCount } = await this.getInfo();
+        return totalRequestCount;
+    }
+
+    /**
+     * Returns the total number of pending requests in the queue.
+     *
+     * Survives restarts and Actor migrations.
+     */
+    async getPendingCount() {
+        const { totalRequestCount, handledRequestCount } = await this.getInfo();
+        return totalRequestCount - handledRequestCount;
+    }
+
+    /**
+     * Adds a request to the queue.
+     *
+     * If a request with the same `uniqueKey` property is already present in the queue,
+     * it will not be updated. You can find out whether this happened from the resulting
+     * {@apilink QueueOperationInfo} object.
+     *
+     * To add multiple requests to the queue by extracting links from a webpage,
+     * see the {@apilink enqueueLinks} helper function.
+     *
+     * @param requestLike {@apilink Request} object or vanilla object with request data.
+     * Note that the function sets the `uniqueKey` and `id` fields to the passed Request.
+     * @param [options] Request queue operation options.
+     */
+    async addRequest(
+        requestLike: Source,
+        options: RequestQueueOperationOptions = {},
+    ): Promise<RequestQueueOperationInfo> {
+        checkStorageAccess();
+
+        this.lastActivity = new Date();
+
+        ow(requestLike, ow.object);
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+            }),
+        );
+
+        const { forefront = false } = options;
+
+        if ('requestsFromUrl' in requestLike) {
+            const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
+            const processedRequests = await this._addFetchedRequests(requestLike as InternalSource, requests, options);
+
+            return { ...processedRequests[0], forefront };
+        }
+
+        ow(
+            requestLike,
+            ow.object.partialShape({
+                url: ow.string,
+                id: ow.undefined,
+            }),
+        );
+
+        const request = requestLike instanceof Request ? requestLike : new Request(requestLike);
+
+        const cacheKey = getRequestId(request.uniqueKey);
+        const cachedInfo = this.requestCache.get(cacheKey);
+
+        if (cachedInfo) {
+            request.id = cachedInfo.id;
+            return {
+                wasAlreadyPresent: true,
+                // We may assume that if request is in local cache then also the information if the
+                // request was already handled is there because just one client should be using one queue.
+                wasAlreadyHandled: cachedInfo.isHandled,
+                requestId: cachedInfo.id,
+                uniqueKey: cachedInfo.uniqueKey,
+                forefront,
+            };
+        }
+
+        const { processedRequests } = await this.client.addBatchOfRequests([request], { forefront });
+        const queueOperationInfo = {
+            ...processedRequests[0],
+            uniqueKey: request.uniqueKey,
+            forefront,
+        } satisfies RequestQueueOperationInfo;
+
+        this._cacheRequest(cacheKey, queueOperationInfo);
+
+        return queueOperationInfo;
+    }
+
+    /**
+     * Adds requests to the queue in batches of 25. This method will wait till all the requests are added
+     * to the queue before resolving. You should prefer using `queue.addRequestsBatched()` or `crawler.addRequests()`
+     * if you don't want to block the processing, as those methods will only wait for the initial 1000 requests,
+     * start processing right after that happens, and continue adding more in the background.
+     *
+     * If a request passed in is already present due to its `uniqueKey` property being the same,
+     * it will not be updated. You can find out whether this happened by finding the request in the resulting
+     * {@apilink BatchAddRequestsResult} object.
+     *
+     * @param requestsLike {@apilink Request} objects or vanilla objects with request data.
+     * Note that the function sets the `uniqueKey` and `id` fields to the passed requests if missing.
+     * @param [options] Request queue operation options.
+     */
+    async addRequests(
+        requestsLike: RequestsLike,
+        options: RequestQueueOperationOptions = {},
+    ): Promise<BatchAddRequestsResult> {
+        checkStorageAccess();
+
+        this.lastActivity = new Date();
+
+        ow(
+            requestsLike,
+            ow.object
+                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
+                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
+        );
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+                cache: ow.optional.boolean,
+            }),
+        );
+
+        const { forefront = false, cache = true } = options;
+
+        const uniqueKeyToCacheKey = new Map<string, string>();
+        const getCachedRequestId = (uniqueKey: string) => {
+            const cached = uniqueKeyToCacheKey.get(uniqueKey);
+
+            if (cached) return cached;
+
+            const newCacheKey = getRequestId(uniqueKey);
+            uniqueKeyToCacheKey.set(uniqueKey, newCacheKey);
+
+            return newCacheKey;
+        };
+
+        const results: BatchAddRequestsResult = {
+            processedRequests: [],
+            unprocessedRequests: [],
+        };
+
+        const requests: Request<Dictionary>[] = [];
+
+        for await (const requestLike of requestsLike) {
+            if (typeof requestLike === 'string') {
+                requests.push(new Request({ url: requestLike }));
+            } else if ('requestsFromUrl' in requestLike) {
+                const fetchedRequests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
+                await this._addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
+            } else {
+                requests.push(
+                    requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions),
+                );
+            }
+        }
+
+        const requestsToAdd = new Map<string, Request>();
+
+        for (const request of requests) {
+            const cacheKey = getCachedRequestId(request.uniqueKey);
+            const cachedInfo = this.requestCache.get(cacheKey);
+
+            if (cachedInfo) {
+                request.id = cachedInfo.id;
+                results.processedRequests.push({
+                    wasAlreadyPresent: true,
+                    // We may assume that if request is in local cache then also the information if the
+                    // request was already handled is there because just one client should be using one queue.
+                    wasAlreadyHandled: cachedInfo.isHandled,
+                    requestId: cachedInfo.id,
+                    uniqueKey: cachedInfo.uniqueKey,
+                });
+            } else if (!requestsToAdd.has(request.uniqueKey)) {
+                requestsToAdd.set(request.uniqueKey, request);
+            }
+        }
+
+        // Early exit if all provided requests were already added
+        if (!requestsToAdd.size) {
+            return results;
+        }
+
+        const apiResults = await this.client.addBatchOfRequests([...requestsToAdd.values()], { forefront });
+
+        // Report unprocessed requests
+        results.unprocessedRequests = apiResults.unprocessedRequests;
+
+        // Add all new requests to the requestCache
+        for (const newRequest of apiResults.processedRequests) {
+            // Add the new request to the processed list
+            results.processedRequests.push(newRequest);
+
+            const cacheKey = getCachedRequestId(newRequest.uniqueKey);
+
+            if (cache) {
+                this._cacheRequest(cacheKey, { ...newRequest, forefront });
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
+     * adding the rest in the background. You can configure the batch size via `batchSize` option and the sleep time in between
+     * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
+     * the `waitForAllRequestsToBeAdded` promise you get in the response object.
+     *
+     * @param requests The requests to add
+     * @param options Options for the request queue
+     */
+    async addRequestsBatched(
+        requests: ReadonlyDeep<RequestsLike>,
+        options: AddRequestsBatchedOptions = {},
+    ): Promise<AddRequestsBatchedResult> {
+        checkStorageAccess();
+
+        this.lastActivity = new Date();
+        ow(
+            requests,
+            ow.object
+                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
+                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
+        );
+
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+                waitForAllRequestsToBeAdded: ow.optional.boolean,
+                batchSize: ow.optional.number,
+                waitBetweenBatchesMillis: ow.optional.number,
+            }),
+        );
+
+        const addRequest = this.addRequest.bind(this);
+
+        async function* generateRequests() {
+            for await (const opts of requests) {
+                // Validate the input
+                if (typeof opts === 'object' && opts !== null) {
+                    if (opts.url !== undefined && typeof opts.url !== 'string') {
+                        throw new Error(
+                            `Request options are not valid, the 'url' property is not a string. Input: ${inspect(opts)}`,
+                        );
+                    }
+
+                    if (opts.id !== undefined) {
+                        throw new Error(
+                            `Request options are not valid, the 'id' property must not be present. Input: ${inspect(opts)}`,
+                        );
+                    }
+
+                    if (
+                        (opts as any).requestsFromUrl !== undefined &&
+                        typeof (opts as any).requestsFromUrl !== 'string'
+                    ) {
+                        throw new Error(
+                            `Request options are not valid, the 'requestsFromUrl' property is not a string. Input: ${inspect(opts)}`,
+                        );
+                    }
+                }
+
+                if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
+                    // Handle URL lists right away
+                    await addRequest(opts, { forefront: options.forefront });
+                } else {
+                    // Yield valid requests
+                    yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
+                }
+            }
+        }
+
+        const { batchSize = 1000, waitBetweenBatchesMillis = 1000 } = options;
+
+        const chunks = peekableAsyncIterable(chunkedAsyncIterable(generateRequests(), batchSize));
+        const chunksIterator = chunks[Symbol.asyncIterator]();
+
+        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
+            const resultsToReturn: ProcessedRequest[] = [];
+            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
+            resultsToReturn.push(...apiResult.processedRequests);
+
+            if (apiResult.unprocessedRequests.length) {
+                await sleep(waitBetweenBatchesMillis);
+
+                resultsToReturn.push(
+                    ...(await attemptToAddToQueueAndAddAnyUnprocessed(
+                        providedRequests.filter(
+                            (r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey),
+                        ),
+                        false,
+                    )),
+                );
+            }
+
+            return resultsToReturn;
+        };
+
+        // Add initial batch of `batchSize` to process them right away
+        const initialChunk = await chunksIterator.peek();
+        if (initialChunk === undefined) {
+            return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
+        }
+
+        const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
+        await chunksIterator.next();
+
+        // If we have no more requests to add, return immediately
+        if ((await chunksIterator.peek()) === undefined) {
+            return {
+                addedRequests,
+                waitForAllRequestsToBeAdded: Promise.resolve([]),
+            };
+        }
+
+        // eslint-disable-next-line no-async-promise-executor
+        const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
+            const finalAddedRequests: ProcessedRequest[] = [];
+
+            for await (const requestChunk of chunks) {
+                finalAddedRequests.push(...(await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk, false)));
+
+                await sleep(waitBetweenBatchesMillis);
+            }
+
+            resolve(finalAddedRequests);
+        });
+
+        this.inProgressRequestBatchCount += 1;
+        void promise.finally(() => {
+            this.inProgressRequestBatchCount -= 1;
+        });
+
+        // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
+        if (options.waitForAllRequestsToBeAdded) {
+            addedRequests.push(...(await promise));
+        }
+
+        return {
+            addedRequests,
+            waitForAllRequestsToBeAdded: promise,
+        };
+    }
+
+    /**
+     * Gets the request from the queue specified by its `uniqueKey`.
+     *
+     * @param uniqueKey Unique key of the request.
+     * @returns Returns the request object, or `null` if it was not found.
+     */
+    async getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request<T> | null> {
+        checkStorageAccess();
+
+        ow(uniqueKey, ow.string);
+
+        const requestOptions = await this.client.getRequest(uniqueKey);
+        if (!requestOptions) return null;
+
+        return new Request(requestOptions as unknown as RequestOptions);
     }
 
     /**
@@ -124,208 +525,65 @@ class RequestQueue extends RequestProvider {
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.
      */
-    override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+    async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
 
+        if (this.queuePausedForMigration) {
+            return null;
+        }
+
         this.lastActivity = new Date();
 
-        await this.ensureHeadIsNonEmpty();
+        const requestOptions = await this.client.fetchNextRequest();
+        if (!requestOptions) return null;
 
-        const nextRequestId = this.queueHeadIds.removeFirst();
-
-        // We are likely done at this point.
-        if (!nextRequestId) return null;
-
-        // This should never happen, but...
-        if (this.inProgress.has(nextRequestId) || this.recentlyHandledRequestsCache.get(nextRequestId)) {
-            this.log.warning('Queue head returned a request that is already in progress?!', {
-                nextRequestId,
-                inProgress: this.inProgress.has(nextRequestId),
-                recentlyHandled: !!this.recentlyHandledRequestsCache.get(nextRequestId),
-            });
-            return null;
-        }
-
-        this.inProgress.add(nextRequestId);
-        this.lastActivity = new Date();
-
-        let request: Request | null;
-        try {
-            request = await this.getRequest(nextRequestId);
-        } catch (e) {
-            // On error, remove the request from in progress, otherwise it would be there forever
-            this.inProgress.delete(nextRequestId);
-            throw e;
-        }
-
-        // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can occur in two situations:
-
-        // 1) Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
-        //    In this case, keep the request marked as in progress for a short while,
-        //    so that isFinished() doesn't return true and _ensureHeadIsNonEmpty() doesn't not load the request
-        //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
-        //    will try to fetch this request again, until it eventually appears in the main table.
-        if (!request) {
-            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', {
-                nextRequestId,
-            });
-            setTimeout(() => {
-                this.inProgress.delete(nextRequestId);
-            }, STORAGE_CONSISTENCY_DELAY_MILLIS);
-            return null;
-        }
-
-        // 2) Queue head index is behind the main table and the underlying request was already handled
-        //    (by some other client, since we keep the track of handled requests in recentlyHandled dictionary).
-        //    We just add the request to the recentlyHandled dictionary so that next call to _ensureHeadIsNonEmpty()
-        //    will not put the request again to queueHeadDict.
-        if (request.handledAt) {
-            this.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
-            this.recentlyHandledRequestsCache.add(nextRequestId, true);
-            return null;
-        }
-
-        return request;
-    }
-
-    protected override async ensureHeadIsNonEmpty(): Promise<void> {
-        // Alias for backwards compatibility
-        await this._ensureHeadIsNonEmpty();
+        return new Request(requestOptions as unknown as RequestOptions);
     }
 
     /**
-     * We always request more items than is in progress to ensure that something falls into head.
-     *
-     * @param [ensureConsistency] If true then query for queue head is retried until queueModifiedAt
-     *   is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS to ensure that queue
-     *   head is consistent.
-     * @default false
-     * @param [limit] How many queue head items will be fetched.
-     * @param [iteration] Used when this function is called recursively to limit the recursion.
-     * @returns Indicates if queue head is consistent (true) or inconsistent (false).
+     * Marks a request that was previously returned by the
+     * {@apilink RequestQueue.fetchNextRequest}
+     * function as handled after successful processing.
+     * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
-    protected async _ensureHeadIsNonEmpty(
-        ensureConsistency = false,
-        limit = Math.max(this.inProgressCount() * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
-        iteration = 0,
-    ): Promise<boolean> {
-        // If we are paused for migration, resolve immediately.
-        if (this.queuePausedForMigration) {
-            return true;
-        }
-
-        // If is nonempty resolve immediately.
-        if (this.queueHeadIds.length() > 0) {
-            return true;
-        }
-
-        if (!this.queryQueueHeadPromise) {
-            const queryStartedAt = new Date();
-
-            this.queryQueueHeadPromise = this.client
-                .listHead({ limit })
-                .then(({ items, queueModifiedAt, hadMultipleClients }) => {
-                    items.forEach(({ id: requestId, uniqueKey }) => {
-                        // Queue head index might be behind the main table, so ensure we don't recycle requests
-                        if (
-                            !requestId ||
-                            !uniqueKey ||
-                            this.inProgress.has(requestId) ||
-                            this.recentlyHandledRequestsCache.get(requestId!)
-                        )
-                            return;
-
-                        this.queueHeadIds.add(requestId, requestId, false);
-                        const forefront = this.requestCache.get(getRequestId(uniqueKey))?.forefront ?? false;
-                        this._cacheRequest(getRequestId(uniqueKey), {
-                            requestId,
-                            wasAlreadyHandled: false,
-                            wasAlreadyPresent: true,
-                            uniqueKey,
-                            forefront,
-                        });
-                    });
-
-                    // This is needed so that the next call to _ensureHeadIsNonEmpty() will fetch the queue head again.
-                    this.queryQueueHeadPromise = null;
-
-                    return {
-                        wasLimitReached: items.length >= limit,
-                        prevLimit: limit,
-                        queueModifiedAt: new Date(queueModifiedAt),
-                        queryStartedAt,
-                        hadMultipleClients,
-                    };
-                });
-        }
-
-        const { queueModifiedAt, wasLimitReached, prevLimit, queryStartedAt, hadMultipleClients } =
-            await this.queryQueueHeadPromise;
-
-        // TODO: I feel this code below can be greatly simplified...
-
-        // If queue is still empty then one of the following holds:
-        // - the other calls waiting for this promise already consumed all the returned requests
-        // - the limit was too low and contained only requests in progress
-        // - the writes from other clients were not propagated yet
-        // - the whole queue was processed and we are done
-
-        // If limit was not reached in the call then there are no more requests to be returned.
-        if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
-            this.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
-        }
-        const shouldRepeatWithHigherLimit =
-            this.queueHeadIds.length() === 0 && wasLimitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
-
-        // If ensureConsistency=true then we must ensure that either:
-        // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
-        // - hadMultipleClients=false and this.assumedTotalCount<=this.assumedHandledCount
-        const isDatabaseConsistent = +queryStartedAt - +queueModifiedAt >= API_PROCESSED_REQUESTS_DELAY_MILLIS;
-        const isLocallyConsistent = !hadMultipleClients && this.assumedTotalCount <= this.assumedHandledCount;
-        // Consistent information from one source is enough to consider request queue finished.
-        const shouldRepeatForConsistency = ensureConsistency && !isDatabaseConsistent && !isLocallyConsistent;
-
-        // If both are false then head is consistent and we may exit.
-        if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) return true;
-
-        // If we are querying for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
-        // If this is reached then we return false so that empty() and finished() returns possibly false negative.
-        if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) return false;
-
-        const nextLimit = shouldRepeatWithHigherLimit ? Math.round(prevLimit * 1.5) : prevLimit;
-
-        // If we are repeating for consistency then wait required time.
-        if (shouldRepeatForConsistency) {
-            const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - +queueModifiedAt);
-            this.log.info(
-                `Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`,
-            );
-            await sleep(delayMillis);
-        }
-
-        return this._ensureHeadIsNonEmpty(ensureConsistency, nextLimit, iteration + 1);
-    }
-
-    // RequestQueue v1 behavior overrides below
-    override async isFinished(): Promise<boolean> {
+    async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
 
-        if (Date.now() - +this.lastActivity > this.internalTimeoutMillis) {
-            const message = `The request queue seems to be stuck for ${
-                this.internalTimeoutMillis / 1e3
-            }s, resetting internal state.`;
-            this.log.warning(message, { inProgress: [...this.inProgress] });
-            this._reset();
+        this.lastActivity = new Date();
+
+        ow(
+            request,
+            ow.object.partialShape({
+                id: ow.string,
+                uniqueKey: ow.string,
+                handledAt: ow.optional.string,
+            }),
+        );
+
+        const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
+
+        const handledAt = request.handledAt ?? new Date().toISOString();
+        const processedRequest = await this.client.markRequestAsHandled({
+            ...request,
+            handledAt,
+        });
+
+        // The request was not in progress (e.g. already handled) — nothing to do.
+        if (!processedRequest) {
+            return null;
         }
 
-        if (this.inProgressRequestBatchCount > 0) {
-            return false;
-        }
+        request.handledAt = handledAt;
 
-        if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
+        const queueOperationInfo = {
+            ...processedRequest,
+            uniqueKey: request.uniqueKey,
+            forefront,
+        } satisfies RequestQueueOperationInfo;
 
-        const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
-        return isHeadConsistent && this.queueHeadIds.length() === 0 && this.inProgressCount() === 0;
+        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+
+        return queueOperationInfo;
     }
 
     /**
@@ -334,48 +592,238 @@ class RequestQueue extends RequestProvider {
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      */
-    override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>) {
+    async reclaimRequest(
+        request: Request,
+        options: RequestQueueOperationOptions = {},
+    ): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
 
-        const [request, options] = args;
-        const forefront = options?.forefront ?? false;
+        this.lastActivity = new Date();
 
-        const result = await super.reclaimRequest(...args);
+        ow(
+            request,
+            ow.object.partialShape({
+                id: ow.string,
+                uniqueKey: ow.string,
+            }),
+        );
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+            }),
+        );
 
-        // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
-        // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
-        setTimeout(() => {
-            if (!this.inProgress.has(request.id!)) {
-                this.log.debug('The request is no longer marked as in progress in the queue?!', {
-                    requestId: request.id,
-                });
-                return;
-            }
+        const { forefront = false } = options;
 
-            this.inProgress.delete(request.id!);
+        const processedRequest = await this.client.reclaimRequest(request, { forefront });
 
-            // Performance optimization: add request straight to head if possible
-            this._maybeAddRequestToQueueHead(request.id!, forefront);
-        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+        // The request was not in progress — nothing to reclaim.
+        if (!processedRequest) {
+            return null;
+        }
 
-        return result;
+        const queueOperationInfo = {
+            ...processedRequest,
+            uniqueKey: request.uniqueKey,
+            forefront,
+        } satisfies RequestQueueOperationInfo;
+        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+
+        return queueOperationInfo;
+    }
+
+    /**
+     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest}
+     * would return `null`, otherwise it resolves to `false`.
+     * Note that even if the queue is empty, there might be some pending requests currently being processed.
+     * If you need to ensure that there is no activity in the queue, use {@apilink RequestQueue.isFinished}.
+     */
+    async isEmpty(): Promise<boolean> {
+        checkStorageAccess();
+
+        return this.client.isEmpty();
+    }
+
+    /**
+     * Resolves to `true` if all requests were already handled and there are no more left.
+     * Due to the nature of distributed storage used by the queue,
+     * the function may occasionally return a false negative,
+     * but it shall never return a false positive.
+     */
+    async isFinished(): Promise<boolean> {
+        checkStorageAccess();
+
+        // We are not finished if we're still adding new requests in the background.
+        if (this.inProgressRequestBatchCount > 0) {
+            return false;
+        }
+
+        return this.client.isEmpty();
+    }
+
+    protected _reset() {
+        this.lastActivity = new Date();
+        this.requestCache.clear();
+    }
+
+    /**
+     * Caches information about request to beware of unneeded addRequest() calls.
+     */
+    protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
+        // Remove the previous entry, as otherwise our cache will never update 👀
+        this.requestCache.remove(cacheKey);
+
+        this.requestCache.add(cacheKey, {
+            id: queueOperationInfo.requestId,
+            isHandled: queueOperationInfo.wasAlreadyHandled,
+            uniqueKey: queueOperationInfo.uniqueKey,
+            hydrated: null,
+            lockExpiresAt: null,
+            forefront: queueOperationInfo.forefront,
+        });
+    }
+
+    /**
+     * Removes the queue either from the Apify Cloud storage or from the local database,
+     * depending on the mode of operation.
+     */
+    async drop(): Promise<void> {
+        checkStorageAccess();
+
+        await this.client.drop();
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
+    }
+
+    /**
+     * Remove all requests from the queue but keep the queue itself, resetting it
+     * so it can be reused (e.g. across multiple `crawler.run()` calls).
+     */
+    async purge(): Promise<void> {
+        checkStorageAccess();
+
+        await this.client.purge();
+
+        // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
+        this.requestCache.clear();
+        this.lastActivity = new Date();
+        this.inProgressRequestBatchCount = 0;
     }
 
     /**
      * @inheritdoc
      */
-    override async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
-        const res = await super.markRequestHandled(request);
-
-        this.inProgress.delete(request.id!);
-
-        return res;
+    async *[Symbol.asyncIterator]() {
+        while (true) {
+            const req = await this.fetchNextRequest();
+            if (!req) break;
+            yield req;
+        }
     }
 
-    protected override _reset(): void {
-        super._reset();
+    /**
+     * Returns the number of handled requests.
+     *
+     * This function is just a convenient shortcut for:
+     *
+     * ```javascript
+     * const { handledRequestCount } = await queue.getInfo();
+     * ```
+     * @inheritdoc
+     */
+    async getHandledCount(): Promise<number> {
+        // NOTE: We keep this function for compatibility with RequestList.getHandledCount()
+        const { handledRequestCount } = await this.getInfo();
+        return handledRequestCount;
+    }
 
-        this.inProgress.clear();
+    /**
+     * Returns an object containing general information about the request queue.
+     *
+     * **Example:**
+     * ```
+     * {
+     *   id: "WkzbQMuFYuamGv3YF",
+     *   name: "my-queue",
+     *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
+     *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
+     *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
+     *   totalRequestCount: 25,
+     *   handledRequestCount: 5,
+     *   pendingRequestCount: 20,
+     * }
+     * ```
+     *
+     * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
+     */
+    async getInfo(): Promise<RequestQueueInfo> {
+        checkStorageAccess();
+
+        return this.client.getMetadata();
+    }
+
+    /**
+     * Fetches URLs from requestsFromUrl and returns them in format of list of requests
+     */
+    protected async _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
+        const { requestsFromUrl, regex, ...sharedOpts } = source;
+
+        // Download remote resource and parse URLs.
+        let urlsArr;
+        try {
+            urlsArr = await this._downloadListOfUrls({
+                url: requestsFromUrl,
+                urlRegExp: regex,
+                proxyUrl: await this.proxyConfiguration?.newUrl(),
+            });
+        } catch (err) {
+            throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
+        }
+
+        // Skip if resource contained no URLs.
+        if (!urlsArr.length) {
+            this.log.warning('The fetched list contains no valid URLs.', { requestsFromUrl, regex });
+            return [];
+        }
+
+        return urlsArr.map((url) => ({ url, ...sharedOpts }));
+    }
+
+    /**
+     * Adds all fetched requests from a URL from a remote resource.
+     */
+    protected async _addFetchedRequests(
+        source: InternalSource,
+        fetchedRequests: RequestOptions[],
+        options: RequestQueueOperationOptions,
+    ) {
+        const { requestsFromUrl, regex } = source;
+        const { addedRequests } = await this.addRequestsBatched(fetchedRequests, options);
+
+        this.log.info('Fetched and loaded Requests from a remote resource.', {
+            requestsFromUrl,
+            regex,
+            fetchedCount: fetchedRequests.length,
+            importedCount: addedRequests.length,
+            duplicateCount: fetchedRequests.length - addedRequests.length,
+            sample: JSON.stringify(fetchedRequests.slice(0, 5)),
+        });
+
+        return addedRequests;
+    }
+
+    /**
+     * @internal wraps public utility for mocking purposes
+     */
+    private async _downloadListOfUrls(options: {
+        url: string;
+        urlRegExp?: RegExp;
+        proxyUrl?: string;
+    }): Promise<string[]> {
+        return downloadListOfUrls({
+            ...options,
+            httpClient: this.httpClient,
+        });
     }
 
     /**
@@ -389,14 +837,152 @@ class RequestQueue extends RequestProvider {
      *
      * For more details and code examples, see the {@apilink RequestQueue} class.
      *
-     * @param [queueIdOrName]
-     *   ID or name of the request queue to be opened. If `null` or `undefined`,
-     *   the function returns the default request queue associated with the crawler run.
+     * @param [identifier]
+     *   ID or name of the request queue to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default request queue associated with the crawler run.
      * @param [options] Open Request Queue options.
      */
-    static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
-        return super.open(...args) as Promise<RequestQueue>;
+    static async open(
+        identifier?: string | StorageIdentifier | null,
+        options: StorageOpenOptions = {},
+    ): Promise<RequestQueue> {
+        checkStorageAccess();
+
+        ow(
+            options,
+            ow.object.exactShape({
+                config: ow.optional.object.instanceOf(Configuration),
+                storageClient: ow.optional.object,
+                proxyConfiguration: ow.optional.object,
+                httpClient: ow.optional.object,
+            }),
+        );
+
+        const client = options.storageClient ?? serviceLocator.getStorageClient();
+        const config = options.config ?? serviceLocator.getConfiguration();
+
+        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config });
+
+        const resolved = await resolveStorageIdentifier(identifier, client, 'RequestQueue');
+
+        const queue = await serviceLocator
+            .getStorageInstanceManager()
+            .openStorage<RequestQueue>(this as unknown as Constructor<RequestQueue>, {
+                ...resolved,
+                clientOpener: () => client.createRequestQueueClient(resolved),
+                clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+            });
+        queue.proxyConfiguration = options.proxyConfiguration;
+        queue.httpClient = options.httpClient;
+
+        if (!queue.isInitialized) {
+            // Re-create the request queue client with clientKey and timeoutSecs so that
+            // request locking works correctly for API-backed implementations.
+            // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
+            // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
+            // where locking is handled internally by the client (see crawlee-python PR #1194).
+            queue.client = await client.createRequestQueueClient({
+                id: queue.id,
+                clientKey: queue.clientKey,
+                timeoutSecs: queue.timeoutSecs,
+            });
+
+            queue.isInitialized = true;
+        }
+
+        return queue;
     }
 }
 
-export { RequestQueue as RequestQueueV1 };
+interface RequestLruItem {
+    uniqueKey: string;
+    isHandled: boolean;
+    id: string;
+    hydrated: Request | null;
+    lockExpiresAt: number | null;
+    forefront: boolean;
+}
+
+export interface RequestQueueOptions {
+    id: string;
+    name?: string;
+    client: RequestQueueClient;
+
+    /**
+     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
+     * Takes advantage of the internal address rotation and authentication process.
+     * If undefined, the `requestsFromUrl` requests will be made without proxy.
+     */
+    proxyConfiguration?: ProxyConfiguration;
+}
+
+export interface RequestQueueOperationOptions {
+    /**
+     * If set to `true`:
+     *   - while adding the request to the queue: the request will be added to the foremost position in the queue.
+     *   - while reclaiming the request: the request will be placed to the beginning of the queue, so that it's returned
+     *   in the next call to {@apilink RequestQueue.fetchNextRequest}.
+     * By default, it's put to the end of the queue.
+     *
+     * In case the request is already present in the queue, this option has no effect.
+     *
+     * If more requests are added with this option at once, their order in the following `fetchNextRequest` call
+     * is arbitrary.
+     * @default false
+     */
+    forefront?: boolean;
+    /**
+     * Should the requests be added to the local LRU cache?
+     * @default false
+     * @internal
+     */
+    cache?: boolean;
+}
+
+/**
+ * @internal
+ */
+export interface RequestQueueOperationInfo extends QueueOperationInfo {
+    uniqueKey: string;
+    forefront: boolean;
+}
+
+export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions {
+    /**
+     * Whether to wait for all the provided requests to be added, instead of waiting just for the initial batch of up to `batchSize`.
+     * @default false
+     */
+    waitForAllRequestsToBeAdded?: boolean;
+
+    /**
+     * @default 1000
+     */
+    batchSize?: number;
+
+    /**
+     * @default 1000
+     */
+    waitBetweenBatchesMillis?: number;
+}
+
+export interface AddRequestsBatchedResult {
+    addedRequests: ProcessedRequest[];
+    /**
+     * A promise which will resolve with the rest of the requests that were added to the queue.
+     *
+     * Alternatively, we can set {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} to `true`
+     * in the {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} options.
+     *
+     * **Example:**
+     *
+     * ```ts
+     * // Assuming `requests` is a list of requests.
+     * const result = await crawler.addRequests(requests);
+     *
+     * // If we want to wait for the rest of the requests to be added to the queue:
+     * await result.waitForAllRequestsToBeAdded;
+     * ```
+     */
+    waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>;
+}
