@@ -56,6 +56,23 @@ export interface InternalRequest {
     json: string;
 }
 
+/**
+ * Default time (in seconds) for which a request fetched via {@link RequestQueueClient.fetchNextRequest}
+ * stays locked (in progress). The lock is persisted to disk so that other processes sharing the same
+ * queue do not fetch the same request, and it expires automatically — this way a crashed consumer does
+ * not block its requests forever. Aligns with the historical request queue locking default.
+ */
+const DEFAULT_REQUEST_LOCK_SECS = 3 * 60;
+
+/**
+ * A request is "locked" (in progress) when its `orderNo` is pushed beyond the current time. The sign of
+ * `orderNo` is preserved so the original forefront / normal ordering is restored once the lock expires
+ * or the request is reclaimed.
+ */
+function isRequestLocked(orderNo: number | null, now: number): boolean {
+    return orderNo !== null && Math.abs(orderNo) > now;
+}
+
 export class RequestQueueClient extends BaseClient implements storage.RequestQueueClient {
     name?: string;
     /**
@@ -121,33 +138,35 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         this.updateTimestamps(true);
     }
 
-    private *requestKeyIterator(rqClient: RequestQueueClient): IterableIterator<string> {
+    private *requestKeyIterator(): IterableIterator<string> {
         for (let i = this.forefrontRequestIds.length - 1; i >= 0; i--) {
             yield this.forefrontRequestIds[i];
         }
 
-        for (const key of rqClient.requests.keys()) {
+        for (const key of this.requests.keys()) {
             yield key;
         }
     }
 
-    async listHead(options: storage.ListOptions = {}): Promise<storage.QueueHead> {
-        const { limit } = s
-            .object({
-                limit: s.number().optional().default(100),
-            })
-            .parse(options);
+    /**
+     * Returns the head of the queue — pending requests that are neither handled nor currently locked
+     * (in progress) — ordered by `orderNo`, deduplicated.
+     *
+     * Lock state lives in the persisted `orderNo` (see {@link isRequestLocked}), so that processes
+     * sharing the same on-disk queue observe each other's locks. We therefore re-read entries from
+     * storage to obtain fresh lock state, except for entries we can cheaply rule out as permanently
+     * handled via their cached `orderNo === null`.
+     */
+    private async listPendingHead(limit: number): Promise<InternalRequest[]> {
+        const now = Date.now();
+        const items: InternalRequest[] = [];
 
-        this.updateTimestamps(false);
-
-        const items = [];
-
-        // Tracks processed request IDs to avoid duplicates when a request is in both `forefrontRequestIds` and `requests`.
+        // Tracks processed request IDs to avoid duplicates (request in both `forefrontRequestIds` and `requests`).
         const seenRequestIds = new Set<string>();
         // Tracks handled request IDs from `forefrontRequestIds` to be removed.
         const handledForefrontIds = new Set<string>();
 
-        for (const requestId of this.requestKeyIterator(this)) {
+        for (const requestId of this.requestKeyIterator()) {
             if (items.length === limit) {
                 break;
             }
@@ -160,229 +179,66 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
             const storageEntry = this.requests.get(requestId)!;
 
-            let { orderNo } = storageEntry;
-            let loaded: InternalRequest;
-
-            // Uncached entry
-            if (typeof orderNo === 'undefined') {
-                loaded = await storageEntry.get();
-
-                orderNo = loaded.orderNo;
+            // Cheap rejection of permanently-handled requests using the cached `orderNo` (handled is a
+            // terminal state, so the cached value can be trusted without re-reading from storage).
+            if (storageEntry.orderNo === null) {
+                if (this.forefrontRequestIds.includes(requestId)) {
+                    handledForefrontIds.add(requestId);
+                }
+                continue;
             }
 
-            // Have an order no -> fetch from fs/memory and return
-            if (orderNo) {
-                items.push(await storageEntry.get());
-            } else if (this.forefrontRequestIds.includes(requestId)) {
-                handledForefrontIds.add(requestId);
+            // Re-read from storage to get fresh lock state — another process may have locked (or handled)
+            // this request since we last cached it.
+            const request = await storageEntry.get(true);
+
+            // Handled in the meantime.
+            if (request.orderNo === null) {
+                if (this.forefrontRequestIds.includes(requestId)) {
+                    handledForefrontIds.add(requestId);
+                }
+                continue;
             }
+
+            // Locked (in progress) by us or another process — skip until the lock expires.
+            if (isRequestLocked(request.orderNo, now)) {
+                continue;
+            }
+
+            items.push(request);
         }
 
         this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
-        return {
-            limit,
-            hadMultipleClients: false,
-            queueModifiedAt: this.modifiedAt,
-            items: items.sort((a, b) => a.orderNo! - b.orderNo!).map(({ json }) => this._jsonToRequest(json)!),
-        };
+        return items.sort((a, b) => a.orderNo! - b.orderNo!);
     }
 
-    async listAndLockHead(options: storage.ListAndLockOptions): Promise<storage.ListAndLockHeadResult> {
-        const { limit, lockSecs } = s
-            .object({
-                limit: s.number().lessThanOrEqual(25).optional().default(25),
-                lockSecs: s.number(),
-            })
-            .parse(options);
-
+    async fetchNextRequest(): Promise<storage.RequestOptions | null> {
         this.updateTimestamps(false);
-
-        const start = Date.now();
-        const isLocked = (request: InternalRequest) =>
-            !request.orderNo || request.orderNo > start || request.orderNo < -start;
-
-        const items = [];
 
         await this.mutex.wait();
 
         try {
-            // Tracks processed request IDs to avoid duplicates (when a request is in both `forefrontRequestIds` and `requests`).
-            const seenRequestIds = new Set<string>();
-            // Tracks handled request IDs from `forefrontRequestIds` (to be all removed at once).
-            const handledForefrontIds = new Set<string>();
+            const [head] = await this.listPendingHead(1);
 
-            for (const requestId of this.requestKeyIterator(this)) {
-                if (items.length === limit) {
-                    break;
-                }
-
-                if (seenRequestIds.has(requestId)) {
-                    continue;
-                }
-
-                seenRequestIds.add(requestId);
-
-                const storageEntry = this.requests.get(requestId)!;
-
-                // This is set to null when the request has been handled, so we don't need to re-fetch from fs
-                if (storageEntry.orderNo === null) {
-                    if (this.forefrontRequestIds.includes(requestId)) {
-                        handledForefrontIds.add(requestId);
-                    }
-                    continue;
-                }
-
-                // Always fetch from fs, as this also locks and we do not want to end up in a state where another process locked the request but we have cached it as unlocked
-                const request = await storageEntry.get(true);
-
-                if (isLocked(request)) {
-                    continue;
-                }
-
-                request.orderNo = (start + lockSecs * 1000) * (request.orderNo! > 0 ? 1 : -1);
-                await storageEntry.update(request);
-
-                items.push(request);
+            if (!head) {
+                return null;
             }
 
-            this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
+            // Lock the request by pushing its `orderNo` beyond the lock expiry, preserving the sign so
+            // its original (forefront / normal) position is restored once the lock expires. The lock is
+            // persisted so other processes sharing this queue will not fetch the same request.
+            const lockExpiresAt = Date.now() + DEFAULT_REQUEST_LOCK_SECS * 1000;
+            head.orderNo = lockExpiresAt * (head.orderNo! > 0 ? 1 : -1);
+            await this.requests.get(head.id)!.update(head);
 
-            return {
-                limit,
-                lockSecs,
-                hadMultipleClients: false,
-                queueModifiedAt: this.modifiedAt,
-                items: items.map(({ json }) => this._jsonToRequest(json)!),
-            };
+            return this._jsonToRequest(head.json) ?? null;
         } finally {
             this.mutex.shift();
         }
     }
 
-    async prolongRequestLock(
-        id: string,
-        options: storage.ProlongRequestLockOptions,
-    ): Promise<storage.ProlongRequestLockResult> {
-        s.string().parse(id);
-        const { lockSecs, forefront } = s
-            .object({
-                lockSecs: s.number(),
-                forefront: s.boolean().optional().default(false),
-            })
-            .parse(options);
-
-        this.updateTimestamps(false);
-
-        const request = this.requests.get(id);
-        const internalRequest = await request?.get();
-
-        if (!internalRequest) {
-            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
-        }
-
-        const canProlong = (r: InternalRequest) => !!r.orderNo;
-
-        if (!canProlong(internalRequest)) {
-            throw new Error(`Request with ID ${id} has already been handled in queue ${this.name ?? this.id}`);
-        }
-
-        const unlockTimestamp = Math.abs(internalRequest.orderNo!) + lockSecs * 1000;
-        internalRequest.orderNo = forefront ? -unlockTimestamp : unlockTimestamp;
-
-        await request?.update(internalRequest);
-        if (forefront) this.forefrontRequestIds.push(id);
-
-        return {
-            lockExpiresAt: new Date(unlockTimestamp),
-        };
-    }
-
-    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}): Promise<void> {
-        s.string().parse(id);
-        const { forefront } = s
-            .object({
-                forefront: s.boolean().optional().default(false),
-            })
-            .parse(options);
-
-        this.updateTimestamps(false);
-
-        const request = this.requests.get(id);
-        const internalRequest = await request?.get();
-
-        if (!internalRequest) {
-            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
-        }
-
-        const start = Date.now();
-
-        // If there is no `orderNo` -> request was marked as handled
-        const isLocked = (r: InternalRequest) => r.orderNo && (r.orderNo > start || r.orderNo < -start);
-        if (!isLocked(internalRequest)) {
-            throw new Error(`Request with ID ${id} is not locked in queue ${this.name ?? this.id}`);
-        }
-
-        internalRequest.orderNo = forefront ? -start : start;
-        if (forefront) this.forefrontRequestIds.push(id);
-
-        await request?.update(internalRequest);
-    }
-
-    async addRequest(
-        request: storage.RequestSchema,
-        options: storage.RequestOptions = {},
-    ): Promise<storage.QueueOperationInfo> {
-        requestShapeWithoutId.parse(request);
-        requestOptionsShape.parse(options);
-
-        const requestModel = this._createInternalRequest(request, options.forefront);
-
-        const existingRequestWithIdEntry = this.requests.get(requestModel.id);
-
-        // We already have the request present, so we return information about it
-        if (existingRequestWithIdEntry) {
-            const existingRequestWithId = await existingRequestWithIdEntry.get();
-            this.updateTimestamps(false);
-
-            return {
-                requestId: existingRequestWithId.id,
-                wasAlreadyHandled: existingRequestWithId.orderNo === null,
-                wasAlreadyPresent: true,
-            };
-        }
-
-        const newEntry = createRequestQueueStorageImplementation({
-            persistStorage: this.client.persistStorage,
-            requestId: requestModel.id,
-            storeDirectory: this.requestQueueDirectory,
-        });
-
-        await newEntry.update(requestModel);
-
-        this.requests.set(requestModel.id, newEntry);
-        this.updateTimestamps(true);
-
-        if (requestModel.orderNo) {
-            this.pendingRequestCount += 1;
-        } else {
-            this.handledRequestCount += 1;
-        }
-
-        if (options.forefront) {
-            this.forefrontRequestIds.push(requestModel.id);
-        }
-
-        return {
-            requestId: requestModel.id,
-            // We return wasAlreadyHandled: false even though the request may
-            // have been added as handled, because that's how API behaves.
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        };
-    }
-
-    async batchAddRequests(
+    async addBatchOfRequests(
         requests: storage.RequestSchema[],
         options: storage.RequestOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
@@ -447,70 +303,106 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return result;
     }
 
-    async getRequest(id: string): Promise<storage.RequestOptions | undefined> {
-        s.string().parse(id);
+    async getRequest(uniqueKey: string): Promise<storage.RequestOptions | undefined> {
+        s.string().parse(uniqueKey);
         this.updateTimestamps(false);
+        const id = uniqueKeyToRequestId(uniqueKey);
         const json = (await this.requests.get(id)?.get())?.json;
         return this._jsonToRequest(json);
     }
 
-    async updateRequest(
-        request: storage.UpdateRequestSchema,
-        options: storage.RequestOptions = {},
-    ): Promise<storage.QueueOperationInfo> {
+    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | null> {
         requestShape.parse(request);
-        requestOptionsShape.parse(options);
+        this.updateTimestamps(false);
 
-        const requestModel = this._createInternalRequest(request, options.forefront);
+        const id = uniqueKeyToRequestId(request.uniqueKey);
 
-        // First we need to check the existing request to be
-        // able to return information about its handled state.
+        const existingEntry = this.requests.get(id);
+        const existingRequest = await existingEntry?.get();
 
-        const existingRequestEntry = this.requests.get(requestModel.id);
-
-        // Undefined means that the request is not present in the queue.
-        // We need to insert it, to behave the same as API.
-        if (!existingRequestEntry) {
-            return this.addRequest(request, options);
+        // The request must be in progress (locked) to be marked as handled.
+        if (!existingRequest || !isRequestLocked(existingRequest.orderNo, Date.now())) {
+            return null;
         }
 
-        const existingRequest = await existingRequestEntry.get();
+        const wasAlreadyHandled = existingRequest.orderNo === null;
+
+        const handledAt = request.handledAt ?? new Date().toISOString();
+        const requestModel = this._createInternalRequest({ ...request, handledAt }, false);
 
         const newEntry = createRequestQueueStorageImplementation({
             persistStorage: this.client.persistStorage,
-            requestId: requestModel.id,
+            requestId: id,
             storeDirectory: this.requestQueueDirectory,
         });
-
         await newEntry.update(requestModel);
+        this.requests.set(id, newEntry);
 
-        // When updating the request, we need to make sure that
-        // the handled counts are updated correctly in all cases.
-        this.requests.set(requestModel.id, newEntry);
-
-        const isRequestHandledStateChanging = typeof existingRequest.orderNo !== typeof requestModel.orderNo;
-        const requestWasHandledBeforeUpdate = existingRequest.orderNo === null;
-        const requestIsHandledAfterUpdate = requestModel.orderNo === null;
-
-        if (isRequestHandledStateChanging) {
-            this.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
-        }
-
-        if (requestIsHandledAfterUpdate) {
+        if (!wasAlreadyHandled) {
+            this.pendingRequestCount -= 1;
             this.handledRequestCount += 1;
         }
 
         this.updateTimestamps(true);
 
-        if (options.forefront && !requestIsHandledAfterUpdate) {
-            this.forefrontRequestIds.push(requestModel.id);
-        }
-
         return {
-            requestId: requestModel.id,
-            wasAlreadyHandled: requestWasHandledBeforeUpdate,
+            requestId: id,
+            wasAlreadyHandled,
             wasAlreadyPresent: true,
         };
+    }
+
+    async reclaimRequest(
+        request: storage.UpdateRequestSchema,
+        options: storage.RequestOptions = {},
+    ): Promise<storage.QueueOperationInfo | null> {
+        requestShape.parse(request);
+        requestOptionsShape.parse(options);
+        this.updateTimestamps(false);
+
+        const id = uniqueKeyToRequestId(request.uniqueKey);
+
+        const existingEntry = this.requests.get(id);
+        const existingRequest = await existingEntry?.get();
+
+        // The request must be in progress (locked) to be reclaimed.
+        if (!existingRequest || !isRequestLocked(existingRequest.orderNo, Date.now())) {
+            return null;
+        }
+
+        // Reclaiming resets the `orderNo` to a fresh timestamp, releasing the lock and restoring the
+        // request to the queue (at the front if `forefront`).
+        const requestModel = this._createInternalRequest(request, options.forefront);
+
+        const newEntry = createRequestQueueStorageImplementation({
+            persistStorage: this.client.persistStorage,
+            requestId: id,
+            storeDirectory: this.requestQueueDirectory,
+        });
+        await newEntry.update(requestModel);
+        this.requests.set(id, newEntry);
+
+        if (options.forefront) {
+            this.forefrontRequestIds.push(id);
+        }
+
+        this.updateTimestamps(true);
+
+        return {
+            requestId: id,
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: true,
+        };
+    }
+
+    async isEmpty(): Promise<boolean> {
+        this.updateTimestamps(false);
+
+        // "Empty" here means there are no pending requests left to fetch. Requests that are currently
+        // in progress are intentionally ignored: this matches the `IRequestLoader.isEmpty` contract
+        // ("the next `fetchNextRequest` would return null") that the crawler's task scheduling relies on.
+        const [head] = await this.listPendingHead(1);
+        return head === undefined;
     }
 
     toRequestQueueInfo(): storage.RequestQueueInfo {
