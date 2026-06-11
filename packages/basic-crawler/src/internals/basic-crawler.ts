@@ -370,12 +370,6 @@ export interface BasicCrawlerOptions<
     onSkippedRequest?: SkippedRequestCallback;
 
     /**
-     * Enables experimental features of Crawlee, which can alter the behavior of the crawler.
-     * WARNING: these options are not guaranteed to be stable and may change or be removed at any time.
-     */
-    experiments?: CrawlerExperiments;
-
-    /**
      * Customize the way statistics collecting works, such as logging interval or
      * whether to output them to the Key-Value store.
      */
@@ -441,22 +435,6 @@ export interface BasicCrawlerOptions<
      * By default, status codes >= 500 trigger errors.
      */
     additionalHttpErrorStatusCodes?: number[];
-}
-
-/**
- * A set of options that you can toggle to enable experimental features in Crawlee.
- *
- * NOTE: These options will not respect semantic versioning and may be removed or changed at any time. Use at your own risk.
- * If you do use these and encounter issues, please report them to us.
- */
-export interface CrawlerExperiments {
-    /**
-     * @deprecated This experiment is now enabled by default, and this flag will be removed in a future release.
-     * If you encounter issues due to this change, please:
-     * - report it to us: https://github.com/apify/crawlee
-     * - set `requestLocking` to `false` in the `experiments` option of the crawler
-     */
-    requestLocking?: boolean;
 }
 
 /**
@@ -665,9 +643,7 @@ export class BasicCrawler<
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
-    private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
-    private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
     private readonly crawlerId: string;
     private readonly hasExplicitId: boolean;
     private readonly crawlerInstanceIndex: number;
@@ -719,9 +695,6 @@ export class BasicCrawler<
         maxConcurrency: ow.optional.number,
         maxRequestsPerMinute: ow.optional.number.integerOrInfinite.positive.greaterThanOrEqual(1),
         keepAlive: ow.optional.boolean,
-
-        // internal
-        experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
 
@@ -778,9 +751,6 @@ export class BasicCrawler<
             statusMessageCallback,
             statisticsOptions,
             httpClient,
-
-            // internal
-            experiments = {},
 
             id,
         } = options;
@@ -842,7 +812,6 @@ export class BasicCrawler<
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
             this.domainAccessedTime = new Map();
-            this.experiments = experiments;
             this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
             this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
@@ -1462,7 +1431,12 @@ export class BasicCrawler<
      * @private
      */
     private async openOwnedRequestQueue(): Promise<IRequestManager> {
-        const requestQueue = await this._getRequestQueue();
+        // The first crawler instance uses the default queue (null identifier);
+        // subsequent instances get their own queue via a unique alias so they don't collide.
+        const identifier =
+            this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
+
+        const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
         this.applyRequestManagerTimeouts(requestQueue);
         this.ownedRequestManager = requestQueue;
         return requestQueue;
@@ -1477,10 +1451,6 @@ export class BasicCrawler<
      */
     private applyRequestManagerTimeouts(requestManager: IRequestManager): void {
         requestManager.setExpectedRequestProcessingTime?.(Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60));
-
-        if (requestManager instanceof RequestQueue) {
-            requestManager.internalTimeoutMillis = this.internalTimeoutMillis;
-        }
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
@@ -2264,28 +2234,6 @@ export class BasicCrawler<
         }
 
         return request.headers?.Cookie || request.headers?.cookie || '';
-    }
-
-    private async _getRequestQueue() {
-        // The first crawler instance uses the default queue (null identifier);
-        // subsequent instances get their own queue via a unique alias so they don't collide.
-        const identifier =
-            this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
-
-        // Check if it's explicitly disabled
-        // oxlint-disable-next-line typescript/no-deprecated -- still honored for opt-out until the flag is removed
-        if (this.experiments.requestLocking === false) {
-            // oxlint-disable-next-line typescript/no-deprecated
-            if (!this._experimentWarnings.requestLocking) {
-                this.log.info('Using the old RequestQueue implementation without request locking.');
-                // oxlint-disable-next-line typescript/no-deprecated
-                this._experimentWarnings.requestLocking = true;
-            }
-
-            return RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
-        }
-
-        return RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
     }
 
     private requestMatchesEnqueueStrategy(request: Request) {

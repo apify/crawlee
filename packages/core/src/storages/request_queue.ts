@@ -89,7 +89,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     protected proxyConfiguration?: ProxyConfiguration;
 
     log: CrawleeLogger;
-    internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
 
     private isInitialized = false;
 
