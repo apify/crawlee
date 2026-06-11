@@ -352,7 +352,7 @@ export async function clickElementsAndInterceptNavigationRequests(
 
     // browser.off(BrowserEmittedEvents.TargetCreated, onTargetCreated);
     page.off('framenavigated', onFrameNavigated);
-    await context.unroute('*', onInterceptedRequest);
+    await context.unroute('**', onInterceptedRequest);
 
     const serializedRequests = Array.from(uniqueRequests);
     return serializedRequests.map((r) => JSON.parse(r));
@@ -405,7 +405,15 @@ function createTargetCreatedHandler(requests: Set<string>): (popup: Page) => Pro
  * @ignore
  */
 function isTopFrameNavigationRequest(page: Page, req: Request): boolean {
-    return req.isNavigationRequest() && req.frame() === page.mainFrame();
+    try {
+        return req.isNavigationRequest() && req.frame() === page.mainFrame();
+    } catch {
+        // `req.frame()` throws when the owning frame is unavailable - e.g. the request was
+        // issued by a service worker, or before/after its frame existed (see #3216). Such a
+        // request is not a top-frame navigation, so swallow the throw and let it pass through
+        // instead of crashing the route handler (which would leave the route unhandled).
+        return false;
+    }
 }
 
 /**
