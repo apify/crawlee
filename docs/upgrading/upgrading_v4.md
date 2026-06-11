@@ -742,12 +742,15 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | `length(): number` | `getTotalCount(): Promise<number>` (renamed and now async) |
 | _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
 | `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
+| `markRequestHandled(request)` | `markRequestAsHandled(request)` (renamed) |
 | `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
 | `inProgress: Set<string>` on the interface | Removed from the interface |
 | `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
 | _(n/a)_ | `toTandem?(requestManager?)` (new) |
 
 `RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
+
+`markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage client method of the same name (and the Python `mark_request_as_handled`). Rename any calls accordingly.
 
 **Before:**
 ```typescript

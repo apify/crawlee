@@ -645,7 +645,7 @@ export class RequestList implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async markRequestHandled(request: Request): Promise<void> {
+    async markRequestAsHandled(request: Request): Promise<void> {
         const { uniqueKey } = request;
 
         this._ensureUniqueKeyValid(uniqueKey);

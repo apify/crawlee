@@ -987,7 +987,7 @@ describe('BasicCrawler', () => {
         vitest.spyOn(requestQueue, 'fetchNextRequest').mockImplementation(async () => queueContent.shift() ?? null);
 
         const markReqHandled = vitest
-            .spyOn(requestQueue, 'markRequestHandled')
+            .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
         const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
@@ -1069,7 +1069,7 @@ describe('BasicCrawler', () => {
         vitest.spyOn(requestQueue, 'getHandledCount').mockReturnValue(Promise.resolve() as any);
 
         let handledCount = 0;
-        const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled').mockImplementation(async () => {
+        const markRequestAsHandled = vitest.spyOn(requestQueue, 'markRequestAsHandled').mockImplementation(async () => {
             handledCount++;
             // Only set isFinished after both requests have been handled
             if (handledCount >= 2) {
@@ -1093,8 +1093,8 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(markRequestHandled).toBeCalledWith(request0);
-        expect(markRequestHandled).toBeCalledWith(request1);
+        expect(markRequestAsHandled).toBeCalledWith(request0);
+        expect(markRequestAsHandled).toBeCalledWith(request1);
         expect(isFinishedOrig).not.toBeCalled();
         expect(isFinishedFunctionCalled).toBe(true);
         expect(isTaskReadyFunctionCalled).toBe(true);
@@ -1127,8 +1127,8 @@ describe('BasicCrawler', () => {
         const request1 = new Request({ url: 'http://example.com/1' });
 
         vitest.spyOn(requestQueue, 'getHandledCount').mockReturnValue(Promise.resolve() as any);
-        const markRequestHandled = vitest
-            .spyOn(requestQueue, 'markRequestHandled')
+        const markRequestAsHandled = vitest
+            .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
@@ -1145,8 +1145,8 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(markRequestHandled).toBeCalledWith(request0);
-        expect(markRequestHandled).toBeCalledWith(request1);
+        expect(markRequestAsHandled).toBeCalledWith(request0);
+        expect(markRequestAsHandled).toBeCalledWith(request1);
         expect(isFinishedOrig).not.toBeCalled();
 
         // TODO: see why the request1 was passed as a second parameter to includes
@@ -1215,7 +1215,7 @@ describe('BasicCrawler', () => {
 
         requestQueue.fetchNextRequest = async () => new Request({ id: 'id', url: 'http://example.com' });
         // @ts-expect-error Overriding the method for testing purposes
-        requestQueue.markRequestHandled = async () => {};
+        requestQueue.markRequestAsHandled = async () => {};
 
         const requestQueueStub = vitest.spyOn(requestQueue, 'getHandledCount').mockResolvedValue(33);
 

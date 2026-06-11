@@ -96,7 +96,7 @@ describe('RequestQueue remote', () => {
         const fetched = await queue.fetchNextRequest();
         expect(fetched).not.toBeNull();
 
-        await queue.markRequestHandled(fetched!);
+        await queue.markRequestAsHandled(fetched!);
 
         expect(await queue.fetchNextRequest()).toBeNull();
         expect(await queue.isFinished()).toBe(true);
@@ -143,7 +143,7 @@ describe('RequestQueue remote', () => {
         const fetchedUrls: string[] = [];
         for (let req = await queue.fetchNextRequest(); req !== null; req = await queue.fetchNextRequest()) {
             fetchedUrls.push(req.url);
-            await queue.markRequestHandled(req);
+            await queue.markRequestAsHandled(req);
         }
         expect(fetchedUrls.sort()).toEqual(['http://example.com/a', 'http://example.com/b']);
     });
@@ -163,7 +163,7 @@ describe('RequestQueue remote', () => {
         // Fetch and handle the first request so it is removed from the queue.
         const first = await queue.fetchNextRequest();
         retrievedUrls.push(first!.url);
-        await queue.markRequestHandled(first!);
+        await queue.markRequestAsHandled(first!);
 
         // Add more requests at the forefront.
         await queue.addRequest({ url: 'http://example.com/4' }, { forefront: true });
@@ -176,7 +176,7 @@ describe('RequestQueue remote', () => {
         // ordering is deterministic and no request is fetched twice.
         for (let req = await queue.fetchNextRequest(); req !== null; req = await queue.fetchNextRequest()) {
             retrievedUrls.push(req.url);
-            await queue.markRequestHandled(req);
+            await queue.markRequestAsHandled(req);
         }
 
         // Forefront requests (2, 3, 4) are served before the older pending ones (5, 6).
@@ -198,7 +198,7 @@ describe('RequestQueue remote', () => {
         expect(await queue.isEmpty()).toBe(true);
         expect(await queue.isFinished()).toBe(false);
 
-        await queue.markRequestHandled(fetched!);
+        await queue.markRequestAsHandled(fetched!);
         // Now the request is handled and gone, so the queue is both empty and finished.
         expect(await queue.isEmpty()).toBe(true);
         expect(await queue.isFinished()).toBe(true);
@@ -516,7 +516,7 @@ describe('RequestQueue (request lifecycle)', () => {
         await queue.addRequests(getUniqueRequests(1));
 
         const first = await queue.fetchNextRequest();
-        await queue.markRequestHandled(first!);
+        await queue.markRequestAsHandled(first!);
 
         expect(await queue.fetchNextRequest()).toBeNull();
         expect(await queue.isFinished()).toBe(true);

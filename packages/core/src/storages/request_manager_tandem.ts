@@ -92,7 +92,7 @@ export class RequestManagerTandem implements IRequestManager {
             return false;
         } finally {
             // Mark it as handled so that the request doesn't get stuck in the `inProgress` state in the loader.
-            await this.requestLoader.markRequestHandled(request);
+            await this.requestLoader.markRequestAsHandled(request);
         }
     }
 
@@ -184,8 +184,8 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * @inheritdoc
      */
-    async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        return (await this.getRequestManager()).markRequestHandled(request);
+    async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
+        return (await this.getRequestManager()).markRequestAsHandled(request);
     }
 
     /**

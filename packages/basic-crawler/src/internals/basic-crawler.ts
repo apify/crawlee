@@ -925,7 +925,7 @@ export class BasicCrawler<
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
                             await this._timeoutAndRetry(
-                                async () => this.requestManager?.markRequestHandled(request),
+                                async () => this.requestManager?.markRequestAsHandled(request),
                                 this.internalTimeoutMillis,
                                 `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
                                     this.internalTimeoutMillis / 1e3
@@ -1864,13 +1864,13 @@ export class BasicCrawler<
             await this.runRequestHandler(crawlingContext);
 
             await this._timeoutAndRetry(
-                async () => requestSource.markRequestHandled(request!),
+                async () => requestSource.markRequestAsHandled(request!),
                 this.internalTimeoutMillis,
                 `Marking request ${request.url} (${request.id}) as handled timed out after ${
                     this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
-            isRequestLocked = false; // markRequestHandled succeeded and unlocked the request
+            isRequestLocked = false; // markRequestAsHandled succeeded and unlocked the request
 
             this.stats.finishJob(statisticsId, request.retryCount);
             this.handledRequestsCount++;
@@ -1891,7 +1891,7 @@ export class BasicCrawler<
                     } seconds.`,
                 );
                 if (!(err instanceof CriticalError)) {
-                    isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestHandled or reclaimRequest
+                    isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestAsHandled or reclaimRequest
                 }
                 request.state = RequestState.DONE;
             } catch (secondaryError: any) {
@@ -2127,7 +2127,7 @@ export class BasicCrawler<
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
-        await source.markRequestHandled(request);
+        await source.markRequestAsHandled(request);
         this.stats.failJob(request.id || request.uniqueKey, request.retryCount);
 
         await this._handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.

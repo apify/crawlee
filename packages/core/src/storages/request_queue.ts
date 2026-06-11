@@ -510,7 +510,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
      * Once you successfully finish processing of the request, you need to call
-     * {@apilink RequestQueue.markRequestHandled}
+     * {@apilink RequestQueue.markRequestAsHandled}
      * to mark the request as handled in the queue. If there was some error in processing the request,
      * call {@apilink RequestQueue.reclaimRequest} instead,
      * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
@@ -544,7 +544,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
-    async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
+    async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
 
         this.lastActivity = new Date();

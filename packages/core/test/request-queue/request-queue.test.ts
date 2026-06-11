@@ -62,7 +62,7 @@ describe('RequestQueue#isEmpty and #isFinished treat in-progress requests differ
 
     test('handling the in-progress request finishes the queue', async () => {
         const request = await queue.getRequest('0');
-        await queue.markRequestHandled(request!);
+        await queue.markRequestAsHandled(request!);
 
         expect(await queue.isEmpty()).toBe(true);
         expect(await queue.isFinished()).toBe(true);

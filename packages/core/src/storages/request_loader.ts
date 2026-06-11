@@ -17,7 +17,7 @@ import type { RequestQueueOperationInfo } from './request_queue.js';
  * ## Request lifecycle contract
  *
  * Every request returned by {@apilink IRequestLoader.fetchNextRequest} is considered **in progress**
- * until it is passed to {@apilink IRequestLoader.markRequestHandled}. Once you fetch a request, you are
+ * until it is passed to {@apilink IRequestLoader.markRequestAsHandled}. Once you fetch a request, you are
  * obligated to eventually mark it as handled — there is no way to hand a request back to a loader
  * (only an {@apilink IRequestManager} can reclaim requests for a retry). "Handled" therefore means
  * "finished with this request", whether processing succeeded or was abandoned after exhausting retries.
@@ -29,7 +29,7 @@ import type { RequestQueueOperationInfo } from './request_queue.js';
  * - **Termination detection:** {@apilink IRequestLoader.isFinished} only resolves to `true` once nothing is
  *   in progress. Leaving a request unmarked keeps the crawler running indefinitely.
  * - **Bookkeeping:** the handled and pending counts are derived from the set of in-progress requests, so
- *   skipping {@apilink IRequestLoader.markRequestHandled} corrupts {@apilink IRequestLoader.getHandledCount}
+ *   skipping {@apilink IRequestLoader.markRequestAsHandled} corrupts {@apilink IRequestLoader.getHandledCount}
  *   and {@apilink IRequestLoader.getPendingCount}.
  *
  * Concrete implementations such as {@apilink RequestList} or {@apilink SitemapRequestLoader} build on this interface.
@@ -67,7 +67,7 @@ export interface IRequestLoader {
      * Gets the next {@apilink Request} to process, or `null` if there are no more pending requests.
      *
      * The returned request is marked as **in progress** and remains so until it is passed to
-     * {@apilink IRequestLoader.markRequestHandled}. The caller is responsible for eventually marking
+     * {@apilink IRequestLoader.markRequestAsHandled}. The caller is responsible for eventually marking
      * every fetched request as handled; otherwise the loader never considers itself finished and the
      * request may be re-served after a restart. See the request lifecycle contract on {@apilink IRequestLoader}.
      */
@@ -88,7 +88,7 @@ export interface IRequestLoader {
      * signal completion; failing to do so prevents {@apilink IRequestLoader.isFinished} from ever resolving to
      * `true` and skews the handled and pending counts. See the request lifecycle contract on {@apilink IRequestLoader}.
      */
-    markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
+    markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
 
     /**
      * Persists the current state of the loader into the default {@apilink KeyValueStore}.

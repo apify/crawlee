@@ -619,7 +619,7 @@ export class SitemapRequestLoader implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async markRequestHandled(request: Request): Promise<void> {
+    async markRequestAsHandled(request: Request): Promise<void> {
         this.handledUrlCount += 1;
         this.ensureInProgress(request.url);
         this.inProgress.delete(request.url);
