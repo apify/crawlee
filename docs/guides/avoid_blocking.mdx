@@ -68,7 +68,7 @@ By default each session is given a realistic, randomized fingerprint (the host o
 How much of the hint is used depends on the client. The [`impit`](impit-http-client) HTTP client maps the session's `browser` hint to a matching TLS and HTTP impersonation profile,
 so the connection's low-level signature lines up with the headers being sent.
 
-The *same* fingerprint also drives browser crawlers, where it seeds the generated browser fingerprint — so a session keeps a consistent identity whether it is used over HTTP or in a real browser.
+The *same* hint also drives browser crawlers, where it seeds the generated browser fingerprint. The hint only fixes the broad strokes — the browser family, operating system, and device — so a session presents a coherent profile, but it does not make the two backends produce byte-identical fingerprints: `impit` and a real browser will still differ in the finer details (a slightly different user-agent string, for example).
 
 You can pin the fingerprint explicitly through `sessionOptions` when you need a specific profile:
 

@@ -22,7 +22,7 @@ import StandaloneSource from '!!raw-loader!./session_management_standalone.ts';
 
 The main benefits of the session pool are that it filters out blocked or non-working proxies so the crawler does not keep retrying over them, it keeps identity-bound state (cookies, auth tokens, headers) tied to the IP that obtained it, and it spreads requests across IPs to avoid burning a small pool. The selection strategy is configurable — see [Choosing a rotation strategy](#choosing-a-rotation-strategy) below.
 
-Every crawler uses a `SessionPool` by default, so in most cases you do not create one yourself — you just read the `session` from the request handler and let the crawler mark it good or bad for you. You only construct a `SessionPool` explicitly when you want to override its defaults or share one instance across several crawlers.
+All crawler instances now require a `SessionPool`. In most cases you do not create one yourself: you just read the `session` from the request handler and let the crawler mark it good or bad for you. You only construct a `SessionPool` explicitly when you want to override its defaults or share one instance across several crawlers.
 
 Check out the [avoid blocking guide](./avoid-blocking) for the bigger picture on why blocking happens and how fingerprints fit in.
 
@@ -73,7 +73,7 @@ Now let's take a look at the examples of how to use the session pool:
     </TabItem>
 </Tabs>
 
-These are the basics of configuring the session pool. Bear in mind that the pool needs time to find working IPs and build itself up, so you will probably see a number of errors until it stabilizes.
+These are the basics of configuring the session pool. The rest of this guide covers how to control which session is used, what state it carries, and when it is thrown away.
 
 ## How a session is retired
 
@@ -86,13 +86,13 @@ A session stays in the pool and keeps being handed out as long as <ApiLink to="c
 
 You influence this with three methods on the session. <ApiLink to="core/class/Session#markGood">`markGood()`</ApiLink> records a successful use — it increments the usage count and heals the error score a little (by `errorScoreDecrement`, default `0.5`). <ApiLink to="core/class/Session#markBad">`markBad()`</ApiLink> records a failure that *might* be the session's fault and *might* just be bad luck — it raises the error score by one, so a session needs to fail repeatedly before it is dropped. <ApiLink to="core/class/Session#retire">`retire()`</ApiLink> drops the session immediately and permanently; this is what you call when you are certain the identity itself is burnt (for example, a `403` response).
 
-The distinction between `markBad()` and `retire()` matters. Use `markBad()` for transient, external problems such as a timeout or a `5XX` response — the IP is probably fine and a couple of retries should not throw it away. Use `retire()` for problems that prove the session is blocked, where reusing it is pointless. Note that in v4 retirement is terminal: once a session is retired, a later `markGood()` will not bring it back.
+The distinction between `markBad()` and `retire()` matters. Use `markBad()` for transient, external problems such as a timeout or a `5XX` response — the IP is probably fine and a couple of retries should not throw it away. Use `retire()` for problems that prove the session is blocked, where reusing it is pointless. Retirement is terminal: once a session is retired, a later `markGood()` will not bring it back.
 
 When using a crawler you rarely call `markGood()` yourself — the crawler calls it automatically after a successful request handler run. You only need to reach for `markBad()` / `retire()` (or let blocked status codes do it for you, see [below](#letting-blocked-responses-retire-sessions)) when you detect a problem the crawler cannot see, such as a "you are blocked" message inside an otherwise `200` response.
 
 ## Managing cookies
 
-Every session owns a [`tough-cookie`](https://github.com/salesforce/tough-cookie) cookie jar, reachable as `session.cookieJar`. Cookies arriving in `Set-Cookie` response headers are stored in it automatically — this is controlled by the `saveResponseCookies` crawler option (default `true`, renamed from `persistCookiesPerSession` in v4) — so they are replayed on every later request that reuses the same session. Set `saveResponseCookies: false` to keep response cookies out of the session jar.
+Every session owns a [`tough-cookie`](https://github.com/salesforce/tough-cookie) cookie jar, reachable as `session.cookieJar`. Cookies arriving in `Set-Cookie` response headers are stored in it automatically — this is controlled by the `saveResponseCookies` crawler option (default `true`) — so they are replayed on every later request that reuses the same session. Set `saveResponseCookies: false` to keep response cookies out of the session jar.
 
 You can also seed or read cookies yourself. <ApiLink to="core/class/Session#setCookie">`session.setCookie('name=value', url)`</ApiLink> adds a single cookie, <ApiLink to="core/class/Session#getCookieString">`session.getCookieString(url)`</ApiLink> returns the `Cookie` header value the session would send for that URL, and `session.cookieJar` gives you the full jar for anything more involved.
 
@@ -106,13 +106,12 @@ const crawler = new CheerioCrawler({
 
 ### Cookie precedence and overrides
 
-When an HTTP-based crawler (or a direct `sendRequest` call) builds the outgoing `Cookie` header, three sources can contribute. From lowest to highest priority:
+When an HTTP-based crawler (or a direct `sendRequest` call) builds the outgoing `Cookie` header, it starts from a **base jar** and then overlays any cookies set on the request:
 
-1. **Session cookie jar** — the persisted cookies described above; the default base for the header.
-2. **`Cookie` header on the request** (`request.headers.Cookie`) — merged on top of the jar. A cookie set here wins over a jar cookie of the same name, but it is *not* persisted back into the session.
-3. **Explicit `cookieJar` passed to `sendRequest`** — replaces the session jar entirely as the base for that single call.
+- The base jar is the explicit `cookieJar` passed to `sendRequest` if you provide one, otherwise the session's own cookie jar.
+- A `Cookie` header on the request (`request.headers.Cookie`) is merged on top of that base. A cookie set this way wins over a base-jar cookie of the same name, but it is *not* persisted back into the session.
 
-So a `Cookie` request header always beats the session's stored cookie of the same name, and passing an explicit `cookieJar` swaps out the whole jar for one request. To override a single cookie for one request, set it on the request header:
+So a `Cookie` request header always beats the stored cookie of the same name regardless of which jar is the base, while passing an explicit `cookieJar` swaps out the whole base for that single call. To override a single cookie for one request, set it on the request header:
 
 ```js
 import { HttpCrawler } from 'crawlee';
@@ -134,7 +133,7 @@ const crawler = new HttpCrawler({
 });
 ```
 
-Note that in v3 a `Cookie` header passed to `sendRequest` was silently overwritten by the session jar — in v4 user-provided cookies are respected. See the [v4 upgrading guide](../upgrading/upgrading-to-v4) for the full details of the cookie-handling change.
+A `Cookie` header you set on a request is always honored — it is never silently overwritten by the session jar.
 
 ## Choosing a rotation strategy
 
@@ -198,7 +197,7 @@ const sessionPool = new SessionPool({
 
 ## Letting blocked responses retire sessions
 
-You do not have to inspect every response by hand. Crawlers treat a configurable set of HTTP status codes as proof that a session is blocked and retire it automatically, retrying the request with a fresh session. This is controlled by the `blockedStatusCodes` crawler option (default `[401, 403, 429]`) — note that this moved from the session pool options to the crawler in v4.
+You do not have to inspect every response by hand. Crawlers treat a configurable set of HTTP status codes as proof that a session is blocked and retire it automatically, retrying the request with a fresh session. This is controlled by the `blockedStatusCodes` crawler option (default `[401, 403, 429]`).
 
 ```js
 import { CheerioCrawler } from 'crawlee';
@@ -266,7 +265,9 @@ The returned objects must be real `Session` instances — the rest of the crawle
 
 ## Pinning a request to a specific session
 
-Set `request.sessionId` to force a request (or its retries) onto a named session. Combined with `addSession()`, this replaces the removed `tieredProxyUrls` feature: pre-populate the pool with one named session per proxy "tier", start requests on the cheap tier, and bump them to a pricier tier in an `errorHandler`.
+By default the pool decides which session a request gets. Setting `request.sessionId` overrides that and forces the request — and all of its retries — onto the session with that id. You can create a custom named session with <ApiLink to="core/class/SessionPool#addSession">`addSession()`</ApiLink>, giving each its own proxy, cookies, or fingerprint. Because a session bundles a proxy, this is how you bind specific requests to specific proxies.
+
+A common usage pattern is escalating between proxy "tiers": add a cheap session and a premium one, start requests on the cheap session, and reassign `request.sessionId` to the premium one in an `errorHandler` so the retry goes out over the better proxy.
 
 ```ts
 import { BasicCrawler, SessionPool } from 'crawlee';
@@ -287,11 +288,10 @@ const crawler = new BasicCrawler({
         await sendRequest({ url: request.url });
     },
     errorHandler: async ({ request }) => {
-        request.sessionId = 'premium'; // escalate the retry to the premium tier
+        request.sessionId = 'premium'; // escalate the retry to the premium proxy
     },
 });
 
 await crawler.run([{ url: 'https://example.com', sessionId: 'cheap' }]);
 ```
 
-See the [v4 upgrading guide](../upgrading/upgrading-to-v4) for the full migration from `tieredProxyUrls`.
