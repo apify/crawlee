@@ -609,6 +609,8 @@ const queue = await RequestQueue.open();
 queue.setExpectedRequestProcessingTime(600);
 ```
 
+The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage client is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
+
 **Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.

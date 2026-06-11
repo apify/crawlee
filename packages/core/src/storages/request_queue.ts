@@ -96,8 +96,6 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     protected queuePausedForMigration = false;
 
-    protected lastActivity = new Date();
-
     protected inProgressRequestBatchCount = 0;
 
     /**
@@ -173,8 +171,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueueOperationInfo> {
         checkStorageAccess();
 
-        this.lastActivity = new Date();
-
         ow(requestLike, ow.object);
         ow(
             options,
@@ -249,8 +245,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
         checkStorageAccess();
-
-        this.lastActivity = new Date();
 
         ow(
             requestsLike,
@@ -361,7 +355,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
 
-        this.lastActivity = new Date();
         ow(
             requests,
             ow.object
@@ -530,8 +523,6 @@ export class RequestQueue implements IStorage, IRequestManager {
             return null;
         }
 
-        this.lastActivity = new Date();
-
         const requestOptions = await this.client.fetchNextRequest();
         if (!requestOptions) return null;
 
@@ -546,8 +537,6 @@ export class RequestQueue implements IStorage, IRequestManager {
      */
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
-
-        this.lastActivity = new Date();
 
         ow(
             request,
@@ -595,8 +584,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         options: RequestQueueOperationOptions = {},
     ): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
-
-        this.lastActivity = new Date();
 
         ow(
             request,
@@ -685,11 +672,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.client.setExpectedRequestProcessingTime?.(secs);
     }
 
-    protected _reset() {
-        this.lastActivity = new Date();
-        this.requestCache.clear();
-    }
-
     /**
      * Caches information about request to beware of unneeded addRequest() calls.
      */
@@ -729,7 +711,6 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
         this.requestCache.clear();
-        this.lastActivity = new Date();
         this.inProgressRequestBatchCount = 0;
     }
 
