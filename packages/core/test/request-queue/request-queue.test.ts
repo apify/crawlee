@@ -41,25 +41,26 @@ describe('RequestQueue#fetchNextRequest delegates to the client', () => {
     });
 });
 
-describe('RequestQueue#isEmpty and #isFinished account for in-progress requests', () => {
+describe('RequestQueue#isEmpty and #isFinished treat in-progress requests differently', () => {
     let queue: RequestQueue;
 
     beforeAll(async () => {
         queue = await makeQueue('is-empty-vs-is-finished', 1);
     });
 
-    test('a fetched (in-progress) request keeps the queue non-empty and unfinished', async () => {
+    test('a fetched (in-progress) request leaves the queue empty but not finished', async () => {
         const request = await queue.fetchNextRequest();
         expect(request).not.toBe(null);
 
-        // The fetched request is in progress (locked), not handled. It still counts as work in the
-        // queue, so the queue is neither empty nor finished — this is what prevents a crawler from
-        // finishing while a request is still being processed.
-        expect(await queue.isEmpty()).toBe(false);
+        // The fetched request is in progress (locked), not handled. There is nothing left to fetch, so
+        // the queue is empty (`isEmpty` is the "would fetchNextRequest return null" check). It is not
+        // finished though — the in-progress request might still be reclaimed — and that is what prevents
+        // a crawler from shutting down while a request is still being processed.
+        expect(await queue.isEmpty()).toBe(true);
         expect(await queue.isFinished()).toBe(false);
     });
 
-    test('handling the in-progress request empties and finishes the queue', async () => {
+    test('handling the in-progress request finishes the queue', async () => {
         const request = await queue.getRequest('0');
         await queue.markRequestHandled(request!);
 

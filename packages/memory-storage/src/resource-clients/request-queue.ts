@@ -452,11 +452,23 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     async isEmpty(): Promise<boolean> {
         this.updateTimestamps(false);
 
-        // The queue is empty only when there is nothing left to fetch AND nothing currently locked
+        // "Empty" means there is nothing left to fetch right now — i.e. the next `fetchNextRequest`
+        // would return `null`. Requests that are currently locked (in progress) are intentionally NOT
+        // counted here: they are not fetchable, so the queue is empty from a consumer's point of view.
+        // Whether those in-progress requests mean crawling is not yet done is a separate question,
+        // answered by `isFinished`.
+        const { items } = await this.listPendingHead(1);
+        return items.length === 0;
+    }
+
+    async isFinished(): Promise<boolean> {
+        this.updateTimestamps(false);
+
+        // The queue is finished only when there is nothing left to fetch AND nothing currently locked
         // (in progress) by any consumer. Counting locked requests is what allows a crawler to keep
         // waiting while another consumer (possibly another process sharing this on-disk queue) still
         // holds the last requests, instead of finishing prematurely. This mirrors the Apify platform
-        // shared client, whose `isEmpty` also accounts for `queueHasLockedRequests`.
+        // shared client's `queueHasLockedRequests` signal.
         const { items, hasLockedRequests } = await this.listPendingHead(1);
         return items.length === 0 && !hasLockedRequests;
     }

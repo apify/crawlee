@@ -183,21 +183,25 @@ describe('RequestQueue remote', () => {
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5', '/6']);
     });
 
-    test('isEmpty() accounts for both pending and in-progress requests', async () => {
+    test('isEmpty() reflects fetchable requests while isFinished() accounts for in-progress ones', async () => {
         const queue = await createRequestQueue();
 
         await queue.addRequest({ url: 'http://example.com/a' });
-        // There is a pending request, so the queue is not empty.
+        // There is a pending request, so the queue is neither empty nor finished.
         expect(await queue.isEmpty()).toBe(false);
+        expect(await queue.isFinished()).toBe(false);
 
         const fetched = await queue.fetchNextRequest();
-        // The request is now in progress (locked), not handled — it still counts, so the queue is not
-        // empty. This keeps a crawler from finishing while the request is still being processed.
-        expect(await queue.isEmpty()).toBe(false);
+        // The request is now in progress (locked), not handled. There is nothing left to fetch, so the
+        // queue is empty — but it is not finished, since the in-progress request might still be
+        // reclaimed. That "not finished" signal keeps a crawler running while the request is processed.
+        expect(await queue.isEmpty()).toBe(true);
+        expect(await queue.isFinished()).toBe(false);
 
         await queue.markRequestHandled(fetched!);
-        // Now the request is handled and gone, so the queue is finally empty.
+        // Now the request is handled and gone, so the queue is both empty and finished.
         expect(await queue.isEmpty()).toBe(true);
+        expect(await queue.isFinished()).toBe(true);
     });
 
     test('should accept plain object in addRequest()', async () => {

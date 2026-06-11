@@ -19,9 +19,11 @@ describe('RequestQueue request lock duration', () => {
         const fetched = await queue.fetchNextRequest();
         expect(fetched).not.toBeNull();
 
-        // While the lock is held, the request must not be handed out again.
+        // While the lock is held, the request must not be handed out again. There is nothing fetchable,
+        // so the queue is empty — but the locked request means it is not yet finished.
         expect(await queue.fetchNextRequest()).toBeNull();
-        expect(await queue.isEmpty()).toBe(false);
+        expect(await queue.isEmpty()).toBe(true);
+        expect(await queue.isFinished()).toBe(false);
 
         // Just before the default lock expires, it is still locked.
         vitest.advanceTimersByTime(3 * 60 * 1000 - 1000);
@@ -74,6 +76,7 @@ describe('RequestQueue request lock duration', () => {
         expect(metadata.handledRequestCount).toBe(1);
         expect(metadata.pendingRequestCount).toBe(0);
         expect(await queue.isEmpty()).toBe(true);
+        expect(await queue.isFinished()).toBe(true);
         expect(await queue.fetchNextRequest()).toBeNull();
     });
 

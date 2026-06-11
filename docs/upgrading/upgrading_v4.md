@@ -560,7 +560,7 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 
 **`RequestQueueClient`:**
 
-The request queue client was reduced from 12 methods to 9. The distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) and the queue-head/consistency bookkeeping that used to live in the `RequestQueue` frontend have been removed from the interface; coordinating multiple clients accessing the same queue (e.g. request locking on the Apify platform) is now an internal concern of the client implementation.
+The request queue client was reduced from 12 methods to 10. The distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) and the queue-head/consistency bookkeeping that used to live in the `RequestQueue` frontend have been removed from the interface; coordinating multiple clients accessing the same queue (e.g. request locking on the Apify platform) is now an internal concern of the client implementation.
 
 | Before (v3) | After (v4) |
 |---|---|
@@ -573,11 +573,15 @@ The request queue client was reduced from 12 methods to 9. The distributed-locki
 | `prolongRequestLock(id, opts)` | Removed |
 | `deleteRequestLock(id, opts?)` | Removed |
 | `deleteRequest(id)` | Removed |
-| _(n/a)_ | `isEmpty()` (new — `true` when no pending or in-progress requests remain) |
+| _(n/a)_ | `isEmpty()` (new — `true` when no pending requests are left to fetch) |
+| _(n/a)_ | `isFinished()` (new — `true` when no pending **and** no in-progress requests remain) |
 
 The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
 
-`RequestQueueClient.isEmpty()` reports whether there is any outstanding work left in the queue — it returns `true` only when there are no pending requests **and** no requests currently in progress (fetched but not yet handled or reclaimed, including those locked by other clients sharing the queue).
+`RequestQueueClient.isEmpty()` and `RequestQueueClient.isFinished()` answer two different questions:
+
+- `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `null`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
+- `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
 
 The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage client — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
 

@@ -632,13 +632,13 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
-     * Resolves to `true` if there is no outstanding work left in the queue — i.e. there are no pending
-     * requests to fetch **and** no requests currently in progress (fetched but not yet handled or
-     * reclaimed, including requests locked by other clients sharing the same queue). Otherwise it
-     * resolves to `false`.
+     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest} would return
+     * `null`, i.e. there are no pending requests to fetch right now. Otherwise it resolves to `false`.
      *
-     * Note that an empty queue does not by itself mean crawling is finished, as background tasks may
-     * still be adding more requests. To check whether all activity in the queue has finished, use
+     * Note that even if the queue is empty, there might be some requests currently being processed
+     * (fetched but not yet handled or reclaimed). An empty queue therefore does not mean crawling is
+     * finished — those in-progress requests may still be reclaimed, and background tasks may still be
+     * adding more requests. To check whether all activity in the queue has finished, use
      * {@apilink RequestQueue.isFinished}.
      */
     async isEmpty(): Promise<boolean> {
@@ -648,10 +648,12 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
-     * Resolves to `true` if all requests were already handled and there are no more left.
-     * Due to the nature of distributed storage used by the queue,
-     * the function may occasionally return a false negative,
-     * but it shall never return a false positive.
+     * Resolves to `true` if all requests were already handled and there are no more left — including no
+     * requests currently in progress (fetched but not yet handled or reclaimed, including requests
+     * locked by other clients sharing the same queue) and no background add operations still in flight.
+     *
+     * Due to the nature of distributed storage used by the queue, the function may occasionally return
+     * a false negative, but it shall never return a false positive.
      */
     async isFinished(): Promise<boolean> {
         checkStorageAccess();
@@ -661,7 +663,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             return false;
         }
 
-        return this.client.isEmpty();
+        return this.client.isFinished();
     }
 
     /**

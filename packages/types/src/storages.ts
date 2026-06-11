@@ -288,16 +288,27 @@ export interface RequestQueueClient {
     reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
 
     /**
-     * Resolves to `true` if there is no outstanding work left in the queue at all — i.e. there are no
-     * pending requests to fetch **and** no requests currently in progress (fetched but not yet handled
-     * or reclaimed, including requests locked by other clients sharing the same queue).
+     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `null` — i.e. there
+     * are no pending requests to fetch right now.
      *
-     * This is stronger than "the next {@link fetchNextRequest} would return `null`": a queue whose only
-     * remaining requests are in progress is **not** empty. This method is therefore a building block for
-     * determining whether crawling is finished — though background tasks may still add more requests, so
-     * an empty queue does not by itself guarantee completion.
+     * Requests that are currently in progress (fetched but not yet handled or reclaimed, including
+     * requests locked by other clients sharing the same queue) are **not** counted. An empty queue
+     * therefore does not mean crawling is finished — those in-progress requests may still be reclaimed,
+     * and background tasks may still add more requests. Use {@link isFinished} to detect completion.
      */
     isEmpty(): Promise<boolean>;
+
+    /**
+     * Resolves to `true` only when there is no outstanding work left in the queue at all — i.e. there
+     * are no pending requests to fetch **and** no requests currently in progress (fetched but not yet
+     * handled or reclaimed, including requests locked by other clients sharing the same queue).
+     *
+     * This is the strong counterpart of {@link isEmpty}: a queue whose only remaining requests are in
+     * progress is empty (nothing to fetch) but not finished (that work might still be reclaimed). It is
+     * the building block for determining whether crawling is done — though a frontend may still need to
+     * account for its own pending background add operations on top of this.
+     */
+    isFinished(): Promise<boolean>;
 
     /**
      * Tells the client how long (in seconds) a consumer expects to hold a request fetched via
