@@ -55,7 +55,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS, sleep } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
@@ -1082,13 +1082,20 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             periodicLogger.stop();
-            // Don't await, we don't want to block the execution
-            void this.setStatusMessage(
-                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                    this.stats.state.requestsFinished
-                } succeeded, ${this.stats.state.requestsFailed} failed.`,
-                { isStatusMessageTerminal: true, level: 'INFO' },
-            );
+            // We don't want to block the execution waiting for the whole request to finish, but we do need to give
+            // the event loop a single tick to flush the terminal status message to the platform. Otherwise it races
+            // with the subsequent `Actor.exit()` -> `process.exit()` and is often dropped, leaving the run with the
+            // platform's generic default terminal message instead of this one. Racing against `sleep(1)` mirrors the
+            // bounded wait used by `Actor.exit()` in the Apify SDK.
+            await Promise.race([
+                this.setStatusMessage(
+                    `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
+                        this.stats.state.requestsFinished
+                    } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                    { isStatusMessageTerminal: true, level: 'INFO' },
+                ),
+                sleep(1),
+            ]);
 
             this.running = false;
             this.hasFinishedBefore = true;
