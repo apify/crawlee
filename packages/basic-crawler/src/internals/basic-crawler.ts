@@ -1082,11 +1082,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             periodicLogger.stop();
-            // We don't want to block the execution waiting for the whole request to finish, but we do need to give
-            // the event loop a single tick to flush the terminal status message to the platform. Otherwise it races
-            // with the subsequent `Actor.exit()` -> `process.exit()` and is often dropped, leaving the run with the
-            // platform's generic default terminal message instead of this one. Racing against `sleep(1)` mirrors the
-            // bounded wait used by `Actor.exit()` in the Apify SDK.
+            // We do need to give the event loop a single tick to flush the HTTP
+            // otherwise, the process can finish right after
             await Promise.race([
                 this.setStatusMessage(
                     `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
