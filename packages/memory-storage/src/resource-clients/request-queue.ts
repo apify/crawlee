@@ -361,11 +361,15 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const existingEntry = this.requests.get(id);
         const existingRequest = await existingEntry?.get();
 
-        // The request must be in progress (locked) to be marked as handled.
-        if (!existingRequest || !isRequestLocked(existingRequest.orderNo, Date.now())) {
+        // The request must exist to be marked as handled. We intentionally do NOT require it to still
+        // be locked: a consumer whose processing outlived the lock (slow handler, GC/event-loop pause,
+        // a low `setExpectedRequestProcessingTime`) must still be able to mark its request handled,
+        // otherwise the request would be handed out again forever and the queue would never finish.
+        if (!existingRequest) {
             return null;
         }
 
+        // A handled request has `orderNo === null`. Marking it again is an idempotent no-op.
         const wasAlreadyHandled = existingRequest.orderNo === null;
 
         const handledAt = request.handledAt ?? new Date().toISOString();
@@ -409,8 +413,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const existingEntry = this.requests.get(id);
         const existingRequest = await existingEntry?.get();
 
-        // The request must be in progress (locked) to be reclaimed.
-        if (!existingRequest || !isRequestLocked(existingRequest.orderNo, Date.now())) {
+        // The request must exist and not already be handled to be reclaimed. As with
+        // `markRequestAsHandled`, we do NOT require it to still be locked — a consumer that failed
+        // after its lock expired must still be able to return the request to the queue (e.g. to honor
+        // a `forefront` reorder), rather than have the reclaim silently dropped.
+        if (!existingRequest || existingRequest.orderNo === null) {
             return null;
         }
 
