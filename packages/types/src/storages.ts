@@ -298,6 +298,17 @@ export interface RequestQueueClient {
      * an empty queue does not by itself guarantee completion.
      */
     isEmpty(): Promise<boolean>;
+
+    /**
+     * Tells the client how long (in seconds) a consumer expects to hold a request fetched via
+     * {@link fetchNextRequest} before marking it handled or reclaiming it — typically the consumer's
+     * request-processing timeout plus some padding.
+     *
+     * A client that coordinates consumers via locking uses this to keep the request reserved for at least
+     * this long, so that a long-running consumer does not have its request handed out again while it is
+     * still being processed. Clients that do not lock may ignore it.
+     */
+    setExpectedRequestProcessingTime?(secs: number): void;
 }
 
 export interface SetStatusMessageOptions {

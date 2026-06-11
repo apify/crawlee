@@ -581,6 +581,17 @@ The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks
 
 The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage client — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
 
+The `RequestQueue.requestLockSecs` property has been removed. Because request locking is now internal to the storage client, the lock duration is no longer configured on the queue. When you run a crawler, it automatically tells the queue how long it expects to hold a request (based on `requestHandlerTimeoutMillis`), so a long-running request handler will not have its request handed out a second time — you usually don't need to configure anything.
+
+If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTime(secs)` on the queue to raise it:
+
+```ts
+import { RequestQueue } from 'crawlee';
+
+const queue = await RequestQueue.open();
+queue.setExpectedRequestProcessingTime(600);
+```
+
 **Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.

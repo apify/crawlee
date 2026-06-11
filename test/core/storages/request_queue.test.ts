@@ -304,6 +304,26 @@ describe('RequestQueue remote', () => {
         r3.maxRetries = 2;
         expect(r3.userData.__crawlee).toEqual({ maxRetries: 2 });
     });
+
+    describe('setExpectedRequestProcessingTime', () => {
+        test('forwards the value to the client, but only ever raises it', async () => {
+            const queue = await createRequestQueue();
+            const spy = vitest.spyOn(queue.client, 'setExpectedRequestProcessingTime');
+
+            // First hint is forwarded.
+            queue.setExpectedRequestProcessingTime(60);
+            expect(spy).toHaveBeenLastCalledWith(60);
+
+            // A larger hint is forwarded.
+            queue.setExpectedRequestProcessingTime(120);
+            expect(spy).toHaveBeenLastCalledWith(120);
+
+            // A smaller (or equal) hint must not shorten the reservation, so it is not forwarded.
+            queue.setExpectedRequestProcessingTime(30);
+            queue.setExpectedRequestProcessingTime(120);
+            expect(spy).toHaveBeenCalledTimes(2);
+        });
+    });
 });
 
 describe('RequestQueue with requestsFromUrl', () => {

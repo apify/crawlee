@@ -90,12 +90,6 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     log: CrawleeLogger;
     internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
-    /**
-     * @deprecated Request locking is now an internal concern of the storage client and this value
-     * has no effect on the slim {@apilink RequestQueueClient} interface. The property is kept so that
-     * existing callers (e.g. `BasicCrawler`) continue to compile.
-     */
-    requestLockSecs = 3 * 60;
 
     private isInitialized = false;
 
@@ -106,6 +100,13 @@ export class RequestQueue implements IStorage, IRequestManager {
     protected lastActivity = new Date();
 
     protected inProgressRequestBatchCount = 0;
+
+    /**
+     * The largest expected request-processing time (in seconds) seen so far via
+     * {@link setExpectedRequestProcessingTime}. Used to ensure that value is only ever raised, never
+     * lowered, before being forwarded to the storage client.
+     */
+    protected expectedRequestProcessingSecs = 0;
 
     protected httpClient?: BaseHttpClient;
 
@@ -126,9 +127,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.proxyConfiguration = options.proxyConfiguration;
 
         this.requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
-        this.log = serviceLocator
-            .getLogger()
-            .child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
+        this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
 
         this.events.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;
@@ -664,6 +663,25 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         return this.client.isEmpty();
+    }
+
+    /**
+     * Tells the queue how long a consumer expects to hold a fetched request before marking it handled
+     * or reclaiming it (typically the request-handler timeout plus padding), so that a storage client
+     * that reserves requests via locking does not hand the same request out again while it is still
+     * being processed.
+     *
+     * Several consumers may share one queue (and therefore one client) in a single process, so we only
+     * ever raise the reservation duration, never lower it — otherwise a short-lived consumer could cut
+     * short the reservation of a long-lived one and have its in-flight request stolen.
+     */
+    setExpectedRequestProcessingTime(secs: number): void {
+        if (secs <= this.expectedRequestProcessingSecs) {
+            return;
+        }
+
+        this.expectedRequestProcessingSecs = secs;
+        this.client.setExpectedRequestProcessingTime?.(secs);
     }
 
     protected _reset() {

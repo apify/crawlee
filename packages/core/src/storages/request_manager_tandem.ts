@@ -26,6 +26,12 @@ export class RequestManagerTandem implements IRequestManager {
     private requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
 
     /**
+     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTime}.
+     * Remembered so it can be applied to the writable manager once it is lazily resolved.
+     */
+    private expectedRequestProcessingSecs?: number;
+
+    /**
      * @param requestLoader The read-only loader to read requests from first.
      * @param requestManager The writable manager to transfer requests into and enqueue new ones. May be passed as a
      *  factory function so that the tandem can be constructed synchronously and the manager opened lazily on first use
@@ -48,6 +54,11 @@ export class RequestManagerTandem implements IRequestManager {
         if (this.resolvedRequestManager === undefined) {
             this.requestManagerPromise ??= Promise.resolve(this.requestManagerFactory());
             this.resolvedRequestManager = await this.requestManagerPromise;
+
+            // Apply any hint received before the manager was resolved.
+            if (this.expectedRequestProcessingSecs !== undefined) {
+                this.resolvedRequestManager.setExpectedRequestProcessingTime?.(this.expectedRequestProcessingSecs);
+            }
         }
         return this.resolvedRequestManager;
     }
@@ -219,5 +230,15 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async purge(): Promise<void> {
         await (await this.getRequestManager()).purge?.();
+    }
+
+    /**
+     * Forwards the hint to the writable request manager — that is where requests are fetched from and
+     * reserved. The manager is opened lazily, so the value is remembered and applied once it resolves.
+     * @inheritdoc
+     */
+    setExpectedRequestProcessingTime(secs: number): void {
+        this.expectedRequestProcessingSecs = secs;
+        this.resolvedRequestManager?.setExpectedRequestProcessingTime?.(secs);
     }
 }

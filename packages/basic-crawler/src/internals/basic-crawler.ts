@@ -869,8 +869,8 @@ export class BasicCrawler<
                 tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
 
             // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
-            if (this.requestManager instanceof RequestQueue) {
-                this.applyRequestQueueTimeouts(this.requestManager);
+            if (this.requestManager !== undefined) {
+                this.applyRequestManagerTimeouts(this.requestManager);
             }
 
             this.maxRequestRetries = maxRequestRetries;
@@ -1457,25 +1457,30 @@ export class BasicCrawler<
     }
 
     /**
-     * Opens the default {@apilink RequestQueue}, applies the crawler's internal timeouts and records it as the
+     * Opens the default {@apilink RequestQueue}, applies the crawler's timeouts to it and records it as the
      * crawler-owned manager (so it gets purged between repeated `run()` calls).
      * @private
      */
     private async openOwnedRequestQueue(): Promise<IRequestManager> {
         const requestQueue = await this._getRequestQueue();
-        this.applyRequestQueueTimeouts(requestQueue);
+        this.applyRequestManagerTimeouts(requestQueue);
         this.ownedRequestManager = requestQueue;
         return requestQueue;
     }
 
     /**
-     * Overrides the default internal timeouts of a {@apilink RequestQueue} to respect `requestHandlerTimeoutMillis`.
+     * Tells a request manager how long we expect to hold a fetched request, so that one backed by a
+     * locking storage client keeps it reserved for slightly longer than the request handler timeout
+     * (with some padding for overhead), but never for less than a minute. This prevents a long-running
+     * request from being handed out a second time while it is still being processed — and it works
+     * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
-    private applyRequestQueueTimeouts(requestQueue: RequestQueue): void {
-        requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
-        // for request queue v2, we want to lock requests for slightly longer than the request handler timeout so that
-        // there is some padding for locking-related overhead, but never for less than a minute
-        requestQueue.requestLockSecs = Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60);
+    private applyRequestManagerTimeouts(requestManager: IRequestManager): void {
+        requestManager.setExpectedRequestProcessingTime?.(Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60));
+
+        if (requestManager instanceof RequestQueue) {
+            requestManager.internalTimeoutMillis = this.internalTimeoutMillis;
+        }
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {

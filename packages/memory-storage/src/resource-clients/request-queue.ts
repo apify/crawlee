@@ -58,9 +58,9 @@ export interface InternalRequest {
 
 /**
  * Default time (in seconds) for which a request fetched via {@link RequestQueueClient.fetchNextRequest}
- * stays locked (in progress). The lock is persisted to disk so that other processes sharing the same
- * queue do not fetch the same request, and it expires automatically — this way a crashed consumer does
- * not block its requests forever. Aligns with the historical request queue locking default.
+ * stays locked (in progress) before it becomes available again. Aligns with the historical request queue
+ * locking default. A consumer (e.g. a crawler) can raise this per queue via
+ * {@link RequestQueueClient.setExpectedRequestProcessingTime}.
  */
 const DEFAULT_REQUEST_LOCK_SECS = 3 * 60;
 
@@ -99,12 +99,27 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     private readonly requests = new Map<string, RequestQueueFileSystemEntry | RequestQueueMemoryEntry>();
     private readonly client: MemoryStorage;
 
+    /**
+     * How long (in seconds) a request fetched from this client stays locked (in progress). Defaults to
+     * {@link DEFAULT_REQUEST_LOCK_SECS} and is overridable via {@link setExpectedRequestProcessingTime}.
+     */
+    private lockSecs = DEFAULT_REQUEST_LOCK_SECS;
+
     constructor(options: RequestQueueClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.directoryName = options.directoryName ?? this.name ?? this.id;
         this.requestQueueDirectory = resolve(options.baseStorageDirectory, this.directoryName);
         this.client = options.client;
+    }
+
+    /**
+     * Applies how long {@link fetchNextRequest} locks a request before it becomes available again. The
+     * caller (the `RequestQueue` frontend) owns the policy of what this value should be — this method
+     * just applies it.
+     */
+    setExpectedRequestProcessingTime(secs: number): void {
+        this.lockSecs = secs;
     }
 
     async getMetadata(): Promise<storage.RequestQueueInfo> {
@@ -250,7 +265,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // Lock the request by pushing its `orderNo` beyond the lock expiry, preserving the sign so
             // its original (forefront / normal) position is restored once the lock expires. The lock is
             // persisted so other processes sharing this queue will not fetch the same request.
-            const lockExpiresAt = Date.now() + DEFAULT_REQUEST_LOCK_SECS * 1000;
+            const lockExpiresAt = Date.now() + this.lockSecs * 1000;
             head.orderNo = lockExpiresAt * (head.orderNo! > 0 ? 1 : -1);
             await this.requests.get(head.id)!.update(head);
 
