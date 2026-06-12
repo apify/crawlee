@@ -83,7 +83,7 @@
         }
     },
     "devDependencies": {
-        "@browserbasehq/stagehand": "3.0.7",
+        "@browserbasehq/stagehand": "3.5.0",
         "playwright": "^1.60.0",
         "zod": "^4.3.5"
     }
