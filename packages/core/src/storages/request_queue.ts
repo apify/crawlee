@@ -712,6 +712,11 @@ export class RequestQueue implements IStorage, IRequestManager {
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
         this.requestCache.clear();
         this.inProgressRequestBatchCount = 0;
+
+        // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
+        // in `setExpectedRequestProcessingTime` would let a value raised in an earlier run leak into a
+        // later one and silently swallow a lower hint (the queue is meant to be reusable across runs).
+        this.expectedRequestProcessingSecs = 0;
     }
 
     /**

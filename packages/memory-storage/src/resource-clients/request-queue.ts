@@ -160,6 +160,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             this.handledRequestCount = 0;
             this.pendingRequestCount = 0;
 
+            // Reset the lock duration back to the default so a value raised via
+            // `setExpectedRequestProcessingTime` in an earlier run does not leak into a later one
+            this.lockSecs = DEFAULT_REQUEST_LOCK_SECS;
+
             // Remove request files from disk but keep the directory
             if (this.client.persistStorage) {
                 const { readdir } = await import('node:fs/promises');
