@@ -172,20 +172,29 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     /**
      * Scans the queue and returns the pending head — requests that are neither handled nor currently
-     * locked (in progress) — ordered by `orderNo`, deduplicated — together with a flag telling whether
-     * any unhandled-but-locked request was skipped along the way.
+     * locked (in progress) — ordered by `orderNo`, deduplicated.
      *
-     * `hasLockedRequests` mirrors the Apify platform shared client's `queueHasLockedRequests` signal:
-     * it lets {@link isEmpty} distinguish "no work left at all" from "work remains, but it is currently
-     * locked by some consumer (possibly another process)". Without it, a consumer would consider the
-     * queue empty and let the crawler finish while another consumer still holds the last requests.
+     * When `detectLockedRequests` is set, the result also carries a `hasLockedRequests` flag telling
+     * whether any unhandled-but-locked request was skipped along the way. This mirrors the Apify
+     * platform shared client's `queueHasLockedRequests` signal: it lets {@link isFinished} distinguish
+     * "no work left at all" from "work remains, but it is currently locked by some consumer (possibly
+     * another process)". Without it, a consumer would consider the queue finished and let the crawler
+     * shut down while another consumer still holds the last requests.
+     *
+     * Computing the flag is expensive: because a lock may sit anywhere in the queue, it forces a scan
+     * of every pending entry even when only `limit` items are wanted. Callers that only need the head
+     * (e.g. {@link fetchNextRequest}, {@link isEmpty}) leave it off so the scan can stop as soon as the
+     * page is filled, keeping those calls O(head) instead of O(N).
      *
      * Lock state lives in the persisted `orderNo` (see {@link isRequestLocked}), so that processes
      * sharing the same on-disk queue observe each other's locks. We therefore re-read entries from
      * storage to obtain fresh lock state, except for entries we can cheaply rule out as permanently
      * handled via their cached `orderNo === null`.
      */
-    private async listPendingHead(limit: number): Promise<{ items: InternalRequest[]; hasLockedRequests: boolean }> {
+    private async listPendingHead(
+        limit: number,
+        detectLockedRequests = false,
+    ): Promise<{ items: InternalRequest[]; hasLockedRequests?: boolean }> {
         const now = Date.now();
         const items: InternalRequest[] = [];
         let hasLockedRequests = false;
@@ -196,9 +205,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const handledForefrontIds = new Set<string>();
 
         for (const requestId of this.requestKeyIterator()) {
-            // We can stop early only once we have filled the requested page AND we already know the
-            // queue contains locked requests — otherwise we must keep scanning to detect them.
-            if (items.length >= limit && hasLockedRequests) {
+            // Once the requested page is filled we can stop — unless the caller asked us to detect locked
+            // requests and we have not yet seen one, in which case we must keep scanning to find them.
+            if (items.length >= limit && (!detectLockedRequests || hasLockedRequests)) {
                 break;
             }
 
@@ -245,7 +254,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
-        return { items: items.sort((a, b) => a.orderNo! - b.orderNo!), hasLockedRequests };
+        return {
+            items: items.sort((a, b) => a.orderNo! - b.orderNo!),
+            hasLockedRequests: detectLockedRequests ? hasLockedRequests : undefined,
+        };
     }
 
     async fetchNextRequest(): Promise<storage.RequestOptions | null> {
@@ -469,7 +481,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         // waiting while another consumer (possibly another process sharing this on-disk queue) still
         // holds the last requests, instead of finishing prematurely. This mirrors the Apify platform
         // shared client's `queueHasLockedRequests` signal.
-        const { items, hasLockedRequests } = await this.listPendingHead(1);
+        //
+        // Detecting locked requests requires a full scan, hence the `detectLockedRequests` flag — unlike
+        // `fetchNextRequest`/`isEmpty`, which only need the head and can stop early.
+        const { items, hasLockedRequests } = await this.listPendingHead(1, true);
         return items.length === 0 && !hasLockedRequests;
     }
 
