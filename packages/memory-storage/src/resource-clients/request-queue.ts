@@ -60,7 +60,7 @@ export interface InternalRequest {
  * Default time (in seconds) for which a request fetched via {@link RequestQueueClient.fetchNextRequest}
  * stays locked (in progress) before it becomes available again. Aligns with the historical request queue
  * locking default. A consumer (e.g. a crawler) can raise this per queue via
- * {@link RequestQueueClient.setExpectedRequestProcessingTime}.
+ * {@link RequestQueueClient.setExpectedRequestProcessingTimeSecs}.
  */
 const DEFAULT_REQUEST_LOCK_SECS = 3 * 60;
 
@@ -109,7 +109,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     /**
      * How long (in seconds) a request fetched from this client stays locked (in progress). Defaults to
-     * {@link DEFAULT_REQUEST_LOCK_SECS} and is overridable via {@link setExpectedRequestProcessingTime}.
+     * {@link DEFAULT_REQUEST_LOCK_SECS} and is overridable via {@link setExpectedRequestProcessingTimeSecs}.
      */
     private lockSecs = DEFAULT_REQUEST_LOCK_SECS;
 
@@ -126,7 +126,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
      * caller (the `RequestQueue` frontend) owns the policy of what this value should be — this method
      * just applies it.
      */
-    setExpectedRequestProcessingTime(secs: number): void {
+    setExpectedRequestProcessingTimeSecs(secs: number): void {
         this.lockSecs = secs;
     }
 
@@ -161,7 +161,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             this.pendingRequestCount = 0;
 
             // Reset the lock duration back to the default so a value raised via
-            // `setExpectedRequestProcessingTime` in an earlier run does not leak into a later one
+            // `setExpectedRequestProcessingTimeSecs` in an earlier run does not leak into a later one
             this.lockSecs = DEFAULT_REQUEST_LOCK_SECS;
 
             // Remove request files from disk but keep the directory
@@ -411,7 +411,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
             // The request must exist to be marked as handled. We intentionally do NOT require it to still
             // be locked: a consumer whose processing outlived the lock (slow handler, GC/event-loop pause,
-            // a low `setExpectedRequestProcessingTime`) must still be able to mark its request handled,
+            // a low `setExpectedRequestProcessingTimeSecs`) must still be able to mark its request handled,
             // otherwise the request would be handed out again forever and the queue would never finish.
             if (!existingRequest) {
                 return null;

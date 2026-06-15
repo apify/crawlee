@@ -36,12 +36,12 @@ describe('RequestQueue request lock duration', () => {
         expect(refetched!.uniqueKey).toBe('1');
     });
 
-    test('setExpectedRequestProcessingTime changes how long a fetched request stays locked', async () => {
+    test('setExpectedRequestProcessingTimeSecs changes how long a fetched request stays locked', async () => {
         const storage = new MemoryStorage({ persistStorage: false });
         const queue: RequestQueueClient = await storage.createRequestQueueClient({ name: 'set-lock-secs' });
 
         // Raise the lock well above the 3-minute default — expect requests to stay locked for 10 minutes.
-        queue.setExpectedRequestProcessingTime!(600);
+        queue.setExpectedRequestProcessingTimeSecs!(600);
 
         await queue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
         expect(await queue.fetchNextRequest()).not.toBeNull();

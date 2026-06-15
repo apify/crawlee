@@ -270,30 +270,30 @@ describe('RequestManagerTandem', () => {
         expect(persistSpy).toHaveBeenCalledTimes(1);
     });
 
-    test('setExpectedRequestProcessingTime forwards to an already-resolved manager', async () => {
+    test('setExpectedRequestProcessingTimeSecs forwards to an already-resolved manager', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTime');
+        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Resolve the manager first (the queue was passed eagerly, but make the dependency explicit).
         await tandem.fetchNextRequest();
 
-        tandem.setExpectedRequestProcessingTime(600);
+        tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).toHaveBeenCalledWith(600);
     });
 
-    test('setExpectedRequestProcessingTime applies a hint set before the manager is lazily resolved', async () => {
+    test('setExpectedRequestProcessingTimeSecs applies a hint set before the manager is lazily resolved', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTime');
+        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
 
         // Provide the manager lazily so it is not resolved at construction time.
         const tandem = new RequestManagerTandem(requestList, () => requestQueue);
 
         // Hint arrives before anything resolves the manager — nothing forwarded yet.
-        tandem.setExpectedRequestProcessingTime(600);
+        tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).not.toHaveBeenCalled();
 
         // Resolving the manager (via any operation) applies the remembered hint.

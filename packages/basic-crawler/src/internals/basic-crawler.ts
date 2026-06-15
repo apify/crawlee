@@ -1450,7 +1450,9 @@ export class BasicCrawler<
      * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
     private applyRequestManagerTimeouts(requestManager: IRequestManager): void {
-        requestManager.setExpectedRequestProcessingTime?.(Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60));
+        requestManager.setExpectedRequestProcessingTimeSecs?.(
+            Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60),
+        );
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {

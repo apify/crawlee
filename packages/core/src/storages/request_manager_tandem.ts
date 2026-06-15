@@ -26,7 +26,7 @@ export class RequestManagerTandem implements IRequestManager {
     private requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
 
     /**
-     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTime}.
+     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTimeSecs}.
      * Remembered so it can be applied to the writable manager once it is lazily resolved.
      */
     private expectedRequestProcessingSecs?: number;
@@ -57,7 +57,7 @@ export class RequestManagerTandem implements IRequestManager {
 
             // Apply any hint received before the manager was resolved.
             if (this.expectedRequestProcessingSecs !== undefined) {
-                this.resolvedRequestManager.setExpectedRequestProcessingTime?.(this.expectedRequestProcessingSecs);
+                this.resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(this.expectedRequestProcessingSecs);
             }
         }
         return this.resolvedRequestManager;
@@ -237,8 +237,8 @@ export class RequestManagerTandem implements IRequestManager {
      * reserved. The manager is opened lazily, so the value is remembered and applied once it resolves.
      * @inheritdoc
      */
-    setExpectedRequestProcessingTime(secs: number): void {
+    setExpectedRequestProcessingTimeSecs(secs: number): void {
         this.expectedRequestProcessingSecs = secs;
-        this.resolvedRequestManager?.setExpectedRequestProcessingTime?.(secs);
+        this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 }

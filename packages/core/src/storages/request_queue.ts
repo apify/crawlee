@@ -100,7 +100,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
-     * {@link setExpectedRequestProcessingTime}. Used to ensure that value is only ever raised, never
+     * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
      * lowered, before being forwarded to the storage client.
      */
     protected expectedRequestProcessingSecs = 0;
@@ -663,13 +663,13 @@ export class RequestQueue implements IStorage, IRequestManager {
      * ever raise the reservation duration, never lower it — otherwise a short-lived consumer could cut
      * short the reservation of a long-lived one and have its in-flight request stolen.
      */
-    setExpectedRequestProcessingTime(secs: number): void {
+    setExpectedRequestProcessingTimeSecs(secs: number): void {
         if (secs <= this.expectedRequestProcessingSecs) {
             return;
         }
 
         this.expectedRequestProcessingSecs = secs;
-        this.client.setExpectedRequestProcessingTime?.(secs);
+        this.client.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 
     /**
@@ -714,7 +714,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
-        // in `setExpectedRequestProcessingTime` would let a value raised in an earlier run leak into a
+        // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a
         // later one and silently swallow a lower hint (the queue is meant to be reusable across runs).
         this.expectedRequestProcessingSecs = 0;
     }
