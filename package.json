@@ -119,7 +119,7 @@
         "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"
     },
     "resolutions": {
-        "tmp": "^0.2.6",
+        "tmp": "^0.2.7",
         "@puppeteer/browsers": "^3.0.4"
     },
     "packageManager": "yarn@4.10.3",
