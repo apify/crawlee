@@ -234,7 +234,7 @@ describe('SitemapRequestLoader', () => {
         const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`] });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
 
         expect(await list.getHandledCount()).toBe(5);
@@ -246,7 +246,7 @@ describe('SitemapRequestLoader', () => {
         const urls = new Set<string>();
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
             urls.add(request.url);
         }
 
@@ -266,7 +266,7 @@ describe('SitemapRequestLoader', () => {
         const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
 
             if ((await list.getHandledCount()) >= 2) {
                 await list.teardown();
@@ -285,7 +285,7 @@ describe('SitemapRequestLoader', () => {
         });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
 
         expect(await list.getHandledCount()).toBe(4);
@@ -298,7 +298,7 @@ describe('SitemapRequestLoader', () => {
         });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
 
         expect(await list.getHandledCount()).toBe(2);
@@ -311,7 +311,7 @@ describe('SitemapRequestLoader', () => {
         });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
 
         expect(await list.getHandledCount()).toBe(3);
@@ -329,7 +329,7 @@ describe('SitemapRequestLoader', () => {
         while (!(await list.isEmpty())) {
             const request = await list.fetchNextRequest();
             firstBatch.push(request!);
-            await list.markRequestHandled(request!);
+            await list.markRequestAsHandled(request!);
         }
 
         expect(firstBatch).toHaveLength(2);
@@ -343,7 +343,7 @@ describe('SitemapRequestLoader', () => {
         while (!(await list.isEmpty())) {
             const request = await list.fetchNextRequest();
             secondBatch.push(request!);
-            await list.markRequestHandled(request!);
+            await list.markRequestAsHandled(request!);
         }
 
         expect(secondBatch).toHaveLength(5);
@@ -356,7 +356,7 @@ describe('SitemapRequestLoader', () => {
         const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
 
         await expect(list.isFinished()).resolves.toBe(true);
@@ -375,7 +375,7 @@ describe('SitemapRequestLoader', () => {
         controller.abort();
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
 
         await expect(list.isFinished()).resolves.toBe(true);
@@ -390,7 +390,7 @@ describe('SitemapRequestLoader', () => {
         });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
 
         await expect(list.isFinished()).resolves.toBe(true);
@@ -416,7 +416,7 @@ describe('SitemapRequestLoader', () => {
 
         const newList = await SitemapRequestLoader.open(options);
         for await (const request of newList) {
-            await newList.markRequestHandled(request);
+            await newList.markRequestAsHandled(request);
         }
 
         expect(await newList.getHandledCount()).toBe(2);
@@ -431,7 +431,7 @@ describe('SitemapRequestLoader', () => {
         while (!(await list.isFinished())) {
             const request = await list.fetchNextRequest();
             if (!request) break;
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
             requests.push(request);
         }
 
@@ -452,7 +452,7 @@ describe('SitemapRequestLoader', () => {
         const list = await SitemapRequestLoader.open(options);
 
         const firstRequest = await list.fetchNextRequest();
-        await list.markRequestHandled(firstRequest!);
+        await list.markRequestAsHandled(firstRequest!);
 
         await list.persistState();
 
@@ -462,7 +462,7 @@ describe('SitemapRequestLoader', () => {
         while (!(await newList.isFinished())) {
             const request = await newList.fetchNextRequest();
             if (!request) break;
-            await newList.markRequestHandled(request);
+            await newList.markRequestAsHandled(request);
         }
 
         expect(await list.getHandledCount()).toBe(1);
@@ -473,7 +473,7 @@ describe('SitemapRequestLoader', () => {
         const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap.xml`] });
 
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
 
             if ((await list.getHandledCount()) >= 2) break;
         }

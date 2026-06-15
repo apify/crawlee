@@ -79,7 +79,7 @@ describe('RequestList', () => {
         expect(await requestList.isFinished()).toBe(false);
         expect(await requestList.fetchNextRequest()).toBe(null);
 
-        await requestList.markRequestHandled(req!);
+        await requestList.markRequestAsHandled(req!);
 
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(true);
@@ -93,7 +93,7 @@ describe('RequestList', () => {
         await expect(requestList.isEmpty()).rejects.toThrow();
         await expect(requestList.isFinished()).rejects.toThrow();
         expect(() => requestList.getState()).toThrowError();
-        await expect(requestList.markRequestHandled(requestObj)).rejects.toThrow();
+        await expect(requestList.markRequestAsHandled(requestObj)).rejects.toThrow();
         await expect(requestList.fetchNextRequest()).rejects.toThrow();
 
         await requestList.initialize();
@@ -102,7 +102,7 @@ describe('RequestList', () => {
         await expect(requestList.isFinished()).resolves.not.toThrow();
         expect(() => requestList.getState()).not.toThrowError();
         await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
-        await expect(requestList.markRequestHandled(requestObj)).resolves.not.toThrow();
+        await expect(requestList.markRequestAsHandled(requestObj)).resolves.not.toThrow();
     });
 
     test('should correctly initialize itself', async () => {
@@ -127,9 +127,9 @@ describe('RequestList', () => {
         await originalList.fetchNextRequest(); // 5 - left in progress
         await originalList.fetchNextRequest(); // 6 - left in progress
 
-        await originalList.markRequestHandled(r1!);
-        await originalList.markRequestHandled(r2!);
-        await originalList.markRequestHandled(r4!);
+        await originalList.markRequestAsHandled(r1!);
+        await originalList.markRequestAsHandled(r2!);
+        await originalList.markRequestAsHandled(r4!);
 
         // Requests 3, 5 and 6 were in progress when the state was persisted, so they must be
         // re-crawled (before the remaining, never-fetched requests 7 and 8).
@@ -307,8 +307,8 @@ describe('RequestList', () => {
         expect(await requestList.isFinished()).toBe(false);
         expect(requestList.inProgress.size).toBe(2);
 
-        await requestList.markRequestHandled(request1!);
-        await requestList.markRequestHandled(request2!);
+        await requestList.markRequestAsHandled(request1!);
+        await requestList.markRequestAsHandled(request2!);
 
         expect(requestList.getState()).toEqual({
             inProgress: [],
@@ -322,7 +322,7 @@ describe('RequestList', () => {
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(false);
 
-        await requestList.markRequestHandled(request3!);
+        await requestList.markRequestAsHandled(request3!);
         expect(await requestList.isFinished()).toBe(true);
     });
 
@@ -359,7 +359,7 @@ describe('RequestList', () => {
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
         expect(requestList.isStatePersisted).toBe(false);
-        await requestList.markRequestHandled(request2!);
+        await requestList.markRequestAsHandled(request2!);
         expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
@@ -479,7 +479,7 @@ describe('RequestList', () => {
         reqs = shuffle(reqs) as typeof reqs;
 
         for (let i = 0; i < reqs.length; i++) {
-            await requestList.markRequestHandled(reqs[i]);
+            await requestList.markRequestAsHandled(reqs[i]);
         }
     });
 
@@ -517,10 +517,10 @@ describe('RequestList', () => {
         const req3 = await requestList.fetchNextRequest();
         expect(await requestList.getHandledCount()).toBe(0);
 
-        await requestList.markRequestHandled(req2!);
+        await requestList.markRequestAsHandled(req2!);
         expect(await requestList.getHandledCount()).toBe(1);
 
-        await requestList.markRequestHandled(req3!);
+        await requestList.markRequestAsHandled(req3!);
         expect(await requestList.getHandledCount()).toBe(2);
     });
 

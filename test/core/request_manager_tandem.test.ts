@@ -58,23 +58,23 @@ describe('RequestManagerTandem', () => {
         expect(request4).toBeNull();
     });
 
-    test('markRequestHandled properly marks request as handled in the queue', async () => {
+    test('markRequestAsHandled properly marks request as handled in the queue', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
-        // Mock markRequestHandled in requestQueue
-        const markHandledSpy = vi.spyOn(requestQueue, 'markRequestHandled');
+        // Mock markRequestAsHandled in requestQueue
+        const markHandledSpy = vi.spyOn(requestQueue, 'markRequestAsHandled');
 
         // First fetch a request
         const request = await tandem.fetchNextRequest();
         expect(request).not.toBeNull();
 
         // Mark it as handled
-        await tandem.markRequestHandled(request!);
+        await tandem.markRequestAsHandled(request!);
 
-        // Verify the queue's markRequestHandled was called
+        // Verify the queue's markRequestAsHandled was called
         expect(markHandledSpy).toHaveBeenCalledWith(request);
     });
 
@@ -186,7 +186,7 @@ describe('RequestManagerTandem', () => {
         // The loader is read-only and can no longer reclaim. The failed request must be marked as
         // handled on the loader so it doesn't get stuck in the loader's in-progress state
         // (matching crawlee-python behaviour).
-        const markHandledSpy = vi.spyOn(requestList, 'markRequestHandled');
+        const markHandledSpy = vi.spyOn(requestList, 'markRequestAsHandled');
 
         // The queue should never be fetched from on a failed transfer round.
         const queueFetchSpy = vi.spyOn(requestQueue, 'fetchNextRequest');
@@ -268,5 +268,36 @@ describe('RequestManagerTandem', () => {
         await tandem.persistState();
 
         expect(persistSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('setExpectedRequestProcessingTimeSecs forwards to an already-resolved manager', async () => {
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+        const requestQueue = await RequestQueue.open();
+        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
+
+        // Resolve the manager first (the queue was passed eagerly, but make the dependency explicit).
+        await tandem.fetchNextRequest();
+
+        tandem.setExpectedRequestProcessingTimeSecs(600);
+        expect(hintSpy).toHaveBeenCalledWith(600);
+    });
+
+    test('setExpectedRequestProcessingTimeSecs applies a hint set before the manager is lazily resolved', async () => {
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+        const requestQueue = await RequestQueue.open();
+        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+
+        // Provide the manager lazily so it is not resolved at construction time.
+        const tandem = new RequestManagerTandem(requestList, () => requestQueue);
+
+        // Hint arrives before anything resolves the manager — nothing forwarded yet.
+        tandem.setExpectedRequestProcessingTimeSecs(600);
+        expect(hintSpy).not.toHaveBeenCalled();
+
+        // Resolving the manager (via any operation) applies the remembered hint.
+        await tandem.fetchNextRequest();
+        expect(hintSpy).toHaveBeenCalledWith(600);
     });
 });

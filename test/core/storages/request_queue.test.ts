@@ -1,15 +1,6 @@
 /* eslint-disable dot-notation */
 
-import {
-    API_PROCESSED_REQUESTS_DELAY_MILLIS,
-    ProxyConfiguration,
-    QUERY_HEAD_MIN_LENGTH,
-    Request,
-    RequestQueueV1 as RequestQueue,
-    RequestQueueV2,
-    serviceLocator,
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-} from '@crawlee/core';
+import { ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
@@ -35,440 +26,199 @@ beforeEach(async () => {
 });
 
 describe('RequestQueue remote', () => {
+    const emulator = new MemoryStorageEmulator();
+
+    beforeEach(async () => {
+        await emulator.init();
+        vitest.clearAllMocks();
+    });
+
+    afterEach(async () => {
+        await emulator.destroy();
+    });
+
     async function createRequestQueue(id = 'some-id', name?: string) {
         const client = await serviceLocator.getStorageClient().createRequestQueueClient(name ? { name } : { id });
         return new RequestQueue({ id, name, client }, serviceLocator.getConfiguration());
     }
 
-    beforeEach(() => {
-        vitest.clearAllMocks();
-    });
-
-    test('should work', async () => {
+    test('adding a request makes it fetchable; fetching again returns null while in progress', async () => {
         const queue = await createRequestQueue();
-        const firstResolveValue = {
-            requestId: 'a',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        };
-        const mockAddRequest = vitest.spyOn(queue.client, 'addRequest').mockResolvedValueOnce(firstResolveValue);
 
-        const requestOptions = { url: 'http://example.com/a' };
-        const queueOperationInfo1 = await queue.addRequest(requestOptions);
-        const requestA = new Request(requestOptions);
-        expect(queueOperationInfo1).toMatchObject({
-            ...firstResolveValue,
-        });
+        const info = await queue.addRequest({ url: 'http://example.com/a' });
+        expect(info.wasAlreadyPresent).toBe(false);
+        expect(info.wasAlreadyHandled).toBe(false);
 
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(mockAddRequest).toHaveBeenCalledTimes(1);
-        expect(mockAddRequest).toHaveBeenCalledWith(requestA, { forefront: false });
+        const fetched = await queue.fetchNextRequest();
+        expect(fetched).not.toBeNull();
+        expect(fetched!.url).toBe('http://example.com/a');
+        expect(fetched!.uniqueKey).toBe(info.uniqueKey);
 
-        // Try to add again a request with the same URL
-        const queueOperationInfo2 = await queue.addRequest(requestOptions);
-        expect(queueOperationInfo2).toMatchObject({
-            wasAlreadyPresent: true,
-            wasAlreadyHandled: false,
-            requestId: 'a',
-        });
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-
-        const requestB = new Request({ url: 'http://example.com/b' });
-        const secondResolveValue = {
-            requestId: 'b',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        };
-        mockAddRequest.mockResolvedValueOnce(secondResolveValue);
-
-        await queue.addRequest(requestB, { forefront: true });
-        expect(mockAddRequest).toHaveBeenCalledTimes(2);
-        expect(mockAddRequest).toHaveBeenLastCalledWith(requestB, { forefront: true });
-
-        expect(queue['queueHeadIds'].length()).toBe(2);
-        expect(queue.inProgressCount()).toBe(0);
-
-        // Forefronted request was added to the queue.
-        const mockGetRequest = vitest.spyOn(queue.client, 'getRequest');
-        mockGetRequest.mockResolvedValueOnce({ ...requestB, id: 'b' });
-
-        const requestBFromQueue = await queue.fetchNextRequest();
-        expect(mockGetRequest).toHaveBeenCalledTimes(1);
-        expect(mockGetRequest).toHaveBeenLastCalledWith('b');
-        expect(requestBFromQueue).toEqual({ ...requestB, id: 'b' });
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(queue.inProgressCount()).toBe(1);
-
-        // Test validations
-        await queue
-            .addRequest(new Request({ id: 'id-already-set', url: 'https://example.com' }))
-            .catch((err) =>
-                expect(err.message).toMatch(
-                    'Expected property `id` to be of type `undefined` but received type `string` in object',
-                ),
-            );
-
-        // getRequest() returns undefined if object was not found.
-        mockGetRequest.mockResolvedValueOnce(undefined);
-
-        const requestXFromQueue = await queue.getRequest('non-existent');
-        expect(mockGetRequest).toHaveBeenCalledTimes(2);
-        expect(mockGetRequest).toHaveBeenLastCalledWith('non-existent');
-        expect(requestXFromQueue).toBe(null);
-
-        // Reclaim it.
-        const mockUpdateRequest = vitest.spyOn(queue.client, 'updateRequest');
-        mockUpdateRequest.mockResolvedValueOnce({
-            requestId: 'b',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: true,
-            // TODO: request is not defined in the types
-            // @ts-expect-error
-            request: requestBFromQueue,
-        });
-
-        await queue.reclaimRequest(requestBFromQueue!, { forefront: true });
-        expect(mockUpdateRequest).toHaveBeenCalledTimes(1);
-        expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue, { forefront: true });
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(queue.inProgressCount()).toBe(1);
-        await sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
-
-        expect(queue['queueHeadIds'].length()).toBe(2);
-        expect(queue.inProgressCount()).toBe(0);
-
-        // Fetch again.
-        mockGetRequest.mockResolvedValueOnce(requestBFromQueue as never);
-
-        const requestBFromQueue2 = await queue.fetchNextRequest();
-        expect(mockGetRequest).toHaveBeenCalledTimes(3);
-        expect(mockGetRequest).toHaveBeenLastCalledWith('b');
-        expect(requestBFromQueue2).toEqual(requestBFromQueue);
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(queue.inProgressCount()).toBe(1);
-
-        // Mark handled.
-        mockUpdateRequest.mockResolvedValueOnce({
-            requestId: 'b',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: true,
-            // TODO: request is not defined in the types
-            // @ts-expect-error
-            request: requestBFromQueue,
-        });
-
-        await queue.markRequestHandled(requestBFromQueue!);
-        expect(mockUpdateRequest).toHaveBeenCalledTimes(2);
-        expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue);
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(queue.inProgressCount()).toBe(0);
-
-        // Emulate there are no cached items in queue
-
-        queue['queueHeadIds'].clear();
-
-        // Query queue head.
-        const mockListHead = vitest.spyOn(queue.client, 'listHead');
-        mockListHead.mockResolvedValueOnce({
-            items: [
-                { id: 'a', uniqueKey: 'aaa' },
-                { id: 'c', uniqueKey: 'ccc' },
-            ],
-        } as never);
-        mockGetRequest.mockResolvedValueOnce({ ...requestA, id: 'a' });
-
-        const requestAFromQueue = await queue.fetchNextRequest();
-        expect(mockGetRequest).toHaveBeenCalledTimes(4);
-        expect(mockGetRequest).toHaveBeenLastCalledWith('a');
-        expect(mockListHead).toHaveBeenCalledTimes(1);
-        expect(mockListHead).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
-        expect(requestAFromQueue).toEqual({ ...requestA, id: 'a' });
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(queue.inProgressCount()).toBe(1);
-
-        // Drop queue.
-        const mockDrop = vitest.spyOn(queue.client, 'drop');
-        mockDrop.mockResolvedValueOnce(undefined);
-
-        await queue.drop();
-        expect(mockDrop).toHaveBeenCalledTimes(1);
-        expect(mockDrop).toHaveBeenLastCalledWith();
+        // The request is now in progress, so there is nothing more to fetch.
+        expect(await queue.fetchNextRequest()).toBeNull();
     });
 
-    test('addRequests', async () => {
+    test('adding the same uniqueKey twice does not duplicate and is served from the local cache', async () => {
+        const queue = await createRequestQueue();
+
+        const requestA = new Request({ url: 'http://example.com/a' });
+        const requestB = new Request({ url: 'http://example.com/a' }); // Has the same uniqueKey as A.
+
+        const first = await queue.addRequest(requestA);
+        expect(first.wasAlreadyPresent).toBe(false);
+
+        // Spy on the client only AFTER the first add so we can assert the cache prevents a second call.
+        const addBatchSpy = vitest.spyOn(queue.client, 'addBatchOfRequests');
+
+        const second = await queue.addRequest(requestB);
+        expect(second).toEqual({
+            requestId: first.requestId,
+            uniqueKey: requestA.uniqueKey,
+            wasAlreadyPresent: true,
+            wasAlreadyHandled: false,
+            forefront: false,
+        });
+
+        // The local cache should have prevented a second client call.
+        expect(addBatchSpy).not.toHaveBeenCalled();
+
+        // And there is still only a single request in the queue.
+        const fetched = await queue.fetchNextRequest();
+        expect(fetched!.uniqueKey).toBe(requestA.uniqueKey);
+        expect(await queue.fetchNextRequest()).toBeNull();
+    });
+
+    test('a handled request is not fetched again and isFinished() becomes true', async () => {
+        const queue = await createRequestQueue();
+
+        await queue.addRequest({ url: 'http://example.com/a' });
+
+        const fetched = await queue.fetchNextRequest();
+        expect(fetched).not.toBeNull();
+
+        await queue.markRequestAsHandled(fetched!);
+
+        expect(await queue.fetchNextRequest()).toBeNull();
+        expect(await queue.isFinished()).toBe(true);
+    });
+
+    test('a reclaimed request is fetched again; reclaim with forefront returns it to the front', async () => {
+        const queue = await createRequestQueue();
+
+        await queue.addRequest({ url: 'http://example.com/a' });
+        await sleep(5);
+        await queue.addRequest({ url: 'http://example.com/b' });
+
+        // Fetch the first pending request (a) and reclaim it to the front.
+        const first = await queue.fetchNextRequest();
+        expect(first!.url).toBe('http://example.com/a');
+
+        await queue.reclaimRequest(first!, { forefront: true });
+
+        // The reclaimed request should now be served before the older pending request (b).
+        const afterReclaim = await queue.fetchNextRequest();
+        expect(afterReclaim!.url).toBe('http://example.com/a');
+        expect(afterReclaim!.uniqueKey).toBe(first!.uniqueKey);
+    });
+
+    test('addRequests processes requests and reports processed/unprocessed', async () => {
         const queue = await createRequestQueue('batch-requests');
-        const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
 
-        const requestOptions = { url: 'http://example.com/a' };
-        const requestA = new Request(requestOptions);
+        const result = await queue.addRequests([{ url: 'http://example.com/a' }, { url: 'http://example.com/b' }]);
 
-        // Test adding 1 request
-        const firstRequestAdded = {
-            requestId: 'a',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-            uniqueKey: requestA.uniqueKey,
-        };
-        mockAddRequests.mockResolvedValueOnce({
-            processedRequests: [firstRequestAdded],
-            unprocessedRequests: [],
-        });
+        expect(result.processedRequests).toHaveLength(2);
+        expect(result.unprocessedRequests).toHaveLength(0);
+        expect(result.processedRequests.every((r) => !r.wasAlreadyPresent)).toBe(true);
+        expect(result.processedRequests.map((r) => r.uniqueKey)).toEqual([
+            'http://example.com/a',
+            'http://example.com/b',
+        ]);
 
-        const addRequestsResult1 = await queue.addRequests([requestOptions]);
+        // Re-adding the same requests reports them as already present.
+        const result2 = await queue.addRequests([{ url: 'http://example.com/a' }, { url: 'http://example.com/b' }]);
+        expect(result2.processedRequests).toHaveLength(2);
+        expect(result2.processedRequests.every((r) => r.wasAlreadyPresent)).toBe(true);
 
-        expect(addRequestsResult1.processedRequests).toHaveLength(1);
-        expect(addRequestsResult1.processedRequests[0]).toEqual({
-            ...firstRequestAdded,
-        });
-
-        // Ensure the client method was actually called, and added
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(mockAddRequests).toHaveBeenCalledTimes(1);
-        expect(mockAddRequests).toHaveBeenCalledWith([requestA], { forefront: false });
-
-        // Try to add a request with the same URL again, expecting cached
-        const addRequestsResult2 = await queue.addRequests([requestOptions]);
-        expect(addRequestsResult2.processedRequests).toHaveLength(1);
-        expect(addRequestsResult2.processedRequests[0]).toEqual({
-            ...firstRequestAdded,
-            wasAlreadyPresent: true,
-        });
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-
-        // Adding more requests, forefront
-        const requestB = new Request({ url: 'http://example.com/b' });
-        const requestC = new Request({ url: 'http://example.com/c' });
-
-        mockAddRequests.mockResolvedValueOnce({
-            processedRequests: [
-                {
-                    requestId: 'b',
-                    uniqueKey: requestB.uniqueKey,
-                    wasAlreadyHandled: false,
-                    wasAlreadyPresent: false,
-                },
-                {
-                    requestId: 'c',
-                    uniqueKey: requestC.uniqueKey,
-                    wasAlreadyHandled: false,
-                    wasAlreadyPresent: false,
-                },
-            ],
-            unprocessedRequests: [],
-        });
-
-        const addRequestsResult3 = await queue.addRequests([requestB, requestC], { forefront: true });
-        expect(addRequestsResult3.processedRequests).toHaveLength(2);
-        expect(addRequestsResult3.processedRequests[0]).toEqual({
-            requestId: 'b',
-            uniqueKey: requestB.uniqueKey,
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        });
-        expect(addRequestsResult3.processedRequests[1]).toEqual({
-            requestId: 'c',
-            uniqueKey: requestC.uniqueKey,
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        });
-
-        expect(queue['queueHeadIds'].length()).toBe(3);
-        expect(mockAddRequests).toHaveBeenCalled();
-        expect(mockAddRequests).toHaveBeenCalledWith([requestB, requestC], { forefront: true });
+        // The queue still contains exactly the two distinct requests.
+        const fetchedUrls: string[] = [];
+        for (let req = await queue.fetchNextRequest(); req !== null; req = await queue.fetchNextRequest()) {
+            fetchedUrls.push(req.url);
+            await queue.markRequestAsHandled(req);
+        }
+        expect(fetchedUrls.sort()).toEqual(['http://example.com/a', 'http://example.com/b']);
     });
 
-    test('should cache new requests locally', async () => {
-        const queue = await createRequestQueue();
+    test('fetchNextRequest order respects forefront enqueues', async () => {
+        const queue = await createRequestQueue('forefront-order');
 
-        const requestA = new Request({ url: 'http://example.com/a' });
-        const requestB = new Request({ url: 'http://example.com/a' }); // Has same uniqueKey as A
+        // Add some non-forefront requests (sleep between adds to keep orderNo deterministic).
+        await queue.addRequest({ url: 'http://example.com/1' });
+        await sleep(5);
+        await queue.addRequest({ url: 'http://example.com/5' });
+        await sleep(5);
+        await queue.addRequest({ url: 'http://example.com/6' });
 
-        // Add request A
-        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
-        addRequestMock.mockResolvedValueOnce({
-            requestId: 'a',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        });
+        const retrievedUrls: string[] = [];
 
-        await queue.addRequest(requestA);
-        expect(addRequestMock).toHaveBeenCalledTimes(1);
-        expect(addRequestMock).toHaveBeenLastCalledWith(requestA, { forefront: false });
+        // Fetch and handle the first request so it is removed from the queue.
+        const first = await queue.fetchNextRequest();
+        retrievedUrls.push(first!.url);
+        await queue.markRequestAsHandled(first!);
 
-        // Add request B that has same unique so that addRequest() is not called because it's already cached.
-        // mock.expects('addRequest').never();
-        const queueOperationInfo = await queue.addRequest(requestB);
-        expect(addRequestMock).toHaveBeenCalledTimes(1);
-        expect(queueOperationInfo).toEqual({
-            requestId: 'a',
-            uniqueKey: requestA.uniqueKey,
-            wasAlreadyPresent: true,
-            wasAlreadyHandled: false,
-            forefront: false,
-        });
+        // Add more requests at the forefront.
+        await queue.addRequest({ url: 'http://example.com/4' }, { forefront: true });
+        await sleep(5);
+        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+        await sleep(5);
+        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
+
+        // Drain the queue, marking each request handled before fetching the next so the
+        // ordering is deterministic and no request is fetched twice.
+        for (let req = await queue.fetchNextRequest(); req !== null; req = await queue.fetchNextRequest()) {
+            retrievedUrls.push(req.url);
+            await queue.markRequestAsHandled(req);
+        }
+
+        // Forefront requests (2, 3, 4) are served before the older pending ones (5, 6).
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5', '/6']);
     });
 
-    test('should cache requests locally with info if request was already handled', async () => {
+    test('isEmpty() reflects fetchable requests while isFinished() accounts for in-progress ones', async () => {
         const queue = await createRequestQueue();
 
-        const requestX = new Request({ url: 'http://example.com/x' });
-        const requestY = new Request({ url: 'http://example.com/x' }); // Has same uniqueKey as X
-
-        // Add request X.
-        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
-        addRequestMock.mockResolvedValueOnce({
-            requestId: 'x',
-            wasAlreadyHandled: true,
-            wasAlreadyPresent: true,
-        });
-
-        await queue.addRequest(requestX);
-        expect(addRequestMock).toHaveBeenCalledTimes(1);
-        expect(addRequestMock).toHaveBeenLastCalledWith(requestX, { forefront: false });
-
-        // Add request Y that has same unique so that addRequest() is not called because it's already cached.
-        // mock.expects('addRequest').never();
-        const queueOperationInfo = await queue.addRequest(requestY);
-        expect(addRequestMock).toHaveBeenCalledTimes(1);
-        expect(queueOperationInfo).toEqual({
-            requestId: 'x',
-            uniqueKey: requestX.uniqueKey,
-            wasAlreadyPresent: true,
-            wasAlreadyHandled: true,
-            forefront: false,
-        });
-    });
-
-    test('should cache requests from queue head', async () => {
-        const queue = await createRequestQueue();
-
-        // Query queue head with request A
-        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
-        listHeadMock.mockResolvedValueOnce({
-            items: [{ id: 'a', uniqueKey: 'aaa' }],
-        } as never);
-
+        await queue.addRequest({ url: 'http://example.com/a' });
+        // There is a pending request, so the queue is neither empty nor finished.
         expect(await queue.isEmpty()).toBe(false);
-        expect(listHeadMock).toHaveBeenCalledTimes(1);
-        expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
+        expect(await queue.isFinished()).toBe(false);
 
-        // Add request A and addRequest is not called because was already cached.
-        const requestA = new Request({ url: 'http://example.com/a', uniqueKey: 'aaa' });
-        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
+        const fetched = await queue.fetchNextRequest();
+        // The request is now in progress (locked), not handled. There is nothing left to fetch, so the
+        // queue is empty — but it is not finished, since the in-progress request might still be
+        // reclaimed. That "not finished" signal keeps a crawler running while the request is processed.
+        expect(await queue.isEmpty()).toBe(true);
+        expect(await queue.isFinished()).toBe(false);
 
-        const queueOperationInfo = await queue.addRequest(requestA);
-        expect(addRequestMock).toHaveBeenCalledTimes(0);
-        expect(queueOperationInfo).toEqual({
-            requestId: 'a',
-            uniqueKey: 'aaa',
-            wasAlreadyPresent: true,
-            wasAlreadyHandled: false,
-            forefront: false,
-        });
-    });
-
-    test('should handle situation when newly created request is not available yet', async () => {
-        const queue = await createRequestQueue('some-id', 'some-queue');
-        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
-
-        const requestA = new Request({ url: 'http://example.com/a' });
-
-        // Add request A
-        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
-        addRequestMock.mockResolvedValueOnce({
-            requestId: 'a',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        });
-
-        await queue.addRequest(requestA, { forefront: true });
-        expect(addRequestMock).toHaveBeenCalledTimes(1);
-        expect(addRequestMock).toHaveBeenLastCalledWith(requestA, { forefront: true });
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-
-        // Try to get requestA which is not available yet.
-        const getRequestMock = vitest.spyOn(queue.client, 'getRequest');
-        getRequestMock.mockResolvedValueOnce(undefined);
-
-        const fetchedRequest = await queue.fetchNextRequest();
-        expect(getRequestMock).toHaveBeenCalledTimes(1);
-        expect(getRequestMock).toHaveBeenLastCalledWith('a');
-        expect(fetchedRequest).toBe(null);
-
-        // Give queue time to mark request 'a' as not in progress
-        await sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
-        expect(listHeadMock).not.toHaveBeenCalled();
-
-        // Should try it once again (the queue head is queried again)
-        getRequestMock.mockResolvedValueOnce({
-            ...requestA,
-            id: 'a',
-        });
-
-        listHeadMock.mockResolvedValueOnce({
-            items: [{ id: 'a', uniqueKey: 'aaa' }],
-        } as never);
-
-        const fetchedRequest2 = await queue.fetchNextRequest();
-        expect(getRequestMock).toHaveBeenCalledTimes(2);
-        expect(getRequestMock).toHaveBeenLastCalledWith('a');
-        expect(listHeadMock).toHaveBeenCalledTimes(1);
-        expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
-        expect(fetchedRequest2).toEqual({ ...requestA, id: 'a' });
-    });
-
-    test('should not add handled request to queue head dict', async () => {
-        const queue = await createRequestQueue();
-
-        const requestA = new Request({ url: 'http://example.com/a' });
-
-        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
-        addRequestMock.mockResolvedValueOnce({
-            requestId: 'a',
-            wasAlreadyHandled: true,
-            wasAlreadyPresent: true,
-        });
-
-        const getRequestMock = vitest.spyOn(queue.client, 'getRequest');
-
-        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
-        listHeadMock.mockResolvedValueOnce({
-            items: [],
-        } as never);
-
-        await queue.addRequest(requestA, { forefront: true });
-        expect(addRequestMock).toHaveBeenCalledTimes(1);
-        expect(addRequestMock).toHaveBeenLastCalledWith(requestA, { forefront: true });
-
-        const fetchedRequest = await queue.fetchNextRequest();
-        expect(getRequestMock).not.toHaveBeenCalled();
-        expect(listHeadMock).toHaveBeenCalledTimes(1);
-        expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
-        expect(fetchedRequest).toBe(null);
+        await queue.markRequestAsHandled(fetched!);
+        // Now the request is handled and gone, so the queue is both empty and finished.
+        expect(await queue.isEmpty()).toBe(true);
+        expect(await queue.isFinished()).toBe(true);
     });
 
     test('should accept plain object in addRequest()', async () => {
         const queue = await createRequestQueue();
-        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
-        addRequestMock.mockResolvedValueOnce({
-            requestId: 'xxx',
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        });
 
         const requestOpts = { url: 'http://example.com/a' };
-        await queue.addRequest(requestOpts);
-        expect(addRequestMock).toHaveBeenCalledTimes(1);
-        expect(addRequestMock).toHaveBeenLastCalledWith(new Request(requestOpts), { forefront: false });
+        const info = await queue.addRequest(requestOpts);
+
+        const expectedUniqueKey = new Request(requestOpts).uniqueKey;
+        expect(info.uniqueKey).toBe(expectedUniqueKey);
+        expect(info.wasAlreadyPresent).toBe(false);
+
+        // The request can be fetched back by its uniqueKey.
+        const stored = await queue.getRequest(info.uniqueKey);
+        expect(stored).not.toBeNull();
+        expect(stored!.url).toBe('http://example.com/a');
+        expect(stored!.uniqueKey).toBe(expectedUniqueKey);
     });
 
     test('should return correct handledCount', async () => {
@@ -481,198 +231,6 @@ describe('RequestQueue remote', () => {
         expect(count).toBe(33);
         expect(getMock).toHaveBeenCalledTimes(1);
         expect(getMock).toHaveBeenLastCalledWith();
-    });
-
-    test('should always wait for a queue head to become consistent before marking queue as finished (hadMultipleClients = true)', async () => {
-        const queue = await createRequestQueue('some-id', 'some-name');
-
-        // Return head with modifiedAt = now so it will retry the call.
-        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
-        listHeadMock.mockResolvedValueOnce({
-            limit: 5,
-            queueModifiedAt: new Date(Date.now() - API_PROCESSED_REQUESTS_DELAY_MILLIS * 0.75),
-            items: [],
-            hadMultipleClients: true,
-        });
-        listHeadMock.mockResolvedValueOnce({
-            limit: 5,
-            queueModifiedAt: new Date(Date.now() - API_PROCESSED_REQUESTS_DELAY_MILLIS),
-            items: [],
-            hadMultipleClients: true,
-        });
-
-        const isFinished = await queue.isFinished();
-        expect(isFinished).toBe(true);
-        expect(listHeadMock).toHaveBeenCalledTimes(2);
-        expect(listHeadMock).toHaveBeenNthCalledWith(1, { limit: QUERY_HEAD_MIN_LENGTH });
-        expect(listHeadMock).toHaveBeenNthCalledWith(2, { limit: QUERY_HEAD_MIN_LENGTH });
-    });
-
-    test('should always wait for a queue head to become consistent before marking queue as finished (hadMultipleClients = false)', async () => {
-        const queueId = 'some-id';
-        const queue = await createRequestQueue(queueId, 'some-name');
-
-        expect(queue.assumedTotalCount).toBe(0);
-        expect(queue.assumedHandledCount).toBe(0);
-
-        // Add some requests.
-        const requestA = new Request({ url: 'http://example.com/a' });
-        const requestAWithId = { ...requestA, id: 'a' } as Request;
-        const requestB = new Request({ url: 'http://example.com/b' });
-        const requestBWithId = { ...requestB, id: 'b' } as Request;
-        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
-        addRequestMock.mockResolvedValueOnce({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false });
-        addRequestMock.mockResolvedValueOnce({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false });
-
-        await queue.addRequest(requestA, { forefront: true });
-        await queue.addRequest(requestB, { forefront: true });
-
-        expect(queue['queueHeadIds'].length()).toBe(2);
-        expect(queue.inProgressCount()).toBe(0);
-        expect(queue.assumedTotalCount).toBe(2);
-        expect(queue.assumedHandledCount).toBe(0);
-        expect(addRequestMock).toHaveBeenCalledTimes(2);
-        expect(addRequestMock).toHaveBeenNthCalledWith(1, requestA, { forefront: true });
-        expect(addRequestMock).toHaveBeenNthCalledWith(2, requestB, { forefront: true });
-
-        // It won't query the head as there is something in progress or pending.
-        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
-
-        const isFinished = await queue.isFinished();
-        expect(isFinished).toBe(false);
-        expect(listHeadMock).not.toHaveBeenCalled();
-
-        // Fetch them from queue.
-        const getRequestMock = vitest.spyOn(queue.client, 'getRequest');
-        getRequestMock.mockResolvedValueOnce({ ...requestB, id: 'b' });
-        getRequestMock.mockResolvedValueOnce({ ...requestA, id: 'a' });
-
-        const requestBFromQueue = await queue.fetchNextRequest();
-        expect(requestBFromQueue).toEqual(requestBWithId);
-        expect(getRequestMock).toHaveBeenCalledTimes(1);
-        expect(getRequestMock).toHaveBeenLastCalledWith('b');
-        const requestAFromQueue = await queue.fetchNextRequest();
-        expect(requestAFromQueue).toEqual(requestAWithId);
-        expect(getRequestMock).toHaveBeenCalledTimes(2);
-        expect(getRequestMock).toHaveBeenLastCalledWith('a');
-
-        expect(queue['queueHeadIds'].length()).toBe(0);
-        expect(queue.inProgressCount()).toBe(2);
-        expect(queue.assumedTotalCount).toBe(2);
-        expect(queue.assumedHandledCount).toBe(0);
-
-        // It won't query the head as there is something in progress or pending.
-        expect(await queue.isFinished()).toBe(false);
-        expect(listHeadMock).not.toHaveBeenCalled();
-
-        // Reclaim one and mark another one handled.
-        const updateRequestMock = vitest.spyOn(queue.client, 'updateRequest');
-        updateRequestMock.mockResolvedValueOnce({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: true });
-
-        await queue.markRequestHandled(requestBWithId);
-        expect(updateRequestMock).toHaveBeenCalledTimes(1);
-        expect(updateRequestMock).toHaveBeenLastCalledWith(requestBWithId);
-
-        updateRequestMock.mockResolvedValueOnce({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: true });
-
-        await queue.reclaimRequest(requestAWithId, { forefront: true });
-        expect(updateRequestMock).toHaveBeenCalledTimes(2);
-        expect(updateRequestMock).toHaveBeenLastCalledWith(requestAWithId, { forefront: true });
-
-        expect(queue['queueHeadIds'].length()).toBe(0);
-        expect(queue.inProgressCount()).toBe(1);
-        expect(queue.assumedTotalCount).toBe(2);
-        expect(queue.assumedHandledCount).toBe(1);
-        await sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
-
-        expect(queue['queueHeadIds'].length()).toBe(1);
-        expect(queue.inProgressCount()).toBe(0);
-        expect(queue.assumedTotalCount).toBe(2);
-        expect(queue.assumedHandledCount).toBe(1);
-
-        // It won't query the head as there is something in progress or pending.
-        expect(await queue.isFinished()).toBe(false);
-        expect(listHeadMock).not.toHaveBeenCalled();
-
-        // Fetch again.
-        // @ts-expect-error Argument of type 'Request' is not assignable to parameter of type
-        // 'RequestQueueClientGetRequestResult | Promise<RequestQueueClientGetRequestResult>'.
-        getRequestMock.mockResolvedValueOnce(requestAWithId);
-
-        const requestAFromQueue2 = await queue.fetchNextRequest();
-        expect(requestAFromQueue2).toEqual(requestAWithId);
-        expect(getRequestMock).toHaveBeenCalledTimes(3);
-        expect(getRequestMock).toHaveBeenLastCalledWith('a');
-
-        expect(queue['queueHeadIds'].length()).toBe(0);
-        expect(queue.inProgressCount()).toBe(1);
-        expect(queue.assumedTotalCount).toBe(2);
-        expect(queue.assumedHandledCount).toBe(1);
-
-        // It won't query the head as there is something in progress or pending.
-        expect(await queue.isFinished()).toBe(false);
-        expect(listHeadMock).not.toHaveBeenCalled();
-
-        // Mark handled.
-        updateRequestMock.mockResolvedValueOnce({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: true });
-
-        await queue.markRequestHandled(requestAWithId);
-        expect(updateRequestMock).toHaveBeenCalledTimes(3);
-        expect(updateRequestMock).toHaveBeenLastCalledWith(requestAWithId);
-
-        expect(queue['queueHeadIds'].length()).toBe(0);
-        expect(queue.inProgressCount()).toBe(0);
-        expect(queue.assumedTotalCount).toBe(2);
-        expect(queue.assumedHandledCount).toBe(2);
-
-        // Return head with modifiedAt = now so it would retry the query for queue to become consistent but because hadMultipleClients=true
-        // it will finish immediately.
-        listHeadMock.mockResolvedValueOnce({
-            limit: 5,
-            queueModifiedAt: new Date(),
-            items: [],
-            hadMultipleClients: false,
-        });
-
-        expect(await queue.isFinished()).toBe(true);
-        expect(listHeadMock).toHaveBeenCalledTimes(1);
-        expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
-    });
-
-    test('`fetchNextRequest` order respects `forefront` enqueues', async () => {
-        const emulator = new MemoryStorageEmulator();
-
-        await emulator.init();
-        const queue = await RequestQueue.open();
-
-        const retrievedUrls: string[] = [];
-
-        await queue.addRequests([
-            { url: 'http://example.com/1' },
-            { url: 'http://example.com/5' },
-            { url: 'http://example.com/6' },
-        ]);
-
-        retrievedUrls.push((await queue.fetchNextRequest())!.url);
-
-        await queue.addRequest({ url: 'http://example.com/4' }, { forefront: true });
-        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
-
-        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
-
-        let req = await queue.fetchNextRequest();
-
-        expect(req!.url).toBe('http://example.com/2');
-
-        await queue.reclaimRequest(req!, { forefront: true });
-
-        while (req) {
-            retrievedUrls.push(req!.url);
-            req = await queue.fetchNextRequest();
-        }
-
-        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5', '/6']);
-        await emulator.destroy();
     });
 
     test('getInfo() should work', async () => {
@@ -749,6 +307,26 @@ describe('RequestQueue remote', () => {
         expect(r3.userData.__crawlee).toEqual({});
         r3.maxRetries = 2;
         expect(r3.userData.__crawlee).toEqual({ maxRetries: 2 });
+    });
+
+    describe('setExpectedRequestProcessingTimeSecs', () => {
+        test('forwards the value to the client, but only ever raises it', async () => {
+            const queue = await createRequestQueue();
+            const spy = vitest.spyOn(queue.client, 'setExpectedRequestProcessingTimeSecs');
+
+            // First hint is forwarded.
+            queue.setExpectedRequestProcessingTimeSecs(60);
+            expect(spy).toHaveBeenLastCalledWith(60);
+
+            // A larger hint is forwarded.
+            queue.setExpectedRequestProcessingTimeSecs(120);
+            expect(spy).toHaveBeenLastCalledWith(120);
+
+            // A smaller (or equal) hint must not shorten the reservation, so it is not forwarded.
+            queue.setExpectedRequestProcessingTimeSecs(30);
+            queue.setExpectedRequestProcessingTimeSecs(120);
+            expect(spy).toHaveBeenCalledTimes(2);
+        });
     });
 });
 
@@ -877,7 +455,7 @@ describe('RequestQueue with requestsFromUrl', () => {
     });
 });
 
-describe('RequestQueue v2', () => {
+describe('RequestQueue (request lifecycle)', () => {
     const totalRequestsPerTest = 50;
 
     function calculateHistogram(requests: { uniqueKey: string }[]): number[] {
@@ -892,9 +470,9 @@ describe('RequestQueue v2', () => {
     }
 
     async function getEmptyQueue(name: string) {
-        const queue = await RequestQueueV2.open({ name });
+        const queue = await RequestQueue.open({ name });
         await queue.drop();
-        return RequestQueueV2.open({ name });
+        return RequestQueue.open({ name });
     }
 
     function getUniqueRequests(count: number) {
@@ -903,71 +481,45 @@ describe('RequestQueue v2', () => {
             .map((_, i) => new Request({ url: `http://example.com/${i}`, uniqueKey: String(i) }));
     }
 
-    test('listAndLockHead works as expected', async () => {
-        const queue = await getEmptyQueue('list-and-lock-head');
+    test('each request is fetched for processing exactly once', async () => {
+        const queue = await getEmptyQueue('fetch-each-once');
         await queue.addRequests(getUniqueRequests(totalRequestsPerTest));
 
-        const [{ items: firstFetch }, { items: secondFetch }] = await Promise.all([
-            queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 }),
-            queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 }),
-        ]);
+        const fetched: { uniqueKey: string }[] = [];
+        for (let req = await queue.fetchNextRequest(); req !== null; req = await queue.fetchNextRequest()) {
+            fetched.push(req);
+        }
 
-        const histogram = calculateHistogram([...firstFetch, ...secondFetch]);
+        const histogram = calculateHistogram(fetched);
         expect(histogram).toEqual(Array(totalRequestsPerTest).fill(1));
     });
 
-    test('lock timers work as expected (timeout unlocks)', async () => {
-        vitest.useFakeTimers();
-        const queue = await getEmptyQueue('lock-timers');
-        await queue.addRequests(getUniqueRequests(totalRequestsPerTest));
-
-        const { items: firstFetch } = await queue.client.listAndLockHead({
-            limit: totalRequestsPerTest / 2,
-            lockSecs: 60,
-        });
-
-        vitest.advanceTimersByTime(65000);
-
-        const { items: secondFetch } = await queue.client.listAndLockHead({
-            limit: totalRequestsPerTest / 2,
-            lockSecs: 60,
-        });
-
-        const histogram = calculateHistogram([...firstFetch, ...secondFetch]);
-        expect(histogram).toEqual(Array(totalRequestsPerTest / 2).fill(2));
-        vitest.useRealTimers();
-    });
-
-    test('prolongRequestLock works as expected', async () => {
-        vitest.useFakeTimers();
-        const queue = await getEmptyQueue('prolong-request-lock');
+    test('a fetched request is not served again until it is reclaimed', async () => {
+        const queue = await getEmptyQueue('fetch-in-progress');
         await queue.addRequests(getUniqueRequests(1));
 
-        const { items: firstFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
-        await queue.client.prolongRequestLock(firstFetch[0].id, { lockSecs: 60 });
-        expect(firstFetch).toHaveLength(1);
+        const first = await queue.fetchNextRequest();
+        expect(first).not.toBeNull();
 
-        vitest.advanceTimersByTime(65000);
-        const { items: secondFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
-        expect(secondFetch).toHaveLength(0);
+        // The only request is now in progress, so there is nothing more to fetch.
+        expect(await queue.fetchNextRequest()).toBeNull();
 
-        vitest.advanceTimersByTime(65000);
-        const { items: thirdFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
+        // Reclaiming returns it to the queue so it can be fetched again.
+        await queue.reclaimRequest(first!);
 
-        expect(thirdFetch).toHaveLength(1);
-        vitest.useRealTimers();
+        const second = await queue.fetchNextRequest();
+        expect(second!.uniqueKey).toBe(first!.uniqueKey);
     });
 
-    test('deleteRequestLock works as expected', async () => {
-        const queue = await getEmptyQueue('delete-request-lock');
+    test('a handled request is never served again', async () => {
+        const queue = await getEmptyQueue('handled-not-served');
         await queue.addRequests(getUniqueRequests(1));
 
-        const { items: firstFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
-        await queue.client.deleteRequestLock(firstFetch[0].id);
+        const first = await queue.fetchNextRequest();
+        await queue.markRequestAsHandled(first!);
 
-        const { items: secondFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
-
-        expect(secondFetch[0]).toEqual(firstFetch[0]);
+        expect(await queue.fetchNextRequest()).toBeNull();
+        expect(await queue.isFinished()).toBe(true);
     });
 
     test('`fetchNextRequest` order respects `forefront` enqueues', async () => {
