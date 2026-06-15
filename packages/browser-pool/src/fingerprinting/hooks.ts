@@ -1,3 +1,4 @@
+import type { ISession, SessionFingerprint } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { FingerprintInjector } from 'fingerprint-injector';
 
@@ -6,7 +7,21 @@ import type { BrowserPool } from '../browser-pool.js';
 import type { LaunchContext } from '../launch-context.js';
 import { PlaywrightPlugin } from '../playwright/playwright-plugin.js';
 import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin.js';
+import type { FingerprintGeneratorOptions } from './types.js';
 import { getGeneratorDefaultOptions } from './utils.js';
+
+function applySessionHints(
+    base: FingerprintGeneratorOptions,
+    fingerprint?: SessionFingerprint,
+): FingerprintGeneratorOptions {
+    if (!fingerprint) return base;
+    return {
+        ...base,
+        ...(fingerprint.browser ? { browsers: [{ name: fingerprint.browser }] } : {}),
+        ...(fingerprint.platform ? { operatingSystems: [fingerprint.platform] } : {}),
+        ...(fingerprint.device ? { devices: [fingerprint.device] } : {}),
+    };
+}
 
 /**
  * @internal
@@ -23,21 +38,19 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
         if (launchContext.isRemote) return;
 
         const { useIncognitoPages } = launchContext;
-        const cacheKey = (launchContext.session as { id: string } | undefined)?.id ?? launchContext.proxyUrl;
+        const session = launchContext.session as ISession | undefined;
+        const cacheKey = session?.id ?? launchContext.proxyUrl;
         const { launchOptions }: { launchOptions: any } = launchContext;
 
-        // If no options are passed we try to pass best default options as possible to match browser and OS.
-        const fingerprintGeneratorFinalOptions =
-            fingerprintGeneratorOptions || getGeneratorDefaultOptions(launchContext);
         let fingerprint: BrowserFingerprintWithHeaders;
 
         if (cacheKey && fingerprintCache?.has(cacheKey)) {
             fingerprint = fingerprintCache.get(cacheKey)!;
-        } else if (cacheKey) {
-            fingerprint = fingerprintGenerator!.getFingerprint(fingerprintGeneratorFinalOptions);
-            fingerprintCache?.set(cacheKey, fingerprint);
         } else {
-            fingerprint = fingerprintGenerator!.getFingerprint(fingerprintGeneratorFinalOptions);
+            const baseOptions = fingerprintGeneratorOptions || getGeneratorDefaultOptions(launchContext);
+            const finalOptions = applySessionHints(baseOptions, session?.fingerprint);
+            fingerprint = fingerprintGenerator!.getFingerprint(finalOptions);
+            if (cacheKey) fingerprintCache?.set(cacheKey, fingerprint);
         }
 
         launchContext.extend({ fingerprint });

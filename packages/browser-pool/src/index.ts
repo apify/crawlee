@@ -33,7 +33,11 @@ export type {
     GetFingerprintReturn,
 } from './fingerprinting/types.js';
 export { BrowserName, DeviceCategory, OperatingSystemsName } from './fingerprinting/types.js';
-export type { BrowserControllerEvents } from './abstract-classes/browser-controller.js';
+export type {
+    BrowserControllerEvents,
+    IBrowserController,
+    IBrowserLaunchContext,
+} from './abstract-classes/browser-controller.js';
 export { BrowserController } from './abstract-classes/browser-controller.js';
 export { PuppeteerController } from './puppeteer/puppeteer-controller.js';
 export { PlaywrightController } from './playwright/playwright-controller.js';
@@ -52,3 +56,4 @@ export { LaunchContext } from './launch-context.js';
 export { RemoteBrowserProvider } from './remote-browser-provider.js';
 export type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy.js';
+export type { IBrowserPool, NewPageOptions } from '@crawlee/types';

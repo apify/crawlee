@@ -61,7 +61,7 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
                 label: 'first',
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -72,7 +72,7 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
                 label: 'second',
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -96,7 +96,7 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
                 label: 'first',
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
         const userDataAfterEnqueue = JSON.stringify(userData);
@@ -114,7 +114,7 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
                 sessionId: 'my-session',
             },
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 
@@ -129,7 +129,7 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
         await cheerioCrawlerEnqueueLinks({
             options: {},
             $,
-            requestQueue,
+            requestManager: requestQueue,
             originalRequestUrl: 'https://example.com',
         });
 

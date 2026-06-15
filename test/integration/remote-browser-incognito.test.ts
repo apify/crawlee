@@ -30,6 +30,7 @@ test.skipIf(!process.env.CRAWLEE_DIFFICULT_TESTS)(
     'remote Playwright CDP: pages on the same browser do not share cookies',
     async () => {
         const observations: { controllerId: string; body: { cookies: Record<string, string> } }[] = [];
+        const controllerIdByPage = new WeakMap<object, string>();
 
         const crawler = new PlaywrightCrawler({
             launchContext: {
@@ -38,14 +39,19 @@ test.skipIf(!process.env.CRAWLEE_DIFFICULT_TESTS)(
             browserPoolOptions: {
                 retireBrowserAfterPageCount: 10, // keep the same browser across both requests
                 maxOpenPagesPerBrowser: 2,
+                postPageCreateHooks: [
+                    (page, browserController) => {
+                        controllerIdByPage.set(page, browserController.id);
+                    },
+                ],
             },
             saveResponseCookies: false, // remove Session-based propagation
             maxConcurrency: 1,
             maxRequestsPerCrawl: 2,
-            async requestHandler({ page, browserController }) {
+            async requestHandler({ page }) {
                 const body = await page.evaluate(() => document.body.textContent?.trim());
                 observations.push({
-                    controllerId: browserController.id,
+                    controllerId: controllerIdByPage.get(page)!,
                     body: body ? JSON.parse(body) : null,
                 });
             },

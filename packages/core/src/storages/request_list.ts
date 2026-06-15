@@ -10,6 +10,8 @@ import { type InternalSource, Request, type RequestOptions, type Source } from '
 import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
+import type { IRequestLoader } from './request_loader.js';
+import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
@@ -19,74 +21,6 @@ export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
-
-/**
- * Represents a static list of URLs to crawl.
- */
-export interface IRequestList {
-    /**
-     * Returns the total number of unique requests present in the list.
-     */
-    length(): number;
-
-    /**
-     * Returns `true` if all requests were already handled and there are no more left.
-     */
-    isFinished(): Promise<boolean>;
-
-    /**
-     * Resolves to `true` if the next call to {@apilink IRequestList.fetchNextRequest} function
-     * would return `null`, otherwise it resolves to `false`.
-     * Note that even if the list is empty, there might be some pending requests currently being processed.
-     */
-    isEmpty(): Promise<boolean>;
-
-    /**
-     * Returns number of handled requests.
-     */
-    handledCount(): number;
-
-    /**
-     * Persists the current state of the `IRequestList` into the default {@apilink KeyValueStore}.
-     * The state is persisted automatically in regular intervals, but calling this method manually
-     * is useful in cases where you want to have the most current state available after you pause
-     * or stop fetching its requests. For example after you pause or abort a crawl. Or just before
-     * a server migration.
-     */
-    persistState(): Promise<void>;
-
-    /**
-     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
-     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
-     * Otherwise it gets the next request from sources.
-     *
-     * The function's `Promise` resolves to `null` if there are no more
-     * requests to process.
-     */
-    fetchNextRequest(): Promise<Request | null>;
-
-    /**
-     * Can be used to iterate over the `RequestList` instance in a `for await .. of` loop.
-     * Provides an alternative for the repeated use of `fetchNextRequest`.
-     */
-    [Symbol.asyncIterator](): AsyncGenerator<Request>;
-
-    /**
-     * Reclaims request to the list if its processing failed.
-     * The request will become available in the next `this.fetchNextRequest()`.
-     */
-    reclaimRequest(request: Request): Promise<void>;
-
-    /**
-     * Marks request as handled after successful processing.
-     */
-    markRequestHandled(request: Request): Promise<void>;
-
-    /**
-     * @internal
-     */
-    inProgress: Set<string>;
-}
 
 export interface RequestListOptions {
     /**
@@ -265,8 +199,8 @@ export interface RequestListOptions {
  * > In practical terms, such a combination can be useful when there is a large number of initial URLs,
  * > but more URLs would be added dynamically by the crawler.
  *
- * `RequestList` has an internal state where it stores information about which requests were already handled,
- * which are in progress and which were reclaimed. The state may be automatically persisted to the default
+ * `RequestList` has an internal state where it stores information about which requests were already handled
+ * and which are in progress. The state may be automatically persisted to the default
  * {@apilink KeyValueStore} by setting the `persistStateKey` option so that if the Node.js process is restarted,
  * the crawling can continue where it left off. The automated persisting is launched upon receiving the `persistState`
  * event that is periodically emitted by {@apilink EventManager}.
@@ -304,7 +238,7 @@ export interface RequestListOptions {
  * ```
  * @category Sources
  */
-export class RequestList implements IRequestList {
+export class RequestList implements IRequestLoader {
     private log: CrawleeLogger = serviceLocator.getLogger().child({ prefix: 'RequestList' });
 
     /**
@@ -327,10 +261,11 @@ export class RequestList implements IRequestList {
     inProgress = new Set<string>();
 
     /**
-     * Set of `uniqueKey`s of requests for which reclaimRequest() was called.
+     * `uniqueKey`s of requests that were in progress when the state was last persisted and thus need to be
+     * re-crawled after a restart. They are served before advancing through the rest of the sources.
      * @internal
      */
-    reclaimed = new Set<string>();
+    private requestsToRetry: string[] = [];
 
     /**
      * Starts as true because until we handle the first request, the list is effectively persisted by doing nothing.
@@ -601,8 +536,8 @@ export class RequestList implements IRequestList {
             }
         }
 
-        // All in-progress requests need to be re-crawled
-        this.reclaimed = new Set(this.inProgress);
+        // All in-progress requests were interrupted and need to be re-crawled.
+        this.requestsToRetry = [...this.inProgress];
     }
 
     /**
@@ -649,7 +584,7 @@ export class RequestList implements IRequestList {
     async isEmpty(): Promise<boolean> {
         this._ensureIsInitialized();
 
-        return this.reclaimed.size === 0 && this.nextIndex >= this.requests.length;
+        return this.requestsToRetry.length === 0 && this.nextIndex >= this.requests.length;
     }
 
     /**
@@ -667,10 +602,9 @@ export class RequestList implements IRequestList {
     async fetchNextRequest(): Promise<Request | null> {
         this._ensureIsInitialized();
 
-        // First return reclaimed requests if any.
-        const uniqueKey = this.reclaimed.values().next().value;
+        // First re-serve any requests that were interrupted before the last state persist.
+        const uniqueKey = this.requestsToRetry.shift();
         if (uniqueKey) {
-            this.reclaimed.delete(uniqueKey);
             const index = this.uniqueKeyToIndex[uniqueKey];
             return this.ensureRequest(this.requests[index], index);
         }
@@ -715,24 +649,11 @@ export class RequestList implements IRequestList {
         const { uniqueKey } = request;
 
         this._ensureUniqueKeyValid(uniqueKey);
-        this._ensureInProgressAndNotReclaimed(uniqueKey);
+        this._ensureInProgress(uniqueKey);
         this._ensureIsInitialized();
 
         this.inProgress.delete(uniqueKey);
         this.isStatePersisted = false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    async reclaimRequest(request: Request): Promise<void> {
-        const { uniqueKey } = request;
-
-        this._ensureUniqueKeyValid(uniqueKey);
-        this._ensureInProgressAndNotReclaimed(uniqueKey);
-        this._ensureIsInitialized();
-
-        this.reclaimed.add(uniqueKey);
     }
 
     /**
@@ -843,14 +764,11 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * Checks that request is not reclaimed and throws an error if so.
+     * Checks that a request is currently being processed and throws an error if not.
      */
-    protected _ensureInProgressAndNotReclaimed(uniqueKey: string): void {
+    protected _ensureInProgress(uniqueKey: string): void {
         if (!this.inProgress.has(uniqueKey)) {
             throw new Error(`The request is not being processed (uniqueKey: ${uniqueKey})`);
-        }
-        if (this.reclaimed.has(uniqueKey)) {
-            throw new Error(`The request was already reclaimed (uniqueKey: ${uniqueKey})`);
         }
     }
 
@@ -868,16 +786,38 @@ export class RequestList implements IRequestList {
     /**
      * Returns the total number of unique requests present in the `RequestList`.
      */
-    length(): number {
+    async getTotalCount(): Promise<number> {
         this._ensureIsInitialized();
 
         return this.requests.length;
     }
 
     /**
+     * Returns the number of pending requests in the `RequestList`.
+     */
+    async getPendingCount(): Promise<number> {
+        this._ensureIsInitialized();
+
+        return this.requests.length - (this.nextIndex - this.inProgress.size);
+    }
+
+    /**
+     * Combines this list with a request manager (a {@apilink RequestQueue} by default) into a
+     * {@apilink RequestManagerTandem}, allowing requests to be added and reclaimed while still
+     * being read from this list first.
+     */
+    async toTandem(requestManager?: IRequestManager): Promise<IRequestManager> {
+        // Import here to avoid circular imports.
+        const { RequestManagerTandem } = await import('./request_manager_tandem.js');
+        const { RequestQueue } = await import('./request_queue_v2.js');
+
+        return new RequestManagerTandem(this, requestManager ?? (await RequestQueue.open()));
+    }
+
+    /**
      * @inheritDoc
      */
-    handledCount(): number {
+    async getHandledCount(): Promise<number> {
         this._ensureIsInitialized();
 
         return this.nextIndex - this.inProgress.size;

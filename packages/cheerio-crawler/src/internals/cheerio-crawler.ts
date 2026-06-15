@@ -6,8 +6,8 @@ import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
+    IRequestManager,
     RequestHandler,
-    RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
 } from '@crawlee/http';
@@ -113,13 +113,15 @@ export type CheerioRequestHandler<
  * and then invokes the user-provided {@apilink CheerioCrawlerOptions.requestHandler} to extract page data
  * using a [jQuery](https://jquery.com/)-like interface to the parsed HTML DOM.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink CheerioCrawlerOptions.requestList}
- * or {@apilink CheerioCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink CheerioCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink CheerioCrawlerOptions.requestList} and {@apilink CheerioCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink CheerioCrawlerOptions.requestList|`requestList`} and {@apilink CheerioCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
@@ -242,9 +244,12 @@ export class CheerioCrawler<
         return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return (await cheerioCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    options: {
+                        ...enqueueOptions,
+                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
+                    },
                     $: crawlingContext.$,
-                    requestQueue: await this.getRequestQueue(),
+                    requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
@@ -271,7 +276,7 @@ export class CheerioCrawler<
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
     robotsTxtFile?: RobotsTxtFile;
     onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
@@ -323,7 +328,7 @@ export async function cheerioCrawlerEnqueueLinks(
         });
     }
     return enqueueLinks({
-        requestQueue: options.requestQueue,
+        requestManager: options.requestManager,
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,

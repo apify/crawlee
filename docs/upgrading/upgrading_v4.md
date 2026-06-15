@@ -214,6 +214,70 @@ const crawler = new BasicCrawler({
 });
 ```
 
+## Custom `BrowserPool` implementations via the `IBrowserPool` interface
+
+Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The interface follows the classic acquire/release pattern, plus a pair of helpers for moving state between the crawling session and the page:
+
+- **`newPage(options?)`** — opens a new page. An optional `session` can be passed as a best-effort hint — the pool may use it for proxy configuration, fingerprinting, etc., but nothing is guaranteed.
+- **`closePage(page, options?)`** — signals the pool that the caller is done with the page. If the optional `error` is a `SessionError`, the pool should purge all state associated with the session (e.g. retire the underlying browser).
+- **`extractPageState(page)`** — reads the relevant state (currently cookies) out of a page so the crawler can persist it back into the session.
+- **`injectPageState(page, state)`** — the counterpart to `extractPageState`; seeds a page with state (currently cookies) before navigation. Isolation between pages is best-effort and depends on the pool implementation.
+
+Lifecycle (`destroy`) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote browser farm, a session-aware pool, or another custom browser-management strategy without subclassing `BrowserPool`.
+
+```typescript
+import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { BrowserPool, PuppeteerPlugin, type IBrowserPool } from '@crawlee/browser-pool';
+import puppeteer from 'puppeteer';
+
+const sharedPool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+const crawler = new PuppeteerCrawler({
+    browserPool: sharedPool,
+    requestHandler: async ({ page }) => {
+        // …
+    },
+});
+
+// You own `sharedPool` — destroy it yourself when you're done.
+await crawler.run();
+await sharedPool.destroy();
+```
+
+## `BrowserCrawlingContext.browserController` has been removed
+
+The `browserController` property is no longer part of the crawling context (`BrowserCrawlingContext`). Browser controller management is now fully internal to the pool — the crawler interacts with the pool only through the `IBrowserPool` interface (`newPage`, `closePage`, `extractPageState`, and `injectPageState`).
+
+If you previously used `browserController` in your request handlers, here is how to migrate the most common patterns:
+
+**Cookies** — Cookie injection and persistence are now handled automatically by the crawler and the pool. You no longer need to call `browserController.getCookies()` or `browserController.setCookies()` manually.
+
+**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so there is no standalone `ignoreTlsErrors` page option anymore. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
+
+**Direct browser access** — If you need the raw browser or controller instance (e.g. for Puppeteer/Playwright-specific APIs), construct a `BrowserPool` yourself, pass it to the crawler, and reference it directly in your handler — no cast needed:
+
+```typescript
+import { BrowserPool, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import puppeteer from 'puppeteer';
+
+const pool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+const crawler = new PuppeteerCrawler({
+    browserPool: pool,
+    requestHandler: async ({ page }) => {
+        const controller = pool.getBrowserControllerByPage(page);
+        // controller.browser, controller.launchContext, etc.
+    },
+});
+
+await crawler.run();
+// You own the pool — tear it down yourself.
+await pool.destroy();
+```
+
+Note that this couples your code to the built-in `BrowserPool` — custom `IBrowserPool` implementations may not expose controllers at all.
+
 ## `tieredProxyUrls` is removed from `ProxyConfiguration`
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
@@ -465,9 +529,60 @@ The `StorageClient` interface changed from synchronous sub-client getters to **a
 | `client.requestQueue(id, opts)` | `client.createRequestQueueClient({ id?, name?, clientKey?, timeoutSecs? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueClient`)_ |
 
-The `get()` method on `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` has been renamed to **`getMetadata()`**.
+The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueueClient`) have been aligned with their Python counterparts:
+
+| Before (v3) | After (v4) |
+|---|---|
+| `get()` | `getMetadata()` |
+| `update()` | Removed |
+| `delete()` | `drop()` |
+| _(n/a)_ | `purge()` (new — clears data, keeps storage) |
+
+**`DatasetClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `pushItems(items: Data \| Data[] \| string \| string[])` | `pushData(items: Data[])` |
+| `listItems(options?)` (dual iterable) | `getData(options?)` (returns a single `PaginatedList` page) |
+| `listEntries(options?)` | Removed (handled by `Dataset` frontend) |
+| `downloadItems()` | Removed |
+
+**`KeyValueStoreClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `getRecord(key, options?)` | `getValue(key)` |
+| `setRecord(record, options?)` | `setValue(record)` |
+| `deleteRecord(key)` | `deleteValue(key)` |
+| `getRecordPublicUrl(key)` | `getPublicUrl(key)` |
+| `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreItemData[]` |
+| `keys()`, `values()`, `entries()` | Removed (handled by `KeyValueStore` frontend) |
+
+**`RequestQueueClient`:**
+
+| Before (v3) | After (v4) |
+|---|---|
+| `deleteRequest(id)` | Removed |
+
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
+
+### `RecordOptions` simplified
+
+`timeoutSecs` and `doNotRetryTimeouts` were removed from `RecordOptions` (used by `KeyValueStore.setValue`). Only `contentType` remains.
+
+### `KeyValueStoreIteratorOptions` simplified
+
+`exclusiveStartKey` and `collection` were removed. Only `prefix` remains.
+
+### `Dataset.listItems` replaced by `Dataset.getData` and `Dataset.values`
+
+`Dataset.listItems()` is replaced by two methods:
+- `Dataset.getData(options?)` — returns a single `PaginatedList<Data>` page.
+- `Dataset.values(options?)` — dual iterable: `for await...of` iterates all items; `await` returns all items as `Data[]`.
+
+`Dataset.entries()` works the same way as `values()` but yields `[index, Data]` tuples. `KeyValueStore.keys()`, `.values()`, `.entries()` follow the same dual-iterable pattern.
 
 ### Removed `list()` method
 
@@ -479,7 +594,53 @@ If you implemented a custom `StorageClient`, you need to:
 
 1. Remove your `*CollectionClient` classes.
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
-3. Rename `get()` to `getMetadata()` on your `DatasetClient`, `KeyValueStoreClient`, and `RequestQueueClient` implementations.
+3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
+
+## Multiple crawler instances use separate default request queues
+
+In v3, every `BasicCrawler` (or subclass) that didn't receive an explicit `requestQueue` option would open the same default request queue. If you created two crawlers in the same process, they would silently share a queue — leading to request collisions and hard-to-debug deduplication issues.
+
+In v4, only the **first** crawler instance uses the default request queue. Each subsequent instance automatically gets its own queue via an internal alias (e.g. `__default_1__`, `__default_2__`, etc.). This means multiple crawlers can safely coexist without interfering with each other's requests.
+
+If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, that queue is used as-is regardless of instance order.
+
+## Repeated `run()` calls use `purge()` instead of `drop()` + recreate
+
+When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
+
+The new `purge()` method is available on `RequestProvider` (the base class for `RequestQueue`) and is also defined as an optional method on the `IRequestManager` interface.
+
+By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
+
+| `purgeRequestQueue` value | Owned queue (auto-created) | User-supplied queue |
+|---|---|---|
+| omitted (default) | Purged | Not purged |
+| `true` | Purged | Purged |
+| `false` | Not purged | Not purged |
+
+```typescript
+// The purge happens automatically between run() calls:
+const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
+await crawler.run(['https://example.com/a', 'https://example.com/b']);
+// Queue is purged here, so the same URLs can be processed again:
+await crawler.run(['https://example.com/a', 'https://example.com/c']);
+```
+
+You can opt out of the automatic purge by passing `purgeRequestQueue: false`:
+
+```typescript
+await crawler.run(urls, { purgeRequestQueue: false });
+```
+
+If you supplied your own `requestQueue` and want it purged between runs, pass `purgeRequestQueue: true` explicitly:
+
+```typescript
+const queue = await RequestQueue.open('my-queue');
+const crawler = new BasicCrawler({ requestQueue: queue, requestHandler: async () => { /* ... */ } });
+await crawler.run(['https://example.com/first']);
+// Explicitly purge the user-supplied queue before the second run:
+await crawler.run(['https://example.com/second'], { purgeRequestQueue: true });
+```
 
 ## Storage `.open()` now also accepts `{ id?, name? }`
 
@@ -518,6 +679,127 @@ const dataset = await Dataset.open();
 ```
 
 The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
+
+## Request loaders and managers
+
+The request loader/manager interfaces have been reworked to mirror the abstractions in Crawlee for Python. See the new [Request loaders](../guides/request-loaders) guide for the full picture.
+
+### `IRequestList` renamed to `IRequestLoader`
+
+The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
+
+### Loader interface surface changes
+
+The harmonized loader interface differs from the old `IRequestList` in a few ways:
+
+| Before (v3) | After (v4) |
+|---|---|
+| `length(): number` | `getTotalCount(): Promise<number>` (renamed and now async) |
+| _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
+| `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
+| `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
+| `inProgress: Set<string>` on the interface | Removed from the interface |
+| `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
+| _(n/a)_ | `toTandem?(requestManager?)` (new) |
+
+`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
+
+**Before:**
+```typescript
+const total = requestList.length();
+const handled = requestList.handledCount();
+```
+
+**After:**
+```typescript
+const total = await requestList.getTotalCount();
+const handled = await requestList.getHandledCount();
+```
+
+### Combining a list and a queue: `toTandem()`
+
+`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
+
+```typescript
+import { CheerioCrawler, RequestList } from 'crawlee';
+
+const requestList = await RequestList.open('my-list', ['https://example.com']);
+
+const crawler = new CheerioCrawler({
+    requestManager: await requestList.toTandem(),
+    requestHandler: async ({ enqueueLinks }) => {
+        await enqueueLinks();
+    },
+});
+```
+
+### `SitemapRequestList` renamed to `SitemapRequestLoader`
+
+The `SitemapRequestList` class (and its `SitemapRequestListOptions` type) have been renamed to `SitemapRequestLoader` and `SitemapRequestLoaderOptions` to match the loader terminology. Update your imports and type references accordingly:
+
+```typescript
+// Before
+import { SitemapRequestList } from 'crawlee';
+const loader = await SitemapRequestList.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
+
+// After
+import { SitemapRequestLoader } from 'crawlee';
+const loader = await SitemapRequestLoader.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
+```
+
+The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading, so any in-flight sitemap crawl that migrates across the upgrade will restart from the beginning. If you need to preserve state, either finish the crawl before upgrading or pass an explicit `persistStateKey`.
+
+### Crawler `requestList` / `requestQueue` options deprecated in favor of `requestManager`
+
+The crawler now reads its requests from a single `requestManager` (any `IRequestManager`, including a `RequestQueue`). The `requestList` and `requestQueue` constructor options are **deprecated** but still accepted as sugar:
+
+- `requestQueue` alone → used directly as the manager.
+- `requestList` + `requestQueue` → combined into a `RequestManagerTandem` automatically.
+- `requestList` alone → combined with a lazily-opened default queue into a tandem.
+
+```typescript
+// Before
+const crawler = new CheerioCrawler({ requestList, requestQueue });
+
+// After
+const crawler = new CheerioCrawler({ requestManager: new RequestManagerTandem(requestList, requestQueue) });
+// or, equivalently
+const crawler = new CheerioCrawler({ requestManager: await requestList.toTandem(requestQueue) });
+```
+
+A lone `requestList` now runs through a tandem over an auto-opened queue (rather than a read-only adapter). This means retries and `maxRequestsPerCrawl` accounting for that path now follow queue semantics.
+
+### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
+
+The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.
+
+### `getRequestQueue()` deprecated in favor of `getRequestManager()`
+
+`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestProvider`/`RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
+
+**Before:**
+```typescript
+const queue = await crawler.getRequestQueue();
+```
+
+**After:**
+```typescript
+const manager = await crawler.getRequestManager();
+```
+
+### `enqueueLinks` `requestQueue` option renamed to `requestManager`
+
+The standalone `enqueueLinks()` function and the click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
+
+**Before:**
+```typescript
+await enqueueLinks({ urls, requestQueue });
+```
+
+**After:**
+```typescript
+await enqueueLinks({ urls, requestManager });
+```
 
 ## `transformRequestFunction` precedence in `enqueueLinks`
 

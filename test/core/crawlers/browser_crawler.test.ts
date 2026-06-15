@@ -1,6 +1,12 @@
 import type { Server } from 'node:http';
 
-import { BROWSER_POOL_EVENTS, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { BrowserPool, PuppeteerController } from '@crawlee/browser-pool';
+import {
+    BROWSER_POOL_EVENTS,
+    BrowserPool as BrowserPoolClass,
+    OperatingSystemsName,
+    PuppeteerPlugin,
+} from '@crawlee/browser-pool';
 import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator, SessionPool } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
@@ -122,8 +128,9 @@ describe('BrowserCrawler', () => {
 
             // Spy on destroy and track if it was called
             let destroyCalled = false;
-            const originalDestroy = browserCrawler.browserPool.destroy.bind(browserCrawler.browserPool);
-            browserCrawler.browserPool.destroy = async () => {
+            const ownedPool = browserCrawler.browserPool as BrowserPool;
+            const originalDestroy = ownedPool.destroy.bind(ownedPool);
+            ownedPool.destroy = async () => {
                 destroyCalled = true;
                 return originalDestroy();
             };
@@ -131,6 +138,40 @@ describe('BrowserCrawler', () => {
             await browserCrawler.run();
             expect(destroyCalled).toBe(true);
         } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('should not tear down a user-supplied browser pool', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+        const externalPool = new BrowserPoolClass({ browserPlugins: [puppeteerPlugin] });
+
+        try {
+            const requestList = await RequestList.open({
+                sources: [{ url: 'http://example.com/?q=1' }],
+            });
+            const browserCrawler = new BrowserCrawlerTest({
+                browserPool: externalPool,
+                requestList,
+                requestHandler: async () => {},
+                maxRequestRetries: 1,
+            });
+
+            expect(browserCrawler.browserPool).toBe(externalPool);
+
+            let destroyCalled = false;
+            const originalDestroy = externalPool.destroy.bind(externalPool);
+            externalPool.destroy = async () => {
+                destroyCalled = true;
+                return originalDestroy();
+            };
+
+            await browserCrawler.run();
+            expect(destroyCalled).toBe(false);
+        } finally {
+            await externalPool.destroy();
             await localStorageEmulator.destroy();
         }
     });
@@ -237,6 +278,52 @@ describe('BrowserCrawler', () => {
             await browserCrawler.run();
 
             expect(hook).toHaveBeenCalled();
+        } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('postNavigationHooks can override response, observed downstream', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        try {
+            const requestList = await RequestList.open({
+                sources: [{ url: `${serverAddress}/?q=1` }],
+            });
+
+            const observed: { fromSecondHook?: number; fromHandler?: number } = {};
+            const fakeStatus = 418;
+
+            const browserCrawler = new BrowserCrawlerTest({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                requestList,
+                maxRequestRetries: 0,
+                postNavigationHooks: [
+                    async ({ response }) => ({
+                        response: new Proxy(response, {
+                            get(target, key, receiver) {
+                                if (key === 'status') return () => fakeStatus;
+                                return Reflect.get(target, key, receiver);
+                            },
+                        }),
+                    }),
+                    async ({ response }) => {
+                        observed.fromSecondHook = response.status();
+                    },
+                ],
+                requestHandler: async ({ response }) => {
+                    observed.fromHandler = response.status();
+                },
+            });
+
+            await browserCrawler.run();
+
+            expect(observed.fromSecondHook).toBe(fakeStatus);
+            expect(observed.fromHandler).toBe(fakeStatus);
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -355,8 +442,8 @@ describe('BrowserCrawler', () => {
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [
-                    async (_crawlingContext, gotoOptions) => {
-                        gotoOptions!.timeout = 60000;
+                    async ({ gotoOptions }) => {
+                        gotoOptions.timeout = 60000;
                     },
                 ],
             });
@@ -767,7 +854,7 @@ describe('BrowserCrawler', () => {
                 },
                 maxRequestRetries: 1,
             });
-            browserCrawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
+            (browserCrawler.browserPool as BrowserPool).on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
                 retiredBrowserCount += 1;
             });
 
@@ -819,30 +906,34 @@ describe('BrowserCrawler', () => {
         await localStorageEmulator.init();
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
+        const pool = new BrowserPoolClass({
+            browserPlugins: [puppeteerPlugin],
+            useFingerprints: true,
+            fingerprintOptions: {
+                fingerprintGeneratorOptions: {
+                    operatingSystems: [OperatingSystemsName.windows],
+                },
+            },
+        });
+
         try {
             const requestList = await RequestList.open({
                 sources: [{ url: `${serverAddress}/?q=1` }],
             });
             const browserCrawler = new BrowserCrawlerTest({
-                browserPoolOptions: {
-                    browserPlugins: [puppeteerPlugin],
-                    useFingerprints: true,
-                    fingerprintOptions: {
-                        fingerprintGeneratorOptions: {
-                            operatingSystems: [OperatingSystemsName.windows],
-                        },
-                    },
-                },
+                browserPool: pool,
                 requestList,
 
-                requestHandler: async ({ browserController }) => {
-                    expect(browserController.launchContext.fingerprint).toBeDefined();
+                requestHandler: async ({ page }) => {
+                    const controller = pool.getBrowserControllerByPage(page);
+                    expect(controller?.launchContext.fingerprint).toBeDefined();
                 },
             });
 
             await browserCrawler.run();
             expect.hasAssertions();
         } finally {
+            await pool.destroy();
             await localStorageEmulator.destroy();
         }
     });
@@ -884,8 +975,8 @@ describe('BrowserCrawler', () => {
                     maxConcurrency: 1,
                 });
 
-                browserCrawler.browserPool.postLaunchHooks.push((_pageId, browserController) => {
-                    browserProxies.push(browserController.launchContext.proxyUrl!);
+                (browserCrawler.browserPool as BrowserPool).postLaunchHooks.push((_pageId, browserController) => {
+                    browserProxies.push((browserController as PuppeteerController).launchContext.proxyUrl!);
                 });
 
                 await browserCrawler.run();
@@ -939,7 +1030,9 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxRequestRetries: proxyUrls.length - 1,
+                    // Enough retries for every request to eventually be served on a session bound to the good proxy
+                    // (proxy rotation interleaves with the request-manager order, so a few extra attempts are needed).
+                    maxRequestRetries: 5,
                     maxConcurrency: 1,
 
                     proxyConfiguration,
@@ -947,7 +1040,7 @@ describe('BrowserCrawler', () => {
                 });
 
                 await expect(browserCrawler.run()).resolves.not.toThrow();
-                expect(requestHandler).toHaveBeenCalledTimes(requestList!.length());
+                expect(requestHandler).toHaveBeenCalledTimes(4);
             } finally {
                 await localStorageEmulator.destroy();
             }
@@ -976,7 +1069,7 @@ describe('BrowserCrawler', () => {
                 /**
                  * The first increment is the base case when the proxy is retrieved for the first time.
                  */
-                let numberOfRotations = -requestList!.length();
+                let numberOfRotations = -(await requestList!.getTotalCount());
                 const browserCrawler = new (class extends BrowserCrawlerTest {
                     protected override async _navigationHandler(
                         ctx: TestCrawlingContext,
@@ -1004,8 +1097,8 @@ describe('BrowserCrawler', () => {
                 });
 
                 await browserCrawler.run();
-                expect(failedRequestHandler).toBeCalledTimes(requestList!.length());
-                expect(numberOfRotations).toBe(requestList!.length() * 5);
+                expect(failedRequestHandler).toBeCalledTimes(4);
+                expect(numberOfRotations).toBe(4 * 5);
             } finally {
                 await localStorageEmulator.destroy();
             }
@@ -1059,10 +1152,7 @@ describe('BrowserCrawler', () => {
                 await crawler.run([serverAddress]);
 
                 expect(spy).toBeCalled();
-                expect(spy.mock.calls[0][0]).toEqual(
-                    'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
-                );
-                expect(spy.mock.calls[1][0]).toEqual(expect.stringContaining(proxyError));
+                expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
             } finally {
                 await localStorageEmulator.destroy();
             }

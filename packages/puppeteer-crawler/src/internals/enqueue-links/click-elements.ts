@@ -2,10 +2,10 @@ import { URL } from 'node:url';
 
 import type {
     GlobInput,
+    IRequestManager,
     PseudoUrlInput,
     RegExpInput,
     RequestOptions,
-    RequestProvider,
     RequestTransform,
     SkippedRequestCallback,
     UrlPatternObject,
@@ -36,9 +36,9 @@ export interface EnqueueLinksByClickingElementsOptions {
     page: Page;
 
     /**
-     * A request queue to which the URLs will be enqueued.
+     * * A request manager to which the URLs will be enqueued.
      */
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
 
     /**
      * A CSS selector matching elements to be clicked on. Unlike in {@apilink enqueueLinks}, there is no default
@@ -223,7 +223,7 @@ export interface EnqueueLinksByClickingElementsOptions {
  * ```javascript
  * await utils.puppeteer.enqueueLinksByClickingElements({
  *   page,
- *   requestQueue,
+ *   requestManager,
  *   selector: 'a.product-detail',
  *   pseudoUrls: [
  *       'https://www.example.com/handbags/[.*]'
@@ -241,7 +241,7 @@ export async function enqueueLinksByClickingElements(
         options,
         ow.object.exactShape({
             page: ow.object.hasKeys('goto', 'evaluate'),
-            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            requestManager: ow.object.hasKeys('fetchNextRequest', 'addRequestsBatched'),
             selector: ow.string,
             userData: ow.optional.object,
             clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
@@ -263,7 +263,7 @@ export async function enqueueLinksByClickingElements(
 
     const {
         page,
-        requestQueue,
+        requestManager,
         selector,
         clickOptions,
         // oxlint-disable-next-line typescript/no-deprecated -- still accepted for backwards compat
@@ -340,7 +340,7 @@ export async function enqueueLinksByClickingElements(
         }
     }
     const requests = filteredOptions.map((opts) => new Request(opts));
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+    const { addedRequests } = await requestManager.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }

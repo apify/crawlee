@@ -25,11 +25,12 @@ await Actor.main(async () => {
             model: 'anthropic/claude-haiku-4-5-20251001',
             verbose: 0,
         },
-        async requestHandler({ page, request, browserController, log, pushData }) {
+        async requestHandler({ page, request, log, pushData }) {
             log.info(`Processing ${request.loadedUrl}`);
 
-            // Track which browser instance handled this request
-            const browserId = browserController.id;
+            // Track which browser instance handled this request via the underlying Playwright browser
+            const browser = page.context().browser();
+            const browserId = browser?.process()?.pid ?? 'unknown';
             browserIds.add(browserId);
 
             // Simple extraction - just get the page title

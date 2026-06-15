@@ -5,12 +5,10 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra/esm';
 import type { RequestQueueFileSystemEntry } from '../fs/request-queue/fs.js';
 import type { RequestQueueMemoryEntry } from '../fs/request-queue/memory.js';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
-import { StorageTypes } from '../consts.js';
 import { createRequestQueueStorageImplementation } from '../fs/request-queue/index.js';
 import type { MemoryStorage } from '../index.js';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
@@ -38,6 +36,12 @@ const requestOptionsShape = s.object({
 export interface RequestQueueClientOptions {
     name?: string;
     id?: string;
+    /**
+     * The directory name to use on disk. When provided, takes precedence over `name` and `id`
+     * for the directory path. This allows alias-opened storages to have a directory name
+     * that differs from their metadata `name` (which is `undefined` for unnamed storages).
+     */
+    directoryName?: string;
     baseStorageDirectory: string;
     client: MemoryStorage;
 }
@@ -54,6 +58,11 @@ export interface InternalRequest {
 
 export class RequestQueueClient extends BaseClient implements storage.RequestQueueClient {
     name?: string;
+    /**
+     * The key used for directory naming and cache lookup. For named storages, this equals
+     * the name. For alias (unnamed) storages, this is the alias string. Falls back to id.
+     */
+    directoryName: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
@@ -69,7 +78,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     constructor(options: RequestQueueClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.requestQueueDirectory = resolve(options.baseStorageDirectory, this.name ?? this.id);
+        this.directoryName = options.directoryName ?? this.name ?? this.id;
+        this.requestQueueDirectory = resolve(options.baseStorageDirectory, this.directoryName);
         this.client = options.client;
     }
 
@@ -78,45 +88,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return this.toRequestQueueInfo();
     }
 
-    async update(newFields: { name?: string | undefined }): Promise<storage.RequestQueueInfo | undefined> {
-        // The validation is intentionally loose to prevent issues
-        // when swapping to a remote queue in production.
-        const parsed = s
-            .object({
-                name: s.string().lengthGreaterThan(0).optional(),
-            })
-            .passthrough()
-            .parse(newFields);
-
-        // Skip if no changes
-        if (!parsed.name) {
-            return this.toRequestQueueInfo();
-        }
-
-        // Check that name is not in use already
-        const existingQueueByName = this.client.requestQueueCache.find(
-            (queue) => queue.name?.toLowerCase() === parsed.name!.toLowerCase(),
-        );
-
-        if (existingQueueByName) {
-            this.throwOnDuplicateEntry(StorageTypes.RequestQueue, 'name', parsed.name);
-        }
-
-        this.name = parsed.name;
-
-        const previousDir = this.requestQueueDirectory;
-
-        this.requestQueueDirectory = resolve(this.client.requestQueuesDirectory, parsed.name ?? this.name ?? this.id);
-
-        await move(previousDir, this.requestQueueDirectory, { overwrite: true });
-
-        // Update timestamps
-        this.updateTimestamps(true);
-
-        return this.toRequestQueueInfo();
-    }
-
-    async delete(): Promise<void> {
+    async drop(): Promise<void> {
         const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
 
         if (storeIndex !== -1) {
@@ -126,6 +98,27 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
             await rm(oldClient.requestQueueDirectory, { recursive: true, force: true });
         }
+    }
+
+    async purge(): Promise<void> {
+        // Clear all in-memory state
+        this.requests.clear();
+        this.forefrontRequestIds = [];
+        this.handledRequestCount = 0;
+        this.pendingRequestCount = 0;
+
+        // Remove request files from disk but keep the directory
+        if (this.client.persistStorage) {
+            const { readdir } = await import('node:fs/promises');
+            const entries = await readdir(this.requestQueueDirectory).catch(() => []);
+            for (const entry of entries) {
+                if (entry !== '__metadata__.json') {
+                    await rm(resolve(this.requestQueueDirectory, entry), { force: true });
+                }
+            }
+        }
+
+        this.updateTimestamps(true);
     }
 
     private *requestKeyIterator(rqClient: RequestQueueClient): IterableIterator<string> {
@@ -518,25 +511,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             wasAlreadyHandled: requestWasHandledBeforeUpdate,
             wasAlreadyPresent: true,
         };
-    }
-
-    async deleteRequest(id: string): Promise<void> {
-        const entry = this.requests.get(id);
-
-        if (entry) {
-            const request = await entry.get();
-
-            this.requests.delete(id);
-            this.updateTimestamps(true);
-
-            if (request.orderNo) {
-                this.pendingRequestCount -= 1;
-            } else {
-                this.handledRequestCount -= 1;
-            }
-
-            await entry.delete();
-        }
     }
 
     toRequestQueueInfo(): storage.RequestQueueInfo {

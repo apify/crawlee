@@ -6,8 +6,8 @@ import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
+    IRequestManager,
     RequestHandler,
-    RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
 } from '@crawlee/http';
@@ -36,7 +36,7 @@ export interface LinkeDOMCrawlerOptions<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {}
 
-export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
+export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestManager'> {}
 
 export type LinkeDOMHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -109,13 +109,15 @@ export type LinkeDOMRequestHandler<
  * and then invokes the user-provided {@apilink LinkeDOMCrawlerOptions.requestHandler} to extract page data
  * using the `window` object.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink LinkeDOMCrawlerOptions.requestList}
- * or {@apilink LinkeDOMCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink LinkeDOMCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink LinkeDOMCrawlerOptions.requestList} and {@apilink LinkeDOMCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink LinkeDOMCrawlerOptions.requestList|`requestList`} and {@apilink LinkeDOMCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
@@ -235,9 +237,12 @@ export class LinkeDOMCrawler<
         return {
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    options: {
+                        ...enqueueOptions,
+                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
+                    },
                     window: document.defaultView,
-                    requestQueue: await this.getRequestQueue(),
+                    requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
@@ -273,7 +278,7 @@ export class LinkeDOMCrawler<
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: Window | null;
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
     robotsTxtFile?: RobotsTxtFile;
     onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
@@ -327,7 +332,7 @@ export async function linkedomCrawlerEnqueueLinks(
     }
 
     return enqueueLinks({
-        requestQueue: options.requestQueue,
+        requestManager: options.requestManager,
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,

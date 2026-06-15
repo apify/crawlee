@@ -13,7 +13,8 @@ minimumReleaseAgeExclude:
   - "got-scraping"
 
 overrides:
-  playwright-core: 1.58.2
+  playwright-core: 1.60.0
+  "@puppeteer/browsers": ^3.0.4
   "@browserbasehq/stagehand": 3.0.7
   # Dedup minimatch to v9 everywhere except inside lerna — lerna 9.x's bundled
   # code (`__toESM(require('minimatch')).default(...)`) only works with v3,
