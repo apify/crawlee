@@ -41,6 +41,7 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RateLimitError,
     RequestListAdapter,
     RequestManagerTandem,
     RequestProvider,
@@ -1834,6 +1835,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
+            } else if (error instanceof RateLimitError) {
+                const domain = getDomain(request.url);
+                // We default to 1 minute if retryAfterMs is not provided
+                const cooldown = error.retryAfterMs ?? 60000;
+                if (domain) {
+                    this.domainAccessedTime.set(domain, Date.now() + cooldown - this.sameDomainDelayMillis);
+                }
             }
 
             if (!request.noRetry) {
@@ -1932,7 +1940,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         // User requested retry (we ignore retry count here as its explicitly told by the user to retry)
-        if (error instanceof RetryRequestError) {
+        // Rate limit errors are also explicitly retried (with cooldown).
+        if (error instanceof RetryRequestError || error instanceof RateLimitError) {
             return true;
         }
 

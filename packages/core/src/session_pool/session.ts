@@ -296,10 +296,10 @@ export class Session {
     }
 
     /**
-     * With certain status codes: `401`, `403` or `429` we can be certain
-     * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally the default status
-     * codes can be extended in the second parameter.
+     * Retires session based on status code.
+     * With certain status codes: `401` or `403` we can be certain
+     * that the IP is blocked.
+     *
      * @param statusCode HTTP status code.
      * @returns Whether the session was retired.
      */

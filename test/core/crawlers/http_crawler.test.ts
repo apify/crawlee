@@ -61,6 +61,21 @@ router.set('/403-with-octet-stream', (req, res) => {
     res.end();
 });
 
+let rateLimitHit = 0;
+router.set('/429', (req, res) => {
+    if (rateLimitHit === 0) {
+        rateLimitHit++;
+        res.setHeader('content-type', 'text/html');
+        res.setHeader('retry-after', '1');
+        res.statusCode = 429;
+        res.end();
+    } else {
+        res.setHeader('content-type', 'text/html');
+        res.statusCode = 200;
+        res.end('ok');
+    }
+});
+
 let server: http.Server;
 let url: string;
 
@@ -89,6 +104,7 @@ afterAll(async () => {
 const localStorageEmulator = new MemoryStorageEmulator();
 
 beforeEach(async () => {
+    rateLimitHit = 0;
     await localStorageEmulator.init();
 });
 
@@ -476,5 +492,22 @@ describe.each(
 
         expect(results[0].includes('Schmexample Domain')).toBeTruthy();
         expect(results[1].includes('Hello')).toBeTruthy();
+    });
+    test('should respect 429 RateLimitError and retry', async () => {
+        const results: string[] = [];
+        const crawler = new HttpCrawler({
+            httpClient,
+            maxRequestRetries: 1,
+            requestHandler: async ({ body }) => {
+                results.push(body.toString());
+            },
+        });
+
+        const start = Date.now();
+        await crawler.run([`${url}/429`]);
+        const duration = Date.now() - start;
+
+        expect(results).toStrictEqual(['ok']);
+        expect(duration).toBeGreaterThanOrEqual(800); // Because of retry-after: 1, allow some tolerance
     });
 });

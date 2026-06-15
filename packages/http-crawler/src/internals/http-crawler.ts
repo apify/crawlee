@@ -26,6 +26,8 @@ import {
     processHttpRequestOptions,
     RequestState,
     Router,
+    NonRetryableError,
+    RateLimitError,
     SessionError,
     validators,
 } from '@crawlee/basic';
@@ -516,6 +518,23 @@ export class HttpCrawler<
         if (!request.skipNavigation) {
             await this._handleNavigation(crawlingContext);
             tryCancel();
+
+            if (crawlingContext.response?.statusCode === 429) {
+                const retryAfterHeader = crawlingContext.response.headers['retry-after'];
+                let retryAfterMs: number | undefined = undefined;
+                if (retryAfterHeader) {
+                    const retryAfterStr = String(retryAfterHeader);
+                    if (/^\d+$/.test(retryAfterStr)) {
+                        retryAfterMs = parseInt(retryAfterStr, 10) * 1000;
+                    } else {
+                        const date = Date.parse(retryAfterStr);
+                        if (!Number.isNaN(date)) {
+                            retryAfterMs = Math.max(0, date - Date.now());
+                        }
+                    }
+                }
+                throw new RateLimitError(`Rate limit exceeded (HTTP 429)`, retryAfterMs);
+            }
 
             const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
             const response = parsed.response!;

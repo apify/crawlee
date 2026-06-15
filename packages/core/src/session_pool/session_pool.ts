@@ -56,7 +56,7 @@ export interface SessionPoolOptions {
     /**
      * Specifies which response status codes are considered as blocked.
      * Session connected to such request will be marked as retired.
-     * @default [401, 403, 429]
+     * @default [401, 403]
      */
     blockedStatusCodes?: number[];
 

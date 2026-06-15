@@ -35,3 +35,15 @@ export class SessionError extends RetryRequestError {
         super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
     }
 }
+
+/**
+ * Errors of `RateLimitError` type will trigger a cooldown before the request is retried.
+ */
+export class RateLimitError extends Error {
+    constructor(
+        message?: string,
+        public readonly retryAfterMs?: number,
+    ) {
+        super(message ?? 'Rate limit exceeded');
+    }
+}
