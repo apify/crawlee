@@ -293,3 +293,65 @@ from both `browser-crawler.ts` and the pool. Removed the now-dead
 `PAGE_CLOSE_TIMEOUT_MILLIS` constant from `browser-crawler.ts` (no other use).
 Worth double-checking in review that no other caller of `closePage()` relies
 on it settling faster than 5s.
+
+**Found and fixed a real regression in `packages/basic-crawler/src/internals/basic-crawler.ts`
+(surfaced while resolving commit `f1f095913`)**: master (`1430062c2`, via commit `b2296cea7
+fix: Correctly track the number of requests handled by a crawler (#3410)`) turned
+`handledRequestsCount` into a getter derived from `this.stats`, with a setter that
+*throws* if assigned to (property is meant to be read-only now). v4 has the same fix
+under a different hash (`93dda9656`), which is why it's absent from this rebase's
+todo — my rebase base already includes the master version. However, several later
+v4 commits I already applied earlier in this rebase (including `0c1fbcfe7`, the
+IRequestManager/IRequestLoader transition) reintroduced code written against the
+*old* pre-fix API: a `this.handledRequestsCount = 0;` reset in `_rotateRequestQueue`
+(or equivalent), a `_loadHandledRequestCount()` method that assigned to the setter,
+and a call to it from `_init()`. All three would throw at runtime the first time
+they ran (the setter always throws). Removed all three, and removed the
+`this.handledRequestsCount++` this conflict itself reintroduced in the failed-request
+path, matching master's already-established fix. Worth double-checking, once the
+rebase is fully done, that no other spot re-assigns `handledRequestsCount`.
+
+**Commit `f1f095913` (Align RequestQueueClient interface with Python counterpart)
+— ported master-only `addRequestsBatched` features into the new unified
+`request_queue.ts`**: this v4 commit deletes `request_provider.ts` and
+`request_queue_v2.ts` wholesale, replacing them with a single new
+`request_queue.ts` (already present, unconflicted, since it's a new file from
+v4's side). The new file's `addRequestsBatched()` was a rewrite from an older
+point in v4 history and was missing two features that only exist on master
+(`1430062c2`) and are still actively used by already-applied v4 commits later
+in this rebase (`enqueue_links.ts` reads `result.requestsOverLimit`, added by
+master commits `b23319bbe`/`f3d9a7967` — "Prevent accidental request dropping
+with maxRequestsPerCrawl"): the `maxNewRequests` budget/`requestsOverLimit`
+mechanism, and the `MAX_UNPROCESSED_REQUESTS_RETRIES` retry cap (master commit
+`b3170a60c`, prevents infinite retries when the platform permanently rejects a
+request). Neither commit is an ancestor of the current v4-derived HEAD nor
+present in the remaining rebase-todo (likely because they were independently
+backported to master under different hashes than their v4 equivalents,
+`a50afb62d`/`6d4a75e74`, which never made it into this rebase's commit list).
+Ported both pieces verbatim from master's `request_provider.ts` into the new
+`request_queue.ts` (constant, options fields, and the full
+`attemptToAddToQueueAndAddAnyUnprocessed`/`processChunk`/`buildResult` body),
+and restored the two master-only regression tests for them in
+`test/core/storages/request_queue.test.ts` (`addRequestsBatched does not retry
+permanently unprocessed requests forever`, `addRequestsBatched does not
+re-submit already enqueued requests beyond the initial batch (#3120)`).
+
+Also found and dropped a genuine dead/duplicated code block in
+`packages/memory-storage/src/resource-clients/request-queue.ts`'s
+`releaseOwnLocks()`: the conflict's HEAD side had a trailing block referencing
+`requestModel`, `isRequestHandledStateChanging`, `requestWasHandledBeforeUpdate`
+— variables that don't exist anywhere in `releaseOwnLocks()`'s scope. This was
+leftover orphaned content from an old, already-superseded unified `update()`
+method (removed from this file earlier in the rebase, per an earlier entry in
+this log) that got misattached to `releaseOwnLocks()` by an earlier merge in
+this same rebase. `releaseOwnLocks()` is self-contained in both master and v4
+and doesn't touch `handledRequestCount` — deleted the dead block entirely.
+
+Also dropped an orphaned 2-line test fragment in
+`test/core/storages/request_queue.test.ts`: `f1f095913` renamed `'should cache
+new requests locally'` to `'adding the same uniqueKey twice does not duplicate
+and is served from the local cache'` with a substantially rewritten body (a
+rename + rewrite, not a simple edit). Git's merge left the old test's opening
+two lines behind as an unconflicting fragment ahead of the conflict region;
+the renamed test's full new body already landed earlier in the file
+(confirmed via grep, `line 61`). Deleted the orphaned fragment.

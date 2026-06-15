@@ -92,12 +92,8 @@ if (!process.env.IN_WORKER_THREAD) {
             // Instead of the long requestHandler with
             // if clauses we provide a router instance.
             requestHandler: router,
-            // Enable the request locking experiment so that we can actually use the queue.
-            // highlight-start
-            experiments: {
-                requestLocking: true,
-            },
             // Provide the request queue we've pre-filled in previous steps
+            // highlight-start
             requestQueue,
             // highlight-end
             // Let's also limit the crawler's concurrency, we don't want to overload a single process 🐌
