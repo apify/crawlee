@@ -12,12 +12,6 @@ import AdaptedRoutesSource from '!!raw-loader!./adapted-routes.mjs';
 import ParallelScraperSource from '!!raw-loader!./parallel-scraper.mjs';
 import ModifiedDetailRouteSource from '!!raw-loader!./modified-detail-route.mjs';
 
-:::warning Experimental features ahead
-
-At the time of writing this guide (December 2023), request locking is still an experimental feature. You can read more about the experiment by visiting the [request locking experiment](../experiments/experiments-request-locking) page.
-
-:::
-
 In this guide, we will walk you through how you can turn your single scraper into a scraper that can be parallelized and run in multiple instances. This guide assumes you've read and walked through our [introduction guide](../introduction/setting-up) (or have a fully-fledged scraper already built), but if you haven't done so yet, take a break, go read through all that, and come back. We'll be waiting...
 
 *Oh, you're back already! Let's proceed in making that scraper parallel!*
@@ -151,9 +145,9 @@ const config = new Configuration({
 });
 ```
 
-#### Enabling the request locking experiment, and telling the crawler to use the worker configuration
+#### Telling the crawler to use the worker configuration
 
-You might have noticed several lines highlighted in the code above. Those show how you can enable the request locking experiment, as well as how you provide the request queue to the crawler. You can read more about the experiment by visiting the [request locking experiment](../experiments/experiments-request-locking) page.
+You might have noticed several lines highlighted in the code above. Those show how you provide the shared request queue to the crawler.
 
 You might have also noticed we passed in a second parameter to the constructor of the crawler, the `config` variable we created earlier. This is needed to ensure the crawler uses the worker-specific storages for internal states, and that they do not collide with each other.
 

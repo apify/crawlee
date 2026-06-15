@@ -12,7 +12,7 @@ import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     RequestQueueOperationOptions,
-} from '../storages/request_provider.js';
+} from '../storages/request_queue.js';
 import type {
     GlobInput,
     PseudoUrlInput,

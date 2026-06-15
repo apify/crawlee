@@ -1,6 +1,6 @@
-import { RequestQueueV2 } from 'crawlee';
+import { RequestQueue } from 'crawlee';
 
-// Create the request queue that also supports parallelization
+// The request queue shared by all the parallel workers
 let queue;
 
 /**
@@ -12,11 +12,11 @@ export async function getOrInitQueue(makeFresh = false) {
         return queue;
     }
 
-    queue = await RequestQueueV2.open('shop-urls');
+    queue = await RequestQueue.open('shop-urls');
 
     if (makeFresh) {
         await queue.drop();
-        queue = await RequestQueueV2.open('shop-urls');
+        queue = await RequestQueue.open('shop-urls');
     }
 
     return queue;

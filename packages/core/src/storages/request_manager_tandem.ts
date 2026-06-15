@@ -10,7 +10,7 @@ import type {
     AddRequestsBatchedResult,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-} from './request_provider.js';
+} from './request_queue.js';
 
 /**
  * A request manager that combines a {@apilink IRequestLoader} (such as a `RequestList`) with a writable
@@ -24,6 +24,12 @@ export class RequestManagerTandem implements IRequestManager {
     private resolvedRequestManager?: IRequestManager;
 
     private requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
+
+    /**
+     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTimeSecs}.
+     * Remembered so it can be applied to the writable manager once it is lazily resolved.
+     */
+    private expectedRequestProcessingSecs?: number;
 
     /**
      * @param requestLoader The read-only loader to read requests from first.
@@ -48,6 +54,11 @@ export class RequestManagerTandem implements IRequestManager {
         if (this.resolvedRequestManager === undefined) {
             this.requestManagerPromise ??= Promise.resolve(this.requestManagerFactory());
             this.resolvedRequestManager = await this.requestManagerPromise;
+
+            // Apply any hint received before the manager was resolved.
+            if (this.expectedRequestProcessingSecs !== undefined) {
+                this.resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(this.expectedRequestProcessingSecs);
+            }
         }
         return this.resolvedRequestManager;
     }
@@ -81,7 +92,7 @@ export class RequestManagerTandem implements IRequestManager {
             return false;
         } finally {
             // Mark it as handled so that the request doesn't get stuck in the `inProgress` state in the loader.
-            await this.requestLoader.markRequestHandled(request);
+            await this.requestLoader.markRequestAsHandled(request);
         }
     }
 
@@ -173,8 +184,8 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * @inheritdoc
      */
-    async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        return (await this.getRequestManager()).markRequestHandled(request);
+    async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
+        return (await this.getRequestManager()).markRequestAsHandled(request);
     }
 
     /**
@@ -219,5 +230,15 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async purge(): Promise<void> {
         await (await this.getRequestManager()).purge?.();
+    }
+
+    /**
+     * Forwards the hint to the writable request manager — that is where requests are fetched from and
+     * reserved. The manager is opened lazily, so the value is remembered and applied once it resolves.
+     * @inheritdoc
+     */
+    setExpectedRequestProcessingTimeSecs(secs: number): void {
+        this.expectedRequestProcessingSecs = secs;
+        this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 }

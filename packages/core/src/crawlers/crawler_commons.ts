@@ -7,7 +7,7 @@ import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
-import type { RequestQueueOperationOptions } from '../storages/request_provider.js';
+import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
 import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 
 /** @internal */

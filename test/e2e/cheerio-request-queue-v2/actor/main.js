@@ -22,9 +22,6 @@ await Actor.main(async () => {
 
             await Dataset.pushData({ url, pageTitle });
         },
-        experiments: {
-            requestLocking: true,
-        },
         log: Logger.child({
             prefix: 'CheerioCrawler',
             // level: LogLevel.DEBUG,
