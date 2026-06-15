@@ -10,5 +10,5 @@ const sitemapRequestLoader = await SitemapRequestLoader.open({
 
 for await (const request of sitemapRequestLoader) {
     console.log(request.url);
-    await sitemapRequestLoader.markRequestHandled(request);
+    await sitemapRequestLoader.markRequestAsHandled(request);
 }

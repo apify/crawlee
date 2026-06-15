@@ -11,5 +11,5 @@ const requestList = await RequestList.open('my-list', [
 // Iterate over the requests manually (a crawler does this for you under the hood).
 for await (const request of requestList) {
     console.log(request.url);
-    await requestList.markRequestHandled(request);
+    await requestList.markRequestAsHandled(request);
 }

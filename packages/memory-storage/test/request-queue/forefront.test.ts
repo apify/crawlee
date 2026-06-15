@@ -1,9 +1,26 @@
+import { rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
-describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
+/**
+ * Drains the queue via `fetchNextRequest`, marking each request as handled, and returns the
+ * pathnames in the order they were served.
+ */
+async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
+    const order: string[] = [];
+
+    for (let request = await client.fetchNextRequest(); request !== null; request = await client.fetchNextRequest()) {
+        order.push(new URL(request.url).pathname);
+        await client.markRequestAsHandled({ ...request, id: request.id! });
+    }
+
+    return order;
+}
+
+describe('RequestQueue respects `forefront` when fetching requests', () => {
     const storage = new MemoryStorage({
         persistStorage: false,
     });
@@ -19,49 +36,39 @@ describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
     });
 
     test('requests without `forefront` respect sequential order', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
         // Waiting a few ms is required since we use Date.now() to compute orderNo
         await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/2', uniqueKey: '2' }]);
 
-        const { items } = await requestQueue.listHead();
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
+        expect(await fetchOrder(requestQueue)).toEqual(['/1', '/2']);
     });
 
     test('`forefront` requests are prioritized', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
         // Waiting a few ms is required since we use Date.now() to compute orderNo
         await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/2', uniqueKey: '2' }], { forefront: true });
 
-        const { items } = await requestQueue.listHead();
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/1']);
+        expect(await fetchOrder(requestQueue)).toEqual(['/2', '/1']);
     });
 
-    test('`limit` retains the global `forefront` ordering', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+    test('global `forefront` ordering is preserved across several inserts', async () => {
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
         await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/2', uniqueKey: '2' }], { forefront: true });
         await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' }, { forefront: true });
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/3', uniqueKey: '3' }], { forefront: true });
 
-        // List only 2 items (smaller than the total queue size)
-        const { items } = await requestQueue.listHead({ limit: 2 });
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/2']);
+        expect(await fetchOrder(requestQueue)).toEqual(['/3', '/2', '/1']);
     });
 
-    test('`batchAddRequests` respects `forefront`', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+    test('`addBatchOfRequests` respects `forefront`', async () => {
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/3', uniqueKey: '3' }]);
 
         await sleep(2);
 
-        await requestQueue.batchAddRequests(
+        await requestQueue.addBatchOfRequests(
             [
                 { url: 'http://example.com/1', uniqueKey: '1' },
                 { url: 'http://example.com/2', uniqueKey: '2' },
@@ -69,438 +76,193 @@ describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
             { forefront: true },
         );
 
-        const { items } = await requestQueue.listHead();
-
-        expect(items).toHaveLength(3);
+        const order = await fetchOrder(requestQueue);
+        expect(order).toHaveLength(3);
+        // Both forefront requests come before the original; their relative order is arbitrary.
+        expect(order[2]).toEqual('/3');
         expect([
             ['/2', '/1', '/3'],
             ['/1', '/2', '/3'],
-        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
+        ]).toContainEqual(order);
     });
 
-    test('`batchAddRequests` respects `forefront` (with `limit`)', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+    test('a reclaimed request is served again', async () => {
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
-        await sleep(2);
+        const first = await requestQueue.fetchNextRequest();
+        expect(first!.url).toEqual('http://example.com/1');
 
-        await requestQueue.batchAddRequests(
-            [
-                { url: 'http://example.com/1', uniqueKey: '1' },
-                { url: 'http://example.com/2', uniqueKey: '2' },
-            ],
-            { forefront: true },
-        );
+        // Reclaiming a fetched (in-progress) request returns it to the queue.
+        await requestQueue.reclaimRequest({ ...first!, id: first!.id! });
 
-        const { items } = await requestQueue.listHead({ limit: 2 });
-
-        expect(items).toHaveLength(2);
-        expect([
-            ['/2', '/1'],
-            ['/1', '/2'],
-        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
+        const second = await requestQueue.fetchNextRequest();
+        expect(second!.url).toEqual('http://example.com/1');
     });
 
-    test('`updateRequest` respects `forefront` (with `limit`)', async () => {
-        const req1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        await sleep(2);
-        const req2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
-        await sleep(2);
-        const req3 = await requestQueue.addRequest(
+    test('a reclaimed `forefront` request jumps to the front', async () => {
+        await requestQueue.addBatchOfRequests([
+            { url: 'http://example.com/1', uniqueKey: '1' },
+            { url: 'http://example.com/2', uniqueKey: '2' },
+        ]);
+
+        const first = await requestQueue.fetchNextRequest();
+        expect(first!.url).toEqual('http://example.com/1');
+
+        await requestQueue.reclaimRequest({ ...first!, id: first!.id! }, { forefront: true });
+
+        const next = await requestQueue.fetchNextRequest();
+        expect(next!.url).toEqual('http://example.com/1');
+    });
+
+    test('handling all requests empties the queue', async () => {
+        await requestQueue.addBatchOfRequests([
+            { url: 'http://example.com/1', uniqueKey: '1' },
+            { url: 'http://example.com/2', uniqueKey: '2' },
             { url: 'http://example.com/3', uniqueKey: '3' },
-            { forefront: true },
-        );
+        ]);
 
-        let { items } = await requestQueue.listHead();
+        expect(await requestQueue.isEmpty()).toBe(false);
 
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/1', '/2']);
+        await fetchOrder(requestQueue);
 
-        await requestQueue.updateRequest(
-            {
-                id: req2.requestId,
-                url: 'http://example.com/2',
-                uniqueKey: '2',
-            },
-            { forefront: true },
-        );
-
-        ({ items } = await requestQueue.listHead());
-
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/1']);
-
-        await requestQueue.updateRequest(
-            {
-                id: req3.requestId,
-                url: 'http://example.com/3',
-                uniqueKey: '3',
-            },
-            { forefront: true },
-        );
-
-        await requestQueue.updateRequest(
-            {
-                id: req1.requestId,
-                url: 'http://example.com/1',
-                uniqueKey: '1',
-            },
-            { forefront: true },
-        );
-
-        ({ items } = await requestQueue.listHead({ limit: 2 }));
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/3']);
+        expect(await requestQueue.isEmpty()).toBe(true);
+        expect(await requestQueue.fetchNextRequest()).toBeNull();
     });
 
-    test('handling `forefront` requests works as expected', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
-        await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' }, { forefront: true });
+    test('a fetched (locked) request leaves the queue empty but unfinished until it is handled', async () => {
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
-        let { items } = await requestQueue.listHead();
+        const request = await requestQueue.fetchNextRequest();
+        expect(request).not.toBeNull();
 
-        expect(items).toHaveLength(3);
-        for (const item of items.slice(0, 2)) {
-            await requestQueue.updateRequest({
-                id: item.id,
-                url: item.url,
-                uniqueKey: item.uniqueKey,
-                handledAt: new Date().toISOString(),
-            });
-        }
+        // The request is locked (in progress), not handled. There is nothing left to fetch, so the
+        // queue is empty — but it is not finished. The "not finished" signal is what stops a crawler
+        // from shutting down while a request is still being processed by some consumer.
+        expect(await requestQueue.isEmpty()).toBe(true);
+        expect(await requestQueue.isFinished()).toBe(false);
 
-        await requestQueue.updateRequest(
-            {
-                id: items[2].id,
-                url: items[2].url,
-                uniqueKey: items[2].uniqueKey,
-                handledAt: new Date().toISOString(),
-            },
-            {
-                forefront: true,
-            },
-        );
-
-        ({ items } = await requestQueue.listHead());
-
-        expect(items).toHaveLength(0);
+        await requestQueue.markRequestAsHandled({ ...request!, id: request!.id! });
+        expect(await requestQueue.isEmpty()).toBe(true);
+        expect(await requestQueue.isFinished()).toBe(true);
     });
 });
 
-describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
-    const storage = new MemoryStorage({
-        persistStorage: false,
-    });
+describe('RequestQueue locks fetched requests', () => {
+    const storage = new MemoryStorage({ persistStorage: false });
 
     let requestQueue: RequestQueueClient;
 
     beforeEach(async () => {
-        requestQueue = await storage.createRequestQueueClient({ name: 'forefront-v2' });
+        requestQueue = await storage.createRequestQueueClient({ name: 'locking' });
     });
 
     afterEach(async () => {
         await requestQueue.drop();
     });
 
-    test('requests without `forefront` respect sequential order', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        // Waiting a few ms is required since we use Date.now() to compute orderNo
-        await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
-
-        const { items } = await requestQueue.listAndLockHead({ lockSecs: 10 });
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
-    });
-
-    test('`forefront` requests are prioritized', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        // Waiting a few ms is required since we use Date.now() to compute orderNo
-        await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
-
-        const { items } = await requestQueue.listAndLockHead({ lockSecs: 10 });
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/1']);
-    });
-
-    test('`limit` retains the global `forefront` ordering', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
-        await sleep(2);
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' }, { forefront: true });
-
-        // List only 2 items (smaller than the total queue size)
-        const { items } = await requestQueue.listAndLockHead({ limit: 2, lockSecs: 10 });
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/2']);
-    });
-
-    test('`batchAddRequests` respects `forefront`', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
-
-        await sleep(2);
-
-        await requestQueue.batchAddRequests(
-            [
-                { url: 'http://example.com/1', uniqueKey: '1' },
-                { url: 'http://example.com/2', uniqueKey: '2' },
-            ],
-            { forefront: true },
-        );
-
-        const { items } = await requestQueue.listAndLockHead({ lockSecs: 10 });
-
-        expect(items).toHaveLength(3);
-        expect([
-            ['/2', '/1', '/3'],
-            ['/1', '/2', '/3'],
-        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
-    });
-
-    test('`batchAddRequests` respects `forefront` (with `limit`)', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
-
-        await sleep(2);
-
-        await requestQueue.batchAddRequests(
-            [
-                { url: 'http://example.com/1', uniqueKey: '1' },
-                { url: 'http://example.com/2', uniqueKey: '2' },
-            ],
-            { forefront: true },
-        );
-
-        const { items } = await requestQueue.listAndLockHead({ limit: 2, lockSecs: 10 });
-
-        expect(items).toHaveLength(2);
-        expect([
-            ['/2', '/1'],
-            ['/1', '/2'],
-        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
-    });
-
-    test('requests with expired locks keep the original ordering', async () => {
+    test('a fetched request becomes available again after its lock expires', async () => {
         vitest.useFakeTimers();
 
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+        try {
+            await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
+            const first = await requestQueue.fetchNextRequest();
+            expect(first!.uniqueKey).toBe('1');
 
-        await requestQueue.batchAddRequests([
-            { url: 'http://example.com/4', uniqueKey: '4' },
-            { url: 'http://example.com/5', uniqueKey: '5' },
-        ]);
+            // While locked, the request is not handed out again.
+            expect(await requestQueue.fetchNextRequest()).toBeNull();
 
-        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+            // After the lock expires (default 3 minutes), the request is fetchable again — this is what
+            // prevents a crashed consumer from blocking its requests forever.
+            vitest.advanceTimersByTime(3 * 60 * 1000 + 1000);
 
-        expect(items).toHaveLength(5);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+            const retried = await requestQueue.fetchNextRequest();
+            expect(retried!.uniqueKey).toBe('1');
+        } finally {
+            vitest.useRealTimers();
+        }
+    });
+});
 
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-        expect(items).toHaveLength(0);
+describe('RequestQueue locking is visible across clients sharing on-disk storage', () => {
+    const tmpLocation = resolve(import.meta.dirname, './tmp/req-queue-cross-process');
+    // Two independent storage instances over the same directory emulate two separate processes.
+    const storageA = new MemoryStorage({ localDataDirectory: tmpLocation, persistStorage: true });
+    const storageB = new MemoryStorage({ localDataDirectory: tmpLocation, persistStorage: true });
 
-        vitest.advanceTimersByTime(10001);
-
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-
-        expect(items).toHaveLength(5);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
-
-        vitest.useRealTimers();
+    afterAll(async () => {
+        await rm(tmpLocation, { force: true, recursive: true });
     });
 
-    test('`deleteRequestLock` keeps the original ordering', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
-
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
-
-        await requestQueue.batchAddRequests([
-            { url: 'http://example.com/4', uniqueKey: '4' },
-            { url: 'http://example.com/5', uniqueKey: '5' },
-        ]);
-
-        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
-
-        expect(items).toHaveLength(5);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
-
-        await Promise.all([
-            requestQueue.deleteRequestLock(items[0].id),
-            requestQueue.deleteRequestLock(items[1].id),
-            requestQueue.deleteRequestLock(items[2].id),
-        ]);
-
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3']);
-    });
-
-    test('`prolongRequestLock` keeps the original ordering', async () => {
-        vitest.useFakeTimers();
-
-        await requestQueue.batchAddRequests([
-            { url: 'http://example.com/3', uniqueKey: '3' },
-            { url: 'http://example.com/4', uniqueKey: '4' },
-            { url: 'http://example.com/5', uniqueKey: '5' },
-        ]);
-
-        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
-
-        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
-
-        expect(items).toHaveLength(5);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
-
-        vitest.advanceTimersByTime(9999);
-
-        await requestQueue.prolongRequestLock(items[0].id, { lockSecs: 10 });
-        await requestQueue.prolongRequestLock(items[3].id, { lockSecs: 10 });
-
-        vitest.advanceTimersByTime(1001);
-
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/5']);
-
-        vitest.advanceTimersByTime(10001);
-
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-        expect(items).toHaveLength(5);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
-
-        vitest.useRealTimers();
-    });
-
-    test('`deleteRequestLock.forefront` works as expected', async () => {
-        vitest.useFakeTimers();
-
-        await requestQueue.batchAddRequests([
+    test('two clients on the same queue never fetch the same request', async () => {
+        const clientA = await storageA.createRequestQueueClient({ name: 'shared' });
+        await clientA.addBatchOfRequests([
             { url: 'http://example.com/1', uniqueKey: '1' },
             { url: 'http://example.com/2', uniqueKey: '2' },
-            { url: 'http://example.com/3', uniqueKey: '3' },
         ]);
 
-        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+        const clientB = await storageB.createRequestQueueClient({ name: 'shared' });
 
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3']);
+        const fromA = await clientA.fetchNextRequest();
+        const fromB = await clientB.fetchNextRequest();
 
-        await requestQueue.deleteRequestLock(items[2].id, { forefront: true });
-        await requestQueue.deleteRequestLock(items[1].id, { forefront: true });
+        expect(fromA).not.toBeNull();
+        expect(fromB).not.toBeNull();
+        // The lock written by one client is observed by the other, so they get distinct requests.
+        expect(fromA!.uniqueKey).not.toBe(fromB!.uniqueKey);
 
-        vitest.advanceTimersByTime(10001);
+        // Both requests are now locked, so neither client can fetch anything more.
+        expect(await clientA.fetchNextRequest()).toBeNull();
+        expect(await clientB.fetchNextRequest()).toBeNull();
 
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-        expect(items).toHaveLength(3);
-
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/1']);
-
-        vitest.useRealTimers();
+        await clientA.drop();
     });
 
-    test('`prolongRequestLock.forefront` works as expected', async () => {
-        vitest.useFakeTimers();
+    test('a client does not report the queue finished while another client holds the last request', async () => {
+        const clientA = await storageA.createRequestQueueClient({ name: 'shared-is-empty' });
+        await clientA.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
-        await requestQueue.batchAddRequests([
-            { url: 'http://example.com/1', uniqueKey: '1' },
-            { url: 'http://example.com/2', uniqueKey: '2' },
-            { url: 'http://example.com/3', uniqueKey: '3' },
-        ]);
+        const clientB = await storageB.createRequestQueueClient({ name: 'shared-is-empty' });
 
-        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+        // Client A fetches (and thus locks) the only request.
+        const fromA = await clientA.fetchNextRequest();
+        expect(fromA).not.toBeNull();
 
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3']);
+        // Client B has nothing it can fetch right now, so from its point of view the queue is empty...
+        expect(await clientB.fetchNextRequest()).toBeNull();
+        expect(await clientB.isEmpty()).toBe(true);
+        // ...but the request still exists and is merely locked by A, so B must NOT consider the queue
+        // finished — otherwise the crawler driving B could shut down while A is still processing.
+        expect(await clientB.isFinished()).toBe(false);
 
-        vitest.advanceTimersByTime(1000);
+        // Once A handles the request, it is gone for good and B sees a finished queue.
+        await clientA.markRequestAsHandled({ ...fromA!, id: fromA!.id! });
+        expect(await clientB.isEmpty()).toBe(true);
+        expect(await clientB.isFinished()).toBe(true);
 
-        await requestQueue.prolongRequestLock(items[2].id, { lockSecs: 10, forefront: true });
-
-        vitest.advanceTimersByTime(9001);
-
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
-
-        vitest.advanceTimersByTime(10001);
-
-        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
-        expect(items).toHaveLength(3);
-
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/1', '/2']);
-
-        vitest.useRealTimers();
+        await clientA.drop();
     });
 
-    test('`updateRequest` respects `forefront` (with `limit`)', async () => {
-        vitest.useFakeTimers();
+    test('teardown releases this client locks so another client can fetch immediately', async () => {
+        const clientA = await storageA.createRequestQueueClient({ name: 'shared-teardown' });
+        await clientA.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
-        const req1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        const req2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
-        const req3 = await requestQueue.addRequest(
-            { url: 'http://example.com/3', uniqueKey: '3' },
-            { forefront: true },
-        );
+        // Client A fetches (locks) the request, then the process tears down without handling it.
+        const fromA = await clientA.fetchNextRequest();
+        expect(fromA).not.toBeNull();
 
-        let { items } = await requestQueue.listAndLockHead({ lockSecs: 1 });
+        const clientB = await storageB.createRequestQueueClient({ name: 'shared-teardown' });
+        // While A holds the lock, B cannot fetch the request.
+        expect(await clientB.fetchNextRequest()).toBeNull();
 
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/1', '/2']);
+        // Tearing down A's storage releases its locks (instead of leaving them until the 3-minute
+        // expiry), so B can pick the request up right away.
+        await storageA.teardown();
 
-        vitest.advanceTimersByTime(1001);
+        const fromB = await clientB.fetchNextRequest();
+        expect(fromB).not.toBeNull();
+        expect(fromB!.uniqueKey).toBe('1');
 
-        await requestQueue.updateRequest(
-            {
-                id: req2.requestId,
-                url: 'http://example.com/2',
-                uniqueKey: '2',
-            },
-            { forefront: true },
-        );
-
-        ({ items } = await requestQueue.listAndLockHead({ lockSecs: 1 }));
-
-        expect(items).toHaveLength(3);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/1']);
-
-        vitest.advanceTimersByTime(1001);
-
-        await requestQueue.updateRequest(
-            {
-                id: req3.requestId,
-                url: 'http://example.com/3',
-                uniqueKey: '3',
-            },
-            { forefront: true },
-        );
-
-        await requestQueue.updateRequest(
-            {
-                id: req1.requestId,
-                url: 'http://example.com/1',
-                uniqueKey: '1',
-            },
-            { forefront: true },
-        );
-
-        ({ items } = await requestQueue.listAndLockHead({ lockSecs: 1, limit: 2 }));
-
-        expect(items).toHaveLength(2);
-        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/3']);
-
-        vitest.useRealTimers();
+        await clientB.drop();
     });
 });

@@ -5,7 +5,7 @@ import type {
     AddRequestsBatchedResult,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-} from './request_provider.js';
+} from './request_queue.js';
 
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
 
@@ -31,4 +31,14 @@ export interface IRequestManager extends IRequestLoader {
      * Implementations that do not support purging may leave this `undefined`.
      */
     purge?(): Promise<void>;
+
+    /**
+     * Tells the manager how long a consumer expects to hold a request fetched via `fetchNextRequest()`
+     * before marking it handled or reclaiming it (typically the request-handler timeout plus padding).
+     *
+     * Managers backed by a storage client that reserves requests via locking use this to avoid handing
+     * the same request out again while it is still being processed. Implementations that do not need
+     * this hint may leave it `undefined`.
+     */
+    setExpectedRequestProcessingTimeSecs?(secs: number): void;
 }

@@ -349,6 +349,12 @@ export class MemoryStorage implements storage.StorageClient {
      * This method should be called at the end of the process, to ensure all data is saved.
      */
     async teardown(): Promise<void> {
+        // Release any request locks this process still holds so that requests fetched but not yet
+        // handled are not stuck (until their lock expires) for the next consumer of the same on-disk
+        // queue. Other storage backends don't need this: the Apify platform releases a run's locks
+        // automatically, and the file-system storage doesn't lock at all.
+        await Promise.all(this.requestQueueCache.map(async (queue) => queue.releaseOwnLocks()));
+
         const promises = [...promiseMap.values()].map(async ({ promise }) => promise);
 
         await Promise.all(promises);
