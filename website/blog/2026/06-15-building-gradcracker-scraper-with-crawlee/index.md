@@ -67,8 +67,6 @@ The initial version had no real bot avoidance beyond what Playwright gives you o
 
 The fix was swapping in [Camoufox](https://camoufox.com/), a Firefox-based browser built specifically for anti-detection. Instead of Chromium doing a bad impression of a real user, you get an actual Firefox instance with humanized behavior, randomized fingerprints, and geolocation baked in:
 
-![The Camoufox open source anti-detect browser homepage](./img/camoufox-anti-detect-browser.webp)
-
 ```typescript
 launchContext: {
   launcher: firefox,
