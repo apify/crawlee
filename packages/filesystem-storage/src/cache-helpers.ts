@@ -303,10 +303,15 @@ export async function findRequestQueueByPossibleId(client: FileSystemStorageClie
     let createdAt = new Date();
     let accessedAt = new Date();
     let modifiedAt = new Date();
-    let pendingRequestCount = 0;
-    let handledRequestCount = 0;
     const entries = new Set<string>();
     let forefrontRequestIds: string[] = [];
+
+    // The request counts are derived from the request files actually present on disk rather than read
+    // from the metadata file: metadata is only persisted when `writeMetadata` is enabled (off by
+    // default), whereas request files are always persisted. Trusting the metadata counts would reset
+    // them to 0 on reload whenever `writeMetadata` is off, even though the requests survive on disk.
+    let pendingRequestCount = 0;
+    let handledRequestCount = 0;
 
     for await (const entry of directoryEntries) {
         if (entry.isFile()) {
@@ -323,8 +328,6 @@ export async function findRequestQueueByPossibleId(client: FileSystemStorageClie
                     createdAt = new Date(metadata.createdAt);
                     accessedAt = new Date(metadata.accessedAt);
                     modifiedAt = new Date(metadata.modifiedAt);
-                    pendingRequestCount = metadata.pendingRequestCount;
-                    handledRequestCount = metadata.handledRequestCount;
                     forefrontRequestIds = (metadata as any)?.forefrontRequestIds ?? [];
 
                     break;
@@ -340,9 +343,16 @@ export async function findRequestQueueByPossibleId(client: FileSystemStorageClie
                     try {
                         // Try parsing the file to ensure it's even valid to begin with
                         const fileContent = await readFile(resolve(requestQueueDir, entry.name), 'utf8');
-                        JSON.parse(fileContent);
+                        const parsed = JSON.parse(fileContent) as { orderNo?: number | null };
 
                         entries.add(entryName);
+
+                        // A handled request has `orderNo === null`; anything else is still pending.
+                        if (parsed.orderNo === null) {
+                            handledRequestCount += 1;
+                        } else {
+                            pendingRequestCount += 1;
+                        }
                     } catch {
                         client.logger?.warning(
                             `Request queue entry "${entry.name}" for store ${entryNameOrId} has invalid JSON content and will be ignored from the store.`,
@@ -376,8 +386,11 @@ export async function findRequestQueueByPossibleId(client: FileSystemStorageClie
     newClient.modifiedAt = modifiedAt;
     newClient.pendingRequestCount = pendingRequestCount;
     newClient.handledRequestCount = handledRequestCount;
+    // Drop any persisted forefront ids whose request file is missing or unparseable on disk (and was
+    // therefore not added to `entries`). Keeping them would leave a dangling id in `forefrontRequestIds`
+    // that `listPendingHead` would resolve to a missing request and dereference as `undefined`.
     // @ts-expect-error - Assigning to private property
-    newClient.forefrontRequestIds = forefrontRequestIds;
+    newClient.forefrontRequestIds = forefrontRequestIds.filter((requestId) => entries.has(requestId));
 
     for (const requestId of entries) {
         const entry = new RequestQueueFileSystemEntry({

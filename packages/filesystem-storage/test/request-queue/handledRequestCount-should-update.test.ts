@@ -1,13 +1,23 @@
+import { rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
 import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
 describe('RequestQueue handledRequestCount should update', () => {
-    const storage = new FileSystemStorageClient({});
+    // Use an isolated storage directory so persisted request files from a previous run cannot leak
+    // into this one (a handled request surviving on disk would be deduplicated on the next add).
+    const localDataDirectory = resolve(import.meta.dirname, './tmp/handled-request-count');
+    const storage = new FileSystemStorageClient({ localDataDirectory });
 
     let requestQueue: RequestQueueClient;
 
     beforeAll(async () => {
         requestQueue = await storage.createRequestQueueClient({ name: 'handledRequestCount' });
+    });
+
+    afterAll(async () => {
+        await rm(localDataDirectory, { force: true, recursive: true });
     });
 
     test('after marking a request as handled, it should increment the handledRequestCount', async () => {

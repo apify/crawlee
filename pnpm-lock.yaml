@@ -559,9 +559,6 @@ importers:
       mime-types:
         specifier: ^3.0.1
         version: 3.0.2
-      p-limit:
-        specifier: ^6.2.0
-        version: 6.2.0
       proper-lockfile:
         specifier: ^4.1.2
         version: 4.1.2
