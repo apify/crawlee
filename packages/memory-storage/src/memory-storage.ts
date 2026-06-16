@@ -191,8 +191,13 @@ export class MemoryStorageClient implements storage.StorageClient {
      * store) is preserved — only the rest of the default storages is cleared.
      */
     async purge(): Promise<void> {
+        // The run default is opened via `{ alias: '__default__' }`, which `resolveStorageKey`
+        // normalizes to `directoryName === 'default'` (with `name === undefined`) — that is the clause
+        // that actually matches it. The `name === 'default'` clause additionally covers a store a user
+        // explicitly opened via `{ name: 'default' }`. (`'__default__'` never reaches `directoryName`,
+        // as it is always normalized to `'default'` first, so it does not need to be checked here.)
         const isDefault = (store: { name?: string; directoryName: string }) =>
-            store.name === 'default' || store.directoryName === 'default' || store.directoryName === '__default__';
+            store.name === 'default' || store.directoryName === 'default';
 
         const purgeDefaults = async <T extends { name?: string; directoryName: string }>(
             cache: T[],
