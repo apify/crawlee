@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
@@ -134,7 +135,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     }
 
     /**
-     * Generates a public file:// URL for accessing a specific record in the key-value store.
+     * Generates a public `file://` URL for accessing a specific record in the key-value store.
      *
      * Returns `undefined` if the record does not exist or has no associated file path (i.e., it is not stored as a file).
      * @param key The key of the record to generate the public URL for.
@@ -144,7 +145,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         const storageEntry = await this.keyValueEntries.get(key)?.get();
 
-        return storageEntry?.filePath;
+        return storageEntry?.filePath ? pathToFileURL(storageEntry.filePath).href : undefined;
     }
 
     /**
