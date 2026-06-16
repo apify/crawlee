@@ -4,12 +4,12 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { KeyValueStoreClient } from '@crawlee/types';
 
-describe('MemoryStorage should not crash when saving a big buffer', () => {
+describe('MemoryStorageClient should not crash when saving a big buffer', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/no-buffer-crash');
-    const storage = new MemoryStorage({
+    const storage = new MemoryStorageClient({
         localDataDirectory: tmpLocation,
         persistStorage: false,
     });

@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 
-import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { REQUEST_ID_LENGTH } from './consts.js';
@@ -47,23 +46,4 @@ export function isStream(value: any): boolean {
         value &&
         ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function')
     );
-}
-
-export type BackgroundHandlerReceivedMessage = BackgroundHandlerUpdateMetadataMessage;
-
-export type BackgroundHandlerUpdateMetadataMessage =
-    | MetadataUpdate<'datasets', storage.DatasetInfo>
-    | MetadataUpdate<'keyValueStores', storage.KeyValueStoreInfo>
-    | MetadataUpdate<'requestQueues', storage.RequestQueueInfo>;
-
-type EntityType = 'datasets' | 'keyValueStores' | 'requestQueues';
-
-interface MetadataUpdate<Type extends EntityType, DataType> {
-    entityType: Type;
-    id: string;
-    action: 'update-metadata';
-    entityDirectory: string;
-    data: DataType;
-    writeMetadata: boolean;
-    persistStorage: boolean;
 }

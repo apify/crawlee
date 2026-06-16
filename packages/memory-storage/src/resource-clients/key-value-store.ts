@@ -1,15 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { scheduleBackgroundTask } from '../background-handler/index.js';
 import { maybeParseBody } from '../body-parser.js';
-import type { StorageImplementation } from '../fs/common.js';
-import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
-import type { MemoryStorage } from '../index.js';
+import type { MemoryStorageClient } from '../index.js';
 import { isBuffer, isStream } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 import mime from 'mime-types';
@@ -20,13 +15,12 @@ export interface KeyValueStoreClientOptions {
     name?: string;
     id?: string;
     /**
-     * The directory name to use on disk. When provided, takes precedence over `name` and `id`
-     * for the directory path. This allows alias-opened storages to have a directory name
-     * that differs from their metadata `name` (which is `undefined` for unnamed storages).
+     * The key used for cache lookup. When provided, takes precedence over `name` and `id`.
+     * This allows alias-opened storages to have a directory name that differs from their
+     * metadata `name` (which is `undefined` for unnamed storages).
      */
     directoryName?: string;
-    baseStorageDirectory: string;
-    client: MemoryStorage;
+    client: MemoryStorageClient;
 }
 
 export interface InternalKeyRecord {
@@ -34,29 +28,26 @@ export interface InternalKeyRecord {
     value: Buffer | string;
     contentType?: string;
     extension: string;
-    filePath?: string;
 }
 
 export class KeyValueStoreClient extends BaseClient implements storage.KeyValueStoreClient {
     name?: string;
     /**
-     * The key used for directory naming and cache lookup. For named storages, this equals
-     * the name. For alias (unnamed) storages, this is the alias string. Falls back to id.
+     * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
+     * storages, this is the alias string. Falls back to id.
      */
     directoryName: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
-    keyValueStoreDirectory: string;
 
-    private readonly keyValueEntries = new Map<string, StorageImplementation<InternalKeyRecord>>();
-    private readonly client: MemoryStorage;
+    private readonly keyValueEntries = new Map<string, InternalKeyRecord>();
+    private readonly client: MemoryStorageClient;
 
     constructor(options: KeyValueStoreClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.directoryName = options.directoryName ?? this.name ?? this.id;
-        this.keyValueStoreDirectory = resolve(options.baseStorageDirectory, this.directoryName);
         this.client = options.client;
     }
 
@@ -71,19 +62,11 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         if (storeIndex !== -1) {
             const [oldClient] = this.client.keyValueStoreCache.splice(storeIndex, 1);
             oldClient.keyValueEntries.clear();
-
-            await rm(oldClient.keyValueStoreDirectory, { recursive: true, force: true });
         }
     }
 
     async purge(): Promise<void> {
-        // Delete all entries
-        const entriesToDelete = [...this.keyValueEntries.entries()];
-        for (const [key, entry] of entriesToDelete) {
-            this.keyValueEntries.delete(key);
-            await entry.delete();
-        }
-
+        this.keyValueEntries.clear();
         this.updateTimestamps(true);
     }
 
@@ -98,9 +81,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         const items: storage.KeyValueStoreItemData[] = [];
 
-        for (const storageEntry of this.keyValueEntries.values()) {
-            const record = await storageEntry.get();
-
+        for (const record of this.keyValueEntries.values()) {
             const size = Buffer.byteLength(record.value);
             items.push({
                 key: record.key,
@@ -134,17 +115,14 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     }
 
     /**
-     * Generates a public file:// URL for accessing a specific record in the key-value store.
-     *
-     * Returns `undefined` if the record does not exist or has no associated file path (i.e., it is not stored as a file).
+     * In-memory records are not file-backed, so there is no public file URL to return.
+     * Always resolves to `undefined`.
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
         s.string().parse(key);
 
-        const storageEntry = await this.keyValueEntries.get(key)?.get();
-
-        return storageEntry?.filePath;
+        return undefined;
     }
 
     /**
@@ -162,13 +140,11 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
 
-        const storageEntry = this.keyValueEntries.get(key);
+        const entry = this.keyValueEntries.get(key);
 
-        if (!storageEntry) {
+        if (!entry) {
             return undefined;
         }
-
-        const entry = await storageEntry.get();
 
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
@@ -241,16 +217,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             contentType,
         } satisfies InternalKeyRecord;
 
-        const entry = createKeyValueStorageImplementation({
-            persistStorage: this.client.persistStorage,
-            storeDirectory: this.keyValueStoreDirectory,
-            writeMetadata: this.client.writeMetadata,
-            logger: this.client.logger,
-        });
-
-        await entry.update(_record);
-
-        this.keyValueEntries.set(key, entry);
+        this.keyValueEntries.set(key, _record);
 
         this.updateTimestamps(true);
     }
@@ -258,12 +225,9 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
 
-        const entry = this.keyValueEntries.get(key);
-
-        if (entry) {
+        if (this.keyValueEntries.has(key)) {
             this.keyValueEntries.delete(key);
             this.updateTimestamps(true);
-            await entry.delete();
         }
     }
 
@@ -284,19 +248,5 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         if (hasBeenModified) {
             this.modifiedAt = new Date();
         }
-
-        const data = this.toKeyValueStoreInfo();
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                data,
-                entityType: 'keyValueStores',
-                entityDirectory: this.keyValueStoreDirectory,
-                id: this.name ?? this.id,
-                writeMetadata: this.client.writeMetadata,
-                persistStorage: this.client.persistStorage,
-            },
-            this.client.logger,
-        );
     }
 }

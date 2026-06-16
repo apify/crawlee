@@ -1,8 +1,8 @@
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
 describe('RequestQueue handledRequestCount should update', () => {
-    const storage = new MemoryStorage({
+    const storage = new MemoryStorageClient({
         persistStorage: false,
     });
 

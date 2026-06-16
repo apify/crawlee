@@ -1,14 +1,14 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { DatasetClient } from '@crawlee/types';
 
 const elements = Array.from({ length: 10 }, (_, i) => ({ number: i }));
 
 describe('Dataset#getData respects the desc option', () => {
     const localDataDirectory = resolve(import.meta.dirname, './tmp/desc');
-    const storage = new MemoryStorage({
+    const storage = new MemoryStorageClient({
         localDataDirectory,
         persistStorage: false,
     });
