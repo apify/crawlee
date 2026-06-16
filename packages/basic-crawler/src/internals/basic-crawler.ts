@@ -21,6 +21,8 @@ import type {
     RequestTransform,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     SkippedRequestCallback,
     Source,
     StatisticsOptions,
@@ -2348,6 +2350,12 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
 export function createBasicRouter<
     Context extends BasicCrawlingContext = BasicCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createBasicRouter<
+    Context extends BasicCrawlingContext = BasicCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createBasicRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

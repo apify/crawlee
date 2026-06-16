@@ -57,6 +57,7 @@
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "@sapphire/async-queue": "^1.5.5",
+        "@standard-schema/spec": "^1.0.0",
         "@vladfrangu/async_event_emitter": "^2.4.6",
         "csv-stringify": "^6.5.2",
         "json5": "^2.2.3",

@@ -6,7 +6,16 @@ import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 
-import type { ErrorHandler, GetUserDataFromRequest, InternalHttpHook, RequestHandler, RouterRoutes } from '../index.js';
+import type {
+    ErrorHandler,
+    GetUserDataFromRequest,
+    InternalHttpHook,
+    RequestHandler,
+    RouterHandler,
+    RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
+} from '../index.js';
 import { Router } from '../index.js';
 import { parseContentTypeFromResponse } from './utils.js';
 
@@ -254,6 +263,12 @@ function trackBodyConsumption(response: Response): { response: ResponseWithUrl; 
 export function createFileRouter<
     Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createFileRouter<
+    Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createFileRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

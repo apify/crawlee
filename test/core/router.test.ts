@@ -1,7 +1,8 @@
 import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
-import { MissingRouteError, Router } from '@crawlee/core';
-import { createPlaywrightRouter, type PlaywrightCrawlingContext } from 'crawlee';
+import { MissingRouteError, RequestValidationError, Router } from '@crawlee/core';
+import { createCheerioRouter, createPlaywrightRouter, type PlaywrightCrawlingContext } from 'crawlee';
+import { z } from 'zod';
 
 describe('Router', () => {
     test('should be callable and route based on the label', async () => {
@@ -172,5 +173,72 @@ describe('Router', () => {
         router.addDefaultHandler<{ foo: 'bar' }>((ctx) => {
             testType<'bar'>(ctx.request.userData.foo);
         });
+    });
+
+    test('addHandler infers userData from a declared route map', async () => {
+        const testType = <T>(t: T): void => {};
+
+        interface Routes {
+            PRODUCT: { sku: string; price: number };
+            CATEGORY: { categoryId: string };
+        }
+
+        const router: Router<CrawlingContext, Routes> = {
+            addHandler: () => {},
+            addDefaultHandler: () => {},
+        } as any;
+
+        router.addHandler('PRODUCT', (ctx) => {
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+        });
+
+        router.addHandler('CATEGORY', (ctx) => {
+            testType<string>(ctx.request.userData.categoryId);
+        });
+
+        // @ts-expect-error unknown labels are rejected when a route map is declared
+        router.addHandler('UNKNOWN', () => {});
+
+        router.addDefaultHandler((ctx) => {
+            testType<{ sku: string; price: number } | { categoryId: string }>(ctx.request.userData);
+        });
+    });
+
+    test('schema map infers userData types and validates at runtime', async () => {
+        const testType = <T>(t: T): void => {};
+
+        const logs: string[] = [];
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string(), price: z.coerce.number() }),
+            CATEGORY: z.object({ categoryId: z.string() }),
+        });
+
+        router.addHandler('PRODUCT', async (ctx) => {
+            // inferred from the schema (note: price is coerced to a number)
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+            logs.push(`product ${ctx.request.userData.sku} @ ${ctx.request.userData.price}`);
+        });
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // valid userData passes and is replaced with the parsed (coerced) value
+        const validRequest = {
+            loadedUrl: 'https://example.com/p',
+            label: 'PRODUCT',
+            userData: { sku: 'A1', price: '42' },
+        };
+        await router({ request: validRequest, log } as any);
+        expect(logs).toEqual(['product A1 @ 42']);
+        expect(validRequest.userData.price).toBe(42);
+
+        // invalid userData throws a RequestValidationError before the handler runs
+        await expect(
+            router({
+                request: { loadedUrl: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 123 } },
+                log,
+            } as any),
+        ).rejects.toThrow(RequestValidationError);
     });
 });

@@ -3,7 +3,10 @@ import type {
     BrowserCrawlingContext,
     BrowserHook,
     GetUserDataFromRequest,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
@@ -310,6 +313,12 @@ export class PuppeteerCrawler<
 export function createPuppeteerRouter<
     Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createPuppeteerRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

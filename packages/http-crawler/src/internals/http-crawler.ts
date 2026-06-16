@@ -11,7 +11,10 @@ import type {
     Request as CrawleeRequest,
     RequestHandler,
     RequireContextPipeline,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -841,6 +844,12 @@ interface RequestFunctionOptions {
 export function createHttpRouter<
     Context extends HttpCrawlingContext = HttpCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createHttpRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

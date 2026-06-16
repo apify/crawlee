@@ -20,7 +20,10 @@ import type {
     GetUserDataFromRequest,
     LoadedContext,
     RequestHandler,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
 import { BrowserCrawler, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
@@ -508,6 +511,12 @@ export class StagehandCrawler<
 export function createStagehandRouter<
     Context extends StagehandCrawlingContext = StagehandCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createStagehandRouter<
+    Context extends StagehandCrawlingContext = StagehandCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createStagehandRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

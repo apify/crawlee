@@ -4,7 +4,10 @@ import type {
     BrowserHook,
     GetUserDataFromRequest,
     RequestHandler,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightPlugin } from '@crawlee/browser-pool';
@@ -347,6 +350,12 @@ export function handleCloudflareChallengeHook(options?: HandleCloudflareChalleng
 export function createPlaywrightRouter<
     Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPlaywrightRouter<
+    Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createPlaywrightRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

@@ -13,7 +13,10 @@ import type {
     GetUserDataFromRequest,
     RequestQueue,
     RestrictedCrawlingContext,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     StatisticPersistedState,
     StatisticsOptions,
     StatisticState,
@@ -782,6 +785,12 @@ export class AdaptivePlaywrightCrawler<
 export function createAdaptivePlaywrightRouter<
     Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createAdaptivePlaywrightRouter<
+    Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createAdaptivePlaywrightRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

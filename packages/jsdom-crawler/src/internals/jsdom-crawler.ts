@@ -8,7 +8,10 @@ import type {
     InternalHttpHook,
     IRequestManager,
     RequestHandler,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     SkippedRequestCallback,
 } from '@crawlee/http';
 import {
@@ -495,6 +498,12 @@ function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: str
 export function createJSDOMRouter<
     Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createJSDOMRouter<
+    Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createJSDOMRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }
