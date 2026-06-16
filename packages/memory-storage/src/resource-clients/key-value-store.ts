@@ -11,6 +11,12 @@ import mime from 'mime-types';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 
+/**
+ * Key under which a run's input is stored in the default key-value store. Matches Crawlee's default
+ * `inputKey` (`CRAWLEE_INPUT_KEY`) and the `INPUT` files `FileSystemStorageClient` preserves on purge.
+ */
+const KEY_VALUE_STORE_INPUT_KEY = 'INPUT';
+
 export interface KeyValueStoreClientOptions {
     name?: string;
     id?: string;
@@ -67,6 +73,22 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
     async purge(): Promise<void> {
         this.keyValueEntries.clear();
+        this.updateTimestamps(true);
+    }
+
+    /**
+     * Purges every record except the run's input. Used by {@link MemoryStorageClient.purge} for the
+     * default key-value store, mirroring `FileSystemStorageClient`, which preserves `INPUT` (and its
+     * extension variants) when purging the default store. The in-memory key has no extension, so we
+     * preserve the bare `INPUT` key only.
+     */
+    async purgeExceptInput(): Promise<void> {
+        for (const key of this.keyValueEntries.keys()) {
+            if (key !== KEY_VALUE_STORE_INPUT_KEY) {
+                this.keyValueEntries.delete(key);
+            }
+        }
+
         this.updateTimestamps(true);
     }
 

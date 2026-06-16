@@ -186,27 +186,27 @@ export class MemoryStorageClient implements storage.StorageClient {
     /**
      * Cleans up the default storages before the run starts. For the in-memory storage this simply
      * resets the in-memory state of the cached default dataset, key-value store and request queue.
+     *
+     * As with `FileSystemStorageClient`, the run's input (the `INPUT` key in the default key-value
+     * store) is preserved — only the rest of the default storages is cleared.
      */
     async purge(): Promise<void> {
-        const purgeDefaults = async <T extends { name?: string; directoryName: string; purge(): Promise<void> }>(
+        const isDefault = (store: { name?: string; directoryName: string }) =>
+            store.name === 'default' || store.directoryName === 'default' || store.directoryName === '__default__';
+
+        const purgeDefaults = async <T extends { name?: string; directoryName: string }>(
             cache: T[],
+            purgeStore: (store: T) => Promise<void>,
         ) => {
-            await Promise.all(
-                cache
-                    .filter(
-                        (store) =>
-                            store.name === 'default' ||
-                            store.directoryName === 'default' ||
-                            store.directoryName === '__default__',
-                    )
-                    .map(async (store) => store.purge()),
-            );
+            await Promise.all(cache.filter(isDefault).map(async (store) => purgeStore(store)));
         };
 
         await Promise.all([
-            purgeDefaults(this.keyValueStoreCache),
-            purgeDefaults(this.datasetClientCache),
-            purgeDefaults(this.requestQueueCache),
+            // Preserve the run input (INPUT) when purging the default key-value store, matching
+            // `FileSystemStorageClient`.
+            purgeDefaults(this.keyValueStoreCache, async (store) => store.purgeExceptInput()),
+            purgeDefaults(this.datasetClientCache, async (store) => store.purge()),
+            purgeDefaults(this.requestQueueCache, async (store) => store.purge()),
         ]);
     }
 
