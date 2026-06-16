@@ -241,4 +241,25 @@ export class RequestManagerTandem implements IRequestManager {
         this.expectedRequestProcessingSecs = secs;
         this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
     }
+
+    setCrawlDelay(url: string, delaySeconds: number): void {
+        if (
+            this.resolvedRequestManager &&
+            'setCrawlDelay' in this.resolvedRequestManager &&
+            typeof (this.resolvedRequestManager as any).setCrawlDelay === 'function'
+        ) {
+            (this.resolvedRequestManager as any).setCrawlDelay(url, delaySeconds);
+        }
+    }
+
+    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean {
+        if (
+            this.resolvedRequestManager &&
+            'recordDomainDelay' in this.resolvedRequestManager &&
+            typeof (this.resolvedRequestManager as any).recordDomainDelay === 'function'
+        ) {
+            return (this.resolvedRequestManager as any).recordDomainDelay(url, retryAfterMs);
+        }
+        return false;
+    }
 }

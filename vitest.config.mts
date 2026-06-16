@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import isCI from 'is-ci';
 import { defineConfig, mergeConfig } from 'vitest/config';
@@ -48,11 +49,11 @@ const baseConfig = defineConfig({
 });
 
 // Check for local config override
-const localConfigPath = resolve(__dirname, './vitest.config.local.mts');
+const localConfigPath = resolve(__dirname, './vitest.config.local.mjs');
 let finalConfig = baseConfig;
 
 if (existsSync(localConfigPath)) {
-    const localConfigModule = await import(localConfigPath);
+    const localConfigModule = await import(pathToFileURL(localConfigPath).toString());
     const localConfig = localConfigModule.default;
     console.log(`Applying local vitest config overrides`);
     finalConfig = mergeConfig(baseConfig, localConfig);
