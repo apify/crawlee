@@ -120,7 +120,8 @@
     },
     "resolutions": {
         "tmp": "^0.2.7",
-        "@puppeteer/browsers": "^3.0.4"
+        "@puppeteer/browsers": "^3.0.4",
+        "playwright-core": "1.61.0"
     },
     "packageManager": "yarn@4.10.3",
     "volta": {
