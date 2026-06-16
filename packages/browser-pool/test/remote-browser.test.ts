@@ -398,7 +398,7 @@ describe('Remote browser — PlaywrightPlugin', () => {
         test('proxyUrl + remoteBrowser → info about forwarding to endpoint()', async () => {
             const lib = createMockPlaywrightLibrary();
             const plugin = new PlaywrightPlugin(lib as any, {
-                remoteBrowser: { endpoint: 'http://remote:9222' },
+                remoteBrowser: { endpoint: () => 'http://remote:9222' },
                 proxyUrl: 'http://user:pass@proxy:8080',
             });
 
@@ -652,7 +652,7 @@ describe('Remote browser — PuppeteerPlugin', () => {
         test('proxyUrl + remoteBrowser → info about forwarding to endpoint()', async () => {
             const lib = createMockPuppeteerLibrary();
             const plugin = new PuppeteerPlugin(lib as any, {
-                remoteBrowser: { endpoint: 'ws://remote:9222' },
+                remoteBrowser: { endpoint: () => 'ws://remote:9222' },
                 proxyUrl: 'http://user:pass@proxy:8080',
             });
 
