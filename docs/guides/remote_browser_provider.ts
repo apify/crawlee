@@ -6,7 +6,7 @@ const projectId = process.env.BROWSERBASE_PROJECT_ID!;
 
 class BrowserbaseProvider extends RemoteBrowserProvider<{ id: string }> {
     // Respect the service's concurrent session limit to avoid 429s.
-    maxOpenBrowsers = 5;
+    override maxOpenBrowsers = 5;
 
     async connect() {
         const response = await fetch('https://api.browserbase.com/v1/sessions', {
@@ -23,7 +23,7 @@ class BrowserbaseProvider extends RemoteBrowserProvider<{ id: string }> {
         return { url: session.connectUrl, context: { id: session.id } };
     }
 
-    async release({ id }: { id: string }) {
+    override async release({ id }: { id: string }) {
         await fetch(`https://api.browserbase.com/v1/sessions/${id}`, {
             method: 'POST',
             headers: { 'x-bb-api-key': apiKey, 'Content-Type': 'application/json' },
