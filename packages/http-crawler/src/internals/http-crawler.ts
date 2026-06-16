@@ -1069,6 +1069,7 @@ function parseContentTypeFromResponse(response: unknown): { type: string; charse
 export function createHttpRouter<
     Context extends HttpCrawlingContext = HttpCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>) {
+    return Router.create<Context, UserData, Routes>(routes);
 }

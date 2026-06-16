@@ -451,6 +451,7 @@ function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: str
 export function createJSDOMRouter<
     Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>) {
+    return Router.create<Context, UserData, Routes>(routes);
 }

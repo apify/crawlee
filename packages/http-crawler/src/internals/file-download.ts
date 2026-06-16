@@ -332,6 +332,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 export function createFileRouter<
     Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+>(routes?: RouterRoutes<Context, Routes>) {
+    return Router.create<Context, UserData, Routes>(routes);
 }

@@ -173,4 +173,35 @@ describe('Router', () => {
             testType<'bar'>(ctx.request.userData.foo);
         });
     });
+
+    test('addHandler infers userData from a declared route map', async () => {
+        const testType = <T>(t: T): void => {};
+
+        interface Routes {
+            PRODUCT: { sku: string; price: number };
+            CATEGORY: { categoryId: string };
+        }
+
+        const router: Router<CrawlingContext, Routes> = {
+            addHandler: () => {},
+            addDefaultHandler: () => {},
+        } as any;
+
+        router.addHandler('PRODUCT', (ctx) => {
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+        });
+
+        router.addHandler('CATEGORY', (ctx) => {
+            testType<string>(ctx.request.userData.categoryId);
+        });
+
+        // @ts-expect-error unknown labels are rejected when a route map is declared
+        router.addHandler('UNKNOWN', () => {});
+
+        router.addDefaultHandler((ctx) => {
+            // the default handler receives the union of all declared userData shapes
+            testType<{ sku: string; price: number } | { categoryId: string }>(ctx.request.userData);
+        });
+    });
 });
