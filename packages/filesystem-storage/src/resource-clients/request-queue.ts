@@ -135,14 +135,28 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
+        // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so a concurrent
+        // operation cannot observe half-cleared state — e.g. a forefront id whose request has already been
+        // removed, which `listPendingHead` would then dereference as `undefined`.
+        await this.queueStateMutex.wait();
 
-        if (storeIndex !== -1) {
-            const [oldClient] = this.client.requestQueueCache.splice(storeIndex, 1);
-            oldClient.pendingRequestCount = 0;
-            oldClient.requests.clear();
+        try {
+            const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
 
-            await rm(oldClient.requestQueueDirectory, { recursive: true, force: true });
+            if (storeIndex !== -1) {
+                const [oldClient] = this.client.requestQueueCache.splice(storeIndex, 1);
+                oldClient.pendingRequestCount = 0;
+                // Clear all in-memory state, consistent with `purge`. Clearing `requests` alone would
+                // leave dangling ids in `forefrontRequestIds`/`inProgressRequestIds`, which a later head
+                // scan would resolve to a missing request and dereference.
+                oldClient.requests.clear();
+                oldClient.forefrontRequestIds = [];
+                oldClient.inProgressRequestIds.clear();
+
+                await rm(oldClient.requestQueueDirectory, { recursive: true, force: true });
+            }
+        } finally {
+            this.queueStateMutex.shift();
         }
     }
 

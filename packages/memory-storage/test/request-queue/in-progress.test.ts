@@ -79,4 +79,21 @@ describe('RequestQueue in-progress requests', () => {
         expect(await queue.fetchNextRequest()).toBeNull();
         expect(await queue.isFinished()).toBe(false);
     });
+
+    test('dropping a queue with a pending forefront request does not corrupt later head scans', async () => {
+        const storage = new MemoryStorageClient();
+        const queue: RequestQueueClient = await storage.createRequestQueueClient({ name: 'drop-forefront' });
+
+        // A forefront request leaves an id in `forefrontRequestIds`. `drop` must clear that alongside the
+        // `requests` map, otherwise a later head scan would resolve the dangling id to a missing request
+        // and dereference `undefined`.
+        await queue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }], { forefront: true });
+
+        await queue.drop();
+
+        // A head scan on the dropped client must not throw and must report an empty, finished queue.
+        await expect(queue.isEmpty()).resolves.toBe(true);
+        await expect(queue.isFinished()).resolves.toBe(true);
+        await expect(queue.fetchNextRequest()).resolves.toBeNull();
+    });
 });
