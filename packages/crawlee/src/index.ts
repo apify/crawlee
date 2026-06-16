@@ -15,6 +15,7 @@ export * from '@crawlee/puppeteer';
 export * from '@crawlee/playwright';
 export * from '@crawlee/browser-pool';
 export * from '@crawlee/memory-storage';
+export * from '@crawlee/filesystem-storage';
 
 export const utils = {
     puppeteer: puppeteerUtils,
