@@ -431,14 +431,14 @@ The new `ServiceLocator` supports per-crawler service isolation, allowing you to
 
 ```typescript
 import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 const crawler = new BasicCrawler({
     requestHandler: async ({ request, log }) => {
         log.info(`Processing ${request.url}`);
     },
     configuration: new Configuration({ headless: false }),
-    storageClient: new MemoryStorage(),
+    storageClient: new MemoryStorageClient(),
     eventManager: LocalEventManager.fromConfig(),
 });
 
@@ -451,10 +451,10 @@ For most use cases, the global `serviceLocator` singleton works well:
 
 ```typescript
 import { serviceLocator, BasicCrawler } from 'crawlee';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 // Configure global services (optional)
-serviceLocator.setStorageClient(new MemoryStorage());
+serviceLocator.setStorageClient(new MemoryStorageClient());
 
 // All crawlers will use the global service locator by default
 const crawler = new BasicCrawler({
@@ -642,6 +642,52 @@ If you implemented a custom `StorageClient`, you need to:
 1. Remove your `*CollectionClient` classes.
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
 3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
+
+## `MemoryStorage` split into `FileSystemStorageClient` and `MemoryStorageClient`
+
+In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did double duty: it kept everything in memory *and*, by default, mirrored it to disk (toggled via the `persistStorage` option / `CRAWLEE_PERSIST_STORAGE` environment variable). In v4 these two responsibilities are split into two independent classes, and the default storage client now persists to disk.
+
+- **`FileSystemStorageClient`** (new, in the new `@crawlee/filesystem-storage` package) — always persists storage to the local directory (`CRAWLEE_STORAGE_DIR`, default `./storage`). This is what you get implicitly when you don't configure a storage client, and it is the behavior the old `MemoryStorage` had with its default `persistStorage: true`.
+- **`MemoryStorageClient`** (the renamed `MemoryStorage`, still in `@crawlee/memory-storage`) — now keeps everything purely in memory and **never touches the disk**. This matches the old `MemoryStorage` with `persistStorage: false`.
+
+Both classes are re-exported from the `crawlee` meta-package.
+
+### The default storage client now persists to disk
+
+Which client backs the implicit default is decided by `Configuration.persistStorage` (still controllable via the `CRAWLEE_PERSIST_STORAGE` environment variable): `true` (the default) selects `FileSystemStorageClient`, `false` selects `MemoryStorageClient`. If you relied on the default and never set `persistStorage`, your storage is persisted to disk exactly as before — no change.
+
+### `MemoryStorage` is renamed and is now memory-only
+
+If you constructed the storage client explicitly, two things changed:
+
+1. **The class is renamed** `MemoryStorage` → `MemoryStorageClient`.
+2. **It no longer writes to disk.** A bare `new MemoryStorage()` in v3 persisted to disk by default; `new MemoryStorageClient()` in v4 does not. If you want persistence, use `FileSystemStorageClient` instead.
+
+**Before:**
+```typescript
+import { MemoryStorage } from '@crawlee/memory-storage';
+
+// Persisted to disk by default in v3.
+const storageClient = new MemoryStorage();
+```
+
+**After:**
+```typescript
+import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
+
+// Persists to disk (the old default behavior):
+const storageClient = new FileSystemStorageClient();
+
+// Or keep everything in memory only (the old `persistStorage: false`):
+const inMemory = new MemoryStorageClient();
+```
+
+The `localDataDirectory`, `persistStorage`, and `writeMetadata` options are still accepted by `MemoryStorageClient` for source compatibility, but they are ignored — in-memory storage has nowhere to write. `FileSystemStorageClient` honors `localDataDirectory` and `writeMetadata`; it always persists, so it has no `persistStorage` option.
+
+### No request lock expiry in `MemoryStorageClient`
+
+Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageClient`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageClient` keeps the lock-with-expiry behavior.)
 
 ## Multiple crawler instances use separate default request queues
 
