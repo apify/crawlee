@@ -318,10 +318,17 @@ export abstract class BrowserPlugin<
 
         if (proxyUrl && launchContext.isRemote) {
             if (this.remoteBrowser) {
-                this.log.info(
-                    'proxyUrl is set and will be passed to the remoteBrowser.endpoint() function. ' +
-                        "Make sure your endpoint() handles it (e.g. passes it to the service's proxy API).",
-                );
+                if (typeof this.remoteBrowser.endpoint === 'function') {
+                    this.log.info(
+                        'proxyUrl is set and will be passed to the remoteBrowser.endpoint() function. ' +
+                            "Make sure your endpoint() handles it (e.g. passes it to the service's proxy API).",
+                    );
+                } else {
+                    this.log.warning(
+                        'proxyUrl is set but will be ignored because remoteBrowser.endpoint is a static string. ' +
+                            'Switch endpoint to a function `(opts) => …` to receive proxyUrl, or configure the proxy through the remote service.',
+                    );
+                }
             } else {
                 this.log.warning(
                     'proxyUrl is set but will be ignored when using connectOptions/connectOverCDPOptions. ' +
