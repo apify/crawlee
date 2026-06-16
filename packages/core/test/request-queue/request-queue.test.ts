@@ -1,8 +1,8 @@
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import { RequestQueue } from 'crawlee';
 import type { MockInstance } from 'vitest';
 
-const storage = new MemoryStorage({ persistStorage: false, writeMetadata: false });
+const storage = new MemoryStorageClient({ persistStorage: false, writeMetadata: false });
 
 async function makeQueue(name: string, numOfRequestsToAdd = 0) {
     const rqClient = await storage.createRequestQueueClient({ name });

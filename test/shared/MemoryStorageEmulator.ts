@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import { Configuration, serviceLocator } from 'crawlee';
 import { ensureDir } from 'fs-extra';
 
@@ -12,7 +12,7 @@ import { StorageEmulator } from './StorageEmulator.js';
 const LOCAL_EMULATION_DIR = resolve(import.meta.dirname, '..', 'tmp', 'memory-emulation-dir');
 
 export class MemoryStorageEmulator extends StorageEmulator {
-    private storage!: MemoryStorage;
+    private storage!: MemoryStorageClient;
 
     override async init({ dirName = cryptoRandomObjectId(10), persistStorage = false }: MemoryEmulatorOptions = {}) {
         await super.init();
@@ -20,7 +20,11 @@ export class MemoryStorageEmulator extends StorageEmulator {
         this.localStorageDirectories.push(localStorageDir);
         await ensureDir(localStorageDir);
 
-        this.storage = new MemoryStorage({ localDataDirectory: localStorageDir, persistStorage, writeMetadata: false });
+        this.storage = new MemoryStorageClient({
+            localDataDirectory: localStorageDir,
+            persistStorage,
+            writeMetadata: false,
+        });
 
         serviceLocator.setStorageClient(this.storage);
         log.debug(`Initialized emulated memory storage in folder ${localStorageDir}`);

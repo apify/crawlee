@@ -1,4 +1,11 @@
-import { Dataset, KeyValueStore, RequestQueue } from '@crawlee/core';
+import { resolve } from 'node:path';
+
+import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { Dataset, KeyValueStore, RequestQueue, serviceLocator } from '@crawlee/core';
+import { ensureDir, rm } from 'fs-extra';
+
+import { cryptoRandomObjectId } from '@apify/utilities';
+
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const localStorageEmulator = new MemoryStorageEmulator();
@@ -142,14 +149,17 @@ describe('storage aliases', () => {
     });
 
     describe('string identifier vs alias conflict (persistent storage)', () => {
-        const persistentEmulator = new MemoryStorageEmulator();
+        const localStorageDir = resolve(import.meta.dirname, '..', 'tmp', 'fs-aliases', cryptoRandomObjectId(10));
 
         beforeEach(async () => {
-            await persistentEmulator.init({ persistStorage: true });
+            serviceLocator.reset();
+            await ensureDir(localStorageDir);
+            serviceLocator.setStorageClient(new FileSystemStorageClient({ localDataDirectory: localStorageDir }));
         });
 
         afterAll(async () => {
-            await persistentEmulator.destroy();
+            await rm(localStorageDir, { force: true, recursive: true });
+            serviceLocator.getStorageInstanceManager().clearCache();
         });
 
         test('should throw when opening a string identifier that matches an existing alias on disk', async () => {

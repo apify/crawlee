@@ -20,7 +20,7 @@ import {
     SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -2186,10 +2186,16 @@ describe('BasicCrawler', () => {
         });
 
         test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorage with a different localDataDirectory,
+            // Each crawler gets its own MemoryStorageClient with a different localDataDirectory,
             // producing different clientCacheKeys and thus separate cache partitions.
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            const storageA = new MemoryStorageClient({
+                persistStorage: false,
+                localDataDirectory: `${tmpDir}/storageA`,
+            });
+            const storageB = new MemoryStorageClient({
+                persistStorage: false,
+                localDataDirectory: `${tmpDir}/storageB`,
+            });
 
             const crawlerA = new BasicCrawler({ storageClient: storageA });
             const crawlerB = new BasicCrawler({ storageClient: storageB });
@@ -2203,8 +2209,14 @@ describe('BasicCrawler', () => {
         });
 
         test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            const storageA = new MemoryStorageClient({
+                persistStorage: false,
+                localDataDirectory: `${tmpDir}/storageA`,
+            });
+            const storageB = new MemoryStorageClient({
+                persistStorage: false,
+                localDataDirectory: `${tmpDir}/storageB`,
+            });
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},
