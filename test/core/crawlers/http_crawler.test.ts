@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 
 import type { ConcurrencySystemOptions } from '@crawlee/core';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { ConcurrencySystem, HttpCrawler, SessionPool } from '@crawlee/http';
+import { ConcurrencySystem, HttpCrawler, RequestQueue, SessionPool, ThrottlingRequestManager } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import iconv from 'iconv-lite';
 
@@ -561,4 +561,47 @@ test('works with a custom HttpClient', async () => {
 
     expect(results[0].includes('Schmexample Domain')).toBeTruthy();
     expect(results[1].includes('Schmexample Domain')).toBeTruthy();
+});
+
+test('429 on throttled domain records delay and keeps session', async () => {
+    router.set('/429', (req, res) => {
+        res.statusCode = 429;
+        res.setHeader('retry-after', '2'); // 2 seconds
+        res.end();
+    });
+
+    const innerQueue = await RequestQueue.open();
+    const throttlingManager = new ThrottlingRequestManager({
+        inner: innerQueue,
+        domains: ['127.0.0.1'],
+    });
+
+    const sessionPool = new SessionPool();
+    let sessionRetired = false;
+
+    const crawler = new HttpCrawler({
+        requestManager: throttlingManager,
+        sessionPool,
+        maxRequestRetries: 1,
+        preNavigationHooks: [
+            async ({ session }) => {
+                vitest.spyOn(session, 'retire').mockImplementation(() => {
+                    sessionRetired = true;
+                });
+            },
+        ],
+        requestHandler: async () => {},
+    });
+
+    const targetUrl = `${url}/429`;
+    await crawler.run([targetUrl]);
+
+    // The request should have been retried and eventually fail, but the session should NOT be retired.
+    expect(sessionRetired).toBe(false);
+
+    // Throttling delay should be registered in the manager.
+    const state = (throttlingManager as any).domainStates.get('127.0.0.1');
+    expect(state).toBeDefined();
+    expect(state.consecutive429Count).toBeGreaterThan(0);
+    expect(state.throttledUntil).toBeGreaterThan(Date.now());
 });
