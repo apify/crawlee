@@ -289,32 +289,4 @@ describe('launchPlaywright()', () => {
         });
     });
 
-    describe('launchOptions + remote mutual exclusion', () => {
-        test('throws when launchOptions combined with connectOptions', async () => {
-            await expect(
-                launchPlaywright({
-                    launchOptions: { headless: true },
-                    connectOptions: { wsEndpoint: 'ws://remote:3000' },
-                }),
-            ).rejects.toThrow("'launchOptions' is ignored when using a remote browser");
-        });
-
-        test('throws when launchOptions combined with connectOverCDPOptions', async () => {
-            await expect(
-                launchPlaywright({
-                    launchOptions: { headless: true },
-                    connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                }),
-            ).rejects.toThrow("'launchOptions' is ignored when using a remote browser");
-        });
-
-        test('throws when launchOptions combined with remoteBrowser', async () => {
-            await expect(
-                launchPlaywright({
-                    launchOptions: { headless: true },
-                    remoteBrowser: { endpoint: 'wss://remote.io' },
-                }),
-            ).rejects.toThrow("'launchOptions' is ignored when using a remote browser");
-        });
-    });
 });

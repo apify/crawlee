@@ -199,16 +199,8 @@ export class PuppeteerCrawler<
         }
 
         if (headless != null) {
-            if (launchContext.remoteBrowser || launchContext.connectOverCDPOptions) {
-                const log = serviceLocator.getLogger().child({ prefix: 'PuppeteerCrawler' });
-                log.warning(
-                    "'headless' is ignored when connecting to a remote browser. " +
-                        'The remote service controls headless mode.',
-                );
-            } else {
-                launchContext.launchOptions ??= {} as LaunchOptions;
-                launchContext.launchOptions.headless = headless as boolean;
-            }
+            launchContext.launchOptions ??= {} as LaunchOptions;
+            launchContext.launchOptions.headless = headless as boolean;
         }
 
         const puppeteerLauncher = new PuppeteerLauncher(launchContext, options.configuration);

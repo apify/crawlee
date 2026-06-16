@@ -6,6 +6,7 @@ import {
     BrowserPool as BrowserPoolClass,
     OperatingSystemsName,
     PuppeteerPlugin,
+    RemoteBrowserPool,
 } from '@crawlee/browser-pool';
 import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator, SessionPool } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
@@ -170,6 +171,46 @@ describe('BrowserCrawler', () => {
 
             await browserCrawler.run();
             expect(destroyCalled).toBe(false);
+        } finally {
+            await externalPool.destroy();
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('builds and owns a RemoteBrowserPool from the remoteBrowser option', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+
+        try {
+            const crawler = new BrowserCrawlerTest({
+                remoteBrowser: { endpoint: 'ws://remote:9222', maxOpenBrowsers: 2 },
+                browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
+                requestHandler: async () => {},
+            });
+
+            expect(crawler.browserPool).toBeInstanceOf(RemoteBrowserPool);
+            expect((crawler.browserPool as RemoteBrowserPool).maxOpenBrowsers).toBe(2);
+
+            await (crawler.browserPool as RemoteBrowserPool).destroy();
+        } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('throws when both browserPool and remoteBrowser are set', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+        try {
+            expect(
+                () =>
+                    new BrowserCrawlerTest({
+                        browserPool: externalPool,
+                        remoteBrowser: { endpoint: 'ws://remote:9222' },
+                        requestHandler: async () => {},
+                    }),
+            ).toThrow(/at most one of 'browserPool' and 'remoteBrowser'/);
         } finally {
             await externalPool.destroy();
             await localStorageEmulator.destroy();

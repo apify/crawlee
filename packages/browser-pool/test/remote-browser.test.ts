@@ -5,10 +5,10 @@ import type { CrawleeLogger } from '@crawlee/core';
 
 import { PlaywrightPlugin } from '../src/playwright/playwright-plugin.js';
 import { PuppeteerPlugin } from '../src/puppeteer/puppeteer-plugin.js';
-import { RemoteBrowserProvider } from '../src/remote-browser-provider.js';
+import type { RemoteConnection } from '../src/remote-browser-pool.js';
 
 // ---------------------------------------------------------------------------
-// Shared mock helpers
+// Mock helpers
 // ---------------------------------------------------------------------------
 
 function createMockPage() {
@@ -20,19 +20,14 @@ function createMockPage() {
     };
 }
 
-function createMockBrowserContext() {
+function createMockBrowser() {
     const page = createMockPage();
-    return {
+    const mockContext = {
         newPage: vi.fn().mockResolvedValue(page),
         close: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
         once: vi.fn(),
-        _mockPage: page,
     };
-}
-
-function createMockBrowser() {
-    const mockContext = createMockBrowserContext();
     return {
         newPage: vi.fn().mockResolvedValue(createMockPage()),
         close: vi.fn().mockResolvedValue(undefined),
@@ -46,22 +41,16 @@ function createMockBrowser() {
         userAgent: vi.fn().mockResolvedValue('mock-ua'),
         createBrowserContext: vi.fn().mockResolvedValue(mockContext),
         createIncognitoBrowserContext: vi.fn().mockResolvedValue(mockContext),
-        _mockContext: mockContext,
     };
 }
 
 function createMockPlaywrightLibrary(browser = createMockBrowser()) {
-    const mockContext = {
-        ...browser,
-        once: vi.fn(),
-        on: vi.fn(),
-    };
     return {
         launch: vi.fn().mockResolvedValue(browser),
         connect: vi.fn().mockResolvedValue(browser),
         connectOverCDP: vi.fn().mockResolvedValue(browser),
         name: vi.fn(() => 'chromium'),
-        launchPersistentContext: vi.fn().mockResolvedValue(mockContext),
+        launchPersistentContext: vi.fn().mockResolvedValue(browser),
     };
 }
 
@@ -74,10 +63,8 @@ function createMockPuppeteerLibrary(browser = createMockBrowser()) {
 }
 
 function createMockLogger(): CrawleeLogger & { warning: ReturnType<typeof vi.fn>; info: ReturnType<typeof vi.fn> } {
-    const mockLogger: any = {
-        getOptions: vi.fn(() => ({})),
-        setOptions: vi.fn(),
-        child: vi.fn(() => mockLogger),
+    const logger: any = {
+        child: vi.fn(() => logger),
         error: vi.fn(),
         exception: vi.fn(),
         softFail: vi.fn(),
@@ -87,1010 +74,138 @@ function createMockLogger(): CrawleeLogger & { warning: ReturnType<typeof vi.fn>
         debug: vi.fn(),
         perf: vi.fn(),
         deprecated: vi.fn(),
-        log: vi.fn(),
+        getOptions: vi.fn(() => ({})),
+        setOptions: vi.fn(),
         setLevel: vi.fn(),
         getLevel: vi.fn(),
     };
-    return mockLogger;
+    return logger;
+}
+
+/** A fake {@link RemoteConnection} that resolves to a fixed URL and records release() calls. */
+function createConnection(url = 'wss://remote:9222', context?: Record<string, unknown>): RemoteConnection & {
+    resolve: ReturnType<typeof vi.fn>;
+    release: ReturnType<typeof vi.fn>;
+} {
+    return {
+        resolve: vi.fn(async (_options?: { proxyUrl?: string }) => ({ url, token: 42, context })),
+        release: vi.fn(async () => {}),
+    } as any;
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Remote browser — PlaywrightPlugin', () => {
-    let mockLogger: ReturnType<typeof createMockLogger>;
-
-    beforeEach(() => {
-        mockLogger = createMockLogger();
-        serviceLocator.setLogger(mockLogger);
-    });
-
-    // --- Connection routing ---------------------------------------------------
-
-    describe('connection routing', () => {
-        test('connectOverCDPOptions → calls connectOverCDP, not launch', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.connectOverCDP).toHaveBeenCalledTimes(1);
-            expect(lib.connectOverCDP).toHaveBeenCalledWith('http://remote:9222', {});
-            expect(lib.launch).not.toHaveBeenCalled();
-            expect(lib.connect).not.toHaveBeenCalled();
-        });
-
-        test('connectOptions → calls connect, not launch', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOptions: { wsEndpoint: 'ws://remote:3000' },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.connect).toHaveBeenCalledTimes(1);
-            expect(lib.connect).toHaveBeenCalledWith('ws://remote:3000', {});
-            expect(lib.launch).not.toHaveBeenCalled();
-            expect(lib.connectOverCDP).not.toHaveBeenCalled();
-        });
-
-        test('no connect options → calls launch', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any);
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.launch).toHaveBeenCalledTimes(1);
-            expect(lib.connect).not.toHaveBeenCalled();
-            expect(lib.connectOverCDP).not.toHaveBeenCalled();
-        });
-
-        test('passes extra options through to connectOverCDP', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: {
-                    endpointURL: 'http://remote:9222',
-                    timeout: 5000,
-                    headers: { 'x-token': 'abc' },
-                },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.connectOverCDP).toHaveBeenCalledWith('http://remote:9222', {
-                timeout: 5000,
-                headers: { 'x-token': 'abc' },
-            });
-        });
-
-        test('passes extra options through to connect', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOptions: {
-                    wsEndpoint: 'ws://remote:3000',
-                    timeout: 3000,
-                    headers: { Authorization: 'Bearer xyz' },
-                },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.connect).toHaveBeenCalledWith('ws://remote:3000', {
-                timeout: 3000,
-                headers: { Authorization: 'Bearer xyz' },
-            });
-        });
-    });
-
-    // --- Validation -----------------------------------------------------------
-
-    describe('validation', () => {
-        test('throws when both connectOptions and connectOverCDPOptions are set', () => {
-            const lib = createMockPlaywrightLibrary();
-
-            expect(
-                () =>
-                    new PlaywrightPlugin(lib as any, {
-                        connectOptions: { wsEndpoint: 'ws://remote:3000' },
-                        connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                    }),
-            ).toThrow('mutually exclusive');
-        });
-
-        test('throws when connectOverCDPOptions has no endpointURL', () => {
-            const lib = createMockPlaywrightLibrary();
-
-            expect(
-                () =>
-                    new PlaywrightPlugin(lib as any, {
-                        connectOverCDPOptions: { endpointURL: '' },
-                    }),
-            ).toThrow("'connectOverCDPOptions.endpointURL' must be a non-empty string");
-        });
-
-        test('throws when connectOptions has no wsEndpoint', () => {
-            const lib = createMockPlaywrightLibrary();
-
-            expect(
-                () =>
-                    new PlaywrightPlugin(lib as any, {
-                        connectOptions: { wsEndpoint: '' },
-                    }),
-            ).toThrow("'connectOptions.wsEndpoint' must be a non-empty string");
-        });
-    });
-
-    // --- isRemote correctness -------------------------------------------------
-
-    describe('isRemote', () => {
-        test('true when connectOverCDPOptions is present', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            expect(ctx.isRemote).toBe(true);
-        });
-
-        test('true when connectOptions is present', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOptions: { wsEndpoint: 'ws://remote:3000' },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            expect(ctx.isRemote).toBe(true);
-        });
-
-        test('false when no connect options', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any);
-
-            const ctx = plugin.createLaunchContext();
-            expect(ctx.isRemote).toBe(false);
-        });
-    });
-
-    // --- Proxy/webdriver skipping ---------------------------------------------
-
-    describe('proxy/webdriver skipping for remote', () => {
-        test('proxy is not applied for remote connections', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                proxyUrl: 'http://user:pass@proxy:8080',
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            // The browser was connected via CDP, not launched — proxy is not set on launchOptions
-            expect(lib.connectOverCDP).toHaveBeenCalledTimes(1);
-            expect(lib.launch).not.toHaveBeenCalled();
-        });
-
-        test('webdriver hiding args are not added for remote connections', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                launchOptions: { args: ['--custom-flag'] },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            // The original args should be untouched — no webdriver stealth flag injected
-            expect(ctx.launchOptions?.args).toEqual(['--custom-flag']);
-            expect(ctx.launchOptions?.args).not.toContain('--disable-blink-features=AutomationControlled');
-        });
-
-        test('webdriver hiding args ARE added for local chromium connections', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                launchOptions: { args: ['--custom-flag'] },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(ctx.launchOptions?.args).toContain('--disable-blink-features=AutomationControlled');
-            expect(ctx.launchOptions?.args).toContain('--custom-flag');
-        });
-
-        test('proxy is applied for local connections', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                proxyUrl: 'http://user:pass@proxy:8080',
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.launch).toHaveBeenCalledTimes(1);
-            // Launch options should have proxy configured
-            const launchOpts = lib.launch.mock.calls[0][0];
-            expect(launchOpts.proxy).toBeDefined();
-            expect(launchOpts.proxy.server).toBeDefined();
-        });
-    });
-
-    // --- useIncognitoPages default --------------------------------------------
-
-    describe('useIncognitoPages default', () => {
-        test('forced to true for remote (connectOverCDP)', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-            });
-
-            expect(plugin.useIncognitoPages).toBe(true);
-        });
-
-        test('forced to true for remote (connect / WebSocket)', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOptions: { wsEndpoint: 'ws://remote:3000' },
-            });
-
-            expect(plugin.useIncognitoPages).toBe(true);
-        });
-
-        test('explicit false is overridden to true for remote (with warning)', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                useIncognitoPages: false,
-            });
-
-            expect(plugin.useIncognitoPages).toBe(true);
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining('only support useIncognitoPages: true'),
-            );
-        });
-
-        test('explicit true preserved for remote', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                useIncognitoPages: true,
-            });
-
-            expect(plugin.useIncognitoPages).toBe(true);
-        });
-
-        test('default false for local', () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any);
-
-            expect(plugin.useIncognitoPages).toBe(false);
-        });
-    });
-
-    // --- Info/Warnings --------------------------------------------------------
-
-    describe('info and warnings', () => {
-        test('proxyUrl + connectOverCDPOptions → warning that proxyUrl is ignored', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-                proxyUrl: 'http://user:pass@proxy:8080',
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining(
-                    'proxyUrl is set but will be ignored when using connectOptions/connectOverCDPOptions',
-                ),
-            );
-        });
-
-        test('proxyUrl + remoteBrowser → info about forwarding to endpoint()', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any, {
-                remoteBrowser: { endpoint: () => 'http://remote:9222' },
-                proxyUrl: 'http://user:pass@proxy:8080',
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(mockLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining('passed to the remoteBrowser.endpoint() function'),
-            );
-        });
-
-        test('remote default → info about incognito-only', () => {
-            const lib = createMockPlaywrightLibrary();
-            new PlaywrightPlugin(lib as any, {
-                connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
-            });
-
-            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('useIncognitoPages forced to true'));
-        });
-
-        test('no warnings for local browser usage', async () => {
-            const lib = createMockPlaywrightLibrary();
-            const plugin = new PlaywrightPlugin(lib as any);
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(mockLogger.warning).not.toHaveBeenCalled();
-        });
-    });
+let mockLogger: ReturnType<typeof createMockLogger>;
+
+beforeEach(() => {
+    mockLogger = createMockLogger();
+    serviceLocator.setLogger(mockLogger);
 });
 
-describe('Remote browser — PuppeteerPlugin', () => {
-    let mockLogger: ReturnType<typeof createMockLogger>;
-
-    beforeEach(() => {
-        mockLogger = createMockLogger();
-        serviceLocator.setLogger(mockLogger);
-    });
-
-    // --- Connection routing ---------------------------------------------------
-
-    describe('connection routing', () => {
-        test('connectOverCDPOptions → calls connect, not launch', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.connect).toHaveBeenCalledTimes(1);
-            expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'ws://remote:9222' });
-            expect(lib.launch).not.toHaveBeenCalled();
-        });
-
-        test('no connect options → calls launch', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any);
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.launch).toHaveBeenCalledTimes(1);
-            expect(lib.connect).not.toHaveBeenCalled();
-        });
-
-        test('passes all connect options through to connect', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: {
-                    browserWSEndpoint: 'ws://remote:9222',
-                    defaultViewport: { width: 800, height: 600 },
-                },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.connect).toHaveBeenCalledWith({
-                browserWSEndpoint: 'ws://remote:9222',
-                defaultViewport: { width: 800, height: 600 },
-            });
-        });
-    });
-
-    // --- Validation -----------------------------------------------------------
-
-    describe('validation', () => {
-        test('throws when connectOverCDPOptions has no browserWSEndpoint or browserURL', () => {
-            const lib = createMockPuppeteerLibrary();
-
-            expect(
-                () =>
-                    new PuppeteerPlugin(lib as any, {
-                        connectOverCDPOptions: {} as any,
-                    }),
-            ).toThrow("connectOverCDPOptions must include either 'browserWSEndpoint' or 'browserURL'");
-        });
-    });
-
-    // --- isRemote correctness -------------------------------------------------
-
-    describe('isRemote', () => {
-        test('true when connectOverCDPOptions is present', () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            expect(ctx.isRemote).toBe(true);
-        });
-
-        test('false when no connect options', () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any);
-
-            const ctx = plugin.createLaunchContext();
-            expect(ctx.isRemote).toBe(false);
-        });
-    });
-
-    // --- Proxy/webdriver skipping ---------------------------------------------
-
-    describe('proxy/webdriver skipping for remote', () => {
-        test('proxy is not applied for remote connections', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-                proxyUrl: 'http://user:pass@proxy:8080',
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(lib.connect).toHaveBeenCalledTimes(1);
-            expect(lib.launch).not.toHaveBeenCalled();
-        });
-
-        test('proxy is not leaked into createBrowserContext for remote newPage', async () => {
-            const browser = createMockBrowser();
-            const lib = createMockPuppeteerLibrary(browser);
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-                proxyUrl: 'http://user:pass@proxy:8080',
-                useIncognitoPages: true,
-            });
-
-            const ctx = plugin.createLaunchContext();
-            const wrappedBrowser = await plugin.launch(ctx);
-
-            // Call newPage on the wrapped browser — useIncognitoPages: true creates new context
-            await (wrappedBrowser as any).newPage();
-
-            // createBrowserContext should be called with empty options (no proxyServer)
-            expect(browser.createBrowserContext).toHaveBeenCalledTimes(1);
-            expect(browser.createBrowserContext).toHaveBeenCalledWith({});
-        });
-
-        test('webdriver hiding args are not added for remote connections', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-                launchOptions: { args: ['--custom-flag'] },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            // The original args should be untouched — no webdriver stealth flag injected
-            expect(ctx.launchOptions?.args).toEqual(['--custom-flag']);
-            expect(ctx.launchOptions?.args).not.toContain('--disable-blink-features=AutomationControlled');
-        });
-
-        test('webdriver hiding args ARE added for local connections', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                launchOptions: { args: ['--custom-flag'] },
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(ctx.launchOptions?.args).toContain('--disable-blink-features=AutomationControlled');
-            expect(ctx.launchOptions?.args).toContain('--custom-flag');
-        });
-    });
-
-    // --- useIncognitoPages default --------------------------------------------
-
-    describe('useIncognitoPages default', () => {
-        test('defaults to false for remote', () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-            });
-
-            expect(plugin.useIncognitoPages).toBe(false);
-        });
-
-        test('explicit false preserved for remote', () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-                useIncognitoPages: false,
-            });
-
-            expect(plugin.useIncognitoPages).toBe(false);
-        });
-
-        test('explicit true preserved for remote', () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-                useIncognitoPages: true,
-            });
-
-            expect(plugin.useIncognitoPages).toBe(true);
-        });
-
-        test('default false for local', () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any);
-
-            expect(plugin.useIncognitoPages).toBe(false);
-        });
-    });
-
-    // --- Info/Warnings --------------------------------------------------------
-
-    describe('info and warnings', () => {
-        test('proxyUrl + connectOverCDPOptions → warning that proxyUrl is ignored', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-                proxyUrl: 'http://user:pass@proxy:8080',
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(mockLogger.warning).toHaveBeenCalledWith(
-                expect.stringContaining(
-                    'proxyUrl is set but will be ignored when using connectOptions/connectOverCDPOptions',
-                ),
-            );
-        });
-
-        test('proxyUrl + remoteBrowser → info about forwarding to endpoint()', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any, {
-                remoteBrowser: { endpoint: () => 'ws://remote:9222' },
-                proxyUrl: 'http://user:pass@proxy:8080',
-            });
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(mockLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining('passed to the remoteBrowser.endpoint() function'),
-            );
-        });
-
-        test('remote default → info about shared cookies', () => {
-            const lib = createMockPuppeteerLibrary();
-            new PuppeteerPlugin(lib as any, {
-                connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
-            });
-
-            expect(mockLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining('pages will share cookies and storage'),
-            );
-        });
-
-        test('no warnings for local browser usage', async () => {
-            const lib = createMockPuppeteerLibrary();
-            const plugin = new PuppeteerPlugin(lib as any);
-
-            const ctx = plugin.createLaunchContext();
-            await plugin.launch(ctx);
-
-            expect(mockLogger.warning).not.toHaveBeenCalled();
-        });
-    });
-});
-
-// ---------------------------------------------------------------------------
-// remoteBrowser config tests
-// ---------------------------------------------------------------------------
-
-describe('remoteBrowser config — PlaywrightPlugin', () => {
-    let mockLogger: ReturnType<typeof createMockLogger>;
-
-    beforeEach(() => {
-        mockLogger = createMockLogger();
-        serviceLocator.setLogger(mockLogger);
-    });
-
-    test('static string endpoint → calls connectOverCDP by default', async () => {
-        const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://browserless.io?token=xxx' },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(lib.connectOverCDP).toHaveBeenCalledWith('wss://browserless.io?token=xxx', {});
-        expect(lib.launch).not.toHaveBeenCalled();
-        expect(lib.connect).not.toHaveBeenCalled();
-    });
-
-    test('function endpoint → called per launch', async () => {
-        const lib = createMockPlaywrightLibrary();
-        const endpointFn = vi.fn().mockResolvedValue('wss://dynamic-endpoint.io');
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: endpointFn },
-        });
-
-        const ctx1 = plugin.createLaunchContext();
-        await plugin.launch(ctx1);
-
-        const ctx2 = plugin.createLaunchContext();
-        await plugin.launch(ctx2);
-
-        expect(endpointFn).toHaveBeenCalledTimes(2);
-        expect(lib.connectOverCDP).toHaveBeenCalledTimes(2);
-    });
-
-    test('resolved endpoint stored on launchContext', async () => {
-        const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://test.io' },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect((ctx as any)._resolvedRemoteEndpoint).toBe('wss://test.io');
-    });
-
-    test('isRemote is true when remoteBrowser is set', () => {
-        const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://test.io' },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        expect(ctx.isRemote).toBe(true);
-    });
-
-    test('useIncognitoPages forced to true when remoteBrowser is set', () => {
-        const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://test.io' },
-        });
+describe('Remote connection — PlaywrightPlugin', () => {
+    it('useRemoteConnection forces incognito pages on and marks the launch context remote', () => {
+        const plugin = new PlaywrightPlugin(createMockPlaywrightLibrary() as any, { useIncognitoPages: false });
+        plugin.useRemoteConnection(createConnection());
 
         expect(plugin.useIncognitoPages).toBe(true);
+        expect(plugin.createLaunchContext().isRemote).toBe(true);
     });
 
-    test('release called on connection failure with context', async () => {
+    it('connects via connectOverCDP by default and skips a local launch', async () => {
         const lib = createMockPlaywrightLibrary();
-        lib.connectOverCDP.mockRejectedValue(new Error('Connection refused'));
-
-        const releaseFn = vi.fn();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: {
-                endpoint: async () => ({ url: 'wss://fail.io', context: { id: 'sess-123' } }),
-                release: releaseFn,
-            },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await expect(plugin.launch(ctx)).rejects.toThrow('Failed to connect to remote browser');
-
-        expect(releaseFn).toHaveBeenCalledWith({ endpoint: 'wss://fail.io', context: { id: 'sess-123' } });
-    });
-
-    test('release receives context from endpoint function', async () => {
-        const lib = createMockPlaywrightLibrary();
-        const releaseFn = vi.fn();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: {
-                endpoint: async () => ({ url: 'wss://test.io', context: { sessionId: 'abc' } }),
-                release: releaseFn,
-            },
-        });
+        const plugin = new PlaywrightPlugin(lib as any);
+        const connection = createConnection('http://remote:9222');
+        plugin.useRemoteConnection(connection, { connectOptions: { timeout: 5000 } });
 
         const ctx = plugin.createLaunchContext();
         await plugin.launch(ctx);
 
-        // Context stored on launchContext for later release
-        expect((ctx as any)._remoteContext).toEqual({ sessionId: 'abc' });
-    });
-
-    test('release failure is swallowed and logged as warning', async () => {
-        const lib = createMockPlaywrightLibrary();
-        lib.connectOverCDP.mockRejectedValue(new Error('Connection refused'));
-
-        const releaseFn = vi.fn().mockRejectedValue(new Error('Release failed'));
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://fail.io', release: releaseFn },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await expect(plugin.launch(ctx)).rejects.toThrow('Failed to connect to remote browser');
-
-        expect(releaseFn).toHaveBeenCalled();
-        expect(mockLogger.warning).toHaveBeenCalledWith(
-            'remoteBrowser.release() failed.',
-            expect.objectContaining({ error: 'Release failed' }),
-        );
-    });
-
-    test('endpoint function rejection throws BrowserLaunchError', async () => {
-        const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: { endpoint: () => Promise.reject(new Error('API down')) },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await expect(plugin.launch(ctx)).rejects.toThrow('Failed to resolve remote browser endpoint');
-    });
-
-    test('throws when both remoteBrowser and connectOverCDPOptions are set', () => {
-        const lib = createMockPlaywrightLibrary();
-        expect(
-            () =>
-                new PlaywrightPlugin(lib as any, {
-                    remoteBrowser: { endpoint: 'wss://a.io' },
-                    connectOverCDPOptions: { endpointURL: 'wss://b.io' },
-                }),
-        ).toThrow('mutually exclusive');
-    });
-
-    test('throws when both remoteBrowser and connectOptions are set', () => {
-        const lib = createMockPlaywrightLibrary();
-        expect(
-            () =>
-                new PlaywrightPlugin(lib as any, {
-                    remoteBrowser: { endpoint: 'wss://a.io' },
-                    connectOptions: { wsEndpoint: 'wss://b.io' },
-                }),
-        ).toThrow('mutually exclusive');
-    });
-});
-
-describe('remoteBrowser config — PuppeteerPlugin', () => {
-    let mockLogger: ReturnType<typeof createMockLogger>;
-
-    beforeEach(() => {
-        mockLogger = createMockLogger();
-        serviceLocator.setLogger(mockLogger);
-    });
-
-    test('static string endpoint → calls connect with browserWSEndpoint', async () => {
-        const lib = createMockPuppeteerLibrary();
-        const plugin = new PuppeteerPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://browserless.io?token=xxx' },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'wss://browserless.io?token=xxx' });
-        expect(lib.launch).not.toHaveBeenCalled();
-    });
-
-    test('function endpoint → called per launch', async () => {
-        const lib = createMockPuppeteerLibrary();
-        const endpointFn = vi.fn().mockResolvedValue('wss://dynamic.io');
-        const plugin = new PuppeteerPlugin(lib as any, {
-            remoteBrowser: { endpoint: endpointFn },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(endpointFn).toHaveBeenCalledTimes(1);
-        expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'wss://dynamic.io' });
-    });
-
-    test('isRemote is true when remoteBrowser is set', () => {
-        const lib = createMockPuppeteerLibrary();
-        const plugin = new PuppeteerPlugin(lib as any, {
-            remoteBrowser: { endpoint: 'wss://test.io' },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        expect(ctx.isRemote).toBe(true);
-    });
-
-    test('release called on connection failure with context', async () => {
-        const lib = createMockPuppeteerLibrary();
-        lib.connect.mockRejectedValue(new Error('Connection refused'));
-
-        const releaseFn = vi.fn();
-        const plugin = new PuppeteerPlugin(lib as any, {
-            remoteBrowser: {
-                endpoint: async () => ({ url: 'wss://fail.io', context: { id: 'sess-456' } }),
-                release: releaseFn,
-            },
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await expect(plugin.launch(ctx)).rejects.toThrow('Failed to connect to remote browser');
-
-        expect(releaseFn).toHaveBeenCalledWith({ endpoint: 'wss://fail.io', context: { id: 'sess-456' } });
-    });
-
-    test('throws when both remoteBrowser and connectOverCDPOptions are set', () => {
-        const lib = createMockPuppeteerLibrary();
-        expect(
-            () =>
-                new PuppeteerPlugin(lib as any, {
-                    remoteBrowser: { endpoint: 'wss://a.io' },
-                    connectOverCDPOptions: { browserWSEndpoint: 'wss://b.io' },
-                }),
-        ).toThrow('mutually exclusive');
-    });
-});
-
-// ---------------------------------------------------------------------------
-// RemoteBrowserProvider tests
-// ---------------------------------------------------------------------------
-
-describe('RemoteBrowserProvider — PlaywrightPlugin', () => {
-    let mockLogger: ReturnType<typeof createMockLogger>;
-
-    beforeEach(() => {
-        mockLogger = createMockLogger();
-        serviceLocator.setLogger(mockLogger);
-    });
-
-    test('provider connect() → calls connectOverCDP by default', async () => {
-        const lib = createMockPlaywrightLibrary();
-
-        class SimpleProvider extends RemoteBrowserProvider {
-            async connect() {
-                return { url: 'wss://provider.io/cdp' };
-            }
-        }
-
-        const plugin = new PlaywrightPlugin(lib as any, {
-            remoteBrowser: new SimpleProvider(),
-        });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        expect(lib.connectOverCDP).toHaveBeenCalledWith('wss://provider.io/cdp', {});
+        expect(connection.resolve).toHaveBeenCalledTimes(1);
+        expect(lib.connectOverCDP).toHaveBeenCalledWith('http://remote:9222', { timeout: 5000 });
         expect(lib.connect).not.toHaveBeenCalled();
         expect(lib.launch).not.toHaveBeenCalled();
+        expect(ctx._remoteToken).toBe(42);
     });
 
-    test('provider context flows to release', async () => {
+    it("connects via connect() when protocol is 'playwright'", async () => {
         const lib = createMockPlaywrightLibrary();
+        const plugin = new PlaywrightPlugin(lib as any);
+        plugin.useRemoteConnection(createConnection('ws://remote:3000'), { protocol: 'playwright' });
 
-        interface Ctx {
-            sessionId: string;
-        }
+        await plugin.launch(plugin.createLaunchContext());
 
-        class SessionProvider extends RemoteBrowserProvider<Ctx> {
-            releasedContext?: Ctx;
-            async connect() {
-                return { url: 'wss://test.io', context: { sessionId: 'sess-42' } };
-            }
-            async release(context: Ctx) {
-                this.releasedContext = context;
-            }
-        }
-
-        const provider = new SessionProvider();
-        const plugin = new PlaywrightPlugin(lib as any, { remoteBrowser: provider });
-
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
-
-        // Context stored on launchContext
-        expect((ctx as any)._remoteContext).toEqual({ sessionId: 'sess-42' });
+        expect(lib.connect).toHaveBeenCalledWith('ws://remote:3000', {});
+        expect(lib.connectOverCDP).not.toHaveBeenCalled();
     });
 
-    test('provider release called on connection failure', async () => {
+    it('releases the session and throws BrowserLaunchError when connect fails', async () => {
         const lib = createMockPlaywrightLibrary();
-        lib.connectOverCDP.mockRejectedValue(new Error('Connection refused'));
+        lib.connectOverCDP.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+        const plugin = new PlaywrightPlugin(lib as any);
+        const connection = createConnection();
+        plugin.useRemoteConnection(connection);
 
-        const releaseSpy = vi.fn();
-
-        class FailProvider extends RemoteBrowserProvider<{ id: string }> {
-            async connect() {
-                return { url: 'wss://fail.io', context: { id: 'sess-fail' } };
-            }
-            async release(context: { id: string }) {
-                releaseSpy(context);
-            }
-        }
-
-        const plugin = new PlaywrightPlugin(lib as any, { remoteBrowser: new FailProvider() });
-        const ctx = plugin.createLaunchContext();
-
-        await expect(plugin.launch(ctx)).rejects.toThrow('Failed to connect to remote browser');
-        expect(releaseSpy).toHaveBeenCalledWith({ id: 'sess-fail' });
+        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(/Failed to connect to remote browser/);
+        expect(connection.release).toHaveBeenCalledWith(42);
     });
 
-    test('provider sets isRemote = true', () => {
+    it('throws BrowserLaunchError (without connecting) when endpoint resolution fails', async () => {
         const lib = createMockPlaywrightLibrary();
+        const plugin = new PlaywrightPlugin(lib as any);
+        const connection = createConnection();
+        connection.resolve.mockRejectedValueOnce(new Error('no session'));
+        plugin.useRemoteConnection(connection);
 
-        class P extends RemoteBrowserProvider {
-            async connect() {
-                return { url: 'wss://test.io' };
-            }
-        }
-
-        const plugin = new PlaywrightPlugin(lib as any, { remoteBrowser: new P() });
-        const ctx = plugin.createLaunchContext();
-        expect(ctx.isRemote).toBe(true);
+        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(/resolve the remote browser endpoint/);
+        expect(lib.connectOverCDP).not.toHaveBeenCalled();
+        expect(connection.release).not.toHaveBeenCalled();
     });
 
-    test('provider forces useIncognitoPages to true (CDP)', () => {
+    it('a plain plugin (no remote connection) launches locally', async () => {
         const lib = createMockPlaywrightLibrary();
+        const plugin = new PlaywrightPlugin(lib as any);
 
-        class P extends RemoteBrowserProvider {
-            async connect() {
-                return { url: 'wss://test.io' };
-            }
-        }
+        await plugin.launch(plugin.createLaunchContext());
 
-        const plugin = new PlaywrightPlugin(lib as any, { remoteBrowser: new P() });
-        expect(plugin.useIncognitoPages).toBe(true);
+        expect(lib.launch).toHaveBeenCalledTimes(1);
+        expect(lib.connect).not.toHaveBeenCalled();
+        expect(lib.connectOverCDP).not.toHaveBeenCalled();
     });
 });
 
-describe('RemoteBrowserProvider — PuppeteerPlugin', () => {
-    let mockLogger: ReturnType<typeof createMockLogger>;
-
-    beforeEach(() => {
-        mockLogger = createMockLogger();
-        serviceLocator.setLogger(mockLogger);
-    });
-
-    test('provider connect() → calls connect with browserWSEndpoint', async () => {
+describe('Remote connection — PuppeteerPlugin', () => {
+    it('connects via connect() with the resolved endpoint and skips a local launch', async () => {
         const lib = createMockPuppeteerLibrary();
+        const plugin = new PuppeteerPlugin(lib as any);
+        const connection = createConnection('ws://remote:9222');
+        plugin.useRemoteConnection(connection, { connectOptions: { protocolTimeout: 1000 } });
 
-        class SimpleProvider extends RemoteBrowserProvider {
-            async connect() {
-                return { url: 'wss://provider.io/cdp' };
-            }
-        }
-
-        const plugin = new PuppeteerPlugin(lib as any, { remoteBrowser: new SimpleProvider() });
         const ctx = plugin.createLaunchContext();
         await plugin.launch(ctx);
 
-        expect(lib.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'wss://provider.io/cdp' });
+        expect(connection.resolve).toHaveBeenCalledTimes(1);
+        expect(lib.connect).toHaveBeenCalledWith({ protocolTimeout: 1000, browserWSEndpoint: 'ws://remote:9222' });
         expect(lib.launch).not.toHaveBeenCalled();
+        expect(ctx._remoteToken).toBe(42);
     });
 
-    test('provider release called on connection failure', async () => {
+    it('releases the session and throws BrowserLaunchError when connect fails', async () => {
         const lib = createMockPuppeteerLibrary();
-        lib.connect.mockRejectedValue(new Error('Connection refused'));
+        lib.connect.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+        const plugin = new PuppeteerPlugin(lib as any);
+        const connection = createConnection();
+        plugin.useRemoteConnection(connection);
 
-        const releaseSpy = vi.fn();
-
-        class FailProvider extends RemoteBrowserProvider<{ id: string }> {
-            async connect() {
-                return { url: 'wss://fail.io', context: { id: 'sess-pptr' } };
-            }
-            async release(context: { id: string }) {
-                releaseSpy(context);
-            }
-        }
-
-        const plugin = new PuppeteerPlugin(lib as any, { remoteBrowser: new FailProvider() });
-        const ctx = plugin.createLaunchContext();
-
-        await expect(plugin.launch(ctx)).rejects.toThrow('Failed to connect to remote browser');
-        expect(releaseSpy).toHaveBeenCalledWith({ id: 'sess-pptr' });
+        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(/Failed to connect to remote browser/);
+        expect(connection.release).toHaveBeenCalledWith(42);
     });
 
-    test('provider isRemote = true', () => {
-        const lib = createMockPuppeteerLibrary();
+    it('marks the launch context remote', () => {
+        const plugin = new PuppeteerPlugin(createMockPuppeteerLibrary() as any);
+        plugin.useRemoteConnection(createConnection());
 
-        class P extends RemoteBrowserProvider {
-            async connect() {
-                return { url: 'wss://test.io' };
-            }
-        }
-
-        const plugin = new PuppeteerPlugin(lib as any, { remoteBrowser: new P() });
-        const ctx = plugin.createLaunchContext();
-        expect(ctx.isRemote).toBe(true);
+        expect(plugin.createLaunchContext().isRemote).toBe(true);
     });
 });

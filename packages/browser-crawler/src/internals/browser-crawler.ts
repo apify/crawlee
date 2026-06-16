@@ -34,10 +34,11 @@ import type {
     BrowserPoolHooks,
     BrowserPoolOptions,
     CommonPage,
+    CrawlerRemoteBrowserOptions,
     InferBrowserPluginArray,
     LaunchContext,
 } from '@crawlee/browser-pool';
-import { BrowserPool } from '@crawlee/browser-pool';
+import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
 import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool, ISession } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
@@ -122,6 +123,19 @@ export interface BrowserCrawlerOptions<
      * will not tear down a shared pool — the caller is responsible for its lifecycle.
      */
     browserPool?: IBrowserPool<Page>;
+
+    /**
+     * Connect to a remote browser service (Browserbase, Browserless, Steel, …) instead of launching locally.
+     *
+     * The crawler builds a {@apilink RemoteBrowserPool} around its own browser plugin, so the connection is
+     * always for the right browser — there is no plugin to construct and no way to mismatch the pool with the
+     * crawler. Supply the connection details only: a static `endpoint` URL, a function returning one per launch,
+     * or a {@apilink RemoteBrowserProvider}.
+     *
+     * Mutually exclusive with `browserPool`. For sharing a remote pool across crawlers, construct a
+     * {@apilink RemoteBrowserPool} yourself and pass it as `browserPool` instead.
+     */
+    remoteBrowser?: CrawlerRemoteBrowserOptions;
 
     /**
      * Function that is called to process each request.
@@ -322,12 +336,11 @@ export abstract class BrowserCrawler<
     browserPool: IBrowserPool<Page>;
 
     /**
-     * Set when the crawler constructed its own {@apilink BrowserPool} (no `browserPool` option was provided).
-     * Holds the same instance as `browserPool`, but typed as the concrete class so the crawler can call
-     * lifecycle methods (`destroy`) that aren't part of {@apilink IBrowserPool}. A user-supplied pool is
-     * never owned and never torn down by the crawler.
+     * Set when the crawler constructed its own pool (a {@apilink BrowserPool}, or a {@apilink RemoteBrowserPool}
+     * built from the `remoteBrowser` option). Holds the same instance as `browserPool` but is the only reference
+     * the crawler tears down — a user-supplied `browserPool` is never owned and never destroyed by the crawler.
      */
-    private ownedBrowserPool?: BrowserPool<InternalBrowserPoolOptions>;
+    private ownedBrowserPool?: { destroy: () => Promise<void> };
 
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
 
@@ -349,6 +362,7 @@ export abstract class BrowserCrawler<
         launchContext: ow.optional.object,
         headless: ow.optional.any(ow.boolean, ow.string),
         browserPool: ow.optional.object.validate(validators.browserPool),
+        remoteBrowser: ow.optional.object,
         browserPoolOptions: ow.optional.object,
         saveResponseCookies: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
@@ -368,6 +382,7 @@ export abstract class BrowserCrawler<
             saveResponseCookies = true,
             launchContext = {},
             browserPool,
+            remoteBrowser,
             browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
@@ -422,6 +437,13 @@ export abstract class BrowserCrawler<
 
         this.saveResponseCookies = saveResponseCookies;
 
+        if (browserPool && remoteBrowser) {
+            throw new Error(
+                "Set at most one of 'browserPool' and 'remoteBrowser'. To share a remote pool across crawlers, " +
+                    'build a RemoteBrowserPool yourself and pass it as `browserPool`.',
+            );
+        }
+
         if (browserPool) {
             this.browserPool = browserPool;
             return;
@@ -435,17 +457,25 @@ export abstract class BrowserCrawler<
             resolvedBrowserPoolOptions.useFingerprints = false;
         }
 
-        this.ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(resolvedBrowserPoolOptions as any),
-        });
-
-        // Read maxOpenBrowsers from the remote browser config and apply it to the pool.
-        const remoteMaxBrowsers = this.ownedBrowserPool.browserPlugins[0]?.remoteBrowser?.maxOpenBrowsers;
-        if (remoteMaxBrowsers) {
-            this.ownedBrowserPool.maxOpenBrowsers = remoteMaxBrowsers;
+        if (remoteBrowser) {
+            // The crawler already built the right plugin for its browser — hand it to a RemoteBrowserPool so the
+            // remote connection is always for the matching browser (no plugin to construct, no way to mismatch).
+            const { browserPlugins, ...remoteBrowserPoolOptions } = resolvedBrowserPoolOptions;
+            const remotePool = new RemoteBrowserPool({
+                browserPlugins: browserPlugins as BrowserPlugin[],
+                ...remoteBrowser,
+                browserPoolOptions: remoteBrowserPoolOptions as any,
+            });
+            this.ownedBrowserPool = remotePool;
+            this.browserPool = remotePool as IBrowserPool<Page>;
+            return;
         }
 
-        this.browserPool = this.ownedBrowserPool as IBrowserPool<Page>;
+        const ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
+            ...(resolvedBrowserPoolOptions as any),
+        });
+        this.ownedBrowserPool = ownedBrowserPool;
+        this.browserPool = ownedBrowserPool as IBrowserPool<Page>;
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -724,20 +754,6 @@ export abstract class BrowserCrawler<
      * Function for cleaning up after all requests are processed.
      * @ignore
      */
-    protected override async _isTaskReadyFunction(): Promise<boolean> {
-        // Don't start new tasks if browser pool is at its limit and no active browser has capacity.
-        // AutoscaledPool will retry automatically when a browser closes and frees a slot.
-        if (
-            this.ownedBrowserPool &&
-            !this.ownedBrowserPool.hasFreeBrowserSlot() &&
-            !this.ownedBrowserPool.hasActiveBrowserWithFreeCapacity()
-        ) {
-            return false;
-        }
-
-        return super._isTaskReadyFunction();
-    }
-
     override async teardown(): Promise<void> {
         await this.ownedBrowserPool?.destroy();
         await super.teardown();

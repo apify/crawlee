@@ -33,8 +33,9 @@ class BrowserbaseProvider extends RemoteBrowserProvider<{ id: string }> {
 }
 
 const crawler = new PlaywrightCrawler({
-    launchContext: {
-        remoteBrowser: new BrowserbaseProvider(),
+    // Pass the provider as the `endpoint`; the crawler's pool calls connect()/release() per browser.
+    remoteBrowser: {
+        endpoint: new BrowserbaseProvider(),
     },
     async requestHandler({ page, request, log }) {
         const title = await page.title();

@@ -309,23 +309,4 @@ describe('launchPuppeteer()', () => {
         });
     });
 
-    describe('launchOptions + remote mutual exclusion', () => {
-        test('throws when launchOptions combined with connectOverCDPOptions', async () => {
-            await expect(
-                launchPuppeteer({
-                    launchOptions: { headless: true },
-                    connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:3000' },
-                }),
-            ).rejects.toThrow("'launchOptions' is ignored when using a remote browser");
-        });
-
-        test('throws when launchOptions combined with remoteBrowser', async () => {
-            await expect(
-                launchPuppeteer({
-                    launchOptions: { headless: true },
-                    remoteBrowser: { endpoint: 'wss://remote.io' },
-                }),
-            ).rejects.toThrow("'launchOptions' is ignored when using a remote browser");
-        });
-    });
 });

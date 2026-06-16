@@ -1,43 +1,16 @@
 import fs from 'node:fs';
 
-import type { Browser as PlaywrightBrowser, BrowserType, ConnectOverCDPOptions, ConnectOptions } from 'playwright';
+import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
-import {
-    BrowserLaunchError,
-    BrowserPlugin,
-    type BrowserPluginOptions,
-    type CreateLaunchContextOptions,
-} from '../abstract-classes/browser-plugin.js';
+import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { createProxyServerForContainers } from '../container-proxy-server.js';
 import type { LaunchContext } from '../launch-context.js';
 import { getLocalProxyAddress } from '../proxy-server.js';
+import type { RemoteConnection, RemoteConnectionParameters } from '../remote-browser-pool.js';
 import type { SafeParameters } from '../utils.js';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser.js';
 import { PlaywrightController } from './playwright-controller.js';
-
-/**
- * Options for connecting to a remote browser via CDP.
- * Mirrors `browserType.connectOverCDP(endpointURL, options?)`.
- */
-export interface PlaywrightConnectOverCDPOptions extends ConnectOverCDPOptions {
-    /** The CDP endpoint URL to connect to (required). Overrides the deprecated optional `endpointURL` from Playwright. */
-    endpointURL: string;
-}
-
-/**
- * Options for connecting to a remote browser via WebSocket.
- * Mirrors `browserType.connect(wsEndpoint, options?)`.
- */
-export interface PlaywrightConnectOptions extends ConnectOptions {
-    /** The WebSocket endpoint URL to connect to (required). */
-    wsEndpoint: string;
-}
-
-export interface PlaywrightPluginOptions extends BrowserPluginOptions<SafeParameters<BrowserType['launch']>[0]> {
-    connectOptions?: PlaywrightConnectOptions;
-    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
-}
 
 export class PlaywrightPlugin extends BrowserPlugin<
     BrowserType,
@@ -47,119 +20,34 @@ export class PlaywrightPlugin extends BrowserPlugin<
     private _browserVersion?: string;
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
-    connectOptions?: PlaywrightConnectOptions;
-    connectOverCDPOptions?: PlaywrightConnectOverCDPOptions;
+    /**
+     * Playwright remote connections only support incognito pages — `connect()` / `connectOverCDP()` don't
+     * accept persistent contexts. Force it on (and inform the user) when wired for a remote connection.
+     */
+    override useRemoteConnection(connection: RemoteConnection, parameters: RemoteConnectionParameters = {}): void {
+        super.useRemoteConnection(connection, parameters);
 
-    constructor(library: BrowserType, options: PlaywrightPluginOptions = {}) {
-        const { connectOptions, connectOverCDPOptions, ...baseOptions } = options;
-
-        const remoteSourceCount = [baseOptions.remoteBrowser, connectOptions, connectOverCDPOptions].filter(
-            (v) => v != null,
-        ).length;
-        if (remoteSourceCount > 1) {
-            throw new Error(
-                "Set at most one of 'remoteBrowser', 'connectOptions', 'connectOverCDPOptions' — " +
-                    'these options are mutually exclusive.',
+        if (!this.useIncognitoPages) {
+            this.log.info(
+                'Remote Playwright connection — useIncognitoPages forced to true. ' +
+                    'Pages will not share cookies/storage between each other; use the SessionPool for shared state.',
             );
         }
-
-        if (connectOverCDPOptions && !connectOverCDPOptions.endpointURL) {
-            throw new Error("'connectOverCDPOptions.endpointURL' must be a non-empty string.");
-        }
-
-        if (connectOptions && !connectOptions.wsEndpoint) {
-            throw new Error("'connectOptions.wsEndpoint' must be a non-empty string.");
-        }
-
-        super(library, baseOptions);
-        this.connectOptions = connectOptions;
-        this.connectOverCDPOptions = connectOverCDPOptions;
-
-        const isRemoteConnection = this.remoteBrowser || this.connectOptions || this.connectOverCDPOptions;
-        if (isRemoteConnection) {
-            if (options.useIncognitoPages === false) {
-                this.log.warning(
-                    'Remote Playwright connections only support useIncognitoPages: true. ' +
-                        'The setting has been overridden — pages will not share cookies/storage. ' +
-                        'For state sharing across requests, use the SessionPool.',
-                );
-            } else if (options.useIncognitoPages === undefined) {
-                this.log.info(
-                    'Remote Playwright connection detected — useIncognitoPages forced to true. ' +
-                        'Pages will not share cookies/storage between each other.',
-                );
-            }
-            this.useIncognitoPages = true;
-        }
-    }
-
-    override createLaunchContext(options: CreateLaunchContextOptions<BrowserType> = {}): LaunchContext<BrowserType> {
-        return super.createLaunchContext({
-            ...options,
-            isRemote: options.isRemote ?? !!(this.remoteBrowser || this.connectOptions || this.connectOverCDPOptions),
-        });
+        this.useIncognitoPages = true;
     }
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
-        if (this.remoteBrowser) {
-            let url: string;
-            let context: Record<string, unknown> | undefined;
-            try {
-                const result = await this._resolveRemoteEndpoint({ proxyUrl: launchContext.proxyUrl });
-                url = result.url;
-                context = result.context;
-            } catch (cause) {
-                throw new BrowserLaunchError(
-                    'Failed to resolve remote browser endpoint from remoteBrowser.endpoint() function.\u200b',
-                    { cause },
-                );
-            }
-
-            launchContext.extend({ _resolvedRemoteEndpoint: url, _remoteContext: context });
-
-            try {
+        if (this.remoteConnection) {
+            return this._connectToRemoteBrowser(launchContext, async (url) => {
+                const connectOptions = (this.remoteConnectionParameters?.connectOptions ?? {}) as any;
+                if (this.remoteConnectionParameters?.protocol === 'playwright') {
+                    this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
+                    return this.library.connect(url, connectOptions);
+                }
                 this.log.info('Connecting to remote browser via connectOverCDP.');
-                return await this.library.connectOverCDP(url, {});
-            } catch (cause) {
-                await this._callRelease(url, context);
-                throw new BrowserLaunchError(
-                    `Failed to connect to remote browser at "${this._sanitizeEndpointForLog(url)}" via CDP. ` +
-                        'Check that the endpoint is reachable.\u200b',
-                    { cause },
-                );
-            }
+                return this.library.connectOverCDP(url, connectOptions);
+            });
         }
-
-        // Remote CDP connection — skip all local launch/proxy logic
-        if (this.connectOverCDPOptions) {
-            const { endpointURL, ...options } = this.connectOverCDPOptions;
-            this.log.info('Connecting to remote browser via connectOverCDP.');
-            try {
-                return await this.library.connectOverCDP(endpointURL, options);
-            } catch (cause) {
-                throw new BrowserLaunchError(
-                    `Failed to connect to remote browser via CDP at "${this._sanitizeEndpointForLog(endpointURL)}". ` +
-                        'Check that the endpoint is reachable and the browser is accepting CDP connections.\u200b',
-                    { cause },
-                );
-            }
-        }
-
-        // Remote Playwright WebSocket connection — skip all local launch/proxy logic
-        if (this.connectOptions) {
-            const { wsEndpoint, ...options } = this.connectOptions;
-            this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
-            try {
-                return await this.library.connect(wsEndpoint, options);
-            } catch (cause) {
-                throw new BrowserLaunchError(
-                    `Failed to connect to remote browser via WebSocket at "${this._sanitizeEndpointForLog(wsEndpoint)}". ` +
-                        'Check that the endpoint is reachable and the Playwright server is running.\u200b',
-                    { cause },
-                );
-            }
-        }
-
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;
         let browser: PlaywrightBrowser;
 

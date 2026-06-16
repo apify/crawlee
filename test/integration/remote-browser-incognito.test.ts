@@ -11,18 +11,10 @@
  *
  * With the wrapper removed, request 2's body should report no cookies.
  */
-import { RemoteBrowserProvider } from '@crawlee/browser-pool';
 import { PlaywrightCrawler } from 'crawlee';
 import { expect, test } from 'vitest';
 
 import { BROWSERLESS_URL, httpbin } from './helpers.js';
-
-class BrowserlessCDPProvider extends RemoteBrowserProvider {
-    override maxOpenBrowsers = 1;
-    async connect() {
-        return { url: BROWSERLESS_URL };
-    }
-}
 
 // Gate on CRAWLEE_DIFFICULT_TESTS so plain `pnpm test` skips integration tests
 // (no Docker required); `pnpm test:integration` and `pnpm test:full` set the flag.
@@ -33,14 +25,15 @@ test.skipIf(!process.env.CRAWLEE_DIFFICULT_TESTS)(
         const controllerIdByPage = new WeakMap<object, string>();
 
         const crawler = new PlaywrightCrawler({
-            launchContext: {
-                remoteBrowser: new BrowserlessCDPProvider(),
+            remoteBrowser: {
+                endpoint: BROWSERLESS_URL,
+                maxOpenBrowsers: 1,
             },
             browserPoolOptions: {
                 retireBrowserAfterPageCount: 10, // keep the same browser across both requests
                 maxOpenPagesPerBrowser: 2,
                 postPageCreateHooks: [
-                    (page, browserController) => {
+                    (page: object, browserController: { id: string }) => {
                         controllerIdByPage.set(page, browserController.id);
                     },
                 ],

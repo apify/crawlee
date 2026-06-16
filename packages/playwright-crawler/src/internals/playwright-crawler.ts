@@ -220,16 +220,8 @@ export class PlaywrightCrawler<
         }
 
         if (headless != null) {
-            if (launchContext.remoteBrowser || launchContext.connectOptions || launchContext.connectOverCDPOptions) {
-                const log = serviceLocator.getLogger().child({ prefix: 'PlaywrightCrawler' });
-                log.warning(
-                    "'headless' is ignored when connecting to a remote browser. " +
-                        'The remote service controls headless mode.',
-                );
-            } else {
-                launchContext.launchOptions ??= {} as LaunchOptions;
-                launchContext.launchOptions.headless = headless as boolean;
-            }
+            launchContext.launchOptions ??= {} as LaunchOptions;
+            launchContext.launchOptions.headless = headless as boolean;
         }
 
         const playwrightLauncher = new PlaywrightLauncher(launchContext, options.configuration);

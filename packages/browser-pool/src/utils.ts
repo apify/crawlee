@@ -6,6 +6,20 @@ export type UnwrapPromise<T> = T extends PromiseLike<infer R> ? UnwrapPromise<R>
 
 export function noop(..._args: unknown[]): void {}
 
+/** Strips credentials from a URL so it can be safely included in logs and error messages. */
+export function sanitizeEndpointForLog(endpoint: string): string {
+    try {
+        const url = new URL(endpoint);
+        if (url.username || url.password) {
+            url.username = '***';
+            url.password = '***';
+        }
+        return url.toString();
+    } catch {
+        return '<invalid URL>';
+    }
+}
+
 /**
  * This is required when using optional dependencies.
  * Importing a type gives `any`, but `Parameters<any>` gives `unknown[]` instead of `any`

@@ -4,8 +4,8 @@ import merge from 'lodash.merge';
 
 import type { LaunchContextOptions } from '../launch-context.js';
 import { LaunchContext } from '../launch-context.js';
-import { RemoteBrowserProvider } from '../remote-browser-provider.js';
-import type { UnwrapPromise } from '../utils.js';
+import type { RemoteConnection, RemoteConnectionParameters } from '../remote-browser-pool.js';
+import { sanitizeEndpointForLog, type UnwrapPromise } from '../utils.js';
 import type { BrowserController } from './browser-controller.js';
 
 /**
@@ -45,65 +45,6 @@ export interface CommonPage {
     url(): string | Promise<string>;
 }
 
-/**
- * Return type for dynamic endpoint functions that need to pass session
- * metadata to the `release()` callback.
- */
-export interface RemoteBrowserEndpointResult {
-    /** The browser endpoint URL to connect to. */
-    url: string;
-    /** Opaque metadata passed back to `release()` — e.g. session IDs, API tokens. */
-    context?: Record<string, unknown>;
-}
-
-/**
- * Configuration for connecting to a remote browser service.
- *
- * **Static endpoint (e.g. Browserless):**
- * ```typescript
- * { endpoint: 'wss://browserless.io?token=xxx' }
- * ```
- *
- * **Dynamic endpoint with lifecycle (e.g. Browserbase):**
- * ```typescript
- * {
- *     endpoint: async () => {
- *         const session = await createSession();
- *         return { url: session.connectUrl, context: { id: session.id } };
- *     },
- *     release: async ({ context }) => {
- *         await releaseSession(context.id);
- *     },
- * }
- * ```
- */
-export interface RemoteBrowserConfig {
-    /**
-     * The browser endpoint URL, or an async function that returns one.
-     * When a function is provided, it is called once per browser launch (not per page).
-     *
-     * Can return a plain string or an object with `url` and optional `context`
-     * that will be forwarded to `release()`.
-     */
-    endpoint:
-        | string
-        | ((options?: {
-              proxyUrl?: string;
-          }) => string | RemoteBrowserEndpointResult | Promise<string | RemoteBrowserEndpointResult>);
-    /**
-     * Optional cleanup function called when the browser closes, crashes, or the pool is destroyed.
-     * Receives the resolved endpoint URL and the `context` object returned by `endpoint()`.
-     * Errors are caught and logged as warnings — they never crash the crawler.
-     */
-    release?: (info: { endpoint: string; context?: Record<string, unknown> }) => void | Promise<void>;
-    /**
-     * Maximum number of browsers that can be open at the same time.
-     * When the limit is reached, the crawler waits for a browser to close before launching a new one.
-     * Set this to your remote service's concurrent session limit to avoid 429 errors.
-     */
-    maxOpenBrowsers?: number;
-}
-
 export interface BrowserPluginOptions<LibraryOptions> {
     /**
      * Options that will be passed down to the automation library. E.g.
@@ -141,15 +82,6 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * This is useful when using HTTPS proxies with self-signed certificates.
      */
     ignoreProxyCertificate?: boolean;
-    /**
-     * Configuration for connecting to a remote browser service.
-     * When set, the plugin connects to a remote browser instead of launching a local one.
-     *
-     * Accepts either a {@link RemoteBrowserConfig} object or a {@link RemoteBrowserProvider} instance.
-     *
-     * Mutually exclusive with `connectOverCDPOptions` / `connectOptions` — setting more than one throws.
-     */
-    remoteBrowser?: RemoteBrowserConfig | RemoteBrowserProvider<any>;
 }
 
 export interface CreateLaunchContextOptions<
@@ -185,7 +117,18 @@ export abstract class BrowserPlugin<
     browserPerProxy?: boolean;
 
     ignoreProxyCertificate?: boolean;
-    remoteBrowser?: RemoteBrowserConfig;
+
+    /**
+     * Set by {@apilink RemoteBrowserPool} when this plugin connects to a remote browser service instead of
+     * launching locally. Holds the bridge the plugin uses to resolve endpoints and release sessions; all
+     * remote-session policy lives in the pool, not here.
+     *
+     * @internal
+     */
+    remoteConnection?: RemoteConnection;
+
+    /** Static connect() parameters for a remote connection (protocol, headers, …). @internal */
+    remoteConnectionParameters?: RemoteConnectionParameters;
 
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
         const {
@@ -195,7 +138,6 @@ export abstract class BrowserPlugin<
             useIncognitoPages = false,
             browserPerProxy = false,
             ignoreProxyCertificate = false,
-            remoteBrowser,
         } = options;
 
         this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
@@ -206,55 +148,53 @@ export abstract class BrowserPlugin<
         this.useIncognitoPages = useIncognitoPages;
         this.browserPerProxy = browserPerProxy;
         this.ignoreProxyCertificate = ignoreProxyCertificate;
-
-        // Normalize RemoteBrowserProvider instances into a plain RemoteBrowserConfig
-        // so all downstream code only deals with the config shape.
-        if (remoteBrowser instanceof RemoteBrowserProvider) {
-            const provider = remoteBrowser;
-            this.remoteBrowser = {
-                endpoint: (options) => provider.connect(options),
-                release: ({ context }) => provider.release(context as any),
-                maxOpenBrowsers: provider.maxOpenBrowsers,
-            };
-        } else {
-            this.remoteBrowser = remoteBrowser;
-        }
     }
 
-    /** Resolves the remote browser endpoint from a string or function. Returns { url, context }. */
-    protected async _resolveRemoteEndpoint(options?: { proxyUrl?: string }): Promise<RemoteBrowserEndpointResult> {
-        const { endpoint } = this.remoteBrowser!;
-        const result = typeof endpoint === 'function' ? await endpoint(options) : endpoint;
-        if (typeof result === 'string') {
-            if (!result) throw new Error('remoteBrowser.endpoint resolved to an empty string.');
-            return { url: result };
-        }
-        if (!result?.url) {
-            throw new Error("remoteBrowser.endpoint() must return a URL string or an object with a non-empty 'url'.");
-        }
-        return result;
+    /**
+     * Configures this plugin to connect to a remote browser using the given {@apilink RemoteConnection}.
+     * Called by {@apilink RemoteBrowserPool}; subclasses may override to apply library-specific defaults
+     * (e.g. forcing incognito pages).
+     *
+     * @internal
+     */
+    useRemoteConnection(connection: RemoteConnection, parameters: RemoteConnectionParameters = {}): void {
+        this.remoteConnection = connection;
+        this.remoteConnectionParameters = parameters;
     }
 
-    /** @internal Called by BrowserController on browser close/kill. */
-    async _callRelease(endpoint: string, context?: Record<string, unknown>): Promise<void> {
+    /**
+     * Resolves a remote endpoint via the injected {@apilink RemoteConnection}, stores the session token on
+     * the launch context (so the controller can release it on close), and runs the library-specific `connect`.
+     * On failure the session is released and the error is wrapped in a {@apilink BrowserLaunchError}.
+     *
+     * Subclasses implement only the `connect` callback — the resolve / token / release / error-wrap scaffolding
+     * lives here so it stays identical across plugins.
+     */
+    protected async _connectToRemoteBrowser(
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+        connect: (url: string) => Promise<LaunchResult>,
+    ): Promise<LaunchResult> {
+        const connection = this.remoteConnection!;
+
+        let url: string;
+        let token: number;
         try {
-            await this.remoteBrowser?.release?.({ endpoint, context });
-        } catch (err) {
-            this.log.warning('remoteBrowser.release() failed.', { error: (err as Error)?.message });
+            ({ url, token } = await connection.resolve({ proxyUrl: launchContext.proxyUrl }));
+        } catch (cause) {
+            throw new BrowserLaunchError('Failed to resolve the remote browser endpoint.​', { cause });
         }
-    }
 
-    /** Strips credentials from a URL for safe logging. */
-    protected _sanitizeEndpointForLog(endpoint: string): string {
+        launchContext._remoteToken = token;
+
         try {
-            const url = new URL(endpoint);
-            if (url.username || url.password) {
-                url.username = '***';
-                url.password = '***';
-            }
-            return url.toString();
-        } catch {
-            return '<invalid URL>';
+            return await connect(url);
+        } catch (cause) {
+            await connection.release(token);
+            throw new BrowserLaunchError(
+                `Failed to connect to remote browser at "${sanitizeEndpointForLog(url)}". ` +
+                    'Check that the endpoint is reachable and accepts the configured protocol.​',
+                { cause },
+            );
         }
     }
 
@@ -275,7 +215,7 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
-            isRemote,
+            isRemote = !!this.remoteConnection,
         } = options;
 
         return new LaunchContext({
@@ -315,34 +255,6 @@ export abstract class BrowserPlugin<
         launchContext.launchOptions ??= {} as LibraryOptions;
 
         const { proxyUrl, launchOptions } = launchContext;
-
-        if (proxyUrl && launchContext.isRemote) {
-            if (this.remoteBrowser) {
-                if (typeof this.remoteBrowser.endpoint === 'function') {
-                    this.log.info(
-                        'proxyUrl is set and will be passed to the remoteBrowser.endpoint() function. ' +
-                            "Make sure your endpoint() handles it (e.g. passes it to the service's proxy API).",
-                    );
-                } else {
-                    this.log.warning(
-                        'proxyUrl is set but will be ignored because remoteBrowser.endpoint is a static string. ' +
-                            'Switch endpoint to a function `(opts) => …` to receive proxyUrl, or configure the proxy through the remote service.',
-                    );
-                }
-            } else {
-                this.log.warning(
-                    'proxyUrl is set but will be ignored when using connectOptions/connectOverCDPOptions. ' +
-                        'Configure the proxy through the remote service, or switch to `remoteBrowser` with an endpoint() that handles proxyUrl.',
-                );
-            }
-        }
-
-        if (launchContext.userDataDir && launchContext.isRemote) {
-            this.log.warning(
-                'userDataDir is set but will be ignored for remote browser connections. ' +
-                    "Use your remote browser service's persistence API instead (e.g. Browserbase Contexts, Steel Profiles).",
-            );
-        }
 
         if (proxyUrl && !launchContext.isRemote) {
             await this._addProxyToLaunchOptions(launchContext);

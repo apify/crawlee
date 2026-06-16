@@ -1,144 +1,230 @@
-import { EventEmitter } from 'node:events';
-
 import { vi } from 'vitest';
 
-import { BROWSER_POOL_EVENTS } from '../src/events.js';
-import type { BrowserPool } from '../src/browser-pool.js';
-import { RemoteBrowserPool } from '../src/remote-browser-pool.js';
+import { serviceLocator } from '@crawlee/core';
+import type { CrawleeLogger } from '@crawlee/core';
 
-/**
- * A minimal stand-in for {@link BrowserPool} exposing only the surface
- * {@link RemoteBrowserPool} touches: the four `IBrowserPool` methods, `destroy`,
- * `maxOpenBrowsers`, the two capacity helpers, and the event emitter.
- */
-function createFakePool(overrides: Partial<Record<string, any>> = {}) {
-    const emitter = new EventEmitter();
-    const pool = Object.assign(emitter, {
-        maxOpenBrowsers: Infinity,
-        hasFreeBrowserSlot: vi.fn(() => true),
-        hasActiveBrowserWithFreeCapacity: vi.fn(() => false),
-        newPage: vi.fn(async (options?: any) => ({ id: options?.id ?? 'page' })),
-        closePage: vi.fn(async () => {}),
-        extractPageState: vi.fn(async () => ({ cookies: [] })),
-        injectPageState: vi.fn(async () => {}),
-        destroy: vi.fn(async () => {}),
-        ...overrides,
-    });
-    return pool as unknown as BrowserPool;
+import { BROWSER_POOL_EVENTS } from '../src/events.js';
+import type { RemoteConnection } from '../src/remote-browser-pool.js';
+import { RemoteBrowserPool } from '../src/remote-browser-pool.js';
+import { RemoteBrowserProvider } from '../src/remote-browser-provider.js';
+
+function createMockLogger(): CrawleeLogger {
+    const logger: any = {
+        child: vi.fn(() => logger),
+        error: vi.fn(),
+        exception: vi.fn(),
+        softFail: vi.fn(),
+        warning: vi.fn(),
+        warningOnce: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+        perf: vi.fn(),
+        deprecated: vi.fn(),
+        getOptions: vi.fn(() => ({})),
+        setOptions: vi.fn(),
+        setLevel: vi.fn(),
+        getLevel: vi.fn(),
+    };
+    return logger;
 }
 
-describe('RemoteBrowserPool', () => {
-    describe('construction', () => {
-        it('applies maxOpenBrowsers to the wrapped pool', () => {
-            const fake = createFakePool();
-            const remote = new RemoteBrowserPool({ browserPool: fake, maxOpenBrowsers: 3 });
+/**
+ * A stand-in plugin that captures the {@link RemoteConnection} the pool injects, so tests can drive
+ * endpoint resolution / release directly without launching a real browser.
+ */
+function createCapturingPlugin() {
+    let connection: RemoteConnection | undefined;
+    const plugin: any = {
+        useRemoteConnection: (conn: RemoteConnection) => {
+            connection = conn;
+        },
+    };
+    return { plugin, getConnection: () => connection! };
+}
 
-            expect(fake.maxOpenBrowsers).toBe(3);
-            expect(remote.maxOpenBrowsers).toBe(3);
-        });
+beforeEach(() => {
+    serviceLocator.setLogger(createMockLogger());
+});
 
-        it('leaves the wrapped pool default when maxOpenBrowsers is omitted', () => {
-            const fake = createFakePool();
-            const remote = new RemoteBrowserPool({ browserPool: fake });
+describe('RemoteBrowserPool — endpoint resolution', () => {
+    it('resolves a static string endpoint', async () => {
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222' });
 
-            expect(remote.maxOpenBrowsers).toBe(Infinity);
-        });
+        const { url, token } = await getConnection().resolve();
 
-        it('proxies maxOpenBrowsers writes through to the wrapped pool', () => {
-            const fake = createFakePool();
-            const remote = new RemoteBrowserPool({ browserPool: fake });
-
-            remote.maxOpenBrowsers = 5;
-
-            expect(fake.maxOpenBrowsers).toBe(5);
-        });
+        expect(url).toBe('wss://remote:9222');
+        expect(typeof token).toBe('number');
+        await pool.destroy();
     });
 
-    describe('delegation', () => {
-        it('forwards closePage / extractPageState / injectPageState / destroy', async () => {
-            const fake = createFakePool();
-            const remote = new RemoteBrowserPool<{ id: string }>({ browserPool: fake });
-            const page = { id: 'p1' };
-            const error = new Error('boom');
+    it('resolves a function endpoint and forwards proxyUrl', async () => {
+        const endpoint = vi.fn(() => 'wss://dynamic:9222');
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint });
 
-            await remote.closePage(page, { error });
-            await remote.extractPageState(page);
-            await remote.injectPageState(page, { cookies: [] });
-            await remote.destroy();
+        const { url } = await getConnection().resolve({ proxyUrl: 'http://proxy:8080' });
 
-            expect(fake.closePage).toHaveBeenCalledWith(page, { error });
-            expect(fake.extractPageState).toHaveBeenCalledWith(page);
-            expect(fake.injectPageState).toHaveBeenCalledWith(page, { cookies: [] });
-            expect(fake.destroy).toHaveBeenCalledOnce();
-        });
+        expect(url).toBe('wss://dynamic:9222');
+        expect(endpoint).toHaveBeenCalledWith({ proxyUrl: 'http://proxy:8080' });
+        await pool.destroy();
     });
 
-    describe('newPage throttle', () => {
-        it('opens immediately when a browser slot is free', async () => {
-            const fake = createFakePool({ hasFreeBrowserSlot: vi.fn(() => true) });
-            const remote = new RemoteBrowserPool({ browserPool: fake, maxOpenBrowsers: 2 });
+    it('throws when an endpoint resolves to an empty string', async () => {
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: () => '' });
 
-            const page = await remote.newPage({ id: 'x' });
+        await expect(getConnection().resolve()).rejects.toThrow(/empty string/);
+        await pool.destroy();
+    });
 
-            expect(page).toEqual({ id: 'x' });
-            expect(fake.newPage).toHaveBeenCalledOnce();
+    it('throws when a function endpoint returns an object without a url', async () => {
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: () => ({}) as any });
+
+        await expect(getConnection().resolve()).rejects.toThrow(/non-empty 'url'/);
+        await pool.destroy();
+    });
+});
+
+describe('RemoteBrowserPool — release lifecycle', () => {
+    it('calls release with the context from a function endpoint, exactly once', async () => {
+        const release = vi.fn();
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [plugin],
+            endpoint: () => ({ url: 'wss://remote:9222', context: { id: 'sess-1' } }),
+            release,
         });
 
-        it('opens immediately when an active browser has free page capacity', async () => {
-            const fake = createFakePool({
-                hasFreeBrowserSlot: vi.fn(() => false),
-                hasActiveBrowserWithFreeCapacity: vi.fn(() => true),
-            });
-            const remote = new RemoteBrowserPool({ browserPool: fake, maxOpenBrowsers: 1 });
+        const { token } = await getConnection().resolve();
+        await getConnection().release(token);
+        await getConnection().release(token); // second call must be a no-op (close()+kill())
 
-            await remote.newPage();
+        expect(release).toHaveBeenCalledTimes(1);
+        expect(release).toHaveBeenCalledWith({ endpoint: 'wss://remote:9222', context: { id: 'sess-1' } });
+        await pool.destroy();
+    });
 
-            expect(fake.newPage).toHaveBeenCalledOnce();
+    it('releases all still-open sessions on destroy()', async () => {
+        const release = vi.fn();
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222', release });
+
+        await getConnection().resolve();
+        await getConnection().resolve();
+
+        await pool.destroy();
+
+        expect(release).toHaveBeenCalledTimes(2);
+    });
+
+    it('swallows errors thrown by release()', async () => {
+        const release = vi.fn(() => {
+            throw new Error('release boom');
+        });
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222', release });
+
+        const { token } = await getConnection().resolve();
+        await expect(getConnection().release(token)).resolves.toBeUndefined();
+        await pool.destroy();
+    });
+});
+
+describe('RemoteBrowserPool — RemoteBrowserProvider endpoint', () => {
+    class TestProvider extends RemoteBrowserProvider<{ id: string }> {
+        override maxOpenBrowsers = 3;
+        connect = vi.fn(async () => ({ url: 'wss://provider:9222', context: { id: 'sess-1' } }));
+        override release = vi.fn(async () => {});
+    }
+
+    it('wires connect/release and adopts the provider maxOpenBrowsers', async () => {
+        const provider = new TestProvider();
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: provider });
+
+        expect(pool.maxOpenBrowsers).toBe(3);
+
+        const { url, token } = await getConnection().resolve({ proxyUrl: 'http://proxy:8080' });
+        expect(url).toBe('wss://provider:9222');
+        expect(provider.connect).toHaveBeenCalledWith({ proxyUrl: 'http://proxy:8080' });
+
+        await getConnection().release(token);
+        expect(provider.release).toHaveBeenCalledWith({ id: 'sess-1' });
+        await pool.destroy();
+    });
+
+    it('an explicit maxOpenBrowsers overrides the provider value', async () => {
+        const { plugin } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [plugin],
+            endpoint: new TestProvider(),
+            maxOpenBrowsers: 7,
         });
 
-        it('waits while at capacity, then opens once a browser is retired', async () => {
-            let atCapacity = true;
-            const fake = createFakePool({
-                hasFreeBrowserSlot: vi.fn(() => !atCapacity),
-                hasActiveBrowserWithFreeCapacity: vi.fn(() => false),
-            });
-            const remote = new RemoteBrowserPool({ browserPool: fake, maxOpenBrowsers: 1, slotPollIntervalMillis: 50 });
+        expect(pool.maxOpenBrowsers).toBe(7);
+        await pool.destroy();
+    });
+});
 
-            const pagePromise = remote.newPage();
-            let resolved = false;
-            void pagePromise.then(() => {
-                resolved = true;
-            });
-
-            // Still blocked while at capacity.
-            await new Promise((r) => setTimeout(r, 20));
-            expect(resolved).toBe(false);
-            expect(fake.newPage).not.toHaveBeenCalled();
-
-            // Free a slot and signal it.
-            atCapacity = false;
-            fake.emit(BROWSER_POOL_EVENTS.BROWSER_RETIRED);
-
-            await pagePromise;
-            expect(resolved).toBe(true);
-            expect(fake.newPage).toHaveBeenCalledOnce();
+describe('RemoteBrowserPool — maxOpenBrowsers throttle', () => {
+    it('proxies maxOpenBrowsers to the wrapped pool', async () => {
+        const { plugin } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [plugin],
+            endpoint: 'wss://remote:9222',
+            maxOpenBrowsers: 2,
         });
 
-        it('re-checks capacity via the poll fallback when no event fires', async () => {
-            let atCapacity = true;
-            const fake = createFakePool({
-                hasFreeBrowserSlot: vi.fn(() => !atCapacity),
-                hasActiveBrowserWithFreeCapacity: vi.fn(() => false),
-            });
-            const remote = new RemoteBrowserPool({ browserPool: fake, maxOpenBrowsers: 1, slotPollIntervalMillis: 20 });
+        expect(pool.browserPool.maxOpenBrowsers).toBe(2);
+        pool.maxOpenBrowsers = 5;
+        expect(pool.browserPool.maxOpenBrowsers).toBe(5);
+        await pool.destroy();
+    });
 
-            const pagePromise = remote.newPage();
-            setTimeout(() => {
-                atCapacity = false;
-            }, 30);
-
-            await pagePromise;
-            expect(fake.newPage).toHaveBeenCalledOnce();
+    it('opens immediately when a browser slot is free', async () => {
+        const { plugin } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [plugin],
+            endpoint: 'wss://remote:9222',
+            maxOpenBrowsers: 2,
         });
+
+        pool.browserPool.hasFreeBrowserSlot = vi.fn(() => true);
+        pool.browserPool.hasActiveBrowserWithFreeCapacity = vi.fn(() => false);
+        const newPage = vi.fn(async () => ({ id: 'p' }));
+        (pool.browserPool as any).newPage = newPage;
+
+        await pool.newPage({ id: 'p' });
+        expect(newPage).toHaveBeenCalledOnce();
+        await pool.destroy();
+    });
+
+    it('waits while at capacity, then opens once a browser is retired', async () => {
+        const { plugin } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [plugin],
+            endpoint: 'wss://remote:9222',
+            maxOpenBrowsers: 1,
+            slotPollIntervalMillis: 50,
+        });
+
+        let atCapacity = true;
+        pool.browserPool.hasFreeBrowserSlot = vi.fn(() => !atCapacity);
+        pool.browserPool.hasActiveBrowserWithFreeCapacity = vi.fn(() => false);
+        const newPage = vi.fn(async () => ({ id: 'p' }));
+        (pool.browserPool as any).newPage = newPage;
+
+        const pagePromise = pool.newPage();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(newPage).not.toHaveBeenCalled();
+
+        atCapacity = false;
+        pool.browserPool.emit(BROWSER_POOL_EVENTS.BROWSER_RETIRED, {} as any);
+
+        await pagePromise;
+        expect(newPage).toHaveBeenCalledOnce();
+        await pool.destroy();
     });
 });

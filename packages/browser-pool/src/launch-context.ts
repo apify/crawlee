@@ -84,6 +84,14 @@ export class LaunchContext<
     private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
 
     fingerprint?: BrowserFingerprintWithHeaders;
+
+    /**
+     * Token identifying the remote browser session this context connected to, set by the plugin and read by
+     * the {@apilink BrowserController} to release the session on close. Only present for remote connections.
+     * @internal
+     */
+    _remoteToken?: number;
+
     [K: PropertyKey]: unknown;
 
     constructor(options: LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) {

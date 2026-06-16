@@ -231,19 +231,18 @@ export abstract class BrowserController<
     }
 
     /**
-     * Calls `remoteBrowser.release()` if configured. Safe to call multiple times —
-     * clears the endpoint after the first call so release only fires once.
+     * Releases the remote browser session (if this controller serves a remote browser) via the plugin's
+     * {@apilink RemoteConnection}. Safe to call multiple times — the token is cleared after the first call
+     * and the pool's registry also dedupes, so `release()` fires at most once across close()/kill().
      */
     private async _releaseRemoteBrowser(): Promise<void> {
-        const endpoint = this.launchContext?._resolvedRemoteEndpoint as string | undefined;
-        if (!endpoint) return;
+        const token = this.launchContext?._remoteToken;
+        if (token === undefined) return;
 
-        const context = this.launchContext._remoteContext as Record<string, unknown> | undefined;
+        // Clear so release only fires once (close() schedules kill() after a timeout).
+        this.launchContext._remoteToken = undefined;
 
-        // Clear so release only fires once (close() schedules kill() after timeout)
-        this.launchContext.extend({ _resolvedRemoteEndpoint: undefined, _remoteContext: undefined });
-
-        await this.browserPlugin._callRelease(endpoint, context);
+        await this.browserPlugin.remoteConnection?.release(token);
     }
 
     /**
