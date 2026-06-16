@@ -1,0 +1,56 @@
+{
+    "name": "@crawlee/filesystem-storage",
+    "version": "4.0.0",
+    "description": "A file-system storage implementation of the Apify API",
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "type": "module",
+    "exports": {
+        ".": "./dist/index.js",
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "api",
+        "filesystem"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "contributors": [
+        "Vlad Frangu <kingdgrizzle@gmail.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/crawlee"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/crawlee/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "pnpm clean && pnpm compile && pnpm copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json",
+        "copy": "tsx ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@crawlee/types": "workspace:*",
+        "@sapphire/async-queue": "^1.5.5",
+        "@sapphire/shapeshift": "^4.0.0",
+        "content-type": "^1.0.5",
+        "fs-extra": "^11.3.0",
+        "json5": "^2.2.3",
+        "mime-types": "^3.0.1",
+        "p-limit": "^6.2.0",
+        "proper-lockfile": "^4.1.2",
+        "tslib": "^2.8.1"
+    }
+}
