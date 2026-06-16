@@ -255,26 +255,27 @@ export class PuppeteerPlugin extends BrowserPlugin<
                                   })
                                 : ([undefined, noop] as const);
 
+                            const proxyServer = anonymizedProxyUrl ?? effectiveProxyUrl;
+                            const contextOptions = proxyServer ? { proxyServer } : {};
+                            const context = (await (browser as any)[method](
+                                contextOptions,
+                            )) as PuppeteerTypes.BrowserContext;
+
                             try {
-                                const proxyServer = anonymizedProxyUrl ?? effectiveProxyUrl;
-                                const contextOptions = proxyServer ? { proxyServer } : {};
-                                const context = (await (browser as any)[method](
-                                    contextOptions,
-                                )) as PuppeteerTypes.BrowserContext;
-
                                 page = await context.newPage(...args);
-
-                                page.once('close', async () => {
-                                    if (anonymizedProxyUrl) {
-                                        await close();
-                                    }
-                                    await context.close().catch(noop);
-                                });
                             } catch (error) {
+                                await context.close().catch(noop);
                                 await close();
 
                                 throw error;
                             }
+
+                            page.once('close', async () => {
+                                if (anonymizedProxyUrl) {
+                                    await close();
+                                }
+                                await context.close().catch(noop);
+                            });
                         } else {
                             page = await boundMethods.newPage(...args);
                         }

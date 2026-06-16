@@ -226,7 +226,11 @@ export abstract class BrowserPlugin<
         const { endpoint } = this.remoteBrowser!;
         const result = typeof endpoint === 'function' ? await endpoint(options) : endpoint;
         if (typeof result === 'string') {
+            if (!result) throw new Error('remoteBrowser.endpoint resolved to an empty string.');
             return { url: result };
+        }
+        if (!result?.url) {
+            throw new Error("remoteBrowser.endpoint() must return a URL string or an object with a non-empty 'url'.");
         }
         return result;
     }
@@ -313,11 +317,17 @@ export abstract class BrowserPlugin<
         const { proxyUrl, launchOptions } = launchContext;
 
         if (proxyUrl && launchContext.isRemote) {
-            this.log.info(
-                'proxyUrl is set for a remote browser connection. ' +
-                    "It will be forwarded to the remote browser provider's connect() method. " +
-                    "Make sure your provider handles it (e.g. passes it to the service's proxy API).",
-            );
+            if (this.remoteBrowser) {
+                this.log.info(
+                    'proxyUrl is set and will be passed to the remoteBrowser.endpoint() function. ' +
+                        "Make sure your endpoint() handles it (e.g. passes it to the service's proxy API).",
+                );
+            } else {
+                this.log.warning(
+                    'proxyUrl is set but will be ignored when using connectOptions/connectOverCDPOptions. ' +
+                        'Configure the proxy through the remote service, or switch to `remoteBrowser` with an endpoint() that handles proxyUrl.',
+                );
+            }
         }
 
         if (launchContext.userDataDir && launchContext.isRemote) {

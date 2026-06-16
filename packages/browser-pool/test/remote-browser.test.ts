@@ -378,7 +378,7 @@ describe('Remote browser — PlaywrightPlugin', () => {
     // --- Info/Warnings --------------------------------------------------------
 
     describe('info and warnings', () => {
-        test('proxyUrl + remote → info about forwarding to provider', async () => {
+        test('proxyUrl + connectOverCDPOptions → warning that proxyUrl is ignored', async () => {
             const lib = createMockPlaywrightLibrary();
             const plugin = new PlaywrightPlugin(lib as any, {
                 connectOverCDPOptions: { endpointURL: 'http://remote:9222' },
@@ -388,8 +388,25 @@ describe('Remote browser — PlaywrightPlugin', () => {
             const ctx = plugin.createLaunchContext();
             await plugin.launch(ctx);
 
+            expect(mockLogger.warning).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    'proxyUrl is set but will be ignored when using connectOptions/connectOverCDPOptions',
+                ),
+            );
+        });
+
+        test('proxyUrl + remoteBrowser → info about forwarding to endpoint()', async () => {
+            const lib = createMockPlaywrightLibrary();
+            const plugin = new PlaywrightPlugin(lib as any, {
+                remoteBrowser: { endpoint: 'http://remote:9222' },
+                proxyUrl: 'http://user:pass@proxy:8080',
+            });
+
+            const ctx = plugin.createLaunchContext();
+            await plugin.launch(ctx);
+
             expect(mockLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining("forwarded to the remote browser provider's connect()"),
+                expect.stringContaining('passed to the remoteBrowser.endpoint() function'),
             );
         });
 
@@ -615,7 +632,7 @@ describe('Remote browser — PuppeteerPlugin', () => {
     // --- Info/Warnings --------------------------------------------------------
 
     describe('info and warnings', () => {
-        test('proxyUrl + remote → info about forwarding to provider', async () => {
+        test('proxyUrl + connectOverCDPOptions → warning that proxyUrl is ignored', async () => {
             const lib = createMockPuppeteerLibrary();
             const plugin = new PuppeteerPlugin(lib as any, {
                 connectOverCDPOptions: { browserWSEndpoint: 'ws://remote:9222' },
@@ -625,8 +642,25 @@ describe('Remote browser — PuppeteerPlugin', () => {
             const ctx = plugin.createLaunchContext();
             await plugin.launch(ctx);
 
+            expect(mockLogger.warning).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    'proxyUrl is set but will be ignored when using connectOptions/connectOverCDPOptions',
+                ),
+            );
+        });
+
+        test('proxyUrl + remoteBrowser → info about forwarding to endpoint()', async () => {
+            const lib = createMockPuppeteerLibrary();
+            const plugin = new PuppeteerPlugin(lib as any, {
+                remoteBrowser: { endpoint: 'ws://remote:9222' },
+                proxyUrl: 'http://user:pass@proxy:8080',
+            });
+
+            const ctx = plugin.createLaunchContext();
+            await plugin.launch(ctx);
+
             expect(mockLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining("forwarded to the remote browser provider's connect()"),
+                expect.stringContaining('passed to the remoteBrowser.endpoint() function'),
             );
         });
 
