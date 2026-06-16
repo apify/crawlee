@@ -181,7 +181,7 @@ export abstract class BrowserPlugin<
         try {
             ({ url, token } = await connection.resolve({ proxyUrl: launchContext.proxyUrl }));
         } catch (cause) {
-            throw new BrowserLaunchError('Failed to resolve the remote browser endpoint.​', { cause });
+            throw new BrowserLaunchError('Failed to resolve the remote browser endpoint.', { cause });
         }
 
         launchContext._remoteToken = token;
@@ -192,7 +192,7 @@ export abstract class BrowserPlugin<
             await connection.release(token);
             throw new BrowserLaunchError(
                 `Failed to connect to remote browser at "${sanitizeEndpointForLog(url)}". ` +
-                    'Check that the endpoint is reachable and accepts the configured protocol.​',
+                    'Check that the endpoint is reachable and accepts the configured protocol.',
                 { cause },
             );
         }
