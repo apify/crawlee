@@ -488,9 +488,12 @@ export class RequestList implements IRequestList {
                 const sourcesFromFunction = await this.sourcesFunction();
                 const sourcesFromFunctionCount = sourcesFromFunction.length;
                 for (let i = 0; i < sourcesFromFunctionCount; i++) {
-                    const source = sourcesFromFunction.shift();
-                    this._addRequest(source!);
+                    const source = sourcesFromFunction[i];
+                    delete sourcesFromFunction[i];
+                    this._addRequest(source);
                 }
+
+                sourcesFromFunction.length = 0;
             } catch (e) {
                 const err = e as Error;
                 throw new Error(`Loading requests with sourcesFunction failed.\nCause: ${err.message}`);
