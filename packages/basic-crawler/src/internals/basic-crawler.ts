@@ -1082,8 +1082,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             periodicLogger.stop();
-            // We do need to give the event loop a single tick to flush the HTTP
-            // otherwise, the process can finish right after
+            // Give the event loop a single tick to flush the HTTP
+            // 1ms is enough because we already have a keep-alive connection to the API
             await Promise.race([
                 this.setStatusMessage(
                     `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
