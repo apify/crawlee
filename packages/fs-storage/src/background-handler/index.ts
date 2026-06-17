@@ -7,7 +7,7 @@ import { handleMessage } from './fs-utils.js';
 
 /**
  * A map of promises that are created when a background task is scheduled.
- * This is used in MemoryStorage#teardown to wait for all tasks to finish executing before exiting the process.
+ * This is used in FileSystemStorageClient#teardown to wait for all tasks to finish executing before exiting the process.
  * @internal
  */
 export const promiseMap: Map<

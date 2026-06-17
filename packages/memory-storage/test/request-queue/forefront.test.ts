@@ -2,7 +2,7 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
 /**
@@ -21,9 +21,7 @@ async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
 }
 
 describe('RequestQueue respects `forefront` when fetching requests', () => {
-    const storage = new MemoryStorage({
-        persistStorage: false,
-    });
+    const storage = new MemoryStorageClient();
 
     let requestQueue: RequestQueueClient;
 
@@ -147,122 +145,33 @@ describe('RequestQueue respects `forefront` when fetching requests', () => {
     });
 });
 
-describe('RequestQueue locks fetched requests', () => {
-    const storage = new MemoryStorage({ persistStorage: false });
+describe('RequestQueue holds fetched requests in progress', () => {
+    const storage = new MemoryStorageClient();
 
     let requestQueue: RequestQueueClient;
 
     beforeEach(async () => {
-        requestQueue = await storage.createRequestQueueClient({ name: 'locking' });
+        requestQueue = await storage.createRequestQueueClient({ name: 'in-progress' });
     });
 
     afterEach(async () => {
         await requestQueue.drop();
     });
 
-    test('a fetched request becomes available again after its lock expires', async () => {
-        vitest.useFakeTimers();
+    test('a fetched request stays in progress and is only fetchable again once reclaimed', async () => {
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
-        try {
-            await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
+        const first = await requestQueue.fetchNextRequest();
+        expect(first!.uniqueKey).toBe('1');
 
-            const first = await requestQueue.fetchNextRequest();
-            expect(first!.uniqueKey).toBe('1');
+        // While in progress, the request is not handed out again. The in-memory queue lives in a single
+        // process, so there is no lock expiry — the request stays in progress until it is explicitly
+        // reclaimed (or handled).
+        expect(await requestQueue.fetchNextRequest()).toBeNull();
 
-            // While locked, the request is not handed out again.
-            expect(await requestQueue.fetchNextRequest()).toBeNull();
+        await requestQueue.reclaimRequest({ ...first!, id: first!.id as string });
 
-            // After the lock expires (default 3 minutes), the request is fetchable again — this is what
-            // prevents a crashed consumer from blocking its requests forever.
-            vitest.advanceTimersByTime(3 * 60 * 1000 + 1000);
-
-            const retried = await requestQueue.fetchNextRequest();
-            expect(retried!.uniqueKey).toBe('1');
-        } finally {
-            vitest.useRealTimers();
-        }
-    });
-});
-
-describe('RequestQueue locking is visible across clients sharing on-disk storage', () => {
-    const tmpLocation = resolve(import.meta.dirname, './tmp/req-queue-cross-process');
-    // Two independent storage instances over the same directory emulate two separate processes.
-    const storageA = new MemoryStorage({ localDataDirectory: tmpLocation, persistStorage: true });
-    const storageB = new MemoryStorage({ localDataDirectory: tmpLocation, persistStorage: true });
-
-    afterAll(async () => {
-        await rm(tmpLocation, { force: true, recursive: true });
-    });
-
-    test('two clients on the same queue never fetch the same request', async () => {
-        const clientA = await storageA.createRequestQueueClient({ name: 'shared' });
-        await clientA.addBatchOfRequests([
-            { url: 'http://example.com/1', uniqueKey: '1' },
-            { url: 'http://example.com/2', uniqueKey: '2' },
-        ]);
-
-        const clientB = await storageB.createRequestQueueClient({ name: 'shared' });
-
-        const fromA = await clientA.fetchNextRequest();
-        const fromB = await clientB.fetchNextRequest();
-
-        expect(fromA).not.toBeNull();
-        expect(fromB).not.toBeNull();
-        // The lock written by one client is observed by the other, so they get distinct requests.
-        expect(fromA!.uniqueKey).not.toBe(fromB!.uniqueKey);
-
-        // Both requests are now locked, so neither client can fetch anything more.
-        expect(await clientA.fetchNextRequest()).toBeNull();
-        expect(await clientB.fetchNextRequest()).toBeNull();
-
-        await clientA.drop();
-    });
-
-    test('a client does not report the queue finished while another client holds the last request', async () => {
-        const clientA = await storageA.createRequestQueueClient({ name: 'shared-is-empty' });
-        await clientA.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
-
-        const clientB = await storageB.createRequestQueueClient({ name: 'shared-is-empty' });
-
-        // Client A fetches (and thus locks) the only request.
-        const fromA = await clientA.fetchNextRequest();
-        expect(fromA).not.toBeNull();
-
-        // Client B has nothing it can fetch right now, so from its point of view the queue is empty...
-        expect(await clientB.fetchNextRequest()).toBeNull();
-        expect(await clientB.isEmpty()).toBe(true);
-        // ...but the request still exists and is merely locked by A, so B must NOT consider the queue
-        // finished — otherwise the crawler driving B could shut down while A is still processing.
-        expect(await clientB.isFinished()).toBe(false);
-
-        // Once A handles the request, it is gone for good and B sees a finished queue.
-        await clientA.markRequestAsHandled({ ...fromA!, id: fromA!.id! });
-        expect(await clientB.isEmpty()).toBe(true);
-        expect(await clientB.isFinished()).toBe(true);
-
-        await clientA.drop();
-    });
-
-    test('teardown releases this client locks so another client can fetch immediately', async () => {
-        const clientA = await storageA.createRequestQueueClient({ name: 'shared-teardown' });
-        await clientA.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
-
-        // Client A fetches (locks) the request, then the process tears down without handling it.
-        const fromA = await clientA.fetchNextRequest();
-        expect(fromA).not.toBeNull();
-
-        const clientB = await storageB.createRequestQueueClient({ name: 'shared-teardown' });
-        // While A holds the lock, B cannot fetch the request.
-        expect(await clientB.fetchNextRequest()).toBeNull();
-
-        // Tearing down A's storage releases its locks (instead of leaving them until the 3-minute
-        // expiry), so B can pick the request up right away.
-        await storageA.teardown();
-
-        const fromB = await clientB.fetchNextRequest();
-        expect(fromB).not.toBeNull();
-        expect(fromB!.uniqueKey).toBe('1');
-
-        await clientB.drop();
+        const retried = await requestQueue.fetchNextRequest();
+        expect(retried!.uniqueKey).toBe('1');
     });
 });
