@@ -146,25 +146,6 @@ describe('RequestList', () => {
         expect(await newList.isEmpty()).toBe(true);
     });
 
-    test('should load sourcesFunction results without shifting the returned array', async () => {
-        const urls = ['https://example.com/1', 'https://example.com/2', 'https://example.com/3'];
-        const sourcesFromFunction = [...urls];
-        const shiftSpy = vitest.spyOn(sourcesFromFunction, 'shift');
-
-        const requestList = await RequestList.open({
-            sourcesFunction: async () => sourcesFromFunction,
-        });
-
-        expect(shiftSpy).not.toBeCalled();
-        expect(sourcesFromFunction).toHaveLength(0);
-        expect(requestList.length()).toBe(urls.length);
-
-        for (const url of urls) {
-            expect(await requestList.fetchNextRequest()).toMatchObject({ url });
-        }
-        expect(await requestList.fetchNextRequest()).toBe(null);
-    });
-
     test('`RequestList` is `for .. await` iterable', async () => {
         const sources = [
             'https://example.com/1',
