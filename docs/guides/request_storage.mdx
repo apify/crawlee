@@ -26,7 +26,7 @@ Each Crawlee project run is associated with a **default request queue**. Typical
 
 In Crawlee, the request queue is represented by the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> class.
 
-The request queue is managed by <ApiLink to="memory-storage/class/MemoryStorage">`MemoryStorage`</ApiLink> class and its data is stored in memory, while also being off-loaded to the local directory specified by the `CRAWLEE_STORAGE_DIR` environment variable as follows:
+By default, the request queue is managed by the <ApiLink to="fs-storage/class/FileSystemStorageClient">`FileSystemStorageClient`</ApiLink> class and its data is stored in the local directory specified by the `CRAWLEE_STORAGE_DIR` environment variable as follows:
 
 ```text
 {CRAWLEE_STORAGE_DIR}/request_queues/{QUEUE_ID}/entries.json

@@ -1,10 +1,10 @@
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import { RequestQueue, serviceLocator } from 'crawlee';
 
-let newClient: MemoryStorage;
+let newClient: MemoryStorageClient;
 
 beforeEach(() => {
-    newClient = new MemoryStorage({ persistStorage: false, writeMetadata: false });
+    newClient = new MemoryStorageClient();
     serviceLocator.setStorageClient(newClient);
 });
 
@@ -12,13 +12,13 @@ describe('Opening a storage with a different storage client should be respected'
     test('opening a RequestQueue with default client from Configuration', async () => {
         const queue = await RequestQueue.open({ name: 'test-rq-open-client-from-config' });
 
-        // The sub-client should have been created by newClient (MemoryStorage),
+        // The sub-client should have been created by newClient (MemoryStorageClient),
         // so its internal `client` field should reference newClient.
         expect((queue.client as any).client).toBe(newClient);
     });
 
     test('opening a RequestQueue with a different client', async () => {
-        const thirdClient = new MemoryStorage({ persistStorage: false, writeMetadata: false });
+        const thirdClient = new MemoryStorageClient();
         // @ts-expect-error Using this to ensure the test/impl works
         thirdClient._name = 'third-client';
 

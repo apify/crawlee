@@ -430,7 +430,7 @@ export interface StorageClient {
      *
      * The key is used by `StorageInstanceManager` to partition the storage cache per-backend,
      * so that two storages with the same name but backed by different clients
-     * (e.g. a local `MemoryStorage` and a cloud `ApifyClient`) are cached as separate instances.
+     * (e.g. a local `MemoryStorageClient` and a cloud `ApifyClient`) are cached as separate instances.
      *
      * When not provided, the fallback uses the client's constructor name, so different
      * `StorageClient` implementations automatically get separate cache partitions.

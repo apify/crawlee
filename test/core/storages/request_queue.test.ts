@@ -377,7 +377,10 @@ describe('RequestQueue remote', () => {
     describe('setExpectedRequestProcessingTimeSecs', () => {
         test('forwards the value to the client, but only ever raises it', async () => {
             const queue = await createRequestQueue();
-            const spy = vitest.spyOn(queue.client, 'setExpectedRequestProcessingTimeSecs');
+            // The in-memory client does not implement this optional hint (it has no request locking to
+            // tune), so attach a stub to verify the frontend's raise-only forwarding logic in isolation.
+            const spy = vitest.fn();
+            (queue.client as any).setExpectedRequestProcessingTimeSecs = spy;
 
             // First hint is forwarded.
             queue.setExpectedRequestProcessingTimeSecs(60);
