@@ -15,6 +15,11 @@
 	},
 	"packageRules": [
 		{
+			"description": "Freeze eslint tooling until oxlint lands in v4",
+			"matchPackageNames": ["/eslint/"],
+			"enabled": false
+		},
+		{
 			"matchUpdateTypes": ["patch", "minor"],
 			"matchCurrentVersion": "!/^0/",
 			"groupName": "patch/minor dependencies",

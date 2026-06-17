@@ -272,7 +272,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/eslint-config-ts@npm:^0.4.0":
+"@apify/eslint-config-ts@npm:0.4.1":
   version: 0.4.1
   resolution: "@apify/eslint-config-ts@npm:0.4.1"
   dependencies:
@@ -5426,7 +5426,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/eslint-plugin@npm:^7.0.0":
+"@typescript-eslint/eslint-plugin@npm:7.18.0":
   version: 7.18.0
   resolution: "@typescript-eslint/eslint-plugin@npm:7.18.0"
   dependencies:
@@ -5449,7 +5449,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/parser@npm:^7.0.0":
+"@typescript-eslint/parser@npm:7.18.0":
   version: 7.18.0
   resolution: "@typescript-eslint/parser@npm:7.18.0"
   dependencies:
@@ -9132,16 +9132,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react-hooks@npm:^4.3.0, eslint-plugin-react-hooks@npm:^4.6.0":
-  version: 4.6.2
-  resolution: "eslint-plugin-react-hooks@npm:4.6.2"
-  peerDependencies:
-    eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0
-  checksum: 10c0/4844e58c929bc05157fb70ba1e462e34f1f4abcbc8dd5bbe5b04513d33e2699effb8bca668297976ceea8e7ebee4e8fc29b9af9d131bcef52886feaa2308b2cc
-  languageName: node
-  linkType: hard
-
-"eslint-plugin-react-hooks@npm:^7.0.0":
+"eslint-plugin-react-hooks@npm:7.0.1":
   version: 7.0.1
   resolution: "eslint-plugin-react-hooks@npm:7.0.1"
   dependencies:
@@ -9156,7 +9147,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react@npm:^7.27.0, eslint-plugin-react@npm:^7.32.2, eslint-plugin-react@npm:^7.33.2":
+"eslint-plugin-react-hooks@npm:^4.3.0, eslint-plugin-react-hooks@npm:^4.6.0":
+  version: 4.6.2
+  resolution: "eslint-plugin-react-hooks@npm:4.6.2"
+  peerDependencies:
+    eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0
+  checksum: 10c0/4844e58c929bc05157fb70ba1e462e34f1f4abcbc8dd5bbe5b04513d33e2699effb8bca668297976ceea8e7ebee4e8fc29b9af9d131bcef52886feaa2308b2cc
+  languageName: node
+  linkType: hard
+
+"eslint-plugin-react@npm:7.37.5, eslint-plugin-react@npm:^7.27.0, eslint-plugin-react@npm:^7.33.2":
   version: 7.37.5
   resolution: "eslint-plugin-react@npm:7.37.5"
   dependencies:
@@ -9211,7 +9211,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^8.35.0":
+"eslint@npm:8.57.1":
   version: 8.57.1
   resolution: "eslint@npm:8.57.1"
   dependencies:
@@ -16047,7 +16047,7 @@ __metadata:
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
     "@apify/docusaurus-plugin-typedoc-api": "npm:5.1.11"
-    "@apify/eslint-config-ts": "npm:^0.4.0"
+    "@apify/eslint-config-ts": "npm:0.4.1"
     "@apify/tsconfig": "npm:^0.1.0"
     "@apify/ui-icons": "npm:^1.23.0"
     "@apify/utilities": "npm:^2.8.0"
@@ -16065,16 +16065,16 @@ __metadata:
     "@mdx-js/react": "npm:^3.0.1"
     "@signalwire/docusaurus-plugin-llms-txt": "npm:^1.2.1"
     "@types/react": "npm:^19.0.0"
-    "@typescript-eslint/eslint-plugin": "npm:^7.0.0"
-    "@typescript-eslint/parser": "npm:^7.0.0"
+    "@typescript-eslint/eslint-plugin": "npm:7.18.0"
+    "@typescript-eslint/parser": "npm:7.18.0"
     axios: "npm:^1.16.0"
     buffer: "npm:^6.0.3"
     clsx: "npm:^2.0.0"
     crypto-browserify: "npm:^3.12.0"
     docusaurus-gtm-plugin: "npm:^0.0.2"
-    eslint: "npm:^8.35.0"
-    eslint-plugin-react: "npm:^7.32.2"
-    eslint-plugin-react-hooks: "npm:^7.0.0"
+    eslint: "npm:8.57.1"
+    eslint-plugin-react: "npm:7.37.5"
+    eslint-plugin-react-hooks: "npm:7.0.1"
     fs-extra: "npm:^11.1.0"
     patch-package: "npm:^8.0.0"
     path-browserify: "npm:^1.0.1"
