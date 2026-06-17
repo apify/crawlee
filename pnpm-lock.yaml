@@ -427,6 +427,9 @@ importers:
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
+      '@crawlee/fs-storage':
+        specifier: workspace:*
+        version: link:../fs-storage
       '@crawlee/memory-storage':
         specifier: workspace:*
         version: link:../memory-storage
@@ -493,6 +496,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
+      '@crawlee/fs-storage':
+        specifier: workspace:*
+        version: link:../fs-storage
       '@crawlee/http':
         specifier: workspace:*
         version: link:../http-crawler
@@ -502,6 +508,9 @@ importers:
       '@crawlee/linkedom':
         specifier: workspace:*
         version: link:../linkedom-crawler
+      '@crawlee/memory-storage':
+        specifier: workspace:*
+        version: link:../memory-storage
       '@crawlee/playwright':
         specifier: workspace:*
         version: link:../playwright-crawler
@@ -523,6 +532,36 @@ importers:
       puppeteer:
         specifier: '*'
         version: 24.36.1(bufferutil@4.1.0)(typescript@5.9.3)
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
+
+  packages/fs-storage:
+    dependencies:
+      '@crawlee/types':
+        specifier: workspace:*
+        version: link:../types
+      '@sapphire/async-queue':
+        specifier: ^1.5.5
+        version: 1.5.5
+      '@sapphire/shapeshift':
+        specifier: ^4.0.0
+        version: 4.0.0
+      content-type:
+        specifier: ^1.0.5
+        version: 1.0.5
+      fs-extra:
+        specifier: ^11.3.0
+        version: 11.3.4
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.2
+      proper-lockfile:
+        specifier: ^4.1.2
+        version: 4.1.2
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -688,21 +727,12 @@ importers:
       content-type:
         specifier: ^1.0.5
         version: 1.0.5
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.4
       json5:
         specifier: ^2.2.3
         version: 2.2.3
       mime-types:
         specifier: ^3.0.1
         version: 3.0.2
-      p-limit:
-        specifier: ^6.2.0
-        version: 6.2.0
-      proper-lockfile:
-        specifier: ^4.1.2
-        version: 4.1.2
       tslib:
         specifier: ^2.8.1
         version: 2.8.1

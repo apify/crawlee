@@ -355,3 +355,50 @@ rename + rewrite, not a simple edit). Git's merge left the old test's opening
 two lines behind as an unconflicting fragment ahead of the conflict region;
 the renamed test's full new body already landed earlier in the file
 (confirmed via grep, `line 61`). Deleted the orphaned fragment.
+
+**Commit `a9b972294` (Split MemoryStorage into FileSystemStorageClient and
+MemoryStorageClient) — ported the path-traversal hardening into the new
+`@crawlee/fs-storage` package**: this commit splits the old
+`@crawlee/memory-storage` into a pure in-memory client (stays in
+`memory-storage`, drops all filesystem code) and a new `@crawlee/fs-storage`
+package (the file-system-backed implementation, entirely new files, not
+conflicted). The new `fs-storage` resource clients
+(`dataset.ts`/`key-value-store.ts`/`request-queue.ts`) build their storage
+directory as `resolve(baseStorageDirectory, directoryName)` using plain
+`node:path` `resolve()` — this is the exact path-traversal vulnerability
+master's `resolveWithinDirectory()` helper (commit `a04c29766
+fix(memory-storage): prevent storage names from escaping the storage
+directory (#3715)`) fixed for the old combined package. Since `fs-storage` is
+a wholesale new copy of that same pre-fix code (not derived from
+`memory-storage`'s post-fix version), the vulnerability was reintroduced.
+Ported `resolveWithinDirectory` into `packages/fs-storage/src/utils.ts` and
+switched all three resource clients' directory-construction call to use it
+(left the `rm(resolve(this.xDirectory, entry))` calls alone — those resolve
+internally-generated entry names, not user-controlled names/keys, matching
+the scope of the original fix). Resolved the conflicts in the `memory-storage`
+copies of these same three files by taking theirs' side throughout (drop
+`directoryName`/`resolveWithinDirectory`/filesystem imports in favor of the
+new `cacheKey`-only in-memory identity) — `memory-storage` no longer touches
+the filesystem at all post-split, so the hardening there is not applicable
+(it now lives solely in `fs-storage`).
+
+Note: the original `a04c29766` fix's description also mentions hardening
+key-value-store record keys (`setRecord({ key })`), not just storage names.
+I only found and fixed the storage-name/directoryName call site in the new
+`fs-storage` package — worth a follow-up check once the rebase is done to see
+whether record-key path construction (likely inside
+`fs-storage/src/fs/key-value-store/*.ts`) needs the same treatment.
+
+**Follow-up on the above, resolved immediately**: checked
+`packages/fs-storage/src/fs/key-value-store/fs.ts` — it already used
+`resolveWithinDirectory` for its main `update()` path (carried over cleanly
+from an earlier point in this rebase), but its `get()` fallback (the
+no-file-extension retry path) still called bare `resolve(this.storeDirectory,
+this.rawRecord.key)` on a record key — worse, `resolve` wasn't even imported
+in that file anymore, so this line would have been a compile error. Fixed to
+use `resolveWithinDirectory`, matching master. Checked the sibling
+`fs/dataset/fs.ts` and `fs/request-queue/fs.ts` for the same pattern — both
+build their file path from internally-generated, non-user-controlled IDs
+(sequential entity index, hashed request ID), which is exactly what master's
+original fix (`a04c29766`) called out as already safe, so left them as
+plain `resolve()`.
