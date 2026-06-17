@@ -36,7 +36,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
             file = await readFile(this.filePath);
         } catch {
             try {
-                const noExtFilePath = resolve(this.storeDirectory, this.rawRecord.key);
+                const noExtFilePath = resolveWithinDirectory(this.storeDirectory, this.rawRecord.key);
                 // Try without extension
                 file = await readFile(noExtFilePath);
                 this.logger?.warning(
