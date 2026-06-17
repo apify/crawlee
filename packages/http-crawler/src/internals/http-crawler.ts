@@ -13,6 +13,7 @@ import type {
     ProxyConfiguration,
     Request,
     RequestHandler,
+    RouterHandler,
     RouterRoutes,
     Session,
 } from '@crawlee/basic';
@@ -1068,8 +1069,12 @@ function parseContentTypeFromResponse(response: unknown): { type: string; charse
  */
 export function createHttpRouter<
     Context extends HttpCrawlingContext = HttpCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
->(routes?: RouterRoutes<Context, Routes>) {
-    return Router.create<Context, UserData, Routes>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createHttpRouter(routes?: RouterRoutes<any, any>) {
+    return Router.create<any, any>(routes);
 }

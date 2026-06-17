@@ -1,7 +1,12 @@
 import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
 import { MissingRouteError, Router } from '@crawlee/core';
-import { createPlaywrightRouter, type PlaywrightCrawlingContext } from 'crawlee';
+import {
+    type CheerioCrawlingContext,
+    createCheerioRouter,
+    createPlaywrightRouter,
+    type PlaywrightCrawlingContext,
+} from 'crawlee';
 
 describe('Router', () => {
     test('should be callable and route based on the label', async () => {
@@ -202,6 +207,46 @@ describe('Router', () => {
         router.addDefaultHandler((ctx) => {
             // the default handler receives the union of all declared userData shapes
             testType<{ sku: string; price: number } | { categoryId: string }>(ctx.request.userData);
+        });
+    });
+
+    test('factory infers userData from a route map passed as the second type argument', async () => {
+        const testType = <T>(t: T): void => {};
+
+        interface Routes {
+            PRODUCT: { sku: string; price: number };
+            CATEGORY: { categoryId: string };
+        }
+
+        // the documented two-argument form: `Routes` is the second type argument of the factory
+        const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+
+        router.addHandler('PRODUCT', (ctx) => {
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+        });
+
+        router.addHandler('CATEGORY', (ctx) => {
+            testType<string>(ctx.request.userData.categoryId);
+        });
+
+        // @ts-expect-error unknown labels are rejected when a route map is declared
+        router.addHandler('UNKNOWN', () => {});
+    });
+
+    test('factory keeps the legacy flat-userData generic working (backwards compatibility)', async () => {
+        const testType = <T>(t: T): void => {};
+
+        // a flat `userData` shape (with a scalar field) resolves to the legacy open-map router,
+        // so any label is accepted and `userData` is typed as the passed shape
+        const router = createCheerioRouter<CheerioCrawlingContext, { token: string }>();
+
+        router.addHandler('anyLabel', (ctx) => {
+            testType<string>(ctx.request.userData.token);
+        });
+
+        router.addHandler('anotherLabel', (ctx) => {
+            testType<string>(ctx.request.userData.token);
         });
     });
 });
