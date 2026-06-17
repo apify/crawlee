@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import type { DatasetClient } from '@crawlee/types';
 
 const elements = Array.from({ length: 10 }, (_, i) => ({ number: i }));

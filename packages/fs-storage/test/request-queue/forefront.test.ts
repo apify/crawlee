@@ -2,7 +2,7 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
 /**

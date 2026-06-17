@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import type { DatasetClient, KeyValueStoreClient } from '@crawlee/types';
 
 describe('Async iteration support', () => {

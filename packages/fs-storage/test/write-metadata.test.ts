@@ -1,7 +1,7 @@
 import { readdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 
 import { waitTillWrittenToDisk } from './__shared__.js';
 

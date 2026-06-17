@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
-import type { InternalRequest } from '@crawlee/filesystem-storage/src/resource-clients/request-queue';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import type { InternalRequest } from '@crawlee/fs-storage/src/resource-clients/request-queue';
 import type { RequestSchema } from '@crawlee/types';
 import { ensureDir } from 'fs-extra/esm';
 

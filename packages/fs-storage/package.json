@@ -1,5 +1,5 @@
 {
-    "name": "@crawlee/filesystem-storage",
+    "name": "@crawlee/fs-storage",
     "version": "4.0.0",
     "description": "A file-system storage implementation of the Apify API",
     "engines": {

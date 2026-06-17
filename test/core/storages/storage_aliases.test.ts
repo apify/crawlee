@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import { Dataset, KeyValueStore, RequestQueue, serviceLocator } from '@crawlee/core';
 import { ensureDir, rm } from 'fs-extra';
 

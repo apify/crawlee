@@ -7,7 +7,7 @@ import {
     ServiceLocator,
     serviceLocator,
 } from '@crawlee/core';
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {

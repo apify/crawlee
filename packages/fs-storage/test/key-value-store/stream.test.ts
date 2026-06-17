@@ -1,6 +1,6 @@
 import { Readable } from 'node:stream';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 
 describe('KeyValueStore should drain streams when setting records', () => {
     const storage = new FileSystemStorageClient({});

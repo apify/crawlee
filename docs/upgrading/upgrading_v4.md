@@ -647,7 +647,7 @@ If you implemented a custom `StorageClient`, you need to:
 
 In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did double duty: it kept everything in memory *and*, by default, mirrored it to disk (toggled via the `persistStorage` option / `CRAWLEE_PERSIST_STORAGE` environment variable). In v4 these two responsibilities are split into two independent classes, and the default storage client now persists to disk.
 
-- **`FileSystemStorageClient`** (new, in the new `@crawlee/filesystem-storage` package) — always persists storage to the local directory (`CRAWLEE_STORAGE_DIR`, default `./storage`). This is what you get implicitly when you don't configure a storage client, and it is the behavior the old `MemoryStorage` had with its default `persistStorage: true`.
+- **`FileSystemStorageClient`** (new, in the new `@crawlee/fs-storage` package) — always persists storage to the local directory (`CRAWLEE_STORAGE_DIR`, default `./storage`). This is what you get implicitly when you don't configure a storage client, and it is the behavior the old `MemoryStorage` had with its default `persistStorage: true`.
 - **`MemoryStorageClient`** (the renamed `MemoryStorage`, still in `@crawlee/memory-storage`) — now keeps everything purely in memory and **never touches the disk**. This matches the old `MemoryStorage` with `persistStorage: false`.
 
 Both classes are re-exported from the `crawlee` meta-package.
@@ -673,7 +673,7 @@ const storageClient = new MemoryStorage();
 
 **After:**
 ```typescript
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 // Persists to disk (the old default behavior):

@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import { FileSystemStorageClient } from '@crawlee/filesystem-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
 
