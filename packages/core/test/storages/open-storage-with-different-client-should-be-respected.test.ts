@@ -4,7 +4,7 @@ import { RequestQueue, serviceLocator } from 'crawlee';
 let newClient: MemoryStorageClient;
 
 beforeEach(() => {
-    newClient = new MemoryStorageClient({ persistStorage: false, writeMetadata: false });
+    newClient = new MemoryStorageClient();
     serviceLocator.setStorageClient(newClient);
 });
 
@@ -18,7 +18,7 @@ describe('Opening a storage with a different storage client should be respected'
     });
 
     test('opening a RequestQueue with a different client', async () => {
-        const thirdClient = new MemoryStorageClient({ persistStorage: false, writeMetadata: false });
+        const thirdClient = new MemoryStorageClient();
         // @ts-expect-error Using this to ensure the test/impl works
         thirdClient._name = 'third-client';
 

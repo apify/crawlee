@@ -22,10 +22,10 @@ export interface KeyValueStoreClientOptions {
     id?: string;
     /**
      * The key used for cache lookup. When provided, takes precedence over `name` and `id`.
-     * This allows alias-opened storages to have a directory name that differs from their
+     * This allows alias-opened storages to have a cache key that differs from their
      * metadata `name` (which is `undefined` for unnamed storages).
      */
-    directoryName?: string;
+    cacheKey?: string;
     client: MemoryStorageClient;
 }
 
@@ -42,7 +42,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
      * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
      * storages, this is the alias string. Falls back to id.
      */
-    directoryName: string;
+    cacheKey: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
@@ -53,7 +53,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     constructor(options: KeyValueStoreClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.directoryName = options.directoryName ?? this.name ?? this.id;
+        this.cacheKey = options.cacheKey ?? this.name ?? this.id;
         this.client = options.client;
     }
 

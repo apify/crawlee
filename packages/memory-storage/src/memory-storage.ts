@@ -10,23 +10,6 @@ import { RequestQueueClient } from './resource-clients/request-queue.js';
 
 export interface MemoryStorageOptions {
     /**
-     * Ignored. Kept for API compatibility with the previous disk-backed implementation and with
-     * `FileSystemStorageClient`. The in-memory storage never touches the disk.
-     */
-    localDataDirectory?: string;
-
-    /**
-     * Ignored. Kept for API compatibility. The in-memory storage never writes metadata files.
-     */
-    writeMetadata?: boolean;
-
-    /**
-     * Ignored. Kept for API compatibility. The in-memory storage never persists to disk.
-     * Use `FileSystemStorageClient` (the default) if you need persistence.
-     */
-    persistStorage?: boolean;
-
-    /**
      * Optional logger for MemoryStorageClient warnings.
      */
     logger?: CrawleeLogger;
@@ -39,19 +22,13 @@ export class MemoryStorageClient implements storage.StorageClient {
      * Unique per-instance cache partition key. Mirrors the way `FileSystemStorageClient` partitions its
      * cache by storage directory: two distinct `MemoryStorageClient` instances must not share cached clients.
      */
-    private readonly cacheKey = `MemoryStorageClient:${randomUUID()}`;
+    private readonly instanceCacheKey = `MemoryStorageClient:${randomUUID()}`;
 
     readonly keyValueStoreCache: KeyValueStoreClient[] = [];
     readonly datasetClientCache: DatasetClient[] = [];
     readonly requestQueueCache: RequestQueueClient[] = [];
 
     constructor(options: MemoryStorageOptions = {}) {
-        s.object({
-            localDataDirectory: s.string().optional(),
-            writeMetadata: s.boolean().optional(),
-            persistStorage: s.boolean().optional(),
-        }).parse(options);
-
         this.logger = options.logger;
     }
 
@@ -60,29 +37,29 @@ export class MemoryStorageClient implements storage.StorageClient {
      * cache partitions in the storage-client cache.
      */
     getStorageClientCacheKey(): string {
-        return this.cacheKey;
+        return this.instanceCacheKey;
     }
 
     private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
         isAlias: boolean;
-        directoryKey: string | undefined;
+        cacheKey: string | undefined;
     } {
         const isAlias = 'alias' in options && !!options.alias;
         const rawKey = isAlias ? options.alias : (options.name ?? options.id);
         // Normalize the internal __default__ alias to the user-facing 'default' name.
-        const directoryKey = rawKey === '__default__' ? 'default' : rawKey;
-        return { isAlias, directoryKey };
+        const cacheKey = rawKey === '__default__' ? 'default' : rawKey;
+        return { isAlias, cacheKey };
     }
 
     async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        const { isAlias, directoryKey } = MemoryStorageClient.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
 
-        if (directoryKey) {
+        if (cacheKey) {
             const found = this.datasetClientCache.find(
                 (store) =>
-                    store.id === directoryKey ||
-                    store.name?.toLowerCase() === directoryKey.toLowerCase() ||
-                    store.directoryName.toLowerCase() === directoryKey.toLowerCase(),
+                    store.id === cacheKey ||
+                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
             );
             if (found) {
                 return found;
@@ -90,8 +67,8 @@ export class MemoryStorageClient implements storage.StorageClient {
         }
 
         const newStore = new DatasetClient({
-            name: isAlias ? undefined : directoryKey,
-            directoryName: directoryKey,
+            name: isAlias ? undefined : cacheKey,
+            cacheKey,
             client: this,
         });
         this.datasetClientCache.push(newStore);
@@ -102,14 +79,14 @@ export class MemoryStorageClient implements storage.StorageClient {
     async createKeyValueStoreClient(
         options: storage.CreateKeyValueStoreClientOptions = {},
     ): Promise<storage.KeyValueStoreClient> {
-        const { isAlias, directoryKey } = MemoryStorageClient.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
 
-        if (directoryKey) {
+        if (cacheKey) {
             const found = this.keyValueStoreCache.find(
                 (store) =>
-                    store.id === directoryKey ||
-                    store.name?.toLowerCase() === directoryKey.toLowerCase() ||
-                    store.directoryName.toLowerCase() === directoryKey.toLowerCase(),
+                    store.id === cacheKey ||
+                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
             );
             if (found) {
                 return found;
@@ -117,8 +94,8 @@ export class MemoryStorageClient implements storage.StorageClient {
         }
 
         const newStore = new KeyValueStoreClient({
-            name: isAlias ? undefined : directoryKey,
-            directoryName: directoryKey,
+            name: isAlias ? undefined : cacheKey,
+            cacheKey,
             client: this,
         });
         this.keyValueStoreCache.push(newStore);
@@ -129,14 +106,14 @@ export class MemoryStorageClient implements storage.StorageClient {
     async createRequestQueueClient(
         options: storage.CreateRequestQueueClientOptions = {},
     ): Promise<storage.RequestQueueClient> {
-        const { isAlias, directoryKey } = MemoryStorageClient.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
 
-        if (directoryKey) {
+        if (cacheKey) {
             const found = this.requestQueueCache.find(
                 (queue) =>
-                    queue.id === directoryKey ||
-                    queue.name?.toLowerCase() === directoryKey.toLowerCase() ||
-                    queue.directoryName.toLowerCase() === directoryKey.toLowerCase(),
+                    queue.id === cacheKey ||
+                    queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
             );
             if (found) {
                 return found;
@@ -144,8 +121,8 @@ export class MemoryStorageClient implements storage.StorageClient {
         }
 
         const newStore = new RequestQueueClient({
-            name: isAlias ? undefined : directoryKey,
-            directoryName: directoryKey,
+            name: isAlias ? undefined : cacheKey,
+            cacheKey,
             client: this,
         });
         this.requestQueueCache.push(newStore);
@@ -192,14 +169,14 @@ export class MemoryStorageClient implements storage.StorageClient {
      */
     async purge(): Promise<void> {
         // The run default is opened via `{ alias: '__default__' }`, which `resolveStorageKey`
-        // normalizes to `directoryName === 'default'` (with `name === undefined`) — that is the clause
+        // normalizes to `cacheKey === 'default'` (with `name === undefined`) — that is the clause
         // that actually matches it. The `name === 'default'` clause additionally covers a store a user
-        // explicitly opened via `{ name: 'default' }`. (`'__default__'` never reaches `directoryName`,
+        // explicitly opened via `{ name: 'default' }`. (`'__default__'` never reaches `cacheKey`,
         // as it is always normalized to `'default'` first, so it does not need to be checked here.)
-        const isDefault = (store: { name?: string; directoryName: string }) =>
-            store.name === 'default' || store.directoryName === 'default';
+        const isDefault = (store: { name?: string; cacheKey: string }) =>
+            store.name === 'default' || store.cacheKey === 'default';
 
-        const purgeDefaults = async <T extends { name?: string; directoryName: string }>(
+        const purgeDefaults = async <T extends { name?: string; cacheKey: string }>(
             cache: T[],
             purgeStore: (store: T) => Promise<void>,
         ) => {

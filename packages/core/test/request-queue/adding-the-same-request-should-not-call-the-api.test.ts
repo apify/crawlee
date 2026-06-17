@@ -5,7 +5,7 @@ import { RequestQueue, serviceLocator } from 'crawlee';
 let rqClient: RequestQueueClient;
 
 beforeEach(async () => {
-    const storage = new MemoryStorageClient({ persistStorage: false, writeMetadata: false });
+    const storage = new MemoryStorageClient();
     serviceLocator.setStorageClient(storage);
     rqClient = await storage.createRequestQueueClient({ name: 'test-request-queue-not-called-on-cached-request' });
 });

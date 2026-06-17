@@ -2186,16 +2186,10 @@ describe('BasicCrawler', () => {
         });
 
         test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorageClient with a different localDataDirectory,
-            // producing different clientCacheKeys and thus separate cache partitions.
-            const storageA = new MemoryStorageClient({
-                persistStorage: false,
-                localDataDirectory: `${tmpDir}/storageA`,
-            });
-            const storageB = new MemoryStorageClient({
-                persistStorage: false,
-                localDataDirectory: `${tmpDir}/storageB`,
-            });
+            // Each crawler gets its own MemoryStorageClient instance; every instance has a unique
+            // per-instance cache key, so they end up in separate cache partitions.
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({ storageClient: storageA });
             const crawlerB = new BasicCrawler({ storageClient: storageB });
@@ -2209,14 +2203,8 @@ describe('BasicCrawler', () => {
         });
 
         test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorageClient({
-                persistStorage: false,
-                localDataDirectory: `${tmpDir}/storageA`,
-            });
-            const storageB = new MemoryStorageClient({
-                persistStorage: false,
-                localDataDirectory: `${tmpDir}/storageB`,
-            });
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},

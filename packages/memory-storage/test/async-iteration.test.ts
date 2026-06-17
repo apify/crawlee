@@ -1,19 +1,8 @@
-import { rm } from 'node:fs/promises';
-import path from 'node:path';
-
 import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { DatasetClient, KeyValueStoreClient } from '@crawlee/types';
 
 describe('Async iteration support', () => {
-    const localDataDirectory = path.resolve(__dirname, './tmp/async-iteration');
-    const storage = new MemoryStorageClient({
-        localDataDirectory,
-        persistStorage: false,
-    });
-
-    afterAll(async () => {
-        await rm(localDataDirectory, { force: true, recursive: true });
-    });
+    const storage = new MemoryStorageClient();
 
     describe('Dataset.getData', () => {
         const elements = Array.from({ length: 25 }, (_, i) => ({ index: i }));

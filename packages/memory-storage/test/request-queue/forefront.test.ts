@@ -21,9 +21,7 @@ async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
 }
 
 describe('RequestQueue respects `forefront` when fetching requests', () => {
-    const storage = new MemoryStorageClient({
-        persistStorage: false,
-    });
+    const storage = new MemoryStorageClient();
 
     let requestQueue: RequestQueueClient;
 

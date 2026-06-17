@@ -20,11 +20,11 @@ export class MemoryStorageEmulator extends StorageEmulator {
         this.localStorageDirectories.push(localStorageDir);
         await ensureDir(localStorageDir);
 
-        this.storage = new MemoryStorageClient({
-            localDataDirectory: localStorageDir,
-            persistStorage,
-            writeMetadata: false,
-        });
+        // `MemoryStorageClient` is purely in-memory and ignores any disk-related options, so they are
+        // not passed here. `persistStorage` is accepted for API compatibility with the emulator options
+        // but has no effect on the in-memory storage.
+        void persistStorage;
+        this.storage = new MemoryStorageClient();
 
         serviceLocator.setStorageClient(this.storage);
         log.debug(`Initialized emulated memory storage in folder ${localStorageDir}`);

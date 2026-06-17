@@ -3,9 +3,7 @@ import { Readable } from 'node:stream';
 import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 describe('KeyValueStore should drain streams when setting records', () => {
-    const storage = new MemoryStorageClient({
-        persistStorage: false,
-    });
+    const storage = new MemoryStorageClient();
 
     const fsStream = Readable.from([Buffer.from('hello'), Buffer.from('world')]);
 
