@@ -2,6 +2,7 @@ import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
 import { MissingRouteError, RequestValidationError, Router } from '@crawlee/core';
 import {
+    CheerioCrawler,
     type CheerioCrawlingContext,
     createCheerioRouter,
     createPlaywrightRouter,
@@ -286,5 +287,64 @@ describe('Router', () => {
                 log,
             } as any),
         ).rejects.toThrow(RequestValidationError);
+    });
+
+    test('crawler infers the route map from a typed requestHandler and types addRequests/context', () => {
+        // type-level only: the block is never executed, it just has to type-check
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string; price: number };
+                CATEGORY: { categoryId: string };
+            }
+
+            const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+
+            router.addHandler('PRODUCT', async ({ addRequests, enqueueLinks }) => {
+                // context methods are typed from the route map
+                await addRequests([{ url: 'https://e.com/c', label: 'CATEGORY', userData: { categoryId: 'c1' } }]);
+                await enqueueLinks({ urls: ['https://e.com/p'], label: 'PRODUCT', userData: { sku: 's', price: 1 } });
+                // @ts-expect-error wrong userData shape for the label
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { categoryId: 'x' } }]);
+                // @ts-expect-error label not present in the route map
+                await addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+            });
+
+            // the crawler infers `Routes` from the typed router passed as `requestHandler`
+            const crawler = new CheerioCrawler({ requestHandler: router });
+
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's', price: 1 } }]);
+            await crawler.run([
+                'https://e.com',
+                { url: 'https://e.com/c', label: 'CATEGORY', userData: { categoryId: 'c1' } },
+            ]);
+            // @ts-expect-error wrong userData shape for the label
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { categoryId: 'x' } }]);
+            // @ts-expect-error label not present in the route map
+            await crawler.addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
+
+    test('browser-based router handlers also get route-map-typed context methods', () => {
+        // type-level only: never executed. The context typing is driven by the router itself, so it works
+        // for every crawler type (including browser ones) regardless of crawler-level generic inference.
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string };
+            }
+
+            const router = createPlaywrightRouter<PlaywrightCrawlingContext, Routes>();
+
+            router.addHandler('PRODUCT', async ({ addRequests }) => {
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's' } }]);
+                // @ts-expect-error wrong userData shape for the label
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 1 } }]);
+                // @ts-expect-error label not present in the route map
+                await addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+            });
+        };
+
+        expect(typeof typeOnly).toBe('function');
     });
 });

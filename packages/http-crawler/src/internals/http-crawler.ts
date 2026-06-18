@@ -64,7 +64,8 @@ export interface HttpCrawlerOptions<
     Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
-> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
      */
@@ -315,7 +316,8 @@ export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((
         crawlingContext: CrawlingContextWithResponse,

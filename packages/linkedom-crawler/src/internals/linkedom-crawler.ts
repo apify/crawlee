@@ -37,7 +37,8 @@ export interface LinkeDOMCrawlerOptions<
     ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {}
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {}
 
 export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestManager'> {}
 
@@ -169,10 +170,14 @@ export type LinkeDOMRequestHandler<
 export class LinkeDOMCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension,
-> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>
+    >,
+> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     private static parser = new DOMParser();
 
-    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext>) {
+    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>) {
         const { contextPipelineBuilder, ...rest } = options;
 
         super({
