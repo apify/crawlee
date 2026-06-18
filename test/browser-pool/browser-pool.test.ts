@@ -417,7 +417,7 @@ describe.each([
                     // if it does not resolve, the test will timeout and fail.
                     await new Promise<void>((resolve) => {
                         const int = setInterval(() => {
-                            const stillWaiting = controllers.some((c) => c.isActive === true);
+                            const stillWaiting = controllers.some((c) => c.isActive);
                             if (!stillWaiting) {
                                 clearInterval(int);
                                 resolve();

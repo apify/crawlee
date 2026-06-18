@@ -1,6 +1,7 @@
 import { BasicCrawler } from '@crawlee/basic';
 
 import { MemoryStorageEmulator } from '../../../test/shared/MemoryStorageEmulator.js';
+import { SessionPool } from '@crawlee/core';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
     const localStorageEmulator = new MemoryStorageEmulator();
@@ -59,5 +60,55 @@ describe('BasicCrawler#addRequests with big batch sizes', () => {
 
         const result = await crawler.addRequests(slice, { waitForAllRequestsToBeAdded: true });
         expect(result.addedRequests).toHaveLength(2000);
+    });
+});
+
+describe('BasicCrawler - request.sessionId', () => {
+    const localStorageEmulator = new MemoryStorageEmulator();
+
+    beforeEach(async () => {
+        await localStorageEmulator.init();
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
+    });
+
+    test('uses the session matching request.sessionId from the session pool', async () => {
+        const REQUESTED_SESSION_ID = 'my-session';
+        let resolvedSessionId: string | undefined;
+
+        const sessionPool = new SessionPool();
+        sessionPool.addSession({ id: REQUESTED_SESSION_ID });
+
+        const crawler = new BasicCrawler({
+            requestHandler({ session }) {
+                resolvedSessionId = session.id;
+            },
+            sessionPool,
+        });
+
+        await crawler.run([{ url: 'http://localhost', sessionId: REQUESTED_SESSION_ID }]);
+
+        expect(resolvedSessionId).toBe('my-session');
+    });
+
+    test('throws when request.sessionId is not found in the session pool', async () => {
+        const errors: Error[] = [];
+
+        const crawler = new BasicCrawler({
+            maxRequestRetries: 0,
+            requestHandler() {},
+            failedRequestHandler(_ctx, error) {
+                errors.push(error);
+            },
+        });
+
+        await crawler.run([{ url: 'http://localhost', sessionId: 'nonexistent' }]);
+
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain(
+            "The current SessionPool instance couldn't find a valid session for the following id: nonexistent",
+        );
     });
 });

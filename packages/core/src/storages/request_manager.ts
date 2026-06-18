@@ -1,0 +1,44 @@
+import type { Request, Source } from '../request.js';
+import type { IRequestLoader } from './request_loader.js';
+import type {
+    AddRequestsBatchedOptions,
+    AddRequestsBatchedResult,
+    RequestQueueOperationInfo,
+    RequestQueueOperationOptions,
+} from './request_queue.js';
+
+export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
+
+/**
+ * Extends the read-only {@apilink IRequestLoader} interface with the capability to enqueue new requests
+ * and reclaim failed ones.
+ */
+export interface IRequestManager extends IRequestLoader {
+    /**
+     * Reclaims request to the provider if its processing failed.
+     * The request will be returned by some subsequent `fetchNextRequest()` call.
+     */
+    reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+
+    addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
+
+    addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+
+    /**
+     * Remove all requests from the queue but keep the queue itself, resetting it
+     * so it can be reused (e.g. across multiple `crawler.run()` calls).
+     *
+     * Implementations that do not support purging may leave this `undefined`.
+     */
+    purge?(): Promise<void>;
+
+    /**
+     * Tells the manager how long a consumer expects to hold a request fetched via `fetchNextRequest()`
+     * before marking it handled or reclaiming it (typically the request-handler timeout plus padding).
+     *
+     * Managers backed by a storage client that reserves requests via locking use this to avoid handing
+     * the same request out again while it is still being processed. Implementations that do not need
+     * this hint may leave it `undefined`.
+     */
+    setExpectedRequestProcessingTimeSecs?(secs: number): void;
+}

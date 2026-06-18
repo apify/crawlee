@@ -5,7 +5,7 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new PlaywrightCrawler({
-    persistCookiesPerSession: true,
+    saveResponseCookies: true,
     proxyConfiguration,
     // ...
 });

@@ -1,3 +1,5 @@
+import { inspectValue } from '@crawlee/utils';
+
 /**
  * Errors of `NonRetryableError` type will never be retried by the crawler.
  */
@@ -26,13 +28,24 @@ export class RetryRequestError extends Error {
 }
 
 /**
- * Errors of `SessionError` type will trigger a session rotation.
+ * Errors of `SessionError` type retire the session associated with the request and trigger a regular retry.
  *
- * This error doesn't respect the `maxRequestRetries` option and has a separate limit of `maxSessionRotations`.
+ * The retry counts towards the `maxRequestRetries` limit, just like any other error.
  */
-export class SessionError extends RetryRequestError {
+export class SessionError extends Error {
     constructor(message?: string) {
-        super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
+        super(`Detected a session error, retiring session... ${message ? `\n${message}` : ''}`);
+    }
+}
+
+/**
+ * Thrown when a requested session is not found in the referenced SessionPool.
+ */
+export class MissingSessionError extends Error {
+    constructor(sessionId?: string) {
+        super(
+            `The current SessionPool instance couldn't find a valid session${sessionId ? ` for the following id: ${sessionId}.` : '.'}`,
+        );
     }
 }
 
@@ -65,16 +78,15 @@ export class RequestHandlerError extends Error {
  */
 export class ServiceConflictError extends Error {
     constructor(serviceName: string, newValue: unknown, existingValue: unknown) {
-        const describe = (value: unknown): string => {
-            if (typeof value === 'object' && value !== null) {
-                return value.constructor.name;
-            }
-            return String(value);
-        };
-
         super(
             `Service ${serviceName} is already in use. ` +
-                `Existing value: ${describe(existingValue)}, attempted new value: ${describe(newValue)}.`,
+                `Existing value: ${inspectValue(existingValue)}, attempted new value: ${inspectValue(newValue)}.`,
         );
     }
 }
+
+/**
+ * Thrown by crawlers when `skipNavigation` is used on a request.
+ * Subclasses can catch this error to skip their own navigation-dependent logic.
+ */
+export class NavigationSkippedError extends NonRetryableError {}

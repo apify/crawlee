@@ -1,20 +1,10 @@
-/* eslint-disable import/no-duplicates */
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra';
 
-import { scheduleBackgroundTask } from '../background-handler/index.js';
-import { findOrCacheDatasetByPossibleId } from '../cache-helpers.js';
-import { StorageTypes } from '../consts.js';
-import type { StorageImplementation } from '../fs/common.js';
-import { createDatasetStorageImplementation } from '../fs/dataset/index.js';
-import type { MemoryStorage } from '../index.js';
-import { createPaginatedEntryList, createPaginatedList } from '../utils.js';
+import type { MemoryStorageClient } from '../index.js';
 import { BaseClient } from './common/base-client.js';
 
 /**
@@ -24,16 +14,21 @@ import { BaseClient } from './common/base-client.js';
 const LIST_ITEMS_LIMIT = 999_999_999_999;
 
 /**
- * Number of characters of the dataset item file names.
- * E.g.: 000000019.json - 9 digits
+ * Number of characters of the dataset item entry names.
+ * E.g.: 000000019 - 9 digits
  */
 const LOCAL_ENTRY_NAME_DIGITS = 9;
 
 export interface DatasetClientOptions {
     id?: string;
     name?: string;
-    baseStorageDirectory: string;
-    client: MemoryStorage;
+    /**
+     * The key used for cache lookup. When provided, takes precedence over `name` and `id`.
+     * This allows alias-opened storages to have a cache key that differs from their
+     * metadata `name` (which is `undefined` for unnamed storages).
+     */
+    cacheKey?: string;
+    client: MemoryStorageClient;
 }
 
 export class DatasetClient<Data extends Dictionary = Dictionary>
@@ -41,97 +36,49 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     implements storage.DatasetClient<Data>
 {
     name?: string;
+    /**
+     * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
+     * storages, this is the alias string. Falls back to id.
+     */
+    cacheKey: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
     itemCount = 0;
-    datasetDirectory: string;
 
-    private readonly datasetEntries = new Map<string, StorageImplementation<Data>>();
-    private readonly client: MemoryStorage;
+    private readonly datasetEntries = new Map<string, Data>();
+    private readonly client: MemoryStorageClient;
 
     constructor(options: DatasetClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.datasetDirectory = resolve(options.baseStorageDirectory, this.name ?? this.id);
+        this.cacheKey = options.cacheKey ?? this.name ?? this.id;
         this.client = options.client;
     }
 
-    async get(): Promise<storage.DatasetInfo | undefined> {
-        const found = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (found) {
-            found.updateTimestamps(false);
-            return found.toDatasetInfo();
-        }
-
-        return undefined;
+    async getMetadata(): Promise<storage.DatasetInfo> {
+        this.updateTimestamps(false);
+        return this.toDatasetInfo();
     }
 
-    async update(newFields: storage.DatasetClientUpdateOptions = {}): Promise<storage.DatasetInfo> {
-        const parsed = s
-            .object({
-                name: s.string().lengthGreaterThan(0).optional(),
-            })
-            .parse(newFields);
-
-        // Check by id
-        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.Dataset);
-        }
-
-        // Skip if no changes
-        if (!parsed.name) {
-            return existingStoreById.toDatasetInfo();
-        }
-
-        // Check that name is not in use already
-        const existingStoreByName = this.client.datasetClientsHandled.find(
-            (store) => store.name?.toLowerCase() === parsed.name!.toLowerCase(),
-        );
-
-        if (existingStoreByName) {
-            this.throwOnDuplicateEntry(StorageTypes.Dataset, 'name', parsed.name);
-        }
-
-        existingStoreById.name = parsed.name;
-
-        const previousDir = existingStoreById.datasetDirectory;
-
-        existingStoreById.datasetDirectory = resolve(
-            this.client.datasetsDirectory,
-            parsed.name ?? existingStoreById.name ?? existingStoreById.id,
-        );
-
-        await move(previousDir, existingStoreById.datasetDirectory, { overwrite: true });
-
-        // Update timestamps
-        existingStoreById.updateTimestamps(true);
-
-        return existingStoreById.toDatasetInfo();
-    }
-
-    async delete(): Promise<void> {
-        const storeIndex = this.client.datasetClientsHandled.findIndex((store) => store.id === this.id);
+    async drop(): Promise<void> {
+        const storeIndex = this.client.datasetClientCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
-            const [oldClient] = this.client.datasetClientsHandled.splice(storeIndex, 1);
+            const [oldClient] = this.client.datasetClientCache.splice(storeIndex, 1);
             oldClient.itemCount = 0;
             oldClient.datasetEntries.clear();
-
-            await rm(oldClient.datasetDirectory, { recursive: true, force: true });
         }
     }
 
-    async downloadItems(): Promise<Buffer> {
-        throw new Error('This method is not implemented in @crawlee/memory-storage');
+    async purge(): Promise<void> {
+        this.itemCount = 0;
+        this.datasetEntries.clear();
+
+        this.updateTimestamps(true);
     }
 
-    listItems(
-        options: storage.DatasetClientListOptions = {},
-    ): AsyncIterable<Data> & Promise<storage.PaginatedList<Data>> {
+    getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { desc, limit, offset } = s
             .object({
                 desc: s.boolean().optional(),
@@ -140,51 +87,18 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             })
             .parse(options);
 
-        return createPaginatedList<Data>(
-            (pageOffset, pageLimit) =>
-                this.listItemsPage({
-                    desc,
-                    offset: pageOffset,
-                    limit: Math.min(pageLimit, LIST_ITEMS_LIMIT),
-                }),
-            { offset, limit },
-        );
+        return this.getDataPage({
+            desc,
+            offset: offset ?? 0,
+            limit: Math.min(limit ?? LIST_ITEMS_LIMIT, LIST_ITEMS_LIMIT),
+        });
     }
 
-    listEntries(
-        options: storage.DatasetClientListOptions = {},
-    ): AsyncIterable<[number, Data]> & Promise<storage.PaginatedList<[number, Data]>> {
-        const { desc, limit, offset } = s
-            .object({
-                desc: s.boolean().optional(),
-                limit: s.number().int().optional(),
-                offset: s.number().int().optional(),
-            })
-            .parse(options);
-
-        return createPaginatedEntryList<Data>(
-            (pageOffset, pageLimit) =>
-                this.listItemsPage({
-                    desc,
-                    offset: pageOffset,
-                    limit: Math.min(pageLimit, LIST_ITEMS_LIMIT),
-                }),
-            { offset, limit },
-        );
-    }
-
-    private async listItemsPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+    private async getDataPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 
-        // Check by id
-        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.Dataset);
-        }
-
-        const [start, end] = existingStoreById.getStartAndEndIndexes(
-            desc ? Math.max(existingStoreById.itemCount - offset - limit, 0) : offset,
+        const [start, end] = this.getStartAndEndIndexes(
+            desc ? Math.max(this.itemCount - offset - limit, 0) : offset,
             limit,
         );
 
@@ -192,10 +106,10 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
 
         for (let idx = start; idx < end; idx++) {
             const entryNumber = this.generateLocalEntryName(idx);
-            items.push(await existingStoreById.datasetEntries.get(entryNumber)!.get());
+            items.push(this.datasetEntries.get(entryNumber)!);
         }
 
-        existingStoreById.updateTimestamps(false);
+        this.updateTimestamps(false);
 
         return {
             count: items.length,
@@ -203,45 +117,17 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             items: desc ? items.reverse() : items,
             limit,
             offset,
-            total: existingStoreById.itemCount,
+            total: this.itemCount,
         };
     }
 
-    async pushItems(items: string | Data | string[] | Data[]): Promise<void> {
-        const rawItems = s
-            .union([
-                s.string(),
-                s.object<Data>({} as Data).passthrough(),
-                s.array(s.union([s.string(), s.object<Data>({} as Data).passthrough()])),
-            ])
-            .parse(items) as Data[];
-
-        // Check by id
-        const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.Dataset);
+    async pushData(items: Data[]): Promise<void> {
+        for (const entry of items) {
+            const idx = this.generateLocalEntryName(++this.itemCount);
+            this.datasetEntries.set(idx, entry);
         }
 
-        const normalized = this.normalizeItems(rawItems);
-
-        const addedIds: string[] = [];
-
-        for (const entry of normalized) {
-            const idx = this.generateLocalEntryName(++existingStoreById.itemCount);
-            const storageEntry = createDatasetStorageImplementation({
-                entityId: idx,
-                persistStorage: this.client.persistStorage,
-                storeDirectory: existingStoreById.datasetDirectory,
-            });
-
-            await storageEntry.update(entry);
-
-            existingStoreById.datasetEntries.set(idx, storageEntry);
-            addedIds.push(idx);
-        }
-
-        existingStoreById.updateTimestamps(true);
+        this.updateTimestamps(true);
     }
 
     toDatasetInfo(): storage.DatasetInfo {
@@ -265,55 +151,11 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         return [start, end] as const;
     }
 
-    /**
-     * To emulate API and split arrays of items into individual dataset items,
-     * we need to normalize the input items - which can be strings, objects
-     * or arrays of those - into objects, so that we can save them one by one
-     * later. We could potentially do this directly with strings, but let's
-     * not optimize prematurely.
-     */
-    private normalizeItems(items: string | Data | (string | Data)[]): Data[] {
-        if (typeof items === 'string') {
-            items = JSON.parse(items);
-        }
-
-        return Array.isArray(items) ? items.map((item) => this.normalizeItem(item)) : [this.normalizeItem(items)];
-    }
-
-    private normalizeItem(item: string | Data): Data {
-        if (typeof item === 'string') {
-            item = JSON.parse(item) as Data;
-        }
-
-        if (Array.isArray(item)) {
-            throw new Error(
-                `Each dataset item can only be a single JSON object, not an array. Received: [${item.join(',\n')}]`,
-            );
-        }
-
-        if (typeof item !== 'object' || item === null) {
-            throw new Error(`Each dataset item must be a JSON object. Received: ${item}`);
-        }
-
-        return item;
-    }
-
     private updateTimestamps(hasBeenModified: boolean) {
         this.accessedAt = new Date();
 
         if (hasBeenModified) {
             this.modifiedAt = new Date();
         }
-
-        const data = this.toDatasetInfo();
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            data,
-            entityType: 'datasets',
-            entityDirectory: this.datasetDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
     }
 }

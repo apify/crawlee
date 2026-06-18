@@ -3,85 +3,129 @@ import type { Dictionary } from '@crawlee/types';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import type { IRequestList } from './request_list.js';
+import type { IRequestLoader } from './request_loader.js';
+import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    IRequestManager,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-    RequestsLike,
-} from './request_provider.js';
+} from './request_queue.js';
 
 /**
- * A request manager that combines a RequestList and a RequestQueue.
- * It first reads requests from the RequestList and then, when needed,
- * transfers them in batches to the RequestQueue.
+ * A request manager that combines a {@apilink IRequestLoader} (such as a `RequestList`) with a writable
+ * {@apilink IRequestManager} (such as a `RequestQueue`).
+ * It first reads requests from the loader and then, when needed, transfers them in batches to the manager.
  */
 export class RequestManagerTandem implements IRequestManager {
     private log: CrawleeLogger;
-    private requestList: IRequestList;
-    private requestQueue: IRequestManager;
+    private requestLoader: IRequestLoader;
+    private requestManagerPromise?: Promise<IRequestManager>;
+    private resolvedRequestManager?: IRequestManager;
 
-    constructor(requestList: IRequestList, requestQueue: IRequestManager) {
+    private requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
+
+    /**
+     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTimeSecs}.
+     * Remembered so it can be applied to the writable manager once it is lazily resolved.
+     */
+    private expectedRequestProcessingSecs?: number;
+
+    /**
+     * @param requestLoader The read-only loader to read requests from first.
+     * @param requestManager The writable manager to transfer requests into and enqueue new ones. May be passed as a
+     *  factory function so that the tandem can be constructed synchronously and the manager opened lazily on first use
+     *  (e.g. a lazily-opened default {@apilink RequestQueue}).
+     */
+    constructor(
+        requestLoader: IRequestLoader,
+        requestManager: IRequestManager | (() => IRequestManager | Promise<IRequestManager>),
+    ) {
         this.log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
-        this.requestList = requestList;
-        this.requestQueue = requestQueue;
+        this.requestLoader = requestLoader;
+        this.requestManagerFactory = typeof requestManager === 'function' ? requestManager : () => requestManager;
     }
 
     /**
-     * Transfers a batch of requests from the RequestList to the RequestQueue.
-     * Handles both successful transfers and failures appropriately.
+     * Resolves the writable request manager, opening it lazily (via the factory) on first use and memoizing the result.
      * @private
      */
-    private async transferNextBatchToQueue(): Promise<void> {
-        const request = await this.requestList.fetchNextRequest();
+    private async getRequestManager(): Promise<IRequestManager> {
+        if (this.resolvedRequestManager === undefined) {
+            this.requestManagerPromise ??= Promise.resolve(this.requestManagerFactory());
+            this.resolvedRequestManager = await this.requestManagerPromise;
 
-        if (request === null) {
-            return;
+            // Apply any hint received before the manager was resolved.
+            if (this.expectedRequestProcessingSecs !== undefined) {
+                this.resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(this.expectedRequestProcessingSecs);
+            }
         }
-
-        try {
-            await this.requestQueue.addRequest(request, { forefront: true });
-        } catch (error) {
-            // If requestQueue.addRequest() fails here then we must reclaim it back to
-            // the RequestList because probably it's not yet in the queue!
-            this.log.error(
-                'Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.',
-                { request },
-            );
-            await this.requestList.reclaimRequest(request);
-            return;
-        }
-
-        await this.requestList.markRequestHandled(request);
+        return this.resolvedRequestManager;
     }
 
     /**
-     * Fetches the next request from the RequestQueue. If the queue is empty and the RequestList
-     * is not finished, it will transfer a batch of requests from the list to the queue first.
+     * Transfers a single request from the read-only loader to the writable manager.
+     * If the transfer fails, the request is dropped (and logged) rather than reclaimed.
+     *
+     * @returns `true` if a request was successfully transferred (or there was nothing to transfer), and `false` if a
+     *  transfer was attempted but failed - in which case the caller should not fetch from the manager this round.
+     * @private
+     */
+    private async transferNextRequestToQueue(): Promise<boolean> {
+        const request = await this.requestLoader.fetchNextRequest();
+
+        if (request === null) {
+            return true;
+        }
+
+        const requestManager = await this.getRequestManager();
+
+        try {
+            await requestManager.addRequest(request, { forefront: true });
+            return true;
+        } catch (error) {
+            this.log.exception(
+                error as Error,
+                'Adding request from the RequestLoader to the RequestManager failed, the request has been dropped.',
+                { url: request.url, uniqueKey: request.uniqueKey },
+            );
+            return false;
+        } finally {
+            // Mark it as handled so that the request doesn't get stuck in the `inProgress` state in the loader.
+            await this.requestLoader.markRequestAsHandled(request);
+        }
+    }
+
+    /**
+     * Fetches the next request from the request manager. If the manager is empty and the loader
+     * is not finished, it will transfer a request from the loader to the manager first.
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         // First, try to transfer a request from the requestList
         const [listEmpty, listFinished] = await Promise.all([
-            this.requestList.isEmpty(),
-            this.requestList.isFinished(),
+            this.requestLoader.isEmpty(),
+            this.requestLoader.isFinished(),
         ]);
 
         if (!listEmpty && !listFinished) {
-            await this.transferNextBatchToQueue();
+            // If the transfer failed, the request was dropped; don't fetch from the manager this round (matching
+            // crawlee-python behaviour). The next `fetchNextRequest()` call will pick up where we left off.
+            if (!(await this.transferNextRequestToQueue())) {
+                return null;
+            }
         }
 
-        // Try to fetch from queue after potential transfer
-        return this.requestQueue.fetchNextRequest<T>();
+        // Try to fetch from manager after the transfer
+        return (await this.getRequestManager()).fetchNextRequest<T>();
     }
 
     /**
      * @inheritdoc
      */
     async isFinished(): Promise<boolean> {
-        const storagesFinished = await Promise.all([this.requestList.isFinished(), this.requestQueue.isFinished()]);
+        const requestManager = await this.getRequestManager();
+        const storagesFinished = await Promise.all([this.requestLoader.isFinished(), requestManager.isFinished()]);
         return storagesFinished.every(Boolean);
     }
 
@@ -89,30 +133,41 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async isEmpty(): Promise<boolean> {
-        const storagesEmpty = await Promise.all([this.requestList.isEmpty(), this.requestQueue.isEmpty()]);
+        const requestManager = await this.getRequestManager();
+        const storagesEmpty = await Promise.all([this.requestLoader.isEmpty(), requestManager.isEmpty()]);
         return storagesEmpty.every(Boolean);
     }
 
     /**
      * @inheritdoc
      */
-    async handledCount(): Promise<number> {
-        // Since one of the stores needs to have priority when both are present, we query the request queue - the request list will first be dumped into the queue and then left empty.
-        return await this.requestQueue.handledCount();
+    async getHandledCount(): Promise<number> {
+        // Since one of the stores needs to have priority when both are present, we query the request manager - the request loader will first be dumped into the manager and then left empty.
+        return (await this.getRequestManager()).getHandledCount();
     }
 
     /**
      * @inheritdoc
      */
-    getTotalCount(): number {
-        return this.requestQueue.getTotalCount();
+    async getTotalCount(): Promise<number> {
+        const requestManager = await this.getRequestManager();
+        const [managerTotal, loaderTotal] = await Promise.all([
+            requestManager.getTotalCount(),
+            this.requestLoader.getTotalCount(),
+        ]);
+        return managerTotal + loaderTotal;
     }
 
     /**
      * @inheritdoc
      */
-    getPendingCount(): number {
-        return this.requestQueue.getPendingCount() + this.requestList.length() - this.requestList.handledCount();
+    async getPendingCount(): Promise<number> {
+        const requestManager = await this.getRequestManager();
+        const [managerPending, loaderPending] = await Promise.all([
+            requestManager.getPendingCount(),
+            this.requestLoader.getPendingCount(),
+        ]);
+        return managerPending + loaderPending;
     }
 
     /**
@@ -129,8 +184,8 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * @inheritdoc
      */
-    async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        return this.requestQueue.markRequestHandled(request);
+    async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
+        return (await this.getRequestManager()).markRequestAsHandled(request);
     }
 
     /**
@@ -140,14 +195,14 @@ export class RequestManagerTandem implements IRequestManager {
         request: Request,
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        return await this.requestQueue.reclaimRequest(request, options);
+        return (await this.getRequestManager()).reclaimRequest(request, options);
     }
 
     /**
      * @inheritdoc
      */
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        return await this.requestQueue.addRequest(requestLike, options);
+        return (await this.getRequestManager()).addRequest(requestLike, options);
     }
 
     /**
@@ -157,6 +212,33 @@ export class RequestManagerTandem implements IRequestManager {
         requests: RequestsLike,
         options?: AddRequestsBatchedOptions,
     ): Promise<AddRequestsBatchedResult> {
-        return await this.requestQueue.addRequestsBatched(requests, options);
+        return (await this.getRequestManager()).addRequestsBatched(requests, options);
+    }
+
+    /**
+     * Persists the state of the underlying read-only loader, if it supports persistence.
+     * @inheritdoc
+     */
+    async persistState(): Promise<void> {
+        await this.requestLoader.persistState?.();
+    }
+
+    /**
+     * Purges the writable request manager so the tandem can be reused (e.g. across repeated `crawler.run()` calls).
+     * The read-only loader is immutable and cannot be purged, so only the manager side is reset.
+     * @inheritdoc
+     */
+    async purge(): Promise<void> {
+        await (await this.getRequestManager()).purge?.();
+    }
+
+    /**
+     * Forwards the hint to the writable request manager — that is where requests are fetched from and
+     * reserved. The manager is opened lazily, so the value is remembered and applied once it resolves.
+     * @inheritdoc
+     */
+    setExpectedRequestProcessingTimeSecs(secs: number): void {
+        this.expectedRequestProcessingSecs = secs;
+        this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 }

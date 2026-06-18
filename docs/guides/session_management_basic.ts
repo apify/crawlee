@@ -1,4 +1,4 @@
-import { BasicCrawler, ProxyConfiguration } from 'crawlee';
+import { BasicCrawler, ProxyConfiguration, SessionPool } from 'crawlee';
 import { Impit } from 'impit';
 import { Cookie } from 'tough-cookie';
 
@@ -8,7 +8,7 @@ const proxyConfiguration = new ProxyConfiguration({
 
 const crawler = new BasicCrawler({
     // Overrides default Session pool configuration.
-    sessionPoolOptions: { maxPoolSize: 100 },
+    sessionPool: new SessionPool({ maxPoolSize: 100 }),
     async requestHandler({ request, session }) {
         const { url } = request;
         const client = new Impit({
@@ -17,7 +17,7 @@ const crawler = new BasicCrawler({
             headers: {
                 // If you want to use the cookieJar.
                 // This way you get the Cookie headers string from session.
-                Cookie: session?.getCookieString(url) ?? '',
+                Cookie: session?.cookieJar.getCookieStringSync(url) ?? '',
             },
         });
         let response;
@@ -50,11 +50,11 @@ const crawler = new BasicCrawler({
                 ?.split(';')
                 .map((x) => Cookie.parse(x));
 
-            newCookies?.forEach((cookie) => {
+            for (const cookie of newCookies ?? []) {
                 if (cookie) {
-                    session?.cookieJar?.setCookie(cookie, url);
+                    await session?.cookieJar?.setCookie(cookie, url);
                 }
-            });
+            }
         }
     },
 });

@@ -6,12 +6,12 @@ import type { SetRequired } from 'type-fest';
 
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
+import type { IRequestManager } from '../storages/request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    RequestProvider,
     RequestQueueOperationOptions,
-} from '../storages/request_provider.js';
+} from '../storages/request_queue.js';
 import type {
     RequestTransform,
     SkippedRequestCallback,
@@ -33,8 +33,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** An array of URLs to enqueue. */
     urls?: readonly string[];
 
-    /** A request queue to which the URLs will be enqueued. */
-    requestQueue?: RequestProvider;
+    /** A request manager to which the URLs will be enqueued. */
+    requestManager?: IRequestManager;
 
     /** A CSS selector matching links to be enqueued. */
     selector?: string;
@@ -48,6 +48,9 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Can be overwritten by `transformRequestFunction`.
      */
     label?: string;
+
+    /** Sets {@apilink Request.sessionId} for newly enqueued requests. */
+    sessionId?: string;
 
     /**
      * If set to `true`, tells the crawler to skip navigation and process the request directly.
@@ -222,7 +225,7 @@ export enum EnqueueStrategy {
  * ```javascript
  * await enqueueLinks({
  *   urls: aListOfFoundUrls,
- *   requestQueue,
+ *   requestManager,
  *   selector: 'a.product-detail',
  *   include: [
  *       'https://www.example.com/handbags/*',
@@ -235,8 +238,8 @@ export enum EnqueueStrategy {
  * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
 export async function enqueueLinks(
-    options: SetRequired<Omit<EnqueueLinksOptions, 'requestQueue'>, 'urls'> & {
-        requestQueue: {
+    options: SetRequired<Omit<EnqueueLinksOptions, 'requestManager'>, 'urls'> & {
+        requestManager: {
             addRequestsBatched: (
                 requests: Request<Dictionary>[],
                 options: AddRequestsBatchedOptions,
@@ -259,11 +262,12 @@ export async function enqueueLinks(
         options as any,
         ow.object.exactShape({
             urls: ow.array.ofType(ow.string),
-            requestQueue: ow.object.hasKeys('addRequestsBatched'),
+            requestManager: ow.object.hasKeys('addRequestsBatched'),
             robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
             onSkippedRequest: ow.optional.function,
             forefront: ow.optional.boolean,
             skipNavigation: ow.optional.boolean,
+            sessionId: ow.optional.string,
             limit: ow.optional.number,
             selector: ow.optional.string,
             baseUrl: ow.optional.string,
@@ -278,7 +282,7 @@ export async function enqueueLinks(
     );
 
     const {
-        requestQueue,
+        requestManager,
         limit,
         urls,
         include,
@@ -430,7 +434,7 @@ export async function enqueueLinks(
         requests = requests.slice(0, limit);
     }
 
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, {
+    const { addedRequests } = await requestManager.addRequestsBatched(requests, {
         forefront,
         waitForAllRequestsToBeAdded,
     });

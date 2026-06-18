@@ -400,13 +400,10 @@ export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphPr
 export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
     const $ = typeof item === 'string' ? load(item) : item;
 
-    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce(
-        (acc, curr) => {
-            return {
-                ...acc,
-                ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
-            };
-        },
-        {} as Dictionary<OpenGraphResult>,
-    );
+    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce((acc, curr) => {
+        return {
+            ...acc,
+            ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
+        };
+    }, {} as Dictionary<OpenGraphResult>);
 }

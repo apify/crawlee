@@ -11,8 +11,8 @@ import type {
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
-import { startExpressAppPromise } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { startExpressAppPromise } from '../../shared/_helper.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -234,34 +234,34 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(resultChecker).toHaveBeenCalledTimes(1);
     });
 
-    test.each([
-        ['static'],
-        ['clientOnly'],
-    ] as const)('crawlingContext.addRequests() should add requests correctly (%s)', async (renderingType) => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
-            detectionProbabilityRecommendation: 0,
-            renderingType,
-        });
-        const url = new URL(`http://${HOSTNAME}:${port}`).toString();
+    test.each([['static'], ['clientOnly']] as const)(
+        'crawlingContext.addRequests() should add requests correctly (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}`).toString();
 
-        let requestContext: LoadedContext<AdaptivePlaywrightCrawlerContext> | undefined;
-        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
-            const isStartUrl = context.request.url === url;
+            let requestContext: LoadedContext<AdaptivePlaywrightCrawlerContext> | undefined;
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                const isStartUrl = context.request.url === url;
 
-            if (isStartUrl) await context.addRequests([`${url}/1`]);
-            else requestContext = context;
-        };
+                if (isStartUrl) await context.addRequests([`${url}/1`]);
+                else requestContext = context;
+            };
 
-        const crawler = await makeOneshotCrawler(
-            { requestHandler, renderingTypePredictor, maxRequestsPerCrawl: 10 },
-            [],
-        );
+            const crawler = await makeOneshotCrawler(
+                { requestHandler, renderingTypePredictor, maxRequestsPerCrawl: 10 },
+                [],
+            );
 
-        await crawler.run([{ url, crawlDepth: 2 }]);
+            await crawler.run([{ url, crawlDepth: 2 }]);
 
-        assert(requestContext);
-        expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
-    });
+            assert(requestContext);
+            expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
+        },
+    );
 
     describe('should enqueue links correctly', () => {
         test.each([
@@ -315,49 +315,49 @@ describe('AdaptivePlaywrightCrawler', () => {
         });
     });
 
-    test.each([
-        ['static'],
-        ['clientOnly'],
-    ] as const)('should respect the strategy option for enqueueLinks (%s)', async (renderingType) => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
-            detectionProbabilityRecommendation: 0,
-            renderingType,
-        });
-        const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
-        const enqueuedUrls = new Set<string>();
-        const visitedUrls = new Set<string>();
+    test.each([['static'], ['clientOnly']] as const)(
+        'should respect the strategy option for enqueueLinks (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/external-links`);
+            const enqueuedUrls = new Set<string>();
+            const visitedUrls = new Set<string>();
 
-        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-            async ({ enqueueLinks, request }) => {
-                visitedUrls.add(request.loadedUrl);
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ enqueueLinks, request }) => {
+                    visitedUrls.add(request.loadedUrl);
 
-                if (!request.label) {
-                    const result = await enqueueLinks({
-                        label: 'enqueued-url',
-                        strategy: 'same-hostname',
-                    });
+                    if (!request.label) {
+                        const result = await enqueueLinks({
+                            label: 'enqueued-url',
+                            strategy: 'same-hostname',
+                        });
 
-                    for (const processedRequest of result.processedRequests) {
-                        enqueuedUrls.add(processedRequest.uniqueKey);
+                        for (const processedRequest of result.processedRequests) {
+                            enqueuedUrls.add(processedRequest.uniqueKey);
+                        }
                     }
-                }
-            },
-        );
+                },
+            );
 
-        const crawler = await makeOneshotCrawler(
-            {
-                requestHandler,
-                renderingTypePredictor,
-                maxRequestsPerCrawl: 10,
-            },
-            [url.toString()],
-        );
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    maxRequestsPerCrawl: 10,
+                },
+                [url.toString()],
+            );
 
-        await crawler.run();
+            await crawler.run();
 
-        expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
-        expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
-    });
+            expect(new Set(visitedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-links`]));
+            expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
+        },
+    );
 
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
@@ -456,11 +456,11 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const store = localStorageEmulator.getKeyValueStore();
+        const store = await localStorageEmulator.getKeyValueStore();
 
-        expect((await store.getRecord('1'))!.value).toEqual({ content: 42 });
-        expect((await store.getRecord('2'))!.value).toEqual({ content: 42 });
-        expect((await store.getRecord('3'))!.value).toEqual({ content: 42 });
+        expect((await store.getValue('1'))!.value).toEqual({ content: 42 });
+        expect((await store.getValue('2'))!.value).toEqual({ content: 42 });
+        expect((await store.getValue('3'))!.value).toEqual({ content: 42 });
     });
 
     test('should not allow direct key-value store manipulation', async () => {
@@ -493,8 +493,8 @@ describe('AdaptivePlaywrightCrawler', () => {
             'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
         );
 
-        const store = localStorageEmulator.getKeyValueStore();
-        expect(await store.getRecord('1')).toBeUndefined();
+        const store = await localStorageEmulator.getKeyValueStore();
+        expect(await store.getValue('1')).toBeUndefined();
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {

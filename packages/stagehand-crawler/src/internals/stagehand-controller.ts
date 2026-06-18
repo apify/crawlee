@@ -1,9 +1,8 @@
 import type { Stagehand } from '@browserbasehq/stagehand';
 import { BrowserController } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import type { Cookie } from '@crawlee/types';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions, Page } from 'playwright';
-
-import log from '@apify/log';
 
 import type { StagehandPlugin } from './stagehand-plugin';
 
@@ -128,7 +127,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
         try {
             await stagehand.close();
         } catch (error) {
-            log.error('Error closing Stagehand', { error });
+            serviceLocator.getLogger().error('Error closing Stagehand', { error });
         }
     }
 

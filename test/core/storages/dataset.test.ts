@@ -1,6 +1,6 @@
-import { checkAndSerialize, chunkBySize, Configuration, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { assertJsonSerializable, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
@@ -15,7 +15,10 @@ afterAll(async () => {
 });
 
 describe('dataset', () => {
-    const storageClient = serviceLocator.getStorageClient();
+    async function createDataset(id = 'some-id', name?: string) {
+        const client = await serviceLocator.getStorageClient().createDatasetClient(name ? { name } : { id });
+        return new Dataset({ id, name, client });
+    }
 
     beforeEach(async () => {
         vitest.clearAllMocks();
@@ -25,52 +28,44 @@ describe('dataset', () => {
         const mockData = (bytes: number) => 'x'.repeat(bytes);
 
         test('should work', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
-            const pushItemSpy = vitest.spyOn(dataset.client, 'pushItems');
+            const pushDataSpy = vitest.spyOn(dataset.client, 'pushData');
 
-            const mockPushItems = pushItemSpy.mockResolvedValueOnce(undefined);
+            const mockPushData = pushDataSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData({ foo: 'bar' });
 
-            expect(mockPushItems).toBeCalledTimes(1);
-            expect(mockPushItems).toBeCalledWith(JSON.stringify({ foo: 'bar' }));
+            expect(mockPushData).toHaveBeenCalledTimes(1);
+            expect(mockPushData).toHaveBeenCalledWith([{ foo: 'bar' }]);
 
-            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(undefined);
+            const mockPushData2 = pushDataSpy.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
-            expect(mockPushItems2).toBeCalledTimes(2);
-            expect(mockPushItems2).toBeCalledWith(JSON.stringify([{ foo: 'hotel;' }, { foo: 'restaurant' }]));
+            expect(mockPushData2).toHaveBeenCalledTimes(2);
+            expect(mockPushData2).toHaveBeenCalledWith([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
-            const mockDelete = vitest.spyOn(dataset.client, 'delete').mockResolvedValueOnce(undefined);
+            const mockDrop = vitest.spyOn(dataset.client, 'drop').mockResolvedValueOnce(undefined);
 
             await dataset.drop();
 
-            expect(mockDelete).toBeCalledTimes(1);
-            expect(mockDelete).toHaveBeenLastCalledWith();
+            expect(mockDrop).toHaveBeenCalledTimes(1);
+            expect(mockDrop).toHaveBeenLastCalledWith();
         });
 
         test('should successfully save large data', async () => {
             const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
 
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
-            const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(undefined);
-            mockPushItems.mockResolvedValueOnce(undefined);
+            const mockPushData = vitest.spyOn(dataset.client, 'pushData');
+            mockPushData.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: half }, { bar: half }]);
 
-            expect(mockPushItems).toBeCalledTimes(2);
-            expect(mockPushItems).toHaveBeenNthCalledWith(1, JSON.stringify([{ foo: half }]));
-            expect(mockPushItems).toHaveBeenNthCalledWith(2, JSON.stringify([{ bar: half }]));
+            expect(mockPushData).toHaveBeenCalledTimes(1);
+            expect(mockPushData).toHaveBeenCalledWith([{ foo: half }, { bar: half }]);
         });
 
         test('should successfully save lots of small data', async () => {
@@ -78,53 +73,20 @@ describe('dataset', () => {
             const string = mockData(MAX_PAYLOAD_SIZE_BYTES / count);
             const chunk = { foo: string, bar: 'baz' };
             const data = Array(count).fill(chunk);
-            const expectedFirst = JSON.stringify(Array(count - 1).fill(chunk));
-            const expectedSecond = JSON.stringify([chunk]);
 
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
-            const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
-            mockPushItems.mockResolvedValueOnce(undefined);
-            mockPushItems.mockResolvedValueOnce(undefined);
+            const mockPushData = vitest.spyOn(dataset.client, 'pushData');
+            mockPushData.mockResolvedValueOnce(undefined);
 
             await dataset.pushData(data);
 
-            expect(mockPushItems).toBeCalledTimes(2);
-            expect(mockPushItems).toHaveBeenNthCalledWith(1, expectedFirst);
-            expect(mockPushItems).toHaveBeenNthCalledWith(2, expectedSecond);
-        });
-
-        test('should throw on too large file', async () => {
-            const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
-            const dataset = new Dataset({ id: 'some-id', client: storageClient });
-            try {
-                await dataset.pushData({ foo: full });
-                throw new Error('Should fail!');
-            } catch (err) {
-                expect(err).toBeInstanceOf(Error);
-                expect((err as Error).message).toMatch('Data item is too large');
-            }
-        });
-        test('should throw on too large file in an array', async () => {
-            const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
-            const dataset = new Dataset({ id: 'some-id', client: storageClient });
-            try {
-                await dataset.pushData([{ foo: 0 }, { foo: 1 }, { foo: 2 }, { foo: full }, { foo: 4 }]);
-                throw new Error('Should fail!');
-            } catch (err) {
-                expect(err).toBeInstanceOf(Error);
-                expect((err as Error).message).toMatch('Data item at index 3 is too large');
-            }
+            expect(mockPushData).toHaveBeenCalledTimes(1);
+            expect(mockPushData).toHaveBeenCalledWith(data);
         });
 
         test('getData() should work', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
 
             const expected = {
                 items: [{ foo: 'bar' }, { foo: 'hotel' }],
@@ -135,33 +97,28 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockListItems = vitest.spyOn(dataset.client, 'listItems');
-            mockListItems.mockResolvedValueOnce(expected);
+            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            mockGetData.mockResolvedValueOnce(expected);
 
             const result = await dataset.getData({ limit: 2, offset: 3 });
 
-            expect(mockListItems).toHaveBeenLastCalledWith({
+            expect(mockGetData).toHaveBeenLastCalledWith({
                 limit: 2,
                 offset: 3,
             });
 
             expect(result).toEqual(expected);
-            let e;
-            const spy = vitest.spyOn(dataset.client, 'listItems').mockImplementation(() => {
+
+            vitest.spyOn(dataset.client, 'getData').mockImplementation(() => {
                 throw new Error('Cannot create a string longer than 0x3fffffe7 characters');
             });
-            try {
-                await dataset.getData();
-            } catch (err) {
-                e = err;
-            }
-            expect((e as Error).message).toEqual(
+            await expect(dataset.getData()).rejects.toThrow(
                 'dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.',
             );
         });
 
         test('getInfo() should work', async () => {
-            const dataset = new Dataset({ id: 'some-id', client: storageClient });
+            const dataset = await createDataset();
 
             const expected: Awaited<ReturnType<Dataset['getInfo']>> = {
                 id: 'WkzbQMuFYuamGv3YF',
@@ -172,7 +129,7 @@ describe('dataset', () => {
                 itemCount: 14,
             };
 
-            const mockGetDataset = vitest.spyOn(dataset.client, 'get');
+            const mockGetDataset = vitest.spyOn(dataset.client, 'getMetadata');
             mockGetDataset.mockResolvedValueOnce(expected);
 
             const result = await dataset.getInfo();
@@ -180,11 +137,8 @@ describe('dataset', () => {
             expect(result).toEqual(expected);
         });
 
-        const getRemoteDataset = () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+        const getRemoteDataset = async () => {
+            const dataset = await createDataset();
 
             const firstResolve = {
                 items: [{ foo: 'a' }, { foo: 'b' }],
@@ -204,17 +158,17 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockListItems = vitest.spyOn(dataset.client, 'listItems');
-            mockListItems.mockResolvedValueOnce(firstResolve);
-            mockListItems.mockResolvedValueOnce(secondResolve);
+            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            mockGetData.mockResolvedValueOnce(firstResolve);
+            mockGetData.mockResolvedValueOnce(secondResolve);
 
             const restoreAndVerify = () => {
-                expect(mockListItems).toBeCalledTimes(2);
-                expect(mockListItems).toHaveBeenNthCalledWith(1, {
+                expect(mockGetData).toHaveBeenCalledTimes(2);
+                expect(mockGetData).toHaveBeenNthCalledWith(1, {
                     limit: 2,
                     offset: 0,
                 });
-                expect(mockListItems).toHaveBeenNthCalledWith(2, {
+                expect(mockGetData).toHaveBeenNthCalledWith(2, {
                     limit: 2,
                     offset: 2,
                 });
@@ -224,7 +178,7 @@ describe('dataset', () => {
         };
 
         test('forEach() should work', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const items: Dictionary[] = [];
             const indexes: number[] = [];
@@ -245,7 +199,7 @@ describe('dataset', () => {
         });
 
         test('map() should work', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.map(
                 (item, index) => {
@@ -267,7 +221,7 @@ describe('dataset', () => {
         });
 
         test('map() should support promises', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.map(
                 async (item, index) => {
@@ -290,7 +244,7 @@ describe('dataset', () => {
         });
 
         test('reduce() should work', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.reduce(
                 (memo, item, index) => {
@@ -316,7 +270,7 @@ describe('dataset', () => {
         });
 
         test('reduce() should support promises', async () => {
-            const { dataset, restoreAndVerify } = getRemoteDataset();
+            const { dataset, restoreAndVerify } = await getRemoteDataset();
 
             const result = await dataset.reduce(
                 async (memo, item, index) => {
@@ -342,13 +296,9 @@ describe('dataset', () => {
         });
 
         test('reduce() uses first value as memo if no memo is provided', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                name: 'some-name',
-                client: storageClient,
-            });
-            const mockListItems = vitest.spyOn(dataset.client, 'listItems');
-            mockListItems.mockResolvedValueOnce({
+            const dataset = await createDataset('some-id', 'some-name');
+            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            mockGetData.mockResolvedValueOnce({
                 items: [{ foo: 4 }, { foo: 5 }],
                 limit: 2,
                 total: 4,
@@ -356,7 +306,7 @@ describe('dataset', () => {
                 count: 2,
                 desc: false,
             });
-            mockListItems.mockResolvedValueOnce({
+            mockGetData.mockResolvedValueOnce({
                 items: [{ foo: 4 }, { foo: 1 }],
                 limit: 2,
                 total: 4,
@@ -378,12 +328,12 @@ describe('dataset', () => {
                 },
             );
 
-            expect(mockListItems).toBeCalledTimes(2);
-            expect(mockListItems).toHaveBeenNthCalledWith(1, {
+            expect(mockGetData).toHaveBeenCalledTimes(2);
+            expect(mockGetData).toHaveBeenNthCalledWith(1, {
                 limit: 2,
                 offset: 0,
             });
-            expect(mockListItems).toHaveBeenNthCalledWith(2, {
+            expect(mockGetData).toHaveBeenNthCalledWith(2, {
                 limit: 2,
                 offset: 2,
             });
@@ -395,10 +345,7 @@ describe('dataset', () => {
 
     describe('pushData', () => {
         test('throws on invalid args', async () => {
-            const dataset = new Dataset({
-                id: 'some-id',
-                client: storageClient,
-            });
+            const dataset = await createDataset();
             // @ts-expect-error JS-side validation
             await expect(dataset.pushData()).rejects.toThrow(
                 'Expected `data` to be of type `object` but received type `undefined`',
@@ -420,7 +367,7 @@ describe('dataset', () => {
                 'Expected `data` to be of type `object` but received type `boolean`',
             );
             await expect(dataset.pushData(() => {})).rejects.toThrow(
-                'Data item is not an object. You can push only objects into a dataset.',
+                'Data item at index 0 is not an object. You can push only objects into a dataset.',
             );
 
             const circularObj = {} as Dictionary;
@@ -431,59 +378,22 @@ describe('dataset', () => {
     });
 
     describe('utils', () => {
-        test('checkAndSerialize() works', () => {
-            // Basic
-            const obj = { foo: 'bar' };
-            const json = JSON.stringify(obj);
-            expect(checkAndSerialize({}, 100)).toBe('{}');
-            expect(checkAndSerialize(obj, 100)).toEqual(json);
-            // With index
-            expect(checkAndSerialize(obj, 100, 1)).toEqual(json);
-            // Too large
-            expect(() => checkAndSerialize(obj, 5)).toThrowError(Error);
-            expect(() => checkAndSerialize(obj, 5, 7)).toThrowError(Error);
-            // Bad JSON
+        test('assertJsonSerializable() works', () => {
+            // Valid objects
+            expect(() => assertJsonSerializable({})).not.toThrow();
+            expect(() => assertJsonSerializable({ foo: 'bar' })).not.toThrow();
+            expect(() => assertJsonSerializable({ foo: 'bar' }, 1)).not.toThrow();
+            // Circular reference
             const bad = {} as Dictionary;
             bad.bad = bad;
-            expect(() => checkAndSerialize(bad, 100)).toThrowError(Error);
-            // Bad data
-            const str = 'hello';
-            expect(() => checkAndSerialize(str, 100)).toThrowError(Error);
-            expect(() => checkAndSerialize([], 100)).toThrowError(Error);
-            expect(() => checkAndSerialize([str, str], 100)).toThrowError(Error);
+            expect(() => assertJsonSerializable(bad)).toThrow('not serializable to JSON');
+            // Non-objects
+            expect(() => assertJsonSerializable('hello')).toThrow('not an object');
+            expect(() => assertJsonSerializable([])).toThrow('not an object');
+            expect(() => assertJsonSerializable(['a', 'b'])).toThrow('not an object');
+            // With index in error message
+            expect(() => assertJsonSerializable('hello', 3)).toThrow('at index 3');
         });
-        test('chunkBySize', () => {
-            const obj = { foo: 'bar' };
-            const json = JSON.stringify(obj);
-            const size = Buffer.byteLength(json);
-            const triple = [json, json, json];
-            const originalTriple = [obj, obj, obj];
-            const chunk = `[${json}]`;
-            const tripleChunk = `[${json},${json},${json}]`;
-            const tripleSize = Buffer.byteLength(tripleChunk);
-            // Empty array
-            expect(chunkBySize([], 10)).toEqual([]);
-            // Fits easily
-            expect(chunkBySize([json], size + 10)).toEqual([json]);
-            expect(chunkBySize(triple, tripleSize + 10)).toEqual([tripleChunk]);
-            // Parses back to original objects
-            expect(originalTriple).toEqual(JSON.parse(tripleChunk));
-            // Fits exactly
-            expect(chunkBySize([json], size)).toEqual([json]);
-            expect(chunkBySize(triple, tripleSize)).toEqual([tripleChunk]);
-            // Chunks large items individually
-            expect(chunkBySize(triple, size)).toEqual(triple);
-            expect(chunkBySize(triple, size + 1)).toEqual(triple);
-            expect(chunkBySize(triple, size + 2)).toEqual([chunk, chunk, chunk]);
-            // Chunks smaller items together
-            expect(chunkBySize(triple, 2 * size + 3)).toEqual([`[${json},${json}]`, chunk]);
-            expect(chunkBySize([...triple, ...triple], 2 * size + 3)).toEqual([
-                `[${json},${json}]`,
-                `[${json},${json}]`,
-                `[${json},${json}]`,
-            ]);
-        });
-
         describe('exportToJSON', () => {
             const dataToPush = [
                 {
@@ -501,7 +411,7 @@ describe('dataset', () => {
             ];
 
             it('Should work', async () => {
-                const dataset = await Dataset.open(Math.random().toString(36));
+                const dataset = await Dataset.open({ name: Math.random().toString(36) });
                 await dataset.pushData(dataToPush);
                 await dataset.exportToJSON('HELLO');
 
@@ -535,7 +445,7 @@ describe('dataset', () => {
             ];
 
             it('Should work', async () => {
-                const dataset = await Dataset.open(Math.random().toString(36));
+                const dataset = await Dataset.open({ name: Math.random().toString(36) });
                 await dataset.pushData(dataToPush);
                 await dataset.exportToCSV('HELLO-csv');
 
@@ -561,7 +471,7 @@ describe('dataset', () => {
                 await dataset.exportTo(
                     'test.csv',
                     {
-                        toKVS: kvStore.name,
+                        toKVS: { name: kvStore.name! },
                         collectAllKeys: true,
                     },
                     'text/csv',
@@ -593,39 +503,30 @@ describe('dataset', () => {
                 expect(items).toEqual(testData);
             });
 
-            test('values() can be awaited directly (hybrid usage)', async () => {
+            test('values() respects limit when iterating', async () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const result = await dataset.values();
+                const items = [];
+                for await (const item of dataset.values({ limit: 2 })) {
+                    items.push(item);
+                }
 
-                expect(result.items).toEqual(testData);
-                expect(result.total).toBe(3);
-                expect(result.count).toBe(3);
-                expect(result.offset).toBe(0);
+                expect(items).toHaveLength(2);
+                expect(items).toEqual(testData.slice(0, 2));
             });
 
-            test('values() respects limit when awaited directly', async () => {
+            test('values() respects offset when iterating', async () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const result = await dataset.values({ limit: 2 });
+                const items = [];
+                for await (const item of dataset.values({ offset: 1 })) {
+                    items.push(item);
+                }
 
-                expect(result.items).toHaveLength(2);
-                expect(result.items).toEqual(testData.slice(0, 2));
-                expect(result.total).toBe(3);
-                expect(result.count).toBe(2);
-            });
-
-            test('values() respects offset when awaited directly', async () => {
-                const dataset = await Dataset.open();
-                await dataset.pushData(testData);
-
-                const result = await dataset.values({ offset: 1 });
-
-                expect(result.items).toHaveLength(2);
-                expect(result.items).toEqual(testData.slice(1));
-                expect(result.offset).toBe(1);
+                expect(items).toHaveLength(2);
+                expect(items).toEqual(testData.slice(1));
             });
 
             test('entries() should iterate over index-item pairs', async () => {
@@ -659,49 +560,36 @@ describe('dataset', () => {
                 ]);
             });
 
-            test('entries() can be awaited directly (hybrid usage)', async () => {
+            test('entries() respects limit when iterating', async () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const result = await dataset.entries();
+                const entries = [];
+                for await (const entry of dataset.entries({ limit: 2 })) {
+                    entries.push(entry);
+                }
 
-                expect(result.items).toEqual([
-                    [0, { id: 1, name: 'Alice' }],
-                    [1, { id: 2, name: 'Bob' }],
-                    [2, { id: 3, name: 'Charlie' }],
-                ]);
-                expect(result.total).toBe(3);
-                expect(result.count).toBe(3);
-                expect(result.offset).toBe(0);
-            });
-
-            test('entries() respects limit when awaited directly', async () => {
-                const dataset = await Dataset.open();
-                await dataset.pushData(testData);
-
-                const result = await dataset.entries({ limit: 2 });
-
-                expect(result.items).toHaveLength(2);
-                expect(result.items).toEqual([
+                expect(entries).toHaveLength(2);
+                expect(entries).toEqual([
                     [0, { id: 1, name: 'Alice' }],
                     [1, { id: 2, name: 'Bob' }],
                 ]);
-                expect(result.total).toBe(3);
-                expect(result.count).toBe(2);
             });
 
-            test('entries() respects offset when awaited directly', async () => {
+            test('entries() respects offset when iterating', async () => {
                 const dataset = await Dataset.open();
                 await dataset.pushData(testData);
 
-                const result = await dataset.entries({ offset: 1 });
+                const entries = [];
+                for await (const entry of dataset.entries({ offset: 1 })) {
+                    entries.push(entry);
+                }
 
-                expect(result.items).toHaveLength(2);
-                expect(result.items).toEqual([
+                expect(entries).toHaveLength(2);
+                expect(entries).toEqual([
                     [1, { id: 2, name: 'Bob' }],
                     [2, { id: 3, name: 'Charlie' }],
                 ]);
-                expect(result.offset).toBe(1);
             });
 
             test('Symbol.asyncIterator should iterate over items', async () => {
@@ -723,6 +611,68 @@ describe('dataset', () => {
                 for await (const item of dataset.values()) {
                     items.push(item);
                 }
+
+                expect(items).toEqual([]);
+            });
+
+            test('await values() should return all items as a flat array', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items = await dataset.values();
+
+                expect(items).toEqual(testData);
+            });
+
+            test('await values() should respect limit', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items = await dataset.values({ limit: 2 });
+
+                expect(items).toHaveLength(2);
+                expect(items).toEqual(testData.slice(0, 2));
+            });
+
+            test('await values() should respect offset', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const items = await dataset.values({ offset: 1 });
+
+                expect(items).toHaveLength(2);
+                expect(items).toEqual(testData.slice(1));
+            });
+
+            test('await entries() should return all entries as a flat array', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const entries = await dataset.entries();
+
+                expect(entries).toEqual([
+                    [0, { id: 1, name: 'Alice' }],
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+            });
+
+            test('await entries() should respect offset', async () => {
+                const dataset = await Dataset.open();
+                await dataset.pushData(testData);
+
+                const entries = await dataset.entries({ offset: 1 });
+
+                expect(entries).toEqual([
+                    [1, { id: 2, name: 'Bob' }],
+                    [2, { id: 3, name: 'Charlie' }],
+                ]);
+            });
+
+            test('await on empty dataset should return empty array', async () => {
+                const dataset = await Dataset.open();
+
+                const items = await dataset.values();
 
                 expect(items).toEqual([]);
             });

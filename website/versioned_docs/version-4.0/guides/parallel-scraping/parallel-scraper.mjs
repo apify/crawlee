@@ -73,15 +73,13 @@ if (!process.env.IN_WORKER_THREAD) {
     // or a configuration option. This is just for show 😈
     workerLogger.setLevel(log.LEVELS.DEBUG);
 
-    // Disable the automatic purge on start
-    // This is needed when running locally, as otherwise multiple processes will try to clear the default storage (and that will cause clashes)
-    Configuration.set('purgeOnStart', false);
-
     // Get the request queue
     const requestQueue = await getOrInitQueue(false);
 
-    // Configure crawlee to store the worker-specific data in a separate directory (needs to be done AFTER the queue is initialized when running locally)
+    // Disable the automatic purge on start and configure crawlee to store the worker-specific data in a separate directory
+    // (needs to be done AFTER the queue is initialized when running locally)
     const config = new Configuration({
+        purgeOnStart: false,
         storageClientOptions: {
             localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
         },

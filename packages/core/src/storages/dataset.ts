@@ -1,8 +1,6 @@
-import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList, StorageClient } from '@crawlee/types';
+import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
-
-import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
@@ -10,22 +8,23 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { StorageManagerOptions } from './storage_manager.js';
-import { StorageManager } from './storage_manager.js';
-import { purgeDefaultStorages } from './utils.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
+import type { StorageOpenOptions } from './utils.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 
-const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
-
 /**
- * Accepts a JSON serializable object as an input, validates its serializability,
- * and validates its serialized size against limitBytes. Optionally accepts its index
- * in an array to provide better error messages. Returns serialized object.
+ * Validates that the given value is a plain JSON-serializable object
+ * (not an array, not a primitive, not circular).
+ *
+ * @param item The value to validate.
+ * @param index Optional index for error messages when validating inside an array.
  * @ignore
  */
-export function checkAndSerialize<T>(item: T, limitBytes: number, index?: number): string {
+export function assertJsonSerializable<T>(item: T, index?: number): void {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
     const isItemObject = item && typeof item === 'object' && !Array.isArray(item);
 
@@ -33,61 +32,12 @@ export function checkAndSerialize<T>(item: T, limitBytes: number, index?: number
         throw new Error(`Data item${s}is not an object. You can push only objects into a dataset.`);
     }
 
-    let payload;
     try {
-        payload = JSON.stringify(item);
+        JSON.stringify(item);
     } catch (e) {
         const err = e as Error;
         throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
     }
-
-    const bytes = Buffer.byteLength(payload);
-    if (bytes > limitBytes) {
-        throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${limitBytes} bytes)`);
-    }
-
-    return payload;
-}
-
-/**
- * Takes an array of JSONs (payloads) as input and produces an array of JSON strings
- * where each string is a JSON array of payloads with a maximum size of limitBytes per one
- * JSON array. Fits as many payloads as possible into a single JSON array and then moves
- * on to the next, preserving item order.
- *
- * The function assumes that none of the items is larger than limitBytes and does not validate.
- * @ignore
- */
-export function chunkBySize(items: string[], limitBytes: number): string[] {
-    if (!items.length) return [];
-    if (items.length === 1) return items;
-
-    // Split payloads into buckets of valid size.
-    let lastChunkBytes = 2; // Add 2 bytes for [] wrapper.
-    const chunks: (string | string[])[] = [];
-
-    for (const payload of items) {
-        const bytes = Buffer.byteLength(payload);
-
-        if (bytes <= limitBytes && bytes + 2 > limitBytes) {
-            // Handle cases where wrapping with [] would fail, but solo object is fine.
-            chunks.push(payload);
-            lastChunkBytes = bytes;
-        } else if (lastChunkBytes + bytes <= limitBytes) {
-            // ensure array
-            if (!Array.isArray(chunks[chunks.length - 1])) {
-                chunks.push([]);
-            }
-            (chunks[chunks.length - 1] as string[]).push(payload);
-            lastChunkBytes += bytes + 1; // Add 1 byte for ',' separator.
-        } else {
-            chunks.push([payload]);
-            lastChunkBytes = bytes + 2; // Add 2 bytes for [] wrapper.
-        }
-    }
-
-    // Stringify array chunks.
-    return chunks.map((chunk) => (typeof chunk === 'string' ? chunk : `[${chunk.join(',')}]`));
 }
 
 export interface DatasetDataOptions {
@@ -150,8 +100,10 @@ export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' 
     collectAllKeys?: boolean;
 }
 
-export interface DatasetIteratorOptions
-    extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
+export interface DatasetIteratorOptions extends Omit<
+    DatasetDataOptions,
+    'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'
+> {
     /** @internal */
     offset?: number;
 
@@ -175,8 +127,8 @@ export interface DatasetIteratorOptions
 }
 
 export interface DatasetExportToOptions extends DatasetExportOptions {
-    fromDataset?: string;
-    toKVS?: string;
+    fromDataset?: string | StorageIdentifier;
+    toKVS?: string | StorageIdentifier;
 }
 
 /**
@@ -234,7 +186,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
     client: DatasetClient<Data>;
-    readonly storageObject?: Record<string, unknown>;
     log: CrawleeLogger;
 
     /**
@@ -246,8 +197,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client.dataset(this.id) as DatasetClient<Data>;
-        this.storageObject = options.storageObject;
+        this.client = options.client;
         this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
 
@@ -259,44 +209,21 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
      * otherwise the crawler process might finish before the data is stored!
      *
-     * The size of the data is limited by the receiving API and therefore `pushData()` will only
-     * allow objects whose JSON representation is smaller than 9MB. When an array is passed,
-     * none of the included objects
-     * may be larger than 9MB, but the array itself may be of any size.
-     *
-     * The function internally
-     * chunks the array into separate items and pushes them sequentially.
-     * The chunking process is stable (keeps order of data), but it does not provide a transaction
-     * safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
-     * the function's Promise will reject and the dataset will be left in a state where some of
-     * the items have already been saved to the dataset while other items from the source array were not.
-     * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
-     * and re-attempt the save of the data from this item onwards to prevent duplicates.
      * @param data Object or array of objects containing data to be stored in the default dataset.
-     *   The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+     *   The objects must be serializable to JSON.
      */
     async pushData(data: Data | Data[]): Promise<void> {
         checkStorageAccess();
 
         ow(data, 'data', ow.object);
-        const dispatch = async (payload: string) => this.client.pushItems(payload);
-        const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
-        // Handle singular Objects
-        if (!Array.isArray(data)) {
-            const payload = checkAndSerialize(data, limit);
-            await dispatch(payload);
-            return;
+        // Normalize to array and validate each item
+        const items = Array.isArray(data) ? data : [data];
+        for (let i = 0; i < items.length; i++) {
+            assertJsonSerializable(items[i], i);
         }
 
-        // Handle Arrays
-        const payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
-        const chunks = chunkBySize(payloads, limit);
-
-        // Invoke client in series to preserve order of data
-        for (const chunk of chunks) {
-            await dispatch(chunk);
-        }
+        await this.client.pushData(items);
     }
 
     /**
@@ -306,7 +233,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         try {
-            return await this.client.listItems(options);
+            return await this.client.getData(options);
         } catch (e) {
             const error = e as Error;
             if (error.message.includes('Cannot create a string longer than')) {
@@ -327,22 +254,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         const items: Data[] = [];
 
-        const fetchNextChunk = async (offset = 0): Promise<void> => {
-            const limit = 1000;
-            const value = await this.client.listItems({ offset, limit, ...options });
-
-            if (value.count === 0) {
-                return;
-            }
-
-            items.push(...value.items);
-
-            if (value.total > offset + value.count) {
-                await fetchNextChunk(offset + value.count);
-            }
-        };
-
-        await fetchNextChunk();
+        for await (const page of this.fetchPages(options)) {
+            items.push(...page.items);
+        }
 
         return items;
     }
@@ -385,8 +299,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         }
 
         throw new Error(`Unsupported content type: ${contentType}`);
-
-        return items;
     }
 
     /**
@@ -438,29 +350,24 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Returns an object containing general information about the dataset.
      *
-     * The function returns the same object as the Apify API Client's
-     * [getDataset](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-datasets-getDataset)
-     * function, which in turn calls the
-     * [Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)
-     * API endpoint.
-     *
      * **Example:**
      * ```
      * {
      *   id: "WkzbQMuFYuamGv3YF",
      *   name: "my-dataset",
-     *   userId: "wRsJZtadYvn4mBZmm",
      *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
      *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
      *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
      *   itemCount: 14,
      * }
      * ```
+     *
+     * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
      */
-    async getInfo(): Promise<DatasetInfo | undefined> {
+    async getInfo(): Promise<DatasetInfo> {
         checkStorageAccess();
 
-        return this.client.get();
+        return this.client.getMetadata();
     }
 
     /**
@@ -608,60 +515,99 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         return currentMemo;
     }
 
-    /**
-     * Iterates over dataset items using an async generator,
-     * allowing the use of `for await...of` syntax.
-     *
-     * **Example usage:**
-     * ```javascript
-     * const dataset = await Dataset.open('my-results');
-     * for await (const item of dataset.values()) {
-     *   console.log(item);
-     * }
-     * ```
-     *
-     * @param options Options for the iteration.
-     */
-    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<PaginatedList<Data>> {
-        checkStorageAccess();
-
-        const result = this.client.listItems(options) as AsyncIterable<Data> & Promise<PaginatedList<Data>>;
-
-        if (!(Symbol.asyncIterator in result)) {
-            Object.defineProperty(result, Symbol.asyncIterator, {
-                get() {
-                    throw new Error('Resource client "listItems" method does not return an async iterable.');
-                },
-            });
+    private async *fetchEntryPages(options: DatasetIteratorOptions): AsyncGenerator<PaginatedList<[number, Data]>> {
+        let index = options.offset ?? 0;
+        for await (const page of this.fetchPages(options)) {
+            yield {
+                ...page,
+                items: page.items.map((item) => [index++, item] as [number, Data]),
+            };
         }
+    }
 
-        return result;
+    private async *fetchPages(
+        options: DatasetIteratorOptions,
+        pageSize = DATASET_ITERATORS_DEFAULT_LIMIT,
+    ): AsyncGenerator<PaginatedList<Data>> {
+        let offset = options.offset ?? 0;
+        const totalLimit = options.limit;
+        let yielded = 0;
+
+        while (true) {
+            const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
+            if (fetchLimit <= 0) break;
+
+            const page = await this.client.getData({ ...options, offset, limit: fetchLimit });
+            yield page;
+
+            yielded += page.items.length;
+            if (page.items.length < fetchLimit || offset + page.items.length >= page.total) break;
+            offset += page.items.length;
+        }
     }
 
     /**
-     * Iterates over dataset entries (index-value pairs) using an async generator,
-     * allowing the use of `for await...of` syntax.
+     * Returns dataset items.
+     *
+     * When awaited (`await dataset.values()`), returns all items as a flat `Data[]` array.
+     * When used as an async iterable (`for await...of`), iterates over all items across pages
+     * without loading everything into memory at once.
      *
      * **Example usage:**
      * ```javascript
      * const dataset = await Dataset.open('my-results');
-     * for await (const [index, item] of dataset.entries()) {
-     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     *
+     * // Iterate over all items (memory-efficient for large datasets)
+     * for await (const item of dataset.values()) {
+     *   console.log(item);
      * }
+     *
+     * // Or fetch all items at once
+     * const items = await dataset.values();
+     * console.log(items);
      * ```
      *
      * @param options Options for the iteration.
      */
-    entries(
-        options: DatasetIteratorOptions = {},
-    ): AsyncIterable<[number, Data]> & Promise<PaginatedList<[number, Data]>> {
+    values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<Data[]> {
         checkStorageAccess();
 
-        if (!this.client.listEntries) {
-            throw new Error('Resource client is missing the "listEntries" method.');
-        }
+        return createDualIterable({
+            createPages: () => this.fetchPages(options),
+            extractItems: (page) => page.items,
+        });
+    }
 
-        return this.client.listEntries(options);
+    /**
+     * Returns dataset entries (index-value pairs).
+     *
+     * When awaited (`await dataset.entries()`), returns all entries as a flat `[index, item][]` array.
+     * When used as an async iterable (`for await...of`), iterates over all entries across pages
+     * without loading everything into memory at once.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     *
+     * // Iterate over all entries
+     * for await (const [index, item] of dataset.entries()) {
+     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     * }
+     *
+     * // Or fetch all at once
+     * const entries = await dataset.entries();
+     * console.log(entries);
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    entries(options: DatasetIteratorOptions = {}): AsyncIterable<[number, Data]> & Promise<[number, Data][]> {
+        checkStorageAccess();
+
+        return createDualIterable({
+            createPages: () => this.fetchEntryPages(options),
+            extractItems: (page) => page.items,
+        });
     }
 
     /**
@@ -687,9 +633,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.delete();
-        const manager = StorageManager.getManager(Dataset);
-        manager.closeStorage(this);
+        await this.client.drop();
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
     /**
@@ -701,18 +646,18 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *
      * For more details and code examples, see the {@apilink Dataset} class.
      *
-     * @param [datasetIdOrName]
-     *   ID or name of the dataset to be opened. If `null` or `undefined`,
-     *   the function returns the default dataset associated with the crawler run.
+     * @param [identifier]
+     *   ID or name of the dataset to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default dataset associated with the crawler run.
      * @param [options] Storage manager options.
      */
     static async open<Data extends Dictionary = Dictionary>(
-        datasetIdOrName?: string | null,
-        options: StorageManagerOptions = {},
+        identifier?: string | StorageIdentifier | null,
+        options: StorageOpenOptions = {},
     ): Promise<Dataset<Data>> {
         checkStorageAccess();
 
-        ow(datasetIdOrName, ow.optional.string);
         ow(
             options,
             ow.object.exactShape({
@@ -722,13 +667,18 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= serviceLocator.getStorageClient();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
+        const client = options.storageClient ?? serviceLocator.getStorageClient();
 
-        const manager = StorageManager.getManager<Dataset<Data>>(this);
+        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
-        return manager.openStorage(datasetIdOrName, options.storageClient);
+        const resolved = await resolveStorageIdentifier(identifier, client, 'Dataset');
+
+        return serviceLocator.getStorageInstanceManager().openStorage<Dataset<Data>>(this, {
+            ...resolved,
+            clientOpener: () => client.createDatasetClient(resolved),
+            clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+        });
     }
 
     /**
@@ -809,8 +759,7 @@ export interface DatasetReducer<T, Data> {
 export interface DatasetOptions {
     id: string;
     name?: string;
-    client: StorageClient;
-    storageObject?: Record<string, unknown>;
+    client: DatasetClient;
 }
 
 export interface DatasetContent<Data> {

@@ -1,29 +1,16 @@
 // https://github.com/apify/crawlee/issues/1732
 // https://github.com/apify/crawlee/issues/1710
 
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
+import type { KeyValueStoreClient } from '@crawlee/types';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
-import type { KeyValueStoreClient, KeyValueStoreInfo } from '@crawlee/types';
+describe('MemoryStorageClient should not crash when saving a big buffer', () => {
+    const storage = new MemoryStorageClient();
 
-describe('MemoryStorage should not crash when saving a big buffer', () => {
-    const tmpLocation = resolve(import.meta.dirname, './tmp/no-buffer-crash');
-    const storage = new MemoryStorage({
-        localDataDirectory: tmpLocation,
-        persistStorage: false,
-    });
-
-    let kvs: KeyValueStoreInfo;
     let store: KeyValueStoreClient;
 
     beforeAll(async () => {
-        kvs = await storage.keyValueStores().getOrCreate();
-        store = storage.keyValueStore(kvs.id);
-    });
-
-    afterAll(async () => {
-        await rm(tmpLocation, { force: true, recursive: true });
+        store = await storage.createKeyValueStoreClient();
     });
 
     test('should not crash when saving a big buffer', async () => {
@@ -38,7 +25,7 @@ describe('MemoryStorage should not crash when saving a big buffer', () => {
         }
 
         try {
-            await store.setRecord({ key: 'owo.zip', value: zip });
+            await store.setValue({ key: 'owo.zip', value: zip });
         } catch (err) {
             expect(err).not.toBeDefined();
         }

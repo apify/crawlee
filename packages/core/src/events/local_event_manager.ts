@@ -26,8 +26,8 @@ export class LocalEventManager extends EventManager {
         const resolvedConfig = config ?? serviceLocator.getConfiguration();
 
         return new LocalEventManager({
-            persistStateIntervalMillis: resolvedConfig.get('persistStateIntervalMillis'),
-            systemInfoIntervalMillis: resolvedConfig.get('systemInfoIntervalMillis'),
+            persistStateIntervalMillis: resolvedConfig.persistStateIntervalMillis,
+            systemInfoIntervalMillis: resolvedConfig.systemInfoIntervalMillis,
         });
     }
 
@@ -66,7 +66,7 @@ export class LocalEventManager extends EventManager {
      */
     async emitSystemInfoEvent(intervalCallback: () => unknown) {
         const info = await this.createSystemInfo({
-            maxUsedCpuRatio: serviceLocator.getConfiguration().get('maxUsedCpuRatio'),
+            maxUsedCpuRatio: serviceLocator.getConfiguration().maxUsedCpuRatio,
         });
         this.events.emit(EventType.SYSTEM_INFO, info);
         intervalCallback();
@@ -77,7 +77,7 @@ export class LocalEventManager extends EventManager {
      */
     async isContainerizedWrapper() {
         const { isContainerized } = await import('@crawlee/utils');
-        return serviceLocator.getConfiguration().get('containerized', await isContainerized());
+        return serviceLocator.getConfiguration().containerized ?? (await isContainerized());
     }
 
     /**
@@ -93,7 +93,10 @@ export class LocalEventManager extends EventManager {
 
     private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
         const { getCurrentCpuTicksV2 } = await import('@crawlee/utils');
-        const usedCpuRatio = await getCurrentCpuTicksV2(await this.isContainerizedWrapper());
+        const usedCpuRatio = await getCurrentCpuTicksV2({
+            containerized: await this.isContainerizedWrapper(),
+            logger: serviceLocator.getLogger(),
+        });
         return {
             cpuCurrentUsage: usedCpuRatio * 100,
             isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
@@ -103,7 +106,10 @@ export class LocalEventManager extends EventManager {
     private async createMemoryInfo() {
         try {
             const { getMemoryInfo } = await import('@crawlee/utils');
-            const memInfo = await getMemoryInfo(await this.isContainerizedWrapper());
+            const memInfo = await getMemoryInfo({
+                containerized: await this.isContainerizedWrapper(),
+                logger: serviceLocator.getLogger(),
+            });
             return {
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
             };

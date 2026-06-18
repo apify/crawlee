@@ -7,8 +7,9 @@ import type { Awaitable } from './typedefs.js';
 
 const defaultRoute = Symbol('default-route');
 
-export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext>
-    extends Router<Context> {
+export interface RouterHandler<
+    Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+> extends Router<Context> {
     (ctx: Context): Awaitable<void>;
 }
 

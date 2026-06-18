@@ -1,23 +1,20 @@
 import { Readable } from 'node:stream';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 describe('KeyValueStore should drain streams when setting records', () => {
-    const storage = new MemoryStorage({
-        persistStorage: false,
-    });
+    const storage = new MemoryStorageClient();
 
     const fsStream = Readable.from([Buffer.from('hello'), Buffer.from('world')]);
 
     test('should drain stream', async () => {
-        const defaultStoreInfo = await storage.keyValueStores().getOrCreate('default');
-        const defaultStore = storage.keyValueStore(defaultStoreInfo.id);
+        const defaultStore = await storage.createKeyValueStoreClient({ name: 'default' });
 
-        await defaultStore.setRecord({ key: 'streamz', value: fsStream, contentType: 'text/plain' });
+        await defaultStore.setValue({ key: 'streamz', value: fsStream, contentType: 'text/plain' });
 
         expect(fsStream.destroyed).toBeTruthy();
 
-        const record = await defaultStore.getRecord('streamz');
+        const record = await defaultStore.getValue('streamz');
         expect(record!.value.toString('utf8')).toEqual('helloworld');
     });
 });

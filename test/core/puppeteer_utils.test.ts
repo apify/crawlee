@@ -4,8 +4,8 @@ import path from 'node:path';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { runExampleComServer } from '../shared/_helper.js';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 

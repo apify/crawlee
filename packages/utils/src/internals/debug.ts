@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'node:http';
+import { inspect } from 'node:util';
 
 import type { AllowedHttpMethods, Dictionary } from '@crawlee/types';
 import ow from 'ow';
@@ -56,6 +57,29 @@ export function createRequestDebugInfo(
     };
 }
 
+/**
+ * Returns a human-readable label for an unknown value,
+ * suitable for embedding in error messages and log output.
+ *
+ * Returns `constructor.name` when available (e.g. `"Configuration"`, `"Number"`),
+ * otherwise falls back to `util.inspect` (e.g. for `null`, `undefined`).
+ *
+ * @internal
+ */
+export function inspectValue(value: unknown): string {
+    if (typeof value === 'object' && value !== null && value.constructor?.name) {
+        return value.constructor.name;
+    }
+
+    return inspect(value, {
+        depth: 0,
+        compact: true,
+        maxStringLength: 64,
+        breakLength: Infinity,
+        colors: false,
+    });
+}
+
 export function getObjectType(value: unknown): string {
     const simple = typeof value;
 
@@ -64,7 +88,7 @@ export function getObjectType(value: unknown): string {
     }
 
     const objectType = Object.prototype.toString.call(value);
-    const type = objectType.match(/\[object (\w+)]/)![1];
+    const type = /\[object (\w+)]/.exec(objectType)![1];
 
     if (type === 'Uint8Array') {
         return 'Buffer';

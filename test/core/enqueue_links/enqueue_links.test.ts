@@ -3,12 +3,10 @@ import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
 import {
     browserCrawlerEnqueueLinks,
-    Configuration,
     EnqueueStrategy,
     launchPuppeteer,
     Request,
     RequestQueue,
-    serviceLocator,
 } from '@crawlee/puppeteer';
 import { type CheerioRoot } from '@crawlee/utils';
 import { load } from 'cheerio';
@@ -16,8 +14,6 @@ import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playw
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
 
 import log from '@apify/log';
-
-const apifyClient = serviceLocator.getStorageClient();
 
 const HTML = `
 <html>
@@ -46,9 +42,9 @@ const HTML = `
 </html>
 `;
 
-function createRequestQueueMock() {
+async function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient }, serviceLocator.getConfiguration());
+    const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {
@@ -91,11 +87,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with item limit', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await browserCrawlerEnqueueLinks({
                 options: { limit: 3, selector: '.click', strategy: EnqueueStrategy.All },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -117,7 +113,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with include (globs)', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = ['https://example.com/**/*', '?(http|https)://cool.com/'];
 
             await browserCrawlerEnqueueLinks({
@@ -126,14 +122,14 @@ describe('enqueueLinks()', () => {
                     label: 'COOL',
                     include,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -153,7 +149,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('does not throw with empty include patterns', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = [
                 'https://example.com/**/*',
                 '',
@@ -167,7 +163,7 @@ describe('enqueueLinks()', () => {
                 browserCrawlerEnqueueLinks({
                     options: { selector: '.click', include },
                     page,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).resolves.not.toThrow();
@@ -176,7 +172,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with include (regexps)', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = [/^https:\/\/example\.com\/(\w|\/)+/, /^(http|https):\/\/cool\.com\//];
 
             await browserCrawlerEnqueueLinks({
@@ -184,14 +180,14 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     include,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -211,7 +207,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with skipNavigation', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
 
             await browserCrawlerEnqueueLinks({
                 options: {
@@ -219,7 +215,7 @@ describe('enqueueLinks()', () => {
                     skipNavigation: true,
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -231,7 +227,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with exclude glob', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = ['https://example.com/**/*', '?(http|https)://cool.com/'];
 
             const exclude = ['**/first'];
@@ -243,14 +239,14 @@ describe('enqueueLinks()', () => {
                     include,
                     exclude,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -269,7 +265,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with exclude regexp', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = ['https://example.com/**/*', '?(http|https)://cool.com/'];
 
             const exclude = [/first/];
@@ -281,14 +277,14 @@ describe('enqueueLinks()', () => {
                     include,
                     exclude,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -307,12 +303,12 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with no include/exclude filters (enqueues all matching strategy)', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
 
             await browserCrawlerEnqueueLinks({
                 options: { selector: '.click', strategy: EnqueueStrategy.All },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -336,11 +332,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with default strategy of same-hostname', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await browserCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/' },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -356,11 +352,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the strategy of same-domain', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await browserCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.SameDomain },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -380,11 +376,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the strategy of all', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await browserCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.All },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -424,7 +420,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly works with transformRequestFunction', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
 
             const include = ['https://example.com/**/*', '?(http|https)://cool.com/'];
 
@@ -442,7 +438,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 page,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -474,7 +470,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with include (globs)', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = ['https://example.com/**/*', '?(http|https)://cool.com/'];
 
             await cheerioCrawlerEnqueueLinks({
@@ -482,14 +478,14 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     include,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
                     },
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -509,14 +505,14 @@ describe('enqueueLinks()', () => {
         });
 
         test('does not throw with empty include patterns', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = ['https://example.com/**/*', '?(http|https)://cool.com/', '', { glob: ' ' }];
 
             await expect(
                 cheerioCrawlerEnqueueLinks({
                     options: { selector: '.click', include },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
             ).resolves.not.toThrow();
@@ -525,7 +521,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with include (regexps)', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = [/^https:\/\/example\.com\/(\w|\/)+/, /^(http|https):\/\/cool\.com\//];
 
             await cheerioCrawlerEnqueueLinks({
@@ -533,14 +529,14 @@ describe('enqueueLinks()', () => {
                     selector: '.click',
                     include,
                     transformRequestFunction: (request) => {
-                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                        if (/example\.com\/a\/b\/third/.exec(request.url)) {
                             request.method = 'OPTIONS';
                         }
                         return request;
                     },
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -560,7 +556,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with include (mixed globs and regexps)', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = ['https://example.com/**/*', /^(http|https):\/\/cool\.com\//];
 
             await cheerioCrawlerEnqueueLinks({
@@ -569,7 +565,7 @@ describe('enqueueLinks()', () => {
                     include,
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -581,11 +577,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with no include/exclude filters (enqueues all matching strategy)', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { selector: '.click', strategy: EnqueueStrategy.All },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -609,11 +605,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the strategy of all', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.All },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -653,11 +649,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the default strategy of same-hostname', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/' },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -673,11 +669,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the strategy of same-domain', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.SameDomain },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -697,14 +693,14 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with `urls` option', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: {
                     baseUrl: 'http://www.absolute.com/removethis/',
                     urls: ['/relative/url1', '/relative/url2'],
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -720,7 +716,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly works with transformRequestFunction', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             const include = ['https://example.com/**/*', '?(http|https)://cool.com/'];
 
             await cheerioCrawlerEnqueueLinks({
@@ -737,7 +733,7 @@ describe('enqueueLinks()', () => {
                     },
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -758,10 +754,7 @@ describe('enqueueLinks()', () => {
 
         test('accepts forefront option', async () => {
             const enqueued: { request: Source; options?: RequestQueueOperationOptions }[] = [];
-            const requestQueue = new RequestQueue(
-                { id: 'xxx', client: apifyClient },
-                serviceLocator.getConfiguration(),
-            );
+            const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
             requestQueue.addRequests = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
@@ -777,7 +770,7 @@ describe('enqueueLinks()', () => {
                     forefront: true,
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -790,10 +783,7 @@ describe('enqueueLinks()', () => {
 
         test('accepts waitForAllRequestsToBeAdded option', async () => {
             const enqueued: { request: string | Source; options?: AddRequestsBatchedOptions }[] = [];
-            const requestQueue = new RequestQueue(
-                { id: 'xxx', client: apifyClient },
-                serviceLocator.getConfiguration(),
-            );
+            const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
             requestQueue.addRequestsBatched = async (requests, options) => {
                 // copy the requests to the enqueued list, along with options that were passed to addRequests,
@@ -809,7 +799,7 @@ describe('enqueueLinks()', () => {
                     waitForAllRequestsToBeAdded: true,
                 },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -822,7 +812,7 @@ describe('enqueueLinks()', () => {
 
         describe('label precedence', () => {
             test('global label option is applied if no other label is provided', async () => {
-                const { enqueued, requestQueue } = createRequestQueueMock();
+                const { enqueued, requestQueue } = await createRequestQueueMock();
 
                 await cheerioCrawlerEnqueueLinks({
                     options: {
@@ -831,7 +821,7 @@ describe('enqueueLinks()', () => {
                         include: ['https://example.com/**/*'],
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -842,7 +832,7 @@ describe('enqueueLinks()', () => {
             });
 
             test('transformRequestFunction overrides global label', async () => {
-                const { enqueued, requestQueue } = createRequestQueueMock();
+                const { enqueued, requestQueue } = await createRequestQueueMock();
 
                 await cheerioCrawlerEnqueueLinks({
                     options: {
@@ -857,7 +847,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -871,7 +861,7 @@ describe('enqueueLinks()', () => {
             });
 
             test('transformRequestFunction can override global label for all requests', async () => {
-                const { enqueued, requestQueue } = createRequestQueueMock();
+                const { enqueued, requestQueue } = await createRequestQueueMock();
 
                 await cheerioCrawlerEnqueueLinks({
                     options: {
@@ -885,7 +875,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -897,7 +887,7 @@ describe('enqueueLinks()', () => {
             });
 
             test('transformRequestFunction can modify request properties', async () => {
-                const { enqueued, requestQueue } = createRequestQueueMock();
+                const { enqueued, requestQueue } = await createRequestQueueMock();
 
                 await cheerioCrawlerEnqueueLinks({
                     options: {
@@ -911,7 +901,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -926,7 +916,7 @@ describe('enqueueLinks()', () => {
 
             test('transformRequestFunction can return a new plain object instead of modifying in place', async () => {
                 const enqueued: Source[] = [];
-                const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+                const requestQueue = await RequestQueue.open({ id: 'xxx' });
 
                 // Custom mock that checks for Request instances - we override addRequestsBatched
                 // to verify that request options returned by transformRequestFunction are converted to Request instances
@@ -958,7 +948,7 @@ describe('enqueueLinks()', () => {
                         },
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -973,7 +963,7 @@ describe('enqueueLinks()', () => {
             });
 
             test('transformRequestFunction supports "skip" and "unchanged" string returns', async () => {
-                const { enqueued, requestQueue } = createRequestQueueMock();
+                const { enqueued, requestQueue } = await createRequestQueueMock();
                 const onSkippedRequest = vi.fn();
 
                 await cheerioCrawlerEnqueueLinks({
@@ -991,7 +981,7 @@ describe('enqueueLinks()', () => {
                         onSkippedRequest,
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 
@@ -1016,7 +1006,7 @@ describe('enqueueLinks()', () => {
             });
 
             test('transformRequestFunction returning falsy correctly triggers onSkippedRequest', async () => {
-                const { enqueued, requestQueue } = createRequestQueueMock();
+                const { enqueued, requestQueue } = await createRequestQueueMock();
                 const onSkippedRequest = vi.fn();
 
                 await cheerioCrawlerEnqueueLinks({
@@ -1033,7 +1023,7 @@ describe('enqueueLinks()', () => {
                         onSkippedRequest,
                     },
                     $,
-                    requestQueue,
+                    requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 });
 

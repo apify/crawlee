@@ -36,7 +36,7 @@ import type { SetRequired } from 'type-fest';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
-import type { PlaywrightCrawlingContext, PlaywrightGotoOptions } from './playwright-crawler.js';
+import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, PlaywrightHook } from './playwright-crawler.js';
 import { PlaywrightCrawler } from './playwright-crawler.js';
 import { type RenderingType, RenderingTypePredictor } from './utils/rendering-type-prediction.js';
 
@@ -102,8 +102,9 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
     }
 }
 
-export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = Dictionary>
-    extends CrawlingContext<UserData> {
+export interface AdaptivePlaywrightCrawlerContext<
+    UserData extends Dictionary = Dictionary,
+> extends CrawlingContext<UserData> {
     request: LoadedRequest<Request<UserData>>;
     /**
      * The HTTP response, either from the HTTP client or from the initial request from playwright's navigation.
@@ -153,25 +154,31 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
-interface AdaptiveHook
-    extends BrowserHook<
-        Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> & {
-            page?: Page;
-            request: Request;
-        },
-        PlaywrightGotoOptions
-    > {}
+interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+    page?: Page;
+    request: Request;
+    gotoOptions?: PlaywrightGotoOptions;
+}
+
+interface AdaptiveHook extends BrowserHook<AdaptiveHookContext> {}
+
+interface AdaptivePostNavigationHook extends BrowserHook<
+    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> }
+> {}
 
 export interface AdaptivePlaywrightCrawlerOptions<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
 > extends Omit<
-        BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
-        'preNavigationHooks' | 'postNavigationHooks'
-    > {
+    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
+    'preNavigationHooks' | 'postNavigationHooks'
+> {
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies.
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
      * an exception will be thrown. If it's not caught, the request will be transparently retried in a browser.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
     preNavigationHooks?: AdaptiveHook[];
 
@@ -179,8 +186,11 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
      * an exception will be thrown. If it's not caught, the request will be transparently retried in a browser.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context
+     * (e.g. to override `response` after solving a challenge).
      */
-    postNavigationHooks?: AdaptiveHook[]; // TODO should contain a LoadedRequest - reflect that
+    postNavigationHooks?: AdaptivePostNavigationHook[];
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -291,8 +301,8 @@ export class AdaptivePlaywrightCrawler<
             requestHandlerTimeoutSecs = 60,
             errorHandler,
             failedRequestHandler,
-            preNavigationHooks,
-            postNavigationHooks,
+            preNavigationHooks = [],
+            postNavigationHooks = [],
             extendContext,
             contextPipelineBuilder,
             ...rest
@@ -326,25 +336,17 @@ export class AdaptivePlaywrightCrawler<
                 );
             };
         }
+        // Each adaptive hook is registered as its own static/browser hook so the underlying
+        // `ContextPipeline` handles override merging between hooks for free. The hook signatures
+        // are structurally compatible with the underlying crawlers' contexts (subset of fields);
+        // the casts just relax the nominal type difference.
         const staticCrawler = new CheerioCrawler({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: [
-                async (context) => {
-                    for (const hook of preNavigationHooks ?? []) {
-                        await hook(context, undefined);
-                    }
-                },
-            ],
-            postNavigationHooks: [
-                async (context) => {
-                    for (const hook of postNavigationHooks ?? []) {
-                        await hook(context, undefined);
-                    }
-                },
-            ],
+            preNavigationHooks,
+            postNavigationHooks,
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -352,20 +354,8 @@ export class AdaptivePlaywrightCrawler<
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks: [
-                async (context, gotoOptions) => {
-                    for (const hook of preNavigationHooks ?? []) {
-                        await hook(context, gotoOptions);
-                    }
-                },
-            ],
-            postNavigationHooks: [
-                async (context, gotoOptions) => {
-                    for (const hook of postNavigationHooks ?? []) {
-                        await hook(context, gotoOptions);
-                    }
-                },
-            ],
+            preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
+            postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
         });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
@@ -708,7 +698,7 @@ export class AdaptivePlaywrightCrawler<
             ...calls.pushData.map(async (params) => crawlingContext.pushData(...params)),
             ...calls.addRequests.map(async (params) => crawlingContext.addRequests(...params)),
             ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
-                const store = await crawlingContext.getKeyValueStore(storeIdOrName);
+                const store = await crawlingContext.getKeyValueStore({ id: storeIdOrName });
                 await Promise.all(
                     Object.entries(changes).map(async ([key, { changedValue, options }]) =>
                         store.setValue(key, changedValue, options),
@@ -726,6 +716,15 @@ export class AdaptivePlaywrightCrawler<
                 () => {},
                 async () => func(...args),
             );
+    }
+
+    /**
+     * Reading the pending request count queries the underlying request manager, which counts as storage access.
+     * Since this is internal crawler bookkeeping used to compute the `enqueueLinks` limit (not user-initiated storage
+     * access), it must be allowed even while a request handler runs inside the storage-access guard.
+     */
+    protected override async getPendingRequestCountApproximation(): Promise<number> {
+        return this.allowStorageAccess(() => super.getPendingRequestCountApproximation())();
     }
 
     protected async enqueueLinks(

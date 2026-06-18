@@ -1,6 +1,6 @@
 import { Configuration, EventType, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount: number, totalTickMillis: number) => {
@@ -189,10 +189,6 @@ describe('Statistics', () => {
                 // @ts-expect-error Accessing private prop
                 stats.persistStateKey,
                 { ...state, ...rest },
-                {
-                    doNotRetryTimeouts: true,
-                    timeoutSecs: 30,
-                },
             );
         }, 2000);
     });

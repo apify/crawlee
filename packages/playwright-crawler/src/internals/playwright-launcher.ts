@@ -123,7 +123,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
  * @ignore
  */
 function getDefaultExecutablePath(launchContext: PlaywrightLaunchContext, config: Configuration): string | undefined {
-    const pathFromPlaywrightImage = config.get('defaultBrowserPath');
+    const pathFromPlaywrightImage = config.defaultBrowserPath;
     const { launchOptions = {} } = launchContext;
 
     if (launchOptions.executablePath) {

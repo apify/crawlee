@@ -1,4 +1,5 @@
-import { type CrawleeLogger, serviceLocator, type TieredProxy } from '@crawlee/core';
+import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
+import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -300,7 +301,10 @@ export class BrowserPool<
     PageReturn extends UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>> = UnwrapPromise<
         ReturnType<BrowserControllerReturn['newPage']>
     >,
-> extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>> {
+>
+    extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>>
+    implements IBrowserPool<PageReturn>
+{
     browserPlugins: BrowserPlugins;
     maxOpenPagesPerBrowser: number;
     retireBrowserAfterPageCount: number;
@@ -434,15 +438,27 @@ export class BrowserPool<
      * Opens a new page in one of the running browsers or launches
      * a new browser and opens a page there, if no browsers are active,
      * or their page limits have been exceeded.
+     *
+     * **Session injection (best-effort):** When a {@apilink NewPageOptions.session|session} is
+     * provided, this implementation uses it as a cache key for browser fingerprints (when
+     * fingerprinting is enabled) and reads
+     * {@apilink ProxyInfo.url|session.proxyInfo.url} /
+     * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} as defaults
+     * for `proxyUrl` and `ignoreTlsErrors` respectively. Explicit `proxyUrl` /
+     * `ignoreTlsErrors` values in the options take precedence.
+     *
+     * Beyond fingerprint caching and proxy configuration, no other session
+     * properties are consumed — cookie and header injection remain the
+     * crawler's responsibility.
      */
     async newPage(options: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
         const {
             id = nanoid(),
             pageOptions,
             browserPlugin = this._pickBrowserPlugin(),
-            proxyUrl,
-            proxyTier,
-            ignoreTlsErrors,
+            session,
+            proxyUrl = session?.proxyInfo?.url,
+            ignoreTlsErrors = session?.proxyInfo?.ignoreTlsErrors,
         } = options;
 
         if (this.pages.has(id)) {
@@ -455,12 +471,11 @@ export class BrowserPool<
 
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(async () => {
-            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
+            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
 
             if (!browserController)
                 browserController = await this._launchBrowser(id, {
                     browserPlugin,
-                    proxyTier,
                     proxyUrl,
                     ignoreTlsErrors,
                 });
@@ -651,6 +666,66 @@ export class BrowserPool<
     }
 
     /**
+     * Releases a page back to the pool. The page is closed and, if the
+     * optional `error` is a {@apilink SessionError}, the browser controller
+     * that served the page is retired so that its tainted state (cookies,
+     * storage, etc.) cannot leak into future sessions.
+     *
+     * This is the primary way the crawler should return pages to the pool.
+     *
+     * @param page The page to release.
+     * @param options.error The error that caused the page to be released, if any.
+     */
+    async closePage(page: PageReturn, options?: { error?: Error }): Promise<void> {
+        if (options?.error instanceof SessionError) {
+            this.retireBrowserByPage(page);
+        }
+
+        await page.close();
+    }
+
+    /**
+     * Extracts the relevant state (currently just cookies) from a page via its
+     * owning {@apilink BrowserController}. Returns empty state when the page is
+     * no longer associated with a controller.
+     *
+     * As with {@apilink BrowserPool.injectPageState}, cookies are isolated per
+     * page only when the pool is configured with `useIncognitoPages: true`.
+     * With the default `useIncognitoPages: false`, the extracted cookies
+     * include those set by any sibling page sharing the same browser.
+     */
+    async extractPageState(page: PageReturn): Promise<PageState> {
+        const controller = this.getBrowserControllerByPage(page);
+
+        if (!controller) {
+            return { cookies: [] };
+        }
+
+        return { cookies: await controller.getCookies(page) };
+    }
+
+    /**
+     * Injects state into a page via its owning {@apilink BrowserController}.
+     *
+     * No-op when the page is no longer associated with a controller.
+     *
+     * Note that cookies are isolated per page only when the pool is configured
+     * with `useIncognitoPages: true` — each page then gets its own browser
+     * context. With the default `useIncognitoPages: false`, all pages in a
+     * browser share a single context, so injected cookies are visible to every
+     * page served by that browser.
+     */
+    async injectPageState(page: PageReturn, state: PageState): Promise<void> {
+        const controller = this.getBrowserControllerByPage(page);
+
+        if (!controller) {
+            return;
+        }
+
+        await controller.setCookies(page, state.cookies);
+    }
+
+    /**
      * Removes all active browsers from the pool. The browsers will be
      * closed after all their pages are closed.
      */
@@ -704,7 +779,7 @@ export class BrowserPool<
     }
 
     private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyTier, proxyUrl, ignoreTlsErrors } = options;
+        const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.startingBrowserControllers.add(browserController);
@@ -712,7 +787,6 @@ export class BrowserPool<
         const launchContext = browserPlugin.createLaunchContext({
             id: pageId,
             launchOptions,
-            proxyTier,
             proxyUrl,
         });
 
@@ -740,7 +814,6 @@ export class BrowserPool<
         }
 
         this.log.debug('Launched new browser.', { id: browserController.id });
-        browserController.proxyTier = proxyTier;
         browserController.proxyUrl = proxyUrl;
 
         try {
@@ -777,20 +850,18 @@ export class BrowserPool<
         return this.browserPlugins[pluginIndex];
     }
 
-    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: Partial<TieredProxy>) {
+    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: { proxyUrl?: string }) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
             const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
-            const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
             return (
                 isCorrectPlugin &&
                 hasCapacity &&
-                ((!controller.launchContext.browserPerProxy && !options?.proxyTier) ||
-                    (options?.proxyTier && isCorrectProxyTier) ||
+                (!controller.launchContext.browserPerProxy ||
                     (options?.proxyUrl && isSameProxyUrl) ||
-                    (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier))
+                    (!options?.proxyUrl && !controller.proxyUrl))
             );
         });
     }
@@ -884,12 +955,33 @@ export class BrowserPool<
     }
 }
 
-export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin> {
+export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin> extends NewPageOptions {
     /**
-     * Assign a custom ID to the page. If you don't a random string ID
-     * will be generated.
+     * The proxy URL the pool uses internally to route the page: it keys browser
+     * reuse (with `browserPerProxy`, only a browser already on this proxy is
+     * reused), configures the launched browser, and is applied to incognito
+     * pages. When omitted, it is derived from the
+     * {@apilink NewPageOptions.session|session}'s `proxyInfo`; an explicit value
+     * here takes precedence.
+     *
+     * This is an implementation detail of the built-in `BrowserPool`'s proxy
+     * handling and is intentionally not part of the {@apilink IBrowserPool}
+     * contract — through that interface the proxy is supplied via the session.
      */
-    id?: string;
+    proxyUrl?: string;
+    /**
+     * Disable TLS certificate verification for MITM proxies. Applied both when
+     * launching a new browser and when creating a page in an existing one. When
+     * omitted, it is derived from the
+     * {@apilink NewPageOptions.session|session}'s `proxyInfo`; an explicit value
+     * here takes precedence.
+     *
+     * This is an implementation detail of the built-in `BrowserPool` and is
+     * intentionally not part of the {@apilink IBrowserPool} contract — through
+     * that interface, configure it via the session's `proxyInfo` or through the
+     * browser's `launchOptions`.
+     */
+    ignoreTlsErrors?: boolean;
     /**
      * Some libraries (Playwright) allow you to open new pages with specific
      * options. Use this property to set those options.
@@ -904,19 +996,6 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      * see the `newPageInNewBrowser` function.
      */
     browserPlugin?: BP;
-    /**
-     * Proxy URL.
-     */
-    proxyUrl?: string;
-    /**
-     * Proxy tier.
-     */
-    proxyTier?: number;
-    /**
-     * Disable TLS certificate verification for MITM proxies.
-     * Applied both when launching a new browser and when creating a page in an existing one.
-     */
-    ignoreTlsErrors?: boolean;
 }
 
 export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends BrowserPlugin> {
@@ -952,7 +1031,6 @@ export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends B
 interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     browserPlugin: BP;
     launchOptions?: BP['launchOptions'];
-    proxyTier?: number;
     proxyUrl?: string;
     ignoreTlsErrors?: boolean;
 }

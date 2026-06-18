@@ -1,8 +1,9 @@
 import crypto from 'node:crypto';
 
-import type { Dictionary, StorageClient } from '@crawlee/types';
+import type { BaseHttpClient, Dictionary, StorageClient } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
+import type { ProxyConfiguration } from '../proxy_configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
 
@@ -61,7 +62,7 @@ export async function purgeDefaultStorages(
     const casted = client as StorageClient & { __purged?: boolean };
 
     // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
-    if (!onlyPurgeOnce || (config.get('purgeOnStart') && !casted.__purged)) {
+    if (!onlyPurgeOnce || (config.purgeOnStart && !casted.__purged)) {
         casted.__purged = true;
         await casted.purge?.();
     }
@@ -90,7 +91,7 @@ export async function useState<State extends Dictionary = Dictionary>(
     defaultValue = {} as State,
     options?: UseStateOptions,
 ) {
-    const kvStore = await KeyValueStore.open(options?.keyValueStoreName, {
+    const kvStore = await KeyValueStore.open(options?.keyValueStoreName ? { name: options.keyValueStoreName } : null, {
         config: options?.config || serviceLocator.getConfiguration(),
     });
     return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
@@ -139,3 +140,101 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10_000;
  * @internal
  */
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
+
+/** @internal */
+export interface DualIterableOptions<TItem, TRawPage> {
+    /** Factory that returns an async generator yielding pages. */
+    createPages: () => AsyncGenerator<TRawPage>;
+    /** Extracts individual items from a page (for iteration). */
+    extractItems: (page: TRawPage) => TItem[];
+}
+
+/**
+ * Creates an object that is both an `AsyncIterable<TItem>` (for `for await...of`)
+ * and a `Promise<TItem[]>` (for `await`) from a single async page generator.
+ *
+ * - `await result` drains all pages from a fresh generator and returns every
+ *   item as a flat array.
+ * - `for await (const item of result)` streams all items across all pages,
+ *   yielding them one by one without buffering everything in memory.
+ *
+ * Each usage path creates its own generator instance, so `await` and
+ * `for await...of` never interfere with each other.
+ *
+ * @internal
+ */
+export function createDualIterable<TItem, TRawPage>(
+    options: DualIterableOptions<TItem, TRawPage>,
+): AsyncIterable<TItem> & Promise<TItem[]> {
+    const { createPages, extractItems } = options;
+    let cached: Promise<TItem[]> | null = null;
+
+    function getOrCreate(): Promise<TItem[]> {
+        if (!cached) {
+            cached = (async () => {
+                const items: TItem[] = [];
+                for await (const page of createPages()) {
+                    items.push(...extractItems(page));
+                }
+                return items;
+            })();
+        }
+        return cached;
+    }
+
+    async function* iterateAll(): AsyncGenerator<TItem> {
+        for await (const page of createPages()) {
+            yield* extractItems(page);
+        }
+    }
+
+    const result = {
+        [Symbol.asyncIterator]() {
+            return iterateAll();
+        },
+        then<TResult1 = TItem[], TResult2 = never>(
+            onfulfilled?: ((value: TItem[]) => TResult1 | PromiseLike<TResult1>) | null,
+            onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+        ): Promise<TResult1 | TResult2> {
+            return getOrCreate().then(onfulfilled, onrejected);
+        },
+        catch<TResult = never>(
+            onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+        ): Promise<TItem[] | TResult> {
+            return getOrCreate().catch(onrejected);
+        },
+        finally(onfinally?: (() => void) | null): Promise<TItem[]> {
+            return getOrCreate().finally(onfinally);
+        },
+        [Symbol.toStringTag]: 'DualIterable',
+    } as AsyncIterable<TItem> & Promise<TItem[]>;
+
+    return result;
+}
+
+/**
+ * Options for the static `open()` method on storage classes ({@apilink Dataset}, {@apilink KeyValueStore}, {@apilink RequestQueue}).
+ */
+export interface StorageOpenOptions {
+    /**
+     * SDK configuration instance, defaults to the static register.
+     */
+    config?: Configuration;
+
+    /**
+     * Optional storage client that should be used to open storages.
+     */
+    storageClient?: StorageClient;
+
+    /**
+     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
+     * Takes advantage of the internal address rotation and authentication process.
+     * If undefined, the `requestsFromUrl` requests will be made without proxy.
+     */
+    proxyConfiguration?: ProxyConfiguration;
+
+    /**
+     * HTTP client to be used to download the list of URLs in `RequestQueue`.
+     */
+    httpClient?: BaseHttpClient;
+}

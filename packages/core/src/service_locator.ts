@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
 
 import log from '@apify/log';
@@ -11,8 +12,7 @@ import type { EventManager } from './events/event_manager.js';
 import { LocalEventManager } from './events/local_event_manager.js';
 import type { CrawleeLogger } from './log.js';
 import { ApifyLogAdapter } from './log.js';
-import type { IStorage, StorageManager } from './storages/storage_manager.js';
-import type { Constructor } from './typedefs.js';
+import { StorageInstanceManager } from './storages/storage_instance_manager.js';
 
 interface ServiceLocatorInterface {
     /**
@@ -45,7 +45,8 @@ interface ServiceLocatorInterface {
 
     /**
      * Get the storage client.
-     * Creates a default MemoryStorage instance if none has been set.
+     * Creates a default storage client if none has been set — `FileSystemStorageClient` when
+     * `persistStorage` is enabled (the default), `MemoryStorageClient` otherwise.
      */
     getStorageClient(): StorageClient;
 
@@ -77,15 +78,10 @@ interface ServiceLocatorInterface {
      */
     getChildLog(prefix: string): CrawleeLogger;
 
-    getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined;
-
-    setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void;
-
     /**
-     * Clears all storage manager caches.
-     * @internal
+     * Get the storage instance manager (shared across all storage types).
      */
-    clearStorageManagerCache(): void;
+    getStorageInstanceManager(): StorageInstanceManager;
 
     /**
      * Resets the service locator to its initial state.
@@ -116,21 +112,17 @@ interface ServiceLocatorInterface {
  * **2. Per-crawler services (recommended for isolation):**
  * ```typescript
  * import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
- * import { MemoryStorage } from '@crawlee/memory-storage';
+ * import { MemoryStorageClient } from '@crawlee/memory-storage';
  *
  * const crawler = new BasicCrawler({
  *     requestHandler: async ({ request }) => { ... },
  *     configuration: new Configuration({ ... }),  // custom config
- *     storageClient: new MemoryStorage(),          // custom storage
+ *     storageClient: new MemoryStorageClient(),          // custom storage
  *     eventManager: LocalEventManager.fromConfig(),  // custom events
  * });
  * // Crawler has its own isolated ServiceLocator instance
  * ```
  */
-// Used as fallback in ServiceLocator methods that need to log before a logger is explicitly set,
-// without implicitly locking the logger slot (which getLogger() would do).
-const fallbackLog = new ApifyLogAdapter(log);
-
 export class ServiceLocator implements ServiceLocatorInterface {
     private configuration?: Configuration;
     private eventManager?: EventManager;
@@ -138,10 +130,11 @@ export class ServiceLocator implements ServiceLocatorInterface {
     private logger?: CrawleeLogger;
 
     /**
-     * Storage managers for Dataset, KeyValueStore, and RequestQueue.
-     * Manages caching and lifecycle of storage instances.
+     * Unified storage instance manager for Dataset, KeyValueStore, and RequestQueue.
+     * Shared across all ServiceLocator instances (global singleton), matching crawlee-python.
+     * Per-crawler isolation is achieved via `clientCacheKey`, not separate manager instances.
      */
-    private storageManagers = new Map<Constructor<IStorage>, StorageManager>();
+    private static storageInstanceManager?: StorageInstanceManager;
 
     /**
      * Creates a new ServiceLocator instance.
@@ -165,9 +158,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getConfiguration(): Configuration {
         if (!this.configuration) {
-            (this.logger ?? fallbackLog).debug(
-                'No configuration set, implicitly creating and using default Configuration.',
-            );
+            this.getLogger().debug('No configuration set, implicitly creating and using default Configuration.');
             this.configuration = new Configuration();
         }
         return this.configuration;
@@ -189,11 +180,9 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getEventManager(): EventManager {
         if (!this.eventManager) {
-            (this.logger ?? fallbackLog).debug(
-                'No event manager set, implicitly creating and using default LocalEventManager.',
-            );
+            this.getLogger().debug('No event manager set, implicitly creating and using default LocalEventManager.');
             if (!this.configuration) {
-                (this.logger ?? fallbackLog).warning(
+                this.getLogger().warning(
                     'Implicit creation of event manager will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
@@ -219,19 +208,24 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getStorageClient(): StorageClient {
         if (!this.storageClient) {
-            (this.logger ?? fallbackLog).debug(
-                'No storage client set, implicitly creating and using default MemoryStorage.',
+            this.getLogger().debug(
+                'No storage client set, implicitly creating and using the default storage client ' +
+                    '(FileSystemStorageClient when persistStorage is enabled, MemoryStorageClient otherwise).',
             );
             if (!this.configuration) {
-                (this.logger ?? fallbackLog).warning(
+                this.getLogger().warning(
                     'Implicit creation of storage client will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
             const config = this.getConfiguration();
-            this.storageClient = new MemoryStorage({
-                persistStorage: config.get('persistStorage'),
-            });
+            this.storageClient = config.persistStorage
+                ? new FileSystemStorageClient({
+                      logger: this.getLogger().child({ prefix: 'FileSystemStorageClient' }),
+                  })
+                : new MemoryStorageClient({
+                      logger: this.getLogger().child({ prefix: 'MemoryStorageClient' }),
+                  });
         }
         return this.storageClient;
     }
@@ -273,34 +267,11 @@ export class ServiceLocator implements ServiceLocatorInterface {
         return this.getLogger().child({ prefix });
     }
 
-    getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
-        return this.storageManagers.get(constructor);
-    }
-
-    setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void {
-        if (this.storageManagers.has(constructor)) {
-            throw new ServiceConflictError(
-                `StorageManager(${constructor.name})`,
-                storageManager,
-                this.storageManagers.get(constructor),
-            );
+    getStorageInstanceManager(): StorageInstanceManager {
+        if (!ServiceLocator.storageInstanceManager) {
+            ServiceLocator.storageInstanceManager = new StorageInstanceManager();
         }
-
-        this.storageManagers.set(constructor, storageManager);
-    }
-
-    clearStorageManagerCache(): void {
-        this.storageManagers.forEach((manager) => {
-            // KeyValueStore has a clearCache method on its instances
-            // TODO this uses fragile string matching and `any` casts into private fields - remove as part of
-            //  https://github.com/apify/crawlee/issues/3075 (Storage instance management will be reworked significantly)
-            if ((manager as any).name === 'KeyValueStore') {
-                (manager as any).cache?.forEach((item: any) => {
-                    item.clearCache?.();
-                });
-            }
-        });
-        this.storageManagers.clear();
+        return ServiceLocator.storageInstanceManager;
     }
 
     reset(): void {
@@ -308,7 +279,8 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.eventManager = undefined;
         this.storageClient = undefined;
         this.logger = undefined;
-        this.clearStorageManagerCache();
+        ServiceLocator.storageInstanceManager?.clearCache();
+        ServiceLocator.storageInstanceManager = undefined;
     }
 }
 
@@ -383,57 +355,18 @@ export function bindMethodsToServiceLocator(
     };
 }
 
-export const serviceLocator: ServiceLocatorInterface = {
-    getConfiguration(): Configuration {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getConfiguration();
+export const serviceLocator = new Proxy({} as ServiceLocatorInterface, {
+    get(_target, prop) {
+        const active = serviceLocatorStorage.getStore() ?? globalServiceLocator;
+        const value = Reflect.get(active, prop, active);
+        if (typeof value === 'function') {
+            return value.bind(active);
+        }
+        return value;
     },
-    setConfiguration(configuration: Configuration): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setConfiguration(configuration);
+    set(_target, prop) {
+        throw new TypeError(
+            `Cannot set property '${String(prop)}' on serviceLocator directly. Use the setter methods (e.g. setConfiguration(), setStorageClient()) instead.`,
+        );
     },
-    getEventManager(): EventManager {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getEventManager();
-    },
-    setEventManager(eventManager: EventManager): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setEventManager(eventManager);
-    },
-    getStorageClient(): StorageClient {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getStorageClient();
-    },
-    setStorageClient(storageClient: StorageClient): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setStorageClient(storageClient);
-    },
-    getLogger(): CrawleeLogger {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getLogger();
-    },
-    setLogger(logger: CrawleeLogger): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setLogger(logger);
-    },
-    getChildLog(prefix: string): CrawleeLogger {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getChildLog(prefix);
-    },
-    getStorageManager(constructor: Constructor<IStorage>): StorageManager | undefined {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        return currentServiceLocator.getStorageManager(constructor);
-    },
-    setStorageManager(constructor: Constructor<IStorage>, storageManager: StorageManager): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.setStorageManager(constructor, storageManager);
-    },
-    clearStorageManagerCache(): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.clearStorageManagerCache();
-    },
-    reset(): void {
-        const currentServiceLocator = serviceLocatorStorage.getStore() ?? globalServiceLocator;
-        currentServiceLocator.reset();
-    },
-};
+});

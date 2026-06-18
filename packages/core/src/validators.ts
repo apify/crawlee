@@ -20,4 +20,14 @@ export const validators = {
         validator: ow.isValid(value, ow.object.hasKeys('fetchNextRequest', 'addRequest')),
         message: (label: string) => `Expected argument '${label}' to be a RequestQueue, got something else.`,
     }),
+    browserPool: (value: Dictionary) => ({
+        validator: ow.isValid(value, ow.object.hasKeys('newPage', 'closePage', 'extractPageState', 'injectPageState')),
+        message: (label: string) =>
+            `Expected argument '${label}' to implement the IBrowserPool interface (missing one of 'newPage', 'closePage', 'extractPageState', 'injectPageState'), got something else.`,
+    }),
+    sessionPool: (value: Dictionary) => ({
+        validator: ow.isValid(value, ow.object.hasKeys('getSession')),
+        message: (label: string) =>
+            `Expected argument '${label}' to implement the ISessionPool interface (missing 'getSession'), got something else.`,
+    }),
 };

@@ -760,7 +760,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     } = options;
 
     try {
-        const store = await KeyValueStore.open(keyValueStoreName, {
+        const store = await KeyValueStore.open(keyValueStoreName ? { name: keyValueStoreName } : null, {
             config: config ?? Configuration.getGlobalConfig(),
         });
 
@@ -923,7 +923,7 @@ export interface PuppeteerContextUtils {
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinksByClickingElements(
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
     ): Promise<BatchAddRequestsResult>;
 
     /**

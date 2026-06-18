@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
-import log from '@apify/log';
+import type { CrawleeLogger } from '@crawlee/types';
 
 import { getCgroupsVersion, isLambda } from '../general.js';
 import { psTree } from './ps-tree.js';
@@ -49,7 +49,10 @@ export interface MemoryInfo {
  * @returns An object containing the free and used memory metrics.
  * @internal
  */
-export async function getMemoryInfo(containerized = false): Promise<MemoryInfo> {
+export async function getMemoryInfo(
+    options: { containerized?: boolean; logger?: CrawleeLogger } = {},
+): Promise<MemoryInfo> {
+    const { containerized = false, logger } = options;
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
 
@@ -88,8 +91,6 @@ export async function getMemoryInfo(containerized = false): Promise<MemoryInfo> 
         totalBytes = parseInt(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE!, 10) * 1000000;
         usedBytes = mainProcessBytes + childProcessesBytes;
         freeBytes = totalBytes - usedBytes;
-
-        log.debug(`lambda size of ${totalBytes} with ${freeBytes} free bytes`);
     } else if (containerized) {
         // When running inside a container, use container memory limits
 
@@ -122,8 +123,7 @@ export async function getMemoryInfo(containerized = false): Promise<MemoryInfo> 
             usedBytes = parseInt(usedBytesStr, 10);
             freeBytes = totalBytes - usedBytes;
         } catch (err) {
-            // log.deprecated logs a warning only once
-            log.deprecated(
+            logger?.warningOnce(
                 'Your environment is containerized, but your system does not support memory cgroups. ' +
                     "If you're running containers with limited memory, memory auto-scaling will not work properly.\n\n" +
                     `Cause: ${(err as Error).message}`,

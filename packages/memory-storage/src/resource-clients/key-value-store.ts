@@ -1,32 +1,32 @@
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { Readable } from 'node:stream';
 
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { move } from 'fs-extra';
-import mime from 'mime-types';
-import pLimit from 'p-limit';
 
-import { scheduleBackgroundTask } from '../background-handler/index.js';
 import { maybeParseBody } from '../body-parser.js';
-import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers.js';
-import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts.js';
-import type { StorageImplementation } from '../fs/common.js';
-import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
-import type { MemoryStorage } from '../index.js';
-import { createKeyList, createKeyStringList, createLazyIterablePromise, isBuffer, isStream } from '../utils.js';
+import type { MemoryStorageClient } from '../index.js';
+import { isBuffer, isStream } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
+import mime from 'mime-types';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
-const GET_RECORD_CONCURRENCY = 25;
+
+/**
+ * Key under which a run's input is stored in the default key-value store. Matches Crawlee's default
+ * `inputKey` (`CRAWLEE_INPUT_KEY`) and the `INPUT` files `FileSystemStorageClient` preserves on purge.
+ */
+const KEY_VALUE_STORE_INPUT_KEY = 'INPUT';
 
 export interface KeyValueStoreClientOptions {
     name?: string;
     id?: string;
-    baseStorageDirectory: string;
-    client: MemoryStorage;
+    /**
+     * The key used for cache lookup. When provided, takes precedence over `name` and `id`.
+     * This allows alias-opened storages to have a cache key that differs from their
+     * metadata `name` (which is `undefined` for unnamed storages).
+     */
+    cacheKey?: string;
+    client: MemoryStorageClient;
 }
 
 export interface InternalKeyRecord {
@@ -34,256 +34,76 @@ export interface InternalKeyRecord {
     value: Buffer | string;
     contentType?: string;
     extension: string;
-    filePath?: string;
 }
 
-export class KeyValueStoreClient extends BaseClient {
+export class KeyValueStoreClient extends BaseClient implements storage.KeyValueStoreClient {
     name?: string;
+    /**
+     * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
+     * storages, this is the alias string. Falls back to id.
+     */
+    cacheKey: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
-    keyValueStoreDirectory: string;
 
-    private readonly keyValueEntries = new Map<string, StorageImplementation<InternalKeyRecord>>();
-    private readonly client: MemoryStorage;
+    private readonly keyValueEntries = new Map<string, InternalKeyRecord>();
+    private readonly client: MemoryStorageClient;
 
     constructor(options: KeyValueStoreClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.keyValueStoreDirectory = resolve(options.baseStorageDirectory, this.name ?? this.id);
+        this.cacheKey = options.cacheKey ?? this.name ?? this.id;
         this.client = options.client;
     }
 
-    async get(): Promise<storage.KeyValueStoreInfo | undefined> {
-        const found = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (found) {
-            found.updateTimestamps(false);
-            return found.toKeyValueStoreInfo();
-        }
-
-        return undefined;
+    async getMetadata(): Promise<storage.KeyValueStoreInfo> {
+        this.updateTimestamps(false);
+        return this.toKeyValueStoreInfo();
     }
 
-    async update(newFields: storage.KeyValueStoreClientUpdateOptions = {}): Promise<storage.KeyValueStoreInfo> {
-        const parsed = s
-            .object({
-                name: s.string().lengthGreaterThan(0).optional(),
-            })
-            .parse(newFields);
-
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        // Skip if no changes
-        if (!parsed.name) {
-            return existingStoreById.toKeyValueStoreInfo();
-        }
-
-        // Check that name is not in use already
-        const existingStoreByName = this.client.keyValueStoresHandled.find(
-            (store) => store.name?.toLowerCase() === parsed.name!.toLowerCase(),
-        );
-
-        if (existingStoreByName) {
-            this.throwOnDuplicateEntry(StorageTypes.KeyValueStore, 'name', parsed.name);
-        }
-
-        existingStoreById.name = parsed.name;
-
-        const previousDir = existingStoreById.keyValueStoreDirectory;
-
-        existingStoreById.keyValueStoreDirectory = resolve(
-            this.client.keyValueStoresDirectory,
-            parsed.name ?? existingStoreById.name ?? existingStoreById.id,
-        );
-
-        await move(previousDir, existingStoreById.keyValueStoreDirectory, { overwrite: true });
-
-        // Update timestamps
-        existingStoreById.updateTimestamps(true);
-
-        return existingStoreById.toKeyValueStoreInfo();
-    }
-
-    async delete(): Promise<void> {
-        const storeIndex = this.client.keyValueStoresHandled.findIndex((store) => store.id === this.id);
+    async drop(): Promise<void> {
+        const storeIndex = this.client.keyValueStoreCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
-            const [oldClient] = this.client.keyValueStoresHandled.splice(storeIndex, 1);
+            const [oldClient] = this.client.keyValueStoreCache.splice(storeIndex, 1);
             oldClient.keyValueEntries.clear();
-
-            await rm(oldClient.keyValueStoreDirectory, { recursive: true, force: true });
         }
     }
 
-    listKeys(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<storage.KeyValueStoreItemData> & Promise<storage.KeyValueStoreClientListData> {
-        const { limit, exclusiveStartKey, prefix } = s
+    async purge(): Promise<void> {
+        this.keyValueEntries.clear();
+        this.updateTimestamps(true);
+    }
+
+    /**
+     * Purges every record except the run's input. Used by {@link MemoryStorageClient.purge} for the
+     * default key-value store, mirroring `FileSystemStorageClient`, which preserves `INPUT` (and its
+     * extension variants) when purging the default store. The in-memory key has no extension, so we
+     * preserve the bare `INPUT` key only.
+     */
+    async purgeExceptInput(): Promise<void> {
+        for (const key of this.keyValueEntries.keys()) {
+            if (key !== KEY_VALUE_STORE_INPUT_KEY) {
+                this.keyValueEntries.delete(key);
+            }
+        }
+
+        this.updateTimestamps(true);
+    }
+
+    async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreItemData[]> {
+        const { prefix, exclusiveStartKey, limit } = s
             .object({
-                limit: s.number().greaterThan(0).optional(),
-                exclusiveStartKey: s.string().optional(),
-                collection: s.string().optional(), // This is ignored, but kept for validation consistency with API client.
                 prefix: s.string().optional(),
+                exclusiveStartKey: s.string().optional(),
+                limit: s.number().int().greaterThan(0).optional(),
             })
             .parse(options);
 
-        return createKeyList(
-            (pageExclusiveStartKey) =>
-                this.listKeysPage({
-                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
-                    exclusiveStartKey: pageExclusiveStartKey,
-                    prefix,
-                }),
-            { exclusiveStartKey, limit },
-        );
-    }
+        const items: storage.KeyValueStoreItemData[] = [];
 
-    keys(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<string> & Promise<storage.KeyValueStoreClientListData> {
-        const { limit, exclusiveStartKey, prefix } = s
-            .object({
-                limit: s.number().greaterThan(0).optional(),
-                exclusiveStartKey: s.string().optional(),
-                collection: s.string().optional(),
-                prefix: s.string().optional(),
-            })
-            .parse(options);
-
-        return createKeyStringList(
-            (pageExclusiveStartKey) =>
-                this.listKeysPage({
-                    limit: limit ?? DEFAULT_API_PARAM_LIMIT,
-                    exclusiveStartKey: pageExclusiveStartKey,
-                    prefix,
-                }),
-            { exclusiveStartKey, limit },
-        );
-    }
-
-    values(options: storage.KeyValueStoreClientListOptions = {}): AsyncIterable<unknown> & Promise<unknown[]> {
-        const keys = this.keys.bind(this);
-        const getRecord = this.getRecord.bind(this);
-        const limit = options.limit;
-
-        const firstPageKeysPromise = keys(options);
-
-        const getFirstPageValues = async () => {
-            const firstPageKeys = await firstPageKeysPromise;
-            const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
-            const limiter = pLimit(GET_RECORD_CONCURRENCY);
-            const results = await Promise.all(keysToFetch.map((item) => limiter(() => getRecord(item.key))));
-            return results.filter((r) => r !== undefined).map((r) => r.value);
-        };
-
-        async function* asyncGenerator(): AsyncGenerator<unknown> {
-            const firstPageKeys = await firstPageKeysPromise;
-            let yielded = 0;
-
-            for (const item of firstPageKeys.items) {
-                if (limit !== undefined && yielded >= limit) return;
-                const record = await getRecord(item.key);
-                if (record) {
-                    yield record.value;
-                    yielded++;
-                }
-            }
-
-            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
-                for await (const key of keys({
-                    ...options,
-                    exclusiveStartKey: firstPageKeys.nextExclusiveStartKey,
-                })) {
-                    if (limit !== undefined && yielded >= limit) return;
-                    const record = await getRecord(key);
-                    if (record) {
-                        yield record.value;
-                        yielded++;
-                    }
-                }
-            }
-        }
-
-        return createLazyIterablePromise(getFirstPageValues, asyncGenerator);
-    }
-
-    entries(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): AsyncIterable<[string, unknown]> & Promise<[string, unknown][]> {
-        const keys = this.keys.bind(this);
-        const getRecord = this.getRecord.bind(this);
-        const limit = options.limit;
-
-        const firstPageKeysPromise = keys(options);
-
-        const getFirstPageEntries = async () => {
-            const firstPageKeys = await firstPageKeysPromise;
-            const keysToFetch = limit !== undefined ? firstPageKeys.items.slice(0, limit) : firstPageKeys.items;
-            const limiter = pLimit(GET_RECORD_CONCURRENCY);
-            const results = await Promise.all(
-                keysToFetch.map((item) =>
-                    limiter(() => getRecord(item.key).then((record) => ({ key: item.key, record }))),
-                ),
-            );
-            return results
-                .filter((r) => r.record !== undefined)
-                .map((r) => [r.key, r.record!.value] as [string, unknown]);
-        };
-
-        async function* asyncGenerator(): AsyncGenerator<[string, unknown]> {
-            const firstPageKeys = await firstPageKeysPromise;
-            let yielded = 0;
-
-            for (const item of firstPageKeys.items) {
-                if (limit !== undefined && yielded >= limit) return;
-                const record = await getRecord(item.key);
-                if (record) {
-                    yield [item.key, record.value];
-                    yielded++;
-                }
-            }
-
-            if (firstPageKeys.nextExclusiveStartKey && (limit === undefined || yielded < limit)) {
-                for await (const key of keys({
-                    ...options,
-                    exclusiveStartKey: firstPageKeys.nextExclusiveStartKey,
-                })) {
-                    if (limit !== undefined && yielded >= limit) return;
-                    const record = await getRecord(key);
-                    if (record) {
-                        yield [key, record.value];
-                        yielded++;
-                    }
-                }
-            }
-        }
-
-        return createLazyIterablePromise(getFirstPageEntries, asyncGenerator);
-    }
-
-    private async listKeysPage(
-        options: storage.KeyValueStoreClientListOptions = {},
-    ): Promise<storage.KeyValueStoreClientListData> {
-        const { limit = DEFAULT_API_PARAM_LIMIT, exclusiveStartKey, prefix } = options;
-
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        const items = [];
-
-        for (const storageEntry of existingStoreById.keyValueEntries.values()) {
-            const record = await storageEntry.get();
-
+        for (const record of this.keyValueEntries.values()) {
             const size = Buffer.byteLength(record.value);
             items.push({
                 key: record.key,
@@ -292,57 +112,39 @@ export class KeyValueStoreClient extends BaseClient {
         }
 
         // Lexically sort to emulate API.
-        // TODO(vladfrangu): ensure the sorting works the same way as before (if it matters)
-        items.sort((a, b) => {
-            return a.key.localeCompare(b.key);
-        });
+        items.sort((a, b) => a.key.localeCompare(b.key));
 
-        const filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
+        let filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
 
-        let truncatedItems = filteredItems;
         if (exclusiveStartKey) {
             const keyPos = filteredItems.findIndex((item) => item.key === exclusiveStartKey);
-            if (keyPos !== -1) truncatedItems = filteredItems.slice(keyPos + 1);
+            if (keyPos === -1) {
+                throw new Error(
+                    `exclusiveStartKey "${exclusiveStartKey}" was not found in the key-value store. ` +
+                        `This is likely a bug — the key may have been deleted between paginated listKeys calls.`,
+                );
+            }
+            filteredItems = filteredItems.slice(keyPos + 1);
         }
 
-        const limitedItems = truncatedItems.slice(0, limit);
+        if (limit !== undefined) {
+            filteredItems = filteredItems.slice(0, limit);
+        }
 
-        const lastItemInStore = filteredItems.at(-1);
-        const lastSelectedItem = limitedItems.at(-1);
-        const isLastSelectedItemAbsolutelyLast = lastItemInStore === lastSelectedItem;
-        const nextExclusiveStartKey = isLastSelectedItemAbsolutelyLast ? undefined : lastSelectedItem?.key;
+        this.updateTimestamps(false);
 
-        existingStoreById.updateTimestamps(false);
-
-        return {
-            count: limitedItems.length,
-            limit,
-            exclusiveStartKey,
-            isTruncated: !isLastSelectedItemAbsolutelyLast,
-            nextExclusiveStartKey,
-            items: limitedItems,
-        };
+        return filteredItems;
     }
 
     /**
-     * Generates a public file:// URL for accessing a specific record in the key-value store.
-     *
-     * Returns `undefined` if the record does not exist or has no associated file path (i.e., it is not stored as a file).
+     * In-memory records are not file-backed, so there is no public file URL to return.
+     * Always resolves to `undefined`.
      * @param key The key of the record to generate the public URL for.
      */
-    async getRecordPublicUrl(key: string): Promise<string | undefined> {
+    async getPublicUrl(key: string): Promise<string | undefined> {
         s.string().parse(key);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        const storageEntry = await existingStoreById.keyValueEntries.get(key)?.get();
-
-        return storageEntry?.filePath;
+        return undefined;
     }
 
     /**
@@ -354,43 +156,17 @@ export class KeyValueStoreClient extends BaseClient {
     async recordExists(key: string): Promise<boolean> {
         s.string().parse(key);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        return existingStoreById.keyValueEntries.has(key);
+        return this.keyValueEntries.has(key);
     }
 
-    async getRecord(
-        key: string,
-        options: storage.KeyValueStoreClientGetRecordOptions = {},
-    ): Promise<storage.KeyValueStoreRecord | undefined> {
+    async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
-        s.object({
-            buffer: s.boolean().optional(),
-            // These options are ignored, but kept here
-            // for validation consistency with API client.
-            stream: s.boolean().optional(),
-            disableRedirect: s.boolean().optional(),
-        }).parse(options);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
+        const entry = this.keyValueEntries.get(key);
 
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        const storageEntry = existingStoreById.keyValueEntries.get(key);
-
-        if (!storageEntry) {
+        if (!entry) {
             return undefined;
         }
-
-        const entry = await storageEntry.get();
 
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
@@ -398,20 +174,15 @@ export class KeyValueStoreClient extends BaseClient {
             contentType: entry.contentType ?? (mime.contentType(entry.extension) as string),
         };
 
-        if (options.stream) {
-            record.value = Readable.from(record.value);
-        } else if (options.buffer) {
-            record.value = Buffer.from(record.value);
-        } else {
-            record.value = maybeParseBody(record.value, record.contentType!);
-        }
+        // Auto-parse the body (JSON → object, text → string, etc.)
+        record.value = maybeParseBody(record.value, record.contentType!);
 
-        existingStoreById.updateTimestamps(false);
+        this.updateTimestamps(false);
 
         return record;
     }
 
-    async setRecord(record: storage.KeyValueStoreRecord): Promise<void> {
+    async setValue(record: storage.KeyValueStoreRecord): Promise<void> {
         s.object({
             key: s.string().lengthGreaterThan(0),
             value: s.union([
@@ -422,19 +193,10 @@ export class KeyValueStoreClient extends BaseClient {
                 s.instance(ArrayBuffer),
                 s.typedArray(),
                 // disabling validation will make shapeshift only check the object given is an actual object, not null, nor array
-                s
-                    .object({})
-                    .setValidationEnabled(false),
+                s.object({}).setValidationEnabled(false),
             ]),
             contentType: s.string().lengthGreaterThan(0).optional(),
         }).parse(record);
-
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
 
         const { key } = record;
         let { value, contentType } = record;
@@ -477,35 +239,17 @@ export class KeyValueStoreClient extends BaseClient {
             contentType,
         } satisfies InternalKeyRecord;
 
-        const entry = createKeyValueStorageImplementation({
-            persistStorage: this.client.persistStorage,
-            storeDirectory: existingStoreById.keyValueStoreDirectory,
-            writeMetadata: existingStoreById.client.writeMetadata,
-        });
+        this.keyValueEntries.set(key, _record);
 
-        await entry.update(_record);
-
-        existingStoreById.keyValueEntries.set(key, entry);
-
-        existingStoreById.updateTimestamps(true);
+        this.updateTimestamps(true);
     }
 
-    async deleteRecord(key: string): Promise<void> {
+    async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
 
-        // Check by id
-        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingStoreById) {
-            this.throwOnNonExisting(StorageTypes.KeyValueStore);
-        }
-
-        const entry = existingStoreById.keyValueEntries.get(key);
-
-        if (entry) {
-            existingStoreById.keyValueEntries.delete(key);
-            existingStoreById.updateTimestamps(true);
-            await entry.delete();
+        if (this.keyValueEntries.has(key)) {
+            this.keyValueEntries.delete(key);
+            this.updateTimestamps(true);
         }
     }
 
@@ -526,16 +270,5 @@ export class KeyValueStoreClient extends BaseClient {
         if (hasBeenModified) {
             this.modifiedAt = new Date();
         }
-
-        const data = this.toKeyValueStoreInfo();
-        scheduleBackgroundTask({
-            action: 'update-metadata',
-            data,
-            entityType: 'keyValueStores',
-            entityDirectory: this.keyValueStoreDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
     }
 }

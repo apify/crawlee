@@ -1,20 +1,27 @@
 import type { Server } from 'node:http';
 
-import { BROWSER_POOL_EVENTS, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
-import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator } from '@crawlee/core';
+import type { BrowserPool, PuppeteerController } from '@crawlee/browser-pool';
+import {
+    BROWSER_POOL_EVENTS,
+    BrowserPool as BrowserPoolClass,
+    OperatingSystemsName,
+    PuppeteerPlugin,
+} from '@crawlee/browser-pool';
+import { bindMethodsToServiceLocator, BLOCKED_STATUS_CODES, ServiceLocator, SessionPool } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
 import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import { runExampleComServer } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { runExampleComServer } from '../../shared/_helper.js';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import { ENV_VARS } from '@apify/consts';
 import log from '@apify/log';
 
 import type { TestCrawlingContext } from './basic_browser_crawler.js';
 import { BrowserCrawlerTest } from './basic_browser_crawler.js';
+import { ISession } from '@crawlee/types';
 
 describe('BrowserCrawler', () => {
     let prevEnvHeadless: string;
@@ -121,8 +128,9 @@ describe('BrowserCrawler', () => {
 
             // Spy on destroy and track if it was called
             let destroyCalled = false;
-            const originalDestroy = browserCrawler.browserPool.destroy.bind(browserCrawler.browserPool);
-            browserCrawler.browserPool.destroy = async () => {
+            const ownedPool = browserCrawler.browserPool as BrowserPool;
+            const originalDestroy = ownedPool.destroy.bind(ownedPool);
+            ownedPool.destroy = async () => {
                 destroyCalled = true;
                 return originalDestroy();
             };
@@ -130,6 +138,40 @@ describe('BrowserCrawler', () => {
             await browserCrawler.run();
             expect(destroyCalled).toBe(true);
         } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('should not tear down a user-supplied browser pool', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+        const externalPool = new BrowserPoolClass({ browserPlugins: [puppeteerPlugin] });
+
+        try {
+            const requestList = await RequestList.open({
+                sources: [{ url: 'http://example.com/?q=1' }],
+            });
+            const browserCrawler = new BrowserCrawlerTest({
+                browserPool: externalPool,
+                requestList,
+                requestHandler: async () => {},
+                maxRequestRetries: 1,
+            });
+
+            expect(browserCrawler.browserPool).toBe(externalPool);
+
+            let destroyCalled = false;
+            const originalDestroy = externalPool.destroy.bind(externalPool);
+            externalPool.destroy = async () => {
+                destroyCalled = true;
+                return originalDestroy();
+            };
+
+            await browserCrawler.run();
+            expect(destroyCalled).toBe(false);
+        } finally {
+            await externalPool.destroy();
             await localStorageEmulator.destroy();
         }
     });
@@ -145,7 +187,7 @@ describe('BrowserCrawler', () => {
             });
             class TimeoutError extends Error {}
             let markBadCalled = false;
-            let sessionGoto!: Session;
+            let sessionGoto!: ISession;
             const browserCrawler = new (class extends BrowserCrawlerTest {
                 protected override async _navigationHandler(
                     ctx: TestCrawlingContext,
@@ -236,6 +278,52 @@ describe('BrowserCrawler', () => {
             await browserCrawler.run();
 
             expect(hook).toHaveBeenCalled();
+        } finally {
+            await localStorageEmulator.destroy();
+        }
+    });
+
+    test.concurrent('postNavigationHooks can override response, observed downstream', async () => {
+        const localStorageEmulator = new MemoryStorageEmulator();
+        await localStorageEmulator.init();
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        try {
+            const requestList = await RequestList.open({
+                sources: [{ url: `${serverAddress}/?q=1` }],
+            });
+
+            const observed: { fromSecondHook?: number; fromHandler?: number } = {};
+            const fakeStatus = 418;
+
+            const browserCrawler = new BrowserCrawlerTest({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                requestList,
+                maxRequestRetries: 0,
+                postNavigationHooks: [
+                    async ({ response }) => ({
+                        response: new Proxy(response, {
+                            get(target, key, receiver) {
+                                if (key === 'status') return () => fakeStatus;
+                                return Reflect.get(target, key, receiver);
+                            },
+                        }),
+                    }),
+                    async ({ response }) => {
+                        observed.fromSecondHook = response.status();
+                    },
+                ],
+                requestHandler: async ({ response }) => {
+                    observed.fromHandler = response.status();
+                },
+            });
+
+            await browserCrawler.run();
+
+            expect(observed.fromSecondHook).toBe(fakeStatus);
+            expect(observed.fromHandler).toBe(fakeStatus);
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -354,8 +442,8 @@ describe('BrowserCrawler', () => {
                 requestHandler: async () => {},
                 maxRequestRetries: 0,
                 preNavigationHooks: [
-                    async (_crawlingContext, gotoOptions) => {
-                        gotoOptions!.timeout = 60000;
+                    async ({ gotoOptions }) => {
+                        gotoOptions.timeout = 60000;
                     },
                 ],
             });
@@ -483,20 +571,20 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
 
-                persistCookiesPerSession: false,
-                sessionPoolOptions: {
+                saveResponseCookies: false,
+                sessionPool: new SessionPool({
                     sessionOptions: {
                         maxUsageCount: 1,
                     },
                     persistStateKeyValueStoreId: 'abc',
-                },
+                }),
                 requestHandler: async () => {},
             });
 
             // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPoolOptions.sessionOptions.maxUsageCount).toBe(1);
+            expect(crawler.sessionPool.sessionOptions.maxUsageCount).toBe(1);
             // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
+            expect(crawler.sessionPool.persistStateKeyValueStoreId).toBe('abc');
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -524,9 +612,9 @@ describe('BrowserCrawler', () => {
                 browserPlugins: [puppeteerPlugin],
             },
             requestList,
-            persistCookiesPerSession: true,
+            saveResponseCookies: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session.getCookieString(request.url));
+                loadedCookies.push(session.cookieJar.getCookieStringSync(request.url));
                 return Promise.resolve();
             },
             preNavigationHooks: [
@@ -582,7 +670,7 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
 
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
                     called = true;
@@ -617,7 +705,7 @@ describe('BrowserCrawler', () => {
 
         try {
             const urls = [new URL('/special/cloudflareBlocking', serverAddress).href];
-            const maxSessionRotations = 1;
+            const maxRequestRetries = 1;
 
             let processed = false;
             const errorMessages: string[] = [];
@@ -627,7 +715,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 retryOnBlocked: true,
-                maxSessionRotations,
+                maxRequestRetries,
                 requestHandler: async ({ page, response }) => {
                     processed = true;
                 },
@@ -638,8 +726,8 @@ describe('BrowserCrawler', () => {
 
             await crawler.run(urls);
 
-            expect(errorMessages).toHaveLength(urls.length * (maxSessionRotations + 1));
-            expect(errorMessages.every((x) => x.includes('Detected a session error, rotating session...'))).toBe(true);
+            expect(errorMessages).toHaveLength(urls.length * (maxRequestRetries + 1));
+            expect(errorMessages.every((x) => x.includes('Detected a session error, retiring session...'))).toBe(true);
             expect(processed).toBe(false);
         } finally {
             await localStorageEmulator.destroy();
@@ -660,7 +748,7 @@ describe('BrowserCrawler', () => {
                 };
             });
             const requestList = await RequestList.open(null, sources);
-            const maxSessionRotations = 1;
+            const maxRequestRetries = 1;
             const errorMessages: string[] = [];
 
             let processed = false;
@@ -670,7 +758,7 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
                 retryOnBlocked: true,
-                maxSessionRotations,
+                maxRequestRetries,
                 requestHandler: async () => {
                     processed = true;
                 },
@@ -686,8 +774,8 @@ describe('BrowserCrawler', () => {
 
             await crawler.run();
 
-            expect(errorMessages.length).toBe(sources.length * (maxSessionRotations + 1));
-            expect(errorMessages.every((x) => x.includes('Detected a session error, rotating session...'))).toBe(true);
+            expect(errorMessages.length).toBe(sources.length * (maxRequestRetries + 1));
+            expect(errorMessages.every((x) => x.includes('Detected a session error, retiring session...'))).toBe(true);
             expect(processed).toBe(false);
         } finally {
             await localStorageEmulator.destroy();
@@ -717,7 +805,7 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
 
-                persistCookiesPerSession: false,
+                saveResponseCookies: false,
                 maxRequestRetries: 0,
                 requestHandler: async () => {
                     called = true;
@@ -754,38 +842,25 @@ describe('BrowserCrawler', () => {
             const requestList = await RequestList.open({
                 sources: [{ url: 'http://example.com/?q=1' }],
             });
-            let resolve: (value?: unknown) => void;
 
-            const retirementPromise = new Promise((r) => {
-                resolve = r;
-            });
-            let called = false;
-            const browserCrawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
-                    ctx: TestCrawlingContext,
-                ): Promise<HTTPResponse | null | undefined> {
-                    browserCrawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
-                        resolve();
-                        called = true;
-                    });
-                    ctx.session!.retire();
-                    return ctx.page.goto(ctx.request.url);
-                }
-            })({
+            let retiredBrowserCount = 0;
+            const browserCrawler = new BrowserCrawlerTest({
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-
-                requestHandler: async () => {
-                    await retirementPromise;
+                requestHandler: async ({ session }) => {
+                    session!.retire();
                 },
                 maxRequestRetries: 1,
+            });
+            (browserCrawler.browserPool as BrowserPool).on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
+                retiredBrowserCount += 1;
             });
 
             await browserCrawler.run();
 
-            expect(called).toBeTruthy();
+            expect(retiredBrowserCount).toBeGreaterThan(0);
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -803,12 +878,11 @@ describe('BrowserCrawler', () => {
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                 },
-
-                sessionPoolOptions: {
+                sessionPool: new SessionPool({
                     maxPoolSize: 1,
-                },
+                }),
                 requestHandler: async ({ session }) => {
-                    sessionUsageHistory.push(session!.usageCount);
+                    sessionUsageHistory.push((session as Session).usageCount);
                 },
             });
 
@@ -821,7 +895,7 @@ describe('BrowserCrawler', () => {
                 { url: `${serverAddress}/?q=6` },
             ]);
 
-            expect(sessionUsageHistory).toEqual([0, 0, 0, 0, 0, 0]);
+            expect(sessionUsageHistory).toEqual([0, 1, 2, 3, 4, 5]);
         } finally {
             await localStorageEmulator.destroy();
         }
@@ -832,117 +906,39 @@ describe('BrowserCrawler', () => {
         await localStorageEmulator.init();
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
+        const pool = new BrowserPoolClass({
+            browserPlugins: [puppeteerPlugin],
+            useFingerprints: true,
+            fingerprintOptions: {
+                fingerprintGeneratorOptions: {
+                    operatingSystems: [OperatingSystemsName.windows],
+                },
+            },
+        });
+
         try {
             const requestList = await RequestList.open({
                 sources: [{ url: `${serverAddress}/?q=1` }],
             });
             const browserCrawler = new BrowserCrawlerTest({
-                browserPoolOptions: {
-                    browserPlugins: [puppeteerPlugin],
-                    useFingerprints: true,
-                    fingerprintOptions: {
-                        fingerprintGeneratorOptions: {
-                            operatingSystems: [OperatingSystemsName.windows],
-                        },
-                    },
-                },
+                browserPool: pool,
                 requestList,
 
-                requestHandler: async ({ browserController }) => {
-                    expect(browserController.launchContext.fingerprint).toBeDefined();
+                requestHandler: async ({ page }) => {
+                    const controller = pool.getBrowserControllerByPage(page);
+                    expect(controller?.launchContext.fingerprint).toBeDefined();
                 },
             });
 
             await browserCrawler.run();
             expect.hasAssertions();
         } finally {
+            await pool.destroy();
             await localStorageEmulator.destroy();
         }
     });
 
     describe('proxy', () => {
-        // TODO move to actor sdk tests before splitting the repos
-        // test('browser should launch with correct proxyUrl', async () => {
-        //     process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        //     const status = { connected: true };
-        //     const fakeCall = async () => {
-        //         return { body: status } as never;
-        //     };
-        //
-        //     // @ts-expect-error FIXME
-        //     const stub = gotScrapingSpy.mockImplementation(fakeCall);
-        //     const proxyConfiguration = await Actor.createProxyConfiguration();
-        //     const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href.slice(0, -1);
-        //     let browserProxy;
-        //
-        //     const browserCrawler = new BrowserCrawlerTest({
-        //         browserPoolOptions: {
-        //             browserPlugins: [puppeteerPlugin],
-        //             postLaunchHooks: [(pageId, browserController) => {
-        //                 browserProxy = browserController.launchContext.proxyUrl;
-        //             }],
-        //         },
-        //         useSessionPool: false,
-        //         persistCookiesPerSession: false,
-        //         navigationTimeoutSecs: 1,
-        //         requestList,
-        //         maxRequestsPerCrawl: 1,
-        //         maxRequestRetries: 0,
-        //         requestHandler: async () => {},
-        //         proxyConfiguration,
-        //     });
-        //     await browserCrawler.run();
-        //     delete process.env[ENV_VARS.PROXY_PASSWORD];
-        //
-        //     expect(browserProxy).toEqual(generatedProxyUrl);
-        //
-        //     stub.mockClear();
-        // });
-
-        // TODO move to actor sdk tests before splitting the repos
-        // test('requestHandler should expose the proxyInfo object with sessions correctly', async () => {
-        //     process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        //     const status = { connected: true };
-        //     const fakeCall = async () => {
-        //         return { body: status } as never;
-        //     };
-        //
-        //     // @ts-expect-error FIXME
-        //     const stub = gotScrapingSpy.mockImplementation(fakeCall);
-        //
-        //     const proxyConfiguration = await Actor.createProxyConfiguration();
-        //     const proxies: ProxyInfo[] = [];
-        //     const sessions: Session[] = [];
-        //     const requestHandler = async ({ session, proxyInfo }: BrowserCrawlingContext) => {
-        //         proxies.push(proxyInfo);
-        //         sessions.push(session);
-        //     };
-        //
-        //     const browserCrawler = new BrowserCrawlerTest({
-        //         browserPoolOptions: {
-        //             browserPlugins: [puppeteerPlugin],
-        //         },
-        //         requestList,
-        //         requestHandler,
-        //
-        //         proxyConfiguration,
-        //         useSessionPool: true,
-        //         sessionPoolOptions: {
-        //             maxPoolSize: 1,
-        //         },
-        //     });
-        //
-        //     await browserCrawler.run();
-        //
-        //     expect(proxies[0].sessionId).toEqual(sessions[0].id);
-        //     expect(proxies[1].sessionId).toEqual(sessions[1].id);
-        //     expect(proxies[2].sessionId).toEqual(sessions[2].id);
-        //     expect(proxies[3].sessionId).toEqual(sessions[3].id);
-        //
-        //     delete process.env[ENV_VARS.PROXY_PASSWORD];
-        //     stub.mockClear();
-        // });
-
         // This test manipulates environment variables, so it must NOT be run concurrently
         test('browser should launch with rotated custom proxy', async () => {
             const localStorageEmulator = new MemoryStorageEmulator();
@@ -979,8 +975,8 @@ describe('BrowserCrawler', () => {
                     maxConcurrency: 1,
                 });
 
-                browserCrawler.browserPool.postLaunchHooks.push((_pageId, browserController) => {
-                    browserProxies.push(browserController.launchContext.proxyUrl!);
+                (browserCrawler.browserPool as BrowserPool).postLaunchHooks.push((_pageId, browserController) => {
+                    browserProxies.push((browserController as PuppeteerController).launchContext.proxyUrl!);
                 });
 
                 await browserCrawler.run();
@@ -1013,9 +1009,8 @@ describe('BrowserCrawler', () => {
                 });
 
                 const goodProxyUrl = 'http://good.proxy';
-                const proxyConfiguration = new ProxyConfiguration({
-                    proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl],
-                });
+                const proxyUrls = ['http://localhost', 'http://localhost:1234', goodProxyUrl];
+                const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
                 const requestHandler = vitest.fn();
 
                 const browserCrawler = new (class extends BrowserCrawlerTest {
@@ -1035,7 +1030,9 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxRequestRetries: 0,
+                    // Enough retries for every request to eventually be served on a session bound to the good proxy
+                    // (proxy rotation interleaves with the request-manager order, so a few extra attempts are needed).
+                    maxRequestRetries: 5,
                     maxConcurrency: 1,
 
                     proxyConfiguration,
@@ -1043,13 +1040,13 @@ describe('BrowserCrawler', () => {
                 });
 
                 await expect(browserCrawler.run()).resolves.not.toThrow();
-                expect(requestHandler).toHaveBeenCalledTimes(requestList!.length());
+                expect(requestHandler).toHaveBeenCalledTimes(4);
             } finally {
                 await localStorageEmulator.destroy();
             }
         });
 
-        test.concurrent('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
+        test.concurrent('proxy rotation on error respects maxRequestRetries, calls failedRequestHandler', async () => {
             const localStorageEmulator = new MemoryStorageEmulator();
             await localStorageEmulator.init();
             const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
@@ -1072,7 +1069,7 @@ describe('BrowserCrawler', () => {
                 /**
                  * The first increment is the base case when the proxy is retrieved for the first time.
                  */
-                let numberOfRotations = -requestList!.length();
+                let numberOfRotations = -(await requestList!.getTotalCount());
                 const browserCrawler = new (class extends BrowserCrawlerTest {
                     protected override async _navigationHandler(
                         ctx: TestCrawlingContext,
@@ -1092,7 +1089,7 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxSessionRotations: 5,
+                    maxRequestRetries: 5,
                     maxConcurrency: 1,
                     proxyConfiguration,
                     requestHandler: async () => {},
@@ -1100,8 +1097,8 @@ describe('BrowserCrawler', () => {
                 });
 
                 await browserCrawler.run();
-                expect(failedRequestHandler).toBeCalledTimes(requestList!.length());
-                expect(numberOfRotations).toBe(requestList!.length() * 5);
+                expect(failedRequestHandler).toBeCalledTimes(4);
+                expect(numberOfRotations).toBe(4 * 5);
             } finally {
                 await localStorageEmulator.destroy();
             }
@@ -1144,7 +1141,7 @@ describe('BrowserCrawler', () => {
                         browserPlugins: [puppeteerPlugin],
                     },
                     requestList,
-                    maxSessionRotations: 1,
+                    maxRequestRetries: 1,
                     maxConcurrency: 1,
                     proxyConfiguration,
                     requestHandler: async () => {},
@@ -1155,10 +1152,7 @@ describe('BrowserCrawler', () => {
                 await crawler.run([serverAddress]);
 
                 expect(spy).toBeCalled();
-                expect(spy.mock.calls[0][0]).toEqual(
-                    'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
-                );
-                expect(spy.mock.calls[1][0]).toEqual(expect.stringContaining(proxyError));
+                expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
             } finally {
                 await localStorageEmulator.destroy();
             }

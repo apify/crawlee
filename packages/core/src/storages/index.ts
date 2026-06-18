@@ -1,13 +1,11 @@
 export * from './dataset.js';
 export * from './key_value_store.js';
 export * from './request_list.js';
-export * from './request_list_adapter.js';
-export * from './request_provider.js';
-export { RequestQueueV1 } from './request_queue.js';
-export { RequestQueue } from './request_queue_v2.js';
-export { RequestQueue as RequestQueueV2 } from './request_queue_v2.js';
-export * from './storage_manager.js';
+export type * from './request_loader.js';
+export type * from './request_manager.js';
+export * from './request_queue.js';
+export * from './storage_instance_manager.js';
 export * from './utils.js';
 export * from './access_checking.js';
-export * from './sitemap_request_list.js';
+export * from './sitemap_request_loader.js';
 export * from './request_manager_tandem.js';

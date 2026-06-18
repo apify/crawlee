@@ -1,134 +1,154 @@
-/* eslint-disable import/no-duplicates */
-import { readdir, rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 import type * as storage from '@crawlee/types';
-import type { Dictionary } from '@crawlee/types';
+import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra/esm';
 
-import { promiseMap } from './background-handler/index.js';
 import { DatasetClient } from './resource-clients/dataset.js';
-import { DatasetCollectionClient } from './resource-clients/dataset-collection.js';
 import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
-import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection.js';
 import { RequestQueueClient } from './resource-clients/request-queue.js';
-import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection.js';
 
 export interface MemoryStorageOptions {
     /**
-     * Path to directory where the data will also be saved.
-     * @default process.env.CRAWLEE_STORAGE_DIR ?? './storage'
+     * Optional logger for MemoryStorageClient warnings.
      */
-    localDataDirectory?: string;
-
-    /**
-     * Whether to also write optional metadata files when storing to disk.
-     * @default process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false
-     */
-    writeMetadata?: boolean;
-
-    /**
-     * Whether the memory storage should also write its stored content to the disk.
-     *
-     * You can also disable this by setting the `CRAWLEE_PERSIST_STORAGE` environment variable to `false`.
-     * @default true
-     */
-    persistStorage?: boolean;
+    logger?: CrawleeLogger;
 }
 
-export class MemoryStorage implements storage.StorageClient {
-    readonly localDataDirectory: string;
-    readonly datasetsDirectory: string;
-    readonly keyValueStoresDirectory: string;
-    readonly requestQueuesDirectory: string;
-    readonly writeMetadata: boolean;
-    readonly persistStorage: boolean;
+export class MemoryStorageClient implements storage.StorageClient {
+    readonly logger?: CrawleeLogger;
 
-    readonly keyValueStoresHandled: KeyValueStoreClient[] = [];
-    readonly datasetClientsHandled: DatasetClient[] = [];
-    readonly requestQueuesHandled: RequestQueueClient[] = [];
+    /**
+     * Unique per-instance cache partition key. Mirrors the way `FileSystemStorageClient` partitions its
+     * cache by storage directory: two distinct `MemoryStorageClient` instances must not share cached clients.
+     */
+    private readonly instanceCacheKey = `MemoryStorageClient:${randomUUID()}`;
+
+    readonly keyValueStoreCache: KeyValueStoreClient[] = [];
+    readonly datasetClientCache: DatasetClient[] = [];
+    readonly requestQueueCache: RequestQueueClient[] = [];
 
     constructor(options: MemoryStorageOptions = {}) {
-        s.object({
-            localDataDirectory: s.string().optional(),
-            writeMetadata: s.boolean().optional(),
-            persistStorage: s.boolean().optional(),
-        }).parse(options);
+        this.logger = options.logger;
+    }
 
-        // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
-        // this function handles it without making BC breaks - it respects existing `crawlee_storage`
-        // directories, and uses the `storage` only if it's not there.
-        const defaultStorageDir = () => {
-            if (pathExistsSync(resolve('./crawlee_storage'))) {
-                return './crawlee_storage';
+    /**
+     * Return a per-instance unique cache key so that distinct `MemoryStorageClient` instances get separate
+     * cache partitions in the storage-client cache.
+     */
+    getStorageClientCacheKey(): string {
+        return this.instanceCacheKey;
+    }
+
+    private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
+        isAlias: boolean;
+        cacheKey: string | undefined;
+    } {
+        const isAlias = 'alias' in options && !!options.alias;
+        const rawKey = isAlias ? options.alias : (options.name ?? options.id);
+        // Normalize the internal __default__ alias to the user-facing 'default' name.
+        const cacheKey = rawKey === '__default__' ? 'default' : rawKey;
+        return { isAlias, cacheKey };
+    }
+
+    async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
+        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
+
+        if (cacheKey) {
+            const found = this.datasetClientCache.find(
+                (store) =>
+                    store.id === cacheKey ||
+                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+            );
+            if (found) {
+                return found;
             }
+        }
 
-            return './storage';
-        };
-
-        this.localDataDirectory = options.localDataDirectory ?? process.env.CRAWLEE_STORAGE_DIR ?? defaultStorageDir();
-        this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
-        this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
-        this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
-        this.writeMetadata =
-            options.writeMetadata ??
-            process.env.DEBUG?.includes('*') ??
-            process.env.DEBUG?.includes('crawlee:memory-storage') ??
-            false;
-        this.persistStorage =
-            options.persistStorage ??
-            (process.env.CRAWLEE_PERSIST_STORAGE
-                ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!)
-                : true);
-    }
-
-    datasets(): storage.DatasetCollectionClient {
-        return new DatasetCollectionClient({
-            baseStorageDirectory: this.datasetsDirectory,
+        const newStore = new DatasetClient({
+            name: isAlias ? undefined : cacheKey,
+            cacheKey,
             client: this,
         });
+        this.datasetClientCache.push(newStore);
+
+        return newStore;
     }
 
-    dataset<Data extends Dictionary = Dictionary>(id: string): storage.DatasetClient<Data> {
-        s.string().parse(id);
+    async createKeyValueStoreClient(
+        options: storage.CreateKeyValueStoreClientOptions = {},
+    ): Promise<storage.KeyValueStoreClient> {
+        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
 
-        return new DatasetClient({ id, baseStorageDirectory: this.datasetsDirectory, client: this });
-    }
+        if (cacheKey) {
+            const found = this.keyValueStoreCache.find(
+                (store) =>
+                    store.id === cacheKey ||
+                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+            );
+            if (found) {
+                return found;
+            }
+        }
 
-    keyValueStores(): storage.KeyValueStoreCollectionClient {
-        return new KeyValueStoreCollectionClient({
-            baseStorageDirectory: this.keyValueStoresDirectory,
+        const newStore = new KeyValueStoreClient({
+            name: isAlias ? undefined : cacheKey,
+            cacheKey,
             client: this,
         });
+        this.keyValueStoreCache.push(newStore);
+
+        return newStore;
     }
 
-    keyValueStore(id: string): storage.KeyValueStoreClient {
-        s.string().parse(id);
+    async createRequestQueueClient(
+        options: storage.CreateRequestQueueClientOptions = {},
+    ): Promise<storage.RequestQueueClient> {
+        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
 
-        return new KeyValueStoreClient({ id, baseStorageDirectory: this.keyValueStoresDirectory, client: this });
-    }
+        if (cacheKey) {
+            const found = this.requestQueueCache.find(
+                (queue) =>
+                    queue.id === cacheKey ||
+                    queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+            );
+            if (found) {
+                return found;
+            }
+        }
 
-    requestQueues(): storage.RequestQueueCollectionClient {
-        return new RequestQueueCollectionClient({
-            baseStorageDirectory: this.requestQueuesDirectory,
+        const newStore = new RequestQueueClient({
+            name: isAlias ? undefined : cacheKey,
+            cacheKey,
             client: this,
         });
+        this.requestQueueCache.push(newStore);
+
+        return newStore;
     }
 
-    requestQueue(id: string, options: storage.RequestQueueOptions = {}): storage.RequestQueueClient {
-        s.string().parse(id);
-        s.object({
-            clientKey: s.string().optional(),
-            timeoutSecs: s.number().optional(),
-        }).parse(options);
+    async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
+        let clients: { id: string }[];
 
-        return new RequestQueueClient({
-            id,
-            baseStorageDirectory: this.requestQueuesDirectory,
-            client: this,
-            ...options,
-        });
+        switch (type) {
+            case 'Dataset':
+                clients = this.datasetClientCache;
+                break;
+            case 'KeyValueStore':
+                clients = this.keyValueStoreCache;
+                break;
+            case 'RequestQueue':
+                clients = this.requestQueueCache;
+                break;
+            default:
+                return false;
+        }
+
+        // In-memory storage only knows about clients in its cache.
+        return clients.some((store) => store.id === id);
     }
 
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
@@ -141,153 +161,42 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     /**
-     * Cleans up the default storage directories before the run starts:
-     *  - local directory containing the default dataset;
-     *  - all records from the default key-value store in the local directory, except for the "INPUT" key;
-     *  - local directory containing the default request queue.
+     * Cleans up the default storages before the run starts. For the in-memory storage this simply
+     * resets the in-memory state of the cached default dataset, key-value store and request queue.
+     *
+     * As with `FileSystemStorageClient`, the run's input (the `INPUT` key in the default key-value
+     * store) is preserved — only the rest of the default storages is cleared.
      */
     async purge(): Promise<void> {
-        // Key-value stores
-        const keyValueStores = await readdir(this.keyValueStoresDirectory).catch(() => []);
-        const keyValueStorePromises: Promise<void>[] = [];
+        // The run default is opened via `{ alias: '__default__' }`, which `resolveStorageKey`
+        // normalizes to `cacheKey === 'default'` (with `name === undefined`) — that is the clause
+        // that actually matches it. The `name === 'default'` clause additionally covers a store a user
+        // explicitly opened via `{ name: 'default' }`. (`'__default__'` never reaches `cacheKey`,
+        // as it is always normalized to `'default'` first, so it does not need to be checked here.)
+        const isDefault = (store: { name?: string; cacheKey: string }) =>
+            store.name === 'default' || store.cacheKey === 'default';
 
-        for (const keyValueStoreFolder of keyValueStores) {
-            if (keyValueStoreFolder.startsWith('__CRAWLEE_TEMPORARY') || keyValueStoreFolder.startsWith('__OLD')) {
-                keyValueStorePromises.push(
-                    (await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))(),
-                );
-            } else if (keyValueStoreFolder === 'default') {
-                keyValueStorePromises.push(
-                    this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder))(),
-                );
-            }
-        }
+        const purgeDefaults = async <T extends { name?: string; cacheKey: string }>(
+            cache: T[],
+            purgeStore: (store: T) => Promise<void>,
+        ) => {
+            await Promise.all(cache.filter(isDefault).map(async (store) => purgeStore(store)));
+        };
 
-        void Promise.allSettled(keyValueStorePromises);
-
-        // Datasets
-        const datasets = await readdir(this.datasetsDirectory).catch(() => []);
-        const datasetPromises: Promise<void>[] = [];
-
-        for (const datasetFolder of datasets) {
-            if (datasetFolder === 'default' || datasetFolder.startsWith('__CRAWLEE_TEMPORARY')) {
-                datasetPromises.push((await this.batchRemoveFiles(resolve(this.datasetsDirectory, datasetFolder)))());
-            }
-        }
-
-        void Promise.allSettled(datasetPromises);
-
-        // Request queues
-        const requestQueues = await readdir(this.requestQueuesDirectory).catch(() => []);
-        const requestQueuePromises: Promise<void>[] = [];
-
-        for (const requestQueueFolder of requestQueues) {
-            if (requestQueueFolder === 'default' || requestQueueFolder.startsWith('__CRAWLEE_TEMPORARY')) {
-                requestQueuePromises.push(
-                    (await this.batchRemoveFiles(resolve(this.requestQueuesDirectory, requestQueueFolder)))(),
-                );
-            }
-        }
-
-        void Promise.allSettled(requestQueuePromises);
+        await Promise.all([
+            // Preserve the run input (INPUT) when purging the default key-value store, matching
+            // `FileSystemStorageClient`.
+            purgeDefaults(this.keyValueStoreCache, async (store) => store.purgeExceptInput()),
+            purgeDefaults(this.datasetClientCache, async (store) => store.purge()),
+            purgeDefaults(this.requestQueueCache, async (store) => store.purge()),
+        ]);
     }
 
     /**
-     * This method should be called at the end of the process, to ensure all data is saved.
+     * This method should be called at the end of the process. The in-memory storage holds no resources
+     * that outlive the process (no file handles, no cross-process locks), so there is nothing to do.
      */
     async teardown(): Promise<void> {
-        const promises = [...promiseMap.values()].map(async ({ promise }) => promise);
-
-        await Promise.all(promises);
-    }
-
-    private handleDefaultKeyValueStore(folder: string): () => Promise<void> {
-        const storagePathExists = pathExistsSync(folder);
-        const temporaryPath = resolve(folder, '../__CRAWLEE_MIGRATING_KEY_VALUE_STORE__');
-
-        // For optimization, we want to only attempt to copy a few files from the default key-value store
-        const possibleInputKeys = ['INPUT', 'INPUT.json', 'INPUT.bin', 'INPUT.txt'];
-
-        if (storagePathExists) {
-            // Create temporary folder to save important files in
-            ensureDirSync(temporaryPath);
-
-            // Go through each file and save the ones that are important
-            for (const entity of possibleInputKeys) {
-                const originalFilePath = resolve(folder, entity);
-                const tempFilePath = resolve(temporaryPath, entity);
-
-                try {
-                    moveSync(originalFilePath, tempFilePath);
-                } catch {
-                    // Ignore
-                }
-            }
-
-            // Remove the original folder and all its content
-            let counter = 0;
-            let tempPathForOldFolder = resolve(folder, `../__OLD_DEFAULT_${counter}__`);
-            let done = false;
-
-            while (!done) {
-                try {
-                    moveSync(folder, tempPathForOldFolder);
-                    done = true;
-                } catch {
-                    tempPathForOldFolder = resolve(folder, `../__OLD_DEFAULT_${++counter}__`);
-                }
-            }
-
-            // Replace the temporary folder with the original folder
-            moveSync(temporaryPath, folder);
-
-            // Remove the old folder
-            return async () => (await this.batchRemoveFiles(tempPathForOldFolder))();
-        }
-
-        return async () => Promise.resolve();
-    }
-
-    private async batchRemoveFiles(folder: string, counter = 0): Promise<() => Promise<void>> {
-        const folderExists = pathExistsSync(folder);
-
-        if (folderExists) {
-            const temporaryFolder = resolve(folder, `../__CRAWLEE_TEMPORARY_${counter}__`);
-
-            try {
-                // Rename the old folder to the new one to allow background deletions
-                await move(folder, temporaryFolder);
-            } catch {
-                // Folder exists already, try again with an incremented counter
-                return this.batchRemoveFiles(folder, ++counter);
-            }
-
-            return async () => {
-                // Read all files in the folder
-                const entries = await readdir(temporaryFolder);
-
-                let processed = 0;
-                let promises: Promise<void>[] = [];
-
-                for (const entry of entries) {
-                    processed++;
-                    promises.push(rm(resolve(temporaryFolder, entry), { force: true }));
-
-                    // Every 2000 files, delete them
-                    if (processed % 2000 === 0) {
-                        await Promise.allSettled(promises);
-                        promises = [];
-                    }
-                }
-
-                // Ensure last promises are handled
-                await Promise.allSettled(promises);
-
-                // Delete the folder itself
-                await rm(temporaryFolder, { force: true, recursive: true });
-            };
-        }
-
-        return async () => Promise.resolve();
+        // Nothing to tear down for in-memory storage.
     }
 }

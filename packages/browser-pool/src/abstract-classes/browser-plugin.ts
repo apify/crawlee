@@ -90,11 +90,8 @@ export interface CreateLaunchContextOptions<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > extends Partial<
-        Omit<
-            LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
-            'browserPlugin'
-        >
-    > {}
+    Omit<LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, 'browserPlugin'>
+> {}
 
 /**
  * The `BrowserPlugin` serves two purposes. First, it is the base class that
@@ -157,7 +154,6 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
-            proxyTier,
         } = options;
 
         return new LaunchContext({
@@ -169,7 +165,6 @@ export abstract class BrowserPlugin<
             userDataDir,
             browserPerProxy,
             ignoreProxyCertificate,
-            proxyTier,
         });
     }
 

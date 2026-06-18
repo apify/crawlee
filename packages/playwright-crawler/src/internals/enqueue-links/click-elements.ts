@@ -1,8 +1,8 @@
 import { URL } from 'node:url';
 
 import type {
+    IRequestManager,
     RequestOptions,
-    RequestProvider,
     RequestTransform,
     SkippedRequestCallback,
     UrlPatternInput,
@@ -32,9 +32,9 @@ export interface EnqueueLinksByClickingElementsOptions {
     page: Page;
 
     /**
-     * A request queue to which the URLs will be enqueued.
+     * * A request manager to which the URLs will be enqueued.
      */
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
 
     /**
      * A CSS selector matching elements to be clicked on. Unlike in {@apilink enqueueLinks}, there is no default
@@ -181,7 +181,7 @@ export interface EnqueueLinksByClickingElementsOptions {
  * ```javascript
  * await playwrightUtils.enqueueLinksByClickingElements({
  *   page,
- *   requestQueue,
+ *   requestManager,
  *   selector: 'a.product-detail',
  *   include: [
  *       'https://www.example.com/handbags/*',
@@ -201,7 +201,7 @@ export async function enqueueLinksByClickingElements(
         options,
         ow.object.exactShape({
             page: ow.object.hasKeys('goto', 'evaluate'),
-            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            requestManager: ow.object.hasKeys('fetchNextRequest', 'addRequestsBatched'),
             selector: ow.string,
             userData: ow.optional.object,
             clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
@@ -219,7 +219,7 @@ export async function enqueueLinksByClickingElements(
 
     const {
         page,
-        requestQueue,
+        requestManager,
         selector,
         clickOptions,
         include,
@@ -255,7 +255,7 @@ export async function enqueueLinksByClickingElements(
     );
 
     if (onSkippedRequest && skippedByFilters.length > 0) {
-        await Promise.all(skippedByFilters.map((url) => onSkippedRequest({ url, reason: 'filters' })));
+        await Promise.all(skippedByFilters.map(async (url) => onSkippedRequest({ url, reason: 'filters' })));
     }
 
     if (transformRequestFunction) {
@@ -264,12 +264,14 @@ export async function enqueueLinksByClickingElements(
             skippedByTransform.push(r),
         );
         if (onSkippedRequest && skippedByTransform.length > 0) {
-            await Promise.all(skippedByTransform.map((r) => onSkippedRequest({ url: r.url, reason: 'transform' })));
+            await Promise.all(
+                skippedByTransform.map(async (r) => onSkippedRequest({ url: r.url, reason: 'transform' })),
+            );
         }
     }
 
     const requests = filteredOptions.map((opts) => new CrawleeRequest(opts));
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+    const { addedRequests } = await requestManager.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }
@@ -497,9 +499,6 @@ async function waitForPageIdle({
 }: WaitForPageIdleOptions): Promise<void> {
     return new Promise<void>((resolve) => {
         let timeout: NodeJS.Timeout;
-        let maxTimeout: NodeJS.Timeout;
-
-        page.on('popup', activityHandler);
 
         function activityHandler() {
             clearTimeout(timeout);
@@ -522,7 +521,8 @@ async function waitForPageIdle({
             resolve();
         }
 
-        maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
+        const maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
+        page.on('popup', activityHandler);
         activityHandler(); // We call this once manually in case there would be no requests at all.
         page.on('request', activityHandler);
         page.on('framenavigated', activityHandler);

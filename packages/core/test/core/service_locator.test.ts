@@ -7,7 +7,8 @@ import {
     ServiceLocator,
     serviceLocator,
 } from '@crawlee/core';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
     const logger: CrawleeLogger = {
@@ -23,7 +24,7 @@ function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
         debug: () => {},
         perf: () => {},
         deprecated: () => {},
-        internal: () => {},
+        logWithLevel: () => {},
         ...overrides,
     };
     return logger;
@@ -132,11 +133,11 @@ describe('ServiceLocator', () => {
     describe('StorageClient', () => {
         test('default storage client', () => {
             const defaultStorageClient = serviceLocator.getStorageClient();
-            expect(defaultStorageClient).toBeInstanceOf(MemoryStorage);
+            expect(defaultStorageClient).toBeInstanceOf(FileSystemStorageClient);
         });
 
         test('custom storage client', () => {
-            const customStorageClient = new MemoryStorage();
+            const customStorageClient = new MemoryStorageClient();
             serviceLocator.setStorageClient(customStorageClient);
             const storageClient = serviceLocator.getStorageClient();
 
@@ -144,10 +145,10 @@ describe('ServiceLocator', () => {
         });
 
         test('storage client overwrite not possible', () => {
-            const customStorageClient = new MemoryStorage();
+            const customStorageClient = new MemoryStorageClient();
             serviceLocator.setStorageClient(customStorageClient);
 
-            const anotherCustomStorageClient = new MemoryStorage();
+            const anotherCustomStorageClient = new MemoryStorageClient();
 
             expect(() => {
                 serviceLocator.setStorageClient(anotherCustomStorageClient);
@@ -158,7 +159,7 @@ describe('ServiceLocator', () => {
             // Retrieve storage client first
             serviceLocator.getStorageClient();
 
-            const customStorageClient = new MemoryStorage();
+            const customStorageClient = new MemoryStorageClient();
 
             expect(() => {
                 serviceLocator.setStorageClient(customStorageClient);
@@ -205,6 +206,17 @@ describe('ServiceLocator', () => {
             }).toThrow(/Logger is already in use/);
         });
 
+        test('setting logger after getStorageClient throws ServiceConflictError (logger already locked)', () => {
+            // getStorageClient() implicitly calls getLogger(), locking the logger
+            serviceLocator.getStorageClient();
+
+            const customLogger = makeMockLogger();
+
+            expect(() => {
+                serviceLocator.setLogger(customLogger);
+            }).toThrow(ServiceConflictError);
+        });
+
         test('reset clears the logger', () => {
             const customLogger = makeMockLogger();
             serviceLocator.setLogger(customLogger);
@@ -227,7 +239,7 @@ describe('ServiceLocator', () => {
                 persistStateIntervalMillis: 1000,
                 systemInfoIntervalMillis: 1000,
             });
-            const customStorageClient = new MemoryStorage();
+            const customStorageClient = new MemoryStorageClient();
 
             serviceLocator.setConfiguration(customConfig);
             serviceLocator.setEventManager(customEventManager);
@@ -276,7 +288,7 @@ describe('ServiceLocator', () => {
         });
 
         test('setting same storage client instance is allowed', () => {
-            const storageClient = new MemoryStorage();
+            const storageClient = new MemoryStorageClient();
             serviceLocator.setStorageClient(storageClient);
             serviceLocator.getStorageClient();
 
@@ -331,7 +343,7 @@ describe('ServiceLocator', () => {
     describe('Per-crawler ServiceLocator', () => {
         test('creating separate service locator for crawler', () => {
             const crawlerConfig = new Configuration({ headless: false });
-            const crawlerStorage = new MemoryStorage();
+            const crawlerStorage = new MemoryStorageClient();
             const crawlerEvents = new LocalEventManager({
                 persistStateIntervalMillis: 1000,
                 systemInfoIntervalMillis: 1000,

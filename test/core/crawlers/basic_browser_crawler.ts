@@ -1,4 +1,4 @@
-import type { PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { PuppeteerPlugin } from '@crawlee/browser-pool';
 import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
@@ -6,21 +6,19 @@ import type {
     PuppeteerGoToOptions,
 } from '@crawlee/puppeteer';
 import { BrowserCrawler } from '@crawlee/puppeteer';
+import type { Dictionary } from '@crawlee/types';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 
-export type TestCrawlingContext = BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController>;
+export type TestCrawlingContext = BrowserCrawlingContext<Page, HTTPResponse, Dictionary>;
 
 export class BrowserCrawlerTest extends BrowserCrawler<
     Page,
     HTTPResponse,
-    PuppeteerController,
     { browserPlugins: [PuppeteerPlugin] },
     LaunchOptions,
     TestCrawlingContext
 > {
-    constructor(
-        options: Partial<BrowserCrawlerOptions<Page, HTTPResponse, PuppeteerController, TestCrawlingContext>> = {},
-    ) {
+    constructor(options: Partial<BrowserCrawlerOptions<Page, HTTPResponse, TestCrawlingContext>> = {}) {
         super({
             ...options,
             contextPipelineBuilder: () => this.buildContextPipeline(),

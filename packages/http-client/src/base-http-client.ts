@@ -1,11 +1,38 @@
-import type { BaseHttpClient as BaseHttpClientInterface, SendRequestOptions } from '@crawlee/types';
+import type {
+    BaseHttpClient as BaseHttpClientInterface,
+    CrawleeLogger,
+    SendRequestOptions,
+    SessionFingerprint,
+} from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 
-import type { Log } from '@apify/log';
-import defaultLog from '@apify/log';
-
+/**
+ * Per-request options handed to a concrete client's `fetch` implementation.
+ */
 export interface CustomFetchOptions {
+    /**
+     * Effective proxy URL for this request. `sendRequest` populates this from
+     * the explicit `SendRequestOptions.proxyUrl` override when set, falling back
+     * to `session.proxyInfo.url`.
+     */
     proxyUrl?: string;
+
+    /**
+     * Effective cookie jar for this request. `sendRequest` populates this from
+     * the explicit `SendRequestOptions.cookieJar` override when set, falling
+     * back to `session.cookieJar` (or a fresh jar when neither is provided).
+     */
+    cookieJar?: CookieJar;
+
+    /**
+     * Hints about which browser-like setup this request should be impersonating —
+     * `browser`, `platform`, `device`, and an opaque `details` slot for richer
+     * payloads (e.g. a full browser fingerprint from `fingerprint-generator`).
+     * These are *suggestions*, not requirements: each client applies what it can
+     * (e.g. impit maps `browser` to its impersonation profile) and ignores the
+     * rest on a best-effort basis. Sourced from `SendRequestOptions.session.fingerprint`.
+     */
+    fingerprint?: SessionFingerprint;
 }
 
 /**
@@ -14,10 +41,10 @@ export interface CustomFetchOptions {
  * implement only the low-level network call in `fetch`.
  */
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
-    protected log: Log;
+    protected log?: CrawleeLogger;
 
-    constructor(log?: Log) {
-        this.log = log ?? defaultLog;
+    constructor(options?: { logger?: CrawleeLogger }) {
+        this.log = options?.logger;
     }
 
     /**
@@ -28,16 +55,36 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
 
     private async applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
         try {
-            const cookies = (await cookieJar.getCookies(request.url))
-                .map((x) => x.cookieString().trim())
-                .filter(Boolean);
+            const requestCookies = request.headers.get('cookie') ?? '';
 
-            if (cookies?.length > 0) {
-                request.headers.set('cookie', cookies.join('; '));
+            if (!requestCookies) {
+                // Fast path: no header cookies, use the jar directly.
+                const cookieString = await cookieJar.getCookieString(request.url);
+                if (cookieString) {
+                    request.headers.set('cookie', cookieString);
+                }
+                return request;
+            }
+
+            // Merge jar cookies with request Cookie header. Clone the jar so we
+            // don't persist the header-only cookies into the session.
+            const merged = await cookieJar.clone();
+
+            await Promise.all(
+                requestCookies
+                    .split(/; */)
+                    .filter(Boolean)
+                    .map((pair) => merged.setCookie(pair, request.url)),
+            );
+            const cookieString = merged.getCookieStringSync(request.url);
+
+            if (cookieString) {
+                request.headers.set('cookie', cookieString);
             }
         } catch (e) {
-            this.log.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
+            this.log?.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }
+
         return request;
     }
 
@@ -48,7 +95,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             try {
                 await cookieJar.setCookie(header, response.url);
             } catch (e) {
-                this.log.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
+                this.log?.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
             }
         }
     }
@@ -57,11 +104,17 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         proxyUrl?: string;
         cookieJar: CookieJar;
         signal?: AbortSignal;
+        fingerprint?: SessionFingerprint;
     } {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
         const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
-        return { proxyUrl, cookieJar: cookieJar as CookieJar, signal };
+        return {
+            proxyUrl,
+            cookieJar: cookieJar as CookieJar,
+            signal,
+            fingerprint: options?.session?.fingerprint,
+        };
     }
 
     private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
@@ -118,7 +171,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal } = this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint } = this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
@@ -127,6 +180,8 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             const response = await this.fetch(currentRequest, {
                 signal,
                 proxyUrl,
+                cookieJar,
+                fingerprint,
                 redirect: 'manual',
             });
 

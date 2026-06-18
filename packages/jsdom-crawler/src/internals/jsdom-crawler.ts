@@ -6,14 +6,15 @@ import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
+    IRequestManager,
     RequestHandler,
-    RequestProvider,
     RouterRoutes,
     SkippedRequestCallback,
 } from '@crawlee/http';
 import {
     enqueueLinks,
     HttpCrawler,
+    NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     tryAbsoluteURL,
@@ -119,13 +120,15 @@ export type JSDOMRequestHandler<
  * and then invokes the user-provided {@apilink JSDOMCrawlerOptions.requestHandler} to extract page data
  * using the `window` object.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink JSDOMCrawlerOptions.requestList}
- * or {@apilink JSDOMCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink JSDOMCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink JSDOMCrawlerOptions.requestList} and {@apilink JSDOMCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink JSDOMCrawlerOptions.requestList|`requestList`} and {@apilink JSDOMCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
@@ -249,79 +252,109 @@ export class JSDOMCrawler<
     private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', { error });
 
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
-        const isXml = crawlingContext.contentType.type.includes('xml');
+        try {
+            const isXml = crawlingContext.contentType.type.includes('xml');
 
-        // TODO handle non-string
-        const { window } = new JSDOM(crawlingContext.body.toString(), {
-            url: crawlingContext.response.url,
-            contentType: isXml ? 'text/xml' : 'text/html',
-            runScripts: this.runScripts ? 'dangerously' : undefined,
-            resources,
-            virtualConsole: this.getVirtualConsole(),
-            pretendToBeVisual: true,
-        });
+            // TODO handle non-string
+            const { window } = new JSDOM(crawlingContext.body.toString(), {
+                url: crawlingContext.response.url,
+                contentType: isXml ? 'text/xml' : 'text/html',
+                runScripts: this.runScripts ? 'dangerously' : undefined,
+                resources,
+                virtualConsole: this.getVirtualConsole(),
+                pretendToBeVisual: true,
+            });
 
-        // add some stubs in place of missing API so processing won't fail
-        Object.defineProperty(window, 'matchMedia', {
-            writable: true,
-            value: (query: unknown): any => ({
-                matches: false,
-                media: query,
-                onchange: null,
-                addListener: () => {},
-                removeListener: () => {},
-                addEventListener: () => {},
-                removeEventListener: () => {},
-                dispatchEvent: () => {},
-            }),
-        });
-        window.document.createRange = () => {
-            const range = new window.Range();
-            range.getBoundingClientRect = () => ({}) as any;
-            range.getClientRects = () => ({ item: () => null as any, length: 0 }) as any;
-            return range;
-        };
+            // add some stubs in place of missing API so processing won't fail
+            Object.defineProperty(window, 'matchMedia', {
+                writable: true,
+                value: (query: unknown): any => ({
+                    matches: false,
+                    media: query,
+                    onchange: null,
+                    addListener: () => {},
+                    removeListener: () => {},
+                    addEventListener: () => {},
+                    removeEventListener: () => {},
+                    dispatchEvent: () => {},
+                }),
+            });
+            window.document.createRange = () => {
+                const range = new window.Range();
+                range.getBoundingClientRect = () => ({}) as any;
+                range.getClientRects = () => ({ item: () => null as any, length: 0 }) as any;
+                return range;
+            };
 
-        if (this.runScripts) {
-            try {
-                await addTimeoutToPromise(
-                    async () => {
-                        return new Promise<void>((resolve) => {
-                            window.addEventListener(
-                                'load',
-                                () => {
-                                    resolve();
-                                },
-                                false,
-                            );
-                        }).catch();
-                    },
-                    10_000,
-                    'Window.load event not fired after 10 seconds.',
-                ).catch();
-            } catch (e) {
-                this.log.debug((e as Error).message);
+            if (this.runScripts) {
+                try {
+                    await addTimeoutToPromise(
+                        async () => {
+                            return new Promise<void>((resolve) => {
+                                window.addEventListener(
+                                    'load',
+                                    () => {
+                                        resolve();
+                                    },
+                                    false,
+                                );
+                            }).catch();
+                        },
+                        10_000,
+                        'Window.load event not fired after 10 seconds.',
+                    ).catch();
+                } catch (e) {
+                    this.log.debug((e as Error).message);
+                }
             }
-        }
 
-        return {
-            window,
-            get body() {
-                return window.document.documentElement.outerHTML;
-            },
-            get document() {
-                return window.document;
-            },
-        };
+            return {
+                window,
+                get body() {
+                    return window.document.documentElement.outerHTML;
+                },
+                get document() {
+                    return window.document;
+                },
+            };
+        } catch (err) {
+            if (err instanceof NavigationSkippedError) {
+                return {
+                    get window(): DOMWindow {
+                        throw new NavigationSkippedError(
+                            'The `window` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                    get body(): string {
+                        throw new NavigationSkippedError(
+                            'The `body` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                    get document(): Document {
+                        throw new NavigationSkippedError(
+                            'The `document` property is not available - `skipNavigation` was used',
+                            { cause: err },
+                        );
+                    },
+                };
+            }
+
+            throw err;
+        }
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: DOMWindow }) {
         return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return domCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    options: {
+                        ...enqueueOptions,
+                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
+                    },
                     window: crawlingContext.window,
-                    requestQueue: await this.getRequestQueue(),
+                    requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
@@ -357,7 +390,7 @@ export class JSDOMCrawler<
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: DOMWindow | null;
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
     robotsTxtFile?: RobotsTxtFile;
     onSkippedRequest?: SkippedRequestCallback;
     originalRequestUrl: string;
@@ -409,7 +442,7 @@ export async function domCrawlerEnqueueLinks(options: EnqueueLinksInternalOption
     }
 
     return enqueueLinks({
-        requestQueue: options.requestQueue,
+        requestManager: options.requestManager,
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,

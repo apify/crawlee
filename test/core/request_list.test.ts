@@ -9,7 +9,7 @@ import {
     serviceLocator,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
 
 import log from '@apify/log';
@@ -79,7 +79,7 @@ describe('RequestList', () => {
         expect(await requestList.isFinished()).toBe(false);
         expect(await requestList.fetchNextRequest()).toBe(null);
 
-        await requestList.markRequestHandled(req!);
+        await requestList.markRequestAsHandled(req!);
 
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(true);
@@ -93,8 +93,7 @@ describe('RequestList', () => {
         await expect(requestList.isEmpty()).rejects.toThrow();
         await expect(requestList.isFinished()).rejects.toThrow();
         expect(() => requestList.getState()).toThrowError();
-        await expect(requestList.markRequestHandled(requestObj)).rejects.toThrow();
-        await expect(requestList.reclaimRequest(requestObj)).rejects.toThrow();
+        await expect(requestList.markRequestAsHandled(requestObj)).rejects.toThrow();
         await expect(requestList.fetchNextRequest()).rejects.toThrow();
 
         await requestList.initialize();
@@ -103,9 +102,7 @@ describe('RequestList', () => {
         await expect(requestList.isFinished()).resolves.not.toThrow();
         expect(() => requestList.getState()).not.toThrowError();
         await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
-        await expect(requestList.reclaimRequest(requestObj)).resolves.not.toThrow();
-        await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
-        await expect(requestList.markRequestHandled(requestObj)).resolves.not.toThrow();
+        await expect(requestList.markRequestAsHandled(requestObj)).resolves.not.toThrow();
     });
 
     test('should correctly initialize itself', async () => {
@@ -125,16 +122,17 @@ describe('RequestList', () => {
 
         const r1 = await originalList.fetchNextRequest(); // 1
         const r2 = await originalList.fetchNextRequest(); // 2
-        await originalList.fetchNextRequest(); // 3
+        await originalList.fetchNextRequest(); // 3 - left in progress
         const r4 = await originalList.fetchNextRequest(); // 4
-        const r5 = await originalList.fetchNextRequest(); // 5
-        await originalList.fetchNextRequest(); // 6
+        await originalList.fetchNextRequest(); // 5 - left in progress
+        await originalList.fetchNextRequest(); // 6 - left in progress
 
-        await originalList.markRequestHandled(r1!);
-        await originalList.markRequestHandled(r2!);
-        await originalList.markRequestHandled(r4!);
-        await originalList.reclaimRequest(r5!);
+        await originalList.markRequestAsHandled(r1!);
+        await originalList.markRequestAsHandled(r2!);
+        await originalList.markRequestAsHandled(r4!);
 
+        // Requests 3, 5 and 6 were in progress when the state was persisted, so they must be
+        // re-crawled (before the remaining, never-fetched requests 7 and 8).
         const newList = await RequestList.open({
             sources: sourcesCopy,
             state: originalList.getState(),
@@ -286,180 +284,46 @@ describe('RequestList', () => {
         expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
     });
 
-    test('should correctly handle reclaimed pages', async () => {
+    test('tracks in-progress requests through the crawl lifecycle', async () => {
         const requestList = await RequestList.open({
             sources: [
                 { url: 'https://example.com/1' },
                 { url: 'https://example.com/2' },
                 { url: 'https://example.com/3' },
-                { url: 'https://example.com/4' },
-                { url: 'https://example.com/5' },
-                { url: 'https://example.com/6' },
             ],
         });
-
-        //
-        // Fetch first 5 urls
-        //
 
         const request1 = await requestList.fetchNextRequest();
         const request2 = await requestList.fetchNextRequest();
-        const request3 = await requestList.fetchNextRequest();
-        const request4 = await requestList.fetchNextRequest();
-        const request5 = await requestList.fetchNextRequest();
 
         expect(request1!.url).toBe('https://example.com/1');
         expect(request2!.url).toBe('https://example.com/2');
+        expect(requestList.getState()).toEqual({
+            inProgress: ['https://example.com/1', 'https://example.com/2'],
+            nextIndex: 2,
+            nextUniqueKey: 'https://example.com/3',
+        });
+        expect(await requestList.isEmpty()).toBe(false);
+        expect(await requestList.isFinished()).toBe(false);
+        expect(requestList.inProgress.size).toBe(2);
+
+        await requestList.markRequestAsHandled(request1!);
+        await requestList.markRequestAsHandled(request2!);
+
+        expect(requestList.getState()).toEqual({
+            inProgress: [],
+            nextIndex: 2,
+            nextUniqueKey: 'https://example.com/3',
+        });
+
+        const request3 = await requestList.fetchNextRequest();
         expect(request3!.url).toBe('https://example.com/3');
-        expect(request4!.url).toBe('https://example.com/4');
-        expect(request5!.url).toBe('https://example.com/5');
-        expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/1',
-                'https://example.com/2',
-                'https://example.com/3',
-                'https://example.com/4',
-                'https://example.com/5',
-            ],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress.size).toBe(5);
-        expect(requestList.reclaimed.size).toBe(0);
-
-        //
-        // Mark 1st, 2nd handled
-        // Reclaim 3rd 4th
-        //
-
-        await requestList.markRequestHandled(request1!);
-        await requestList.markRequestHandled(request2!);
-        await requestList.reclaimRequest(request3!);
-        await requestList.reclaimRequest(request4!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/3', 'https://example.com/4', 'https://example.com/5'],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Mark 5th handled
-        //
-
-        await requestList.markRequestHandled(request5!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/3', 'https://example.com/4'],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Fetch 3rd and 4th
-        // Mark 4th handled
-        //
-
-        const reclaimed3 = await requestList.fetchNextRequest();
-        expect(reclaimed3!.url).toBe('https://example.com/3');
-        const reclaimed4 = await requestList.fetchNextRequest();
-        expect(reclaimed4!.url).toBe('https://example.com/4');
-        await requestList.markRequestHandled(request4!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/3'],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Mark 3rd handled
-        //
-
-        await requestList.markRequestHandled(request3!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: [],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Fetch 6th
-        //
-
-        const request6 = await requestList.fetchNextRequest();
-
-        expect(request6!.url).toBe('https://example.com/6');
         expect(await requestList.fetchNextRequest()).toBe(null);
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/6'],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
-        //
-        // Reclaim 6th
-        //
-
-        await requestList.reclaimRequest(request6!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/6'],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Fetch 6th
-        //
-
-        const reclaimed6 = await requestList.fetchNextRequest();
-
-        expect(reclaimed6!.url).toBe('https://example.com/6');
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/6'],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
-        expect(await requestList.isEmpty()).toBe(true);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Mark 6th handled
-        //
-
-        await requestList.markRequestHandled(reclaimed6!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: [],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
-        expect(await requestList.isEmpty()).toBe(true);
+        await requestList.markRequestAsHandled(request3!);
         expect(await requestList.isFinished()).toBe(true);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
     });
 
     test('should correctly persist its state when persistStateKey is set', async () => {
@@ -483,7 +347,7 @@ describe('RequestList', () => {
         expect(requestList.isStatePersisted).toBe(true);
 
         // Fetch one request and check that state is not persisted.
-        const request1 = await requestList.fetchNextRequest();
+        await requestList.fetchNextRequest();
         expect(requestList.isStatePersisted).toBe(false);
 
         // Persist state.
@@ -495,15 +359,11 @@ describe('RequestList', () => {
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
         expect(requestList.isStatePersisted).toBe(false);
-        await requestList.markRequestHandled(request2!);
+        await requestList.markRequestAsHandled(request2!);
         expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
-
-        // Reclaim event doesn't change the state.
-        await requestList.reclaimRequest(request1!);
         expect(requestList.isStatePersisted).toBe(true);
 
         // Now initiate new request list from saved state and check that it's same as state
@@ -619,7 +479,7 @@ describe('RequestList', () => {
         reqs = shuffle(reqs) as typeof reqs;
 
         for (let i = 0; i < reqs.length; i++) {
-            await requestList.reclaimRequest(reqs[i]);
+            await requestList.markRequestAsHandled(reqs[i]);
         }
     });
 
@@ -636,7 +496,7 @@ describe('RequestList', () => {
             sources,
         });
 
-        expect(requestList.length()).toBe(4);
+        await expect(requestList.getTotalCount()).resolves.toBe(4);
     });
 
     test('it gets correct handledCount()', async () => {
@@ -652,19 +512,16 @@ describe('RequestList', () => {
             sources,
         });
 
-        const req1 = await requestList.fetchNextRequest();
+        await requestList.fetchNextRequest();
         const req2 = await requestList.fetchNextRequest();
         const req3 = await requestList.fetchNextRequest();
-        expect(requestList.handledCount()).toBe(0);
+        expect(await requestList.getHandledCount()).toBe(0);
 
-        await requestList.markRequestHandled(req2!);
-        expect(requestList.handledCount()).toBe(1);
+        await requestList.markRequestAsHandled(req2!);
+        expect(await requestList.getHandledCount()).toBe(1);
 
-        await requestList.markRequestHandled(req3!);
-        expect(requestList.handledCount()).toBe(2);
-
-        await requestList.reclaimRequest(req1!);
-        expect(requestList.handledCount()).toBe(2);
+        await requestList.markRequestAsHandled(req3!);
+        expect(await requestList.getHandledCount()).toBe(2);
     });
 
     test('should correctly keep duplicate URLs while keepDuplicateUrls is set', async () => {
@@ -681,7 +538,7 @@ describe('RequestList', () => {
             keepDuplicateUrls: true,
         });
 
-        expect(requestList.length()).toBe(4);
+        await expect(requestList.getTotalCount()).resolves.toBe(4);
 
         log.setLevel(log.LEVELS.INFO);
         const warnSpy = vitest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -696,7 +553,7 @@ describe('RequestList', () => {
             keepDuplicateUrls: true,
         });
 
-        expect(requestList.length()).toBe(6);
+        await expect(requestList.getTotalCount()).resolves.toBe(6);
         expect(warnSpy).toBeCalled();
         expect(warnSpy.mock.calls[0][0]).toMatch(`Check your sources' unique keys.`);
 
@@ -812,15 +669,15 @@ describe('RequestList', () => {
                 } catch (err) {
                     const e = err as Error;
                     expect(e.message).not.toBe('wrong error');
-                    if (e.message.match('argument to be of type `string`')) {
+                    if (/argument to be of type `string`/.exec(e.message)) {
                         expect(e.message).toMatch('received type `undefined`');
-                    } else if (e.message.match('argument to be of type `array`')) {
+                    } else if (/argument to be of type `array`/.exec(e.message)) {
                         const isMatched =
-                            e.message.match('received type `Object`') ||
-                            e.message.match('received type `number`') ||
-                            e.message.match('received type `undefined`');
+                            /received type `Object`/.exec(e.message) ||
+                            /received type `number`/.exec(e.message) ||
+                            /received type `undefined`/.exec(e.message);
                         expect(isMatched).toBeTruthy();
-                    } else if (e.message.match('argument to be of type `null`')) {
+                    } else if (/argument to be of type `null`/.exec(e.message)) {
                         expect(e.message).toMatch('received type `undefined`');
                     }
                 }
