@@ -38,13 +38,18 @@ export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {}
 export interface PuppeteerCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
 > extends BrowserCrawlerOptions<
     Page,
     HTTPResponse,
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [PuppeteerPlugin] }
+    { browserPlugins: [PuppeteerPlugin] },
+    Routes
 > {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
@@ -156,6 +161,10 @@ export interface PuppeteerCrawlerOptions<
 export class PuppeteerCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
@@ -163,7 +172,8 @@ export class PuppeteerCrawler<
     LaunchOptions,
     PuppeteerCrawlingContext,
     ContextExtension,
-    ExtendedContext
+    ExtendedContext,
+    Routes
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -173,7 +183,7 @@ export class PuppeteerCrawler<
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
+    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {

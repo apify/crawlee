@@ -250,13 +250,18 @@ export interface StagehandRequestHandler extends RequestHandler<LoadedContext<St
 export interface StagehandCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<StagehandCrawlingContext['request']>
+    >,
 > extends BrowserCrawlerOptions<
     StagehandPage,
     Response,
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [StagehandPlugin] }
+    { browserPlugins: [StagehandPlugin] },
+    Routes
 > {
     /**
      * Stagehand-specific configuration options.
@@ -313,7 +318,7 @@ export interface StagehandCrawlerOptions<
      * }
      * ```
      */
-    requestHandler?: StagehandRequestHandler;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | StagehandRequestHandler;
 
     /**
      * Async functions that are sequentially evaluated before the navigation.
@@ -378,6 +383,10 @@ export interface StagehandCrawlerOptions<
 export class StagehandCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<StagehandCrawlingContext['request']>
+    >,
 > extends BrowserCrawler<
     StagehandPage,
     Response,
@@ -385,7 +394,8 @@ export class StagehandCrawler<
     LaunchOptions,
     StagehandCrawlingContext,
     ContextExtension,
-    ExtendedContext
+    ExtendedContext,
+    Routes
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -398,7 +408,7 @@ export class StagehandCrawler<
      *
      * @param options - Crawler configuration options
      */
-    constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
+    constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         ow(options, 'StagehandCrawlerOptions', ow.object.exactShape(StagehandCrawler.optionsShape));
 
         const { stagehandOptions = {}, launchContext = {}, contextPipelineBuilder, ...browserCrawlerOptions } = options;

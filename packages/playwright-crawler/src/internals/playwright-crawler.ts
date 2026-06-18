@@ -38,13 +38,18 @@ export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {
 export interface PlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
+    >,
 > extends BrowserCrawlerOptions<
     Page,
     Response,
     PlaywrightCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [PlaywrightPlugin] }
+    { browserPlugins: [PlaywrightPlugin] },
+    Routes
 > {
     /**
      * The same options as used by {@apilink launchPlaywright}.
@@ -73,7 +78,7 @@ export interface PlaywrightCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage} function.
      */
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -180,6 +185,10 @@ export interface PlaywrightCrawlerOptions<
 export class PlaywrightCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
+    >,
 > extends BrowserCrawler<
     Page,
     Response,
@@ -187,7 +196,8 @@ export class PlaywrightCrawler<
     LaunchOptions,
     PlaywrightCrawlingContext,
     ContextExtension,
-    ExtendedContext
+    ExtendedContext,
+    Routes
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -200,7 +210,7 @@ export class PlaywrightCrawler<
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(options: PlaywrightCrawlerOptions<ExtendedContext> = {}) {
+    constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;

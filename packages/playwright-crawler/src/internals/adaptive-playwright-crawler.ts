@@ -171,8 +171,17 @@ interface AdaptivePostNavigationHook extends BrowserHook<
 
 export interface AdaptivePlaywrightCrawlerOptions<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
+    >,
 > extends Omit<
-    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
+    BasicCrawlerOptions<
+        AdaptivePlaywrightCrawlerContext,
+        ExtendedContext,
+        AdaptivePlaywrightCrawlerContext & ExtendedContext,
+        Routes
+    >,
     'preNavigationHooks' | 'postNavigationHooks'
 > {
     /**
@@ -278,7 +287,16 @@ type LogProxyCall = [log: CrawleeLogger, method: (typeof proxyLogMethods)[number
  */
 export class AdaptivePlaywrightCrawler<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
-> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
+    >,
+> extends BasicCrawler<
+    AdaptivePlaywrightCrawlerContext,
+    ExtendedContext,
+    AdaptivePlaywrightCrawlerContext & ExtendedContext,
+    Routes
+> {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
@@ -292,7 +310,7 @@ export class AdaptivePlaywrightCrawler<
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
-    constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {}) {
+    constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext, Routes> = {}) {
         const {
             requestHandler,
             renderingTypeDetectionRatio = 0.1,
