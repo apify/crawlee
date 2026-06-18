@@ -22,7 +22,7 @@ await Actor.main(async () => {
             await Dataset.pushData({ url, loadedUrl, pageTitle });
 
             await enqueueLinks({
-                globs: [
+                include: [
                     'https://www.jamesallen.com/about-us/**',
                     'https://www.jamesallen.com/terms-of-use/**',
                     'https://www.jamesallen.com/guarantee/**',
