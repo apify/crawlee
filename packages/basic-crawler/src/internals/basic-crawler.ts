@@ -55,7 +55,7 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS, sleep } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import ow, { ArgumentError } from 'ow';
@@ -1082,13 +1082,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             periodicLogger.stop();
-            // Don't await, we don't want to block the execution
-            void this.setStatusMessage(
-                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                    this.stats.state.requestsFinished
-                } succeeded, ${this.stats.state.requestsFailed} failed.`,
-                { isStatusMessageTerminal: true, level: 'INFO' },
-            );
+            // Give the event loop a single tick to flush the HTTP
+            // 1ms is enough because we already have a keep-alive connection to the API
+            await Promise.race([
+                this.setStatusMessage(
+                    `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
+                        this.stats.state.requestsFinished
+                    } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                    { isStatusMessageTerminal: true, level: 'INFO' },
+                ),
+                sleep(1),
+            ]);
 
             this.running = false;
             this.hasFinishedBefore = true;
