@@ -11,7 +11,7 @@
         "playwright": "1.60.0"
     },
     "devDependencies": {
-        "@apify/tsconfig": "^0.1.0",
+        "@apify/tsconfig": "^0.2.0",
         "@types/fs-extra": "^11",
         "@types/node": "^24.0.0",
         "fs-extra": "^11.3.0",
