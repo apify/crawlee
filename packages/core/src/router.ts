@@ -162,10 +162,11 @@ export class Router<
     }
 
     /**
-     * Registers default route handler. By default `request.userData` is typed as the union of all
-     * `userData` shapes declared in the router's route map.
+     * Registers default route handler. As a fallback it can receive any request (including labels not
+     * declared in the route map), so `request.userData` defaults to the context's `userData` type
+     * (loosely typed by default). Pass an explicit `UserData` type argument to narrow it.
      */
-    addDefaultHandler<UserData extends Dictionary = Routes[keyof Routes]>(
+    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
     ) {
         this.validate(defaultRoute);

@@ -184,6 +184,6 @@ router.addHandler('CATEGORY', async ({ request }) => {
 router.addHandler('TYPO', async () => {});
 ```
 
-The default handler registered via `addDefaultHandler` receives the union of all declared `userData` shapes.
+The default handler registered via `addDefaultHandler` is a fallback for any request (including labels not in the map), so its `request.userData` stays loosely typed (`Record<string, unknown>` by default) — pass an explicit type argument to narrow it.
 
 This is a compile-time-only feature with **no runtime cost**, and it is fully backwards compatible — omitting the route map keeps the original loose typing, and passing a plain `userData` shape (e.g. `createCheerioRouter<CheerioCrawlingContext, { token: string }>()`) still types every handler with that shape, exactly as before.

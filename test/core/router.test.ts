@@ -205,8 +205,8 @@ describe('Router', () => {
         router.addHandler('UNKNOWN', () => {});
 
         router.addDefaultHandler((ctx) => {
-            // the default handler receives the union of all declared userData shapes
-            testType<{ sku: string; price: number } | { categoryId: string }>(ctx.request.userData);
+            // the default handler is a fallback for any request, so userData stays loosely typed
+            testType<Record<string, unknown>>(ctx.request.userData);
         });
     });
 
