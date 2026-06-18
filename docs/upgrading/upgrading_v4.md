@@ -687,11 +687,26 @@ const storageClient = new FileSystemStorageClient();
 const inMemory = new MemoryStorageClient();
 ```
 
-The `localDataDirectory`, `persistStorage`, and `writeMetadata` options are still accepted by `MemoryStorageClient` for source compatibility, but they are ignored — in-memory storage has nowhere to write. `FileSystemStorageClient` honors `localDataDirectory` and `writeMetadata`; it always persists, so it has no `persistStorage` option.
+`MemoryStorageClient` no longer takes the `localDataDirectory`, `persistStorage`, or `writeMetadata` options — in-memory storage has nowhere to write, so they had no meaning. `FileSystemStorageClient` honors `localDataDirectory`; it always persists, so it has no `persistStorage` option, and the `writeMetadata` option has been removed there too (see [`writeMetadata` option removed](#writemetadata-option-removed)).
 
 ### No request lock expiry in `MemoryStorageClient`
 
 Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageClient`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageClient` keeps the lock-with-expiry behavior.)
+
+### `writeMetadata` option removed
+
+`FileSystemStorageClient` no longer accepts the `writeMetadata` option. The underlying file-system storage now always writes metadata files (`__metadata__.json` for each storage and a `<key>.__metadata__.json` sidecar for each key-value record), so the toggle no longer had any effect. Remove it from your storage client options:
+
+```diff
+ import { FileSystemStorageClient } from '@crawlee/fs-storage';
+
+ const storageClient = new FileSystemStorageClient({
+     localDataDirectory: './storage',
+-    writeMetadata: true,
+ });
+```
+
+`MemoryStorageClient` never accepted `writeMetadata` (it has no on-disk format to begin with), so there is nothing to change there.
 
 ## Multiple crawler instances use separate default request queues
 

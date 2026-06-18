@@ -1,11 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import type { KeyValueStoreRecord } from '@crawlee/types';
-import { ensureDir } from 'fs-extra/esm';
 
+// The storage is backed by the native `@crawlee/fs-storage-native` extension, which only serves
+// key-value records it has written itself (tracked via per-record metadata sidecars). The
+// `KeyValueStoreClient` adapter layers a fallback on top so that value files placed into the store
+// directory out-of-band — e.g. a hand-written or platform-provided `INPUT.json` — are still readable.
+// These tests pin both the store-identity metadata fallback and that bare-file fallback.
+//
+// The client is a plain byte transport: bare-file reads return the raw bytes plus a content type
+// inferred from the file extension; parsing those bytes is the `KeyValueStore` frontend's job. The
+// client only validates that an inferred-JSON body is parseable so that a malformed value can be
+// treated as a missing record.
 describe('fallback to fs for reading', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-fallback');
     const storage = new FileSystemStorageClient({
@@ -15,8 +24,8 @@ describe('fallback to fs for reading', () => {
     const expectedFsDate = new Date(2022, 0, 1);
 
     beforeAll(async () => {
-        // Create "default" key-value store and give it an entry
-        await ensureDir(resolve(storage.keyValueStoresDirectory, 'default'));
+        // "default" store: metadata file + a bare INPUT.json (no per-record metadata sidecar).
+        await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
         await writeFile(
             resolve(storage.keyValueStoresDirectory, 'default/__metadata__.json'),
             JSON.stringify({
@@ -32,19 +41,22 @@ describe('fallback to fs for reading', () => {
             JSON.stringify({ foo: 'bar but from fs' }),
         );
 
-        await ensureDir(resolve(storage.keyValueStoresDirectory, 'other'));
+        // "other" store: a bare INPUT.json with no store metadata file at all.
+        await mkdir(resolve(storage.keyValueStoresDirectory, 'other'), { recursive: true });
         await writeFile(
             resolve(storage.keyValueStoresDirectory, 'other/INPUT.json'),
             JSON.stringify({ foo: 'bar but from fs' }),
         );
 
-        await ensureDir(resolve(storage.keyValueStoresDirectory, 'no-ext'));
+        // "no-ext" store: a value file with no extension — loaded as raw text.
+        await mkdir(resolve(storage.keyValueStoresDirectory, 'no-ext'), { recursive: true });
         await writeFile(
             resolve(storage.keyValueStoresDirectory, 'no-ext/INPUT'),
             JSON.stringify({ foo: 'bar but from fs' }),
         );
 
-        await ensureDir(resolve(storage.keyValueStoresDirectory, 'invalid-json'));
+        // "invalid-json" store: a malformed INPUT.json — ignored.
+        await mkdir(resolve(storage.keyValueStoresDirectory, 'invalid-json'), { recursive: true });
         await writeFile(resolve(storage.keyValueStoresDirectory, 'invalid-json/INPUT.json'), '{');
     });
 
@@ -52,9 +64,7 @@ describe('fallback to fs for reading', () => {
         await rm(tmpLocation, { force: true, recursive: true });
     });
 
-    // POST INIT //
-
-    test('attempting to read "default" key value store with "__metadata__" present should read from fs', async () => {
+    test('reads store identity from the on-disk metadata, and a bare INPUT.json value', async () => {
         const defaultStore = await storage.createKeyValueStoreClient({ name: 'default' });
         const defaultStoreInfo = await defaultStore.getMetadata();
 
@@ -71,7 +81,7 @@ describe('fallback to fs for reading', () => {
         });
     });
 
-    test('attempting to read "other" key value store with no "__metadata__" present should read from fs, even if accessed without generating id first', async () => {
+    test('reads a bare INPUT.json even with no store metadata present', async () => {
         const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
 
         // Byte transport: raw bytes out, parsing is the frontend's job.
@@ -83,13 +93,13 @@ describe('fallback to fs for reading', () => {
         });
     });
 
-    test('attempting to read "default_2" key value store that has no data on disk should still be accessible after creation', async () => {
+    test('a store with no data on disk is still accessible after creation', async () => {
         const default2Store = await storage.createKeyValueStoreClient({ name: 'default_2' });
         const info = await default2Store.getMetadata();
         expect(info.name).toEqual('default_2');
     });
 
-    test('attempting to read "no-ext" key value store should load the missing extension file correctly', async () => {
+    test('loads a value file with no extension as raw bytes with a text content type', async () => {
         const noExtStore = await storage.createKeyValueStoreClient({ name: 'no-ext' });
 
         // Byte transport: the no-extension fallback also returns raw bytes now, not a decoded string.
@@ -101,10 +111,23 @@ describe('fallback to fs for reading', () => {
         });
     });
 
-    test('attempting to read "invalid-json" key value store should ignore the invalid "INPUT" json file', async () => {
+    test('ignores an invalid-JSON bare value file', async () => {
         const invalidJsonStore = await storage.createKeyValueStoreClient({ name: 'invalid-json' });
 
         const input = await invalidJsonStore.getValue('INPUT');
         expect(input).toBeUndefined();
+    });
+
+    test('bare files are visible to recordExists, getPublicUrl and listKeys', async () => {
+        const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
+
+        expect(await otherStore.recordExists('INPUT')).toBe(true);
+        expect(await otherStore.recordExists('does-not-exist')).toBe(false);
+
+        const url = await otherStore.getPublicUrl('INPUT');
+        expect(url).toMatch(/^file:\/\/.*INPUT\.json$/);
+
+        const keys = await otherStore.listKeys();
+        expect(keys.map((item) => item.key)).toContain('INPUT');
     });
 });

@@ -1,90 +1,118 @@
-import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type * as storage from '@crawlee/types';
+import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { scheduleBackgroundTask } from '../background-handler/index.js';
-import type { StorageImplementation } from '../fs/common.js';
-import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
-import type { FileSystemStorageClient } from '../index.js';
-import { isStream, toBuffer } from '../utils.js';
-import { BaseClient } from './common/base-client.js';
+import { isBodyParseable } from '../body-parser.js';
+import type { FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
+import { isStream } from '../utils.js';
 import mime from 'mime-types';
 
-const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
+const STORE_METADATA_FILENAME = '__metadata__.json';
+const RECORD_METADATA_SUFFIX = '.__metadata__.json';
+
+/** A value file present on disk that the native client does not track (no metadata sidecar). */
+interface BareFile {
+    /** The decoded record key. */
+    key: string;
+    /** Absolute path to the value file on disk. */
+    filePath: string;
+    /** Content type inferred from the file extension (defaults to `text/plain`). */
+    contentType: string;
+}
 
 export interface KeyValueStoreClientOptions {
-    name?: string;
-    id?: string;
-    /**
-     * The directory name to use on disk. When provided, takes precedence over `name` and `id`
-     * for the directory path. This allows alias-opened storages to have a directory name
-     * that differs from their metadata `name` (which is `undefined` for unnamed storages).
-     */
-    directoryName?: string;
-    baseStorageDirectory: string;
-    client: FileSystemStorageClient;
-}
-
-export interface InternalKeyRecord {
-    key: string;
-    value: Buffer | string;
-    contentType?: string;
-    extension: string;
-    filePath?: string;
-}
-
-export class KeyValueStoreClient extends BaseClient implements storage.KeyValueStoreClient {
+    /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
     /**
-     * The key used for directory naming and cache lookup. For named storages, this equals
-     * the name. For alias (unnamed) storages, this is the alias string. Falls back to id.
+     * The key used for cache lookup in {@link FileSystemStorageClient}. For named storages this equals
+     * the name; for alias (unnamed) storages it is the alias string. Falls back to the storage id.
      */
-    directoryName: string;
-    createdAt = new Date();
-    accessedAt = new Date();
-    modifiedAt = new Date();
-    keyValueStoreDirectory: string;
+    cacheKey: string;
+    nativeClient: NativeFileSystemKeyValueStoreClient;
+    logger?: CrawleeLogger;
+}
 
-    private readonly keyValueEntries = new Map<string, StorageImplementation<InternalKeyRecord>>();
-    private readonly client: FileSystemStorageClient;
+/**
+ * A file-system key-value store client backed by the native `@crawlee/fs-storage-native` Rust
+ * extension.
+ *
+ * The native client stores and returns raw bytes; this adapter is responsible for serializing
+ * arbitrary values into a `Buffer` on the way in ({@link KeyValueStoreClient.setValue}) and parsing
+ * them back into JS values on the way out ({@link KeyValueStoreClient.getValue}), preserving the
+ * historical content-type handling.
+ */
+export class KeyValueStoreClient implements storage.KeyValueStoreClient {
+    readonly name?: string;
+    readonly cacheKey: string;
+
+    private readonly nativeClient: NativeFileSystemKeyValueStoreClient;
+    private readonly logger?: CrawleeLogger;
+    private _cachedId!: string;
 
     constructor(options: KeyValueStoreClientOptions) {
-        super(options.id ?? randomUUID());
         this.name = options.name;
-        this.directoryName = options.directoryName ?? this.name ?? this.id;
-        this.keyValueStoreDirectory = resolve(options.baseStorageDirectory, this.directoryName);
-        this.client = options.client;
+        this.cacheKey = options.cacheKey;
+        this.nativeClient = options.nativeClient;
+        this.logger = options.logger;
+    }
+
+    /** The storage id assigned by the native client. */
+    get id(): string {
+        return this._cachedId;
+    }
+
+    get keyValueStoreDirectory(): string {
+        return this.nativeClient.pathToKvs;
+    }
+
+    static async create(options: KeyValueStoreClientOptions): Promise<KeyValueStoreClient> {
+        const client = new KeyValueStoreClient(options);
+        client._cachedId = (await options.nativeClient.getMetadata()).id;
+        return client;
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
-        this.updateTimestamps(false);
-        return this.toKeyValueStoreInfo();
+        const metadata = await this.nativeClient.getMetadata();
+        return {
+            id: metadata.id,
+            name: metadata.name ?? undefined,
+            accessedAt: new Date(metadata.accessedAt),
+            createdAt: new Date(metadata.createdAt),
+            modifiedAt: new Date(metadata.modifiedAt),
+            userId: '1',
+        };
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.client.keyValueStoreCache.findIndex((store) => store.id === this.id);
-
-        if (storeIndex !== -1) {
-            const [oldClient] = this.client.keyValueStoreCache.splice(storeIndex, 1);
-            oldClient.keyValueEntries.clear();
-
-            await rm(oldClient.keyValueStoreDirectory, { recursive: true, force: true });
-        }
+        await this.nativeClient.dropStorage();
     }
 
     async purge(): Promise<void> {
-        // Delete all entries
-        const entriesToDelete = [...this.keyValueEntries.entries()];
-        for (const [key, entry] of entriesToDelete) {
-            this.keyValueEntries.delete(key);
-            await entry.delete();
+        await this.nativeClient.purge();
+    }
+
+    /**
+     * Remove every record from the store except the run input (the `INPUT` key). Used by
+     * {@link FileSystemStorageClient.purge} to clean the default key-value store at the start of a run
+     * while preserving the run's input, matching the historical file-system storage behavior.
+     *
+     * The native client's `purge()` clears everything unconditionally, so we instead delete keys
+     * individually here.
+     */
+    async purgeExceptInput(): Promise<void> {
+        const keysToDelete: string[] = [];
+        const iterator = await this.nativeClient.iterateKeys();
+        for await (const record of iterator) {
+            if (record.key !== 'INPUT') {
+                keysToDelete.push(record.key);
+            }
         }
 
-        this.updateTimestamps(true);
+        await Promise.all(keysToDelete.map(async (key) => this.nativeClient.deleteValue(key)));
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreItemData[]> {
@@ -96,20 +124,27 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             })
             .parse(options);
 
-        const items: storage.KeyValueStoreItemData[] = [];
+        // The native iterator yields keys in lexical order and natively supports `exclusiveStartKey`
+        // and `limit`, but not `prefix`, and it does not throw for an unknown `exclusiveStartKey`.
+        // To preserve the historical semantics (prefix filtering and a hard error for a missing
+        // `exclusiveStartKey`), we collect the full key list and slice it here. We also merge in any
+        // untracked value files present on disk (native keys take precedence on collisions).
+        const itemsByKey = new Map<string, storage.KeyValueStoreItemData>();
 
-        for (const storageEntry of this.keyValueEntries.values()) {
-            const record = await storageEntry.get();
-
-            const size = Buffer.byteLength(record.value);
-            items.push({
-                key: record.key,
-                size,
-            });
+        for (const bareFile of await this.listBareFiles()) {
+            const size = await readFile(bareFile.filePath)
+                .then((buffer) => buffer.byteLength)
+                .catch(() => 0);
+            itemsByKey.set(bareFile.key, { key: bareFile.key, size });
         }
 
-        // Lexically sort to emulate API.
-        items.sort((a, b) => a.key.localeCompare(b.key));
+        const iterator = await this.nativeClient.iterateKeys();
+        for await (const record of iterator) {
+            itemsByKey.set(record.key, { key: record.key, size: record.size ?? 0 });
+        }
+
+        // Emulate the API: keys are returned in lexical order.
+        const items = [...itemsByKey.values()].sort((a, b) => a.key.localeCompare(b.key));
 
         let filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
 
@@ -128,62 +163,61 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             filteredItems = filteredItems.slice(0, limit);
         }
 
-        this.updateTimestamps(false);
-
         return filteredItems;
     }
 
     /**
      * Generates a public `file://` URL for accessing a specific record in the key-value store.
      *
-     * Returns `undefined` if the record does not exist or has no associated file path (i.e., it is not stored as a file).
+     * Returns `undefined` if the record does not exist.
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
         s.string().parse(key);
 
-        const storageEntry = await this.keyValueEntries.get(key)?.get();
+        // The native client builds the URL purely from the path and does not check existence, so we
+        // guard here to keep the historical `undefined`-for-missing contract.
+        if (await this.nativeClient.recordExists(key)) {
+            return this.nativeClient.getPublicUrl(key);
+        }
 
-        return storageEntry?.filePath ? pathToFileURL(storageEntry.filePath).href : undefined;
+        // Fall back to an untracked value file on disk.
+        const bareFile = await this.findBareFile(key);
+        return bareFile ? pathToFileURL(bareFile.filePath).href : undefined;
     }
 
     /**
-     * Tests whether a record with the given key exists in the key-value store without retrieving its value.
+     * Tests whether a record with the given key exists without retrieving its value.
      *
      * @param key The queried record key.
-     * @returns `true` if the record exists, `false` if it does not.
+     * @returns `true` if the record exists, `false` otherwise.
      */
     async recordExists(key: string): Promise<boolean> {
         s.string().parse(key);
-
-        return this.keyValueEntries.has(key);
+        if (await this.nativeClient.recordExists(key)) {
+            return true;
+        }
+        return (await this.findBareFile(key)) !== undefined;
     }
 
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
 
-        const storageEntry = this.keyValueEntries.get(key);
+        const record = await this.nativeClient.getValue(key);
 
-        if (!storageEntry) {
-            return undefined;
+        if (record) {
+            // Return raw bytes + verbatim content type. Parsing is the frontend's job (see the
+            // KeyValueStore codec); this client is a plain byte transport.
+            return {
+                key: record.key,
+                value: record.value,
+                contentType: record.contentType,
+            };
         }
 
-        const entry = await storageEntry.get();
-
-        // Return raw bytes + verbatim content type. Parsing is the frontend's job (see the
-        // KeyValueStore codec); this client is a plain byte transport. The mime fallback
-        // reconstructs the content type for on-disk records that lack one.
-        const record: storage.KeyValueStoreRecord = {
-            key: entry.key,
-            value: typeof entry.value === 'string' ? Buffer.from(entry.value, 'utf-8') : entry.value,
-            // mime.contentType returns `false` for unknown extensions; fall back to undefined so the
-            // frontend treats it as "no content type" rather than a bogus value.
-            contentType: entry.contentType ?? (mime.contentType(entry.extension) || undefined),
-        };
-
-        this.updateTimestamps(false);
-
-        return record;
+        // Fall back to a value file placed on disk out-of-band (e.g. a hand-written or
+        // platform-provided `INPUT.json`) that the native client does not track.
+        return this.readBareFile(key);
     }
 
     async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
@@ -196,7 +230,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
                 s.instance(Buffer),
                 s.instance(ArrayBuffer),
                 s.typedArray(),
-                // disabling validation will make shapeshift only check the object given is an actual object, not null, nor array
+                // disabling validation makes shapeshift only check the value is an actual object, not null nor array
                 s.object({}).setValidationEnabled(false),
             ]),
             contentType: s.string().lengthGreaterThan(0).optional(),
@@ -205,10 +239,9 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         const { key } = record;
         let { value } = record;
         // The frontend (KeyValueStore codec) serializes the value and resolves its content type
-        // before it reaches the client. We only need it here for on-disk extension bookkeeping.
+        // before it reaches the client. This client is a plain byte transport; it does not infer
+        // content types nor serialize values.
         const contentType = record.contentType ?? 'application/octet-stream';
-
-        const extension = mime.extension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
 
         // Draining a stream into a Buffer for storage is the client's responsibility.
         if (isStream(value)) {
@@ -216,75 +249,121 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             for await (const chunk of value) {
                 chunks.push(chunk);
             }
-            value = Buffer.concat(chunks as Buffer[]);
+            value = Buffer.concat(chunks);
         }
 
-        // The on-disk record holds raw bytes (or a string). Streams were drained above, so any
-        // remaining non-string value is byte-like; normalize ArrayBuffer / typed-array views to Buffer.
-        const normalizedValue: Buffer | string =
-            typeof value === 'string' ? value : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
+        // Normalize whatever is left into a Buffer for the native client.
+        const buffer = Buffer.isBuffer(value)
+            ? value
+            : value instanceof ArrayBuffer
+              ? Buffer.from(value)
+              : ArrayBuffer.isView(value)
+                ? Buffer.from(value.buffer, value.byteOffset, value.byteLength)
+                : Buffer.from(String(value));
 
-        const _record = {
-            extension,
-            key,
-            value: normalizedValue,
-            contentType,
-        } satisfies InternalKeyRecord;
-
-        const entry = createKeyValueStorageImplementation({
-            storeDirectory: this.keyValueStoreDirectory,
-            writeMetadata: this.client.writeMetadata,
-            logger: this.client.logger,
-        });
-
-        await entry.update(_record);
-
-        this.keyValueEntries.set(key, entry);
-
-        this.updateTimestamps(true);
+        await this.nativeClient.setValue(key, buffer, contentType);
     }
 
     async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
-
-        const entry = this.keyValueEntries.get(key);
-
-        if (entry) {
-            this.keyValueEntries.delete(key);
-            this.updateTimestamps(true);
-            await entry.delete();
-        }
+        await this.nativeClient.deleteValue(key);
     }
 
-    toKeyValueStoreInfo(): storage.KeyValueStoreInfo {
+    /**
+     * Read a value file that exists on disk but is not tracked by the native client (it has no
+     * metadata sidecar) — e.g. an `INPUT.json` placed by the user or the Apify platform. Returns the
+     * raw bytes plus the content type inferred from the file extension, or `undefined` if no such
+     * file exists or its content is unparseable. Parsing the returned bytes is the frontend's job.
+     */
+    private async readBareFile(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
+        const bareFile = await this.findBareFile(key);
+        if (!bareFile) {
+            return undefined;
+        }
+
+        if (!mime.extension(bareFile.contentType)) {
+            this.logger?.warning?.(
+                `Key-value store record "${key}" was loaded from a file without a known extension; ` +
+                    `assuming "${bareFile.contentType}".`,
+            );
+        }
+
+        let buffer: Buffer;
+        try {
+            buffer = await readFile(bareFile.filePath);
+        } catch {
+            return undefined;
+        }
+
+        // This client is a plain byte transport — the frontend (KeyValueStore codec) parses the
+        // returned bytes. We only validate here that the body is parseable for the inferred content
+        // type, so an unparseable value (e.g. malformed JSON) is treated as a missing record,
+        // matching the historical fallback behavior; the validated bytes are returned verbatim.
+        try {
+            isBodyParseable(buffer, bareFile.contentType);
+        } catch {
+            this.logger?.warning?.(`Failed to parse key-value store record "${key}" read from disk; ignoring it.`);
+            return undefined;
+        }
+
         return {
-            id: this.id,
-            name: this.name,
-            accessedAt: this.accessedAt,
-            createdAt: this.createdAt,
-            modifiedAt: this.modifiedAt,
-            userId: '1',
+            key,
+            value: buffer,
+            contentType: bareFile.contentType,
         };
     }
 
-    private updateTimestamps(hasBeenModified: boolean) {
-        this.accessedAt = new Date();
+    /** Find an untracked value file on disk matching `key`, if any. */
+    private async findBareFile(key: string): Promise<BareFile | undefined> {
+        const target = encodeURIComponent(key);
+        for (const bareFile of await this.listBareFiles()) {
+            if (encodeURIComponent(bareFile.key) === target) {
+                return bareFile;
+            }
+        }
+        return undefined;
+    }
 
-        if (hasBeenModified) {
-            this.modifiedAt = new Date();
+    /**
+     * List value files present in the store directory that the native client does not track. Each
+     * such file is reported once, keyed by its (URL-decoded) name with the extension stripped, with a
+     * content type inferred from its extension.
+     */
+    private async listBareFiles(): Promise<BareFile[]> {
+        let entries: string[];
+        try {
+            entries = await readdir(this.keyValueStoreDirectory);
+        } catch {
+            // The store directory may not exist yet.
+            return [];
         }
 
-        const data = this.toKeyValueStoreInfo();
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                data,
-                entityType: 'keyValueStores',
-                entityDirectory: this.keyValueStoreDirectory,
-                id: this.name ?? this.id,
-                writeMetadata: this.client.writeMetadata,
-            },
-            this.client.logger,
-        );
+        const result: BareFile[] = [];
+
+        for (const entry of entries) {
+            // Skip the store metadata file and per-record metadata sidecars.
+            if (entry === STORE_METADATA_FILENAME || entry.endsWith(RECORD_METADATA_SUFFIX)) {
+                continue;
+            }
+
+            // A native-tracked record has a `<name>.__metadata__.json` sidecar; if one exists for this
+            // entry, the native client already owns it and it is not a "bare" file.
+            if (entries.includes(`${entry}${RECORD_METADATA_SUFFIX}`)) {
+                continue;
+            }
+
+            const dotIndex = entry.lastIndexOf('.');
+            const extension = dotIndex > 0 ? entry.slice(dotIndex + 1) : '';
+            const decodedName = decodeURIComponent(dotIndex > 0 ? entry.slice(0, dotIndex) : entry);
+            const contentType = (extension && (mime.contentType(extension) || undefined)) || 'text/plain';
+
+            result.push({
+                key: decodedName,
+                filePath: resolve(this.keyValueStoreDirectory, entry),
+                contentType,
+            });
+        }
+
+        return result;
     }
 }

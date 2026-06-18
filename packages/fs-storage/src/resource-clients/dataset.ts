@@ -1,104 +1,95 @@
-/* eslint-disable import/no-duplicates */
-import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
-
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { scheduleBackgroundTask } from '../background-handler/index.js';
-import type { StorageImplementation } from '../fs/common.js';
-import { createDatasetStorageImplementation } from '../fs/dataset/index.js';
-import type { FileSystemStorageClient } from '../index.js';
-import { BaseClient } from './common/base-client.js';
+import type { FileSystemDatasetClient as NativeFileSystemDatasetClient } from '@crawlee/fs-storage-native';
 
 /**
- * This is what API returns in the x-apify-pagination-limit
- * header when no limit query parameter is used.
+ * This is what the API returns in the `x-apify-pagination-limit` header when no limit query
+ * parameter is used. The native client expects an explicit upper bound, so we forward this value
+ * when the caller does not specify a `limit`.
  */
 const LIST_ITEMS_LIMIT = 999_999_999_999;
 
-/**
- * Number of characters of the dataset item file names.
- * E.g.: 000000019.json - 9 digits
- */
-const LOCAL_ENTRY_NAME_DIGITS = 9;
-
 export interface DatasetClientOptions {
-    id?: string;
+    /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
     /**
-     * The directory name to use on disk. When provided, takes precedence over `name` and `id`
-     * for the directory path. This allows alias-opened storages to have a directory name
-     * that differs from their metadata `name` (which is `undefined` for unnamed storages).
+     * The key used for cache lookup in {@link FileSystemStorageClient}. For named storages this equals
+     * the name; for alias (unnamed) storages it is the alias string. Falls back to the storage id.
      */
-    directoryName?: string;
-    baseStorageDirectory: string;
-    client: FileSystemStorageClient;
+    cacheKey: string;
+    nativeClient: NativeFileSystemDatasetClient;
 }
 
-export class DatasetClient<Data extends Dictionary = Dictionary>
-    extends BaseClient
-    implements storage.DatasetClient<Data>
-{
-    name?: string;
-    /**
-     * The key used for directory naming and cache lookup. For named storages, this equals
-     * the name. For alias (unnamed) storages, this is the alias string. Falls back to id.
-     */
-    directoryName: string;
-    createdAt = new Date();
-    accessedAt = new Date();
-    modifiedAt = new Date();
-    itemCount = 0;
-    datasetDirectory: string;
+/**
+ * A file-system dataset client backed by the native `@crawlee/fs-storage-native` Rust extension.
+ *
+ * This class is a thin adapter: it forwards each operation to the native client (which owns the
+ * on-disk format, timestamps and item counting) and converts results into the shapes expected by
+ * the `@crawlee/types` interfaces.
+ */
+export class DatasetClient<Data extends Dictionary = Dictionary> implements storage.DatasetClient<Data> {
+    readonly name?: string;
+    readonly cacheKey: string;
 
-    private readonly datasetEntries = new Map<string, StorageImplementation<Data>>();
-    private readonly client: FileSystemStorageClient;
+    private readonly nativeClient: NativeFileSystemDatasetClient;
 
     constructor(options: DatasetClientOptions) {
-        super(options.id ?? randomUUID());
         this.name = options.name;
-        this.directoryName = options.directoryName ?? this.name ?? this.id;
-        this.datasetDirectory = resolve(options.baseStorageDirectory, this.directoryName);
-        this.client = options.client;
+        this.cacheKey = options.cacheKey;
+        this.nativeClient = options.nativeClient;
+    }
+
+    /** The storage id assigned by the native client. */
+    get id(): string {
+        return this._cachedId;
+    }
+
+    /**
+     * The id is read once from the native metadata at construction time (see
+     * {@link DatasetClient.create}) and cached, so that the synchronous `id` getter — required by
+     * {@link FileSystemStorageClient.storageExists} and the cache lookups — does not have to await.
+     */
+    private _cachedId!: string;
+
+    get datasetDirectory(): string {
+        return this.nativeClient.pathToDataset;
+    }
+
+    static async create<Data extends Dictionary = Dictionary>(
+        options: DatasetClientOptions,
+    ): Promise<DatasetClient<Data>> {
+        const client = new DatasetClient<Data>(options);
+        client._cachedId = (await options.nativeClient.getMetadata()).id;
+        return client;
     }
 
     async getMetadata(): Promise<storage.DatasetInfo> {
-        this.updateTimestamps(false);
-        return this.toDatasetInfo();
+        const metadata = await this.nativeClient.getMetadata();
+        return {
+            id: metadata.id,
+            name: metadata.name ?? undefined,
+            accessedAt: new Date(metadata.accessedAt),
+            createdAt: new Date(metadata.createdAt),
+            modifiedAt: new Date(metadata.modifiedAt),
+            itemCount: metadata.itemCount,
+        };
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.client.datasetClientCache.findIndex((store) => store.id === this.id);
-
-        if (storeIndex !== -1) {
-            const [oldClient] = this.client.datasetClientCache.splice(storeIndex, 1);
-            oldClient.itemCount = 0;
-            oldClient.datasetEntries.clear();
-
-            await rm(oldClient.datasetDirectory, { recursive: true, force: true });
-        }
+        await this.nativeClient.dropStorage();
     }
 
     async purge(): Promise<void> {
-        this.itemCount = 0;
-        this.datasetEntries.clear();
-
-        // Remove item files from disk but keep the directory
-        const { readdir } = await import('node:fs/promises');
-        const entries = await readdir(this.datasetDirectory).catch(() => []);
-        for (const entry of entries) {
-            if (entry !== '__metadata__.json') {
-                await rm(resolve(this.datasetDirectory, entry), { force: true });
-            }
-        }
-
-        this.updateTimestamps(true);
+        await this.nativeClient.purge();
     }
 
-    getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+    async pushData(items: Data[]): Promise<void> {
+        await this.nativeClient.pushData(items);
+    }
+
+    async getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { desc, limit, offset } = s
             .object({
                 desc: s.boolean().optional(),
@@ -107,95 +98,20 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             })
             .parse(options);
 
-        return this.getDataPage({
-            desc,
-            offset: offset ?? 0,
-            limit: Math.min(limit ?? LIST_ITEMS_LIMIT, LIST_ITEMS_LIMIT),
-        });
-    }
-
-    private async getDataPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
-        const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
-
-        const [start, end] = this.getStartAndEndIndexes(
-            desc ? Math.max(this.itemCount - offset - limit, 0) : offset,
-            limit,
+        const page = await this.nativeClient.getData(
+            offset ?? 0,
+            Math.min(limit ?? LIST_ITEMS_LIMIT, LIST_ITEMS_LIMIT),
+            desc ?? false,
+            false,
         );
 
-        const items: Data[] = [];
-
-        for (let idx = start; idx < end; idx++) {
-            const entryNumber = this.generateLocalEntryName(idx);
-            items.push(await this.datasetEntries.get(entryNumber)!.get());
-        }
-
-        this.updateTimestamps(false);
-
         return {
-            count: items.length,
-            desc: desc ?? false,
-            items: desc ? items.reverse() : items,
-            limit,
-            offset,
-            total: this.itemCount,
+            count: page.count,
+            desc: page.desc,
+            items: page.items as Data[],
+            limit: page.limit,
+            offset: page.offset,
+            total: page.total,
         };
-    }
-
-    async pushData(items: Data[]): Promise<void> {
-        for (const entry of items) {
-            const idx = this.generateLocalEntryName(++this.itemCount);
-            const storageEntry = createDatasetStorageImplementation({
-                entityId: idx,
-                storeDirectory: this.datasetDirectory,
-            });
-
-            await storageEntry.update(entry);
-
-            this.datasetEntries.set(idx, storageEntry);
-        }
-
-        this.updateTimestamps(true);
-    }
-
-    toDatasetInfo(): storage.DatasetInfo {
-        return {
-            id: this.id,
-            accessedAt: this.accessedAt,
-            createdAt: this.createdAt,
-            itemCount: this.itemCount,
-            modifiedAt: this.modifiedAt,
-            name: this.name,
-        };
-    }
-
-    private generateLocalEntryName(idx: number): string {
-        return idx.toString().padStart(LOCAL_ENTRY_NAME_DIGITS, '0');
-    }
-
-    private getStartAndEndIndexes(offset: number, limit = this.itemCount) {
-        const start = offset + 1;
-        const end = Math.min(offset + limit, this.itemCount) + 1;
-        return [start, end] as const;
-    }
-
-    private updateTimestamps(hasBeenModified: boolean) {
-        this.accessedAt = new Date();
-
-        if (hasBeenModified) {
-            this.modifiedAt = new Date();
-        }
-
-        const data = this.toDatasetInfo();
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                data,
-                entityType: 'datasets',
-                entityDirectory: this.datasetDirectory,
-                id: this.name ?? this.id,
-                writeMetadata: this.client.writeMetadata,
-            },
-            this.client.logger,
-        );
     }
 }

@@ -5,19 +5,15 @@ const CONTENT_TYPE_JSON = 'application/json';
 const STRINGIFIABLE_CONTENT_TYPE_RXS = [new RegExp(`^${CONTENT_TYPE_JSON}$`, 'i'), /^application\/.*xml$/i, /^text\//i];
 
 /**
- * Parses a Buffer or ArrayBuffer using the provided content type header.
+ * Validity guard for the bare-file fallback. Throws if `body` cannot be parsed for the given content
+ * type, so that an unparseable on-disk value (e.g. malformed JSON) can be treated as a missing
+ * record. Actual parsing of the bytes is the {@apilink KeyValueStore} frontend's job; this client is
+ * a plain byte transport, so we only validate here and return the raw bytes.
  *
- * - application/json is returned as a parsed object.
- * - application/*xml and text/* are returned as strings.
- * - everything else is returned as original body.
- *
- * If the header includes a charset, the body will be stringified only
- * if the charset represents a known encoding to Node.js or Browser.
+ * Mirrors the frontend `parseValue` codec: JSON is `JSON5.parse`d (and must succeed), `*xml` and
+ * `text/*` are decoded as strings, and everything else is left untouched (always valid).
  */
-export function maybeParseBody(
-    body: Buffer | ArrayBuffer,
-    contentTypeHeader: string,
-): string | Buffer | ArrayBuffer | Record<string, unknown> {
+export function isBodyParseable(body: Buffer | ArrayBuffer, contentTypeHeader: string): void {
     let contentType: string;
     let charset: BufferEncoding;
     try {
@@ -25,16 +21,16 @@ export function maybeParseBody(
         contentType = result.type;
         charset = result.parameters.charset as BufferEncoding;
     } catch {
-        // can't parse, keep original body
-        return body;
+        // Can't parse the content type header — keep the raw body, nothing to validate.
+        return;
     }
 
-    // If we can't successfully parse it, we return
-    // the original buffer rather than a mangled string.
-    if (!areDataStringifiable(contentType, charset)) return body;
+    // Non-stringifiable types are returned as raw bytes by the frontend; nothing to validate.
+    if (!areDataStringifiable(contentType, charset)) return;
     const dataString = isomorphicBufferToString(body, charset);
 
-    return contentType === CONTENT_TYPE_JSON ? JSON5.parse(dataString) : dataString;
+    // For JSON we must ensure the body actually parses; a throw here flags an unparseable record.
+    if (contentType === CONTENT_TYPE_JSON) JSON5.parse(dataString);
 }
 
 function isomorphicBufferToString(buffer: Buffer | ArrayBuffer, encoding: BufferEncoding): string {
