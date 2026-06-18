@@ -2349,9 +2349,12 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
  */
 export function createBasicRouter<
     Context extends BasicCrawlingContext = BasicCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createBasicRouter<
+    Context extends BasicCrawlingContext = BasicCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 export function createBasicRouter<
     Context extends BasicCrawlingContext = BasicCrawlingContext,
     const Schemas extends RouteSchemas = RouteSchemas,

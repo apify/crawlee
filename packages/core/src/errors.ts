@@ -17,7 +17,7 @@ export class CriticalError extends NonRetryableError {}
 export class MissingRouteError extends CriticalError {}
 
 /**
- * Thrown when a request's `userData` does not match the {@apilink RouteMap} schema registered for its label.
+ * Thrown when a request's `userData` does not match the {@apilink RouteSchemas|Standard Schema} registered for its label.
  *
  * As the `userData` does not change between attempts, this error is non-retryable.
  */

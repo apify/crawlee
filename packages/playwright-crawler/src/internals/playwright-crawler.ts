@@ -349,9 +349,12 @@ export function handleCloudflareChallengeHook(options?: HandleCloudflareChalleng
  */
 export function createPlaywrightRouter<
     Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPlaywrightRouter<
+    Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 export function createPlaywrightRouter<
     Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
     const Schemas extends RouteSchemas = RouteSchemas,

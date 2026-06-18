@@ -312,9 +312,12 @@ export class PuppeteerCrawler<
  */
 export function createPuppeteerRouter<
     Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 export function createPuppeteerRouter<
     Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
     const Schemas extends RouteSchemas = RouteSchemas,

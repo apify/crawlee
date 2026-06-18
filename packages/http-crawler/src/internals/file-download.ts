@@ -262,9 +262,12 @@ function trackBodyConsumption(response: Response): { response: ResponseWithUrl; 
  */
 export function createFileRouter<
     Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createFileRouter<
+    Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 export function createFileRouter<
     Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
     const Schemas extends RouteSchemas = RouteSchemas,

@@ -9,18 +9,21 @@ import type { Awaitable } from './typedefs.js';
 const defaultRoute = Symbol('default-route');
 
 /**
- * A map of request labels to the shape of `request.userData` expected for that label. Pass it as the
- * `Routes` type argument of {@apilink Router} (or a `createXRouter` factory) to get per-label typing of
- * `request.userData` and autocomplete/validation of labels in {@apilink Router.addHandler}.
- *
- * ```ts
- * interface MyRoutes {
- *     PRODUCT: { sku: string; price: number };
- *     CATEGORY: { categoryId: string };
- * }
- * ```
+ * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`.
  */
-export type RouteMap = Record<string, Dictionary>;
+export type RouterHandlerContext<Context, UserData extends Dictionary> = Omit<Context, 'request'> & {
+    request: LoadedRequest<Request<UserData>>;
+};
+
+/**
+ * The set of labels accepted by {@apilink Router.addHandler}. When the router declares a concrete
+ * route map (e.g. `{ PRODUCT: ...; CATEGORY: ... }`), only those labels (plus symbols) are
+ * allowed — unknown labels become a compile-time error. When the map is left open (the default
+ * `Record<string, ...>`), any string or symbol label is accepted, preserving the original behaviour.
+ */
+export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
+    ? string | symbol
+    : (keyof Routes & string) | symbol;
 
 /**
  * A map of request labels to a [Standard Schema](https://standardschema.dev) (Zod, Valibot, ArkType, …)
@@ -31,31 +34,14 @@ export type RouteMap = Record<string, Dictionary>;
 export type RouteSchemas = Record<string, StandardSchemaV1>;
 
 /**
- * Derives a {@apilink RouteMap} (label → `userData` type) from a {@apilink RouteSchemas} map by inferring
- * each schema's output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}.
+ * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each
+ * schema's output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}.
  */
 export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
     [Label in keyof Schemas]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary
         ? StandardSchemaV1.InferOutput<Schemas[Label]>
         : Dictionary;
 };
-
-/**
- * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`.
- */
-export type RouterHandlerContext<Context, UserData extends Dictionary> = Omit<Context, 'request'> & {
-    request: LoadedRequest<Request<UserData>>;
-};
-
-/**
- * The set of labels accepted by {@apilink Router.addHandler}. When the router declares a concrete
- * {@apilink RouteMap} (e.g. `{ PRODUCT: ...; CATEGORY: ... }`), only those labels (plus symbols) are
- * allowed — unknown labels become a compile-time error. When the map is left open (the default
- * `Record<string, ...>`), any string or symbol label is accepted, preserving the original behaviour.
- */
-export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
-    ? string | symbol
-    : (keyof Routes & string) | symbol;
 
 export interface RouterHandler<
     Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
@@ -137,9 +123,9 @@ export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary
  *
  * ## Typed labels
  *
- * To get `request.userData` typed per label, declare a {@apilink RouteMap} and pass it as the second
- * type argument. The label passed to {@apilink Router.addHandler} then drives the type of
- * `request.userData`, and unknown labels are rejected at compile time:
+ * To get `request.userData` typed per label, declare a route map and pass it as the second type
+ * argument. The label passed to {@apilink Router.addHandler} then drives the type of `request.userData`,
+ * and unknown labels are rejected at compile time:
  *
  * ```ts
  * import { createCheerioRouter, CheerioCrawlingContext } from 'crawlee';
@@ -194,7 +180,7 @@ export class Router<
     protected constructor() {}
 
     /**
-     * Registers new route handler for given label. When the router declares a {@apilink RouteMap}, the
+     * Registers new route handler for given label. When the router declares a route map, the
      * `label` is restricted to the declared labels and `request.userData` is typed accordingly.
      */
     addHandler<Label extends keyof Routes & string>(
@@ -203,8 +189,9 @@ export class Router<
     ): void;
 
     /**
-     * Registers new route handler for given label, with an explicit `request.userData` type. Use this
-     * overload to type a handler whose label is not part of the router's {@apilink RouteMap}.
+     * Registers new route handler for given label, explicitly typing `request.userData` via the
+     * `UserData` type argument. Useful when the router has no declared route map (the open default)
+     * and you want to type a single handler, or to register a handler under a `symbol` label.
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: RouterLabel<Routes>,
@@ -217,10 +204,11 @@ export class Router<
     }
 
     /**
-     * Registers default route handler. By default `request.userData` is typed as the union of all
-     * `userData` shapes declared in the router's {@apilink RouteMap}.
+     * Registers default route handler. As a fallback it can receive any request (including labels not
+     * declared in the route map), so `request.userData` defaults to the context's `userData` type
+     * (loosely typed by default). Pass an explicit `UserData` type argument to narrow it.
      */
-    addDefaultHandler<UserData extends Dictionary = Routes[keyof Routes]>(
+    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
     ) {
         this.validate(defaultRoute);
@@ -332,11 +320,20 @@ export class Router<
      * });
      * ```
      */
+    // The handler overloads keep the second type argument backwards compatible. When it is a route map
+    // (every value is a `Dictionary`) the first overload applies and labels are typed per route. Otherwise
+    // it fails the `Record<keyof Routes, Dictionary>` constraint and falls through to the second overload,
+    // where it is treated as the legacy flat `userData` shape shared by all handlers. The third overload
+    // accepts a Standard Schema per label, inferring the route map and validating `userData` at runtime.
+    static create<
+        Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+        Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
     static create<
         Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
         UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-        Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
-    >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+    >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 
     static create<
         Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
@@ -357,7 +354,7 @@ export class Router<
 
         for (const [label, value] of Object.entries(routesOrSchemas ?? {})) {
             if (typeof value === 'function') {
-                router.addHandler(label as keyof Context & string, value as (ctx: any) => Awaitable<void>);
+                router.addHandler(label, value as (ctx: any) => Awaitable<void>);
             } else {
                 router.schemas.set(label, value);
             }
