@@ -318,10 +318,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/tsconfig@npm:^0.1.0":
-  version: 0.1.2
-  resolution: "@apify/tsconfig@npm:0.1.2"
-  checksum: 10c0/5d877f16c3728c93d619714261c9e007a72d91a586ae0820b9ee52a71fb55e6402a45b3e78a8c03ef0d2fd639089786775761168620c51451a11053643af508c
+"@apify/tsconfig@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "@apify/tsconfig@npm:0.2.0"
+  checksum: 10c0/3c34edc863c9cc18fb650909ea836a252dd45e7c63262b392104643fcd883120b2d67d56be88752b0e6122c2d58cfcad9c762f3d75cbee597e454dd4eef3a9f1
   languageName: node
   linkType: hard
 
@@ -15813,7 +15813,7 @@ __metadata:
   dependencies:
     "@apify/docusaurus-plugin-typedoc-api": "npm:5.1.11"
     "@apify/eslint-config-ts": "npm:0.4.1"
-    "@apify/tsconfig": "npm:^0.1.0"
+    "@apify/tsconfig": "npm:^0.2.0"
     "@apify/ui-icons": "npm:^1.23.0"
     "@apify/utilities": "npm:^2.8.0"
     "@docusaurus/core": "npm:3.10.1"
