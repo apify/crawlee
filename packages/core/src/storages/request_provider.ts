@@ -39,6 +39,12 @@ import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './uti
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
 
 /**
+ * Maximum number of consecutive batch-add attempts that make no progress before the remaining
+ * unprocessed requests are skipped, so permanently rejected requests don't retry forever.
+ */
+const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
+
+/**
  * Represents a provider of requests/URLs to crawl.
  */
 export interface IRequestManager {
@@ -472,12 +478,29 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         );
         const chunksIterator = chunks[Symbol.asyncIterator]();
 
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
+        const attemptToAddToQueueAndAddAnyUnprocessed = async (
+            providedRequests: Source[],
+            cache = true,
+            unsuccessfulAttempts = 0,
+        ) => {
             const resultsToReturn: ProcessedRequest[] = [];
             const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
             resultsToReturn.push(...apiResult.processedRequests);
 
             if (apiResult.unprocessedRequests.length) {
+                // Count attempts that make no progress, so permanently rejected requests (e.g. a malformed
+                // `userData` shape causing a 400) don't loop forever. Any progress resets the counter.
+                const attempts = apiResult.processedRequests.length ? 0 : unsuccessfulAttempts + 1;
+
+                if (attempts >= MAX_UNPROCESSED_REQUESTS_RETRIES) {
+                    this.log.warning(
+                        `Some requests were consistently rejected by the request queue and will be skipped after ${MAX_UNPROCESSED_REQUESTS_RETRIES} attempts. This usually means the request data is malformed (e.g. an invalid 'userData' shape).`,
+                        { unprocessedRequests: apiResult.unprocessedRequests },
+                    );
+
+                    return resultsToReturn;
+                }
+
                 await sleep(waitBetweenBatchesMillis);
 
                 resultsToReturn.push(
@@ -486,6 +509,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                             (r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey),
                         ),
                         false,
+                        attempts,
                     )),
                 );
             }
