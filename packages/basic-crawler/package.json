@@ -42,7 +42,7 @@
         "@apify/timeout": "^0.3.2",
         "@apify/utilities": "^2.15.5",
         "@crawlee/core": "workspace:*",
-        "@crawlee/got-scraping-client": "workspace:*",
+        "@crawlee/impit-client": "workspace:^",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "csv-stringify": "^6.5.2",

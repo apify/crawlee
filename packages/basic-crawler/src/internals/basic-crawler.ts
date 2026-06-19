@@ -61,7 +61,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
-import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
+import { ImpitHttpClient } from '@crawlee/impit-client';
 import type {
     Awaitable,
     BaseHttpClient,
@@ -377,7 +377,7 @@ export interface BasicCrawlerOptions<
 
     /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
-     * Defaults to a new instance of {@apilink GotScrapingHttpClient}
+     * Defaults to a new instance of {@apilink ImpitHttpClient}
      */
     httpClient?: BaseHttpClient;
 
@@ -807,7 +807,7 @@ export class BasicCrawler<
                 this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
             }
 
-            this.httpClient = httpClient ?? new GotScrapingHttpClient({ logger: this.log });
+            this.httpClient = httpClient ?? new ImpitHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;

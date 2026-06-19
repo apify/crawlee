@@ -256,9 +256,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
-      '@crawlee/got-scraping-client':
-        specifier: workspace:*
-        version: link:../got-scraping-client
+      '@crawlee/impit-client':
+        specifier: workspace:^
+        version: link:../impit-client
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
