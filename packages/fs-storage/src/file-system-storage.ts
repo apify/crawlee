@@ -25,6 +25,22 @@ export interface FileSystemStorageOptions {
      * Optional logger for FileSystemStorageClient warnings.
      */
     logger?: CrawleeLogger;
+
+    /**
+     * Assert that this process is the *sole* consumer of every request queue it opens.
+     *
+     * When `true` (the default), opening a queue immediately reclaims any requests that a previous
+     * run left *in progress* (e.g. after a crash), so they become fetchable again right away. This is
+     * the right behavior for the common single-process crawl.
+     *
+     * Set this to `false` if multiple processes share the same on-disk request queue concurrently
+     * (for example, the {@apilink parallel scraping setup | "Parallel Scraping Guide"}). In that mode
+     * an in-progress request is treated as a potential live peer's lock and is only reclaimed once
+     * that lock expires on the wall clock, so two workers won't process the same request at once.
+     *
+     * @default true
+     */
+    assumeSoleOwner?: boolean;
 }
 
 /**
@@ -41,6 +57,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     readonly keyValueStoresDirectory: string;
     readonly requestQueuesDirectory: string;
     readonly logger?: CrawleeLogger;
+    readonly assumeSoleOwner: boolean;
 
     readonly keyValueStoreCache: KeyValueStoreClient[] = [];
     readonly datasetClientCache: DatasetClient[] = [];
@@ -49,9 +66,11 @@ export class FileSystemStorageClient implements storage.StorageClient {
     constructor(options: FileSystemStorageOptions = {}) {
         s.object({
             localDataDirectory: s.string().optional(),
+            assumeSoleOwner: s.boolean().optional(),
         }).parse(options);
 
         this.logger = options.logger;
+        this.assumeSoleOwner = options.assumeSoleOwner ?? true;
 
         // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
         // this function handles it without making BC breaks - it respects existing `crawlee_storage`
@@ -165,7 +184,15 @@ export class FileSystemStorageClient implements storage.StorageClient {
             }
         }
 
-        const nativeClient = await NativeRequestQueueClient.open(id, name, alias, this.localDataDirectory);
+        const nativeClient = await NativeRequestQueueClient.open(
+            id,
+            name,
+            alias,
+            this.localDataDirectory,
+            // useTestClock — always real wall-clock outside of native tests.
+            undefined,
+            this.assumeSoleOwner,
+        );
         const newStore = await RequestQueueClient.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey: cacheKey ?? '',
