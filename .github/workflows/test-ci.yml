@@ -31,7 +31,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@v7
 
             -   name: Use Node.js ${{ matrix.node-version }}
                 uses: actions/setup-node@v6
@@ -106,7 +106,7 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
-                uses: actions/checkout@v6
+                uses: actions/checkout@v7
 
             -   name: Use Node.js 24
                 uses: actions/setup-node@v6
@@ -248,7 +248,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@v7
 
             -   name: Use Node.js 24
                 uses: actions/setup-node@v6
@@ -292,7 +292,7 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@v7
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
