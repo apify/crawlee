@@ -2,13 +2,16 @@
 slug: building-gradcracker-scraper-with-crawlee
 title: 'Building a Gradcracker scraper with Crawlee: anti-bot failures and redirect bugs'
 description: 'A real-world breakdown of building a Gradcracker scraper with Crawlee, handling bot detection, unstable redirects, and production trade-offs.'
-image: ./img/gradcracker-crawl-flow-diagram.webp
+image: ./img/gradcracker-scraper.webp
 authors: [ShaheerS]
 ---
 
 > 👉 This article was written by [Shaheer Sarfaraz](https://www.linkedin.com/in/ssarfaraz30/) as part of [Write for Apify](https://apify.com/resources/write-for-apify) - a program for developers sharing original articles about what they've built with Crawlee.
 
 I spent three days debugging a scraper that I really expected to have knocked out in an afternoon. At one point I had four different AI models open simultaneously, all confidently giving me solutions that did absolutely nothing. I fixed it eventually. By thinking. Like an animal.
+
+![Banner article](img/gradcracker-scraper.webp)
+
 
 ## What JobOps does
 
