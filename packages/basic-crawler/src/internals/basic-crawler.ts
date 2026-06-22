@@ -41,6 +41,7 @@ import {
     EnqueueStrategy,
     EventType,
     KeyValueStore,
+    log,
     LogLevel,
     mergeCookies,
     MissingSessionError,
@@ -85,6 +86,28 @@ import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
+
+class LazyDefaultHttpClient implements BaseHttpClient {
+    private _delegate?: BaseHttpClient;
+    private readonly _delegatePromise: Promise<BaseHttpClient>;
+
+    constructor(options?: { logger?: CrawleeLogger }) {
+        this._delegatePromise = import('@crawlee/impit-client')
+            .then(({ ImpitHttpClient }) => new ImpitHttpClient(options))
+            .catch(() => {
+                (options?.logger ?? log).warning(
+                    'Optional dependency @crawlee/impit-client is not installed. ' +
+                        'Falling back to native fetch — proxy support and browser fingerprinting are unavailable.',
+                );
+                return new FetchHttpClient(options);
+            });
+    }
+
+    async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
+        this._delegate ??= await this._delegatePromise;
+        return this._delegate.sendRequest(...args);
+    }
+}
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {}
 
@@ -637,7 +660,7 @@ export class BasicCrawler<
     protected additionalHttpErrorStatusCodes: Set<number>;
     protected ignoreHttpErrorStatusCodes: Set<number>;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
-    protected httpClient!: BaseHttpClient;
+    protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
@@ -807,9 +830,7 @@ export class BasicCrawler<
                 this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
             }
 
-            if (httpClient) {
-                this.httpClient = httpClient;
-            }
+            this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -1707,18 +1728,6 @@ export class BasicCrawler<
         if (!eventManager.isInitialized()) {
             await eventManager.init();
             this._closeEvents = true;
-        }
-
-        if (!this.httpClient) {
-            try {
-                const { ImpitHttpClient } = await import('@crawlee/impit-client');
-                this.httpClient = new ImpitHttpClient({ logger: this.log });
-            } catch {
-                this.log.warning(
-                    'Optional dependency @crawlee/impit-client is not installed. Falling back to native fetch — proxy support and browser fingerprinting are unavailable.',
-                );
-                this.httpClient = new FetchHttpClient();
-            }
         }
 
         // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
