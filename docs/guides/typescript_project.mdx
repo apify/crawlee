@@ -157,7 +157,7 @@ Let's wrap it up to. In addition to the scripts we described above, we also need
 
 ## Type-safe router labels and `userData`
 
-When you structure a crawler with a <ApiLink to="core/class/Router">`Router`</ApiLink>, each route handler reads `request.userData`. By default `userData` is loosely typed, so a typo in a label or a wrong `userData` property is only caught at runtime.
+When you structure a crawler with a <ApiLink to="core/class/Router">`Router`</ApiLink>, different labels usually carry a different shape of `request.userData` — a `PRODUCT` request might hold `{ sku, price }` while a `CATEGORY` request holds `{ categoryId }`. By default `userData` is loosely typed (`Record<string, unknown>`), so a typo in a label or a wrong `userData` property is only caught at runtime.
 
 You can instead declare a **route map** — an `interface` (or `type`) that maps each label to the shape of `userData` expected for it — and pass it as the second type argument to a `createXRouter` factory (or <ApiLink to="core/class/Router#create">`Router.create`</ApiLink>). Handlers then get `request.userData` typed per label, and unknown labels become a compile-time error:
 
