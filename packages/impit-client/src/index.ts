@@ -26,6 +26,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     private impitOptions: ImpitOptions;
     private maxRedirects: number;
     private followRedirects: boolean;
+    private cacheClients: boolean;
 
     /**
      * Enables reuse of `impit` clients for the same set of options.
@@ -35,7 +36,11 @@ export class ImpitHttpClient implements BaseHttpClient {
      */
     private clientCache: LruCache<{ client: Impit; cookieJar: ToughCookieJar }> = new LruCache({ maxLength: 10 });
 
-    private getClient(options: ImpitOptions) {
+    private getClient(options: ImpitOptions): Impit {
+        if (!this.cacheClients) {
+            return new Impit(options);
+        }
+
         const { cookieJar, ...rest } = options;
 
         const cacheKey = JSON.stringify(rest);
@@ -51,11 +56,16 @@ export class ImpitHttpClient implements BaseHttpClient {
         return client;
     }
 
-    constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number }) {
-        this.impitOptions = options ?? {};
+    /**
+     * @param options.cacheClients Whether to cache `impit` clients between requests. Defaults to `true`.
+     */
+    constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number; cacheClients?: boolean }) {
+        const { maxRedirects = 10, followRedirects = true, cacheClients = true, ...impitOptions } = options ?? {};
 
-        this.maxRedirects = options?.maxRedirects ?? 10;
-        this.followRedirects = options?.followRedirects ?? true;
+        this.impitOptions = impitOptions;
+        this.maxRedirects = maxRedirects;
+        this.followRedirects = followRedirects;
+        this.cacheClients = cacheClients;
     }
 
     /**
