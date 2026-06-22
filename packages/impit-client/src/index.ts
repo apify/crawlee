@@ -36,7 +36,7 @@ export class ImpitHttpClient implements BaseHttpClient {
      */
     private clientCache: LruCache<{ client: Impit; cookieJar: ToughCookieJar }> = new LruCache({ maxLength: 10 });
 
-    private getClient(options: ImpitOptions) {
+    private getClient(options: ImpitOptions): Impit {
         if (!this.cacheClients) {
             return new Impit(options);
         }
