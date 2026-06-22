@@ -222,6 +222,9 @@ export interface IStatistics<StateExtension extends object = {}> {
     /** Increments the counter for the given HTTP status code. */
     registerStatusCode(code: number): void;
 
+    /** Registers a retry attempt in real-time when a request temporarily fails. */
+    registerRetry?(retryCount: number): void;
+
     /** Computes the derived aggregates (averages, per-minute rates, totals) from the current state. */
     calculate(): CalculatedStatistics;
 
@@ -605,10 +608,45 @@ export class Statistics<
         await this.#recoverableState.teardown();
     }
 
-    private saveRetryCountForJob(retryCount: number) {
-        if (retryCount > 0) this.state.requestsRetries++;
-        this.requestRetryHistogram[retryCount] ??= 0;
+    /**
+     * Registers a retry attempt in real-time when a request temporarily fails.
+     * Includes safeguards against NaN, negative values, sparse arrays, and migration state mismatch.
+     */
+    registerRetry(retryCount: number) {
+        if (!Number.isInteger(retryCount) || retryCount < 0) return;
+
+        if (retryCount === 1) {
+            this.state.requestsRetries++;
+        }
+
+        // Fill intermediate indices with 0 to prevent sparse arrays and JSON serialization null values
+        while (this.requestRetryHistogram.length <= retryCount) {
+            this.requestRetryHistogram.push(0);
+        }
         this.requestRetryHistogram[retryCount]++;
+
+        const previousRetryCount = retryCount - 1;
+        if (previousRetryCount > 0) {
+            while (this.requestRetryHistogram.length <= previousRetryCount) {
+                this.requestRetryHistogram.push(0);
+            }
+            // Decrement previous count only if it is strictly greater than 0
+            if (this.requestRetryHistogram[previousRetryCount] > 0) {
+                this.requestRetryHistogram[previousRetryCount]--;
+            }
+        }
+    }
+
+    private saveRetryCountForJob(retryCount: number) {
+        if (!Number.isInteger(retryCount) || retryCount < 0) return;
+
+        while (this.requestRetryHistogram.length <= retryCount) {
+            this.requestRetryHistogram.push(0);
+        }
+
+        if (retryCount === 0 || this.requestRetryHistogram[retryCount] === 0) {
+            this.requestRetryHistogram[retryCount]++;
+        }
     }
 
     /**
