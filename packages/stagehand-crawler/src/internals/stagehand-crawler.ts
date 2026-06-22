@@ -318,7 +318,11 @@ export interface StagehandCrawlerOptions<
      * }
      * ```
      */
-    requestHandler?: RouterHandler<ExtendedContext, Routes> | StagehandRequestHandler;
+    // Both union members must share the exact same call signature, otherwise TS cannot contextually type
+    // an inline `requestHandler({ page, request, ... })`. `StagehandRequestHandler` wraps the context in
+    // `LoadedContext`, while the router member uses `ExtendedContext`; since `StagehandCrawlingContext`
+    // already carries a `LoadedRequest`, using `ExtendedContext` for both keeps the signatures identical.
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation.
