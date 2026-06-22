@@ -20,7 +20,7 @@ import {
     SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -987,7 +987,7 @@ describe('BasicCrawler', () => {
         vitest.spyOn(requestQueue, 'fetchNextRequest').mockImplementation(async () => queueContent.shift() ?? null);
 
         const markReqHandled = vitest
-            .spyOn(requestQueue, 'markRequestHandled')
+            .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
         const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
@@ -1069,7 +1069,7 @@ describe('BasicCrawler', () => {
         vitest.spyOn(requestQueue, 'getHandledCount').mockReturnValue(Promise.resolve() as any);
 
         let handledCount = 0;
-        const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled').mockImplementation(async () => {
+        const markRequestAsHandled = vitest.spyOn(requestQueue, 'markRequestAsHandled').mockImplementation(async () => {
             handledCount++;
             // Only set isFinished after both requests have been handled
             if (handledCount >= 2) {
@@ -1093,8 +1093,8 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(markRequestHandled).toBeCalledWith(request0);
-        expect(markRequestHandled).toBeCalledWith(request1);
+        expect(markRequestAsHandled).toBeCalledWith(request0);
+        expect(markRequestAsHandled).toBeCalledWith(request1);
         expect(isFinishedOrig).not.toBeCalled();
         expect(isFinishedFunctionCalled).toBe(true);
         expect(isTaskReadyFunctionCalled).toBe(true);
@@ -1127,8 +1127,8 @@ describe('BasicCrawler', () => {
         const request1 = new Request({ url: 'http://example.com/1' });
 
         vitest.spyOn(requestQueue, 'getHandledCount').mockReturnValue(Promise.resolve() as any);
-        const markRequestHandled = vitest
-            .spyOn(requestQueue, 'markRequestHandled')
+        const markRequestAsHandled = vitest
+            .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
@@ -1145,8 +1145,8 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(markRequestHandled).toBeCalledWith(request0);
-        expect(markRequestHandled).toBeCalledWith(request1);
+        expect(markRequestAsHandled).toBeCalledWith(request0);
+        expect(markRequestAsHandled).toBeCalledWith(request1);
         expect(isFinishedOrig).not.toBeCalled();
 
         // TODO: see why the request1 was passed as a second parameter to includes
@@ -1215,7 +1215,7 @@ describe('BasicCrawler', () => {
 
         requestQueue.fetchNextRequest = async () => new Request({ id: 'id', url: 'http://example.com' });
         // @ts-expect-error Overriding the method for testing purposes
-        requestQueue.markRequestHandled = async () => {};
+        requestQueue.markRequestAsHandled = async () => {};
 
         const requestQueueStub = vitest.spyOn(requestQueue, 'getHandledCount').mockResolvedValue(33);
 
@@ -2186,10 +2186,10 @@ describe('BasicCrawler', () => {
         });
 
         test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorage with a different localDataDirectory,
-            // producing different clientCacheKeys and thus separate cache partitions.
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            // Each crawler gets its own MemoryStorageClient instance; every instance has a unique
+            // per-instance cache key, so they end up in separate cache partitions.
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({ storageClient: storageA });
             const crawlerB = new BasicCrawler({ storageClient: storageB });
@@ -2203,8 +2203,8 @@ describe('BasicCrawler', () => {
         });
 
         test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},

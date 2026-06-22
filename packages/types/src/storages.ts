@@ -179,50 +179,6 @@ export interface RequestQueueInfo {
     stats?: RequestQueueStats;
 }
 
-export interface RequestQueueHeadItem {
-    id: string;
-    retryCount: number;
-    uniqueKey: string;
-    url: string;
-    method: AllowedHttpMethods;
-}
-
-export interface QueueHead {
-    limit: number;
-    queueModifiedAt: Date;
-    hadMultipleClients?: boolean;
-    items: RequestQueueHeadItem[];
-}
-
-export interface ListOptions {
-    /**
-     * @default 100
-     */
-    limit?: number;
-}
-
-export interface ListAndLockOptions extends ListOptions {
-    lockSecs: number;
-}
-
-export interface ListAndLockHeadResult extends QueueHead {
-    lockSecs: number;
-    queueHasLockedRequests?: boolean;
-}
-
-export interface ProlongRequestLockOptions {
-    lockSecs: number;
-    forefront?: boolean;
-}
-
-export interface ProlongRequestLockResult {
-    lockExpiresAt: Date;
-}
-
-export interface DeleteRequestLockOptions {
-    forefront?: boolean;
-}
-
 export interface RequestOptions {
     forefront?: boolean;
     [k: string]: unknown;
@@ -265,6 +221,14 @@ export interface BatchAddRequestsResult {
     unprocessedRequests: UnprocessedRequest[];
 }
 
+/**
+ * Operations on a single request queue.
+ *
+ * A backend implementation owns all request bookkeeping (pending, in-progress, handled). Any
+ * coordination required between multiple distributed clients accessing the same queue (e.g. request
+ * locking on the Apify platform) is an internal concern of the implementation and is not exposed on
+ * this interface.
+ */
 export interface RequestQueueClient {
     /**
      * Returns metadata about the request queue (id, name, timestamps, request counts, etc.).
@@ -281,14 +245,92 @@ export interface RequestQueueClient {
     /** Remove all requests from the queue but keep the queue itself. */
     purge(): Promise<void>;
 
-    listHead(options?: ListOptions): Promise<QueueHead>;
-    addRequest(request: RequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
-    batchAddRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
-    getRequest(id: string): Promise<RequestOptions | undefined>;
-    updateRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
-    listAndLockHead(options: ListAndLockOptions): Promise<ListAndLockHeadResult>;
-    prolongRequestLock(id: string, options: ProlongRequestLockOptions): Promise<ProlongRequestLockResult>;
-    deleteRequestLock(id: string, options?: DeleteRequestLockOptions): Promise<void>;
+    /**
+     * Add a batch of requests to the queue.
+     *
+     * Each request is deduplicated by its `uniqueKey`. Duplicates are reported in the result
+     * but not re-added. With `forefront`, requests are placed at the beginning of the queue so
+     * they are processed sooner.
+     */
+    addBatchOfRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
+
+    /**
+     * Retrieve a request from the queue by its `uniqueKey`, or `undefined` if it does not exist.
+     */
+    getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
+
+    /**
+     * Return the next request in the queue to be processed, or `null` if there are currently no
+     * pending requests.
+     *
+     * The returned request is marked as in-progress; it will not be returned again until it is
+     * either reclaimed via {@link reclaimRequest} or marked as handled via {@link markRequestAsHandled}.
+     *
+     * A `null` return value does not mean processing is finished — only that there are no pending
+     * requests right now. Use {@link isEmpty} (together with the frontend's knowledge of pending
+     * add operations) to determine whether the queue is truly finished.
+     */
+    fetchNextRequest(): Promise<RequestOptions | null>;
+
+    /**
+     * Mark a request previously returned by {@link fetchNextRequest} as handled.
+     *
+     * Handled requests are never returned again by {@link fetchNextRequest}. Returns information
+     * about the operation, or `null` if the request was not in progress.
+     *
+     * A `null` result is a no-op, not an error: the request is simply not something this client is
+     * currently processing, so nothing is changed and the request is never added to the queue as a side
+     * effect. (Marking an already-handled request is idempotent and still returns operation info with
+     * `wasAlreadyHandled: true` rather than `null`.)
+     */
+    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | null>;
+
+    /**
+     * Reclaim a failed request back to the queue so it can be processed again by a later call to
+     * {@link fetchNextRequest}. With `forefront`, the request is returned to the beginning of the
+     * queue. Returns information about the operation, or `null` if the request was not in progress.
+     *
+     * The request is expected to already be present in the queue (it should have been obtained via
+     * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. A `null` result
+     * is a no-op, not an error: the request is simply not something this client is currently processing,
+     * so nothing is changed and the request is never added to the queue as a side effect. Use
+     * {@link addRequest} to insert a new request.
+     */
+    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
+
+    /**
+     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `null` — i.e. there
+     * are no pending requests to fetch right now.
+     *
+     * Requests that are currently in progress (fetched but not yet handled or reclaimed, including
+     * requests locked by other clients sharing the same queue) are **not** counted. An empty queue
+     * therefore does not mean crawling is finished — those in-progress requests may still be reclaimed,
+     * and background tasks may still add more requests. Use {@link isFinished} to detect completion.
+     */
+    isEmpty(): Promise<boolean>;
+
+    /**
+     * Resolves to `true` only when there is no outstanding work left in the queue at all — i.e. there
+     * are no pending requests to fetch **and** no requests currently in progress (fetched but not yet
+     * handled or reclaimed, including requests locked by other clients sharing the same queue).
+     *
+     * This is the strong counterpart of {@link isEmpty}: a queue whose only remaining requests are in
+     * progress is empty (nothing to fetch) but not finished (that work might still be reclaimed). It is
+     * the building block for determining whether crawling is done — though a frontend may still need to
+     * account for its own pending background add operations on top of this.
+     */
+    isFinished(): Promise<boolean>;
+
+    /**
+     * Tells the client how long (in seconds) a consumer expects to hold a request fetched via
+     * {@link fetchNextRequest} before marking it handled or reclaiming it — typically the consumer's
+     * request-processing timeout plus some padding.
+     *
+     * A client that coordinates consumers via locking uses this to keep the request reserved for at least
+     * this long, so that a long-running consumer does not have its request handed out again while it is
+     * still being processed. Clients that do not lock may ignore it.
+     */
+    setExpectedRequestProcessingTimeSecs?(secs: number): void;
 }
 
 export interface SetStatusMessageOptions {
@@ -388,7 +430,7 @@ export interface StorageClient {
      *
      * The key is used by `StorageInstanceManager` to partition the storage cache per-backend,
      * so that two storages with the same name but backed by different clients
-     * (e.g. a local `MemoryStorage` and a cloud `ApifyClient`) are cached as separate instances.
+     * (e.g. a local `MemoryStorageClient` and a cloud `ApifyClient`) are cached as separate instances.
      *
      * When not provided, the fallback uses the client's constructor name, so different
      * `StorageClient` implementations automatically get separate cache partitions.

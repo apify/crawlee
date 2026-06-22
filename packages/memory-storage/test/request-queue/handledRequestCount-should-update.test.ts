@@ -1,10 +1,8 @@
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
 describe('RequestQueue handledRequestCount should update', () => {
-    const storage = new MemoryStorage({
-        persistStorage: false,
-    });
+    const storage = new MemoryStorageClient();
 
     let requestQueue: RequestQueueClient;
 
@@ -12,14 +10,16 @@ describe('RequestQueue handledRequestCount should update', () => {
         requestQueue = await storage.createRequestQueueClient({ name: 'handledRequestCount' });
     });
 
-    test('after updating the request, it should increment the handledRequestCount', async () => {
-        const { requestId } = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+    test('after marking a request as handled, it should increment the handledRequestCount', async () => {
+        await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
-        await requestQueue.updateRequest({
+        const request = await requestQueue.fetchNextRequest();
+        expect(request).not.toBeNull();
+
+        await requestQueue.markRequestAsHandled({
             url: 'http://example.com/1',
             uniqueKey: '1',
-            id: requestId,
-            handledAt: new Date().toISOString(),
+            id: request!.id!,
         });
 
         const updatedStatistics = await requestQueue.getMetadata();
@@ -27,11 +27,13 @@ describe('RequestQueue handledRequestCount should update', () => {
     });
 
     test('adding an already handled request should increment the handledRequestCount', async () => {
-        await requestQueue.addRequest({
-            url: 'http://example.com/2',
-            uniqueKey: '2',
-            handledAt: new Date().toISOString(),
-        });
+        await requestQueue.addBatchOfRequests([
+            {
+                url: 'http://example.com/2',
+                uniqueKey: '2',
+                handledAt: new Date().toISOString(),
+            },
+        ]);
 
         const updatedStatistics = await requestQueue.getMetadata();
         expect(updatedStatistics.handledRequestCount).toEqual(2);

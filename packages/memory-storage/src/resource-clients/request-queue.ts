@@ -1,16 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
-import type { RequestQueueFileSystemEntry } from '../fs/request-queue/fs.js';
-import type { RequestQueueMemoryEntry } from '../fs/request-queue/memory.js';
-
-import { scheduleBackgroundTask } from '../background-handler/index.js';
-import { createRequestQueueStorageImplementation } from '../fs/request-queue/index.js';
-import type { MemoryStorage } from '../index.js';
+import type { MemoryStorageClient } from '../index.js';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 
@@ -37,13 +30,12 @@ export interface RequestQueueClientOptions {
     name?: string;
     id?: string;
     /**
-     * The directory name to use on disk. When provided, takes precedence over `name` and `id`
-     * for the directory path. This allows alias-opened storages to have a directory name
-     * that differs from their metadata `name` (which is `undefined` for unnamed storages).
+     * The key used for cache lookup. When provided, takes precedence over `name` and `id`.
+     * This allows alias-opened storages to have a cache key that differs from their
+     * metadata `name` (which is `undefined` for unnamed storages).
      */
-    directoryName?: string;
-    baseStorageDirectory: string;
-    client: MemoryStorage;
+    cacheKey?: string;
+    client: MemoryStorageClient;
 }
 
 export interface InternalRequest {
@@ -59,27 +51,43 @@ export interface InternalRequest {
 export class RequestQueueClient extends BaseClient implements storage.RequestQueueClient {
     name?: string;
     /**
-     * The key used for directory naming and cache lookup. For named storages, this equals
-     * the name. For alias (unnamed) storages, this is the alias string. Falls back to id.
+     * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
+     * storages, this is the alias string. Falls back to id.
      */
-    directoryName: string;
+    cacheKey: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
     handledRequestCount = 0;
     pendingRequestCount = 0;
-    requestQueueDirectory: string;
-    private readonly mutex = new AsyncQueue();
+    /**
+     * Serializes every operation that reads-then-writes this client's shared queue state — the
+     * `requests` map, the `forefrontRequestIds` array, the `inProgressRequestIds` set and the request
+     * counts. Those mutations span `await` points, so without this mutex a concurrent operation could
+     * interleave and corrupt them (e.g. a head scan pruning `forefrontRequestIds` while
+     * `addBatchOfRequests` pushes to it). Held by every mutating method as well as by `isEmpty`/
+     * `isFinished`, whose head scan also prunes `forefrontRequestIds`.
+     */
+    private readonly queueStateMutex = new AsyncQueue();
     private forefrontRequestIds: string[] = [];
 
-    private readonly requests = new Map<string, RequestQueueFileSystemEntry | RequestQueueMemoryEntry>();
-    private readonly client: MemoryStorage;
+    /**
+     * IDs of requests currently fetched but not yet handled or reclaimed. A request in this set is
+     * "in progress" and will not be handed out again by {@link fetchNextRequest}.
+     *
+     * Unlike the file-system / platform clients, the in-memory queue lives entirely within a single
+     * process and is never shared with another consumer, so there is no need for an expiring,
+     * cross-process-visible lock — tracking in-progress requests in this set is enough.
+     */
+    private readonly inProgressRequestIds = new Set<string>();
+
+    private readonly requests = new Map<string, InternalRequest>();
+    private readonly client: MemoryStorageClient;
 
     constructor(options: RequestQueueClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.directoryName = options.directoryName ?? this.name ?? this.id;
-        this.requestQueueDirectory = resolve(options.baseStorageDirectory, this.directoryName);
+        this.cacheKey = options.cacheKey ?? this.name ?? this.id;
         this.client = options.client;
     }
 
@@ -89,66 +97,89 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
+        // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so a concurrent
+        // operation cannot observe half-cleared state — e.g. a forefront id whose request has already been
+        // removed, which `listPendingHead` would then dereference as `undefined`.
+        await this.queueStateMutex.wait();
 
-        if (storeIndex !== -1) {
-            const [oldClient] = this.client.requestQueueCache.splice(storeIndex, 1);
-            oldClient.pendingRequestCount = 0;
-            oldClient.requests.clear();
+        try {
+            const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
 
-            await rm(oldClient.requestQueueDirectory, { recursive: true, force: true });
+            if (storeIndex !== -1) {
+                const [oldClient] = this.client.requestQueueCache.splice(storeIndex, 1);
+                oldClient.pendingRequestCount = 0;
+                // Clear all in-memory state, consistent with `purge`. Clearing `requests` alone would
+                // leave dangling ids in `forefrontRequestIds`/`inProgressRequestIds`, which a later head
+                // scan would resolve to a missing request and dereference.
+                oldClient.requests.clear();
+                oldClient.forefrontRequestIds = [];
+                oldClient.inProgressRequestIds.clear();
+            }
+        } finally {
+            this.queueStateMutex.shift();
         }
     }
 
     async purge(): Promise<void> {
-        // Clear all in-memory state
-        this.requests.clear();
-        this.forefrontRequestIds = [];
-        this.handledRequestCount = 0;
-        this.pendingRequestCount = 0;
+        // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so a concurrent
+        // operation cannot observe or repopulate half-cleared state across the `await` below.
+        await this.queueStateMutex.wait();
 
-        // Remove request files from disk but keep the directory
-        if (this.client.persistStorage) {
-            const { readdir } = await import('node:fs/promises');
-            const entries = await readdir(this.requestQueueDirectory).catch(() => []);
-            for (const entry of entries) {
-                if (entry !== '__metadata__.json') {
-                    await rm(resolve(this.requestQueueDirectory, entry), { force: true });
-                }
-            }
+        try {
+            // Clear all in-memory state
+            this.requests.clear();
+            this.forefrontRequestIds = [];
+            this.inProgressRequestIds.clear();
+            this.handledRequestCount = 0;
+            this.pendingRequestCount = 0;
+
+            this.updateTimestamps(true);
+        } finally {
+            this.queueStateMutex.shift();
         }
-
-        this.updateTimestamps(true);
     }
 
-    private *requestKeyIterator(rqClient: RequestQueueClient): IterableIterator<string> {
+    private *requestKeyIterator(): IterableIterator<string> {
         for (let i = this.forefrontRequestIds.length - 1; i >= 0; i--) {
             yield this.forefrontRequestIds[i];
         }
 
-        for (const key of rqClient.requests.keys()) {
+        for (const key of this.requests.keys()) {
             yield key;
         }
     }
 
-    async listHead(options: storage.ListOptions = {}): Promise<storage.QueueHead> {
-        const { limit } = s
-            .object({
-                limit: s.number().optional().default(100),
-            })
-            .parse(options);
+    /**
+     * Scans the queue and returns the pending head — requests that are neither handled nor currently
+     * in progress — ordered by `orderNo`, deduplicated.
+     *
+     * When `detectInProgressRequests` is set, the result also carries an `hasInProgressRequests` flag
+     * telling whether any unhandled-but-in-progress request was skipped along the way. It lets
+     * {@link isFinished} distinguish "no work left at all" from "work remains, but it is currently being
+     * processed". Without it, a consumer with concurrency could consider the queue finished and shut the
+     * crawler down while it is still handling the last requests.
+     *
+     * Computing the flag is expensive: because an in-progress request may sit anywhere in the queue, it
+     * forces a scan of every pending entry even when only `limit` items are wanted. Callers that only
+     * need the head (e.g. {@link fetchNextRequest}, {@link isEmpty}) leave it off so the scan can stop as
+     * soon as the page is filled, keeping those calls O(head) instead of O(N).
+     */
+    private async listPendingHead(
+        limit: number,
+        detectInProgressRequests = false,
+    ): Promise<{ items: InternalRequest[]; hasInProgressRequests?: boolean }> {
+        const items: InternalRequest[] = [];
+        let hasInProgressRequests = false;
 
-        this.updateTimestamps(false);
-
-        const items = [];
-
-        // Tracks processed request IDs to avoid duplicates when a request is in both `forefrontRequestIds` and `requests`.
+        // Tracks processed request IDs to avoid duplicates (request in both `forefrontRequestIds` and `requests`).
         const seenRequestIds = new Set<string>();
         // Tracks handled request IDs from `forefrontRequestIds` to be removed.
         const handledForefrontIds = new Set<string>();
 
-        for (const requestId of this.requestKeyIterator(this)) {
-            if (items.length === limit) {
+        for (const requestId of this.requestKeyIterator()) {
+            // Once the requested page is filled we can stop — unless the caller asked us to detect
+            // in-progress requests and we have not yet seen one, in which case we must keep scanning.
+            if (items.length >= limit && (!detectInProgressRequests || hasInProgressRequests)) {
                 break;
             }
 
@@ -158,359 +189,273 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
             seenRequestIds.add(requestId);
 
-            const storageEntry = this.requests.get(requestId)!;
+            const request = this.requests.get(requestId)!;
 
-            let { orderNo } = storageEntry;
-            let loaded: InternalRequest;
-
-            // Uncached entry
-            if (typeof orderNo === 'undefined') {
-                loaded = await storageEntry.get();
-
-                orderNo = loaded.orderNo;
+            // Permanently-handled requests (`orderNo === null`) are in a terminal state and can be skipped.
+            if (request.orderNo === null) {
+                if (this.forefrontRequestIds.includes(requestId)) {
+                    handledForefrontIds.add(requestId);
+                }
+                continue;
             }
 
-            // Have an order no -> fetch from fs/memory and return
-            if (orderNo) {
-                items.push(await storageEntry.get());
-            } else if (this.forefrontRequestIds.includes(requestId)) {
-                handledForefrontIds.add(requestId);
+            // In progress (fetched but not yet handled or reclaimed) — skip it, but remember that the
+            // queue is not truly empty.
+            if (this.inProgressRequestIds.has(requestId)) {
+                hasInProgressRequests = true;
+                continue;
+            }
+
+            if (items.length < limit) {
+                items.push(request);
             }
         }
 
         this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
         return {
-            limit,
-            hadMultipleClients: false,
-            queueModifiedAt: this.modifiedAt,
-            items: items.sort((a, b) => a.orderNo! - b.orderNo!).map(({ json }) => this._jsonToRequest(json)!),
+            items: items.sort((a, b) => a.orderNo! - b.orderNo!),
+            hasInProgressRequests: detectInProgressRequests ? hasInProgressRequests : undefined,
         };
     }
 
-    async listAndLockHead(options: storage.ListAndLockOptions): Promise<storage.ListAndLockHeadResult> {
-        const { limit, lockSecs } = s
-            .object({
-                limit: s.number().lessThanOrEqual(25).optional().default(25),
-                lockSecs: s.number(),
-            })
-            .parse(options);
-
+    async fetchNextRequest(): Promise<storage.RequestOptions | null> {
         this.updateTimestamps(false);
 
-        const start = Date.now();
-        const isLocked = (request: InternalRequest) =>
-            !request.orderNo || request.orderNo > start || request.orderNo < -start;
-
-        const items = [];
-
-        await this.mutex.wait();
+        await this.queueStateMutex.wait();
 
         try {
-            // Tracks processed request IDs to avoid duplicates (when a request is in both `forefrontRequestIds` and `requests`).
-            const seenRequestIds = new Set<string>();
-            // Tracks handled request IDs from `forefrontRequestIds` (to be all removed at once).
-            const handledForefrontIds = new Set<string>();
+            const {
+                items: [head],
+            } = await this.listPendingHead(1);
 
-            for (const requestId of this.requestKeyIterator(this)) {
-                if (items.length === limit) {
-                    break;
-                }
-
-                if (seenRequestIds.has(requestId)) {
-                    continue;
-                }
-
-                seenRequestIds.add(requestId);
-
-                const storageEntry = this.requests.get(requestId)!;
-
-                // This is set to null when the request has been handled, so we don't need to re-fetch from fs
-                if (storageEntry.orderNo === null) {
-                    if (this.forefrontRequestIds.includes(requestId)) {
-                        handledForefrontIds.add(requestId);
-                    }
-                    continue;
-                }
-
-                // Always fetch from fs, as this also locks and we do not want to end up in a state where another process locked the request but we have cached it as unlocked
-                const request = await storageEntry.get(true);
-
-                if (isLocked(request)) {
-                    continue;
-                }
-
-                request.orderNo = (start + lockSecs * 1000) * (request.orderNo! > 0 ? 1 : -1);
-                await storageEntry.update(request);
-
-                items.push(request);
+            if (!head) {
+                return null;
             }
 
-            this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
+            // Mark the request as in progress so it is not handed out again until it is handled or
+            // reclaimed. The request keeps its `orderNo` (and thus its forefront / normal ordering).
+            this.inProgressRequestIds.add(head.id);
 
-            return {
-                limit,
-                lockSecs,
-                hadMultipleClients: false,
-                queueModifiedAt: this.modifiedAt,
-                items: items.map(({ json }) => this._jsonToRequest(json)!),
-            };
+            return this._jsonToRequest(head.json) ?? null;
         } finally {
-            this.mutex.shift();
+            this.queueStateMutex.shift();
         }
     }
 
-    async prolongRequestLock(
-        id: string,
-        options: storage.ProlongRequestLockOptions,
-    ): Promise<storage.ProlongRequestLockResult> {
-        s.string().parse(id);
-        const { lockSecs, forefront } = s
-            .object({
-                lockSecs: s.number(),
-                forefront: s.boolean().optional().default(false),
-            })
-            .parse(options);
-
-        this.updateTimestamps(false);
-
-        const request = this.requests.get(id);
-        const internalRequest = await request?.get();
-
-        if (!internalRequest) {
-            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
-        }
-
-        const canProlong = (r: InternalRequest) => !!r.orderNo;
-
-        if (!canProlong(internalRequest)) {
-            throw new Error(`Request with ID ${id} has already been handled in queue ${this.name ?? this.id}`);
-        }
-
-        const unlockTimestamp = Math.abs(internalRequest.orderNo!) + lockSecs * 1000;
-        internalRequest.orderNo = forefront ? -unlockTimestamp : unlockTimestamp;
-
-        await request?.update(internalRequest);
-        if (forefront) this.forefrontRequestIds.push(id);
-
-        return {
-            lockExpiresAt: new Date(unlockTimestamp),
-        };
-    }
-
-    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}): Promise<void> {
-        s.string().parse(id);
-        const { forefront } = s
-            .object({
-                forefront: s.boolean().optional().default(false),
-            })
-            .parse(options);
-
-        this.updateTimestamps(false);
-
-        const request = this.requests.get(id);
-        const internalRequest = await request?.get();
-
-        if (!internalRequest) {
-            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
-        }
-
-        const start = Date.now();
-
-        // If there is no `orderNo` -> request was marked as handled
-        const isLocked = (r: InternalRequest) => r.orderNo && (r.orderNo > start || r.orderNo < -start);
-        if (!isLocked(internalRequest)) {
-            throw new Error(`Request with ID ${id} is not locked in queue ${this.name ?? this.id}`);
-        }
-
-        internalRequest.orderNo = forefront ? -start : start;
-        if (forefront) this.forefrontRequestIds.push(id);
-
-        await request?.update(internalRequest);
-    }
-
-    async addRequest(
-        request: storage.RequestSchema,
-        options: storage.RequestOptions = {},
-    ): Promise<storage.QueueOperationInfo> {
-        requestShapeWithoutId.parse(request);
-        requestOptionsShape.parse(options);
-
-        const requestModel = this._createInternalRequest(request, options.forefront);
-
-        const existingRequestWithIdEntry = this.requests.get(requestModel.id);
-
-        // We already have the request present, so we return information about it
-        if (existingRequestWithIdEntry) {
-            const existingRequestWithId = await existingRequestWithIdEntry.get();
-            this.updateTimestamps(false);
-
-            return {
-                requestId: existingRequestWithId.id,
-                wasAlreadyHandled: existingRequestWithId.orderNo === null,
-                wasAlreadyPresent: true,
-            };
-        }
-
-        const newEntry = createRequestQueueStorageImplementation({
-            persistStorage: this.client.persistStorage,
-            requestId: requestModel.id,
-            storeDirectory: this.requestQueueDirectory,
-        });
-
-        await newEntry.update(requestModel);
-
-        this.requests.set(requestModel.id, newEntry);
-        this.updateTimestamps(true);
-
-        if (requestModel.orderNo) {
-            this.pendingRequestCount += 1;
-        } else {
-            this.handledRequestCount += 1;
-        }
-
-        if (options.forefront) {
-            this.forefrontRequestIds.push(requestModel.id);
-        }
-
-        return {
-            requestId: requestModel.id,
-            // We return wasAlreadyHandled: false even though the request may
-            // have been added as handled, because that's how API behaves.
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-        };
-    }
-
-    async batchAddRequests(
+    async addBatchOfRequests(
         requests: storage.RequestSchema[],
         options: storage.RequestOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
 
-        const result: storage.BatchAddRequestsResult = {
-            processedRequests: [],
-            unprocessedRequests: [],
-        };
+        // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so that the
+        // shared `requests` map, `forefrontRequestIds` array and request counts are not corrupted by a
+        // concurrent operation interleaving at one of the `await` points below.
+        await this.queueStateMutex.wait();
 
-        for (const model of requests) {
-            const requestModel = this._createInternalRequest(model, options.forefront);
+        try {
+            const result: storage.BatchAddRequestsResult = {
+                processedRequests: [],
+                unprocessedRequests: [],
+            };
 
-            const existingRequestWithIdEntry = this.requests.get(requestModel.id);
+            for (const model of requests) {
+                const requestModel = this._createInternalRequest(model, options.forefront);
 
-            if (existingRequestWithIdEntry) {
-                const existingRequestWithId = await existingRequestWithIdEntry.get();
+                const existingRequestWithId = this.requests.get(requestModel.id);
+
+                if (existingRequestWithId) {
+                    result.processedRequests.push({
+                        requestId: existingRequestWithId.id,
+                        uniqueKey: existingRequestWithId.uniqueKey,
+                        wasAlreadyHandled: existingRequestWithId.orderNo === null,
+                        wasAlreadyPresent: true,
+                    });
+
+                    continue;
+                }
+
+                this.requests.set(requestModel.id, requestModel);
+
+                if (requestModel.orderNo) {
+                    this.pendingRequestCount += 1;
+                } else {
+                    this.handledRequestCount += 1;
+                }
+
+                if (options.forefront) {
+                    this.forefrontRequestIds.push(requestModel.id);
+                }
 
                 result.processedRequests.push({
-                    requestId: existingRequestWithId.id,
-                    uniqueKey: existingRequestWithId.uniqueKey,
-                    wasAlreadyHandled: existingRequestWithId.orderNo === null,
-                    wasAlreadyPresent: true,
+                    requestId: requestModel.id,
+                    uniqueKey: requestModel.uniqueKey,
+                    // We return wasAlreadyHandled: false even though the request may
+                    // have been added as handled, because that's how API behaves.
+                    wasAlreadyHandled: false,
+                    wasAlreadyPresent: false,
                 });
-
-                continue;
             }
 
-            const newEntry = createRequestQueueStorageImplementation({
-                persistStorage: this.client.persistStorage,
-                requestId: requestModel.id,
-                storeDirectory: this.requestQueueDirectory,
-            });
+            this.updateTimestamps(true);
 
-            await newEntry.update(requestModel);
-
-            this.requests.set(requestModel.id, newEntry);
-
-            if (requestModel.orderNo) {
-                this.pendingRequestCount += 1;
-            } else {
-                this.handledRequestCount += 1;
-            }
-
-            if (options.forefront) {
-                this.forefrontRequestIds.push(requestModel.id);
-            }
-
-            result.processedRequests.push({
-                requestId: requestModel.id,
-                uniqueKey: requestModel.uniqueKey,
-                // We return wasAlreadyHandled: false even though the request may
-                // have been added as handled, because that's how API behaves.
-                wasAlreadyHandled: false,
-                wasAlreadyPresent: false,
-            });
+            return result;
+        } finally {
+            this.queueStateMutex.shift();
         }
-
-        this.updateTimestamps(true);
-
-        return result;
     }
 
-    async getRequest(id: string): Promise<storage.RequestOptions | undefined> {
-        s.string().parse(id);
+    async getRequest(uniqueKey: string): Promise<storage.RequestOptions | undefined> {
+        s.string().parse(uniqueKey);
         this.updateTimestamps(false);
-        const json = (await this.requests.get(id)?.get())?.json;
+        const id = uniqueKeyToRequestId(uniqueKey);
+        const json = this.requests.get(id)?.json;
         return this._jsonToRequest(json);
     }
 
-    async updateRequest(
+    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | null> {
+        requestShape.parse(request);
+        this.updateTimestamps(false);
+
+        // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so the shared
+        // `requests` map, `inProgressRequestIds` set and request counts stay consistent across the
+        // `await` points below.
+        await this.queueStateMutex.wait();
+
+        try {
+            const id = uniqueKeyToRequestId(request.uniqueKey);
+
+            const existingRequest = this.requests.get(id);
+
+            // The request must exist to be marked as handled. We intentionally do NOT require it to still
+            // be in progress: marking an already-released request handled must still succeed, otherwise
+            // the request could be handed out again and the queue would never finish.
+            if (!existingRequest) {
+                return null;
+            }
+
+            // A handled request has `orderNo === null`. Marking it again is an idempotent no-op.
+            const wasAlreadyHandled = existingRequest.orderNo === null;
+
+            const handledAt = request.handledAt ?? new Date().toISOString();
+            const requestModel = this._createInternalRequest({ ...request, handledAt }, false);
+
+            this.requests.set(id, requestModel);
+
+            // The request is no longer in progress for this client.
+            this.inProgressRequestIds.delete(id);
+
+            if (!wasAlreadyHandled) {
+                this.pendingRequestCount -= 1;
+                this.handledRequestCount += 1;
+            }
+
+            this.updateTimestamps(true);
+
+            return {
+                requestId: id,
+                wasAlreadyHandled,
+                wasAlreadyPresent: true,
+            };
+        } finally {
+            this.queueStateMutex.shift();
+        }
+    }
+
+    async reclaimRequest(
         request: storage.UpdateRequestSchema,
         options: storage.RequestOptions = {},
-    ): Promise<storage.QueueOperationInfo> {
+    ): Promise<storage.QueueOperationInfo | null> {
         requestShape.parse(request);
         requestOptionsShape.parse(options);
+        this.updateTimestamps(false);
 
-        const requestModel = this._createInternalRequest(request, options.forefront);
+        // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so the shared
+        // `requests` map, `forefrontRequestIds` array and `inProgressRequestIds` set stay consistent
+        // across the `await` points below.
+        await this.queueStateMutex.wait();
 
-        // First we need to check the existing request to be
-        // able to return information about its handled state.
+        try {
+            const id = uniqueKeyToRequestId(request.uniqueKey);
 
-        const existingRequestEntry = this.requests.get(requestModel.id);
+            const existingRequest = this.requests.get(id);
 
-        // Undefined means that the request is not present in the queue.
-        // We need to insert it, to behave the same as API.
-        if (!existingRequestEntry) {
-            return this.addRequest(request, options);
+            // The request must exist and not already be handled to be reclaimed. As with
+            // `markRequestAsHandled`, we do NOT require it to still be in progress — returning an
+            // already-released request to the queue (e.g. to honor a `forefront` reorder) must still
+            // work, rather than have the reclaim silently dropped.
+            if (!existingRequest || existingRequest.orderNo === null) {
+                return null;
+            }
+
+            // Reclaiming resets the `orderNo` to a fresh timestamp, restoring the request to the queue
+            // (at the front if `forefront`).
+            const requestModel = this._createInternalRequest(request, options.forefront);
+
+            this.requests.set(id, requestModel);
+
+            // The request is no longer in progress for this client.
+            this.inProgressRequestIds.delete(id);
+
+            if (options.forefront) {
+                this.forefrontRequestIds.push(id);
+            }
+
+            this.updateTimestamps(true);
+
+            return {
+                requestId: id,
+                wasAlreadyHandled: false,
+                wasAlreadyPresent: true,
+            };
+        } finally {
+            this.queueStateMutex.shift();
         }
+    }
 
-        const existingRequest = await existingRequestEntry.get();
+    async isEmpty(): Promise<boolean> {
+        this.updateTimestamps(false);
 
-        const newEntry = createRequestQueueStorageImplementation({
-            persistStorage: this.client.persistStorage,
-            requestId: requestModel.id,
-            storeDirectory: this.requestQueueDirectory,
-        });
+        // "Empty" means there is nothing left to fetch right now — i.e. the next `fetchNextRequest`
+        // would return `null`. Requests that are currently in progress are intentionally NOT counted
+        // here: they are not fetchable, so the queue is empty from a consumer's point of view. Whether
+        // those in-progress requests mean crawling is not yet done is a separate question, answered by
+        // `isFinished`.
+        //
+        // `listPendingHead` prunes `forefrontRequestIds` as it scans, so we must hold the queue-state mutex to avoid
+        // racing a concurrent mutator (e.g. `addBatchOfRequests`) at its `await` points.
+        await this.queueStateMutex.wait();
 
-        await newEntry.update(requestModel);
-
-        // When updating the request, we need to make sure that
-        // the handled counts are updated correctly in all cases.
-        this.requests.set(requestModel.id, newEntry);
-
-        const isRequestHandledStateChanging = typeof existingRequest.orderNo !== typeof requestModel.orderNo;
-        const requestWasHandledBeforeUpdate = existingRequest.orderNo === null;
-        const requestIsHandledAfterUpdate = requestModel.orderNo === null;
-
-        if (isRequestHandledStateChanging) {
-            this.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
+        try {
+            const { items } = await this.listPendingHead(1);
+            return items.length === 0;
+        } finally {
+            this.queueStateMutex.shift();
         }
+    }
 
-        if (requestIsHandledAfterUpdate) {
-            this.handledRequestCount += 1;
+    async isFinished(): Promise<boolean> {
+        this.updateTimestamps(false);
+
+        // The queue is finished only when there is nothing left to fetch AND nothing currently in
+        // progress. Counting in-progress requests is what allows a crawler with concurrency to keep
+        // waiting while it still holds the last requests, instead of finishing prematurely.
+        //
+        // Detecting in-progress requests requires a full scan, hence the `detectInProgressRequests`
+        // flag — unlike `fetchNextRequest`/`isEmpty`, which only need the head and can stop early.
+        //
+        // `listPendingHead` prunes `forefrontRequestIds` as it scans, so we must hold the queue-state mutex to avoid
+        // racing a concurrent mutator (e.g. `addBatchOfRequests`) at its `await` points.
+        await this.queueStateMutex.wait();
+
+        try {
+            const { items, hasInProgressRequests } = await this.listPendingHead(1, true);
+            return items.length === 0 && !hasInProgressRequests;
+        } finally {
+            this.queueStateMutex.shift();
         }
-
-        this.updateTimestamps(true);
-
-        if (options.forefront && !requestIsHandledAfterUpdate) {
-            this.forefrontRequestIds.push(requestModel.id);
-        }
-
-        return {
-            requestId: requestModel.id,
-            wasAlreadyHandled: requestWasHandledBeforeUpdate,
-            wasAlreadyPresent: true,
-        };
     }
 
     toRequestQueueInfo(): storage.RequestQueueInfo {
@@ -535,24 +480,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         if (hasBeenModified) {
             this.modifiedAt = new Date();
         }
-
-        const data = {
-            ...this.toRequestQueueInfo(),
-            forefrontRequestIds: this.forefrontRequestIds,
-        };
-
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                data,
-                entityType: 'requestQueues',
-                entityDirectory: this.requestQueueDirectory,
-                id: this.name ?? this.id,
-                writeMetadata: this.client.writeMetadata,
-                persistStorage: this.client.persistStorage,
-            },
-            this.client.logger,
-        );
     }
 
     private _jsonToRequest<T>(requestJson?: string): T | undefined {
