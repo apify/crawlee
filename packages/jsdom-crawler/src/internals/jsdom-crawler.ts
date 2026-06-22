@@ -11,6 +11,7 @@ import type {
     InternalHttpHook,
     RequestHandler,
     RequestProvider,
+    RouterHandler,
     RouterRoutes,
     SkippedRequestCallback,
 } from '@crawlee/http';
@@ -450,7 +451,12 @@ function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: str
  */
 export function createJSDOMRouter<
     Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createJSDOMRouter<
+    Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createJSDOMRouter(routes?: RouterRoutes<any, any>) {
+    return Router.create<any, any>(routes);
 }

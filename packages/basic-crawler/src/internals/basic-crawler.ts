@@ -2155,7 +2155,12 @@ interface HandlePropertyNameChangeData<New, Old> {
  */
 export function createBasicRouter<
     Context extends BasicCrawlingContext = BasicCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createBasicRouter<
+    Context extends BasicCrawlingContext = BasicCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createBasicRouter(routes?: RouterRoutes<any, any>) {
+    return Router.create<any, any>(routes);
 }

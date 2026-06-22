@@ -7,15 +7,34 @@ import type { Awaitable } from './typedefs';
 
 const defaultRoute = Symbol('default-route');
 
-export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext>
-    extends Router<Context> {
+/**
+ * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`.
+ */
+export type RouterHandlerContext<Context, UserData extends Dictionary> = Omit<Context, 'request'> & {
+    request: LoadedRequest<Request<UserData>>;
+};
+
+/**
+ * The set of labels accepted by {@apilink Router.addHandler}. When the router declares a concrete
+ * route map (e.g. `{ PRODUCT: ...; CATEGORY: ... }`), only those labels (plus symbols) are
+ * allowed — unknown labels become a compile-time error. When the map is left open (the default
+ * `Record<string, ...>`), any string or symbol label is accepted, preserving the original behaviour.
+ */
+export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
+    ? string | symbol
+    : (keyof Routes & string) | symbol;
+
+export interface RouterHandler<
+    Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends Router<Context, Routes> {
     (ctx: Context): Awaitable<void>;
 }
 
 export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
 
-export type RouterRoutes<Context, UserData extends Dictionary> = {
-    [label in string | symbol]: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>;
+export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
+    [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & { request: Request<Routes[Label]> }) => Awaitable<void>;
 };
 
 /**
@@ -82,8 +101,33 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  *    ctx.log.info('...');
  * });
  * ```
+ *
+ * To get `request.userData` typed per label, declare a route map and pass it as the second
+ * type argument. The label passed to {@apilink Router.addHandler} then drives the type of
+ * `request.userData`, and unknown labels are rejected at compile time:
+ *
+ * ```ts
+ * import { createCheerioRouter, CheerioCrawlingContext } from 'crawlee';
+ *
+ * interface Routes {
+ *     PRODUCT: { sku: string; price: number };
+ *     CATEGORY: { categoryId: string };
+ * }
+ *
+ * const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+ *
+ * router.addHandler('PRODUCT', async ({ request }) => {
+ *     request.userData.sku;   // string
+ *     request.userData.price; // number
+ * });
+ *
+ * router.addHandler('TYPO', async () => {}); // compile error: not a known label
+ * ```
  */
-export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>> {
+export class Router<
+    Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> {
     private readonly routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
     private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
 
@@ -94,21 +138,36 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
     protected constructor() {}
 
     /**
-     * Registers new route handler for given label.
+     * Registers new route handler for given label. When the router declares a route map, the
+     * `label` is restricted to the declared labels and `request.userData` is typed accordingly.
+     */
+    addHandler<Label extends keyof Routes & string>(
+        label: Label,
+        handler: (ctx: RouterHandlerContext<Context, Routes[Label]>) => Awaitable<void>,
+    ): void;
+
+    /**
+     * Registers new route handler for given label, explicitly typing `request.userData` via the
+     * `UserData` type argument. Useful when the router has no declared route map (the open default)
+     * and you want to type a single handler, or to register a handler under a `symbol` label.
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        label: string | symbol,
-        handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
-    ) {
+        label: RouterLabel<Routes>,
+        handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
+    ): void;
+
+    addHandler(label: string | symbol, handler: (ctx: any) => Awaitable<void>): void {
         this.validate(label);
         this.routes.set(label, handler);
     }
 
     /**
-     * Registers default route handler.
+     * Registers default route handler. As a fallback it can receive any request (including labels not
+     * declared in the route map), so `request.userData` defaults to the context's `userData` type
+     * (loosely typed by default). Pass an explicit `UserData` type argument to narrow it.
      */
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
+        handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
     ) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
@@ -174,11 +233,24 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
      * await crawler.run();
      * ```
      */
+    // Two overloads keep the second type argument backwards compatible. When it is a route map (every
+    // value is a `Dictionary`) the first overload applies and labels are typed per route. Otherwise it
+    // fails the `Record<keyof Routes, Dictionary>` constraint and falls through to the second overload,
+    // where it is treated as the legacy flat `userData` shape shared by all handlers.
+    static create<
+        Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+        Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
     static create<
         Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
         UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-    >(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context> {
-        const router = new Router<Context>();
+    >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext>(
+        routes?: RouterRoutes<Context, any>,
+    ): RouterHandler<Context, any> {
+        const router = new Router<Context, any>();
         const obj = Object.create(Function.prototype);
 
         obj.addHandler = router.addHandler.bind(router);
@@ -187,7 +259,7 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
         obj.use = router.use.bind(router);
 
         for (const [label, handler] of Object.entries(routes ?? {})) {
-            router.addHandler(label, handler);
+            router.addHandler(label, handler as (ctx: any) => Awaitable<void>);
         }
 
         const func = async function (context: Context) {
@@ -203,6 +275,6 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
 
         Object.setPrototypeOf(func, obj);
 
-        return func as unknown as RouterHandler<Context>;
+        return func as unknown as RouterHandler<Context, any>;
     }
 }

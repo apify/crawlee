@@ -5,6 +5,7 @@ import type {
     BrowserRequestHandler,
     GetUserDataFromRequest,
     LoadedContext,
+    RouterHandler,
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
@@ -221,7 +222,12 @@ export class PuppeteerCrawler extends BrowserCrawler<
  */
 export function createPuppeteerRouter<
     Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createPuppeteerRouter(routes?: RouterRoutes<any, any>) {
+    return Router.create<any, any>(routes);
 }

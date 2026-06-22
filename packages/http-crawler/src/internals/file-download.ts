@@ -13,6 +13,7 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
+    RouterHandler,
     RouterRoutes,
 } from '../index';
 import { HttpCrawler, Router } from '../index';
@@ -331,7 +332,12 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
  */
 export function createFileRouter<
     Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createFileRouter<
+    Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createFileRouter(routes?: RouterRoutes<any, any>) {
+    return Router.create<any, any>(routes);
 }
