@@ -6,12 +6,12 @@ import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
-import { jsonStringifyExtended } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
+import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
@@ -19,39 +19,6 @@ import { createDualIterable, purgeDefaultStorages } from './utils.js';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;
-
-/**
- * Helper function to possibly stringify value if options.contentType is not set.
- *
- * @ignore
- */
-export const maybeStringify = <T>(value: T, options: { contentType?: string }) => {
-    // If contentType is missing, value will be stringified to JSON
-    if (options.contentType === null || options.contentType === undefined) {
-        options.contentType = 'application/json; charset=utf-8';
-
-        try {
-            // Format JSON to simplify debugging, the overheads with compression is negligible
-            value = jsonStringifyExtended(value as Dictionary, null, 2) as unknown as T;
-        } catch (e) {
-            const error = e as Error;
-            // Give more meaningful error message
-            if (error.message?.includes('Invalid string length')) {
-                error.message = 'Object is too large';
-            }
-            throw new Error(`The "value" parameter cannot be stringified to JSON: ${error.message}`);
-        }
-
-        if (value === undefined) {
-            throw new Error(
-                'The "value" parameter was stringified to JSON and returned undefined. ' +
-                    "Make sure you're not trying to stringify an undefined value.",
-            );
-        }
-    }
-
-    return value;
-};
 
 /**
  * The `KeyValueStore` class represents a key-value store, a simple data storage that is used
@@ -232,7 +199,9 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getValue(key);
 
-        return (record?.value as T) ?? defaultValue ?? null;
+        const parsed = record ? parseValue(record.value, record.contentType ?? '') : undefined;
+
+        return (parsed as T) ?? defaultValue ?? null;
     }
 
     /**
@@ -301,7 +270,7 @@ export class KeyValueStore {
             const results: T[] = [];
             for (const item of page) {
                 const record = await this.client.getValue(item.key);
-                if (record) results.push(mapRecord(item.key, record.value));
+                if (record) results.push(mapRecord(item.key, parseValue(record.value, record.contentType ?? '')));
             }
             yield results;
         }
@@ -417,12 +386,12 @@ export class KeyValueStore {
         // In this case delete the record.
         if (value === null) return this.client.deleteValue(key);
 
-        value = maybeStringify(value, optionsCopy);
+        const serialized = serializeValue(value, optionsCopy.contentType);
 
         return this.client.setValue({
             key,
-            value,
-            contentType: optionsCopy.contentType,
+            value: serialized.value,
+            contentType: serialized.contentType,
         });
     }
 

@@ -1,6 +1,6 @@
 import { PassThrough } from 'node:stream';
 
-import { KeyValueStore, maybeStringify, serviceLocator } from '@crawlee/core';
+import { KeyValueStore, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
@@ -52,7 +52,8 @@ describe('KeyValueStore', () => {
             .spyOn(store.client, 'getValue')
             .mockResolvedValueOnce({
                 key: 'key-1',
-                value: record,
+                // The client now returns raw bytes; the frontend parses them.
+                value: Buffer.from(recordStr),
                 contentType: 'application/json; charset=utf-8',
             });
 
@@ -370,22 +371,6 @@ describe('KeyValueStore', () => {
     //         delete process.env[ENV_VARS.TOKEN];
     //     });
     // });
-
-    describe('maybeStringify()', () => {
-        test('should work', () => {
-            expect(maybeStringify({ foo: 'bar' }, { contentType: null as any })).toBe('{\n  "foo": "bar"\n}');
-            expect(maybeStringify({ foo: 'bar' }, { contentType: undefined })).toBe('{\n  "foo": "bar"\n}');
-
-            expect(maybeStringify('xxx', { contentType: undefined })).toBe('"xxx"');
-            expect(maybeStringify('xxx', { contentType: 'something' })).toBe('xxx');
-
-            const obj = {} as Dictionary;
-            obj.self = obj;
-            expect(() => maybeStringify(obj, { contentType: null as any })).toThrow(
-                'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON',
-            );
-        });
-    });
 
     describe('getFileNameRegexp()', () => {
         const getFileNameRegexp = (key: string) => {
