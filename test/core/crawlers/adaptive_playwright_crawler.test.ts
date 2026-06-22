@@ -460,9 +460,9 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         const store = await KeyValueStore.open();
 
-        expect(store.getValue('1')).resolves.toEqual({ content: 42 });
-        expect(store.getValue('2')).resolves.toEqual({ content: 42 });
-        expect(store.getValue('3')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('1')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('2')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('3')).resolves.toEqual({ content: 42 });
     });
 
     test('should not allow direct key-value store manipulation', async () => {
