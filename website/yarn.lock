@@ -245,9 +245,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/docusaurus-plugin-typedoc-api@npm:5.1.13":
-  version: 5.1.13
-  resolution: "@apify/docusaurus-plugin-typedoc-api@npm:5.1.13"
+"@apify/docusaurus-plugin-typedoc-api@npm:5.1.14":
+  version: 5.1.14
+  resolution: "@apify/docusaurus-plugin-typedoc-api@npm:5.1.14"
   dependencies:
     "@vscode/codicons": "npm:^0.0.35"
     cheerio: "npm:^1.2.0"
@@ -268,7 +268,7 @@ __metadata:
     react: ">=18.0.0 || >=19.0.0"
     react-dom: ^18.2.0 || >=19.0.0
     typescript: ^5.0.0
-  checksum: 10c0/90df7b56025b1b96eb42141fc419fe4c59491e2984eda35cc20cb490660116ca9e712d9c8e099814d24a1e818a8d08bf646ec9f065481849b245c43c9eebc05e
+  checksum: 10c0/ebf36dd636568b9104832053aa4c3186c895ce03a6e028d66aba4a84aee2a7fe52ccaed763c49a5c1ebbfc63e395ae847633f321e39462098db0d71722ab3843
   languageName: node
   linkType: hard
 
@@ -15811,7 +15811,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@apify/docusaurus-plugin-typedoc-api": "npm:5.1.13"
+    "@apify/docusaurus-plugin-typedoc-api": "npm:5.1.14"
     "@apify/eslint-config-ts": "npm:0.4.1"
     "@apify/tsconfig": "npm:^0.2.0"
     "@apify/ui-icons": "npm:^1.23.0"
