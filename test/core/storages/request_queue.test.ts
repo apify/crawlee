@@ -278,6 +278,30 @@ describe('RequestQueue remote', () => {
         expect(mockAddRequests).toBeCalledWith([requestB, requestC], { forefront: true });
     });
 
+    test('addRequestsBatched does not retry permanently unprocessed requests forever', async () => {
+        const queue = new RequestQueue({ id: 'unprocessed-requests', client: storageClient });
+        const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
+
+        const requestOptions = { url: 'http://example.com/bad' };
+        const request = new Request(requestOptions);
+
+        // Simulate the platform permanently rejecting the request (e.g. a 400 due to a malformed `userData` shape):
+        // it is always reported back as unprocessed.
+        mockAddRequests.mockResolvedValue({
+            processedRequests: [],
+            unprocessedRequests: [{ uniqueKey: request.uniqueKey, url: request.url, method: 'GET' }],
+        });
+
+        const logWarningSpy = vitest.spyOn(queue.log, 'warning');
+
+        const result = await queue.addRequestsBatched([requestOptions], { waitBetweenBatchesMillis: 0 });
+
+        // Must not hang: it gives up after a bounded number of attempts and warns about the skipped requests.
+        expect(result.addedRequests).toHaveLength(0);
+        expect(logWarningSpy).toHaveBeenCalled();
+        expect(mockAddRequests.mock.calls.length).toBeLessThan(20);
+    });
+
     test('should cache new requests locally', async () => {
         const queue = new RequestQueue({ id: 'some-id', client: storageClient });
 
