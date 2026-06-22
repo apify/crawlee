@@ -57,7 +57,7 @@ export class ImpitHttpClient implements BaseHttpClient {
     }
 
     /**
-     * @param options.cacheClients Whether to cache `impit` clients between requests.
+     * @param options.cacheClients Whether to cache `impit` clients between requests. Defaults to `true`.
      */
     constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number; cacheClients?: boolean }) {
         const { maxRedirects = 10, followRedirects = true, cacheClients = true, ...impitOptions } = options ?? {};
