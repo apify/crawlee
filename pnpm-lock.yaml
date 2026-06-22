@@ -256,9 +256,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
-      '@crawlee/impit-client':
+      '@crawlee/http-client':
         specifier: workspace:^
-        version: link:../impit-client
+        version: link:../http-client
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
@@ -283,6 +283,10 @@ importers:
       type-fest:
         specifier: ^4.41.0
         version: 4.41.0
+    optionalDependencies:
+      '@crawlee/impit-client':
+        specifier: workspace:^
+        version: link:../impit-client
 
   packages/browser-crawler:
     dependencies:
@@ -496,6 +500,9 @@ importers:
       '@crawlee/http':
         specifier: workspace:*
         version: link:../http-crawler
+      '@crawlee/impit-client':
+        specifier: workspace:*
+        version: link:../impit-client
       '@crawlee/jsdom':
         specifier: workspace:*
         version: link:../jsdom-crawler

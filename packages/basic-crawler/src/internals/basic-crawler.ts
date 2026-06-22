@@ -61,7 +61,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
-import { ImpitHttpClient } from '@crawlee/impit-client';
+import { FetchHttpClient } from '@crawlee/http-client';
 import type {
     Awaitable,
     BaseHttpClient,
@@ -377,7 +377,7 @@ export interface BasicCrawlerOptions<
 
     /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
-     * Defaults to a new instance of {@apilink ImpitHttpClient}
+     * Defaults to {@apilink ImpitHttpClient} when `@crawlee/impit-client` is installed, otherwise {@apilink FetchHttpClient}.
      */
     httpClient?: BaseHttpClient;
 
@@ -637,7 +637,7 @@ export class BasicCrawler<
     protected additionalHttpErrorStatusCodes: Set<number>;
     protected ignoreHttpErrorStatusCodes: Set<number>;
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
-    protected httpClient: BaseHttpClient;
+    protected httpClient!: BaseHttpClient;
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
@@ -807,7 +807,9 @@ export class BasicCrawler<
                 this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
             }
 
-            this.httpClient = httpClient ?? new ImpitHttpClient({ logger: this.log });
+            if (httpClient) {
+                this.httpClient = httpClient;
+            }
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -1705,6 +1707,18 @@ export class BasicCrawler<
         if (!eventManager.isInitialized()) {
             await eventManager.init();
             this._closeEvents = true;
+        }
+
+        if (!this.httpClient) {
+            try {
+                const { ImpitHttpClient } = await import('@crawlee/impit-client');
+                this.httpClient = new ImpitHttpClient({ logger: this.log });
+            } catch {
+                this.log.warning(
+                    'Optional dependency @crawlee/impit-client is not installed. Falling back to native fetch — proxy support and browser fingerprinting are unavailable.',
+                );
+                this.httpClient = new FetchHttpClient();
+            }
         }
 
         // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
