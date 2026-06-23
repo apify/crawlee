@@ -199,7 +199,7 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getValue(key);
 
-        const parsed = record ? parseValue(record.value, record.contentType ?? '') : undefined;
+        const parsed = record ? parseValue(record.value, record.contentType ?? null) : undefined;
 
         return (parsed as T) ?? defaultValue ?? null;
     }
@@ -230,7 +230,7 @@ export class KeyValueStore {
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      */
-    async getRecord(key: string): Promise<{ value: Buffer; contentType: string } | null> {
+    async getRecord(key: string): Promise<{ value: Buffer; contentType: string | null } | null> {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
@@ -239,7 +239,7 @@ export class KeyValueStore {
 
         return {
             value: record.value as Buffer,
-            contentType: record.contentType ?? '',
+            contentType: record.contentType ?? null,
         };
     }
 
@@ -309,7 +309,7 @@ export class KeyValueStore {
             const results: T[] = [];
             for (const item of page) {
                 const record = await this.client.getValue(item.key);
-                if (record) results.push(mapRecord(item.key, parseValue(record.value, record.contentType ?? '')));
+                if (record) results.push(mapRecord(item.key, parseValue(record.value, record.contentType ?? null)));
             }
             yield results;
         }

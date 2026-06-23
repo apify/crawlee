@@ -98,9 +98,14 @@ describe('key_value_store_codec', () => {
             expect(parseValue(body, 'text/plain; charset=not-a-real-charset')).toBe(body);
         });
 
+        test('null content type → raw buffer', () => {
+            const body = Buffer.from('text');
+            expect(parseValue(body, null)).toBe(body);
+        });
+
         test('unparseable content type header → raw buffer', () => {
             const body = Buffer.from('text');
-            expect(parseValue(body, '')).toBe(body);
+            expect(parseValue(body, 'this is not a valid header')).toBe(body);
         });
 
         test('ArrayBuffer input is decoded as UTF-8', () => {

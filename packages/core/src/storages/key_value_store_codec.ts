@@ -82,8 +82,11 @@ export function serializeValue(
  */
 export function parseValue(
     body: Buffer | ArrayBuffer,
-    contentTypeHeader: string,
+    contentTypeHeader: string | null,
 ): string | Buffer | ArrayBuffer | Record<string, unknown> {
+    // No content type at all → we have no basis for interpretation; hand back the raw bytes.
+    if (contentTypeHeader === null) return body;
+
     let contentType: string;
     let charset: BufferEncoding;
     try {
@@ -91,7 +94,7 @@ export function parseValue(
         contentType = result.type;
         charset = result.parameters.charset as BufferEncoding;
     } catch {
-        // can't parse, keep original body
+        // Unparseable header → keep the original buffer rather than a mangled string.
         return body;
     }
 
