@@ -8,9 +8,15 @@ const CONTENT_TYPE_JSON = 'application/json';
 const STRINGIFIABLE_CONTENT_TYPE_RXS = [new RegExp(`^${CONTENT_TYPE_JSON}$`, 'i'), /^application\/.*xml$/i, /^text\//i];
 
 /**
- * Canonical write path for key-value store records. When a content type is provided, the value is
- * taken as-is; when it is absent, the value is serialized to JSON and the content type is set to
- * `application/json; charset=utf-8`.
+ * Canonical write path for key-value store records.
+ *
+ * When a content type is provided, the value passes through unchanged — it is the caller's
+ * responsibility to supply a String/Buffer/Stream (the frontend validates this).
+ *
+ * When no content type is provided, it is inferred from the value's shape:
+ * - Buffer / typed array / ArrayBuffer / stream → `application/octet-stream` (passthrough)
+ * - `string` → `text/plain; charset=utf-8` (passthrough)
+ * - anything else → `application/json; charset=utf-8` (serialized via `jsonStringifyExtended`)
  *
  * Does NOT drain streams — that is storage mechanics and stays in the storage client.
  *
@@ -20,14 +26,24 @@ export function serializeValue(
     value: unknown,
     contentType?: string,
 ): { value: Buffer | string | NodeJS.ReadableStream; contentType: string } {
-    // When an explicit content type is provided, the value is taken as-is — it is the caller's
-    // responsibility to pass a String/Buffer/Stream (the frontend validates this). When no content
-    // type is provided, the value is serialized to JSON.
     if (contentType !== null && contentType !== undefined) {
         return { value: value as Buffer | string | NodeJS.ReadableStream, contentType };
     }
 
-    const resolvedContentType = 'application/json; charset=utf-8';
+    const isStream = typeof value === 'object' && value !== null && typeof (value as Dictionary).pipe === 'function';
+    const isBytes =
+        Buffer.isBuffer(value as unknown as Buffer) || value instanceof ArrayBuffer || ArrayBuffer.isView(value);
+
+    if (isStream || isBytes) {
+        return {
+            value: value as Buffer | NodeJS.ReadableStream,
+            contentType: 'application/octet-stream',
+        };
+    }
+
+    if (typeof value === 'string') {
+        return { value, contentType: 'text/plain; charset=utf-8' };
+    }
 
     let serialized: string;
     try {
@@ -49,7 +65,7 @@ export function serializeValue(
         );
     }
 
-    return { value: serialized, contentType: resolvedContentType };
+    return { value: serialized, contentType: 'application/json; charset=utf-8' };
 }
 
 /**
