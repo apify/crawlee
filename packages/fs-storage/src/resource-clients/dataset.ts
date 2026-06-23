@@ -15,11 +15,12 @@ import type { FileSystemDatasetClient as NativeFileSystemDatasetClient } from '@
 const UNSUPPORTED_GET_DATA_OPTIONS = ['clean', 'fields', 'omit', 'skipHidden', 'skipEmpty'] as const;
 
 /**
- * This is what the API returns in the `x-apify-pagination-limit` header when no limit query
- * parameter is used. The native client expects an explicit upper bound, so we forward this value
- * when the caller does not specify a `limit`.
+ * "Return everything" sentinel for {@link DatasetClient.getData}. The native client requires an
+ * explicit upper bound, so when the caller omits `limit` we forward this value. It matches what the
+ * Apify API reports in the `x-apify-pagination-limit` header when no `limit` query parameter is set,
+ * keeping the local backend's pagination behavior aligned with the platform.
  */
-const LIST_ITEMS_LIMIT = 999_999_999_999;
+const ALL_ITEMS_LIMIT = 999_999_999_999;
 
 export interface DatasetClientOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
@@ -114,7 +115,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> implements stor
 
         const page = await this.nativeClient.getData(
             offset ?? 0,
-            Math.min(limit ?? LIST_ITEMS_LIMIT, LIST_ITEMS_LIMIT),
+            Math.min(limit ?? ALL_ITEMS_LIMIT, ALL_ITEMS_LIMIT),
             desc ?? false,
             false,
         );
