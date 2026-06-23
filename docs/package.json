@@ -17,7 +17,7 @@
     "@crawlee/stagehand": "workspace:*",
     "apify": "*",
     "crawlee": "workspace:*",
-    "impit": "^0.7.1",
+    "impit": "^0.14.2",
     "pino": "^9.6.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",

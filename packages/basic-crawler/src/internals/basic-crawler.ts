@@ -41,6 +41,7 @@ import {
     EnqueueStrategy,
     EventType,
     KeyValueStore,
+    log,
     LogLevel,
     mergeCookies,
     MissingSessionError,
@@ -63,7 +64,7 @@ import {
     validateUserData,
     validators,
 } from '@crawlee/core';
-import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
+import { FetchHttpClient } from '@crawlee/http-client';
 import type {
     Awaitable,
     BaseHttpClient,
@@ -87,6 +88,26 @@ import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
+
+class LazyDefaultHttpClient implements BaseHttpClient {
+    private readonly _delegatePromise: Promise<BaseHttpClient>;
+
+    constructor(options?: { logger?: CrawleeLogger }) {
+        this._delegatePromise = import('@crawlee/impit-client')
+            .then(({ ImpitHttpClient }) => new ImpitHttpClient(options))
+            .catch(() => {
+                (options?.logger ?? log).warning(
+                    'Optional dependency @crawlee/impit-client is not installed. ' +
+                        'Falling back to native fetch — proxy support and browser fingerprinting are unavailable.',
+                );
+                return new FetchHttpClient(options);
+            });
+    }
+
+    async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
+        return (await this._delegatePromise).sendRequest(...args);
+    }
+}
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {}
 
@@ -379,7 +400,7 @@ export interface BasicCrawlerOptions<
 
     /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
-     * Defaults to a new instance of {@apilink GotScrapingHttpClient}
+     * Defaults to {@apilink ImpitHttpClient} when `@crawlee/impit-client` is installed, otherwise {@apilink FetchHttpClient}.
      */
     httpClient?: BaseHttpClient;
 
@@ -821,7 +842,7 @@ export class BasicCrawler<
                 this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
             }
 
-            this.httpClient = httpClient ?? new GotScrapingHttpClient({ logger: this.log });
+            this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;

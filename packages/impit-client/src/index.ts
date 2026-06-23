@@ -110,11 +110,14 @@ export class ImpitHttpClient extends BaseHttpClient {
 
     private resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
         if (!fingerprint?.browser) return undefined;
-        const versions = IMPIT_VERSIONS_BY_BROWSER[fingerprint.browser];
-        if (!versions?.length) return undefined;
 
         const cached = this.impitBrowserByFingerprint.get(fingerprint);
         if (cached) return cached;
+
+        // impit can only impersonate Chrome and Firefox. Map other (Chromium-based or
+        // unsupported) families like `edge`/`safari` onto Chrome so the request still
+        // carries realistic browser headers instead of impit's bare `*/*` defaults.
+        const versions = IMPIT_VERSIONS_BY_BROWSER[fingerprint.browser] ?? IMPIT_VERSIONS_BY_BROWSER.chrome!;
 
         const picked = versions[Math.floor(Math.random() * versions.length)];
         this.impitBrowserByFingerprint.set(fingerprint, picked);
