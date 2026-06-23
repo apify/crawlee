@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import { Actor } from 'apify';
+import { Actor, ApifyClient } from 'apify';
 import fs from 'fs-extra';
 import { got } from 'got';
 
@@ -166,7 +166,9 @@ export async function runActor(dirName, memory = 4096) {
     const contentType = input ? 'application/json' : undefined;
 
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
-        const client = Actor.newClient();
+        // Plain client, not Actor.newClient(): the latter's charging-aware `.dataset()`
+        // throws unless Actor.init() ran, which it never does in this harness process.
+        const client = new ApifyClient({ token: process.env.APIFY_TOKEN });
         const id = await pushActor(client, dirName);
         const runId = await startActorOnPlatform(client, id, input, contentType, memory);
 
