@@ -1,8 +1,18 @@
 import type * as storage from '@crawlee/types';
-import type { Dictionary } from '@crawlee/types';
+import type { CrawleeLogger, Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import type { FileSystemDatasetClient as NativeFileSystemDatasetClient } from '@crawlee/fs-storage-native';
+
+/**
+ * `getData` options accepted by the high-level `Dataset` frontend but not supported by the native
+ * file-system backend (it can only paginate raw items by `offset`/`limit`/`desc`). They are silently
+ * ignored, so we warn once if a caller passes any of them.
+ *
+ * Implementing these in the native client is tracked in
+ * https://github.com/apify/crawlee-storage/issues/8.
+ */
+const UNSUPPORTED_GET_DATA_OPTIONS = ['clean', 'fields', 'omit', 'skipHidden', 'skipEmpty'] as const;
 
 /**
  * This is what the API returns in the `x-apify-pagination-limit` header when no limit query
@@ -20,6 +30,7 @@ export interface DatasetClientOptions {
      */
     cacheKey: string;
     nativeClient: NativeFileSystemDatasetClient;
+    logger?: CrawleeLogger;
 }
 
 /**
@@ -34,11 +45,13 @@ export class DatasetClient<Data extends Dictionary = Dictionary> implements stor
     readonly cacheKey: string;
 
     private readonly nativeClient: NativeFileSystemDatasetClient;
+    private readonly logger?: CrawleeLogger;
 
     constructor(options: DatasetClientOptions) {
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.nativeClient = options.nativeClient;
+        this.logger = options.logger;
     }
 
     /** The storage id assigned by the native client. */
@@ -82,6 +95,15 @@ export class DatasetClient<Data extends Dictionary = Dictionary> implements stor
     }
 
     async getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+        const passedOptions = options as Record<string, unknown>;
+        const ignored = UNSUPPORTED_GET_DATA_OPTIONS.filter((key) => passedOptions[key] !== undefined);
+        if (ignored.length > 0) {
+            this.logger?.warning?.(
+                `getData() options [${ignored.join(', ')}] are not supported by the file-system dataset ` +
+                    `and were ignored. Only "offset", "limit" and "desc" are honored.`,
+            );
+        }
+
         const { desc, limit, offset } = s
             .object({
                 desc: s.boolean().optional(),
