@@ -66,15 +66,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> implements stor
     }
 
     async getMetadata(): Promise<storage.DatasetInfo> {
-        const metadata = await this.nativeClient.getMetadata();
-        return {
-            id: metadata.id,
-            name: metadata.name ?? undefined,
-            accessedAt: new Date(metadata.accessedAt),
-            createdAt: new Date(metadata.createdAt),
-            modifiedAt: new Date(metadata.modifiedAt),
-            itemCount: metadata.itemCount,
-        };
+        return this.nativeClient.getMetadata();
     }
 
     async drop(): Promise<void> {

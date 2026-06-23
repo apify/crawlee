@@ -251,7 +251,6 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             accessedAt: this.accessedAt,
             createdAt: this.createdAt,
             modifiedAt: this.modifiedAt,
-            userId: '1',
         };
     }
 

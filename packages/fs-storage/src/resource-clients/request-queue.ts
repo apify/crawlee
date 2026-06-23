@@ -102,20 +102,7 @@ export class RequestQueueClient implements storage.RequestQueueClient {
     }
 
     async getMetadata(): Promise<storage.RequestQueueInfo> {
-        const metadata = await this.nativeClient.getMetadata();
-        return {
-            id: metadata.id,
-            name: metadata.name ?? undefined,
-            accessedAt: new Date(metadata.accessedAt),
-            createdAt: new Date(metadata.createdAt),
-            modifiedAt: new Date(metadata.modifiedAt),
-            hadMultipleClients: metadata.hadMultipleClients,
-            handledRequestCount: metadata.handledRequestCount,
-            pendingRequestCount: metadata.pendingRequestCount,
-            totalRequestCount: metadata.totalRequestCount,
-            stats: {},
-            userId: '1',
-        };
+        return this.nativeClient.getMetadata();
     }
 
     async drop(): Promise<void> {

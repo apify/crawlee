@@ -468,9 +468,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             modifiedAt: this.modifiedAt,
             name: this.name,
             pendingRequestCount: this.pendingRequestCount,
-            stats: {},
             totalRequestCount: this.requests.size,
-            userId: '1',
         };
     }
 

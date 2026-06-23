@@ -76,15 +76,7 @@ export class KeyValueStoreClient implements storage.KeyValueStoreClient {
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
-        const metadata = await this.nativeClient.getMetadata();
-        return {
-            id: metadata.id,
-            name: metadata.name ?? undefined,
-            accessedAt: new Date(metadata.accessedAt),
-            createdAt: new Date(metadata.createdAt),
-            modifiedAt: new Date(metadata.modifiedAt),
-            userId: '1',
-        };
+        return this.nativeClient.getMetadata();
     }
 
     async drop(): Promise<void> {
