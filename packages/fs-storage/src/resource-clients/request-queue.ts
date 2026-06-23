@@ -39,18 +39,6 @@ export interface RequestQueueClientOptions {
     logger?: CrawleeLogger;
 }
 
-/**
- * The native client tags each request it returns with an internal `orderNo` (its lock / ordering
- * timestamp). Strip it before handing the request back so consumers see a plain `RequestOptions` as
- * promised by the `@crawlee/types` contract, rather than a native implementation detail. Returns a
- * fresh object — the native client's value is left untouched.
- */
-function stripNativeInternals(request: Record<string, unknown> | null): storage.RequestOptions | undefined {
-    if (!request) return undefined;
-    const { orderNo, ...rest } = request;
-    return rest as storage.RequestOptions;
-}
-
 function toQueueOperationInfo(processed: NativeProcessedRequest | null): storage.QueueOperationInfo | null {
     if (!processed) return null;
     return {
@@ -65,8 +53,7 @@ function toQueueOperationInfo(processed: NativeProcessedRequest | null): storage
  * extension.
  *
  * Request ordering, in-progress locking and state persistence are all owned by the native client.
- * This adapter forwards each operation, converts result shapes to the `@crawlee/types` interfaces,
- * and strips the internal bookkeeping fields the native client adds to returned requests.
+ * This adapter forwards each operation and converts result shapes to the `@crawlee/types` interfaces.
  */
 export class RequestQueueClient extends CachedIdClient implements storage.RequestQueueClient {
     readonly name?: string;
@@ -147,11 +134,14 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
 
     async getRequest(uniqueKey: string): Promise<storage.RequestOptions | undefined> {
         s.string().parse(uniqueKey);
-        return stripNativeInternals(await this.nativeClient.getRequest(uniqueKey));
+        // The native client tags requests with an internal `orderNo`; it's harmless to leak, so we
+        // hand the request back as-is rather than copying it just to drop one undeclared property.
+        // It returns `null` for a missing request, but this method's contract is `undefined`.
+        return ((await this.nativeClient.getRequest(uniqueKey)) as storage.RequestOptions | null) ?? undefined;
     }
 
     async fetchNextRequest(): Promise<storage.RequestOptions | null> {
-        return stripNativeInternals(await this.nativeClient.fetchNextRequest()) ?? null;
+        return (await this.nativeClient.fetchNextRequest()) as storage.RequestOptions | null;
     }
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | null> {

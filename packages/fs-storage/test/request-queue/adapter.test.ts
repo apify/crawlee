@@ -25,7 +25,7 @@ describe('RequestQueueClient adapter', () => {
         await rm(tmpLocation, { force: true, recursive: true });
     });
 
-    test('fetchNextRequest returns a clean request: internal `orderNo` stripped, fields preserved', async () => {
+    test('fetchNextRequest returns a request with its fields preserved', async () => {
         await requestQueue.addBatchOfRequests([
             { url: 'http://example.com/1', uniqueKey: '1', userData: { foo: 'bar' } },
         ]);
@@ -38,17 +38,14 @@ describe('RequestQueueClient adapter', () => {
         expect(request!.userData).toStrictEqual({ foo: 'bar' });
         // `id` is a real request field and is surfaced.
         expect(typeof request!.id).toBe('string');
-        // `orderNo` is the native client's internal bookkeeping and must not leak through the adapter.
-        expect(request).not.toHaveProperty('orderNo');
     });
 
-    test('getRequest looks up by uniqueKey and strips internal fields', async () => {
+    test('getRequest looks up by uniqueKey', async () => {
         await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 
         const request = await requestQueue.getRequest('1');
 
         expect(request?.url).toBe('http://example.com/1');
-        expect(request).not.toHaveProperty('orderNo');
         expect(await requestQueue.getRequest('does-not-exist')).toBeUndefined();
     });
 
