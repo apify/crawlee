@@ -356,26 +356,39 @@ describe('KeyValueStore', () => {
     });
 
     describe('round-trips through the real storage client (no content type)', () => {
-        test('object: setValue → getValue returns the same object', async () => {
+        test('object: setValue → getValue returns the same object, stored as application/json', async () => {
             const store = await KeyValueStore.open();
             const original = { foo: 'bar', n: 1 };
             await store.setValue('obj', original);
+
             await expect(store.getValue('obj')).resolves.toEqual(original);
+            const record = await store.getRecord('obj');
+            expect(record!.contentType).toBe('application/json; charset=utf-8');
         });
 
-        test('string: setValue → getValue returns the same string (not JSON-wrapped)', async () => {
+        test('string: setValue → getValue returns the same string, stored as text/plain (not JSON-wrapped)', async () => {
             const store = await KeyValueStore.open();
             await store.setValue('str', 'hello world');
+
             await expect(store.getValue('str')).resolves.toBe('hello world');
+            const record = await store.getRecord('str');
+            expect(record!.contentType).toBe('text/plain; charset=utf-8');
+            // Bytes are the raw string, not the JSON-wrapped `'"hello world"'` the old code produced.
+            expect(record!.value.toString()).toBe('hello world');
         });
 
-        test('Buffer: setValue → getValue returns the same Buffer (not JSON-mangled)', async () => {
+        test('Buffer: setValue → getValue returns the same Buffer, stored as octet-stream (not JSON-mangled)', async () => {
             const store = await KeyValueStore.open();
             const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
             await store.setValue('buf', original);
-            const got = await store.getValue('buf');
-            expect(Buffer.isBuffer(got)).toBe(true);
-            expect((got as Buffer).equals(original)).toBe(true);
+
+            const value = await store.getValue('buf');
+            expect(Buffer.isBuffer(value)).toBe(true);
+            expect((value as Buffer).equals(original)).toBe(true);
+
+            const record = await store.getRecord('buf');
+            expect(record!.contentType).toBe('application/octet-stream');
+            expect(record!.value.equals(original)).toBe(true);
         });
     });
 
