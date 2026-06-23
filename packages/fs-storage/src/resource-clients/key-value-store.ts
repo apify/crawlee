@@ -213,16 +213,19 @@ export class KeyValueStoreClient implements storage.KeyValueStoreClient {
     }
 
     async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
+        // By the time a value reaches the client the frontend (KeyValueStore codec) has already
+        // serialized it: non-bytes become a `string`, everything else is a `Buffer`/typed array or a
+        // stream. So we only accept those shapes here — there is no JSON inference or `String(value)`
+        // coercion left to do.
         s.object({
             key: s.string().lengthGreaterThan(0),
             value: s.union([
-                s.null(),
                 s.string(),
-                s.number(),
                 s.instance(Buffer),
                 s.instance(ArrayBuffer),
                 s.typedArray(),
-                // disabling validation makes shapeshift only check the value is an actual object, not null nor array
+                // A stream is an object; disabling validation makes shapeshift only check it is a
+                // non-null, non-array object (the stream guard below does the real check).
                 s.object({}).setValidationEnabled(false),
             ]),
             contentType: s.string().lengthGreaterThan(0).optional(),
@@ -230,9 +233,8 @@ export class KeyValueStoreClient implements storage.KeyValueStoreClient {
 
         const { key } = record;
         let { value } = record;
-        // The frontend (KeyValueStore codec) serializes the value and resolves its content type
-        // before it reaches the client. This client is a plain byte transport; it does not infer
-        // content types nor serialize values.
+        // The frontend resolves the content type before it reaches the client; this client is a plain
+        // byte transport and does not infer content types.
         const contentType = record.contentType ?? 'application/octet-stream';
 
         // Draining a stream into a Buffer for storage is the client's responsibility.
@@ -251,7 +253,7 @@ export class KeyValueStoreClient implements storage.KeyValueStoreClient {
               ? Buffer.from(value)
               : ArrayBuffer.isView(value)
                 ? Buffer.from(value.buffer, value.byteOffset, value.byteLength)
-                : Buffer.from(String(value));
+                : Buffer.from(value as string);
 
         await this.nativeClient.setValue(key, buffer, contentType);
     }
