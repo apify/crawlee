@@ -197,6 +197,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey: cacheKey ?? '',
             nativeClient,
+            logger: this.logger,
         });
         this.requestQueueCache.push(newStore);
 

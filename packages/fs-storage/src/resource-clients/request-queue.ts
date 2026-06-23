@@ -1,4 +1,5 @@
 import type * as storage from '@crawlee/types';
+import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import type {
@@ -33,6 +34,7 @@ export interface RequestQueueClientOptions {
      */
     cacheKey: string;
     nativeClient: NativeFileSystemRequestQueueClient;
+    logger?: CrawleeLogger;
 }
 
 /**
@@ -69,12 +71,14 @@ export class RequestQueueClient implements storage.RequestQueueClient {
     readonly cacheKey: string;
 
     private readonly nativeClient: NativeFileSystemRequestQueueClient;
+    private readonly logger?: CrawleeLogger;
     private _cachedId!: string;
 
     constructor(options: RequestQueueClientOptions) {
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.nativeClient = options.nativeClient;
+        this.logger = options.logger;
     }
 
     /** The storage id assigned by the native client. */
@@ -98,7 +102,11 @@ export class RequestQueueClient implements storage.RequestQueueClient {
      * while the native call is asynchronous; we kick it off and let it settle in the background.
      */
     setExpectedRequestProcessingTimeSecs(secs: number): void {
-        void this.nativeClient.setExpectedRequestProcessingTime(secs);
+        // Kick off the async native call and let it settle in the background, but swallow any
+        // rejection so it doesn't surface as an unhandled promise rejection.
+        this.nativeClient.setExpectedRequestProcessingTime(secs).catch((error) => {
+            this.logger?.warning?.('Failed to set the expected request processing time', { error });
+        });
     }
 
     async getMetadata(): Promise<storage.RequestQueueInfo> {
