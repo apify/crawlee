@@ -1,5 +1,6 @@
 import type { Dictionary } from '@crawlee/types';
 import contentTypeParser from 'content-type';
+import { isBuffer, isStream } from '@crawlee/utils';
 import JSON5 from 'json5';
 
 import { jsonStringifyExtended } from '@apify/utilities';
@@ -25,18 +26,17 @@ const STRINGIFIABLE_CONTENT_TYPE_RXS = [new RegExp(`^${CONTENT_TYPE_JSON}$`, 'i'
 export function serializeValue(
     value: unknown,
     contentType?: string,
-): { value: Buffer | string | NodeJS.ReadableStream; contentType: string } {
+): {
+    value: Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
+    contentType: string;
+} {
     if (contentType !== null && contentType !== undefined) {
-        return { value: value as Buffer | string | NodeJS.ReadableStream, contentType };
+        return { value: value as Buffer | string | NodeJS.ReadableStream | ReadableStream, contentType };
     }
 
-    const isStream = typeof value === 'object' && value !== null && typeof (value as Dictionary).pipe === 'function';
-    const isBytes =
-        Buffer.isBuffer(value as unknown as Buffer) || value instanceof ArrayBuffer || ArrayBuffer.isView(value);
-
-    if (isStream || isBytes) {
+    if (isStream(value) || isBuffer(value)) {
         return {
-            value: value as Buffer | NodeJS.ReadableStream,
+            value,
             contentType: 'application/octet-stream',
         };
     }

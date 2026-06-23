@@ -183,7 +183,7 @@ describe('KeyValueStore', () => {
             );
 
             const valueErrMsg =
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified';
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified';
             await expect(store.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(store.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(store.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
@@ -215,12 +215,12 @@ describe('KeyValueStore', () => {
 
             const contTypeRedundantErrMsg = 'Expected property string `contentType` to not be empty in object';
             await expect(store.setValue('key', null, { contentType: 'image/png' })).rejects.toThrow(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
             await expect(store.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
             // @ts-expect-error Type '{}' is not assignable to type 'string'.
             await expect(store.setValue('key', null, { contentType: {} })).rejects.toThrow(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
 
             // @ts-expect-error Type 'number' is not assignable to type 'string'.

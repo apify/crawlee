@@ -16,6 +16,7 @@ import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
+import { isBuffer, isStream } from '@crawlee/utils';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;
@@ -383,15 +384,9 @@ export class KeyValueStore {
                 message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
             })),
         );
-        if (
-            options.contentType &&
-            !(
-                ow.isValid(value, ow.any(ow.string, ow.uint8Array)) ||
-                (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')
-            )
-        ) {
+        if (options.contentType && !(typeof value === 'string' || isBuffer(value) || isStream(value))) {
             throw new ArgumentError(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
                 this.setValue,
             );
         }

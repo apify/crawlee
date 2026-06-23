@@ -193,3 +193,30 @@ export function expandShadowRoots(document: Document): string {
 
     return document.documentElement.outerHTML;
 }
+
+/**
+ * Checks if the given value is a Node.js Stream or a Web API ReadableStream.
+ * @ignore
+ */
+export function isStream(value: unknown): value is NodeJS.ReadableStream | ReadableStream {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        (typeof (value as any).pipe === 'function' || typeof (value as any).pipeTo === 'function')
+    );
+}
+
+/**
+ * Checks if the given value is a Node.js Buffer, ArrayBuffer, or TypedArray.
+ * @ignore
+ */
+export function isBuffer(value: unknown): value is Buffer | ArrayBuffer | ArrayBufferView {
+    return (
+        value != null &&
+        typeof value === 'object' &&
+        (Buffer.isBuffer(value) ||
+            value instanceof ArrayBuffer ||
+            ArrayBuffer.isView(value) ||
+            (value as any).constructor?.name === 'Buffer')
+    );
+}

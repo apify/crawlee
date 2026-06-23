@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type * as storage from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
+import { isBuffer, isStream } from '@crawlee/utils';
 
 import { REQUEST_ID_LENGTH } from './consts.js';
 
@@ -31,23 +31,7 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
     return str.length > REQUEST_ID_LENGTH ? str.slice(0, REQUEST_ID_LENGTH) : str;
 }
 
-export function isBuffer(value: unknown): boolean {
-    try {
-        s.union([s.instance(Buffer), s.instance(ArrayBuffer), s.typedArray()]).parse(value);
-
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-export function isStream(value: any): boolean {
-    return (
-        typeof value === 'object' &&
-        value &&
-        ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function')
-    );
-}
+export { isBuffer, isStream };
 
 export type BackgroundHandlerReceivedMessage = BackgroundHandlerUpdateMetadataMessage;
 
