@@ -306,7 +306,17 @@ export class KeyValueStoreClient implements storage.KeyValueStoreClient {
         };
     }
 
-    /** Find an untracked value file on disk matching `key`, if any. */
+    /**
+     * Find an untracked value file on disk matching `key`, if any.
+     *
+     * Note: the comparison percent-encodes both sides with `encodeURIComponent`, which escapes a
+     * *different* set of characters than the native client's on-disk encoding (the Rust side escapes
+     * every non-alphanumeric byte). That mismatch is harmless here because both operands go through
+     * the same `encodeURIComponent` — `bareFile.key` was already decoded from disk in
+     * {@link KeyValueStoreClient.listBareFiles} — so this only normalizes our own comparison and never
+     * tries to reconstruct a native filename. Do not "align" this with the native encoding without
+     * reworking how bare files are decoded.
+     */
     private async findBareFile(key: string): Promise<BareFile | undefined> {
         const target = encodeURIComponent(key);
         for (const bareFile of await this.listBareFiles()) {
