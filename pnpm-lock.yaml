@@ -544,6 +544,9 @@ importers:
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
+      '@crawlee/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@sapphire/async-queue':
         specifier: ^1.5.5
         version: 1.5.5
@@ -721,6 +724,9 @@ importers:
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
+      '@crawlee/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@sapphire/async-queue':
         specifier: ^1.5.5
         version: 1.5.5

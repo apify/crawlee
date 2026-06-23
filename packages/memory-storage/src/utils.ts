@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 
-import { s } from '@sapphire/shapeshift';
 import { isBuffer, isStream } from '@crawlee/utils';
 
 import { REQUEST_ID_LENGTH } from './consts.js';
