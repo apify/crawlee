@@ -113,29 +113,54 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             })
             .parse(options);
 
-        // The native iterator yields keys in lexical order and natively supports `exclusiveStartKey`
-        // and `limit`, but not `prefix`, and it does not throw for an unknown `exclusiveStartKey`.
-        // To preserve the historical semantics (prefix filtering and a hard error for a missing
-        // `exclusiveStartKey`), we collect the full key list and slice it here. We also merge in any
-        // untracked value files present on disk (native keys take precedence on collisions).
+        // The native iterator yields keys in lexical order and natively supports `exclusiveStartKey`,
+        // `limit`, and (since `@crawlee/fs-storage-native` 0.1.5-beta.6) `prefix`. It does not, however,
+        // throw for an unknown `exclusiveStartKey`, nor does it know about untracked value files on disk
+        // ("bare files"). We layer those two pieces of historical behavior on top here.
+        const bareFiles = await this.listBareFiles();
+
+        // Fast path: with no untracked files on disk we can push prefix/exclusiveStartKey/limit all the
+        // way down to the native iterator and stream the (already paginated, already filtered) result
+        // straight through — no need to pull every key into memory just to slice it. We only preflight
+        // the `exclusiveStartKey` so a missing one still throws, matching the historical contract.
+        if (bareFiles.length === 0) {
+            if (exclusiveStartKey !== undefined && !(await this.nativeClient.recordExists(exclusiveStartKey))) {
+                throw new Error(
+                    `exclusiveStartKey "${exclusiveStartKey}" was not found in the key-value store. ` +
+                        `This is likely a bug — the key may have been deleted between paginated listKeys calls.`,
+                );
+            }
+
+            const items: storage.KeyValueStoreItemData[] = [];
+            const iterator = await this.nativeClient.iterateKeys(exclusiveStartKey, limit, undefined, prefix);
+            for await (const record of iterator) {
+                items.push({ key: record.key, size: record.size ?? 0 });
+            }
+            return items;
+        }
+
+        // Merge path (untracked value files present on disk): bare files must be interleaved with the
+        // native keys in lexical order, so we have to materialize and sort. Push `prefix` down to the
+        // native side anyway to keep its contribution bounded; native keys take precedence on collisions.
         const itemsByKey = new Map<string, storage.KeyValueStoreItemData>();
 
-        for (const bareFile of await this.listBareFiles()) {
+        for (const bareFile of bareFiles) {
+            if (prefix && !bareFile.key.startsWith(prefix)) {
+                continue;
+            }
             const size = await readFile(bareFile.filePath)
                 .then((buffer) => buffer.byteLength)
                 .catch(() => 0);
             itemsByKey.set(bareFile.key, { key: bareFile.key, size });
         }
 
-        const iterator = await this.nativeClient.iterateKeys();
+        const iterator = await this.nativeClient.iterateKeys(undefined, undefined, undefined, prefix);
         for await (const record of iterator) {
             itemsByKey.set(record.key, { key: record.key, size: record.size ?? 0 });
         }
 
         // Emulate the API: keys are returned in lexical order.
-        const items = [...itemsByKey.values()].sort((a, b) => a.key.localeCompare(b.key));
-
-        let filteredItems = items.filter((item) => !prefix || item.key.startsWith(prefix));
+        let filteredItems = [...itemsByKey.values()].sort((a, b) => a.key.localeCompare(b.key));
 
         if (exclusiveStartKey) {
             const keyPos = filteredItems.findIndex((item) => item.key === exclusiveStartKey);
