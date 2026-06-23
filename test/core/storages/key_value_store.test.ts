@@ -355,6 +355,30 @@ describe('KeyValueStore', () => {
         });
     });
 
+    describe('round-trips through the real storage client (no content type)', () => {
+        test('object: setValue → getValue returns the same object', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            await store.setValue('obj', original);
+            await expect(store.getValue('obj')).resolves.toEqual(original);
+        });
+
+        test('string: setValue → getValue returns the same string (not JSON-wrapped)', async () => {
+            const store = await KeyValueStore.open();
+            await store.setValue('str', 'hello world');
+            await expect(store.getValue('str')).resolves.toBe('hello world');
+        });
+
+        test('Buffer: setValue → getValue returns the same Buffer (not JSON-mangled)', async () => {
+            const store = await KeyValueStore.open();
+            const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            await store.setValue('buf', original);
+            const got = await store.getValue('buf');
+            expect(Buffer.isBuffer(got)).toBe(true);
+            expect((got as Buffer).equals(original)).toBe(true);
+        });
+    });
+
     // TODO move to actor sdk tests before splitting the repos
     // describe('getPublicUrl', () => {
     //     test('should return the url of a file in apify cloud', async () => {

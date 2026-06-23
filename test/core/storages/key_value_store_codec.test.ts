@@ -8,10 +8,31 @@ describe('key_value_store_codec', () => {
             expect(contentType).toBe('application/json; charset=utf-8');
         });
 
-        test('no content type → JSON-wraps strings (legacy behavior)', () => {
+        test('no content type + string → text/plain passthrough', () => {
             const { value, contentType } = serializeValue('xxx');
-            expect(value).toBe('"xxx"');
-            expect(contentType).toBe('application/json; charset=utf-8');
+            expect(value).toBe('xxx');
+            expect(contentType).toBe('text/plain; charset=utf-8');
+        });
+
+        test('no content type + Buffer → octet-stream passthrough', () => {
+            const buf = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            const { value, contentType } = serializeValue(buf);
+            expect(value).toBe(buf);
+            expect(contentType).toBe('application/octet-stream');
+        });
+
+        test('no content type + typed array → octet-stream passthrough', () => {
+            const u8 = new Uint8Array([1, 2, 3]);
+            const { value, contentType } = serializeValue(u8);
+            expect(value).toBe(u8);
+            expect(contentType).toBe('application/octet-stream');
+        });
+
+        test('no content type + stream → octet-stream passthrough', () => {
+            const fakeStream = { pipe: () => {} };
+            const { value, contentType } = serializeValue(fakeStream);
+            expect(value).toBe(fakeStream);
+            expect(contentType).toBe('application/octet-stream');
         });
 
         test('explicit content type → value passes through unchanged', () => {
@@ -111,6 +132,20 @@ describe('key_value_store_codec', () => {
             const original = Buffer.from([1, 2, 3, 4]);
             const { value, contentType } = serializeValue(original, 'application/octet-stream');
             expect(parseValue(value as Buffer, contentType)).toBe(original);
+        });
+
+        test('no content type: string round-trips as a string', () => {
+            const original = 'hello world';
+            const { value, contentType } = serializeValue(original);
+            expect(parseValue(Buffer.from(value as string), contentType)).toBe(original);
+        });
+
+        test('no content type: Buffer round-trips as a Buffer (not JSON-mangled)', () => {
+            const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            const { value, contentType } = serializeValue(original);
+            const parsed = parseValue(value as Buffer, contentType);
+            expect(Buffer.isBuffer(parsed)).toBe(true);
+            expect((parsed as Buffer).equals(original)).toBe(true);
         });
     });
 });
