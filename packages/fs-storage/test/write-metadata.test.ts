@@ -1,7 +1,7 @@
 import { readdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 
 import { waitTillWrittenToDisk } from './__shared__.js';
 
@@ -14,7 +14,7 @@ describe('writeMetadata option', () => {
 
     describe('when false', () => {
         const localDataDirectory = resolve(tmpLocation, './no-metadata');
-        const storage = new MemoryStorage({
+        const storage = new FileSystemStorageClient({
             localDataDirectory,
             writeMetadata: false,
         });
@@ -44,7 +44,7 @@ describe('writeMetadata option', () => {
 
     describe('when true', () => {
         const localDataDirectory = resolve(tmpLocation, './metadata');
-        const storage = new MemoryStorage({
+        const storage = new FileSystemStorageClient({
             localDataDirectory,
             writeMetadata: true,
         });

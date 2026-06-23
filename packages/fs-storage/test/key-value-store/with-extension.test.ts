@@ -13,7 +13,6 @@ describe('KeyValueStore should append extension only when needed', () => {
     test('should append extension when needed (jpg)', async () => {
         const testDir = resolve('tmp', 'test_no_extension');
         const storage = createKeyValueStorageImplementation({
-            persistStorage: true,
             storeDirectory: testDir,
             writeMetadata: true,
         });
@@ -31,7 +30,6 @@ describe('KeyValueStore should append extension only when needed', () => {
     test('should append extension when needed (html)', async () => {
         const testDir = resolve('tmp', 'test_no_extension');
         const storage = createKeyValueStorageImplementation({
-            persistStorage: true,
             storeDirectory: testDir,
             writeMetadata: true,
         });
@@ -49,7 +47,6 @@ describe('KeyValueStore should append extension only when needed', () => {
     test('should not append extension when already available', async () => {
         const testDir = resolve('tmp', 'test_extension');
         const storage = createKeyValueStorageImplementation({
-            persistStorage: true,
             storeDirectory: testDir,
             writeMetadata: true,
         });
@@ -67,7 +64,6 @@ describe('KeyValueStore should append extension only when needed', () => {
     test('should not append extension when already available', async () => {
         const testDir = resolve('tmp', 'test_extension');
         const storage = createKeyValueStorageImplementation({
-            persistStorage: true,
             storeDirectory: testDir,
             writeMetadata: true,
         });

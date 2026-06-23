@@ -1,27 +1,16 @@
 // https://github.com/apify/crawlee/issues/1732
 // https://github.com/apify/crawlee/issues/1710
 
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
-
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { KeyValueStoreClient } from '@crawlee/types';
 
-describe('MemoryStorage should not crash when saving a big buffer', () => {
-    const tmpLocation = resolve(import.meta.dirname, './tmp/no-buffer-crash');
-    const storage = new MemoryStorage({
-        localDataDirectory: tmpLocation,
-        persistStorage: false,
-    });
+describe('MemoryStorageClient should not crash when saving a big buffer', () => {
+    const storage = new MemoryStorageClient();
 
     let store: KeyValueStoreClient;
 
     beforeAll(async () => {
         store = await storage.createKeyValueStoreClient();
-    });
-
-    afterAll(async () => {
-        await rm(tmpLocation, { force: true, recursive: true });
     });
 
     test('should not crash when saving a big buffer', async () => {

@@ -2,13 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import type { KeyValueStoreRecord } from '@crawlee/types';
 import { ensureDir } from 'fs-extra/esm';
 
 describe('fallback to fs for reading', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-fallback');
-    const storage = new MemoryStorage({
+    const storage = new FileSystemStorageClient({
         localDataDirectory: tmpLocation,
     });
 

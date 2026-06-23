@@ -8,11 +8,11 @@ import mimeTypes from 'mime-types';
 import { DatasetFileSystemEntry } from './fs/dataset/fs.js';
 import { KeyValueFileSystemEntry } from './fs/key-value-store/fs.js';
 import { RequestQueueFileSystemEntry } from './fs/request-queue/fs.js';
-import { type MemoryStorage } from './memory-storage.js';
+import { type FileSystemStorageClient } from './file-system-storage.js';
 
 const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
-export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entryNameOrId: string) {
+export async function findOrCacheDatasetByPossibleId(client: FileSystemStorageClient, entryNameOrId: string) {
     // First check memory cache — match by id, name, or directoryName (which covers alias lookups)
     const found = client.datasetClientCache.find(
         (store) =>
@@ -106,7 +106,6 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
         const entry = new DatasetFileSystemEntry({
             storeDirectory: datasetDir,
             entityId: entryId,
-            persistStorage: true,
         });
 
         // eslint-disable-next-line dot-notation
@@ -118,7 +117,7 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
     return newClient;
 }
 
-export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage, entryNameOrId: string) {
+export async function findOrCacheKeyValueStoreByPossibleId(client: FileSystemStorageClient, entryNameOrId: string) {
     // First check memory cache — match by id, name, or directoryName (which covers alias lookups)
     const found = client.keyValueStoreCache.find(
         (store) =>
@@ -253,7 +252,6 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
     for (const [key, record] of internalRecords) {
         // We create a file system entry instead of possibly making an in-memory one to allow the pre-included data to be used on demand
         const entry = new KeyValueFileSystemEntry({
-            persistStorage: true,
             storeDirectory: keyValueStoreDir,
             writeMetadata: hasSeenMetadataForEntry,
             logger: client.logger,
@@ -275,7 +273,7 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
     return newClient;
 }
 
-export async function findRequestQueueByPossibleId(client: MemoryStorage, entryNameOrId: string) {
+export async function findRequestQueueByPossibleId(client: FileSystemStorageClient, entryNameOrId: string) {
     // First check memory cache — match by id, name, or directoryName (which covers alias lookups)
     const found = client.requestQueueCache.find(
         (store) =>
@@ -305,10 +303,15 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
     let createdAt = new Date();
     let accessedAt = new Date();
     let modifiedAt = new Date();
-    let pendingRequestCount = 0;
-    let handledRequestCount = 0;
     const entries = new Set<string>();
     let forefrontRequestIds: string[] = [];
+
+    // The request counts are derived from the request files actually present on disk rather than read
+    // from the metadata file: metadata is only persisted when `writeMetadata` is enabled (off by
+    // default), whereas request files are always persisted. Trusting the metadata counts would reset
+    // them to 0 on reload whenever `writeMetadata` is off, even though the requests survive on disk.
+    let pendingRequestCount = 0;
+    let handledRequestCount = 0;
 
     for await (const entry of directoryEntries) {
         if (entry.isFile()) {
@@ -325,8 +328,6 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
                     createdAt = new Date(metadata.createdAt);
                     accessedAt = new Date(metadata.accessedAt);
                     modifiedAt = new Date(metadata.modifiedAt);
-                    pendingRequestCount = metadata.pendingRequestCount;
-                    handledRequestCount = metadata.handledRequestCount;
                     forefrontRequestIds = (metadata as any)?.forefrontRequestIds ?? [];
 
                     break;
@@ -342,9 +343,16 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
                     try {
                         // Try parsing the file to ensure it's even valid to begin with
                         const fileContent = await readFile(resolve(requestQueueDir, entry.name), 'utf8');
-                        JSON.parse(fileContent);
+                        const parsed = JSON.parse(fileContent) as { orderNo?: number | null };
 
                         entries.add(entryName);
+
+                        // A handled request has `orderNo === null`; anything else is still pending.
+                        if (parsed.orderNo === null) {
+                            handledRequestCount += 1;
+                        } else {
+                            pendingRequestCount += 1;
+                        }
                     } catch {
                         client.logger?.warning(
                             `Request queue entry "${entry.name}" for store ${entryNameOrId} has invalid JSON content and will be ignored from the store.`,
@@ -378,12 +386,14 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
     newClient.modifiedAt = modifiedAt;
     newClient.pendingRequestCount = pendingRequestCount;
     newClient.handledRequestCount = handledRequestCount;
+    // Drop any persisted forefront ids whose request file is missing or unparseable on disk (and was
+    // therefore not added to `entries`). Keeping them would leave a dangling id in `forefrontRequestIds`
+    // that `listPendingHead` would resolve to a missing request and dereference as `undefined`.
     // @ts-expect-error - Assigning to private property
-    newClient.forefrontRequestIds = forefrontRequestIds;
+    newClient.forefrontRequestIds = forefrontRequestIds.filter((requestId) => entries.has(requestId));
 
     for (const requestId of entries) {
         const entry = new RequestQueueFileSystemEntry({
-            persistStorage: true,
             requestId,
             storeDirectory: requestQueueDir,
         });

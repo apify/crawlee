@@ -20,7 +20,7 @@ import {
     SessionPool,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -2186,10 +2186,10 @@ describe('BasicCrawler', () => {
         });
 
         test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorage with a different localDataDirectory,
-            // producing different clientCacheKeys and thus separate cache partitions.
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            // Each crawler gets its own MemoryStorageClient instance; every instance has a unique
+            // per-instance cache key, so they end up in separate cache partitions.
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({ storageClient: storageA });
             const crawlerB = new BasicCrawler({ storageClient: storageB });
@@ -2203,8 +2203,8 @@ describe('BasicCrawler', () => {
         });
 
         test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},
