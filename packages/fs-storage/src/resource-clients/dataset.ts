@@ -4,6 +4,8 @@ import { s } from '@sapphire/shapeshift';
 
 import type { FileSystemDatasetClient as NativeFileSystemDatasetClient } from '@crawlee/fs-storage-native';
 
+import { CachedIdClient } from './cached-id-client.js';
+
 /**
  * `getData` options accepted by the high-level `Dataset` frontend but not supported by the native
  * file-system backend (it can only paginate raw items by `offset`/`limit`/`desc`). They are silently
@@ -41,7 +43,10 @@ export interface DatasetClientOptions {
  * on-disk format, timestamps and item counting) and converts results into the shapes expected by
  * the `@crawlee/types` interfaces.
  */
-export class DatasetClient<Data extends Dictionary = Dictionary> implements storage.DatasetClient<Data> {
+export class DatasetClient<Data extends Dictionary = Dictionary>
+    extends CachedIdClient
+    implements storage.DatasetClient<Data>
+{
     readonly name?: string;
     readonly cacheKey: string;
 
@@ -49,23 +54,12 @@ export class DatasetClient<Data extends Dictionary = Dictionary> implements stor
     private readonly logger?: CrawleeLogger;
 
     constructor(options: DatasetClientOptions) {
+        super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.nativeClient = options.nativeClient;
         this.logger = options.logger;
     }
-
-    /** The storage id assigned by the native client. */
-    get id(): string {
-        return this._cachedId;
-    }
-
-    /**
-     * The id is read once from the native metadata at construction time (see
-     * {@link DatasetClient.create}) and cached, so that the synchronous `id` getter — required by
-     * {@link FileSystemStorageClient.storageExists} and the cache lookups — does not have to await.
-     */
-    private _cachedId!: string;
 
     get datasetDirectory(): string {
         return this.nativeClient.pathToDataset;

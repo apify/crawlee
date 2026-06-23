@@ -7,6 +7,8 @@ import type {
     ProcessedRequest as NativeProcessedRequest,
 } from '@crawlee/fs-storage-native';
 
+import { CachedIdClient } from './cached-id-client.js';
+
 const requestShape = s
     .object({
         id: s.string(),
@@ -66,24 +68,19 @@ function toQueueOperationInfo(processed: NativeProcessedRequest | null): storage
  * This adapter forwards each operation, converts result shapes to the `@crawlee/types` interfaces,
  * and strips the internal bookkeeping fields the native client adds to returned requests.
  */
-export class RequestQueueClient implements storage.RequestQueueClient {
+export class RequestQueueClient extends CachedIdClient implements storage.RequestQueueClient {
     readonly name?: string;
     readonly cacheKey: string;
 
     private readonly nativeClient: NativeFileSystemRequestQueueClient;
     private readonly logger?: CrawleeLogger;
-    private _cachedId!: string;
 
     constructor(options: RequestQueueClientOptions) {
+        super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.nativeClient = options.nativeClient;
         this.logger = options.logger;
-    }
-
-    /** The storage id assigned by the native client. */
-    get id(): string {
-        return this._cachedId;
     }
 
     get requestQueueDirectory(): string {

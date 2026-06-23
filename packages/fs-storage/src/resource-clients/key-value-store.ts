@@ -10,6 +10,7 @@ import { s } from '@sapphire/shapeshift';
 import { isBodyParseable } from '../body-parser.js';
 import type { FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
 import { isStream } from '../utils.js';
+import { CachedIdClient } from './cached-id-client.js';
 import mime from 'mime-types';
 
 const STORE_METADATA_FILENAME = '__metadata__.json';
@@ -46,24 +47,19 @@ export interface KeyValueStoreClientOptions {
  * them back into JS values on the way out ({@link KeyValueStoreClient.getValue}), preserving the
  * historical content-type handling.
  */
-export class KeyValueStoreClient implements storage.KeyValueStoreClient {
+export class KeyValueStoreClient extends CachedIdClient implements storage.KeyValueStoreClient {
     readonly name?: string;
     readonly cacheKey: string;
 
     private readonly nativeClient: NativeFileSystemKeyValueStoreClient;
     private readonly logger?: CrawleeLogger;
-    private _cachedId!: string;
 
     constructor(options: KeyValueStoreClientOptions) {
+        super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.nativeClient = options.nativeClient;
         this.logger = options.logger;
-    }
-
-    /** The storage id assigned by the native client. */
-    get id(): string {
-        return this._cachedId;
     }
 
     get keyValueStoreDirectory(): string {
