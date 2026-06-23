@@ -379,6 +379,75 @@ describe('KeyValueStore', () => {
         });
     });
 
+    describe('pre-serialized JSON via setValue (caller owns the bytes)', () => {
+        test('Buffer containing JSON + explicit application/json CT round-trips as a parsed object', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            const preSerialized = Buffer.from(JSON.stringify(original));
+
+            await store.setValue('k', preSerialized, { contentType: 'application/json; charset=utf-8' });
+
+            // getValue parses the bytes back into the original object.
+            expect(await store.getValue('k')).toEqual(original);
+        });
+
+        test('string containing JSON + explicit application/json CT round-trips as a parsed object', async () => {
+            const store = await KeyValueStore.open();
+            const original = [1, 2, 3];
+
+            await store.setValue('k', JSON.stringify(original), {
+                contentType: 'application/json; charset=utf-8',
+            });
+
+            expect(await store.getValue('k')).toEqual(original);
+        });
+    });
+
+    describe('getRecord', () => {
+        test('returns null for a missing key', async () => {
+            const store = await KeyValueStore.open();
+            expect(await store.getRecord('missing')).toBeNull();
+        });
+
+        test('returns raw bytes + content type without parsing JSON', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            await store.setValue('obj', original);
+
+            const record = await store.getRecord('obj');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toMatch(/^application\/json/);
+            // Bytes are the serialized JSON, not the parsed object — the caller does the parsing.
+            const asText = Buffer.isBuffer(record!.value) ? record!.value.toString() : (record!.value as string);
+            expect(JSON.parse(asText)).toEqual(original);
+        });
+
+        test('returns the exact bytes a caller wrote with an explicit content type', async () => {
+            const store = await KeyValueStore.open();
+            const preSerialized = Buffer.from(JSON.stringify({ a: 1 }));
+
+            await store.setValue('k', preSerialized, { contentType: 'application/json; charset=utf-8' });
+
+            const record = await store.getRecord('k');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toBe('application/json; charset=utf-8');
+            const asText = Buffer.isBuffer(record!.value) ? record!.value.toString() : (record!.value as string);
+            expect(asText).toBe(preSerialized.toString());
+        });
+
+        test('returns a Buffer for octet-stream records', async () => {
+            const store = await KeyValueStore.open();
+            const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            await store.setValue('buf', original);
+
+            const record = await store.getRecord('buf');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toBe('application/octet-stream');
+            expect(Buffer.isBuffer(record!.value)).toBe(true);
+            expect((record!.value as Buffer).equals(original)).toBe(true);
+        });
+    });
+
     // TODO move to actor sdk tests before splitting the repos
     // describe('getPublicUrl', () => {
     //     test('should return the url of a file in apify cloud', async () => {

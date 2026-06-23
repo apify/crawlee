@@ -205,6 +205,45 @@ export class KeyValueStore {
     }
 
     /**
+     * Reads a record from the key-value store without parsing the value.
+     *
+     * Use this when you need the raw bytes and the content type — for example, to run your own
+     * parser (`simdjson`, a custom XML library, etc.) or to forward the bytes verbatim.
+     *
+     * There is no symmetric `setRecord` method, because {@apilink KeyValueStore.setValue} already
+     * passes a `Buffer` (or `string` / `Stream`) through unchanged when an explicit `contentType`
+     * is provided. To write pre-serialized bytes, call
+     * `setValue(key, buffer, { contentType: 'application/json; charset=utf-8' })`.
+     *
+     * Returns `null` if the record does not exist.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const record = await store.getRecord('huge.json');
+     * if (record) {
+     *     const data = simdjson.parse(record.value);
+     * }
+     * ```
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     */
+    async getRecord(key: string): Promise<{ value: Buffer; contentType: string } | null> {
+        checkStorageAccess();
+
+        ow(key, ow.string.nonEmpty);
+        const record = await this.client.getValue(key);
+        if (!record) return null;
+
+        return {
+            value: record.value as Buffer,
+            contentType: record.contentType ?? '',
+        };
+    }
+
+    /**
      * Tests whether a record with the given key exists in the key-value store without retrieving its value.
      *
      * @param key The queried record key.

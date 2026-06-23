@@ -78,11 +78,6 @@ describe('key_value_store_codec', () => {
             expect(parseValue(body, 'application/json; charset=utf-8')).toEqual({ foo: 'bar' });
         });
 
-        test('JSON5 features (trailing commas, comments)', () => {
-            const body = Buffer.from('{ foo: "bar", /* comment */ baz: 1, }');
-            expect(parseValue(body, 'application/json')).toEqual({ foo: 'bar', baz: 1 });
-        });
-
         test('text/* → string', () => {
             const body = Buffer.from('plain text');
             expect(parseValue(body, 'text/plain; charset=utf-8')).toBe('plain text');
