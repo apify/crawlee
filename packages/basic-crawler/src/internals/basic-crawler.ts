@@ -88,7 +88,6 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 import { createSendRequest } from './send-request.js';
 
 class LazyDefaultHttpClient implements BaseHttpClient {
-    private _delegate?: BaseHttpClient;
     private readonly _delegatePromise: Promise<BaseHttpClient>;
 
     constructor(options?: { logger?: CrawleeLogger }) {
@@ -104,8 +103,7 @@ class LazyDefaultHttpClient implements BaseHttpClient {
     }
 
     async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
-        this._delegate ??= await this._delegatePromise;
-        return this._delegate.sendRequest(...args);
+        return (await this._delegatePromise).sendRequest(...args);
     }
 }
 
