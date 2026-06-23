@@ -1,5 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { Readable } from 'node:stream';
 import { pathToFileURL } from 'node:url';
 
 import type * as storage from '@crawlee/types';
@@ -231,22 +232,20 @@ export class KeyValueStoreClient implements storage.KeyValueStoreClient {
             contentType: s.string().lengthGreaterThan(0).optional(),
         }).parse(record);
 
-        const { key } = record;
-        let { value } = record;
+        const { key, value } = record;
         // The frontend resolves the content type before it reaches the client; this client is a plain
         // byte transport and does not infer content types.
         const contentType = record.contentType ?? 'application/octet-stream';
 
-        // Draining a stream into a Buffer for storage is the client's responsibility.
+        // Stream the value straight to disk without buffering it all into memory. The native client
+        // consumes a Web `ReadableStream`, so convert the Node `Readable` we get from the frontend.
         if (isStream(value)) {
-            const chunks = [];
-            for await (const chunk of value) {
-                chunks.push(chunk);
-            }
-            value = Buffer.concat(chunks);
+            const webStream = Readable.toWeb(value as Readable) as ReadableStream<Uint8Array>;
+            await this.nativeClient.setValueStream(key, webStream, contentType);
+            return;
         }
 
-        // Normalize whatever is left into a Buffer for the native client.
+        // Normalize the remaining (already-serialized) value into a Buffer for the native client.
         const buffer = Buffer.isBuffer(value)
             ? value
             : value instanceof ArrayBuffer
