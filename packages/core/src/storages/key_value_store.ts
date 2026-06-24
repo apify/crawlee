@@ -200,10 +200,14 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getValue(key);
 
-        // Storage clients are byte transports — the value is raw bytes; the frontend parses it here.
-        const parsed = record ? parseValue(record.value, record.contentType ?? null) : undefined;
+        // A missing record falls back to the default; a record that parses to a falsy value (including
+        // a stored literal `null`) is returned verbatim, so callers can tell "stored null" from "absent".
+        if (!record) {
+            return defaultValue ?? null;
+        }
 
-        return (parsed as T) ?? defaultValue ?? null;
+        // Storage clients are byte transports — the value is raw bytes; the frontend parses it here.
+        return parseValue(record.value, record.contentType ?? null) as T;
     }
 
     /**
@@ -232,7 +236,7 @@ export class KeyValueStore {
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      */
-    async getRecord(key: string): Promise<{ value: Buffer | ArrayBuffer; contentType: string | null } | null> {
+    async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
@@ -753,6 +757,23 @@ export class KeyValueStore {
     }
 
     /**
+     * Reads a record from the default {@apilink KeyValueStore} associated with the current crawler run
+     * without parsing the value.
+     *
+     * This is just a convenient shortcut for {@apilink KeyValueStore.getRecord}. Returns `null` if the
+     * record does not exist.
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     * @ignore
+     */
+    static async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
+        const store = await this.open();
+        return store.getRecord(key);
+    }
+
+    /**
      * Tests whether a record with the given key exists in the default {@apilink KeyValueStore} associated with the current crawler run.
      * @param key The queried record key.
      * @returns `true` if the record exists, `false` if it does not.
@@ -870,6 +891,15 @@ export interface KeyValueStoreOptions {
     id: string;
     name?: string;
     client: KeyValueStoreClient;
+}
+
+/**
+ * A raw, unparsed key-value store record as returned by {@apilink KeyValueStore.getRecord}: the
+ * verbatim bytes plus the content type, with parsing left to the caller.
+ */
+export interface KeyValueStoreRawRecord {
+    value: Buffer | ArrayBuffer;
+    contentType: string | null;
 }
 
 export interface RecordOptions {

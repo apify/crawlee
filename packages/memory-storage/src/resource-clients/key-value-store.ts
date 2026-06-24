@@ -172,7 +172,9 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
             value: entry.value,
-            contentType: entry.contentType ?? (mime.contentType(entry.extension) as string),
+            // mime.contentType returns `false` for unknown extensions; fall back to undefined so the
+            // frontend treats it as "no content type" rather than a bogus value.
+            contentType: entry.contentType ?? (mime.contentType(entry.extension) || undefined),
         };
 
         this.updateTimestamps(false);

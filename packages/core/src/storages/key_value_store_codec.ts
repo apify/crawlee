@@ -110,12 +110,17 @@ export function parseValue(
 
 function isomorphicBufferToString(buffer: Buffer | ArrayBuffer, encoding: BufferEncoding): string {
     if (buffer.constructor.name !== ArrayBuffer.name) {
-        return buffer.toString(encoding);
+        return (buffer as Buffer).toString(encoding);
     }
 
-    // Browser decoding only works with UTF-8.
-    const utf8decoder = new TextDecoder();
-    return utf8decoder.decode(new Uint8Array(buffer));
+    // In Node, wrap the ArrayBuffer in a Buffer so the resolved charset is honored (the caller already
+    // checked it via `Buffer.isEncoding`). Only the browser, which lacks Buffer, is limited to UTF-8.
+    if (typeof Buffer !== 'undefined') {
+        return Buffer.from(buffer as ArrayBuffer).toString(encoding);
+    }
+
+    const decoder = new TextDecoder(encoding);
+    return decoder.decode(new Uint8Array(buffer as ArrayBuffer));
 }
 
 function isCharsetStringifiable(charset: string): charset is BufferEncoding {

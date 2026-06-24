@@ -199,11 +199,18 @@ export function expandShadowRoots(document: Document): string {
  * @ignore
  */
 export function isStream(value: unknown): value is NodeJS.ReadableStream | ReadableStream {
-    return (
-        typeof value === 'object' &&
-        value !== null &&
-        (typeof (value as any).pipe === 'function' || typeof (value as any).pipeTo === 'function')
-    );
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+
+    // A Node.js Readable is both pipeable and async-iterable; a Web ReadableStream exposes pipeTo.
+    // Requiring async-iterability for the `pipe` branch rejects plain `{ pipe }` ducks that would
+    // otherwise blow up later in the storage clients' drain loop with a cryptic TypeError.
+    const isNodeStream =
+        typeof (value as any).pipe === 'function' && typeof (value as any)[Symbol.asyncIterator] === 'function';
+    const isWebStream = typeof (value as any).pipeTo === 'function';
+
+    return isNodeStream || isWebStream;
 }
 
 /**

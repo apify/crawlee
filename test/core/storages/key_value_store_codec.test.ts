@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+
 import { parseValue, serializeValue } from '@crawlee/core';
 
 describe('key_value_store_codec', () => {
@@ -29,9 +31,9 @@ describe('key_value_store_codec', () => {
         });
 
         test('no content type + stream → octet-stream passthrough', () => {
-            const fakeStream = { pipe: () => {} };
-            const { value, contentType } = serializeValue(fakeStream);
-            expect(value).toBe(fakeStream);
+            const stream = Readable.from(Buffer.from('data'));
+            const { value, contentType } = serializeValue(stream);
+            expect(value).toBe(stream);
             expect(contentType).toBe('application/octet-stream');
         });
 
