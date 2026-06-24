@@ -61,10 +61,12 @@ describe('fallback to fs for reading', () => {
         expect(defaultStoreInfo.name).toEqual('default');
         expect(defaultStoreInfo.createdAt).toEqual(expectedFsDate);
 
+        // The client is a byte transport: it returns the raw on-disk bytes verbatim and leaves
+        // parsing to the KeyValueStore frontend codec. So we expect a Buffer, not a parsed object.
         const input = await defaultStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
-            value: { foo: 'bar but from fs' },
+            value: Buffer.from(JSON.stringify({ foo: 'bar but from fs' })),
             contentType: 'application/json; charset=utf-8',
         });
     });
@@ -72,10 +74,11 @@ describe('fallback to fs for reading', () => {
     test('attempting to read "other" key value store with no "__metadata__" present should read from fs, even if accessed without generating id first', async () => {
         const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
 
+        // Byte transport: raw bytes out, parsing is the frontend's job.
         const input = await otherStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
-            value: { foo: 'bar but from fs' },
+            value: Buffer.from(JSON.stringify({ foo: 'bar but from fs' })),
             contentType: 'application/json; charset=utf-8',
         });
     });
@@ -89,10 +92,11 @@ describe('fallback to fs for reading', () => {
     test('attempting to read "no-ext" key value store should load the missing extension file correctly', async () => {
         const noExtStore = await storage.createKeyValueStoreClient({ name: 'no-ext' });
 
+        // Byte transport: the no-extension fallback also returns raw bytes now, not a decoded string.
         const input = await noExtStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
-            value: JSON.stringify({ foo: 'bar but from fs' }),
+            value: Buffer.from(JSON.stringify({ foo: 'bar but from fs' })),
             contentType: 'text/plain',
         });
     });
