@@ -647,7 +647,7 @@ export class HttpCrawler<
                 const body = iconv.encodingExists(charsetToUse)
                     ? iconv.decode(rawBytes, charsetToUse)
                     : rawBytes.toString('utf8');
-                return { response, contentType: { type, encoding: 'utf-8' }, body };
+                return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
             }
             return { response, contentType, body: await reencodedResponse.text() };
         } else {
