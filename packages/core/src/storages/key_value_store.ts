@@ -6,52 +6,20 @@ import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
-import { jsonStringifyExtended } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
+import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
+import { isBuffer, isStream } from '@crawlee/utils';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;
-
-/**
- * Helper function to possibly stringify value if options.contentType is not set.
- *
- * @ignore
- */
-export const maybeStringify = <T>(value: T, options: { contentType?: string }) => {
-    // If contentType is missing, value will be stringified to JSON
-    if (options.contentType === null || options.contentType === undefined) {
-        options.contentType = 'application/json; charset=utf-8';
-
-        try {
-            // Format JSON to simplify debugging, the overheads with compression is negligible
-            value = jsonStringifyExtended(value as Dictionary, null, 2) as unknown as T;
-        } catch (e) {
-            const error = e as Error;
-            // Give more meaningful error message
-            if (error.message?.includes('Invalid string length')) {
-                error.message = 'Object is too large';
-            }
-            throw new Error(`The "value" parameter cannot be stringified to JSON: ${error.message}`);
-        }
-
-        if (value === undefined) {
-            throw new Error(
-                'The "value" parameter was stringified to JSON and returned undefined. ' +
-                    "Make sure you're not trying to stringify an undefined value.",
-            );
-        }
-    }
-
-    return value;
-};
 
 /**
  * The `KeyValueStore` class represents a key-value store, a simple data storage that is used
@@ -232,7 +200,53 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getValue(key);
 
-        return (record?.value as T) ?? defaultValue ?? null;
+        // A missing record falls back to the default; a record that parses to a falsy value (including
+        // a stored literal `null`) is returned verbatim, so callers can tell "stored null" from "absent".
+        if (!record) {
+            return defaultValue ?? null;
+        }
+
+        // Storage clients are byte transports — the value is raw bytes; the frontend parses it here.
+        return parseValue(record.value, record.contentType ?? null) as T;
+    }
+
+    /**
+     * Reads a record from the key-value store without parsing the value.
+     *
+     * Use this when you need the raw bytes and the content type — for example, to run your own
+     * parser (`simdjson`, a custom XML library, etc.) or to forward the bytes verbatim.
+     *
+     * There is no symmetric `setRecord` method, because {@apilink KeyValueStore.setValue} already
+     * passes a `Buffer` (or `string` / `Stream`) through unchanged when an explicit `contentType`
+     * is provided. To write pre-serialized bytes, call
+     * `setValue(key, buffer, { contentType: 'application/json; charset=utf-8' })`.
+     *
+     * Returns `null` if the record does not exist.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const record = await store.getRecord('huge.json');
+     * if (record) {
+     *     const data = simdjson.parse(record.value);
+     * }
+     * ```
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     */
+    async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
+        checkStorageAccess();
+
+        ow(key, ow.string.nonEmpty);
+        const record = await this.client.getValue(key);
+        if (!record) return null;
+
+        return {
+            value: record.value,
+            contentType: record.contentType ?? null,
+        };
     }
 
     /**
@@ -301,7 +315,10 @@ export class KeyValueStore {
             const results: T[] = [];
             for (const item of page) {
                 const record = await this.client.getValue(item.key);
-                if (record) results.push(mapRecord(item.key, record.value));
+                if (record) {
+                    const parsed = parseValue(record.value, record.contentType ?? null);
+                    results.push(mapRecord(item.key, parsed));
+                }
             }
             yield results;
         }
@@ -375,15 +392,9 @@ export class KeyValueStore {
                 message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
             })),
         );
-        if (
-            options.contentType &&
-            !(
-                ow.isValid(value, ow.any(ow.string, ow.uint8Array)) ||
-                (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')
-            )
-        ) {
+        if (options.contentType && !(typeof value === 'string' || isBuffer(value) || isStream(value))) {
             throw new ArgumentError(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
                 this.setValue,
             );
         }
@@ -417,12 +428,12 @@ export class KeyValueStore {
         // In this case delete the record.
         if (value === null) return this.client.deleteValue(key);
 
-        value = maybeStringify(value, optionsCopy);
+        const serialized = serializeValue(value, optionsCopy.contentType);
 
         return this.client.setValue({
             key,
-            value,
-            contentType: optionsCopy.contentType,
+            value: serialized.value,
+            contentType: serialized.contentType,
         });
     }
 
@@ -746,6 +757,23 @@ export class KeyValueStore {
     }
 
     /**
+     * Reads a record from the default {@apilink KeyValueStore} associated with the current crawler run
+     * without parsing the value.
+     *
+     * This is just a convenient shortcut for {@apilink KeyValueStore.getRecord}. Returns `null` if the
+     * record does not exist.
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     * @ignore
+     */
+    static async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
+        const store = await this.open();
+        return store.getRecord(key);
+    }
+
+    /**
      * Tests whether a record with the given key exists in the default {@apilink KeyValueStore} associated with the current crawler run.
      * @param key The queried record key.
      * @returns `true` if the record exists, `false` if it does not.
@@ -863,6 +891,15 @@ export interface KeyValueStoreOptions {
     id: string;
     name?: string;
     client: KeyValueStoreClient;
+}
+
+/**
+ * A raw, unparsed key-value store record as returned by {@apilink KeyValueStore.getRecord}: the
+ * verbatim bytes plus the content type, with parsing left to the caller.
+ */
+export interface KeyValueStoreRawRecord {
+    value: Buffer | ArrayBuffer;
+    contentType: string | null;
 }
 
 export interface RecordOptions {

@@ -71,7 +71,12 @@ describe('Async iteration support', () => {
             kvStore = await storage.createKeyValueStoreClient({ name: 'async-iteration-kvs' });
 
             for (const key of keys) {
-                await kvStore.setValue({ key, value: { data: key } });
+                // The client is a byte-transport: pass serialized bytes + content type.
+                await kvStore.setValue({
+                    key,
+                    value: JSON.stringify({ data: key }),
+                    contentType: 'application/json; charset=utf-8',
+                });
             }
         });
 

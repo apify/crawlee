@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
 import { MemoryStorageClient } from '@crawlee/memory-storage';
-import { Configuration, serviceLocator } from 'crawlee';
+import { Configuration, KeyValueStore, serviceLocator } from 'crawlee';
 import { ensureDir } from 'fs-extra';
 
 import log from '@apify/log';
@@ -77,8 +77,12 @@ export class MemoryStorageEmulator extends StorageEmulator {
         return this.storage.createKeyValueStoreClient(id ? { id } : { alias: '__default__' });
     }
 
-    async getState() {
-        return await (await this.getKeyValueStore()).getValue('CRAWLEE_STATE');
+    /**
+     * Reads the crawler state through the `KeyValueStore` frontend, so the JSON value is parsed for
+     * you (the raw client returns bytes — parsing is the frontend's job).
+     */
+    async getState<T = unknown>() {
+        return (await KeyValueStore.open()).getValue<T>('CRAWLEE_STATE');
     }
 }
 

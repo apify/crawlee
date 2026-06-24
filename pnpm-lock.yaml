@@ -449,6 +449,9 @@ importers:
       '@vladfrangu/async_event_emitter':
         specifier: ^2.4.6
         version: 2.4.7
+      content-type:
+        specifier: ^1.0.5
+        version: 1.0.5
       csv-stringify:
         specifier: ^6.5.2
         version: 6.7.0
@@ -548,6 +551,9 @@ importers:
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
+      '@crawlee/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@sapphire/async-queue':
         specifier: ^1.5.5
         version: 1.5.5
@@ -725,6 +731,9 @@ importers:
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
+      '@crawlee/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@sapphire/async-queue':
         specifier: ^1.5.5
         version: 1.5.5

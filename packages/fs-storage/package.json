@@ -43,6 +43,7 @@
     },
     "dependencies": {
         "@crawlee/types": "workspace:*",
+        "@crawlee/utils": "workspace:*",
         "@sapphire/async-queue": "^1.5.5",
         "@sapphire/shapeshift": "^4.0.0",
         "content-type": "^1.0.5",

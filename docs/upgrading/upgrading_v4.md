@@ -619,6 +619,10 @@ The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now 
 
 `timeoutSecs` and `doNotRetryTimeouts` were removed from `RecordOptions` (used by `KeyValueStore.setValue`). Only `contentType` remains.
 
+### `maybeStringify` is removed
+
+The `maybeStringify` helper exported from `@crawlee/core` has been removed. Value (de)serialization now lives entirely in the `KeyValueStore` frontend: writing serializes the value (and infers its content type), reading parses it back, and the storage client is a plain byte transport. If you imported `maybeStringify` directly, use the `serializeValue` / `parseValue` functions exported from `@crawlee/core` instead.
+
 ### `KeyValueStoreIteratorOptions` simplified
 
 `exclusiveStartKey` and `collection` were removed. Only `prefix` remains.
