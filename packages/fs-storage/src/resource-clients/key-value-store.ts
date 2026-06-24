@@ -10,7 +10,7 @@ import { scheduleBackgroundTask } from '../background-handler/index.js';
 import type { StorageImplementation } from '../fs/common.js';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
 import type { FileSystemStorageClient } from '../index.js';
-import { isBuffer, isStream } from '../utils.js';
+import { isBuffer, isStream, toBuffer } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 import mime from 'mime-types';
 
@@ -228,16 +228,21 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         if (valueIsStream) {
             const chunks = [];
-            for await (const chunk of value) {
+            for await (const chunk of value as NodeJS.ReadableStream) {
                 chunks.push(chunk);
             }
-            value = Buffer.concat(chunks);
+            value = Buffer.concat(chunks as Buffer[]);
         }
+
+        // The on-disk record holds raw bytes (or a string). Streams were drained above, so any
+        // remaining non-string value is byte-like; normalize ArrayBuffer / typed-array views to Buffer.
+        const normalizedValue: Buffer | string =
+            typeof value === 'string' ? value : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
 
         const _record = {
             extension,
             key,
-            value,
+            value: normalizedValue,
             contentType,
         } satisfies InternalKeyRecord;
 

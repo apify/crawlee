@@ -220,3 +220,21 @@ export function isBuffer(value: unknown): value is Buffer | ArrayBuffer | ArrayB
             (value as any).constructor?.name === 'Buffer')
     );
 }
+
+/**
+ * Converts a byte-like value (Buffer, ArrayBuffer, or any typed-array / DataView) into a Buffer over
+ * the exact same bytes, honoring `byteOffset` / `byteLength` for views. Existing Buffers are returned
+ * as-is. Used by storage clients, which persist raw bytes regardless of the input's concrete shape.
+ * @ignore
+ */
+export function toBuffer(value: Buffer | ArrayBuffer | ArrayBufferView): Buffer {
+    if (Buffer.isBuffer(value)) {
+        return value;
+    }
+
+    if (value instanceof ArrayBuffer) {
+        return Buffer.from(value);
+    }
+
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+}

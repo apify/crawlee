@@ -52,6 +52,24 @@ describe('KeyValueStore frontend over FileSystemStorageClient (byte-transport co
         await expect(store.getValue('BYTES')).resolves.toStrictEqual(bytes);
     });
 
+    test('round-trips a typed array (with byteOffset) as the correct bytes', async () => {
+        const store = await KeyValueStore.open();
+        // A view into a larger buffer, so byteOffset / byteLength matter.
+        const backing = new Uint8Array([0x00, 0x11, 0x22, 0x33, 0x44]).buffer;
+        const view = new Uint8Array(backing, 1, 3); // -> [0x11, 0x22, 0x33]
+        await store.setValue('VIEW', view, { contentType: 'application/octet-stream' });
+
+        await expect(store.getValue('VIEW')).resolves.toStrictEqual(Buffer.from([0x11, 0x22, 0x33]));
+    });
+
+    test('round-trips an ArrayBuffer as the correct bytes', async () => {
+        const store = await KeyValueStore.open();
+        const buf = new Uint8Array([0x01, 0x02, 0x03]).buffer;
+        await store.setValue('AB', buf, { contentType: 'application/octet-stream' });
+
+        await expect(store.getValue('AB')).resolves.toStrictEqual(Buffer.from([0x01, 0x02, 0x03]));
+    });
+
     test('getRecord returns the raw bytes, not a parsed object', async () => {
         const store = await KeyValueStore.open();
         await store.setValue('OUTPUT', { foo: 'bar' });

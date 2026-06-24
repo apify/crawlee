@@ -81,10 +81,10 @@ export function serializeValue(
  * Backend-independent — this is the canonical read path for the {@apilink KeyValueStore} frontend.
  */
 export function parseValue(
-    body: Buffer | ArrayBuffer,
+    body: Buffer | ArrayBuffer | string,
     contentTypeHeader: string | null,
 ): string | Buffer | ArrayBuffer | Record<string, unknown> {
-    // No content type at all → we have no basis for interpretation; hand back the raw bytes.
+    // No content type at all → we have no basis for interpretation; hand back the raw value.
     if (contentTypeHeader === null) return body;
 
     let contentType: string;
@@ -94,14 +94,16 @@ export function parseValue(
         contentType = result.type;
         charset = result.parameters.charset as BufferEncoding;
     } catch {
-        // Unparseable header → keep the original buffer rather than a mangled string.
+        // Unparseable header → keep the original value rather than a mangled string.
         return body;
     }
 
-    // If we can't successfully parse it, we return
-    // the original buffer rather than a mangled string.
+    // If we can't successfully interpret it, we return the original value rather than mangling it.
     if (!areDataStringifiable(contentType, charset)) return body;
-    const dataString = isomorphicBufferToString(body, charset);
+
+    // A backend may hand us an already-decoded string (e.g. the fs-storage no-extension fallback).
+    // Otherwise decode the raw bytes using the resolved charset.
+    const dataString = typeof body === 'string' ? body : isomorphicBufferToString(body, charset);
 
     return contentType === CONTENT_TYPE_JSON ? JSON5.parse(dataString) : dataString;
 }

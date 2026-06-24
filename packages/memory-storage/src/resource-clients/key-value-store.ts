@@ -4,7 +4,7 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import type { MemoryStorageClient } from '../index.js';
-import { isStream } from '../utils.js';
+import { isStream, toBuffer } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 import mime from 'mime-types';
 
@@ -213,10 +213,15 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             value = Buffer.concat(chunks);
         }
 
+        // The store holds raw bytes (or a string). Streams were drained above, so any remaining
+        // non-string value is byte-like; normalize ArrayBuffer / typed-array views to Buffer.
+        const normalizedValue: Buffer | string =
+            typeof value === 'string' ? value : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
+
         const _record = {
             extension,
             key,
-            value,
+            value: normalizedValue,
             contentType,
         } satisfies InternalKeyRecord;
 
