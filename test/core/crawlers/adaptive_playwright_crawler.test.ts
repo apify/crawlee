@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { Configuration, type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
@@ -452,8 +452,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const state = await localStorageEmulator.getState();
-        expect(state!.value).toEqual({ count: 3 });
+        // getState reads through the frontend, so the value is already parsed.
+        expect(await localStorageEmulator.getState()).toEqual({ count: 3 });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
@@ -524,11 +524,12 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const store = await localStorageEmulator.getKeyValueStore();
 
-        expect((await store.getValue('1'))!.value).toEqual({ content: 42 });
-        expect((await store.getValue('2'))!.value).toEqual({ content: 42 });
-        expect((await store.getValue('3'))!.value).toEqual({ content: 42 });
+        const store = await KeyValueStore.open();
+
+        await expect(store.getValue('1')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('2')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('3')).resolves.toEqual({ content: 42 });
     });
 
     test('should not allow direct key-value store manipulation', async () => {

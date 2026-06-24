@@ -30,14 +30,15 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
 
     async get(): Promise<InternalKeyRecord> {
         await this.fsQueue.wait();
-        let file: Buffer | string;
+        let file: Buffer;
 
         try {
             file = await readFile(this.filePath);
         } catch {
             try {
                 const noExtFilePath = resolveWithinDirectory(this.storeDirectory, this.rawRecord.key);
-                // Try without extension
+                // Try without extension. Keep the raw bytes — interpretation (text vs. JSON) is the
+                // KeyValueStore frontend's job; this client is a plain byte transport.
                 file = await readFile(noExtFilePath);
                 this.logger?.warning(
                     [
@@ -47,7 +48,6 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
                         'If you want to have correct interpretation of the file, you should add a file extension to the entry.',
                     ].join('\n'),
                 );
-                file = file.toString('utf-8');
                 this.filePath = noExtFilePath;
             } catch {
                 // This is impossible to happen, but just in case
