@@ -7,7 +7,6 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
-import { maybeParseBody } from '../body-parser.js';
 import type { StorageImplementation } from '../fs/common.js';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
 import type { FileSystemStorageClient } from '../index.js';
@@ -171,14 +170,14 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         const entry = await storageEntry.get();
 
+        // Return raw bytes + verbatim content type. Parsing is the frontend's job (see the
+        // KeyValueStore codec); this client is a plain byte transport. The mime fallback
+        // reconstructs the content type for on-disk records that lack one.
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
             value: entry.value,
             contentType: entry.contentType ?? (mime.contentType(entry.extension) as string),
         };
-
-        // Auto-parse the body (JSON → object, text → string, etc.)
-        record.value = maybeParseBody(record.value, record.contentType!);
 
         this.updateTimestamps(false);
 

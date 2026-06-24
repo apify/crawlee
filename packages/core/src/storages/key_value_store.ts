@@ -231,15 +231,17 @@ export class KeyValueStore {
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      */
-    async getRecord(key: string): Promise<{ value: Buffer; contentType: string | null } | null> {
+    async getRecord(key: string): Promise<{ value: Buffer | ArrayBuffer; contentType: string | null } | null> {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getValue(key);
         if (!record) return null;
 
+        // Storage clients are byte transports, so the read path yields raw bytes. The record type is
+        // a write/read union, so narrow to the bytes the read contract actually guarantees.
         return {
-            value: record.value as Buffer,
+            value: record.value as Buffer | ArrayBuffer,
             contentType: record.contentType ?? null,
         };
     }

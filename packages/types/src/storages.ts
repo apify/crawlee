@@ -98,7 +98,17 @@ export interface KeyValueStoreInfo {
 
 export interface KeyValueStoreRecord {
     key: string;
-    value: any;
+    /**
+     * The record body as raw bytes (or a stream / pre-serialized string on the write path).
+     *
+     * Storage clients are byte transports: they persist and return bytes verbatim and never
+     * serialize or parse. The `KeyValueStore` frontend owns that — it serializes on the way in
+     * (see its codec, `serializeValue`) and parses on the way out (`parseValue`). Consequently:
+     * - on `getValue`, this is the raw `Buffer | ArrayBuffer` read from the backend;
+     * - on `setValue`, the frontend has already serialized, so this is a `string`, `Buffer`,
+     *   `ArrayBuffer`, typed array, or a stream to be drained.
+     */
+    value: Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
     contentType?: string;
 }
 
@@ -135,7 +145,12 @@ export interface KeyValueStoreClient {
     /** Remove all records from the store but keep the store itself. */
     purge(): Promise<void>;
 
-    /** Get a record value by key. Returns the parsed value or `undefined` if not found. */
+    /**
+     * Get a record by key. Returns the raw bytes plus content type, or `undefined` if not found.
+     *
+     * Clients are byte transports and must not parse the body — the `KeyValueStore` frontend
+     * interprets it according to the content type.
+     */
     getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
 
     /** Set a record value. */
