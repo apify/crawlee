@@ -265,14 +265,23 @@ export class FileSystemStorageClient implements storage.StorageClient {
      *  - the default request queue.
      */
     async purge(): Promise<void> {
-        const isDefault = (store: { name?: string; cacheKey: string }) =>
-            store.name === 'default' || store.cacheKey === 'default';
+        // Resolve the default stores up front so leftover on-disk records are purged even when the
+        // store has not been opened in this process yet (e.g. a fresh run over a pre-existing
+        // directory). Opening caches the client, so the subsequent purge operates on a real client.
+        // The default store is opened via the internal `__default__` alias (see resolveStorageIdentifier
+        // in @crawlee/core), which resolves to the `default` cache key — match that here so we purge the
+        // very client the default open would return rather than creating a divergent one.
+        const [defaultKeyValueStore, defaultDataset, defaultRequestQueue] = await Promise.all([
+            this.createKeyValueStoreClient({ alias: '__default__' }) as Promise<KeyValueStoreClient>,
+            this.createDatasetClient({ alias: '__default__' }) as Promise<DatasetClient>,
+            this.createRequestQueueClient({ alias: '__default__' }) as Promise<RequestQueueClient>,
+        ]);
 
         await Promise.all([
             // Preserve the run input (INPUT) when purging the default key-value store.
-            ...this.keyValueStoreCache.filter(isDefault).map(async (store) => store.purgeExceptInput()),
-            ...this.datasetClientCache.filter(isDefault).map(async (store) => store.purge()),
-            ...this.requestQueueCache.filter(isDefault).map(async (store) => store.purge()),
+            defaultKeyValueStore.purgeExceptInput(),
+            defaultDataset.purge(),
+            defaultRequestQueue.purge(),
         ]);
     }
 
