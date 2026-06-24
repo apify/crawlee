@@ -7,11 +7,10 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { scheduleBackgroundTask } from '../background-handler/index.js';
-import { maybeParseBody } from '../body-parser.js';
 import type { StorageImplementation } from '../fs/common.js';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store/index.js';
 import type { FileSystemStorageClient } from '../index.js';
-import { isBuffer, isStream } from '../utils.js';
+import { isStream, toBuffer } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 import mime from 'mime-types';
 
@@ -171,21 +170,23 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
 
         const entry = await storageEntry.get();
 
+        // Return raw bytes + verbatim content type. Parsing is the frontend's job (see the
+        // KeyValueStore codec); this client is a plain byte transport. The mime fallback
+        // reconstructs the content type for on-disk records that lack one.
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
-            value: entry.value,
-            contentType: entry.contentType ?? (mime.contentType(entry.extension) as string),
+            value: typeof entry.value === 'string' ? Buffer.from(entry.value, 'utf-8') : entry.value,
+            // mime.contentType returns `false` for unknown extensions; fall back to undefined so the
+            // frontend treats it as "no content type" rather than a bogus value.
+            contentType: entry.contentType ?? (mime.contentType(entry.extension) || undefined),
         };
-
-        // Auto-parse the body (JSON → object, text → string, etc.)
-        record.value = maybeParseBody(record.value, record.contentType!);
 
         this.updateTimestamps(false);
 
         return record;
     }
 
-    async setValue(record: storage.KeyValueStoreRecord): Promise<void> {
+    async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
         s.object({
             key: s.string().lengthGreaterThan(0),
             value: s.union([
@@ -202,43 +203,31 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         }).parse(record);
 
         const { key } = record;
-        let { value, contentType } = record;
-
-        const valueIsStream = isStream(value);
-
-        const isValueStreamOrBuffer = valueIsStream || isBuffer(value);
-        // To allow saving Objects to JSON without providing content type
-        if (!contentType) {
-            if (isValueStreamOrBuffer) contentType = 'application/octet-stream';
-            else if (typeof value === 'string') contentType = 'text/plain; charset=utf-8';
-            else contentType = 'application/json; charset=utf-8';
-        }
+        let { value } = record;
+        // The frontend (KeyValueStore codec) serializes the value and resolves its content type
+        // before it reaches the client. We only need it here for on-disk extension bookkeeping.
+        const contentType = record.contentType ?? 'application/octet-stream';
 
         const extension = mime.extension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
 
-        const isContentTypeJson = extension === 'json';
-
-        if (isContentTypeJson && !isValueStreamOrBuffer && typeof value !== 'string') {
-            try {
-                value = JSON.stringify(value, null, 2);
-            } catch (err: any) {
-                const msg = `The record value cannot be stringified to JSON. Please provide other content type.\nCause: ${err.message}`;
-                throw new Error(msg);
-            }
-        }
-
-        if (valueIsStream) {
+        // Draining a stream into a Buffer for storage is the client's responsibility.
+        if (isStream(value)) {
             const chunks = [];
             for await (const chunk of value) {
                 chunks.push(chunk);
             }
-            value = Buffer.concat(chunks);
+            value = Buffer.concat(chunks as Buffer[]);
         }
+
+        // The on-disk record holds raw bytes (or a string). Streams were drained above, so any
+        // remaining non-string value is byte-like; normalize ArrayBuffer / typed-array views to Buffer.
+        const normalizedValue: Buffer | string =
+            typeof value === 'string' ? value : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
 
         const _record = {
             extension,
             key,
-            value,
+            value: normalizedValue,
             contentType,
         } satisfies InternalKeyRecord;
 

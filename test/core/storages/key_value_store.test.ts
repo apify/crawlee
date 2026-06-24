@@ -1,7 +1,8 @@
 import { PassThrough } from 'node:stream';
 
-import { KeyValueStore, maybeStringify, serviceLocator } from '@crawlee/core';
+import { KeyValueStore, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
+import { toBuffer } from '@crawlee/utils';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const localStorageEmulator = new MemoryStorageEmulator();
@@ -52,7 +53,8 @@ describe('KeyValueStore', () => {
             .spyOn(store.client, 'getValue')
             .mockResolvedValueOnce({
                 key: 'key-1',
-                value: record,
+                // The client now returns raw bytes; the frontend parses them.
+                value: Buffer.from(recordStr),
                 contentType: 'application/json; charset=utf-8',
             });
 
@@ -182,7 +184,7 @@ describe('KeyValueStore', () => {
             );
 
             const valueErrMsg =
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified';
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified';
             await expect(store.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(store.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(store.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
@@ -214,12 +216,12 @@ describe('KeyValueStore', () => {
 
             const contTypeRedundantErrMsg = 'Expected property string `contentType` to not be empty in object';
             await expect(store.setValue('key', null, { contentType: 'image/png' })).rejects.toThrow(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
             await expect(store.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
             // @ts-expect-error Type '{}' is not assignable to type 'string'.
             await expect(store.setValue('key', null, { contentType: {} })).rejects.toThrow(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
 
             // @ts-expect-error Type 'number' is not assignable to type 'string'.
@@ -354,6 +356,112 @@ describe('KeyValueStore', () => {
         });
     });
 
+    describe('round-trips through the real storage client (no content type)', () => {
+        test('object: setValue → getValue returns the same object, stored as application/json', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            await store.setValue('obj', original);
+
+            await expect(store.getValue('obj')).resolves.toEqual(original);
+            const record = await store.getRecord('obj');
+            expect(record!.contentType).toBe('application/json; charset=utf-8');
+        });
+
+        test('string: setValue → getValue returns the same string, stored as text/plain (not JSON-wrapped)', async () => {
+            const store = await KeyValueStore.open();
+            await store.setValue('str', 'hello world');
+
+            await expect(store.getValue('str')).resolves.toBe('hello world');
+            const record = await store.getRecord('str');
+            expect(record!.contentType).toBe('text/plain; charset=utf-8');
+            // Bytes are the raw string, not the JSON-wrapped `'"hello world"'` the old code produced.
+            expect(record!.value.toString()).toBe('hello world');
+        });
+
+        test('Buffer: setValue → getValue returns the same Buffer, stored as octet-stream (not JSON-mangled)', async () => {
+            const store = await KeyValueStore.open();
+            const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            await store.setValue('buf', original);
+
+            const value = await store.getValue('buf');
+            expect(Buffer.isBuffer(value)).toBe(true);
+            expect((value as Buffer).equals(original)).toBe(true);
+
+            const record = await store.getRecord('buf');
+            expect(record!.contentType).toBe('application/octet-stream');
+            expect(toBuffer(record!.value).equals(original)).toBe(true);
+        });
+    });
+
+    describe('pre-serialized JSON via setValue (caller owns the bytes)', () => {
+        test('Buffer containing JSON + explicit application/json CT round-trips as a parsed object', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            const preSerialized = Buffer.from(JSON.stringify(original));
+
+            await store.setValue('k', preSerialized, { contentType: 'application/json; charset=utf-8' });
+
+            // getValue parses the bytes back into the original object.
+            expect(await store.getValue('k')).toEqual(original);
+        });
+
+        test('string containing JSON + explicit application/json CT round-trips as a parsed object', async () => {
+            const store = await KeyValueStore.open();
+            const original = [1, 2, 3];
+
+            await store.setValue('k', JSON.stringify(original), {
+                contentType: 'application/json; charset=utf-8',
+            });
+
+            expect(await store.getValue('k')).toEqual(original);
+        });
+    });
+
+    describe('getRecord', () => {
+        test('returns null for a missing key', async () => {
+            const store = await KeyValueStore.open();
+            expect(await store.getRecord('missing')).toBeNull();
+        });
+
+        test('returns raw bytes + content type without parsing JSON', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            await store.setValue('obj', original);
+
+            const record = await store.getRecord('obj');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toMatch(/^application\/json/);
+            // Bytes are the serialized JSON, not the parsed object — the caller does the parsing.
+            const asText = toBuffer(record!.value).toString('utf-8');
+            expect(JSON.parse(asText)).toEqual(original);
+        });
+
+        test('returns the exact bytes a caller wrote with an explicit content type', async () => {
+            const store = await KeyValueStore.open();
+            const preSerialized = Buffer.from(JSON.stringify({ a: 1 }));
+
+            await store.setValue('k', preSerialized, { contentType: 'application/json; charset=utf-8' });
+
+            const record = await store.getRecord('k');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toBe('application/json; charset=utf-8');
+            const asText = toBuffer(record!.value).toString('utf-8');
+            expect(asText).toBe(preSerialized.toString());
+        });
+
+        test('returns a Buffer for octet-stream records', async () => {
+            const store = await KeyValueStore.open();
+            const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            await store.setValue('buf', original);
+
+            const record = await store.getRecord('buf');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toBe('application/octet-stream');
+            expect(Buffer.isBuffer(record!.value)).toBe(true);
+            expect((record!.value as Buffer).equals(original)).toBe(true);
+        });
+    });
+
     // TODO move to actor sdk tests before splitting the repos
     // describe('getPublicUrl', () => {
     //     test('should return the url of a file in apify cloud', async () => {
@@ -370,22 +478,6 @@ describe('KeyValueStore', () => {
     //         delete process.env[ENV_VARS.TOKEN];
     //     });
     // });
-
-    describe('maybeStringify()', () => {
-        test('should work', () => {
-            expect(maybeStringify({ foo: 'bar' }, { contentType: null as any })).toBe('{\n  "foo": "bar"\n}');
-            expect(maybeStringify({ foo: 'bar' }, { contentType: undefined })).toBe('{\n  "foo": "bar"\n}');
-
-            expect(maybeStringify('xxx', { contentType: undefined })).toBe('"xxx"');
-            expect(maybeStringify('xxx', { contentType: 'something' })).toBe('xxx');
-
-            const obj = {} as Dictionary;
-            obj.self = obj;
-            expect(() => maybeStringify(obj, { contentType: null as any })).toThrow(
-                'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON',
-            );
-        });
-    });
 
     describe('getFileNameRegexp()', () => {
         const getFileNameRegexp = (key: string) => {

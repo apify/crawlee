@@ -1,5 +1,6 @@
 export * from './dataset.js';
 export * from './key_value_store.js';
+export * from './key_value_store_codec.js';
 export * from './request_list.js';
 export type * from './request_loader.js';
 export type * from './request_manager.js';
