@@ -200,11 +200,8 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getValue(key);
 
-        // Storage clients are byte transports: the read path yields bytes (or an already-decoded
-        // string from the fs no-extension fallback), never a stream. Narrow to what parseValue accepts.
-        const parsed = record
-            ? parseValue(record.value as Buffer | ArrayBuffer | string, record.contentType ?? null)
-            : undefined;
+        // Storage clients are byte transports — the value is raw bytes; the frontend parses it here.
+        const parsed = record ? parseValue(record.value, record.contentType ?? null) : undefined;
 
         return (parsed as T) ?? defaultValue ?? null;
     }
@@ -242,10 +239,8 @@ export class KeyValueStore {
         const record = await this.client.getValue(key);
         if (!record) return null;
 
-        // Storage clients are byte transports, so the read path yields raw bytes. The record type is
-        // a write/read union, so narrow to the bytes the read contract actually guarantees.
         return {
-            value: record.value as Buffer | ArrayBuffer,
+            value: record.value,
             contentType: record.contentType ?? null,
         };
     }
@@ -317,11 +312,7 @@ export class KeyValueStore {
             for (const item of page) {
                 const record = await this.client.getValue(item.key);
                 if (record) {
-                    // Read path yields bytes or a decoded string, never a stream; narrow accordingly.
-                    const parsed = parseValue(
-                        record.value as Buffer | ArrayBuffer | string,
-                        record.contentType ?? null,
-                    );
+                    const parsed = parseValue(record.value, record.contentType ?? null);
                     results.push(mapRecord(item.key, parsed));
                 }
             }

@@ -101,8 +101,8 @@ export function parseValue(
     // If we can't successfully interpret it, we return the original value rather than mangling it.
     if (!areDataStringifiable(contentType, charset)) return body;
 
-    // A backend may hand us an already-decoded string (e.g. the fs-storage no-extension fallback).
-    // Otherwise decode the raw bytes using the resolved charset.
+    // Decode raw bytes using the resolved charset. An already-decoded string passes through (callers
+    // may hand us one directly), avoiding a needless re-encode round-trip.
     const dataString = typeof body === 'string' ? body : isomorphicBufferToString(body, charset);
 
     return contentType === CONTENT_TYPE_JSON ? JSON5.parse(dataString) : dataString;

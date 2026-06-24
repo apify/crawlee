@@ -92,10 +92,11 @@ describe('fallback to fs for reading', () => {
     test('attempting to read "no-ext" key value store should load the missing extension file correctly', async () => {
         const noExtStore = await storage.createKeyValueStoreClient({ name: 'no-ext' });
 
+        // Byte transport: the no-extension fallback also returns raw bytes now, not a decoded string.
         const input = await noExtStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
-            value: JSON.stringify({ foo: 'bar but from fs' }),
+            value: Buffer.from(JSON.stringify({ foo: 'bar but from fs' })),
             contentType: 'text/plain',
         });
     });

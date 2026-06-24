@@ -175,7 +175,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         // reconstructs the content type for on-disk records that lack one.
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
-            value: entry.value,
+            value: typeof entry.value === 'string' ? Buffer.from(entry.value, 'utf-8') : entry.value,
             contentType: entry.contentType ?? (mime.contentType(entry.extension) as string),
         };
 
@@ -184,7 +184,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         return record;
     }
 
-    async setValue(record: storage.KeyValueStoreRecord): Promise<void> {
+    async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
         s.object({
             key: s.string().lengthGreaterThan(0),
             value: s.union([

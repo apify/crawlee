@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { type Dictionary, EventType, KeyValueStore, parseValue, serviceLocator } from '@crawlee/core';
+import { type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
@@ -384,9 +384,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        // The client returns raw bytes now; parse them as the frontend would.
-        const state = await localStorageEmulator.getState();
-        expect(parseValue(state!.value, state!.contentType!)).toEqual({ count: 3 });
+        // getState reads through the frontend, so the value is already parsed.
+        expect(await localStorageEmulator.getState()).toEqual({ count: 3 });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {

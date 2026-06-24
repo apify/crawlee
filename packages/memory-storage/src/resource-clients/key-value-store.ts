@@ -30,7 +30,7 @@ export interface KeyValueStoreClientOptions {
 
 export interface InternalKeyRecord {
     key: string;
-    value: Buffer | string;
+    value: Buffer;
     contentType?: string;
     extension: string;
 }
@@ -180,7 +180,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         return record;
     }
 
-    async setValue(record: storage.KeyValueStoreRecord): Promise<void> {
+    async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
         s.object({
             key: s.string().lengthGreaterThan(0),
             value: s.union([
@@ -213,10 +213,13 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             value = Buffer.concat(chunks);
         }
 
-        // The store holds raw bytes (or a string). Streams were drained above, so any remaining
-        // non-string value is byte-like; normalize ArrayBuffer / typed-array views to Buffer.
-        const normalizedValue: Buffer | string =
-            typeof value === 'string' ? value : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
+        // This client is a byte transport: it stores and returns raw bytes regardless of the input
+        // shape. Streams were drained above; encode strings to UTF-8 bytes and normalize
+        // ArrayBuffer / typed-array views to a Buffer over the same memory.
+        const normalizedValue: Buffer =
+            typeof value === 'string'
+                ? Buffer.from(value, 'utf-8')
+                : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
 
         const _record = {
             extension,

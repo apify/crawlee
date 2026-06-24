@@ -2,6 +2,7 @@ import { PassThrough } from 'node:stream';
 
 import { KeyValueStore, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
+import { toBuffer } from '@crawlee/utils';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const localStorageEmulator = new MemoryStorageEmulator();
@@ -388,7 +389,7 @@ describe('KeyValueStore', () => {
 
             const record = await store.getRecord('buf');
             expect(record!.contentType).toBe('application/octet-stream');
-            expect(record!.value.equals(original)).toBe(true);
+            expect(toBuffer(record!.value).equals(original)).toBe(true);
         });
     });
 
@@ -431,7 +432,7 @@ describe('KeyValueStore', () => {
             expect(record).not.toBeNull();
             expect(record!.contentType).toMatch(/^application\/json/);
             // Bytes are the serialized JSON, not the parsed object — the caller does the parsing.
-            const asText = Buffer.isBuffer(record!.value) ? record!.value.toString() : (record!.value as string);
+            const asText = toBuffer(record!.value).toString('utf-8');
             expect(JSON.parse(asText)).toEqual(original);
         });
 
@@ -444,7 +445,7 @@ describe('KeyValueStore', () => {
             const record = await store.getRecord('k');
             expect(record).not.toBeNull();
             expect(record!.contentType).toBe('application/json; charset=utf-8');
-            const asText = Buffer.isBuffer(record!.value) ? record!.value.toString() : (record!.value as string);
+            const asText = toBuffer(record!.value).toString('utf-8');
             expect(asText).toBe(preSerialized.toString());
         });
 

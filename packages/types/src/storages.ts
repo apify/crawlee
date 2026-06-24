@@ -96,19 +96,41 @@ export interface KeyValueStoreInfo {
     stats?: KeyValueStoreStats;
 }
 
+/**
+ * The value a serialized record carries on the way *into* a storage client (`setValue`).
+ *
+ * The `KeyValueStore` frontend has already serialized by this point, so it is a pre-serialized
+ * string, raw bytes (`Buffer` / `ArrayBuffer` / typed array), or a stream the client drains.
+ */
+export type KeyValueStoreRecordInputValue =
+    | Buffer
+    | ArrayBuffer
+    | ArrayBufferView
+    | string
+    | NodeJS.ReadableStream
+    | ReadableStream;
+
+/**
+ * A record as returned by a storage client (`getValue`).
+ *
+ * Storage clients are byte transports: they persist and return bytes verbatim and never serialize
+ * or parse. Interpretation is the `KeyValueStore` frontend's job (it parses according to the content
+ * type via `parseValue`). The value is therefore always raw bytes — a `Buffer` (Node) or an
+ * `ArrayBuffer` (browser backends).
+ */
 export interface KeyValueStoreRecord {
     key: string;
-    /**
-     * The record body as raw bytes (or a stream / pre-serialized string on the write path).
-     *
-     * Storage clients are byte transports: they persist and return bytes verbatim and never
-     * serialize or parse. The `KeyValueStore` frontend owns that — it serializes on the way in
-     * (see its codec, `serializeValue`) and parses on the way out (`parseValue`). Consequently:
-     * - on `getValue`, this is the raw `Buffer | ArrayBuffer` read from the backend;
-     * - on `setValue`, the frontend has already serialized, so this is a `string`, `Buffer`,
-     *   `ArrayBuffer`, typed array, or a stream to be drained.
-     */
-    value: Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
+    value: Buffer | ArrayBuffer;
+    contentType?: string;
+}
+
+/**
+ * A record passed to a storage client for writing (`setValue`). Like {@link KeyValueStoreRecord} but
+ * with the lenient, pre-serialized {@link KeyValueStoreRecordInputValue} for the value.
+ */
+export interface KeyValueStoreInputRecord {
+    key: string;
+    value: KeyValueStoreRecordInputValue;
     contentType?: string;
 }
 
@@ -154,7 +176,7 @@ export interface KeyValueStoreClient {
     getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
 
     /** Set a record value. */
-    setValue(record: KeyValueStoreRecord): Promise<void>;
+    setValue(record: KeyValueStoreInputRecord): Promise<void>;
 
     /** Delete a record by key. */
     deleteValue(key: string): Promise<void>;
