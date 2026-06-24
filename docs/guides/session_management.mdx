@@ -230,7 +230,7 @@ A pool you construct yourself is owned by you, not the crawler — the crawler w
 
 ## Custom session pools
 
-A crawler accepts any object implementing the <ApiLink to="types/interface/ISessionPool">`ISessionPool`</ApiLink> interface as its `sessionPool` option, not just the built-in `SessionPool`. The contract is intentionally tiny — a single `getSession()` / `getSession(id)` method that hands out a `Session` for a request. This lets you plug in a remote, shared, or database-backed session strategy without subclassing `SessionPool` or copying its internals.
+A crawler accepts any object implementing the <ApiLink to="types/interface/ISessionPool">`ISessionPool`</ApiLink> interface as its `sessionPool` option, not just the built-in `SessionPool`. The contract is intentionally tiny — a single `getSession()` / `getSession(id)` method that hands out an <ApiLink to="types/interface/ISession">`ISession`</ApiLink> for a request. This lets you plug in a remote, shared, or database-backed session strategy without subclassing `SessionPool` or copying its internals.
 
 ```ts
 import { BasicCrawler, Session, type ISessionPool } from 'crawlee';
@@ -261,11 +261,15 @@ const crawler = new BasicCrawler({
 });
 ```
 
-The returned objects must be real `Session` instances — the rest of the crawler relies on `session.markGood()`, `session.cookieJar`, `session.proxyInfo`, and the rest of the concrete `Session` API.
+The returned objects just need to implement <ApiLink to="types/interface/ISession">`ISession`</ApiLink> — the crawler only calls `markGood()`, `markBad()`, `retire()`, and reads `cookieJar`, `proxyInfo`, and `fingerprint`, all of which are part of that interface.
 
 ## Pinning a request to a specific session
 
 By default the pool decides which session a request gets. Setting `request.sessionId` overrides that and forces the request — and all of its retries — onto the session with that id. You can create a custom named session with <ApiLink to="core/class/SessionPool#addSession">`addSession()`</ApiLink>, giving each its own proxy, cookies, or fingerprint. Because a session bundles a proxy, this is how you bind specific requests to specific proxies.
+
+One important consequence: if a named session is retired — whether through accumulated `markBad()` calls, hitting `maxUsageCount`, or an explicit `retire()` — any subsequent `getSession(id)` call for that id returns `undefined`.
+The crawler treats that as a `MissingSessionError`, counts it as a regular request error, and retries the request with the same `sessionId`. If the session stays retired, retries keep failing and the request eventually exhausts `maxRequestRetries`.
+When a named session can be retired, handle this in your `errorHandler`: either recreate the session via `addSession()` with the same id, or clear `request.sessionId` to let the pool assign a fresh one.
 
 A common usage pattern is escalating between proxy "tiers": add a cheap session and a premium one, start requests on the cheap session, and reassign `request.sessionId` to the premium one in an `errorHandler` so the retry goes out over the better proxy.
 
