@@ -18,18 +18,15 @@ import PlaywrightSource from '!!raw-loader!./session_management_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./session_management_puppeteer.ts';
 import StandaloneSource from '!!raw-loader!./session_management_standalone.ts';
 
-&#8203;<ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> is a class that allows us to handle the rotation of proxy IP addresses along with cookies and other custom settings in Crawlee.
+&#8203;<ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> manages the rotation of proxy IP addresses, cookies, and browser fingerprints in Crawlee. A single <ApiLink to="core/class/Session">`Session`</ApiLink> bundles all the identifying state of one "virtual user" — its cookie jar, its proxy (and therefore its IP), and a fingerprint hint — so that everything that makes a series of requests look like it comes from one person rotates together. When a session gets blocked, the whole bundle is thrown away at once and a fresh identity takes over, rather than reusing a burnt IP with new cookies (or vice versa).
 
-The main benefit of using Session pool is that we can filter out blocked or non-working proxies,
-so our actor does not retry requests over known blocked/non-working proxies.
-Another benefit of using SessionPool is that we can store information tied tightly to an IP address,
-such as cookies, auth tokens, and particular headers. Having our cookies and other identifiers used only with a specific IP will reduce the chance of being blocked.
-The last but not least benefit is the even rotation of IP addresses - by default, SessionPool picks sessions randomly,
-which should prevent burning out a small pool of available IPs. The selection strategy is configurable — see below.
+The main benefits of the session pool are that it filters out blocked or non-working proxies so the crawler does not keep retrying over them, it keeps identity-bound state (cookies, auth tokens, headers) tied to the IP that obtained it, and it spreads requests across IPs to avoid burning a small pool. The selection strategy is configurable — see [Choosing a rotation strategy](#choosing-a-rotation-strategy) below.
 
-Check out the [avoid blocking guide](./avoid-blocking) for more information about blocking.
+All crawler instances now require a `SessionPool`. In most cases you do not create one yourself: you just read the `session` from the request handler and let the crawler mark it good or bad for you. You only construct a `SessionPool` explicitly when you want to override its defaults or share one instance across several crawlers.
 
-Now let's take a look at the examples of how to use Session pool:
+Check out the [avoid blocking guide](./avoid-blocking) for the bigger picture on why blocking happens and how fingerprints fit in.
+
+Now let's take a look at the examples of how to use the session pool:
 - with <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>;
 - with <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>;
 - with <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>;
@@ -76,22 +73,229 @@ Now let's take a look at the examples of how to use Session pool:
     </TabItem>
 </Tabs>
 
-These are the basics of configuring SessionPool.
-Please, bear in mind that a Session pool needs time to find working IPs and build up the pool,
-so we will probably see a lot of errors until it becomes stabilized.
+These are the basics of configuring the session pool. The rest of this guide covers how to control which session is used, what state it carries, and when it is thrown away.
 
-## Session reuse strategy
+## How a session is retired
 
-The `sessionReuseStrategy` option controls how sessions are picked from the pool. Three strategies are available:
+A session stays in the pool and keeps being handed out as long as <ApiLink to="core/class/Session#isUsable">`isUsable()`</ApiLink> returns `true`. It stops being usable — and is dropped from rotation — as soon as any of the following happens:
 
-**`random`** (default) — the pool fills up to `maxPoolSize` by creating a new session for every request, then picks randomly from the available sessions. Best for maximising fingerprint and IP diversity.
+- its **error score** reaches `maxErrorScore` (default `3`),
+- its **usage count** reaches `maxUsageCount` (default `50`),
+- it is older than `maxAgeSecs` (default `3000` seconds), or
+- it has been explicitly **retired**.
 
-**`round-robin`** — like `random`, the pool fills up to `maxPoolSize` first, then cycles through the sessions in order instead of picking randomly. Best when you want even load distribution across sessions, for example when combined with `maxUsageCount` to ensure all sessions expire at roughly the same time.
+You influence this with three methods on the session. <ApiLink to="core/class/Session#markGood">`markGood()`</ApiLink> records a successful use — it increments the usage count and heals the error score a little (by `errorScoreDecrement`, default `0.5`). <ApiLink to="core/class/Session#markBad">`markBad()`</ApiLink> records a failure that *might* be the session's fault and *might* just be bad luck — it raises the error score by one, so a session needs to fail repeatedly before it is dropped. <ApiLink to="core/class/Session#retire">`retire()`</ApiLink> drops the session immediately and permanently; this is what you call when you are certain the identity itself is burnt (for example, a `403` response).
 
-**`use-until-failure`** — the same session is returned on every call until it is retired, then the next available one is used. Best for proxy session stickiness, where you want to keep the same IP for as long as possible before rotating.
+The distinction between `markBad()` and `retire()` matters. Use `markBad()` for transient, external problems such as a timeout or a `5XX` response — the IP is probably fine and a couple of retries should not throw it away. Use `retire()` for problems that prove the session is blocked, where reusing it is pointless. Retirement is terminal: once a session is retired, a later `markGood()` will not bring it back.
+
+When using a crawler you rarely call `markGood()` yourself — the crawler calls it automatically after a successful request handler run. You only need to reach for `markBad()` / `retire()` (or let blocked status codes do it for you, see [below](#letting-blocked-responses-retire-sessions)) when you detect a problem the crawler cannot see, such as a "you are blocked" message inside an otherwise `200` response.
+
+## Managing cookies
+
+Every session owns a [`tough-cookie`](https://github.com/salesforce/tough-cookie) cookie jar, reachable as `session.cookieJar`. Cookies arriving in `Set-Cookie` response headers are stored in it automatically — this is controlled by the `saveResponseCookies` crawler option (default `true`) — so they are replayed on every later request that reuses the same session. Set `saveResponseCookies: false` to keep response cookies out of the session jar.
+
+You can also seed or read cookies yourself. <ApiLink to="core/class/Session#setCookie">`session.setCookie('name=value', url)`</ApiLink> adds a single cookie, <ApiLink to="core/class/Session#getCookieString">`session.getCookieString(url)`</ApiLink> returns the `Cookie` header value the session would send for that URL, and `session.cookieJar` gives you the full jar for anything more involved.
 
 ```js
+const crawler = new CheerioCrawler({
+    requestHandler: async ({ session, request }) => {
+        session.setCookie('consent=yes', request.url);
+    },
+});
+```
+
+### Cookie precedence and overrides
+
+When an HTTP-based crawler (or a direct `sendRequest` call) builds the outgoing `Cookie` header, it starts from a **base jar** and then overlays any cookies set on the request:
+
+- The base jar is the explicit `cookieJar` passed to `sendRequest` if you provide one, otherwise the session's own cookie jar.
+- A `Cookie` header on the request (`request.headers.Cookie`) is merged on top of that base. A cookie set this way wins over a base-jar cookie of the same name, but it is *not* persisted back into the session.
+
+So a `Cookie` request header always beats the stored cookie of the same name regardless of which jar is the base, while passing an explicit `cookieJar` swaps out the whole base for that single call. To override a single cookie for one request, set it on the request header:
+
+```js
+import { HttpCrawler } from 'crawlee';
+import { CookieJar } from 'tough-cookie';
+
+const crawler = new HttpCrawler({
+    preNavigationHooks: [
+        async ({ request }) => {
+            // wins over any same-named cookie in the session jar, for this request only
+            request.headers = { ...request.headers, Cookie: 'token=override' };
+        },
+    ],
+    requestHandler: async ({ sendRequest }) => {
+        // ...or to fully replace the jar for a single call:
+        const jar = new CookieJar();
+        await jar.setCookie('token=override', 'https://example.com');
+        await sendRequest({ url: 'https://example.com' }, { cookieJar: jar });
+    },
+});
+```
+
+A `Cookie` header you set on a request is always honored — it is never silently overwritten by the session jar.
+
+## Choosing a rotation strategy
+
+The `sessionReuseStrategy` option decides *which* session `getSession()` hands out, and it is the main lever for matching the pool's behavior to a target site. Three strategies are available, each suited to a different use case.
+
+**Maximise IP and fingerprint diversity** — use `'random'` (the default). The pool creates a brand-new session for every request until it reaches `maxPoolSize`, then picks a usable session at random. This spreads traffic as widely as possible across IPs and fingerprints and is the right default for most large crawls.
+
+**Distribute load evenly across sessions** — use `'round-robin'`. Like `random`, the pool fills up to `maxPoolSize` first, but then cycles through sessions in order instead of picking randomly. This is useful when you want every session to do roughly the same amount of work — for example, combined with `maxUsageCount` so all sessions reach their limit and rotate out at about the same time.
+
+**Use a single IP until it breaks** — use `'use-until-failure'`. The pool returns the *same* session on every call and only moves to the next one once the current session is retired. This is the strategy for sites that reward consistency: where switching IP mid-flow looks suspicious, where you have logged in and want to stay logged in, or where you simply want to squeeze a working proxy for as long as it lasts before paying for another.
+
+<Tabs>
+    <TabItem value="diversity" label="Maximise diversity (default)" default>
+
+```js
+import { SessionPool } from 'crawlee';
+
+const sessionPool = new SessionPool({
+    sessionReuseStrategy: 'random',
+});
+```
+
+    </TabItem>
+    <TabItem value="even" label="Even load">
+
+```js
+import { SessionPool } from 'crawlee';
+
+const sessionPool = new SessionPool({
+    sessionReuseStrategy: 'round-robin',
+    // make every session retire after the same amount of work
+    sessionOptions: { maxUsageCount: 100 },
+});
+```
+
+    </TabItem>
+    <TabItem value="sticky" label="One IP until it breaks">
+
+```js
+import { SessionPool } from 'crawlee';
+
 const sessionPool = new SessionPool({
     sessionReuseStrategy: 'use-until-failure',
 });
 ```
+
+    </TabItem>
+</Tabs>
+
+Whichever strategy you pick, you can cap how hard each session works through `sessionOptions`. Set `maxUsageCount` when you know a site starts blocking after roughly _N_ requests from one IP, `maxAgeSecs` when sessions should be cycled on a time basis, and `maxErrorScore` to control how forgiving the pool is about intermittent failures before dropping a session.
+
+```js
+const sessionPool = new SessionPool({
+    maxPoolSize: 25,
+    sessionOptions: {
+        maxAgeSecs: 600,
+        maxUsageCount: 150, // e.g. when you know the site blocks after ~150 requests
+    },
+});
+```
+
+## Letting blocked responses retire sessions
+
+You do not have to inspect every response by hand. Crawlers treat a configurable set of HTTP status codes as proof that a session is blocked and retire it automatically, retrying the request with a fresh session. This is controlled by the `blockedStatusCodes` crawler option (default `[401, 403, 429]`).
+
+```js
+import { CheerioCrawler } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    // a 403 or 429 will retire the current session and retry on a new one
+    blockedStatusCodes: [403, 429],
+    requestHandler: async ({ session, request }) => {
+        // session is already a working, non-blocked one
+    },
+});
+```
+
+For sites that respond with a `200` page that is actually a bot wall (Cloudflare challenges, Google's rate-limit page), set `retryOnBlocked: true` to have the crawler detect those by content and retry as well. For deeper anti-blocking measures see the [avoid blocking guide](./avoid-blocking).
+
+## Sharing a session pool between crawlers
+
+A `SessionPool` instance can be shared across multiple crawlers by passing the same object to each crawler's `sessionPool` option. This is useful in multi-stage scrapers — for example a fast `CheerioCrawler` that discovers links and a `PlaywrightCrawler` that renders detail pages — where you want both stages to reuse the same proven, non-blocked identities and their cookies instead of each warming up its own pool from scratch.
+
+```js
+import { CheerioCrawler, PlaywrightCrawler, SessionPool } from 'crawlee';
+
+const sessionPool = new SessionPool({ maxPoolSize: 100 });
+
+const listingCrawler = new CheerioCrawler({ sessionPool, requestHandler: async () => { /* ... */ } });
+const detailCrawler = new PlaywrightCrawler({ sessionPool, requestHandler: async () => { /* ... */ } });
+```
+
+A pool you construct yourself is owned by you, not the crawler — the crawler will never tear it down or reset it between runs. Call <ApiLink to="core/class/SessionPool#teardown">`teardown()`</ApiLink> when you are done with it to persist its final state and stop listening for persistence events.
+
+## Custom session pools
+
+A crawler accepts any object implementing the <ApiLink to="types/interface/ISessionPool">`ISessionPool`</ApiLink> interface as its `sessionPool` option, not just the built-in `SessionPool`. The contract is intentionally tiny — a single `getSession()` / `getSession(id)` method that hands out an <ApiLink to="types/interface/ISession">`ISession`</ApiLink> for a request. This lets you plug in a remote, shared, or database-backed session strategy without subclassing `SessionPool` or copying its internals.
+
+```ts
+import { BasicCrawler, Session, type ISessionPool } from 'crawlee';
+
+class MySessionPool implements ISessionPool {
+    private readonly sessions = new Map<string, Session>();
+
+    async getSession(sessionId?: string): Promise<Session | undefined> {
+        if (sessionId) {
+            const existing = this.sessions.get(sessionId);
+            return existing?.isUsable() ? existing : undefined;
+        }
+
+        const usable = [...this.sessions.values()].find((s) => s.isUsable());
+        if (usable) return usable;
+
+        const fresh = new Session();
+        this.sessions.set(fresh.id, fresh);
+        return fresh;
+    }
+}
+
+const crawler = new BasicCrawler({
+    sessionPool: new MySessionPool(),
+    requestHandler: async ({ session }) => {
+        // session is a Session instance, use it as usual
+    },
+});
+```
+
+The returned objects just need to implement <ApiLink to="types/interface/ISession">`ISession`</ApiLink> — the crawler only calls `markGood()`, `markBad()`, `retire()`, and reads `cookieJar`, `proxyInfo`, and `fingerprint`, all of which are part of that interface.
+
+## Pinning a request to a specific session
+
+By default the pool decides which session a request gets. Setting `request.sessionId` overrides that and forces the request — and all of its retries — onto the session with that id. You can create a custom named session with <ApiLink to="core/class/SessionPool#addSession">`addSession()`</ApiLink>, giving each its own proxy, cookies, or fingerprint. Because a session bundles a proxy, this is how you bind specific requests to specific proxies.
+
+One important consequence: if a named session is retired — whether through accumulated `markBad()` calls, hitting `maxUsageCount`, or an explicit `retire()` — any subsequent `getSession(id)` call for that id returns `undefined`.
+The crawler treats that as a `MissingSessionError`, counts it as a regular request error, and retries the request with the same `sessionId`. If the session stays retired, retries keep failing and the request eventually exhausts `maxRequestRetries`.
+When a named session can be retired, handle this in your `errorHandler`: either recreate the session via `addSession()` with the same id, or clear `request.sessionId` to let the pool assign a fresh one.
+
+A common usage pattern is escalating between proxy "tiers": add a cheap session and a premium one, start requests on the cheap session, and reassign `request.sessionId` to the premium one in an `errorHandler` so the retry goes out over the better proxy.
+
+```ts
+import { BasicCrawler, SessionPool } from 'crawlee';
+
+const proxyInfoFromUrl = (proxyUrl: string) => {
+    const { username, password, hostname, port } = new URL(proxyUrl);
+    return { url: proxyUrl, username, password, hostname, port };
+};
+
+const sessionPool = new SessionPool();
+await sessionPool.addSession({ id: 'cheap', proxyInfo: proxyInfoFromUrl('http://cheap-proxy.com') });
+await sessionPool.addSession({ id: 'premium', proxyInfo: proxyInfoFromUrl('http://expensive-proxy.com') });
+
+const crawler = new BasicCrawler({
+    sessionPool,
+    retryOnBlocked: true,
+    requestHandler: async ({ sendRequest, request }) => {
+        await sendRequest({ url: request.url });
+    },
+    errorHandler: async ({ request }) => {
+        request.sessionId = 'premium'; // escalate the retry to the premium proxy
+    },
+});
+
+await crawler.run([{ url: 'https://example.com', sessionId: 'cheap' }]);
+```
+
