@@ -7,6 +7,7 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserPool } from '@crawlee/browser-pool';
 import type { PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';

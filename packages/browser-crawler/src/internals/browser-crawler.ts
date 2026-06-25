@@ -116,7 +116,7 @@ export interface BrowserCrawlerOptions<
 
     /**
      * An existing browser pool instance to use. When provided, the crawler will use this pool directly instead of
-     * constructing a new one from `browserPoolOptions`, enabling browser sharing across multiple crawlers. The crawler
+     * using an existing browser pool instance, enabling browser sharing across multiple crawlers. The crawler
      * will not tear down a shared pool — the caller is responsible for its lifecycle.
      */
     browserPool?: IBrowserPool<Page>;

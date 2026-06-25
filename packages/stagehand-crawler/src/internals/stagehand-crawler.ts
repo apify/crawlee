@@ -1,3 +1,4 @@
+import { BrowserPool } from '@crawlee/browser-pool';
 import type {
     Action,
     ActOptions,
@@ -23,7 +24,6 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, Router } from '@crawlee/browser';
-import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
@@ -387,7 +387,6 @@ export class StagehandCrawler<
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
         stagehandOptions: ow.optional.object,
-        browserPoolOptions: ow.optional.object,
     };
 
     /**
@@ -400,23 +399,29 @@ export class StagehandCrawler<
 
         const { stagehandOptions = {}, launchContext = {}, contextPipelineBuilder, ...browserCrawlerOptions } = options;
 
-        const browserPoolOptions = {
-            ...options.browserPoolOptions,
-        } as BrowserPoolOptions;
-
+      
         // Create launcher with Stagehand plugin
         const launcher = new StagehandLauncher({
             ...launchContext,
             stagehandOptions,
         });
 
-        browserPoolOptions.browserPlugins = [launcher.createBrowserPlugin()];
+        let browserPool = options.browserPool;
+
+        if (!browserPool) {
+            browserPool = new BrowserPool({
+                browserPlugins: [launcher.createBrowserPlugin()],
+                useFingerprints: true,
+            });
+        }
+
+    
 
         // Initialize BrowserCrawler with Stagehand plugin and fingerprinting enabled
         super({
             ...(browserCrawlerOptions as StagehandCrawlerOptions<ContextExtension, ExtendedContext>),
             launchContext,
-            browserPoolOptions,
+            browserPool,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
     }

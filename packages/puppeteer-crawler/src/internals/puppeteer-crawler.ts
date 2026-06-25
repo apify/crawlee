@@ -195,9 +195,8 @@ export class PuppeteerCrawler<
         if (!browserPool) {
             const puppeteerLauncher = new PuppeteerLauncher(
                 launchContext,
-                config,
+                options.configuration,
             );
-
             browserPool = new BrowserPool({
                 browserPlugins: [puppeteerLauncher.createBrowserPlugin()],
             });
@@ -206,15 +205,6 @@ export class PuppeteerCrawler<
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
             launchContext.launchOptions.headless = headless as boolean;
-        }
-
-
-        let browserPool = options.browserPool;
-
-        if (!browserPool) {
-            browserPool = new BrowserPool({
-                browserPlugins: [puppeteerLauncher.createBrowserPlugin()],
-            });
         }
 
         super({
