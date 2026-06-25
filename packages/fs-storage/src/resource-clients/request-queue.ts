@@ -117,18 +117,12 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
             options.forefront ?? false,
         );
 
+        // `processedRequests` is structurally identical between the native and `storage` types, so it
+        // passes through unchanged. `unprocessedRequests` only differs in that the native `method` is
+        // a plain `string`, hence the cast to the narrower `AllowedHttpMethods` union.
         return {
-            processedRequests: response.processedRequests.map((processed) => ({
-                requestId: processed.requestId,
-                uniqueKey: processed.uniqueKey,
-                wasAlreadyHandled: processed.wasAlreadyHandled,
-                wasAlreadyPresent: processed.wasAlreadyPresent,
-            })),
-            unprocessedRequests: response.unprocessedRequests.map((unprocessed) => ({
-                uniqueKey: unprocessed.uniqueKey,
-                url: unprocessed.url,
-                method: unprocessed.method ?? undefined,
-            })) as storage.BatchAddRequestsResult['unprocessedRequests'],
+            processedRequests: response.processedRequests,
+            unprocessedRequests: response.unprocessedRequests as storage.BatchAddRequestsResult['unprocessedRequests'],
         };
     }
 
