@@ -67,7 +67,7 @@ export function processHttpRequestOptions({
 export function extractCharsetFromHtmlBytes(bytes: Buffer): string | undefined {
     // latin1 preserves byte values for ASCII-compatible encodings, making the meta tags readable
     const prescan = bytes.subarray(0, 1024).toString('latin1');
-    const match = prescan.match(/<meta[^>]+\bcharset\s*=\s*["']?\s*([^"'\s;>]+)/i);
+    const match = /<meta[^>]+\bcharset\s*=\s*["']?\s*([^"'\s;>]+)/i.exec(prescan);
     return match?.[1];
 }
 
