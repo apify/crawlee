@@ -92,8 +92,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     /**
      * Return a cache key that includes the resolved storage directory, so that two
      * `FileSystemStorageClient` instances pointing at different directories get separate cache
-     * partitions. Mirrors crawlee-python's `FileSystemStorageClient`, which includes the storage
-     * directory in its cache key.
+     * partitions, by including the storage directory in the cache key.
      */
     getStorageClientCacheKey(): string {
         return `FileSystemStorageClient:${resolve(this.localDataDirectory)}`;
