@@ -22,7 +22,7 @@ function execSync(command, options) {
 /**
  * @param {string} name
  */
-const isPrivateEntry = (name) => name === 'SDK_CRAWLER_STATISTICS_0' || name === 'SDK_SESSION_POOL_STATE';
+const isPrivateEntry = (name) => name === 'CRAWLEE_CRAWLER_STATISTICS_0' || name === 'CRAWLEE_SESSION_POOL_STATE';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -49,7 +49,7 @@ export function getStorage(dirName) {
  */
 export async function getStats(dirName) {
     const dir = getStorage(dirName);
-    const path = join(dir, `key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json`);
+    const path = join(dir, `key_value_stores/default/CRAWLEE_CRAWLER_STATISTICS_0.json`);
 
     if (!existsSync(path)) {
         return false;
@@ -208,7 +208,9 @@ export async function runActor(dirName, memory = 4096) {
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const statsRecord = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
+        const statsRecord = await client
+            .keyValueStore(defaultKeyValueStoreId)
+            .getRecord('CRAWLEE_CRAWLER_STATISTICS_0');
         stats = statsRecord?.value;
 
         const { items } = await client.dataset(defaultDatasetId).listItems();
