@@ -154,17 +154,20 @@ export interface AdaptivePlaywrightCrawlerContext<
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
-interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+interface AdaptiveHookContext<UserData extends Dictionary = Dictionary> extends Pick<
+    AdaptivePlaywrightCrawlerContext<UserData>,
+    'id' | 'session' | 'proxyInfo' | 'log'
+> {
     page?: Page;
-    request: Request;
+    request: Request<UserData>;
     gotoOptions?: PlaywrightGotoOptions;
 }
 
-interface AdaptiveHook extends BrowserHook<AdaptiveHookContext> {}
+type AdaptiveHook<UserData extends Dictionary = Dictionary> = BrowserHook<AdaptiveHookContext<UserData>>;
 
-interface AdaptivePostNavigationHook extends BrowserHook<
-    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> }
-> {}
+type AdaptivePostNavigationHook<UserData extends Dictionary = Dictionary> = BrowserHook<
+    Omit<AdaptiveHookContext<UserData>, 'request'> & { request: LoadedRequest<Request<UserData>> }
+>;
 
 export interface AdaptivePlaywrightCrawlerOptions<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
@@ -180,7 +183,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
-    preNavigationHooks?: AdaptiveHook[];
+    preNavigationHooks?: AdaptiveHook<GetUserDataFromRequest<ExtendedContext['request']>>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -190,7 +193,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context
      * (e.g. to override `response` after solving a challenge).
      */
-    postNavigationHooks?: AdaptivePostNavigationHook[];
+    postNavigationHooks?: AdaptivePostNavigationHook<GetUserDataFromRequest<ExtendedContext['request']>>[];
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
