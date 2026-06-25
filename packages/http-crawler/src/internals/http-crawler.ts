@@ -88,7 +88,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: InternalHttpHook<CrawlingContext>[];
+    preNavigationHooks?: InternalHttpHook<ExtendedContext>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -107,9 +107,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: ((
-        crawlingContext: CrawlingContextWithResponse,
-    ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
+    postNavigationHooks?: InternalHttpHook<ExtendedContext>[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -384,10 +382,10 @@ export class HttpCrawler<
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
-        this.preNavigationHooks = preNavigationHooks;
+        this.preNavigationHooks = preNavigationHooks as InternalHttpHook<CrawlingContext>[];
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
-            ...postNavigationHooks,
+            ...(postNavigationHooks as InternalHttpHook<CrawlingContextWithResponse>[]),
         ];
 
         this.saveResponseCookies = saveResponseCookies;

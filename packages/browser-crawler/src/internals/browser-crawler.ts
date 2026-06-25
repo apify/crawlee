@@ -201,7 +201,7 @@ export interface BrowserCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
-    preNavigationHooks?: BrowserHook<Context>[];
+    preNavigationHooks?: BrowserHook<ExtendedContext>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -228,7 +228,7 @@ export interface BrowserCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: BrowserHook<Context>[];
+    postNavigationHooks?: BrowserHook<ExtendedContext>[];
 
     /**
      * Timeout in which page navigation needs to finish, in seconds.
@@ -410,8 +410,8 @@ export abstract class BrowserCrawler<
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.preNavigationHooks = preNavigationHooks;
-        this.postNavigationHooks = postNavigationHooks;
+        this.preNavigationHooks = preNavigationHooks as BrowserHook<Context>[];
+        this.postNavigationHooks = postNavigationHooks as BrowserHook<Context>[];
         this.ignoreIframes = ignoreIframes;
         this.ignoreShadowRoots = ignoreShadowRoots;
 

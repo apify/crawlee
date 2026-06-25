@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions, BrowserHook, LoadedRequest, Request } from '@crawlee/browser';
 import { extractUrlsFromPage } from '@crawlee/browser';
-import type { CheerioCrawlingContext } from '@crawlee/cheerio';
+import type { CheerioHook, CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
     ContextPipeline,
@@ -340,16 +340,16 @@ export class AdaptivePlaywrightCrawler<
         // `ContextPipeline` handles override merging between hooks for free. The hook signatures
         // are structurally compatible with the underlying crawlers' contexts (subset of fields);
         // the casts just relax the nominal type difference.
-        const staticCrawler = new CheerioCrawler({
+        const staticCrawler = new CheerioCrawler<Dictionary<never>, CheerioCrawlingContext<any, any>>({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks,
-            postNavigationHooks,
+            preNavigationHooks: preNavigationHooks as unknown as CheerioHook[],
+            postNavigationHooks: postNavigationHooks as unknown as CheerioHook[],
         });
 
-        const browserCrawler = new PlaywrightCrawler({
+        const browserCrawler = new PlaywrightCrawler<Dictionary<never>, PlaywrightCrawlingContext>({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
