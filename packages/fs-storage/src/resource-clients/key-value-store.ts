@@ -112,16 +112,13 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             })
             .parse(options);
 
-        // The native iterator yields keys in lexical order and natively supports `exclusiveStartKey`,
-        // `limit`, and (since `@crawlee/fs-storage-native` 0.1.5-beta.6) `prefix`. It does not, however,
-        // throw for an unknown `exclusiveStartKey`, nor does it know about untracked value files on disk
-        // ("bare files"). We layer those two pieces of historical behavior on top here.
+        // The native iterator handles `prefix`, `exclusiveStartKey`, and `limit`, but it neither throws
+        // for an unknown `exclusiveStartKey` nor sees untracked value files on disk ("bare files"). We
+        // add both behaviors here.
         const bareFiles = await this.listBareFiles();
 
-        // Fast path: with no untracked files on disk we can push prefix/exclusiveStartKey/limit all the
-        // way down to the native iterator and stream the (already paginated, already filtered) result
-        // straight through — no need to pull every key into memory just to slice it. We only preflight
-        // the `exclusiveStartKey` so a missing one still throws, matching the historical contract.
+        // Fast path: with no bare files, push everything down to the native iterator and stream the
+        // result through. We only preflight `exclusiveStartKey` so a missing one still throws.
         if (bareFiles.length === 0) {
             if (exclusiveStartKey !== undefined && !(await this.nativeClient.recordExists(exclusiveStartKey))) {
                 throw new Error(
@@ -138,9 +135,9 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             return items;
         }
 
-        // Merge path (untracked value files present on disk): bare files must be interleaved with the
-        // native keys in lexical order, so we have to materialize and sort. Push `prefix` down to the
-        // native side anyway to keep its contribution bounded; native keys take precedence on collisions.
+        // Merge path: bare files must be interleaved with native keys in lexical order, so we
+        // materialize and sort. `prefix` is still pushed down to bound the native side; native keys win
+        // on collisions.
         const itemsByKey = new Map<string, storage.KeyValueStoreItemData>();
 
         for (const bareFile of bareFiles) {
@@ -158,7 +155,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             itemsByKey.set(record.key, { key: record.key, size: record.size ?? 0 });
         }
 
-        // Emulate the API: keys are returned in lexical order.
+        // Keys are returned in lexical order.
         let filteredItems = [...itemsByKey.values()].sort((a, b) => a.key.localeCompare(b.key));
 
         if (exclusiveStartKey) {
