@@ -7,9 +7,8 @@ import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { isBodyParseable } from '../body-parser.js';
 import type { FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
-import { isStream } from '../utils.js';
+import { assertBodyParseable, isStream } from '../utils.js';
 import { CachedIdClient } from './cached-id-client.js';
 import mime from 'mime-types';
 
@@ -314,7 +313,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         // type, so an unparseable value (e.g. malformed JSON) is treated as a missing record,
         // matching the historical fallback behavior; the validated bytes are returned verbatim.
         try {
-            isBodyParseable(buffer, bareFile.contentType);
+            assertBodyParseable(buffer, bareFile.contentType);
         } catch {
             this.logger?.warning?.(`Failed to parse key-value store record "${key}" read from disk; ignoring it.`);
             return undefined;
