@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
@@ -17,9 +16,8 @@ import { RequestQueueClient } from './resource-clients/request-queue.js';
 export interface FileSystemStorageOptions {
     /**
      * Path to directory where the data will be saved.
-     * @default process.env.CRAWLEE_STORAGE_DIR ?? './storage'
      */
-    localDataDirectory?: string;
+    localDataDirectory: string;
 
     /**
      * Optional logger for FileSystemStorageClient warnings.
@@ -63,27 +61,16 @@ export class FileSystemStorageClient implements storage.StorageClient {
     readonly datasetClientCache: DatasetClient[] = [];
     readonly requestQueueCache: RequestQueueClient[] = [];
 
-    constructor(options: FileSystemStorageOptions = {}) {
+    constructor(options: FileSystemStorageOptions) {
         s.object({
-            localDataDirectory: s.string().optional(),
+            localDataDirectory: s.string(),
             assumeSoleOwner: s.boolean().optional(),
         }).parse(options);
 
         this.logger = options.logger;
         this.assumeSoleOwner = options.assumeSoleOwner ?? true;
 
-        // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
-        // this function handles it without making BC breaks - it respects existing `crawlee_storage`
-        // directories, and uses the `storage` only if it's not there.
-        const defaultStorageDir = () => {
-            if (existsSync(resolve('./crawlee_storage'))) {
-                return './crawlee_storage';
-            }
-
-            return './storage';
-        };
-
-        this.localDataDirectory = options.localDataDirectory ?? process.env.CRAWLEE_STORAGE_DIR ?? defaultStorageDir();
+        this.localDataDirectory = options.localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
         this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
