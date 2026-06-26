@@ -504,6 +504,10 @@ The protected `HttpCrawler._applyCookies` method is removed. If you were overrid
 
 The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. The behavior is unchanged - when enabled (the default), response `Set-Cookie` headers are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
 
+## Internal KVS keys renamed
+
+Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons - these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
+
 ## `StorageClient` interface simplified
 
 The `StorageClient` interface (from `@crawlee/types`) has been redesigned to match the simplified architecture from Crawlee for Python. A new storage backend now needs **4 classes** instead of the previous 7.
