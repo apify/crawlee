@@ -48,7 +48,7 @@ export interface SessionPoolOptions {
 
     /**
      * Session pool persists its state under this key in Key value store.
-     * @default SDK_SESSION_POOL_STATE_{id}
+     * @default CRAWLEE_SESSION_POOL_STATE_{id}
      */
     persistStateKey?: string;
 

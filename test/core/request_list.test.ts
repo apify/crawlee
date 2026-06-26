@@ -566,15 +566,15 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = [{ url: 'https://example.com' }];
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
             expect(rl.sources).toEqual([]);
             // @ts-expect-error accessing private var
@@ -589,16 +589,16 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = ['https://example.com'];
             const requests = sources.map((url) => ({ url, uniqueKey: url }));
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
             // @ts-expect-error accessing private var
             expect(rl.isInitialized).toBe(true);
@@ -612,7 +612,7 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             let counter = 0;
             const sources = [{ url: 'https://example.com' }];
             const requests = sources.map(({ url }) => ({ url, uniqueKey: `${url}-${counter++}` }));
@@ -624,9 +624,9 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources, options);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
             // @ts-expect-error accessing private var
             expect(rl.isInitialized).toBe(true);
