@@ -49,7 +49,7 @@ export interface PersistenceOptions {
  * statistics for requests.
  *
  * All statistic information is saved on key value store
- * under the key `SDK_CRAWLER_STATISTICS_*`, persists between
+ * under the key `CRAWLEE_CRAWLER_STATISTICS_*`, persists between
  * migrations and abort/resurrect
  *
  * @category Crawlers
@@ -130,7 +130,7 @@ export class Statistics {
         } = options;
 
         this.id = id ?? String(Statistics.id++);
-        this.persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
+        this.persistStateKey = `CRAWLEE_CRAWLER_STATISTICS_${this.id}`;
 
         this.log = (options.log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });

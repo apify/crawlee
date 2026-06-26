@@ -24,12 +24,12 @@ function execSync(command, options) {
  * the base crawler created and installs its own, which lands on the next id.
  * @param {string} name
  */
-const isCrawlerStatisticsKey = (name) => name.startsWith('SDK_CRAWLER_STATISTICS_');
+const isCrawlerStatisticsKey = (name) => name.startsWith('CRAWLEE_CRAWLER_STATISTICS_');
 
 /**
  * @param {string} name
  */
-const isPrivateEntry = (name) => isCrawlerStatisticsKey(name) || name === 'SDK_SESSION_POOL_STATE';
+const isPrivateEntry = (name) => isCrawlerStatisticsKey(name) || name === 'CRAWLEE_SESSION_POOL_STATE';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 

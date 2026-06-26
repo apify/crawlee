@@ -332,8 +332,8 @@ export class RequestList implements IRequestLoader {
             }),
         );
 
-        this.persistStateKey = persistStateKey ? `SDK_${persistStateKey}` : persistStateKey;
-        this.persistRequestsKey = persistRequestsKey ? `SDK_${persistRequestsKey}` : persistRequestsKey;
+        this.persistStateKey = persistStateKey ? `CRAWLEE_${persistStateKey}` : persistStateKey;
+        this.persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
         this.initialState = state;
         this.httpClient = httpClient;
 

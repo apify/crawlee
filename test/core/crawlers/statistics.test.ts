@@ -36,7 +36,7 @@ describe('Statistics', () => {
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(1);
             // @ts-expect-error Accessing private prop
-            expect(stats.persistStateKey).toEqual('SDK_CRAWLER_STATISTICS_0');
+            expect(stats.persistStateKey).toEqual('CRAWLEE_CRAWLER_STATISTICS_0');
             const [n1, n2] = [new Statistics(), new Statistics()];
             expect(n1.id).toEqual('1');
             expect(n2.id).toEqual('2');
