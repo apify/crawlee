@@ -96,6 +96,19 @@ describe('extractUrls()', () => {
         expect(extracted).toEqual(array);
     });
 
+    // https://github.com/apify/crawlee/issues/2755
+    test('extracts URLs with apostrophes in the path', () => {
+        const url = "https://www.zillow.com/homedetails/141-O'Canoe-Pl-Hertford-NC-27944/74398007_zpid/";
+        const extracted = extractUrls({ string: url });
+        expect(extracted).toEqual([url]);
+    });
+
+    test('extracts URLs with asterisks in the path', () => {
+        const url = 'https://example.com/path*star/end';
+        const extracted = extractUrls({ string: url });
+        expect(extracted).toEqual([url]);
+    });
+
     test('does not extract invalid URLs', () => {
         const { string } = getURLData(INVALID_URL_LIST);
         const extracted = extractUrls({ string });
