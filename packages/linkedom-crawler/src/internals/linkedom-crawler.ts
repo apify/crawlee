@@ -19,10 +19,19 @@ import {
     Router,
     tryAbsoluteURL,
 } from '@crawlee/http';
+import { createRequire } from 'node:module';
+
 import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
 import { DOMParser } from 'linkedom/cached';
+
+// Cheerio is only used by `waitForSelector` / `parseWithCheerio` helpers on the request
+// context. Defer the load so that importing @crawlee/linkedom doesn't pay the ~200 ms cost.
+let _cheerio: typeof import('cheerio') | undefined;
+const requireCheerio = createRequire(import.meta.url);
+function cheerio(): typeof import('cheerio') {
+    return (_cheerio ??= requireCheerio('cheerio'));
+}
 
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -250,7 +259,7 @@ export class LinkeDOMCrawler<
                 });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
-                const $ = cheerio.load(crawlingContext.body);
+                const $ = cheerio().load(crawlingContext.body);
 
                 if ($(selector).get().length === 0) {
                     if (timeoutMs) {
@@ -263,7 +272,7 @@ export class LinkeDOMCrawler<
                 }
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = cheerio.load(crawlingContext.body);
+                const $ = cheerio().load(crawlingContext.body);
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);

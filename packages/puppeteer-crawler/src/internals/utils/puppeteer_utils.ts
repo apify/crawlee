@@ -26,7 +26,6 @@ import type { Request } from '@crawlee/browser';
 import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import ow from 'ow';
 import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
@@ -37,6 +36,14 @@ import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/cli
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
 import type { InterceptHandler } from './puppeteer_request_interception.js';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception.js';
+
+// Cheerio is only used by `parseWithCheerio`, which most puppeteer users never call.
+// Defer the load so that importing @crawlee/puppeteer doesn't pay the ~200 ms cost up front.
+let _cheerio: typeof import('cheerio') | undefined;
+const requireCheerio = createRequire(import.meta.url);
+function cheerio(): typeof import('cheerio') {
+    return (_cheerio ??= requireCheerio('cheerio'));
+}
 
 const require = createRequire(import.meta.url);
 const jqueryPath = require.resolve('jquery');
@@ -234,7 +241,7 @@ export async function parseWithCheerio(
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
 
-    return cheerio.load(pageContent);
+    return cheerio().load(pageContent);
 }
 
 /**
