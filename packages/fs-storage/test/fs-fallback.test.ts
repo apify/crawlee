@@ -12,9 +12,10 @@ import type { KeyValueStoreRecord } from '@crawlee/types';
 // These tests pin both the store-identity metadata fallback and that bare-file fallback.
 //
 // The client is a plain byte transport: bare-file reads return the raw bytes plus a content type
-// inferred from the file extension; parsing those bytes is the `KeyValueStore` frontend's job. The
-// client only validates that an inferred-JSON body is parseable so that a malformed value can be
-// treated as a missing record.
+// inferred from the file extension (falling back to the native `application/octet-stream` when there
+// is none). Parsing those bytes — and surfacing any error from a malformed value — is the
+// `KeyValueStore` frontend's job, so the client does not validate them. Bare files are readable by
+// known key but are never enumerated by `listKeys`.
 describe('fallback to fs for reading', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-fallback');
     const storage = new FileSystemStorageClient({
@@ -99,26 +100,33 @@ describe('fallback to fs for reading', () => {
         expect(info.name).toEqual('default_2');
     });
 
-    test('loads a value file with no extension as raw bytes with a text content type', async () => {
+    test('loads a value file with no extension as raw bytes with a generic content type', async () => {
         const noExtStore = await storage.createKeyValueStoreClient({ name: 'no-ext' });
 
-        // Byte transport: the no-extension fallback also returns raw bytes now, not a decoded string.
+        // Byte transport: the no-extension fallback returns raw bytes. With no extension to infer a
+        // content type from, the native client reports the generic `application/octet-stream`.
         const input = await noExtStore.getValue('INPUT');
         expect(input).toStrictEqual<KeyValueStoreRecord>({
             key: 'INPUT',
             value: Buffer.from(JSON.stringify({ foo: 'bar but from fs' })),
-            contentType: 'text/plain',
+            contentType: 'application/octet-stream',
         });
     });
 
-    test('ignores an invalid-JSON bare value file', async () => {
+    test('returns an invalid-JSON bare value file verbatim', async () => {
         const invalidJsonStore = await storage.createKeyValueStoreClient({ name: 'invalid-json' });
 
+        // Byte transport: the client no longer validates parseability. Malformed JSON is returned
+        // verbatim as raw bytes; parsing (and any resulting error) is the KeyValueStore frontend's job.
         const input = await invalidJsonStore.getValue('INPUT');
-        expect(input).toBeUndefined();
+        expect(input).toStrictEqual<KeyValueStoreRecord>({
+            key: 'INPUT',
+            value: Buffer.from('{'),
+            contentType: 'application/json; charset=utf-8',
+        });
     });
 
-    test('bare files are visible to recordExists, getPublicUrl and listKeys', async () => {
+    test('bare files are visible to recordExists and getPublicUrl, but not listKeys', async () => {
         const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
 
         expect(await otherStore.recordExists('INPUT')).toBe(true);
@@ -127,7 +135,8 @@ describe('fallback to fs for reading', () => {
         const url = await otherStore.getPublicUrl('INPUT');
         expect(url).toMatch(/^file:\/\/.*INPUT\.json$/);
 
+        // Bare files are readable by known key, but listing only ever returns tracked records.
         const keys = await otherStore.listKeys();
-        expect(keys.map((item) => item.key)).toContain('INPUT');
+        expect(keys.map((item) => item.key)).not.toContain('INPUT');
     });
 });
