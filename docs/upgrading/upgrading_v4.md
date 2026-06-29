@@ -708,6 +708,14 @@ Because the in-memory queue lives entirely within a single process and is never 
 
 `MemoryStorageClient` never accepted `writeMetadata` (it has no on-disk format to begin with), so there is nothing to change there.
 
+### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
+
+`FileSystemStorageClient` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar). It still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` and `.txt` extensions. A few behaviors around these "bare" files changed in v4:
+
+- **Extensionless bare files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. In v4 the client is a plain byte transport and only infers a content type from a real extension, so an extensionless file now comes back as `application/octet-stream`. Give the file a `.json` or `.txt` extension if you need a more specific type.
+- **Malformed bare files are no longer silently swallowed.** In v3 a bare `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value now surfaces a parse error at read time instead of looking absent.
+- **Bare files are not enumerated by `listKeys`.** They remain readable by known key via `getValue` (and visible to `recordExists` / `getPublicUrl`), but `listKeys` only ever returns tracked records. This also avoids the O(n) directory scans that the v3 fallback performed on every read.
+
 ## Multiple crawler instances use separate default request queues
 
 In v3, every `BasicCrawler` (or subclass) that didn't receive an explicit `requestQueue` option would open the same default request queue. If you created two crawlers in the same process, they would silently share a queue — leading to request collisions and hard-to-debug deduplication issues.
