@@ -15,7 +15,7 @@ import mime from 'mime-types';
  * `INPUT.txt`, mirroring the historical extension-stripping behavior. The empty string (the literal
  * key) is tried first.
  */
-const BARE_FILE_EXTENSIONS = ['', '.json', '.txt'] as const;
+const BARE_FILE_EXTENSIONS = ['', '.json', '.txt', '.bin'] as const;
 
 export interface KeyValueStoreClientOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
