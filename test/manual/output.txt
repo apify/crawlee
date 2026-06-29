@@ -1,0 +1,107 @@
+
+=== HttpCrawler (default) ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Detected a session error, retiring session... 
+403    | 0          | 1             | 2           | Detected a session error, retiring session... 
+429    | 0          | 1             | 2           | Detected a session error, retiring session... 
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== CheerioCrawler (default) ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Detected a session error, retiring session... 
+403    | 0          | 1             | 2           | Detected a session error, retiring session... 
+429    | 0          | 1             | 2           | Detected a session error, retiring session... 
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== JSDOMCrawler (default) ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Detected a session error, retiring session... 
+403    | 0          | 1             | 2           | Detected a session error, retiring session... 
+429    | 0          | 1             | 2           | Detected a session error, retiring session... 
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== CheerioCrawler { blockedStatusCodes: [] } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 1          | 0             | 1           | 
+403    | 1          | 0             | 1           | 
+429    | 1          | 0             | 1           | 
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== CheerioCrawler { ignoreHttpErrorStatusCodes: [500, 503] } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Detected a session error, retiring session... 
+403    | 0          | 1             | 2           | Detected a session error, retiring session... 
+429    | 0          | 1             | 2           | Detected a session error, retiring session... 
+500    | 1          | 0             | 1           | 
+503    | 1          | 0             | 1           | 
+
+=== CheerioCrawler { additionalHttpErrorStatusCodes: [404] } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 0          | 1             | 2           | 404 - Error status code was set by user.
+401    | 0          | 1             | 2           | Detected a session error, retiring session... 
+403    | 0          | 1             | 2           | Detected a session error, retiring session... 
+429    | 0          | 1             | 2           | Detected a session error, retiring session... 
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== CheerioCrawler { retryOnBlocked: true } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 3           | Detected a session error, retiring session... 
+403    | 0          | 1             | 3           | Detected a session error, retiring session... 
+429    | 0          | 1             | 3           | Detected a session error, retiring session... 
+500    | 0          | 1             | 3           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 3           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== PlaywrightCrawler (default) ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Detected a session error, retiring session... 
+403    | 0          | 1             | 2           | Detected a session error, retiring session... 
+429    | 0          | 1             | 2           | Detected a session error, retiring session... 
+500    | 0          | 1             | 2           | 500 - Internal Server Error
+503    | 0          | 1             | 2           | 503 - Internal Server Error
+
+--- summary (handler / failed / server-hits) ---
+status | Http(default) | Cheerio(default) | JSDOM(default) | Cheerio{ blockedStatus | Cheerio{ ignoreHttpErr | Cheerio{ additionalHtt | Cheerio{ retryOnBlocke | Playwright(default)
+200 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1
+301 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1
+404 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h0/f1/n2 | h1/f0/n1 | h1/f0/n1
+401 | h0/f1/n2 | h0/f1/n2 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n2 | h0/f1/n3 | h0/f1/n2
+403 | h0/f1/n2 | h0/f1/n2 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n2 | h0/f1/n3 | h0/f1/n2
+429 | h0/f1/n2 | h0/f1/n2 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n2 | h0/f1/n3 | h0/f1/n2
+500 | h0/f1/n2 | h0/f1/n2 | h0/f1/n2 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n3 | h0/f1/n2
+503 | h0/f1/n2 | h0/f1/n2 | h0/f1/n2 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n3 | h0/f1/n2
