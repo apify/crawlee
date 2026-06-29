@@ -136,8 +136,10 @@ class SitemapXmlParser extends Transform {
             this.currentTag = undefined;
         }
 
-        if (name === 'url' && this.url.loc !== undefined) {
-            this.push({ type: 'url', ...this.url, loc: this.url.loc } satisfies SitemapItem);
+        if (name === 'url') {
+            if (this.url.loc !== undefined) {
+                this.push({ type: 'url', ...this.url, loc: this.url.loc } satisfies SitemapItem);
+            }
             this.url = {};
         }
     }
@@ -157,7 +159,10 @@ class SitemapXmlParser extends Transform {
         text = text.trim();
 
         if (this.currentTag === 'lastmod') {
-            this.url.lastmod = new Date(text);
+            const lastmod = new Date(text);
+            if (!Number.isNaN(lastmod.getTime())) {
+                this.url.lastmod = lastmod;
+            }
         }
 
         if (this.currentTag === 'priority') {
