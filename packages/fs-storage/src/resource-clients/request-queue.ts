@@ -2,10 +2,7 @@ import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type {
-    FileSystemRequestQueueClient as NativeFileSystemRequestQueueClient,
-    ProcessedRequest as NativeProcessedRequest,
-} from '@crawlee/fs-storage-native';
+import type { FileSystemRequestQueueClient as NativeFileSystemRequestQueueClient } from '@crawlee/fs-storage-native';
 
 import { CachedIdClient } from './cached-id-client.js';
 
@@ -37,15 +34,6 @@ export interface RequestQueueClientOptions {
     cacheKey: string;
     nativeClient: NativeFileSystemRequestQueueClient;
     logger?: CrawleeLogger;
-}
-
-function toQueueOperationInfo(processed: NativeProcessedRequest | null): storage.QueueOperationInfo | null {
-    if (!processed) return null;
-    return {
-        requestId: processed.requestId,
-        wasAlreadyHandled: processed.wasAlreadyHandled,
-        wasAlreadyPresent: processed.wasAlreadyPresent,
-    };
 }
 
 /**
@@ -140,9 +128,7 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | null> {
         requestShape.parse(request);
-        return toQueueOperationInfo(
-            await this.nativeClient.markRequestAsHandled(request as unknown as Record<string, unknown>),
-        );
+        return await this.nativeClient.markRequestAsHandled(request as unknown as Record<string, unknown>);
     }
 
     async reclaimRequest(
@@ -151,11 +137,9 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
     ): Promise<storage.QueueOperationInfo | null> {
         requestShape.parse(request);
         requestOptionsShape.parse(options);
-        return toQueueOperationInfo(
-            await this.nativeClient.reclaimRequest(
-                request as unknown as Record<string, unknown>,
-                options.forefront ?? false,
-            ),
+        return await this.nativeClient.reclaimRequest(
+            request as unknown as Record<string, unknown>,
+            options.forefront ?? false,
         );
     }
 

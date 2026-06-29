@@ -16,14 +16,6 @@ import { CachedIdClient } from './cached-id-client.js';
  */
 const UNSUPPORTED_GET_DATA_OPTIONS = ['clean', 'fields', 'omit', 'skipHidden', 'skipEmpty'] as const;
 
-/**
- * "Return everything" sentinel for {@link DatasetClient.getData}. The native client requires an
- * explicit upper bound, so when the caller omits `limit` we forward this value. It matches what the
- * Apify API reports in the `x-apify-pagination-limit` header when no `limit` query parameter is set,
- * keeping the local backend's pagination behavior aligned with the platform.
- */
-const ALL_ITEMS_LIMIT = 999_999_999_999;
-
 export interface DatasetClientOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
@@ -107,12 +99,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             })
             .parse(options);
 
-        const page = await this.nativeClient.getData(
-            offset ?? 0,
-            Math.min(limit ?? ALL_ITEMS_LIMIT, ALL_ITEMS_LIMIT),
-            desc ?? false,
-            false,
-        );
+        const page = await this.nativeClient.getData(offset ?? 0, limit, desc ?? false, false);
 
         return {
             count: page.count,

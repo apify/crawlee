@@ -116,7 +116,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         const items: storage.KeyValueStoreItemData[] = [];
         const iterator = await this.nativeClient.iterateKeys(exclusiveStartKey, limit, undefined, prefix);
         for await (const record of iterator) {
-            items.push({ key: record.key, size: record.size ?? 0 });
+            items.push(record);
         }
         return items;
     }
