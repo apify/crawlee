@@ -1,8 +1,4 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
 import type { Dictionary, KeyValueStoreClient, KeyValueStoreItemData } from '@crawlee/types';
-import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
@@ -826,8 +822,11 @@ export class KeyValueStore {
 
     /**
      * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
-     * By default, it will try to find root input files (either extension-less, `.json` or `.txt`),
-     * or alternatively read the input from the default {@apilink KeyValueStore}.
+     *
+     * The input is read from the default {@apilink KeyValueStore} under the configured input key
+     * (`CRAWLEE_INPUT_KEY`, default `INPUT`). The underlying storage client is responsible for
+     * locating the record on disk — including out-of-band files such as a hand-placed `INPUT.json`
+     * within the store directory.
      *
      * Note that the `getInput()` function does not cache the value read from the key-value store.
      * If you need to use the input multiple times in your crawler,
@@ -845,32 +844,7 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        const inputKey = store.config.inputKey;
-
-        const cwd = process.cwd();
-        const possibleExtensions = ['', '.json', '.txt'];
-
-        // Attempt to read input from root file instead of key-value store
-        for (const extension of possibleExtensions) {
-            const inputFile = join(cwd, `${inputKey}${extension}`);
-            let input: Buffer;
-
-            // Try getting the file from the file system
-            try {
-                input = await readFile(inputFile);
-            } catch {
-                continue;
-            }
-
-            // Attempt to parse as JSON, or return the input as is otherwise
-            try {
-                return JSON5.parse(input.toString()) as T;
-            } catch {
-                return input as unknown as T;
-            }
-        }
-
-        return store.getValue<T>(inputKey);
+        return store.getValue<T>(store.config.inputKey);
     }
 }
 
