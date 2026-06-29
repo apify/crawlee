@@ -102,17 +102,6 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             })
             .parse(options);
 
-        // The native iterator handles `prefix`, `exclusiveStartKey`, and `limit` natively, but it does
-        // not throw for an unknown `exclusiveStartKey`, so we preflight it here. Untracked value files
-        // on disk ("bare files", e.g. a hand-placed `INPUT.json`) are deliberately NOT enumerated — they
-        // are readable by known key via `getValue`, but listing only ever returns tracked records.
-        if (exclusiveStartKey !== undefined && !(await this.nativeClient.recordExists(exclusiveStartKey))) {
-            throw new Error(
-                `exclusiveStartKey "${exclusiveStartKey}" was not found in the key-value store. ` +
-                    `This is likely a bug — the key may have been deleted between paginated listKeys calls.`,
-            );
-        }
-
         const items: storage.KeyValueStoreItemData[] = [];
         const iterator = await this.nativeClient.iterateKeys(exclusiveStartKey, limit, undefined, prefix);
         for await (const record of iterator) {
@@ -130,10 +119,14 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
     async getPublicUrl(key: string): Promise<string | undefined> {
         s.string().parse(key);
 
-        // The native client builds the URL purely from the path and does not check existence, so we
-        // guard here to keep the historical `undefined`-for-missing contract.
+        // The native `getPublicUrl` stats the encoded path but does not probe bare-file extensions,
+        // so we resolve the on-disk key first (handling e.g. `INPUT` -> `INPUT.json`) and normalize
+        // the native `null`-for-missing result to the historical `undefined` contract.
         const resolvedKey = await this.resolveExistingKey(key);
-        return resolvedKey === undefined ? undefined : this.nativeClient.getPublicUrl(resolvedKey);
+        if (resolvedKey === undefined) {
+            return undefined;
+        }
+        return (await this.nativeClient.getPublicUrl(resolvedKey)) ?? undefined;
     }
 
     /**
