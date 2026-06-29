@@ -20,14 +20,16 @@ import { readdirSync } from 'node:fs';
 const STATUS_CODES = [200, 301, 404, 401, 403, 429, 500, 503];
 
 const SUITES = [
-    { id: 'http',                       label: 'HttpCrawler (default)' },
     { id: 'cheerio',                    label: 'CheerioCrawler (default)' },
-    { id: 'jsdom',                      label: 'JSDOMCrawler (default)' },
     { id: 'cheerio-no-blocked',         label: 'CheerioCrawler { blockedStatusCodes: [] }' },
     { id: 'cheerio-ignore-5xx',         label: 'CheerioCrawler { ignoreHttpErrorStatusCodes: [500, 503] }' },
     { id: 'cheerio-additional-404',     label: 'CheerioCrawler { additionalHttpErrorStatusCodes: [404] }' },
     { id: 'cheerio-retryOnBlocked',     label: 'CheerioCrawler { retryOnBlocked: true }' },
     { id: 'playwright',                 label: 'PlaywrightCrawler (default)' },
+    { id: 'playwright-no-blocked',      label: 'PlaywrightCrawler { blockedStatusCodes: [] }' },
+    { id: 'playwright-ignore-5xx',      label: 'PlaywrightCrawler { ignoreHttpErrorStatusCodes: [500, 503] }' },
+    { id: 'playwright-additional-404',  label: 'PlaywrightCrawler { additionalHttpErrorStatusCodes: [404] }' },
+    { id: 'playwright-retryOnBlocked',  label: 'PlaywrightCrawler { retryOnBlocked: true }' },
 ];
 
 function findChromium() {
@@ -69,20 +71,23 @@ function makeCrawler(suiteId, handlers) {
         navigationTimeoutSecs: 20,
     };
     return import('../../packages/crawlee/dist/index.js').then((m) => {
-        const { CheerioCrawler, HttpCrawler, JSDOMCrawler, PlaywrightCrawler } = m;
+        const { CheerioCrawler, PlaywrightCrawler } = m;
+        const browser = (extra) => new PlaywrightCrawler({
+            ...common,
+            ...extra,
+            launchContext: { launchOptions: { executablePath: findChromium(), headless: true } },
+        });
         switch (suiteId) {
-            case 'http':                   return new HttpCrawler(common);
-            case 'cheerio':                return new CheerioCrawler(common);
-            case 'jsdom':                  return new JSDOMCrawler(common);
-            case 'cheerio-no-blocked':     return new CheerioCrawler({ ...common, blockedStatusCodes: [] });
-            case 'cheerio-ignore-5xx':     return new CheerioCrawler({ ...common, ignoreHttpErrorStatusCodes: [500, 503] });
-            case 'cheerio-additional-404': return new CheerioCrawler({ ...common, additionalHttpErrorStatusCodes: [404] });
-            case 'cheerio-retryOnBlocked': return new CheerioCrawler({ ...common, retryOnBlocked: true, maxRequestRetries: 2 });
-            case 'playwright':
-                return new PlaywrightCrawler({
-                    ...common,
-                    launchContext: { launchOptions: { executablePath: findChromium(), headless: true } },
-                });
+            case 'cheerio':                    return new CheerioCrawler(common);
+            case 'cheerio-no-blocked':         return new CheerioCrawler({ ...common, blockedStatusCodes: [] });
+            case 'cheerio-ignore-5xx':         return new CheerioCrawler({ ...common, ignoreHttpErrorStatusCodes: [500, 503] });
+            case 'cheerio-additional-404':     return new CheerioCrawler({ ...common, additionalHttpErrorStatusCodes: [404] });
+            case 'cheerio-retryOnBlocked':     return new CheerioCrawler({ ...common, retryOnBlocked: true, maxRequestRetries: 2 });
+            case 'playwright':                 return browser({});
+            case 'playwright-no-blocked':      return browser({ blockedStatusCodes: [] });
+            case 'playwright-ignore-5xx':      return browser({ ignoreHttpErrorStatusCodes: [500, 503] });
+            case 'playwright-additional-404':  return browser({ additionalHttpErrorStatusCodes: [404] });
+            case 'playwright-retryOnBlocked':  return browser({ retryOnBlocked: true, maxRequestRetries: 2 });
             default: throw new Error(`unknown suite: ${suiteId}`);
         }
     });
