@@ -59,6 +59,14 @@ describe('fallback to fs for reading', () => {
         // "invalid-json" store: a malformed INPUT.json — ignored.
         await mkdir(resolve(storage.keyValueStoresDirectory, 'invalid-json'), { recursive: true });
         await writeFile(resolve(storage.keyValueStoresDirectory, 'invalid-json/INPUT.json'), '{');
+
+        // "non-input" store: a bare value file under a non-INPUT key. The bare-file fallback is scoped
+        // to the run input, so this file is NOT readable out-of-band — only `INPUT`-keyed bare files are.
+        await mkdir(resolve(storage.keyValueStoresDirectory, 'non-input'), { recursive: true });
+        await writeFile(
+            resolve(storage.keyValueStoresDirectory, 'non-input/some-key.json'),
+            JSON.stringify({ foo: 'bar but from fs' }),
+        );
     });
 
     afterAll(async () => {
@@ -138,5 +146,16 @@ describe('fallback to fs for reading', () => {
         // Bare files are readable by known key, but listing only ever returns tracked records.
         const keys = await otherStore.listKeys();
         expect(keys.map((item) => item.key)).not.toContain('INPUT');
+    });
+
+    test('the bare-file fallback is scoped to INPUT: a non-INPUT bare file is ignored', async () => {
+        const nonInputStore = await storage.createKeyValueStoreClient({ name: 'non-input' });
+
+        // `some-key.json` sits on disk with no metadata sidecar. Only `INPUT` keys probe bare files,
+        // so this is invisible to every read path: it has no tracked record, and the `.json` extension
+        // probing that would resolve a bare `INPUT` is never attempted for other keys.
+        expect(await nonInputStore.getValue('some-key')).toBeUndefined();
+        expect(await nonInputStore.recordExists('some-key')).toBe(false);
+        expect(await nonInputStore.getPublicUrl('some-key')).toBeUndefined();
     });
 });

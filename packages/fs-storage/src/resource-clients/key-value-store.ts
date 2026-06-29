@@ -7,15 +7,24 @@ import { s } from '@sapphire/shapeshift';
 import type { FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
 import { isStream } from '../utils.js';
 import { CachedIdClient } from './cached-id-client.js';
-import mime from 'mime-types';
 
 /**
- * Extensions appended to a key when probing for an out-of-band ("bare") value file that has no
- * metadata sidecar. A lookup for `INPUT` therefore also matches a hand-placed `INPUT.json` or
- * `INPUT.txt`, mirroring the historical extension-stripping behavior. The empty string (the literal
- * key) is tried first.
+ * Out-of-band ("bare") value-file fallbacks tried when the {@link ALLOWED_BARE_FILES} lookup misses the tracked
+ * record, so a lookup for `INPUT` also matches a hand-placed `INPUT.json`/`.txt`/`.bin`. Passed to the
+ * native `resolveValue`/`resolveExistingKey`, which do the probing and re-keying.
+ *
+ * Each entry declares the content type to report on a match — the native client does no MIME
+ * inference. An empty `contentType` is its sentinel for "keep the synthesized
+ * `application/octet-stream`", used for the extensionless key and `.bin`.
  */
-const BARE_FILE_EXTENSIONS = ['', '.json', '.txt', '.bin'] as const;
+const BARE_FILE_FALLBACKS: { extension: string; contentType: string }[] = [
+    { extension: '', contentType: '' },
+    { extension: '.json', contentType: 'application/json; charset=utf-8' },
+    { extension: '.txt', contentType: 'text/plain; charset=utf-8' },
+    { extension: '.bin', contentType: '' },
+];
+
+const ALLOWED_BARE_FILES = ['INPUT'];
 
 export interface KeyValueStoreClientOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
@@ -78,10 +87,10 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
      * while preserving the run's input, matching the historical file-system storage behavior.
      *
      * The native `purge` keep-list matches by exact key with no extension globbing, so we pass every
-     * filename the input might live under (`INPUT`, `INPUT.json`, `INPUT.txt`).
+     * filename the input might live under (`INPUT`, `INPUT.json`, `INPUT.txt`, `INPUT.bin`).
      */
     async purgeExceptInput(): Promise<void> {
-        await this.nativeClient.purge(BARE_FILE_EXTENSIONS.map((extension) => `INPUT${extension}`));
+        await this.nativeClient.purge(BARE_FILE_FALLBACKS.flatMap(({ extension }) => `INPUT${extension}`));
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreItemData[]> {
@@ -122,8 +131,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         s.string().parse(key);
 
         // The native client builds the URL purely from the path and does not check existence, so we
-        // guard here to keep the historical `undefined`-for-missing contract. Probe bare files too so
-        // an out-of-band `INPUT.json` still yields a URL.
+        // guard here to keep the historical `undefined`-for-missing contract.
         const resolvedKey = await this.resolveExistingKey(key);
         return resolvedKey === undefined ? undefined : this.nativeClient.getPublicUrl(resolvedKey);
     }
@@ -142,9 +150,10 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
 
-        // Normal lookup first: a tracked record (value file + metadata sidecar), whose content type is
-        // read verbatim from the sidecar — parsing is the frontend's job (see the KeyValueStore codec).
-        const record = await this.nativeClient.getValue(key);
+        const record = ALLOWED_BARE_FILES.includes(key)
+            ? await this.nativeClient.resolveValue(key, BARE_FILE_FALLBACKS)
+            : await this.nativeClient.getValue(key);
+
         if (record) {
             return {
                 key: record.key,
@@ -153,9 +162,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             };
         }
 
-        // Fall back to an out-of-band value file with no sidecar (e.g. a hand-written or
-        // platform-provided `INPUT.json`).
-        return this.getBareValue(key);
+        return undefined;
     }
 
     async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
@@ -208,44 +215,20 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
     }
 
     /**
-     * Read an out-of-band value file with no metadata sidecar — e.g. an `INPUT.json` placed by the
-     * user or the Apify platform. Probes the literal key plus the `.json`/`.txt` variants (the native
-     * lookup is by filename) and returns the first match. The native client reports a bare file as
-     * `application/octet-stream`; since it has no sidecar, we infer the content type from the matched
-     * extension here so the frontend codec can parse it (e.g. a `.json` file is read as JSON). The
-     * record is keyed by the requested `key`, not the on-disk filename. Returns `undefined` if no such
-     * file exists.
-     */
-    private async getBareValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
-        for (const extension of BARE_FILE_EXTENSIONS) {
-            const record = await this.nativeClient.getValue(`${key}${extension}`, false);
-            if (!record) {
-                continue;
-            }
-
-            // Infer the content type from the extension we matched; fall back to the native
-            // `application/octet-stream` for an extensionless file.
-            const contentType = (extension && mime.contentType(extension)) || record.contentType;
-            return { key, value: record.value, contentType };
-        }
-        return undefined;
-    }
-
-    /**
-     * Resolve `key` to the on-disk filename that actually exists, checking tracked records first and
-     * then out-of-band bare files (the literal key plus the `.json`/`.txt` variants). Returns the
-     * matching key/filename, or `undefined` if nothing exists.
+     * Resolve `key` to the on-disk key that actually exists, or `undefined` if nothing does. Every
+     * key is checked against its tracked record; only the run input ({@link ALLOWED_BARE_FILES}) additionally
+     * falls back to out-of-band bare files (`INPUT.json`/`.txt`/`.bin`), in which case the matched
+     * on-disk key is returned so callers like `getPublicUrl` point at the file that exists.
      */
     private async resolveExistingKey(key: string): Promise<string | undefined> {
-        if (await this.nativeClient.recordExists(key)) {
-            return key;
+        if (ALLOWED_BARE_FILES.includes(key)) {
+            return (
+                (await this.nativeClient.resolveExistingKey(
+                    key,
+                    BARE_FILE_FALLBACKS.map(({ extension }) => extension),
+                )) ?? undefined
+            );
         }
-        for (const extension of BARE_FILE_EXTENSIONS) {
-            const candidate = `${key}${extension}`;
-            if (await this.nativeClient.recordExists(candidate, false)) {
-                return candidate;
-            }
-        }
-        return undefined;
+        return (await this.nativeClient.recordExists(key)) ? key : undefined;
     }
 }

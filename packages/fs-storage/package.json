@@ -42,9 +42,8 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/fs-storage-native": "0.1.5-beta.7",
+        "@crawlee/fs-storage-native": "0.1.5-beta.9",
         "@crawlee/types": "workspace:*",
-        "@sapphire/shapeshift": "^4.0.0",
-        "mime-types": "^3.0.1"
+        "@sapphire/shapeshift": "^4.0.0"
     }
 }
