@@ -2,7 +2,7 @@
 slug: automating-tos-compliance-apify-crawlee
 title: 'How I automated terms of service compliance using Apify and Crawlee'
 description: 'A real-world breakdown of building a ToS Watchdog Actor with Crawlee and Apify that monitors legal pages, detects semantic changes, and uses an LLM to flag what matters.'
-image: ./img/tos-banner.png
+image: ./img/tos-banner.webp
 authors: [OlasileA]
 ---
 
@@ -216,17 +216,17 @@ The following demonstrates an example run as a three-stage pipeline executed wit
 
 **Stage 1 — Input validation:** the Actor reads input (`old_url`, `new_url`, `openai_api_key`) from the Apify key-value store and validates that all required fields are present.
 
-![ToS Watchdog input form](img/tos-input-form.png)
+![ToS Watchdog input form](img/tos-input-form.webp)
 
 **Stage 2 — Crawling and text extraction:** both URLs are added to the `BeautifulSoupCrawler`'s request queue. The crawler fetches them with automatic retry handling (3 attempts). The default request handler strips `script`/`style`/`nav`/`header`/`footer` tags and normalizes whitespace to produce clean text. Scraped texts are stored in a dict keyed by URL.
 
-![ToS Watchdog startup logs](img/tos-startup-logs.png)
+![ToS Watchdog startup logs](img/tos-startup-logs.webp)
 
-![ToS Watchdog crawl logs](img/tos-crawl-logs.png)
+![ToS Watchdog crawl logs](img/tos-crawl-logs.webp)
 
 **Stage 3 — Analysis and output:** if the texts differ, both are sent (truncated to 15,000 chars) to GPT-4o-mini via LangChain. The LLM returns a JSON object with three fields: `status` (CHANGED/UNCHANGED), `risk_level` (e.g. "HIGH (Data Privacy)"), and `analysis` (a plain-language explanation). The structured result is pushed to the Apify dataset.
 
-![ToS Watchdog Actor output](img/tos-actor-output.png)
+![ToS Watchdog Actor output](img/tos-actor-output.webp)
 
 ## The demo
 
