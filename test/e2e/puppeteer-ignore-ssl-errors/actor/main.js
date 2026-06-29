@@ -11,6 +11,9 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
+        // Keep concurrency low so the burst of requests to badssl.com doesn't trip its
+        // rate limiting, which surfaces as ERR_CONNECTION_RESET and makes the test flaky.
+        maxConcurrency: 2,
         launchContext: { launchOptions: { acceptInsecureCerts: true } },
         preNavigationHooks: [
             (_ctx, goToOptions) => {
