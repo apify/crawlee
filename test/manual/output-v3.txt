@@ -1,0 +1,113 @@
+
+=== CheerioCrawler (default) ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Request blocked - received 401 status code.
+403    | 0          | 1             | 2           | Request blocked - received 403 status code.
+429    | 0          | 1             | 2           | Request blocked - received 429 status code.
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== CheerioCrawler { sessionPoolOptions.blockedStatusCodes: [] } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 1          | 0             | 1           | 
+403    | 1          | 0             | 1           | 
+429    | 1          | 0             | 1           | 
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== CheerioCrawler { ignoreHttpErrorStatusCodes: [500, 503] } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Request blocked - received 401 status code.
+403    | 0          | 1             | 2           | Request blocked - received 403 status code.
+429    | 0          | 1             | 2           | Request blocked - received 429 status code.
+500    | 1          | 0             | 1           | 
+503    | 1          | 0             | 1           | 
+
+=== CheerioCrawler { additionalHttpErrorStatusCodes: [404] } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 0          | 1             | 2           | 404 - Error status code was set by user.
+401    | 0          | 1             | 2           | Request blocked - received 401 status code.
+403    | 0          | 1             | 2           | Request blocked - received 403 status code.
+429    | 0          | 1             | 2           | Request blocked - received 429 status code.
+500    | 0          | 1             | 2           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 2           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== CheerioCrawler { retryOnBlocked: true } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 11          | Detected a session error, rotating session... 
+403    | 0          | 1             | 11          | Detected a session error, rotating session... 
+429    | 0          | 1             | 11          | Detected a session error, rotating session... 
+500    | 0          | 1             | 3           | 500 - Internal Server Error: <html><body><h1>500</h1></body></html>
+503    | 0          | 1             | 3           | 503 - Internal Server Error: <html><body><h1>503</h1></body></html>
+
+=== PlaywrightCrawler (default) ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 2           | Request blocked - received 401 status code.
+403    | 0          | 1             | 2           | Request blocked - received 403 status code.
+429    | 0          | 1             | 2           | Request blocked - received 429 status code.
+500    | 1          | 0             | 1           | 
+503    | 1          | 0             | 1           | 
+
+=== PlaywrightCrawler { sessionPoolOptions.blockedStatusCodes: [] } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 1          | 0             | 1           | 
+403    | 1          | 0             | 1           | 
+429    | 1          | 0             | 1           | 
+500    | 1          | 0             | 1           | 
+503    | 1          | 0             | 1           | 
+
+=== PlaywrightCrawler { ignoreHttpErrorStatusCodes: [500, 503] }  (NOT in v3 API!) ===
+(constructor rejected option) Did not expect property `ignoreHttpErrorStatusCodes` to exist, got `500,503` in object `PlaywrightCrawlerOptions`
+
+=== PlaywrightCrawler { additionalHttpErrorStatusCodes: [404] }  (NOT in v3 API!) ===
+(constructor rejected option) Did not expect property `additionalHttpErrorStatusCodes` to exist, got `404` in object `PlaywrightCrawlerOptions`
+
+=== PlaywrightCrawler { retryOnBlocked: true } ===
+status | reqHandler | failedHandler | server-hits | error
+-------+------------+---------------+-------------+--------------------------------------------
+200    | 1          | 0             | 1           | 
+301    | 1          | 0             | 1           | 
+404    | 1          | 0             | 1           | 
+401    | 0          | 1             | 11          | Detected a session error, rotating session... 
+403    | 0          | 1             | 11          | Detected a session error, rotating session... 
+429    | 0          | 1             | 11          | Detected a session error, rotating session... 
+500    | 1          | 0             | 1           | 
+503    | 1          | 0             | 1           | 
+
+--- summary (handler / failed / server-hits) ---
+status | Cheerio(default) | Cheerio{ sessionPoolOptions. | Cheerio{ ignoreHttpErrorStat | Cheerio{ additionalHttpError | Cheerio{ retryOnBlocked: tru | Playwright(default) | Playwright{ sessionPoolOptio | Playwright{ ignoreHttpErrorS | Playwright{ additionalHttpEr | Playwright{ retryOnBlocked: 
+200 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | rejected | rejected | h1/f0/n1
+301 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | rejected | rejected | h1/f0/n1
+404 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | h0/f1/n2 | h1/f0/n1 | h1/f0/n1 | h1/f0/n1 | rejected | rejected | h1/f0/n1
+401 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n2 | h0/f1/n11 | h0/f1/n2 | h1/f0/n1 | rejected | rejected | h0/f1/n11
+403 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n2 | h0/f1/n11 | h0/f1/n2 | h1/f0/n1 | rejected | rejected | h0/f1/n11
+429 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n2 | h0/f1/n11 | h0/f1/n2 | h1/f0/n1 | rejected | rejected | h0/f1/n11
+500 | h0/f1/n2 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n3 | h1/f0/n1 | h1/f0/n1 | rejected | rejected | h1/f0/n1
+503 | h0/f1/n2 | h0/f1/n2 | h1/f0/n1 | h0/f1/n2 | h0/f1/n3 | h1/f0/n1 | h1/f0/n1 | rejected | rejected | h1/f0/n1
