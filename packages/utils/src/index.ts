@@ -10,6 +10,7 @@ export * from './internals/open_graph_parser.js';
 export * from './internals/robots.js';
 export * from './internals/sitemap.js';
 export * from './internals/iterables.js';
+export * from './internals/lazy-import.js';
 export * from './internals/robots.js';
 export * from './internals/sitemap.js';
 export * from './internals/url.js';

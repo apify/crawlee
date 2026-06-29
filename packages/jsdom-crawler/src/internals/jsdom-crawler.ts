@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module';
-
 import type {
     BasicCrawlingContext,
     EnqueueLinksOptions,
@@ -22,20 +20,15 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
+import { type CheerioRoot, lazyImport, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
-// Cheerio is only used by `waitForSelector` / `parseWithCheerio` helpers on the request
-// context. Defer the load so that importing @crawlee/jsdom doesn't pay the ~200 ms cost.
-let _cheerio: typeof import('cheerio') | undefined;
-const requireCheerio = createRequire(import.meta.url);
-function cheerio(): typeof import('cheerio') {
-    return (_cheerio ??= requireCheerio('cheerio'));
-}
+// Cheerio is only used by `waitForSelector` / `parseWithCheerio` helpers on the request context.
+const cheerio = lazyImport(() => import('cheerio'));
 
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -371,7 +364,7 @@ export class JSDOMCrawler<
                 });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
-                const $ = cheerio().load(crawlingContext.body);
+                const $ = (await cheerio()).load(crawlingContext.body);
 
                 if ($(selector).get().length === 0) {
                     if (timeoutMs) {
@@ -384,7 +377,7 @@ export class JSDOMCrawler<
                 }
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = cheerio().load(crawlingContext.body);
+                const $ = (await cheerio()).load(crawlingContext.body);
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);

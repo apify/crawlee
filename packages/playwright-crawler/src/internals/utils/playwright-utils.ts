@@ -24,7 +24,7 @@ import vm from 'node:vm';
 
 import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
-import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
+import { type CheerioRoot, type Dictionary, expandShadowRoots, lazyImport, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { Page, Response, Route } from 'playwright';
 
@@ -33,14 +33,10 @@ import { LruCache } from '@apify/datastructures';
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
 
-// Cheerio is only used by `parseWithCheerio`, which most playwright users never call.
-// Defer the load so that importing @crawlee/playwright doesn't pay the ~200 ms cost up front.
-let _cheerio: typeof import('cheerio') | undefined;
-const requireCheerio = createRequire(import.meta.url);
-function cheerio(): typeof import('cheerio') {
-    return (_cheerio ??= requireCheerio('cheerio'));
-}
 import { RenderingTypePredictor } from './rendering-type-prediction.js';
+
+// Cheerio is only used by `parseWithCheerio`, which most playwright users never call.
+const cheerio = lazyImport(() => import('cheerio'));
 
 const getLog = () => serviceLocator.getChildLog('Playwright Utils');
 
@@ -651,7 +647,7 @@ export async function parseWithCheerio(
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
 
-    return cheerio().load(pageContent);
+    return (await cheerio()).load(pageContent);
 }
 
 let idcacPlaywright: null | { getInjectableScript: () => string } = null;

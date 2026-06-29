@@ -1,15 +1,5 @@
-import { createRequire } from 'node:module';
 import { Readable } from 'node:stream';
 import util from 'node:util';
-
-// Cheerio is only used by the `waitForSelector` / `parseWithCheerio` helpers that
-// run during request handling, never at construction time. Defer the load so that
-// importing @crawlee/http does not pay the ~200 ms cheerio startup tax.
-let _cheerio: typeof import('cheerio') | undefined;
-const requireCheerio = createRequire(import.meta.url);
-function cheerio(): typeof import('cheerio') {
-    return (_cheerio ??= requireCheerio('cheerio'));
-}
 
 import type {
     AutoscaledPoolOptions,
@@ -34,7 +24,7 @@ import {
 import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
+import { type CheerioRoot, lazyImport, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';
@@ -44,6 +34,8 @@ import type { JsonValue } from 'type-fest';
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import { parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
+
+const cheerio = lazyImport(() => import('cheerio'));
 
 /**
  * Default mime types, which HttpScraper supports.
@@ -521,14 +513,14 @@ export class HttpCrawler<
         const contentType = parsed.contentType!;
 
         const waitForSelector = async (selector: string, _timeoutMs?: number) => {
-            const $ = cheerio().load(parsed.body!.toString());
+            const $ = (await cheerio()).load(parsed.body!.toString());
 
             if ($(selector).get().length === 0) {
                 throw new Error(`Selector '${selector}' not found.`);
             }
         };
         const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
-            const $ = cheerio().load(parsed.body!.toString());
+            const $ = (await cheerio()).load(parsed.body!.toString());
 
             if (selector) {
                 await (crawlingContext as InternalHttpCrawlingContext).waitForSelector(selector, timeoutMs);
