@@ -1,6 +1,14 @@
-import * as cheerio from 'cheerio';
+import { createRequire } from 'node:module';
 
 import { htmlToText } from './cheerio.js';
+
+// See cheerio.ts: defer loading the cheerio module until first use so that importing
+// @crawlee/utils does not eagerly load ~200 ms worth of HTML-parsing dependencies.
+let _cheerio: typeof import('cheerio') | undefined;
+const requireCheerio = createRequire(import.meta.url);
+function cheerio(): typeof import('cheerio') {
+    return (_cheerio ??= requireCheerio('cheerio'));
+}
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 const EMAIL_REGEX_STRING =
@@ -675,7 +683,7 @@ export function parseHandlesFromHtml(html: string, data: Record<string, unknown>
 
     if ((typeof html as unknown) !== 'string') return result;
 
-    const $ = cheerio.load(html, { xml: { decodeEntities: true } });
+    const $ = cheerio().load(html, { xml: { decodeEntities: true } });
     if (data) data.$ = $;
 
     const text = htmlToText($);

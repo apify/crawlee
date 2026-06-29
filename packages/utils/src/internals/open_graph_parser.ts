@@ -1,6 +1,16 @@
+import { createRequire } from 'node:module';
+
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
-import { load } from 'cheerio';
+
+// See cheerio.ts — load cheerio lazily so the @crawlee/utils barrel does not pull
+// it during module evaluation.
+let _load: typeof import('cheerio').load | undefined;
+const requireCheerio = createRequire(import.meta.url);
+const load: typeof import('cheerio').load = (...args: Parameters<typeof import('cheerio').load>) => {
+    _load ??= requireCheerio('cheerio').load;
+    return _load!(...args);
+};
 
 export interface OpenGraphProperty {
     name: string;

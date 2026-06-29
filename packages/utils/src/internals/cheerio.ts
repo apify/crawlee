@@ -1,12 +1,22 @@
+import { createRequire } from 'node:module';
+
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
-import * as cheerio from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls.js';
 
 export type CheerioRoot = CheerioAPI;
 export type { CheerioAPI, Cheerio } from 'cheerio';
 export type { Element } from 'domhandler';
+
+// Cheerio (+ parse5 + htmlparser2 + css-select) is ~200 ms to load. Defer until first use
+// so that importing @crawlee/utils — which the rest of crawlee transitively does — does
+// not pay that cost. The require is synchronous so the public API stays unchanged.
+let _cheerio: typeof import('cheerio') | undefined;
+const requireCheerio = createRequire(import.meta.url);
+function cheerio(): typeof import('cheerio') {
+    return (_cheerio ??= requireCheerio('cheerio'));
+}
 
 // NOTE: We are skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
@@ -43,7 +53,7 @@ const BLOCK_TAGS_REGEX =
 export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
     if (!htmlOrCheerioElement) return '';
 
-    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : cheerio.load(htmlOrCheerioElement);
+    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : cheerio().load(htmlOrCheerioElement);
     let text = '';
 
     const process = (elems: Dictionary) => {
