@@ -151,8 +151,7 @@ const requestQueue = await getOrInitQueue(false);
 const config = new Configuration({ purgeOnStart: false });
 
 // Store the worker's own internal state in a separate directory so workers don't collide (step 2,
-// cont.). Needs to be done AFTER the queue is initialized when running locally. This directory is
-// private to a single worker, so we explicitly set `assumeSoleOwner: true`.
+// cont.). This directory is private to a single worker, so we explicitly set `assumeSoleOwner: true`.
 const storageClient = new FileSystemStorageClient({
     localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
     assumeSoleOwner: true,
