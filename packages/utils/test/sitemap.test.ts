@@ -423,6 +423,39 @@ describe('Sitemap', () => {
         );
     });
 
+    it('does not leak metadata from a url without loc and drops invalid lastmod', async () => {
+        const items: SitemapUrl[] = [];
+
+        for await (const item of parseSitemap([
+            {
+                type: 'raw',
+                content: [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url>',
+                    '<loc>http://not-exists.com/a</loc>',
+                    '<lastmod>not-a-date</lastmod>',
+                    '</url>',
+                    '<url>',
+                    '<lastmod>2020-01-01</lastmod>',
+                    '<priority>0.5</priority>',
+                    '</url>',
+                    '<url>',
+                    '<loc>http://not-exists.com/c</loc>',
+                    '</url>',
+                    '</urlset>',
+                ].join('\n'),
+            },
+        ])) {
+            items.push(item);
+        }
+
+        expect(items.map((item) => item.loc)).toEqual(['http://not-exists.com/a', 'http://not-exists.com/c']);
+        expect(items[0].lastmod).toBeUndefined();
+        expect(items[1].lastmod).toBeUndefined();
+        expect(items[1].priority).toBeUndefined();
+    });
+
     it('loads sitemaps that reference other sitemaps from string', async () => {
         const sitemap = await Sitemap.fromXmlString(
             [
