@@ -3,26 +3,26 @@ import { resolve } from 'node:path';
 
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
 
-// `assumeSoleOwner` controls how the native `@crawlee/fs-storage-native` extension treats requests
+// `requestQueueAccess` controls how the native `@crawlee/fs-storage-native` extension treats requests
 // left *in progress* by a previous run (a dangling `orderNo` lock on disk) when a queue is reopened.
 // The reclaim/respect-peer-lock semantics are owned by the native extension; these tests verify the
-// adapter's contract on top of it: the option defaults to `true`, is honored when set, and that the
-// resulting behavior reaches all the way down to the native queue.
-describe('FileSystemStorageClient assumeSoleOwner', () => {
-    const tmpLocation = resolve(import.meta.dirname, './tmp/assume-sole-owner');
+// adapter's contract on top of it: the option defaults to `'single'`, is honored when set to
+// `'shared'`, and that the resulting behavior reaches all the way down to the native queue.
+describe('FileSystemStorageClient requestQueueAccess', () => {
+    const tmpLocation = resolve(import.meta.dirname, './tmp/request-queue-access');
 
     afterEach(async () => {
         await rm(tmpLocation, { force: true, recursive: true });
     });
 
-    test('defaults to true', () => {
+    test("defaults to 'single'", () => {
         const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
-        expect(storage.assumeSoleOwner).toBe(true);
+        expect(storage.requestQueueAccess).toBe('single');
     });
 
-    test('respects an explicit false', () => {
-        const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation, assumeSoleOwner: false });
-        expect(storage.assumeSoleOwner).toBe(false);
+    test("respects an explicit 'shared'", () => {
+        const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation, requestQueueAccess: 'shared' });
+        expect(storage.requestQueueAccess).toBe('shared');
     });
 
     // Seed a queue with two requests, fetch (lock) one without handling it or tearing down — leaving a
@@ -40,12 +40,12 @@ describe('FileSystemStorageClient assumeSoleOwner', () => {
         return locked!;
     }
 
-    test('true (default): reopening preserves contents but relinquishes the dangling lock', async () => {
-        const dir = resolve(tmpLocation, 'sole-owner-true');
+    test("'single' (default): reopening preserves contents but relinquishes the dangling lock", async () => {
+        const dir = resolve(tmpLocation, 'single');
         const locked = await seedQueueWithDanglingLock(dir);
 
         // Reopen the same directory as sole owner, without purging.
-        const reopened = new FileSystemStorageClient({ localDataDirectory: dir, assumeSoleOwner: true });
+        const reopened = new FileSystemStorageClient({ localDataDirectory: dir, requestQueueAccess: 'single' });
         const queue = await reopened.createRequestQueueClient({ name: 'default' });
 
         // Contents preserved: both requests still present, none handled.
@@ -63,13 +63,13 @@ describe('FileSystemStorageClient assumeSoleOwner', () => {
         expect(reFetched?.url).toBe(locked.url);
     });
 
-    test('false: reopening keeps the dangling lock (concurrency-safe mode)', async () => {
-        const dir = resolve(tmpLocation, 'sole-owner-false');
+    test("'shared': reopening keeps the dangling lock (concurrency-safe mode)", async () => {
+        const dir = resolve(tmpLocation, 'shared');
         await seedQueueWithDanglingLock(dir);
 
         // Reopen in concurrency-safe mode: an in-progress request is treated as a potential live peer's
         // lock and is NOT reclaimed until it expires.
-        const reopened = new FileSystemStorageClient({ localDataDirectory: dir, assumeSoleOwner: false });
+        const reopened = new FileSystemStorageClient({ localDataDirectory: dir, requestQueueAccess: 'shared' });
         const queue = await reopened.createRequestQueueClient({ name: 'default' });
 
         // Contents are still preserved...

@@ -60,13 +60,13 @@ The first step in our conversion process will be creating a common file (let's c
 
 The exported function, `getOrInitQueue`, might seem like it does a lot. In essence, it just ensures the request queue is initialized, and if requested, ensures it starts off with an empty state.
 
-:::caution Make the shared queue concurrency-safe with `assumeSoleOwner: false`
+:::caution Make the shared queue concurrency-safe with `requestQueueAccess: 'shared'`
 
-Because every worker process opens this same `shop-urls` queue at the same time, it **must** use the concurrency-safe locking behavior of `FileSystemStorageClient`. That's why `getOrInitQueue` opens the queue with a storage client constructed with `assumeSoleOwner: false`.
+Because every worker process opens this same `shop-urls` queue at the same time, it **must** use the concurrency-safe locking behavior of `FileSystemStorageClient`. That's why `getOrInitQueue` opens the queue with a storage client constructed with `requestQueueAccess: 'shared'`.
 
-By default, `FileSystemStorageClient` assumes it is the *sole* consumer of a queue (`assumeSoleOwner: true`). On open it immediately reclaims any requests left *in progress* — great for a single-process crawl recovering after a crash, but disastrous when workers run side by side: each worker would happily grab requests another worker is still processing, so the same URL gets scraped multiple times.
+By default, `FileSystemStorageClient` assumes it is the *sole* consumer of a queue (`requestQueueAccess: 'single'`). On open it immediately reclaims any requests left *in progress* — great for a single-process crawl recovering after a crash, but disastrous when workers run side by side: each worker would happily grab requests another worker is still processing, so the same URL gets scraped multiple times.
 
-Setting `assumeSoleOwner: false` tells the client to treat an in-progress request as a potential live peer's lock and only reclaim it once the lock expires on the wall clock, so two workers never process the same request at once.
+Setting `requestQueueAccess: 'shared'` tells the client to treat an in-progress request as a potential live peer's lock and only reclaim it once the lock expires on the wall clock, so two workers never process the same request at once.
 
 :::
 
@@ -151,16 +151,17 @@ const requestQueue = await getOrInitQueue(false);
 const config = new Configuration({ purgeOnStart: false });
 
 // Store the worker's own internal state in a separate directory so workers don't collide (step 2,
-// cont.). This directory is private to a single worker, so we explicitly set `assumeSoleOwner: true`.
+// cont.). This directory is private to a single worker, so we explicitly set
+// `requestQueueAccess: 'single'`.
 const storageClient = new FileSystemStorageClient({
     localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
-    assumeSoleOwner: true,
+    requestQueueAccess: 'single',
 });
 ```
 
-:::note Why no `assumeSoleOwner: false` here?
+:::note Why no `requestQueueAccess: 'shared'` here?
 
-Each worker's `./storage/worker-N` directory is private to that single worker — nothing else opens it — so the default `assumeSoleOwner: true` is exactly right. The concurrency-safe locking only matters for storage that is genuinely shared across processes, which is the `shop-urls` queue in `requestQueue.mjs`, not this per-worker internal state.
+Each worker's `./storage/worker-N` directory is private to that single worker — nothing else opens it — so the default `requestQueueAccess: 'single'` is exactly right. The concurrency-safe locking only matters for storage that is genuinely shared across processes, which is the `shop-urls` queue in `requestQueue.mjs`, not this per-worker internal state.
 
 :::
 

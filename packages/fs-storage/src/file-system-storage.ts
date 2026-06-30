@@ -25,20 +25,21 @@ export interface FileSystemStorageOptions {
     logger?: CrawleeLogger;
 
     /**
-     * Assert that this process is the *sole* consumer of every request queue it opens.
+     * How the on-disk request queues opened by this client are expected to be accessed.
      *
-     * When `true` (the default), opening a queue immediately reclaims any requests that a previous
-     * run left *in progress* (e.g. after a crash), so they become fetchable again right away. This is
-     * the right behavior for the common single-process crawl.
+     * With `'single'` (the default), this process asserts it is the *sole* consumer of every request
+     * queue it opens: on open, any requests that a previous run left *in progress* (e.g. after a
+     * crash) are reclaimed immediately, so they become fetchable again right away. This is the right
+     * behavior for the common single-process crawl.
      *
-     * Set this to `false` if multiple processes share the same on-disk request queue concurrently
-     * (for example, the {@apilink parallel scraping setup | "Parallel Scraping Guide"}). In that mode
-     * an in-progress request is treated as a potential live peer's lock and is only reclaimed once
-     * that lock expires on the wall clock, so two workers won't process the same request at once.
+     * Use `'shared'` if multiple processes share the same on-disk request queue concurrently (for
+     * example, the {@apilink parallel scraping setup | "Parallel Scraping Guide"}). In that mode an
+     * in-progress request is treated as a potential live peer's lock and is only reclaimed once that
+     * lock expires on the wall clock, so two workers won't process the same request at once.
      *
-     * @default true
+     * @default 'single'
      */
-    assumeSoleOwner?: boolean;
+    requestQueueAccess?: 'single' | 'shared';
 }
 
 /**
@@ -55,7 +56,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     readonly keyValueStoresDirectory: string;
     readonly requestQueuesDirectory: string;
     readonly logger?: CrawleeLogger;
-    readonly assumeSoleOwner: boolean;
+    readonly requestQueueAccess: 'single' | 'shared';
 
     readonly keyValueStoreCache: KeyValueStoreClient[] = [];
     readonly datasetClientCache: DatasetClient[] = [];
@@ -64,11 +65,11 @@ export class FileSystemStorageClient implements storage.StorageClient {
     constructor(options: FileSystemStorageOptions) {
         s.object({
             localDataDirectory: s.string(),
-            assumeSoleOwner: s.boolean().optional(),
+            requestQueueAccess: s.enum(['single', 'shared']).optional(),
         }).parse(options);
 
         this.logger = options.logger;
-        this.assumeSoleOwner = options.assumeSoleOwner ?? true;
+        this.requestQueueAccess = options.requestQueueAccess ?? 'single';
 
         this.localDataDirectory = options.localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
@@ -178,7 +179,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
             this.localDataDirectory,
             // useTestClock — always real wall-clock outside of native tests.
             undefined,
-            this.assumeSoleOwner,
+            this.requestQueueAccess,
         );
         const newStore = await RequestQueueClient.create({
             name: alias ? undefined : (name ?? cacheKey),

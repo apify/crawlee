@@ -84,11 +84,11 @@ if (!process.env.IN_WORKER_THREAD) {
 
     // Store the worker's own internal state (its default dataset, key-value store, etc.) in a separate
     // directory so the workers don't collide with each other. This directory is private to a single
-    // worker, so we set `assumeSoleOwner: true` — the concurrency-safe locking only matters for the
-    // shared `shop-urls` queue, which gets its own storage client in `requestQueue.mjs`.
+    // worker, so we set `requestQueueAccess: 'single'` — the concurrency-safe locking only matters for
+    // the shared `shop-urls` queue, which gets its own storage client in `requestQueue.mjs`.
     const storageClient = new FileSystemStorageClient({
         localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
-        assumeSoleOwner: true,
+        requestQueueAccess: 'single',
     });
 
     workerLogger.debug('Setting up crawler.');
