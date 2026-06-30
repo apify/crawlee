@@ -824,9 +824,7 @@ export class KeyValueStore {
      * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
      *
      * The input is read from the default {@apilink KeyValueStore} under the configured input key
-     * (`CRAWLEE_INPUT_KEY`, default `INPUT`). The underlying storage client is responsible for
-     * locating the record on disk — including out-of-band files such as a hand-placed `INPUT.json`
-     * within the store directory.
+     * (`CRAWLEE_INPUT_KEY`, default `INPUT`).
      *
      * Note that the `getInput()` function does not cache the value read from the key-value store.
      * If you need to use the input multiple times in your crawler,
