@@ -559,7 +559,7 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 | `setRecord(record, options?)` | `setValue(record)` |
 | `deleteRecord(key)` | `deleteValue(key)` |
 | `getRecordPublicUrl(key)` | `getPublicUrl(key)` |
-| `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreItemData[]` |
+| `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreListKeysResult` (a single self-describing page) |
 | `keys()`, `values()`, `entries()` | Removed (handled by `KeyValueStore` frontend) |
 
 **`RequestQueueClient`:**

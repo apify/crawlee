@@ -15,6 +15,13 @@ export interface QueueOperationInfo {
     requestId: string;
 }
 
+/**
+ * A single page of items returned by {@link DatasetClient.getData}.
+ *
+ * Datasets paginate by offset, so a page is self-describing via `total` / `offset` / `limit`: a
+ * frontend assembling all pages knows it has reached the end once `offset + items.length >= total`.
+ * The cursor-based counterpart for key-value stores is {@link KeyValueStoreListKeysResult}.
+ */
 export interface PaginatedList<Data> {
     /** Total count of entries in the dataset. */
     total: number;
@@ -149,6 +156,31 @@ export interface KeyValueStoreItemData {
 }
 
 /**
+ * A single page of keys returned by {@link KeyValueStoreClient.listKeys}.
+ *
+ * This mirrors {@link PaginatedList} (the shape returned by {@link DatasetClient.getData}) so that
+ * both listing operations on the storage-client layer return a self-describing page. The difference
+ * is the pagination model: datasets are offset-based (`total` / `offset`), whereas key-value stores
+ * are cursor-based. A frontend assembling all pages should therefore not guess "is this the last
+ * page?" from `items.length < limit` — it should rely on {@link isTruncated} and resume from
+ * {@link nextExclusiveStartKey}.
+ */
+export interface KeyValueStoreListKeysResult {
+    /** Keys returned on this page. */
+    items: KeyValueStoreItemData[];
+    /** Number of keys returned on this page (`items.length`). */
+    count: number;
+    /** Maximum number of keys requested for this page. */
+    limit: number;
+    /** The `exclusiveStartKey` that produced this page, if any. */
+    exclusiveStartKey?: string;
+    /** `true` if there are more keys beyond this page. When `true`, {@link nextExclusiveStartKey} is set. */
+    isTruncated: boolean;
+    /** Cursor to pass as the next call's `exclusiveStartKey`, or `undefined` when {@link isTruncated} is `false`. */
+    nextExclusiveStartKey?: string;
+}
+
+/**
  * Key-value Store client.
  */
 export interface KeyValueStoreClient {
@@ -181,8 +213,16 @@ export interface KeyValueStoreClient {
     /** Delete a record by key. */
     deleteValue(key: string): Promise<void>;
 
-    /** List keys in the store. Returns at most `limit` keys starting after `exclusiveStartKey`. */
-    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreItemData[]>;
+    /**
+     * List a single page of keys in the store. Returns at most `limit` keys starting after
+     * `exclusiveStartKey`, wrapped in a self-describing page.
+     *
+     * Like {@link DatasetClient.getData}, this returns one page rather than the whole collection;
+     * assembling all pages (e.g. for `KeyValueStore.keys()`) is the frontend's job. The result carries
+     * a cursor (`isTruncated` / `nextExclusiveStartKey`) so the frontend can paginate deterministically
+     * instead of inferring the end from `items.length < limit`.
+     */
+    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreListKeysResult>;
 
     /** Get the public URL for a record, or `undefined` if unavailable. */
     getPublicUrl(key: string): Promise<string | undefined>;
