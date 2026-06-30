@@ -13,6 +13,7 @@ import log from '@apify/log';
 
 import { mergeAsyncIterables } from './iterables';
 import { RobotsFile } from './robots';
+import { type EnqueueStrategyValue, filterUrl } from './url';
 
 interface SitemapUrlData {
     loc: string;
@@ -201,6 +202,17 @@ export interface ParseSitemapOptions {
      * If not provided, all nested sitemaps are followed.
      */
     nestedSitemapFilter?: (sitemapUrl: string) => boolean;
+    /**
+     * Strategy used to decide which sitemap-derived URLs (both nested `<sitemap><loc>` entries and
+     * `<url><loc>` entries) are kept relative to the parent sitemap URL. Defaults to `'same-hostname'`,
+     * matching the sitemaps protocol's same-host expectation and the `enqueueLinks` default. Pass `'all'`
+     * to disable host filtering, or `'same-domain'` / `'same-origin'` for other scopes.
+     *
+     * Regardless of the strategy, entries with non-`http(s)` schemes are always filtered out. The filter
+     * only applies to URL sources (it is skipped for raw string content, which has no parent URL).
+     * @default 'same-hostname'
+     */
+    enqueueStrategy?: EnqueueStrategyValue;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -217,6 +229,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         networkTimeouts,
         reportNetworkErrors = true,
         nestedSitemapFilter,
+        enqueueStrategy = 'same-hostname',
     } = options ?? {};
 
     const sources = [...initialSources];
@@ -353,6 +366,17 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                     continue;
                 }
 
+                // Keep only nested sitemaps that match the enqueue strategy (and use an http(s) scheme)
+                // relative to the parent sitemap URL. Raw string sources have no parent URL, so the
+                // check is skipped for them.
+                if (source.type === 'url') {
+                    const { allowed, reason } = filterUrl(item.url, source.url, enqueueStrategy);
+                    if (!allowed) {
+                        log.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+                        continue;
+                    }
+                }
+
                 sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
                 if (emitNestedSitemaps) {
                     yield { loc: item.url, originSitemapUrl: null } as any;
@@ -360,6 +384,15 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
             }
 
             if (item.type === 'url') {
+                // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
+                if (source.type === 'url') {
+                    const { allowed, reason } = filterUrl(item.loc, source.url, enqueueStrategy);
+                    if (!allowed) {
+                        log.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
+                        continue;
+                    }
+                }
+
                 yield {
                     ...item,
                     originSitemapUrl:

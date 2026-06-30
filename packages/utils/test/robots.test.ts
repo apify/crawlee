@@ -99,6 +99,32 @@ describe('RobotsTxtFile', () => {
         expect(end - start).toBeLessThanOrEqual(500);
     });
 
+    it('drops cross-host and non-http(s) sitemap directives under the default same-hostname strategy', () => {
+        const content = [
+            'User-agent: *',
+            'Sitemap: http://not-exists.com/legit.xml',
+            'Sitemap: http://other.test/cross.xml',
+            'Sitemap: mailto:foo@bar.com',
+            'Sitemap: ftp://not-exists.com/cross.xml',
+        ].join('\n');
+        const robots = RobotsTxtFile.from('http://not-exists.com/robots.txt', content);
+        expect(robots.getSitemaps()).toEqual(['http://not-exists.com/legit.xml']);
+    });
+
+    it('keeps cross-host http sitemaps but still drops non-http(s) ones with enqueueStrategy "all"', () => {
+        const content = [
+            'User-agent: *',
+            'Sitemap: http://not-exists.com/legit.xml',
+            'Sitemap: http://other.test/cross.xml',
+            'Sitemap: mailto:foo@bar.com',
+            'Sitemap: ftp://not-exists.com/cross.xml',
+        ].join('\n');
+        const robots = RobotsTxtFile.from('http://not-exists.com/robots.txt', content);
+        expect(new Set(robots.getSitemaps('all'))).toEqual(
+            new Set(['http://not-exists.com/legit.xml', 'http://other.test/cross.xml']),
+        );
+    });
+
     it('parses allow/deny directives from explicitly provided robots.txt contents', async () => {
         const contents = `User-agent: *',
 Disallow: *deny_all/
