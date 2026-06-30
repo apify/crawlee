@@ -125,6 +125,12 @@ describe('RobotsTxtFile', () => {
         );
     });
 
+    it('getSitemaps does not throw when the robots.txt url is not absolute', () => {
+        // A non-absolute url must not crash getSitemaps().
+        const robots = RobotsTxtFile.from('not-exists.com/robots.txt', 'Sitemap: http://not-exists.com/legit.xml');
+        expect(() => robots.getSitemaps()).not.toThrow();
+    });
+
     it('parses allow/deny directives from explicitly provided robots.txt contents', async () => {
         const contents = `User-agent: *',
 Disallow: *deny_all/

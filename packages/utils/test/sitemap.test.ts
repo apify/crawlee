@@ -596,6 +596,26 @@ describe('discoverValidSitemaps', () => {
         expect(urls).toEqual(['http://sitemap-discovery.com/some-sitemap.xml']);
     });
 
+    it('discovers cross-host sitemaps referenced in robots.txt', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(200, 'Sitemap: http://cdn.other-host.com/some-sitemap.xml')
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        // Cross-host sitemap is surfaced; host scoping is applied at load time.
+        expect(urls).toEqual(['http://cdn.other-host.com/some-sitemap.xml']);
+    });
+
     it('extracts sitemap from well-known paths if robots.txt is missing', async () => {
         nock('http://sitemap-discovery.com')
             .get('/robots.txt')

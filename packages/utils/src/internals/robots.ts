@@ -119,11 +119,11 @@ export class RobotsTxtFile {
      * robots.txt host (default `'same-hostname'`; pass `'all'` to disable). Non-`http(s)` schemes are always dropped.
      */
     getSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): string[] {
-        const origin = new URL(this.url);
         const sitemaps: string[] = [];
 
         for (const sitemapUrl of this.robots.getSitemaps()) {
-            const { allowed, reason } = filterUrl(sitemapUrl, origin, enqueueStrategy);
+            // Pass `this.url` as a string so `filterUrl` tolerates a bad origin instead of throwing.
+            const { allowed, reason } = filterUrl(sitemapUrl, this.url, enqueueStrategy);
             if (!allowed) {
                 log.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.url}: ${reason}.`);
                 continue;

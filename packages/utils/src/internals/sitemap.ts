@@ -263,8 +263,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         let items: AsyncIterable<SitemapItem> | null = null;
 
+        // Parent URL, parsed once and reused as the origin for the strategy checks below.
+        let sitemapUrl: URL | undefined;
+
         if (source.type === 'url') {
-            const sitemapUrl = new URL(source.url);
+            sitemapUrl = new URL(source.url);
             visitedSitemapUrls.add(sitemapUrl.toString());
             let retriesLeft = sitemapRetries + 1;
 
@@ -365,7 +368,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                 // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
                 // parent. Raw string sources have no parent URL, so the check is skipped.
                 if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.url, source.url, enqueueStrategy);
+                    const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
                     if (!allowed) {
                         log.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
                         continue;
@@ -381,7 +384,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
             if (item.type === 'url') {
                 // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
                 if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.loc, source.url, enqueueStrategy);
+                    const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
                     if (!allowed) {
                         log.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
                         continue;
@@ -569,7 +572,8 @@ export async function* discoverValidSitemaps(
                 timeoutMillis: requestTimeoutMillis,
                 signal,
             });
-            for (const sitemapUrl of robotsFile.getSitemaps()) {
+            // Surface all referenced sitemaps, including cross-host; scoping happens at load time.
+            for (const sitemapUrl of robotsFile.getSitemaps('all')) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
                 }

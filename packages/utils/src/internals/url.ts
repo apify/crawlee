@@ -22,6 +22,11 @@ function toUrl(value: string | URL): URL | null {
     }
 }
 
+/** Strip a trailing dot so `example.com.` equals `example.com`. */
+function normalizeHostname(hostname: string): string {
+    return hostname.endsWith('.') ? hostname.slice(0, -1) : hostname;
+}
+
 /**
  * Check whether `target` matches `origin` under the given enqueue `strategy`. The URL scheme is not
  * considered here (use {@apilink filterUrl} for the combined scheme + strategy check).
@@ -31,7 +36,7 @@ export function matchesEnqueueStrategy(strategy: EnqueueStrategyValue, target: U
         case 'all':
             return true;
         case 'same-hostname':
-            return target.hostname === origin.hostname;
+            return normalizeHostname(target.hostname) === normalizeHostname(origin.hostname);
         case 'same-domain': {
             const originDomain = getDomain(origin.hostname, { mixedInputs: false });
 
@@ -43,9 +48,14 @@ export function matchesEnqueueStrategy(strategy: EnqueueStrategyValue, target: U
             return target.origin === origin.origin;
         }
         case 'same-origin':
-            return target.origin === origin.origin;
+            // Compare scheme/host/port directly so a trailing-dot host is normalized.
+            return (
+                target.protocol === origin.protocol &&
+                normalizeHostname(target.hostname) === normalizeHostname(origin.hostname) &&
+                target.port === origin.port
+            );
         default:
-            return false;
+            throw new Error(`Unknown enqueue strategy '${strategy satisfies never}'.`);
     }
 }
 
