@@ -891,7 +891,7 @@ export class NonRetryableError extends Error {
 export function parseValue(body: Buffer | ArrayBuffer | string, contentTypeHeader: string | null): string | Buffer | ArrayBuffer | Record<string, unknown>;
 
 // @public (undocumented)
-export const PERSIST_STATE_KEY = "SDK_SESSION_POOL_STATE";
+export const PERSIST_STATE_KEY = "CRAWLEE_SESSION_POOL_STATE";
 
 // @public
 export interface PersistenceOptions {
