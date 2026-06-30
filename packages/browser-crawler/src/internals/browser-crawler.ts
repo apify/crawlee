@@ -132,7 +132,7 @@ export interface BrowserCrawlerOptions<
      * crawler. Supply the connection details only: a static `endpoint` URL, a function returning one per launch,
      * or a {@apilink RemoteBrowserProvider}.
      *
-     * Mutually exclusive with `browserPool`. For sharing a remote pool across crawlers, construct a
+     * Ignored when `browserPool` is set. For sharing a remote pool across crawlers, construct a
      * {@apilink RemoteBrowserPool} yourself and pass it as `browserPool` instead.
      */
     remoteBrowser?: CrawlerRemoteBrowserOptions;
@@ -437,13 +437,7 @@ export abstract class BrowserCrawler<
 
         this.saveResponseCookies = saveResponseCookies;
 
-        if (browserPool && remoteBrowser) {
-            throw new Error(
-                "Set at most one of 'browserPool' and 'remoteBrowser'. To share a remote pool across crawlers, " +
-                    'build a RemoteBrowserPool yourself and pass it as `browserPool`.',
-            );
-        }
-
+        // `browserPool` wins over `remoteBrowser` — a passed-in pool is used as-is, the sugar is ignored.
         if (browserPool) {
             this.browserPool = browserPool;
             return;
