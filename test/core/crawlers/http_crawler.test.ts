@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 
 import { HttpCrawler, SessionPool } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
+import iconv from 'iconv-lite';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
@@ -58,6 +59,20 @@ router.set('/403-with-octet-stream', (req, res) => {
     res.setHeader('content-type', 'application/octet-stream');
     res.statusCode = 403;
     res.end();
+});
+
+router.set('/meta-charset', (req, res) => {
+    const text = 'Žluťoučký kůň';
+    const html = `<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1250"></head><body>${text}</body></html>`;
+    res.setHeader('content-type', 'text/html'); // no charset in HTTP header
+    res.end(iconv.encode(html, 'windows-1250'));
+});
+
+router.set('/meta-charset-html5', (req, res) => {
+    const text = 'Žluťoučký kůň';
+    const html = `<html><head><meta charset="windows-1250"></head><body>${text}</body></html>`;
+    res.setHeader('content-type', 'text/html'); // no charset in HTTP header
+    res.end(iconv.encode(html, 'windows-1250'));
 });
 
 let server: http.Server;
@@ -206,6 +221,36 @@ test('invalid content type defaults to octet-stream', async () => {
             encoding: 'utf-8',
         },
     ]);
+});
+
+test('decodes charset from http-equiv meta tag when absent in HTTP header', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        requestHandler: ({ body }) => {
+            results.push(body as string);
+        },
+    });
+
+    await crawler.run([`${url}/meta-charset`]);
+
+    expect(results[0]).toContain('Žluťoučký kůň');
+});
+
+test('decodes charset from HTML5 meta charset attribute when absent in HTTP header', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        requestHandler: ({ body }) => {
+            results.push(body as string);
+        },
+    });
+
+    await crawler.run([`${url}/meta-charset-html5`]);
+
+    expect(results[0]).toContain('Žluťoučký kůň');
 });
 
 test('handles cookies from redirects', async () => {
