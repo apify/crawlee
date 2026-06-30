@@ -695,6 +695,22 @@ describe('CheerioCrawler', () => {
             expect(await response.text()).toBe(html);
         });
 
+        test('via http-equiv meta tag when no charset in HTTP header', async () => {
+            let context: CheerioCrawlingContext | null = null;
+
+            const crawler = new CheerioCrawler({
+                requestHandler: (ctx) => {
+                    context = ctx;
+                },
+            });
+
+            await crawler.run([`${serverAddress}/special/meta-charset`]);
+
+            context = context as unknown as CheerioCrawlingContext;
+            expect(context?.body).toContain('Žluťoučký kůň');
+            expect(context?.$('body').text()).toContain('Žluťoučký kůň');
+        });
+
         test('Cheerio decodes html entities', async () => {
             let context: CheerioCrawlingContext | null = null;
 
