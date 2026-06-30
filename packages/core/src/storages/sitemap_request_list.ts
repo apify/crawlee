@@ -101,7 +101,7 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      * after navigation (e.g. across redirects). Pass `'all'` to disable host filtering.
      * @default EnqueueStrategy.SameHostname
      */
-    enqueueStrategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     /**
      * Advanced options for the underlying `parseSitemap` call.
      */
@@ -202,7 +202,7 @@ export class SitemapRequestList implements IRequestList {
     /**
      * Enqueue strategy applied to sitemap-derived URLs and stamped onto the emitted `Request` objects.
      */
-    private enqueueStrategy: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
+    private enqueueStrategy: EnqueueStrategy | `${EnqueueStrategy}`;
 
     /**
      * Logger instance.
