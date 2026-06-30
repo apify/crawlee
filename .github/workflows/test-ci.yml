@@ -57,6 +57,9 @@ jobs:
             -   name: Build
                 run: pnpm ci:build
 
+            -   name: Check public API surface
+                run: pnpm api:check
+
             -   name: Test TS
                 run: pnpm tsc-check-tests
 
