@@ -15,8 +15,9 @@ import type { KeyValueStoreRecord } from '@crawlee/types';
 // inferred from the file extension (falling back to the native `application/octet-stream` when there
 // is none). Parsing those bytes — and surfacing any error from a malformed value — is the
 // `KeyValueStore` frontend's job, so the client does not validate them. Bare files are readable by
-// known key and are also enumerated by `listKeys` under their logical key (e.g. a bare `INPUT.json`
-// is listed as `INPUT`).
+// known key and are also enumerated by `listKeys` under their actual on-disk name (e.g. a bare
+// `INPUT.json` is listed as `INPUT.json` and reads back under that key), while the logical `INPUT`
+// lookup keeps resolving the same bare file.
 describe('fallback to fs for reading', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-fallback');
     const storage = new FileSystemStorageClient({
@@ -144,10 +145,30 @@ describe('fallback to fs for reading', () => {
         const url = await otherStore.getPublicUrl('INPUT');
         expect(url).toMatch(/^file:\/\/.*INPUT\.json$/);
 
-        // A bare `INPUT.json` is enumerated under its logical key `INPUT`, so the listed key matches
-        // what `getValue` / `recordExists` accept.
+        // A bare `INPUT.json` is enumerated under its actual on-disk name, not the logical `INPUT`.
         const keys = await otherStore.listKeys();
-        expect(keys.map((item) => item.key)).toContain('INPUT');
+        expect(keys.map((item) => item.key)).toContain('INPUT.json');
+    });
+
+    test('a listed bare key round-trips through getValue / recordExists / getPublicUrl', async () => {
+        const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
+
+        // The key `listKeys` reports for a bare file must be readable back verbatim, while the logical
+        // `INPUT` lookup keeps resolving the same bare file (matching how Crawlee reads run input).
+        const [listed] = (await otherStore.listKeys()).map((item) => item.key);
+        expect(listed).toBe('INPUT.json');
+
+        const expected: KeyValueStoreRecord = {
+            key: 'INPUT.json',
+            value: Buffer.from(JSON.stringify({ foo: 'bar but from fs' })),
+            contentType: 'application/json; charset=utf-8',
+        };
+        expect(await otherStore.getValue('INPUT.json')).toStrictEqual(expected);
+        expect(await otherStore.recordExists('INPUT.json')).toBe(true);
+        expect(await otherStore.getPublicUrl('INPUT.json')).toMatch(/^file:\/\/.*INPUT\.json$/);
+
+        // The logical key still resolves the same underlying file (reported under the requested key).
+        expect(await otherStore.getValue('INPUT')).toStrictEqual({ ...expected, key: 'INPUT' });
     });
 
     test('the bare-file fallback is scoped to INPUT: a non-INPUT bare file is ignored', async () => {
@@ -165,12 +186,12 @@ describe('fallback to fs for reading', () => {
         expect(keys.map((item) => item.key)).not.toContain('some-key');
     });
 
-    test('listKeys does not list a logical key twice when a tracked record and a bare file collide', async () => {
+    test('a tracked INPUT record shadows the bare INPUT.json variant in listKeys', async () => {
         const collisionStore = await storage.createKeyValueStoreClient({ name: 'input-collision' });
 
         // Write a tracked `INPUT` record (value file + metadata sidecar), then drop a sidecar-less bare
-        // `INPUT.json` next to it. Both collapse to the logical key `INPUT`; the native only dedupes
-        // same-named files, so the adapter must drop the duplicate itself.
+        // `INPUT.json` next to it. Both belong to the logical key `INPUT`; the tracked record wins, so
+        // only `INPUT` is listed and the bare `INPUT.json` variant is suppressed.
         await collisionStore.setValue({ key: 'INPUT', value: 'tracked', contentType: 'text/plain; charset=utf-8' });
         await writeFile(
             resolve(storage.keyValueStoresDirectory, 'input-collision/INPUT.json'),
@@ -178,6 +199,115 @@ describe('fallback to fs for reading', () => {
         );
 
         const keys = (await collisionStore.listKeys()).map((item) => item.key);
-        expect(keys.filter((key) => key === 'INPUT')).toHaveLength(1);
+        expect(keys).toContain('INPUT');
+        expect(keys).not.toContain('INPUT.json');
+    });
+});
+
+// For each run-input bare file: the on-disk filename, the literal key that reads it directly, the
+// content type the client reports (`.json`/`.txt` infer from the extension; the extensionless `INPUT`
+// and `.bin` report the synthesized `application/octet-stream`), and a unique payload so a read can be
+// proven to have returned *this* file and not a sibling.
+const BARE_VARIANTS = [
+    { file: 'INPUT', literalKey: 'INPUT', contentType: 'application/octet-stream' },
+    { file: 'INPUT.json', literalKey: 'INPUT.json', contentType: 'application/json; charset=utf-8' },
+    { file: 'INPUT.txt', literalKey: 'INPUT.txt', contentType: 'text/plain; charset=utf-8' },
+    { file: 'INPUT.bin', literalKey: 'INPUT.bin', contentType: 'application/octet-stream' },
+].map((variant) => ({ ...variant, payload: `payload of ${variant.file}` }));
+
+// Each run-input bare file must be reachable by exactly two keys — the logical `INPUT` (which probes
+// the `['', '.json', '.txt', '.bin']` ladder, first match wins) and its own literal on-disk name — and
+// NOT via a *different* extension's literal name (a bare `INPUT.txt` is not `INPUT.json`). Here each
+// variant lives in its own store so the logical-`INPUT` lookup resolves it unambiguously.
+describe('run-input bare-file reachability (one variant per store)', () => {
+    const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-isolated');
+    const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
+
+    const storeNameFor = (file: string) => `reach-${file.toLowerCase().replace('.', '-')}`;
+
+    beforeAll(async () => {
+        for (const { file, payload } of BARE_VARIANTS) {
+            const dir = resolve(storage.keyValueStoresDirectory, storeNameFor(file));
+            await mkdir(dir, { recursive: true });
+            await writeFile(resolve(dir, file), payload);
+        }
+    });
+
+    afterAll(async () => {
+        await rm(tmpLocation, { force: true, recursive: true });
+    });
+
+    describe.each(BARE_VARIANTS)('a bare $file', ({ file, literalKey, contentType, payload }) => {
+        // Keys that should resolve this variant: the logical `INPUT` and the file's own literal name
+        // (deduplicated — the extensionless variant's literal key *is* `INPUT`).
+        const reachableKeys = [...new Set(['INPUT', literalKey])];
+        // The literal names of the *other* extensions, which must never resolve this variant.
+        const unreachableKeys = BARE_VARIANTS.map((variant) => variant.literalKey).filter(
+            (key) => !reachableKeys.includes(key),
+        );
+
+        test.each(reachableKeys)('is reachable via %s', async (key) => {
+            const store = await storage.createKeyValueStoreClient({ name: storeNameFor(file) });
+
+            expect(await store.getValue(key)).toStrictEqual<KeyValueStoreRecord>({
+                key,
+                value: Buffer.from(payload),
+                contentType,
+            });
+            expect(await store.recordExists(key)).toBe(true);
+            expect(await store.getPublicUrl(key)).toMatch(new RegExp(`^file://.*${file.replace('.', '\\.')}$`));
+        });
+
+        test.each(unreachableKeys)('is not reachable via %s', async (key) => {
+            const store = await storage.createKeyValueStoreClient({ name: storeNameFor(file) });
+
+            expect(await store.getValue(key)).toBeUndefined();
+            expect(await store.recordExists(key)).toBe(false);
+            expect(await store.getPublicUrl(key)).toBeUndefined();
+        });
+    });
+});
+
+// The sharper cross-talk check: with *all four* variants in one store, each literal key must read back
+// its own bytes (never a sibling's), and the logical `INPUT` must resolve the first ladder match — the
+// extensionless `INPUT`. This is what fails if literal-name probing ever widens to other extensions.
+describe('run-input bare-file reachability (all variants in one store)', () => {
+    const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-shared');
+    const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
+
+    beforeAll(async () => {
+        const dir = resolve(storage.keyValueStoresDirectory, 'all-variants');
+        await mkdir(dir, { recursive: true });
+        for (const { file, payload } of BARE_VARIANTS) {
+            await writeFile(resolve(dir, file), payload);
+        }
+    });
+
+    afterAll(async () => {
+        await rm(tmpLocation, { force: true, recursive: true });
+    });
+
+    test.each(BARE_VARIANTS)(
+        'the literal key $literalKey reads its own file, not a sibling',
+        async ({ literalKey, contentType, payload }) => {
+            const store = await storage.createKeyValueStoreClient({ name: 'all-variants' });
+
+            expect(await store.getValue(literalKey)).toStrictEqual<KeyValueStoreRecord>({
+                key: literalKey,
+                value: Buffer.from(payload),
+                contentType,
+            });
+        },
+    );
+
+    test('the logical INPUT key resolves the extensionless file (first ladder match)', async () => {
+        const store = await storage.createKeyValueStoreClient({ name: 'all-variants' });
+
+        const extensionless = BARE_VARIANTS.find((variant) => variant.file === 'INPUT')!;
+        expect(await store.getValue('INPUT')).toStrictEqual<KeyValueStoreRecord>({
+            key: 'INPUT',
+            value: Buffer.from(extensionless.payload),
+            contentType: extensionless.contentType,
+        });
     });
 });

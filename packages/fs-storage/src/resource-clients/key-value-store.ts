@@ -33,14 +33,28 @@ const ALLOWED_BARE_FILES = ['INPUT'];
  * The out-of-band ("bare") files to surface from the native `listKeys`/`iterateKeys`, derived from
  * {@link ALLOWED_BARE_FILES} × {@link BARE_FILE_FALLBACKS}. Each native {@link ListBareFallback}
  * `name` is the literal on-disk filename to probe (e.g. `INPUT.json`), and the native lists a match
- * under that same `name`. We map it back to the logical key (e.g. `INPUT`) before returning, so a
- * listed bare key matches what `getValue`/`recordExists` accept (which resolve `INPUT` -> `INPUT.json`).
+ * under that same `name` — which is exactly the key we return, so a listed bare file round-trips
+ * through `getValue`/`recordExists` (see {@link BARE_FILE_CONTENT_TYPES}).
  */
 const LIST_BARE_FALLBACKS: ListBareFallback[] = ALLOWED_BARE_FILES.flatMap((key) =>
     BARE_FILE_FALLBACKS.map(({ extension, contentType }) => ({ name: `${key}${extension}`, contentType })),
 );
 
-/** Reverse lookup from a bare file's on-disk name (e.g. `INPUT.json`) to its logical key (e.g. `INPUT`). */
+/**
+ * Lookup from a bare file's literal on-disk name (e.g. `INPUT.json`) to the content type to report
+ * for it, used to read a listed bare key back directly (`getValue('INPUT.json')`). The empty-extension
+ * entry (`INPUT`) is intentionally excluded: an extensionless `INPUT` lookup goes through the
+ * `resolveValue` fallback probing instead, which already covers the extensionless file.
+ */
+const BARE_FILE_CONTENT_TYPES = new Map(
+    ALLOWED_BARE_FILES.flatMap((key) =>
+        BARE_FILE_FALLBACKS.filter(({ extension }) => extension !== '').map(
+            ({ extension, contentType }) => [`${key}${extension}`, contentType] as const,
+        ),
+    ),
+);
+
+/** Maps a bare file's on-disk name (e.g. `INPUT.json`) to its logical key (e.g. `INPUT`), for dedup. */
 const BARE_FILE_LOGICAL_KEYS = new Map(
     ALLOWED_BARE_FILES.flatMap((key) =>
         BARE_FILE_FALLBACKS.map(({ extension }) => [`${key}${extension}`, key] as const),
@@ -123,11 +137,11 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             })
             .parse(options);
 
-        const items: storage.KeyValueStoreItemData[] = [];
-        const seen = new Set<string>();
         // Pass the bare-file fallbacks so out-of-band value files (e.g. a hand-placed `INPUT.json`)
-        // are enumerated alongside tracked records. The native reads everything it needs off the
-        // filesystem index — no per-file reads — so this stays cheap.
+        // are enumerated alongside tracked records, under their actual on-disk name. The native reads
+        // everything it needs off the filesystem index — no per-file reads — so this stays cheap.
+        const records: storage.KeyValueStoreItemData[] = [];
+        const presentKeys = new Set<string>();
         const iterator = await this.nativeClient.iterateKeys(
             exclusiveStartKey,
             limit,
@@ -136,19 +150,20 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             LIST_BARE_FALLBACKS,
         );
         for await (const record of iterator) {
-            // The native lists a bare file under its on-disk name (`INPUT.json`); remap it back to the
-            // logical key (`INPUT`) so the listed key round-trips through `getValue`/`recordExists`.
-            const key = BARE_FILE_LOGICAL_KEYS.get(record.key) ?? record.key;
-            // The native only dedupes bare files against a same-named tracked record, so a tracked
-            // `INPUT` and a bare `INPUT.json` both collapse to the logical `INPUT` here. Drop the
-            // duplicate regardless of iteration order; the first occurrence wins.
-            if (seen.has(key)) {
-                continue;
-            }
-            seen.add(key);
-            items.push(key === record.key ? record : { ...record, key });
+            records.push(record);
+            presentKeys.add(record.key);
         }
-        return items;
+
+        // A bare value file is listed under its actual name (`INPUT.json`), which already round-trips
+        // through `getValue`/`recordExists`. The only collision is a tracked record occupying the
+        // logical key itself (`INPUT`): it shadows the extension-bearing bare variants (`INPUT.json`
+        // etc.) for the same logical key, so drop those. The extensionless bare file *is* the logical
+        // key, so it is never a separate duplicate.
+        return records.filter((record) => {
+            const logicalKey = BARE_FILE_LOGICAL_KEYS.get(record.key);
+            const isExtensionBearingBareFile = logicalKey !== undefined && logicalKey !== record.key;
+            return !(isExtensionBearingBareFile && presentKeys.has(logicalKey));
+        });
     }
 
     /**
@@ -184,8 +199,9 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
 
-        const record = ALLOWED_BARE_FILES.includes(key)
-            ? await this.nativeClient.resolveValue(key, BARE_FILE_FALLBACKS)
+        const fallbacks = this.bareFallbacksFor(key);
+        const record = fallbacks
+            ? await this.nativeClient.resolveValue(key, fallbacks)
             : await this.nativeClient.getValue(key);
 
         if (record) {
@@ -250,19 +266,44 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
 
     /**
      * Resolve `key` to the on-disk key that actually exists, or `undefined` if nothing does. Every
-     * key is checked against its tracked record; only the run input ({@link ALLOWED_BARE_FILES}) additionally
-     * falls back to out-of-band bare files (`INPUT.json`/`.txt`/`.bin`), in which case the matched
-     * on-disk key is returned so callers like `getPublicUrl` point at the file that exists.
+     * key is checked against its tracked record; the run-input keys additionally fall back to
+     * out-of-band bare files, in which case the matched on-disk key is returned so callers like
+     * `getPublicUrl` point at the file that exists. Two run-input shapes are handled (see
+     * {@link bareFallbacksFor}): the logical `INPUT`, which probes the conventional extensions, and a
+     * literal bare filename such as `INPUT.json` as listed by `listKeys`, which resolves itself.
      */
     private async resolveExistingKey(key: string): Promise<string | undefined> {
-        if (ALLOWED_BARE_FILES.includes(key)) {
+        const fallbacks = this.bareFallbacksFor(key);
+        if (fallbacks) {
             return (
                 (await this.nativeClient.resolveExistingKey(
                     key,
-                    BARE_FILE_FALLBACKS.map(({ extension }) => extension),
+                    fallbacks.map(({ extension }) => extension),
                 )) ?? undefined
             );
         }
         return (await this.nativeClient.recordExists(key)) ? key : undefined;
+    }
+
+    /**
+     * The native `resolveValue`/`resolveExistingKey` bare-file fallbacks to use for `key`, or
+     * `undefined` if `key` is a plain tracked-record lookup with no bare-file probing.
+     *
+     * - The logical run-input key (`INPUT`) probes the full extension ladder (`INPUT`, `INPUT.json`,
+     *   `INPUT.txt`, `INPUT.bin`), matching how Crawlee reads run input.
+     * - A literal bare filename as surfaced by `listKeys` (`INPUT.json`/`.txt`/`.bin`) resolves itself:
+     *   the tracked record first, then the bare file at that exact name (a single empty-extension
+     *   fallback), so a listed key round-trips through `getValue`/`recordExists`.
+     */
+    // eslint-disable-next-line class-methods-use-this
+    private bareFallbacksFor(key: string): { extension: string; contentType: string }[] | undefined {
+        if (ALLOWED_BARE_FILES.includes(key)) {
+            return BARE_FILE_FALLBACKS;
+        }
+        const contentType = BARE_FILE_CONTENT_TYPES.get(key);
+        if (contentType !== undefined) {
+            return [{ extension: '', contentType }];
+        }
+        return undefined;
     }
 }
