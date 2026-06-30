@@ -714,7 +714,7 @@ Because the in-memory queue lives entirely within a single process and is never 
 
 - **Extensionless bare files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. In v4 the client is a plain byte transport and only infers a content type from a real extension, so an extensionless file now comes back as `application/octet-stream`. Give the file a `.json` or `.txt` extension if you need a more specific type.
 - **Malformed bare files are no longer silently swallowed.** In v3 a bare `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value now surfaces a parse error at read time instead of looking absent.
-- **Bare files are not enumerated by `listKeys`.** They remain readable by known key via `getValue` (and visible to `recordExists` / `getPublicUrl`), but `listKeys` only ever returns tracked records. This also avoids the O(n) directory scans that the v3 fallback performed on every read.
+- **Bare files are enumerated by `listKeys` under their logical key.** A bare `INPUT.json` (or `.txt`/`.bin`, or an extensionless `INPUT`) shows up in `listKeys` as `INPUT`, matching the key `getValue` / `recordExists` accept. Everything `listKeys` needs is read from the filesystem index, so this no longer triggers the per-read O(n) directory scans the v3 fallback performed.
 
 ## Multiple crawler instances use separate default request queues
 

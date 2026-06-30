@@ -4,7 +4,10 @@ import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type { FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
+import type {
+    FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreClient,
+    ListBareFallback,
+} from '@crawlee/fs-storage-native';
 import { isStream } from '../utils.js';
 import { CachedIdClient } from './cached-id-client.js';
 
@@ -25,6 +28,24 @@ const BARE_FILE_FALLBACKS: { extension: string; contentType: string }[] = [
 ];
 
 const ALLOWED_BARE_FILES = ['INPUT'];
+
+/**
+ * The out-of-band ("bare") files to surface from the native `listKeys`/`iterateKeys`, derived from
+ * {@link ALLOWED_BARE_FILES} × {@link BARE_FILE_FALLBACKS}. Each native {@link ListBareFallback}
+ * `name` is the literal on-disk filename to probe (e.g. `INPUT.json`), and the native lists a match
+ * under that same `name`. We map it back to the logical key (e.g. `INPUT`) before returning, so a
+ * listed bare key matches what `getValue`/`recordExists` accept (which resolve `INPUT` -> `INPUT.json`).
+ */
+const LIST_BARE_FALLBACKS: ListBareFallback[] = ALLOWED_BARE_FILES.flatMap((key) =>
+    BARE_FILE_FALLBACKS.map(({ extension, contentType }) => ({ name: `${key}${extension}`, contentType })),
+);
+
+/** Reverse lookup from a bare file's on-disk name (e.g. `INPUT.json`) to its logical key (e.g. `INPUT`). */
+const BARE_FILE_LOGICAL_KEYS = new Map(
+    ALLOWED_BARE_FILES.flatMap((key) =>
+        BARE_FILE_FALLBACKS.map(({ extension }) => [`${key}${extension}`, key] as const),
+    ),
+);
 
 export interface KeyValueStoreClientOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
@@ -103,9 +124,29 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
             .parse(options);
 
         const items: storage.KeyValueStoreItemData[] = [];
-        const iterator = await this.nativeClient.iterateKeys(exclusiveStartKey, limit, undefined, prefix);
+        const seen = new Set<string>();
+        // Pass the bare-file fallbacks so out-of-band value files (e.g. a hand-placed `INPUT.json`)
+        // are enumerated alongside tracked records. The native reads everything it needs off the
+        // filesystem index — no per-file reads — so this stays cheap.
+        const iterator = await this.nativeClient.iterateKeys(
+            exclusiveStartKey,
+            limit,
+            undefined,
+            prefix,
+            LIST_BARE_FALLBACKS,
+        );
         for await (const record of iterator) {
-            items.push(record);
+            // The native lists a bare file under its on-disk name (`INPUT.json`); remap it back to the
+            // logical key (`INPUT`) so the listed key round-trips through `getValue`/`recordExists`.
+            const key = BARE_FILE_LOGICAL_KEYS.get(record.key) ?? record.key;
+            // The native only dedupes bare files against a same-named tracked record, so a tracked
+            // `INPUT` and a bare `INPUT.json` both collapse to the logical `INPUT` here. Drop the
+            // duplicate regardless of iteration order; the first occurrence wins.
+            if (seen.has(key)) {
+                continue;
+            }
+            seen.add(key);
+            items.push(key === record.key ? record : { ...record, key });
         }
         return items;
     }

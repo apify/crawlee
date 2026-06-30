@@ -42,7 +42,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/fs-storage-native": "0.1.5-beta.16",
+        "@crawlee/fs-storage-native": "0.1.5-beta.17",
         "@crawlee/types": "workspace:*",
         "@sapphire/shapeshift": "^4.0.0"
     }

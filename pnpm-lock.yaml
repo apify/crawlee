@@ -549,8 +549,8 @@ importers:
   packages/fs-storage:
     dependencies:
       '@crawlee/fs-storage-native':
-        specifier: 0.1.5-beta.16
-        version: 0.1.5-beta.16
+        specifier: 0.1.5-beta.17
+        version: 0.1.5-beta.17
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
@@ -2005,33 +2005,33 @@ packages:
     resolution: {integrity: sha512-Yn32E5IdmENLITg36XN1ty4OLPMcqzDjkEvSdZ0dRV5jcJR89sKi47FOs2eXpW+n7IGhbzPDkGKUirPPRrRkjg==}
     engines: {node: '>=16.0.0'}
 
-  '@crawlee/fs-storage-native-darwin-arm64@0.1.5-beta.16':
-    resolution: {integrity: sha512-mc2I2LzvtfgsNvI+MYzkDOjuZ33motgpG/D/umbe8jM+n+9VqO6QEXv45GxA+08nsZD0BLwPdkJFc6vkLCNQig==}
+  '@crawlee/fs-storage-native-darwin-arm64@0.1.5-beta.17':
+    resolution: {integrity: sha512-kk9OGAzF75zE0NsjP5h1KmT8JKTvZy6vhGuR8dvXEEBRPZKfTyyTbJTnNnN52emVO63z5Onj92NxQqZzMrDEGA==}
     engines: {node: '>= 20'}
     cpu: [arm64]
     os: [darwin]
 
-  '@crawlee/fs-storage-native-darwin-x64@0.1.5-beta.16':
-    resolution: {integrity: sha512-7a+cwXRByBC15bXhk30YWujpi99Fr7ng5lB3epuGuZgm/VH0dTyHMUa+4Ij7smHqsz3P2P9yKCY/LyKVVGsqHQ==}
+  '@crawlee/fs-storage-native-darwin-x64@0.1.5-beta.17':
+    resolution: {integrity: sha512-qnjj58TVLkOtj6XELAkNaiCjpfCEc3O5uW34WUdTUaLAQXfqZ8fbe2et0FB0wur9t4DCUy3v718kk5LasBHO+Q==}
     engines: {node: '>= 20'}
     cpu: [x64]
     os: [darwin]
 
-  '@crawlee/fs-storage-native-linux-x64-gnu@0.1.5-beta.16':
-    resolution: {integrity: sha512-kznRrFFhax3weSQiH12bJyPqFhJkm132TdlqG5NQrXgdwjFrlHBzlktvIeq1XbFTNKCMpdPF+7UDXtWxJcnkHw==}
+  '@crawlee/fs-storage-native-linux-x64-gnu@0.1.5-beta.17':
+    resolution: {integrity: sha512-k5QG8QIEyx4p3A/PKKGGmEmq/BCegXXcUbTy0gSJYMRYL5lrJR5lPF4tF0fdynMC2VD8AmBwCdLZcYMBMCPmtw==}
     engines: {node: '>= 20'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@crawlee/fs-storage-native-win32-x64-msvc@0.1.5-beta.16':
-    resolution: {integrity: sha512-IHaK5faC3PrzXxUQJ21hhXdZ7H4fIlN5448VPtVuJTPr7d4AQntrpKuokXdCDn0T68XgP6dmk0csmnT/V6OFHA==}
+  '@crawlee/fs-storage-native-win32-x64-msvc@0.1.5-beta.17':
+    resolution: {integrity: sha512-NurV010udlesMktHfCPORh9gw44jtRenhlt2v87aDQ5fMEVpVM0U1uMSbrL+gAC79Q/UWoUuvQa9O0RsHaUkfA==}
     engines: {node: '>= 20'}
     cpu: [x64]
     os: [win32]
 
-  '@crawlee/fs-storage-native@0.1.5-beta.16':
-    resolution: {integrity: sha512-yttgDYDv3bSh5I65psLbkzuE/7eaPk2XdNxBW5CHkOGrD+FCLP8jXiU2Jkm4+V72El9FrlAHZStzJOlGv0dJBw==}
+  '@crawlee/fs-storage-native@0.1.5-beta.17':
+    resolution: {integrity: sha512-dy82JkB4xfEDRbbfAF5AaSW6gMCgL6TLkYtsTaMywuUo7diepU8y2v3vthA2L6GSZx3oeHh9r5L0iYtpfZ9wmw==}
     engines: {node: '>= 20'}
 
   '@crawlee/memory-storage@3.16.0':
@@ -14061,24 +14061,24 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@crawlee/fs-storage-native-darwin-arm64@0.1.5-beta.16':
+  '@crawlee/fs-storage-native-darwin-arm64@0.1.5-beta.17':
     optional: true
 
-  '@crawlee/fs-storage-native-darwin-x64@0.1.5-beta.16':
+  '@crawlee/fs-storage-native-darwin-x64@0.1.5-beta.17':
     optional: true
 
-  '@crawlee/fs-storage-native-linux-x64-gnu@0.1.5-beta.16':
+  '@crawlee/fs-storage-native-linux-x64-gnu@0.1.5-beta.17':
     optional: true
 
-  '@crawlee/fs-storage-native-win32-x64-msvc@0.1.5-beta.16':
+  '@crawlee/fs-storage-native-win32-x64-msvc@0.1.5-beta.17':
     optional: true
 
-  '@crawlee/fs-storage-native@0.1.5-beta.16':
+  '@crawlee/fs-storage-native@0.1.5-beta.17':
     optionalDependencies:
-      '@crawlee/fs-storage-native-darwin-arm64': 0.1.5-beta.16
-      '@crawlee/fs-storage-native-darwin-x64': 0.1.5-beta.16
-      '@crawlee/fs-storage-native-linux-x64-gnu': 0.1.5-beta.16
-      '@crawlee/fs-storage-native-win32-x64-msvc': 0.1.5-beta.16
+      '@crawlee/fs-storage-native-darwin-arm64': 0.1.5-beta.17
+      '@crawlee/fs-storage-native-darwin-x64': 0.1.5-beta.17
+      '@crawlee/fs-storage-native-linux-x64-gnu': 0.1.5-beta.17
+      '@crawlee/fs-storage-native-win32-x64-msvc': 0.1.5-beta.17
 
   '@crawlee/memory-storage@3.16.0':
     dependencies:

@@ -15,7 +15,8 @@ import type { KeyValueStoreRecord } from '@crawlee/types';
 // inferred from the file extension (falling back to the native `application/octet-stream` when there
 // is none). Parsing those bytes — and surfacing any error from a malformed value — is the
 // `KeyValueStore` frontend's job, so the client does not validate them. Bare files are readable by
-// known key but are never enumerated by `listKeys`.
+// known key and are also enumerated by `listKeys` under their logical key (e.g. a bare `INPUT.json`
+// is listed as `INPUT`).
 describe('fallback to fs for reading', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-fallback');
     const storage = new FileSystemStorageClient({
@@ -134,7 +135,7 @@ describe('fallback to fs for reading', () => {
         });
     });
 
-    test('bare files are visible to recordExists and getPublicUrl, but not listKeys', async () => {
+    test('bare files are visible to recordExists, getPublicUrl, and listKeys', async () => {
         const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
 
         expect(await otherStore.recordExists('INPUT')).toBe(true);
@@ -143,9 +144,10 @@ describe('fallback to fs for reading', () => {
         const url = await otherStore.getPublicUrl('INPUT');
         expect(url).toMatch(/^file:\/\/.*INPUT\.json$/);
 
-        // Bare files are readable by known key, but listing only ever returns tracked records.
+        // A bare `INPUT.json` is enumerated under its logical key `INPUT`, so the listed key matches
+        // what `getValue` / `recordExists` accept.
         const keys = await otherStore.listKeys();
-        expect(keys.map((item) => item.key)).not.toContain('INPUT');
+        expect(keys.map((item) => item.key)).toContain('INPUT');
     });
 
     test('the bare-file fallback is scoped to INPUT: a non-INPUT bare file is ignored', async () => {
@@ -157,5 +159,25 @@ describe('fallback to fs for reading', () => {
         expect(await nonInputStore.getValue('some-key')).toBeUndefined();
         expect(await nonInputStore.recordExists('some-key')).toBe(false);
         expect(await nonInputStore.getPublicUrl('some-key')).toBeUndefined();
+
+        // `listKeys` only surfaces bare files for the run-input keys, so `some-key` is not enumerated.
+        const keys = await nonInputStore.listKeys();
+        expect(keys.map((item) => item.key)).not.toContain('some-key');
+    });
+
+    test('listKeys does not list a logical key twice when a tracked record and a bare file collide', async () => {
+        const collisionStore = await storage.createKeyValueStoreClient({ name: 'input-collision' });
+
+        // Write a tracked `INPUT` record (value file + metadata sidecar), then drop a sidecar-less bare
+        // `INPUT.json` next to it. Both collapse to the logical key `INPUT`; the native only dedupes
+        // same-named files, so the adapter must drop the duplicate itself.
+        await collisionStore.setValue({ key: 'INPUT', value: 'tracked', contentType: 'text/plain; charset=utf-8' });
+        await writeFile(
+            resolve(storage.keyValueStoresDirectory, 'input-collision/INPUT.json'),
+            JSON.stringify({ foo: 'bare' }),
+        );
+
+        const keys = (await collisionStore.listKeys()).map((item) => item.key);
+        expect(keys.filter((key) => key === 'INPUT')).toHaveLength(1);
     });
 });
