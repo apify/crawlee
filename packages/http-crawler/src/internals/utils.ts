@@ -60,6 +60,18 @@ export function processHttpRequestOptions({
 }
 
 /**
+ * Scans the first 1024 bytes of an HTML document (as latin1) to extract the charset
+ * declared via `<meta charset>` or `<meta http-equiv="Content-Type" content="...;charset=...">`.
+ * This implements a simplified version of the HTML spec's byte-stream prescan algorithm.
+ */
+export function extractCharsetFromHtmlBytes(bytes: Buffer): string | undefined {
+    // latin1 preserves byte values for ASCII-compatible encodings, making the meta tags readable
+    const prescan = bytes.subarray(0, 1024).toString('latin1');
+    const match = /<meta[^>]+\bcharset\s*=\s*["']?\s*([^"'\s;>]+)/i.exec(prescan);
+    return match?.[1];
+}
+
+/**
  * Gets parsed content type from response object
  * @param response HTTP response object
  */
