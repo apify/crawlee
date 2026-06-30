@@ -257,8 +257,8 @@ describe('Sitemap', () => {
             .get('*')
             .reply(404);
 
-        // A cross-host server. Its child sitemap is served so that a *followed* nested reference would
-        // surface `child-page`; under the default `same-hostname` strategy it must never be fetched.
+        // A cross-host server whose child sitemap is served, so a *followed* nested reference would surface
+        // `child-page`. Under the default `same-hostname` strategy it must never be fetched.
         nock('http://other.test')
             .persist()
             .get('/child.xml')

@@ -96,14 +96,9 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      */
     maxBufferSize?: number;
     /**
-     * Strategy used to decide which sitemap-derived URLs (both nested `<sitemap><loc>` entries and
-     * `<url><loc>` entries) are kept relative to the parent sitemap URL. Defaults to `'same-hostname'`,
-     * matching the sitemaps protocol's same-host expectation and the `enqueueLinks` default. Pass `'all'`
-     * to disable host filtering, or `'same-domain'` / `'same-origin'` for other scopes.
-     *
-     * The selected strategy is also stamped onto the emitted `Request` objects, so it keeps being enforced
-     * after navigation (e.g. across redirects). Regardless of the strategy, entries with non-`http(s)`
-     * schemes are always filtered out.
+     * Keep only sitemap-derived URLs matching this strategy relative to the parent sitemap URL; non-`http(s)`
+     * schemes are always dropped. The strategy is also stamped onto emitted `Request`s, so it stays enforced
+     * after navigation (e.g. across redirects). Pass `'all'` to disable host filtering.
      * @default EnqueueStrategy.SameHostname
      */
     enqueueStrategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';

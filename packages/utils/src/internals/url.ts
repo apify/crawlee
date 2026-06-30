@@ -2,13 +2,7 @@ import { getDomain } from 'tldts';
 
 export type SearchParams = string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
 
-/**
- * The enqueue strategy values used to decide whether a target URL is eligible relative to an origin URL.
- *
- * These mirror the string values of the `EnqueueStrategy` enum from `@crawlee/core`. The strategy
- * matching lives here (in the lower-level `@crawlee/utils` package) so that the sitemap and `robots.txt`
- * helpers can apply it without depending on `@crawlee/core`.
- */
+/** Enqueue strategy values, mirroring the `EnqueueStrategy` enum from `@crawlee/core` (which `@crawlee/utils` can't import). */
 export type EnqueueStrategyValue = 'all' | 'same-hostname' | 'same-domain' | 'same-origin';
 
 /** Reusable suffix for log messages explaining why a non-`http(s)` URL was rejected. */
@@ -56,18 +50,8 @@ export function matchesEnqueueStrategy(strategy: EnqueueStrategyValue, target: U
 }
 
 /**
- * Check whether `target` is eligible to be enqueued under `strategy` relative to `origin`.
- *
- * Combines the two checks every enqueue site needs: the URL must use a supported scheme (`http` or
- * `https`), and it must match `strategy` relative to `origin`. Callers that need to distinguish a
- * scheme rejection from a strategy mismatch can compare the returned reason against
- * {@apilink UNSUPPORTED_SCHEME_MESSAGE}.
- *
- * @param target The URL being evaluated.
- * @param origin The reference URL the target is compared against.
- * @param strategy The enqueue strategy to apply.
- * @returns `{ allowed: true }` if `target` is eligible, otherwise `{ allowed: false, reason }` where
- *   `reason` is a human-readable rejection message suitable for log output.
+ * Check whether `target` may be enqueued under `strategy` relative to `origin`: it must use an `http(s)`
+ * scheme and match the strategy. On rejection, `reason` is a human-readable message for log output.
  */
 export function filterUrl(
     target: string | URL,

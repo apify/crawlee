@@ -195,9 +195,8 @@ beforeAll(async () => {
     });
 
     // --- Fixtures for the enqueue-strategy filtering tests ---
-    // The server is reachable both as `localhost` and `127.0.0.1`, which are distinct hostnames. We use
-    // the `127.0.0.1` variant as a reachable "cross-host" target, so the tests can tell a dropped entry
-    // (never fetched) apart from one that was fetched but failed.
+    // The server answers on both `localhost` and `127.0.0.1` (distinct hostnames), so the `127.0.0.1`
+    // variant is a reachable "cross-host" target — a dropped entry is distinguishable from a failed fetch.
 
     // urlset mixing a same-host and a cross-host URL entry
     app.get('/cross-host-content.xml', async (req, res) => {
@@ -337,7 +336,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('teardown works', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -395,7 +397,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('draining the request list between sitemaps', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -430,7 +435,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('for..await syntax works with SitemapRequestList', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -622,8 +630,7 @@ describe('SitemapRequestList', () => {
         const restoredRequest = await newList.fetchNextRequest();
 
         expect(restoredRequest!.url).toEqual(firstLoadedUrl);
-        // `toMatchObject` (not `toEqual`): the request also carries internal `__crawlee` bookkeeping
-        // (the stamped enqueue strategy), so we assert the user payload round-trips rather than exact equality.
+        // `toMatchObject` (not `toEqual`): the request also carries internal `__crawlee` bookkeeping (the stamped strategy).
         expect(restoredRequest!.userData).toMatchObject(userDataPayload);
     });
 

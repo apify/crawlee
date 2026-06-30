@@ -203,13 +203,9 @@ export interface ParseSitemapOptions {
      */
     nestedSitemapFilter?: (sitemapUrl: string) => boolean;
     /**
-     * Strategy used to decide which sitemap-derived URLs (both nested `<sitemap><loc>` entries and
-     * `<url><loc>` entries) are kept relative to the parent sitemap URL. Defaults to `'same-hostname'`,
-     * matching the sitemaps protocol's same-host expectation and the `enqueueLinks` default. Pass `'all'`
-     * to disable host filtering, or `'same-domain'` / `'same-origin'` for other scopes.
-     *
-     * Regardless of the strategy, entries with non-`http(s)` schemes are always filtered out. The filter
-     * only applies to URL sources (it is skipped for raw string content, which has no parent URL).
+     * Keep only sitemap-derived URLs (nested `<sitemap>` and `<url>` entries) matching this strategy
+     * relative to the parent sitemap URL; non-`http(s)` schemes are always dropped. Skipped for raw string
+     * sources (no parent URL). Pass `'all'` to disable host filtering.
      * @default 'same-hostname'
      */
     enqueueStrategy?: EnqueueStrategyValue;
@@ -366,9 +362,8 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                     continue;
                 }
 
-                // Keep only nested sitemaps that match the enqueue strategy (and use an http(s) scheme)
-                // relative to the parent sitemap URL. Raw string sources have no parent URL, so the
-                // check is skipped for them.
+                // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
+                // parent. Raw string sources have no parent URL, so the check is skipped.
                 if (source.type === 'url') {
                     const { allowed, reason } = filterUrl(item.url, source.url, enqueueStrategy);
                     if (!allowed) {

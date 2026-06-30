@@ -115,12 +115,8 @@ export class RobotsTxtFile {
     }
 
     /**
-     * Get URLs of sitemaps referenced in the robots file.
-     *
-     * @param enqueueStrategy Strategy used to filter sitemap entries relative to the robots.txt URL's host.
-     *   Defaults to `'same-hostname'`, matching the sitemaps protocol's same-host expectation; pass `'all'`
-     *   to disable host filtering. Regardless of the strategy, entries with non-`http(s)` schemes are always
-     *   filtered out.
+     * Get URLs of sitemaps referenced in the robots file, filtered by `enqueueStrategy` relative to the
+     * robots.txt host (default `'same-hostname'`; pass `'all'` to disable). Non-`http(s)` schemes are always dropped.
      */
     getSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): string[] {
         const origin = new URL(this.url);
@@ -139,10 +135,8 @@ export class RobotsTxtFile {
     }
 
     /**
-     * Parse all the sitemaps referenced in the robots file.
-     *
-     * @param enqueueStrategy Forwarded to {@apilink RobotsTxtFile.getSitemaps|`getSitemaps`} and to the
-     *   sitemap parser; see `getSitemaps` for details.
+     * Parse all the sitemaps referenced in the robots file. `enqueueStrategy` is forwarded to `getSitemaps`
+     * and the sitemap parser.
      */
     async parseSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): Promise<Sitemap> {
         return Sitemap.load(this.getSitemaps(enqueueStrategy), this.proxyUrl, { enqueueStrategy });
@@ -150,9 +144,7 @@ export class RobotsTxtFile {
 
     /**
      * Get all URLs from all the sitemaps referenced in the robots file. A shorthand for `(await robots.parseSitemaps()).urls`.
-     *
-     * @param enqueueStrategy Forwarded to {@apilink RobotsTxtFile.parseSitemaps|`parseSitemaps`}; see
-     *   {@apilink RobotsTxtFile.getSitemaps|`getSitemaps`} for details.
+     * `enqueueStrategy` is forwarded to `parseSitemaps`.
      */
     async parseUrlsFromSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): Promise<string[]> {
         return (await this.parseSitemaps(enqueueStrategy)).urls;
