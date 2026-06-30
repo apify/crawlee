@@ -50,14 +50,6 @@ export interface DatasetInfo {
     modifiedAt: Date;
     accessedAt: Date;
     itemCount: number;
-    actId?: string;
-    actRunId?: string;
-}
-export interface DatasetStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    storageBytes?: number;
 }
 
 export interface DatasetClient<Data extends Dictionary = Dictionary> {
@@ -83,24 +75,12 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     getData(options?: DatasetClientListOptions): Promise<PaginatedList<Data>>;
 }
 
-export interface KeyValueStoreStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    listCount?: number;
-    storageBytes?: number;
-}
-
 export interface KeyValueStoreInfo {
     id: string;
     name?: string;
-    userId?: string;
     createdAt: Date;
     modifiedAt: Date;
     accessedAt: Date;
-    actId?: string;
-    actRunId?: string;
-    stats?: KeyValueStoreStats;
 }
 
 /**
@@ -231,29 +211,15 @@ export interface KeyValueStoreClient {
     recordExists(key: string): Promise<boolean>;
 }
 
-export interface RequestQueueStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    headItemReadCount?: number;
-    storageBytes?: number;
-}
-
 export interface RequestQueueInfo {
     id: string;
     name?: string;
-    userId?: string;
     createdAt: Date;
     modifiedAt: Date;
     accessedAt: Date;
-    expireAt?: string;
     totalRequestCount: number;
     handledRequestCount: number;
     pendingRequestCount: number;
-    actId?: string;
-    actRunId?: string;
-    hadMultipleClients?: boolean;
-    stats?: RequestQueueStats;
 }
 
 export interface RequestOptions {
