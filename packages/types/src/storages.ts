@@ -133,6 +133,8 @@ export interface KeyValueStoreListKeysOptions {
 export interface KeyValueStoreItemData {
     key: string;
     size: number;
+    /** The MIME content type the record was stored with, if known. */
+    contentType: string;
 }
 
 /**
